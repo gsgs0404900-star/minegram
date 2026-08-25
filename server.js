@@ -19,7 +19,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(__dirname, {
+app.use(express.static(__dirname, {index: false}));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
 function client(token = null) {
