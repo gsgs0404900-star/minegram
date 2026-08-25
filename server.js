@@ -4,25 +4,41 @@ import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3000;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PORT = Number(process.env.PORT) || 3000;
+
+// Render Environment Variables are injected directly into process.env.
+// Support both the new Supabase publishable key and the legacy anon key.
+function env(name) {
+  const value = process.env[name];
+  if (value == null) return "";
+  return String(value).trim().replace(/^([\"\'])|([\"\'])$/g, "");
+}
+
+const SUPABASE_URL = env("SUPABASE_URL");
+const SUPABASE_KEY = env("SUPABASE_PUBLISHABLE_KEY") || env("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
 const BUCKET = "media";
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY/.ANON_KEY tanımlı değil. .env dosyanı oluştur.");
-  process.exit(1);
+const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY);
+if (!CONFIG_OK) {
+  console.error("Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY (veya SUPABASE_ANON_KEY) gerekli.");
 }
 
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+
+// Support both layouts: public/index.html and a root index.html.
+const publicDir = path.join(__dirname, "public");
+const rootIndex = path.join(__dirname, "index.html");
+app.use(express.static(publicDir));
+app.use(express.static(__dirname));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
 function client(token = null) {
+  if (!CONFIG_OK) throw new Error("Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et.");
   const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
   if (token) options.global = { headers: { Authorization: `Bearer ${token}` } };
   return createClient(SUPABASE_URL, SUPABASE_KEY, options);
@@ -184,22 +200,10 @@ app.post("/api/login", async (req, res) => {
       if (authError || !authUser?.user?.email) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
       email = authUser.user.email;
     }
-    const loginEmail = String(email).trim().toLowerCase();
-    console.log("[LOGIN] attempt:", { identifier, resolvedEmail: loginEmail, serviceRoleConfigured: !!SUPABASE_SERVICE_ROLE_KEY });
-
     const { data, error } = await anon.auth.signInWithPassword({
-      email: loginEmail,
+      email: String(email).trim().toLowerCase(),
       password
     });
-
-    if (error) {
-      console.error("[LOGIN] Supabase signInWithPassword error:", {
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        code: error.code
-      });
-    }
 
     if (error || !data?.session) {
       const msg = error?.message || "Giriş başarısız.";
@@ -420,5 +424,11 @@ app.patch("/api/settings", auth, async (req,res)=>{
   }catch(e){res.status(400).json({error:e.message});}
 });
 
-app.use((req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.use((req, res) => {
+  // Prefer public/index.html when it exists; otherwise serve root index.html.
+  const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
+    ? path.join(publicDir, "index.html")
+    : rootIndex;
+  res.sendFile(indexPath);
+});
 app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
