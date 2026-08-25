@@ -408,5 +408,5 @@ app.patch("/api/settings", auth, async (req,res)=>{
   }catch(e){res.status(400).json({error:e.message});}
 });
 
-app.use((req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.use((req, res) => {res.sendFile(path.join(__dirname, "index.html"));});
 app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
