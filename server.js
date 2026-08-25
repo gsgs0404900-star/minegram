@@ -19,7 +19,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(__dirname, {index: false}));
+app.use(express.static(path.join(__dirname, "public")));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
 function client(token = null) {
@@ -184,10 +184,22 @@ app.post("/api/login", async (req, res) => {
       if (authError || !authUser?.user?.email) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
       email = authUser.user.email;
     }
+    const loginEmail = String(email).trim().toLowerCase();
+    console.log("[LOGIN] attempt:", { identifier, resolvedEmail: loginEmail, serviceRoleConfigured: !!SUPABASE_SERVICE_ROLE_KEY });
+
     const { data, error } = await anon.auth.signInWithPassword({
-      email: String(email).trim().toLowerCase(),
+      email: loginEmail,
       password
     });
+
+    if (error) {
+      console.error("[LOGIN] Supabase signInWithPassword error:", {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        code: error.code
+      });
+    }
 
     if (error || !data?.session) {
       const msg = error?.message || "Giriş başarısız.";
@@ -408,5 +420,5 @@ app.patch("/api/settings", auth, async (req,res)=>{
   }catch(e){res.status(400).json({error:e.message});}
 });
 
-app.use((req, res) => {res.sendFile(path.join(__dirname, "index.html"));});
+app.use((req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
