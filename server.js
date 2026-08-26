@@ -3,137 +3,118 @@ import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
-import crypto from "crypto";
-import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 
-// Render Environment Variables are injected directly into process.env.
-// Support both the new Supabase publishable key and the legacy anon key.
 function env(name) {
   const value = process.env[name];
   if (value == null) return "";
-  return String(value).trim().replace(/^([\"\'])|([\"\'])$/g, "");
+  return String(value).trim().replace(/^([\"'])|([\"'])$/g, "");
 }
 
 const SUPABASE_URL = env("SUPABASE_URL");
 const SUPABASE_KEY = env("SUPABASE_PUBLISHABLE_KEY") || env("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
-const BUCKET = "media";
-
-const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY);
-if (!CONFIG_OK) {
-  console.error("Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY (veya SUPABASE_ANON_KEY) gerekli.");
-}
+const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY && SUPABASE_SERVICE_ROLE_KEY);
 
 app.use(express.json({ limit: "2mb" }));
-
-// Support both layouts: public/index.html and a root index.html.
-const publicDir = path.join(__dirname, "public");
-const rootIndex = path.join(__dirname, "index.html");
-app.use(express.static(publicDir));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(__dirname));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+void upload;
 
-function client(token = null) {
-  if (!CONFIG_OK) throw new Error("Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et.");
-  const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
-  if (token) options.global = { headers: { Authorization: `Bearer ${token}` } };
-  return createClient(SUPABASE_URL, SUPABASE_KEY, options);
+function anonClient() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error("Supabase yapılandırması eksik.");
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 }
 
-function bearer(req) {
-  const h = req.headers.authorization || "";
-  return h.startsWith("Bearer ") ? h.slice(7) : null;
+function adminClient() {
+  if (!CONFIG_OK) throw new Error("Supabase ortam değişkenleri eksik.");
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 }
 
-async function auth(req, res, next) {
-  try {
-    const token = bearer(req);
-    if (!token) throw new Error("Oturum gerekli");
-    const sb = client(token);
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (error || !user) throw error || new Error("Oturum gerekli");
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).single();
-    if (pError || !profile) throw pError || new Error("Profil bulunamadı");
-    req.token = token;
-    req.sb = sb;
-    req.authUser = user;
-    req.user = profile;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: "Oturum gerekli" });
-  }
+function normalizeUsername(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
 }
 
-function safeUser(u) {
+function safeProfile(profile) {
   return {
-    id: u.id,
-    username: u.username,
-    displayName: u.display_name ?? u.displayName ?? u.username,
-    bio: u.bio || "",
-    avatar: u.avatar_url ?? u.avatar ?? null,
-    verified: !!u.verified,
-    settings: u.settings || {}
+    id: profile.id,
+    authUserId: profile.auth_user_id,
+    username: profile.username,
+    displayName: profile.display_name || profile.username,
+    bio: profile.bio || "",
+    avatar: profile.avatar_url || null,
+    verified: Boolean(profile.verified),
+    settings: profile.settings || {}
   };
 }
 
-function normalizeUsername(x) {
-  return String(x || "").trim().replace(/^@/, "").toLowerCase();
+async function findAuthUserByEmail(admin, email) {
+  const target = email.toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    const user = (data?.users || []).find(
+      (candidate) => String(candidate.email || "").toLowerCase() === target
+    );
+
+    if (user) return user;
+    if (!data?.users || data.users.length < perPage) return null;
+    page += 1;
+  }
 }
 
-async function findProfile(sb, username) {
-  const q = normalizeUsername(username);
-  const { data, error } = await sb.from("profiles").select("*").eq("username", q).maybeSingle();
+async function profileByUsername(admin, username) {
+  const { data, error } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("username", username)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-async function addNotification({ userId, type, fromUserId, postId = null, text }) {
-  if (userId === fromUserId) return;
-  if (!SUPABASE_SERVICE_ROLE_KEY) return;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  await admin.from("notifications").insert({ user_id: userId, type, from_user_id: fromUserId, post_id: postId, text });
+async function profileByOwnerAndUsername(admin, authUserId, username) {
+  const { data, error } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", authUserId)
+    .eq("username", username)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
-async function hydratePosts(sb, posts, userId) {
-  if (!posts.length) return [];
-  const userIds = [...new Set(posts.map(p => p.user_id))];
-  const postIds = posts.map(p => p.id);
-  const [{ data: profiles }, { data: likes }, { data: comments }, { data: saves }] = await Promise.all([
-    sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").in("id", userIds),
-    sb.from("post_likes").select("post_id,user_id").in("post_id", postIds),
-    sb.from("comments").select("id,post_id,user_id,text,created_at,profiles(username,display_name)").in("post_id", postIds).order("created_at", { ascending: true }),
-    sb.from("saves").select("post_id,user_id").eq("user_id", userId).in("post_id", postIds)
-  ]);
-  const pmap = new Map((profiles || []).map(p => [p.id, p]));
-  const likeMap = new Map();
-  for (const l of likes || []) likeMap.set(l.post_id, (likeMap.get(l.post_id) || 0) + 1);
-  const liked = new Set((likes || []).filter(x => x.user_id === userId).map(x => x.post_id));
-  const saved = new Set((saves || []).map(x => x.post_id));
-  const commentsMap = new Map();
-  for (const c of comments || []) {
-    if (!commentsMap.has(c.post_id)) commentsMap.set(c.post_id, []);
-    commentsMap.get(c.post_id).push({ id: c.id, userId: c.user_id, text: c.text, createdAt: c.created_at, username: c.profiles?.username || "" });
-  }
-  return posts.map(p => ({
-    id: p.id, userId: p.user_id, caption: p.caption, media: p.media_url, mediaName: p.media_name, mediaType: p.media_type,
-    createdAt: p.created_at, likes: Array(likeMap.get(p.id) || 0).fill(null), comments: commentsMap.get(p.id) || [],
-    likedByMe: liked.has(p.id), savedByMe: saved.has(p.id), user: safeUser(pmap.get(p.user_id) || { id: p.user_id, username: "user" })
-  }));
-}
-
+/*
+ * Multi-profile registration:
+ *
+ * - A new email creates one Supabase Auth user and its first Minegram profile.
+ * - An existing email is NOT rejected. The password is verified against the
+ *   existing Auth user, then a new independent profiles row is created.
+ * - profiles.id is a new UUID; profiles.auth_user_id points to auth.users.id.
+ */
 app.post("/api/register", async (req, res) => {
   try {
+    if (!CONFIG_OK) {
+      return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
+    }
+
     const username = normalizeUsername(req.body?.username);
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
-    const displayName = String(req.body?.displayName || username)
-      .trim()
-      .slice(0, 80);
+    const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
 
     if (!username || !email || password.length < 6) {
       return res.status(400).json({
@@ -147,41 +128,21 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({
-        error: "SUPABASE_SERVICE_ROLE_KEY eksik."
-      });
+    const admin = adminClient();
+
+    // Username is globally unique across Minegram profiles.
+    const existingProfile = await profileByUsername(admin, username);
+    if (existingProfile) {
+      return res.status(409).json({ error: "Bu kullanıcı adı zaten alınmış." });
     }
 
-    const anon = client();
+    let authUser = await findAuthUserByEmail(admin, email);
+    let createdAuthUser = false;
 
-    // Kullanıcı adı daha önce alınmış mı?
-    const { data: existing } = await anon
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (existing) {
-      return res.status(409).json({
-        error: "Bu kullanıcı adı zaten alınmış."
-      });
-    }
-
-    // Service Role ile Auth kullanıcısını oluştur.
-    const admin = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false
-        }
-      }
-    );
-
-    const { data: authData, error: authError } =
-      await admin.auth.admin.createUser({
+    if (!authUser) {
+      // First profile for this email. The DB trigger may create the first
+      // profile automatically; we reuse it instead of creating a duplicate.
+      const { data, error } = await admin.auth.admin.createUser({
         email,
         password,
         email_confirm: false,
@@ -191,60 +152,106 @@ app.post("/api/register", async (req, res) => {
         }
       });
 
-    if (authError) {
-      return res.status(400).json({
-        error: authError.message
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      authUser = data?.user || null;
+      createdAuthUser = true;
+    } else {
+      // Existing email: prove that the person knows the Auth password before
+      // allowing a new Minegram profile to be attached to the same email.
+      const auth = anonClient();
+      const { data, error } = await auth.auth.signInWithPassword({
+        email,
+        password
       });
+
+      if (error || !data?.user) {
+        return res.status(401).json({
+          error: "Bu e-posta zaten kayıtlı. Yeni profil oluşturmak için mevcut hesabın şifresini doğru gir."
+        });
+      }
+
+      authUser = data.user;
     }
 
-    const user = authData?.user;
-
-    if (!user?.id) {
-      return res.status(400).json({
-        error: "Kullanıcı oluşturulamadı."
-      });
+    if (!authUser?.id) {
+      return res.status(500).json({ error: "Auth kullanıcısı oluşturulamadı." });
     }
 
-    // profiles.id kesinlikle auth.users.id ile aynı olacak.
-    const { error: profileError } = await admin
-      .from("profiles")
-      .insert({
-        id: user.id,
-        username,
-        display_name: displayName,
-        bio: "",
-        avatar_url: null,
-        verified: false,
-        settings: {}
-      });
+    // If the trigger already created exactly this requested first profile,
+    // reuse it. Otherwise create a new profile for the same Auth user.
+    let profile = await profileByOwnerAndUsername(admin, authUser.id, username);
 
-    if (profileError) {
-      // Profil oluşturulamazsa oluşturduğumuz Auth kullanıcısını da temizle.
-      await admin.auth.admin.deleteUser(user.id);
+    if (!profile) {
+      const { data, error } = await admin
+        .from("profiles")
+        .insert({
+          id: cryptoRandomUuid(),
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        })
+        .select("*")
+        .single();
 
-      return res.status(500).json({
-        error: `Profil oluşturulamadı: ${profileError.message}`
-      });
+      if (error) {
+        // If this was a newly-created Auth user, do not leave a half-created
+        // account behind when the requested profile cannot be inserted.
+        if (createdAuthUser) {
+          await admin.auth.admin.deleteUser(authUser.id).catch(() => {});
+        }
+        return res.status(500).json({
+          error: `Profil oluşturulamadı: ${error.message}`
+        });
+      }
+
+      profile = data;
     }
 
     return res.json({
-      needsConfirmation: true,
-      message:
-        "Kayıt tamamlandı. E-posta adresine gönderilen doğrulama bağlantısını aç.",
+      needsConfirmation: !authUser.email_confirmed_at,
+      multipleProfiles: true,
+      message: authUser.email_confirmed_at
+        ? "Yeni Minegram profilin oluşturuldu."
+        : "Profil oluşturuldu. E-posta doğrulaması gerekiyorsa doğrulama bağlantısını aç.",
       user: {
-        id: user.id,
-        email: user.email,
-        username
+        id: profile.id,
+        authUserId: authUser.id,
+        email: authUser.email,
+        username: profile.username,
+        profile: safeProfile(profile)
       }
     });
-
-  } catch (e) {
-    console.error("REGISTER ERROR:", e);
-
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
     return res.status(500).json({
-      error: e.message || "Kayıt başarısız."
+      error: error?.message || "Kayıt başarısız."
     });
   }
+});
+
+function cryptoRandomUuid() {
+  // crypto.randomUUID is available in Node 24, but keeping this isolated makes
+  // the intent explicit and avoids importing the whole crypto namespace.
+  return globalThis.crypto?.randomUUID?.() || fallbackUuid();
+}
+
+function fallbackUuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, multiProfile: true });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
