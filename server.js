@@ -245,4 +245,4 @@ app.post("/api/register", async (req, res) => {
       error: e.message || "Kayıt başarısız."
     });
   }
-});
+});\n\napp.listen(PORT, "0.0.0.0", () => {\n  console.log(`Minegram server running on port ${PORT}`);\n});\n
