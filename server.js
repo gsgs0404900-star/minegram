@@ -216,7 +216,7 @@ app.post("/api/login", async (req, res) => {
     const selected = identifier.includes("@") ? safe[0] : (safe.find(x => x.username === normalizeUsername(identifier)) || safe[0]);
     return res.json({ ok:true, multipleProfiles:safe.length>1, profiles:safe, profile:selected, token:sd.session.access_token, user:selected });
   } catch (e) { console.error("LOGIN ERROR:",e); return res.status(500).json({ error:e?.message || "Giriş başarısız." }); }
-}););
+});
 
 app.post("/api/forgot", async (req, res) => {
   try {
