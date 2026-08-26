@@ -131,428 +131,118 @@ app.post("/api/register", async (req, res) => {
     const username = normalizeUsername(req.body?.username);
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
-    const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
-    if (!username || !email || password.length < 6) return res.status(400).json({ error: "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli." });
-    if (!/^[a-z0-9._]{3,30}$/.test(username)) return res.status(400).json({ error: "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan." });
-    const anon = client();
-    const { data: existing } = await anon.from("profiles").select("id").eq("username", username).maybeSingle();
-    if (existing) return res.status(409).json({ error: "Bu kullanıcı adı zaten alınmış." });
-    const { data, error } = await anon.auth.signUp({ email, password, options: { data: { username, display_name: displayName } } });
-    if (error) return res.status(400).json({ error: error.message });
-    if (!data.user) return res.status(400).json({ error: "Kullanıcı oluşturulamadı." });
+    const displayName = String(req.body?.displayName || username)
+      .trim()
+      .slice(0, 80);
 
-    // Profil oluşturmayı SQL trigger'ına bırakma; Service Role ile sunucu tarafında garanti et.
-    if (SUPABASE_SERVICE_ROLE_KEY) {
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
+    if (!username || !email || password.length < 6) {
+      return res.status(400).json({
+        error: "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli."
       });
-      const { error: profileError } = await admin.from("profiles").upsert({
-        id: data.user.id,
+    }
+
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({
+        error: "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan."
+      });
+    }
+
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({
+        error: "SUPABASE_SERVICE_ROLE_KEY eksik."
+      });
+    }
+
+    const anon = client();
+
+    // Kullanıcı adı daha önce alınmış mı?
+    const { data: existing } = await anon
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({
+        error: "Bu kullanıcı adı zaten alınmış."
+      });
+    }
+
+    // Service Role ile Auth kullanıcısını oluştur.
+    const admin = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    );
+
+    const { data: authData, error: authError } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: false,
+        user_metadata: {
+          username,
+          display_name: displayName
+        }
+      });
+
+    if (authError) {
+      return res.status(400).json({
+        error: authError.message
+      });
+    }
+
+    const user = authData?.user;
+
+    if (!user?.id) {
+      return res.status(400).json({
+        error: "Kullanıcı oluşturulamadı."
+      });
+    }
+
+    // profiles.id kesinlikle auth.users.id ile aynı olacak.
+    const { error: profileError } = await admin
+      .from("profiles")
+      .insert({
+        id: user.id,
         username,
         display_name: displayName,
         bio: "",
         avatar_url: null,
         verified: false,
         settings: {}
-      }, { onConflict: "id" });
-      if (profileError) return res.status(500).json({ error: `Profil oluşturulamadı: ${profileError.message}` });
-    }
+      });
 
-    // E-posta doğrulaması açıksa Supabase session döndürmeyebilir.
-    if (!data.session) {
-      return res.json({
-        needsConfirmation: true,
-        message: "Kayıt tamamlandı. E-posta adresini doğrula, ardından giriş yap.",
-        user: { id: data.user.id, email: data.user.email, username }
+    if (profileError) {
+      // Profil oluşturulamazsa oluşturduğumuz Auth kullanıcısını da temizle.
+      await admin.auth.admin.deleteUser(user.id);
+
+      return res.status(500).json({
+        error: `Profil oluşturulamadı: ${profileError.message}`
       });
     }
 
-    const sb = client(data.session.access_token);
-    let { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-
-    if ((pError || !profile) && SUPABASE_SERVICE_ROLE_KEY) {
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      const result = await admin.from("profiles").select("*").eq("id", data.user.id).single();
-      profile = result.data;
-      pError = result.error;
-    }
-    if (pError || !profile) return res.status(500).json({ error: "Profil oluşturulamadı." });
-    res.json({ token: data.session.access_token, user: safeUser(profile) });
-  } catch (e) { res.status(500).json({ error: e.message || "Kayıt başarısız" }); }
-});
-
-app.post("/api/login", async (req, res) => {
-  try {
-    const identifier = String(req.body?.username || "").trim();
-    const password = String(req.body?.password || "");
-    if (!identifier || !password) return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
-    const anon = client();
-    let email = identifier.toLowerCase();
-    if (!identifier.includes("@")) {
-      const profile = await findProfile(anon, identifier);
-      if (!profile) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "Kullanıcı adıyla giriş için .env dosyasına SUPABASE_SERVICE_ROLE_KEY eklenmeli." });
+    return res.json({
+      needsConfirmation: true,
+      message:
+        "Kayıt tamamlandı. E-posta adresine gönderilen doğrulama bağlantısını aç.",
+      user: {
+        id: user.id,
+        email: user.email,
+        username
       }
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-      const { data: authUser, error: authError } = await admin.auth.admin.getUserById(profile.id);
-      if (authError || !authUser?.user?.email) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
-      email = authUser.user.email;
-    }
-    const { data, error } = await anon.auth.signInWithPassword({
-      email: String(email).trim().toLowerCase(),
-      password
     });
 
-    if (error || !data?.session) {
-      const msg = error?.message || "Giriş başarısız.";
-      if (/email not confirmed/i.test(msg)) {
-        return res.status(403).json({
-          error: "E-posta adresin henüz doğrulanmamış. Supabase doğrulama e-postasındaki bağlantıyı aç."
-        });
-      }
-      if (/invalid login credentials/i.test(msg)) {
-        return res.status(401).json({
-          error: "E-posta/kullanıcı adı veya şifre hatalı. Şifreni Reset Password ile yeniden belirleyebilirsin."
-        });
-      }
-      return res.status(401).json({ error: msg });
-    }
-    const sb = client(data.session.access_token);
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-    if (pError) return res.status(500).json({ error: "Profil bulunamadı." });
-    res.json({ token: data.session.access_token, user: safeUser(profile) });
-  } catch (e) { res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." }); }
-});
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
 
-app.post("/api/forgot", async (req, res) => {
-  try {
-    const identifier = String(req.body?.identifier || "").trim();
-    const anon = client();
-    let email = identifier;
-    if (!identifier.includes("@")) {
-      if (!SUPABASE_SERVICE_ROLE_KEY) return res.status(200).json({ ok: true });
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-      const profile = await findProfile(anon, identifier);
-      if (!profile) return res.status(200).json({ ok: true });
-      const { data, error } = await admin.auth.admin.getUserById(profile.id);
-      if (error || !data?.user?.email) return res.status(200).json({ ok: true });
-      email = data.user.email;
-    }
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/reset-password` });
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ ok: true });
-  } catch { res.json({ ok: true }); }
-});
-
-
-// Public auth configuration for the browser-side Supabase recovery flow.
-app.get("/api/auth-config", (req, res) => {
-  if (!CONFIG_OK) return res.status(500).json({ error: "Supabase yapılandırması eksik." });
-  res.json({ url: SUPABASE_URL, key: SUPABASE_KEY });
-});
-
-const recoveryCodes = new Map();
-function publicOrigin(req) {
-  const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
-  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
-}
-function maskEmail(email) {
-  const [u, d] = String(email).split("@");
-  if (!u || !d) return email;
-  const shown = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "*".repeat(Math.max(1, u.length - 2));
-  return `${shown}@${d}`;
-}
-function normalizeRecoveryPhone(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  return digits.length > 10 ? digits.slice(-10) : digits;
-}
-
-async function findUserByPhone(phone) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  const wanted = normalizeRecoveryPhone(phone);
-  if (!wanted || wanted.length < 10) return null;
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const users = data?.users || [];
-    const found = users.find(u => normalizeRecoveryPhone(u.phone) === wanted);
-    if (found) return found;
-    if (users.length < 1000) break;
+    return res.status(500).json({
+      error: e.message || "Kayıt başarısız."
+    });
   }
-  return null;
-}
-
-async function resolveRecoveryEmail(identifier, mode = "email") {
-  const anon = client();
-  const raw = String(identifier || "").trim();
-  let email = raw;
-  let profile = null;
-
-  if (mode === "phone") {
-    const authUser = await findUserByPhone(raw);
-    if (!authUser?.email) return null;
-    email = authUser.email;
-    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("id", authUser.id).maybeSingle();
-    profile = data || null;
-    return { email, profile, authUser };
-  }
-
-  if (!email.includes("@")) {
-    profile = await findProfile(anon, email);
-    if (!profile) return null;
-    if (!SUPABASE_SERVICE_ROLE_KEY) return null;
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error } = await admin.auth.admin.getUserById(profile.id);
-    if (error || !data?.user?.email) return null;
-    email = data.user.email;
-  }
-  if (!profile) {
-    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("email", email).maybeSingle();
-    profile = data || null;
-  }
-  return { email, profile };
-}
-async function sendResendEmail(to, subject, html, text) {
-  const key = String(process.env.RESEND_API_KEY || "").trim();
-  if (!key) throw new Error("RESEND_API_KEY eksik.");
-  const from = String(process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev").trim();
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, text })
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.message || "E-posta gönderilemedi.");
-  return j;
-}
-
-app.post("/api/forgot/start", async (req, res) => {
-  try {
-    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
-    if (!found) return res.status(404).json({ error: "Hesap bulunamadı." });
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    recoveryCodes.set(found.email.toLowerCase(), { code, expires: Date.now() + 10 * 60 * 1000, profile: found.profile });
-    await sendResendEmail(
-      found.email,
-      "Minegram doğrulama kodun",
-      `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Şifre sıfırlama işlemin için doğrulama kodun:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
-      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-    );
-    res.json({ ok: true, email: found.email, maskedEmail: maskEmail(found.email) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
 });
-
-app.post("/api/forgot/verify", async (req, res) => {
-  try {
-    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
-    const entry = found && recoveryCodes.get(found.email.toLowerCase());
-    if (!entry || entry.expires < Date.now() || entry.code !== String(req.body?.code || "").trim()) {
-      return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
-    }
-    recoveryCodes.delete(found.email.toLowerCase());
-    const p = entry.profile || found.profile || {};
-    res.json({ ok: true, email: found.email, account: { username: p.username || "minegram", email: found.email, displayName: p.display_name || p.displayName || "" } });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/forgot/send-reset", async (req, res) => {
-  try {
-    const email = String(req.body?.email || "").trim();
-    if (!email) return res.status(400).json({ error: "E-posta gerekli." });
-    const anon = client();
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/reset-password` });
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/me", auth, (req, res) => res.json(safeUser(req.user)));
-
-app.get("/api/feed", auth, async (req, res) => {
-  try {
-    const { data, error } = await req.sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
-    if (error) throw error;
-    res.json(await hydratePosts(req.sb, data || [], req.user.id));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
-  try {
-    let mediaUrl = null;
-    let mediaName = null;
-    let mediaType = null;
-    if (req.file) {
-      const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
-      const objectPath = `${req.user.id}/${crypto.randomUUID()}${ext}`;
-      const { error: uploadError } = await req.sb.storage.from(BUCKET).upload(objectPath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
-      if (uploadError) throw uploadError;
-      const { data: publicData } = req.sb.storage.from(BUCKET).getPublicUrl(objectPath);
-      mediaUrl = publicData.publicUrl;
-      mediaName = req.file.originalname;
-      mediaType = req.file.mimetype;
-    }
-    const { data, error } = await req.sb.from("posts").insert({ user_id: req.user.id, caption: req.body?.caption || "", media_url: mediaUrl, media_name: mediaName, media_type: mediaType }).select("*").single();
-    if (error) throw error;
-    res.json({ ...data, id: data.id, userId: data.user_id, media: data.media_url, mediaName: data.media_name, createdAt: data.created_at });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/like", auth, async (req, res) => {
-  try {
-    const { data: existing } = await req.sb.from("post_likes").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
-    if (existing) {
-      await req.sb.from("post_likes").delete().eq("post_id", req.params.id).eq("user_id", req.user.id);
-      return res.json({ liked: false });
-    }
-    const { error } = await req.sb.from("post_likes").insert({ post_id: req.params.id, user_id: req.user.id });
-    if (error) throw error;
-    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
-    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "like", postId: req.params.id, text: `@${req.user.username} beğendi` });
-    res.json({ liked: true });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/comments", auth, async (req, res) => {
-  try {
-    const text = String(req.body?.text || "").trim();
-    if (!text) return res.status(400).json({ error: "Yorum boş olamaz" });
-    const { data, error } = await req.sb.from("comments").insert({ post_id: req.params.id, user_id: req.user.id, text }).select("*").single();
-    if (error) throw error;
-    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
-    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "comment", postId: req.params.id, text: `@${req.user.username} yorum yaptı` });
-    res.json({ id: data.id, userId: data.user_id, text: data.text, createdAt: data.created_at, username: req.user.username });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/save", auth, async (req, res) => {
-  try {
-    const { data: existing } = await req.sb.from("saves").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
-    if (existing) { await req.sb.from("saves").delete().eq("post_id", req.params.id).eq("user_id", req.user.id); return res.json({ saved: false }); }
-    const { error } = await req.sb.from("saves").insert({ post_id: req.params.id, user_id: req.user.id });
-    if (error) throw error;
-    res.json({ saved: true });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.get("/api/saved", auth, async (req, res) => {
-  try {
-    const { data: saves, error } = await req.sb.from("saves").select("post_id,created_at").eq("user_id", req.user.id).order("created_at", { ascending: false });
-    if (error) throw error;
-    const ids = (saves || []).map(x => x.post_id);
-    if (!ids.length) return res.json([]);
-    const { data: posts, error: pError } = await req.sb.from("posts").select("*").in("id", ids);
-    if (pError) throw pError;
-    const hydrated = await hydratePosts(req.sb, posts || [], req.user.id);
-    res.json(hydrated.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/notifications", auth, async (req, res) => {
-  try {
-    const { data, error } = await req.sb.from("notifications").select("*").eq("user_id", req.user.id).order("created_at", { ascending: false }).limit(50);
-    if (error) throw error;
-    res.json((data || []).map(n => ({ id:n.id, type:n.type, text:n.text, read:n.read, createdAt:n.created_at })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.post("/api/notifications/read", auth, async (req, res) => {
-  try { await req.sb.from("notifications").update({ read:true }).eq("user_id", req.user.id); res.json({ok:true}); }
-  catch(e){ res.status(400).json({error:e.message}); }
-});
-
-app.post("/api/users/:username/follow", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    if (target.id === req.user.id) return res.status(400).json({ error: "Kendini takip edemezsin" });
-    const { data: existing } = await req.sb.from("follows").select("follower_id,following_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle();
-    if (existing) { await req.sb.from("follows").delete().eq("follower_id", req.user.id).eq("following_id", target.id); return res.json({ following:false }); }
-    const { error } = await req.sb.from("follows").insert({ follower_id:req.user.id, following_id:target.id });
-    if (error) throw error;
-    await addNotification({ userId:target.id, fromUserId:req.user.id, type:"follow", text:`@${req.user.username} seni takip etti` });
-    res.json({ following:true });
-  } catch(e){ res.status(400).json({error:e.message}); }
-});
-
-app.get("/api/users/:username/posts", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    const { data, error } = await req.sb.from("posts").select("*").eq("user_id", target.id).order("created_at", { ascending:false });
-    if(error) throw error;
-    res.json(await hydratePosts(req.sb, data || [], req.user.id));
-  } catch(e){ res.status(500).json({error:e.message}); }
-});
-
-app.get("/api/users/:username", auth, async (req,res)=>{
-  try{
-    const target = await findProfile(req.sb, req.params.username);
-    if(!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    const [{ count:postCount }, { count:followers }, { count:following }, { data:followingByMe }] = await Promise.all([
-      req.sb.from("posts").select("id", {count:"exact", head:true}).eq("user_id", target.id),
-      req.sb.from("follows").select("follower_id", {count:"exact", head:true}).eq("following_id", target.id),
-      req.sb.from("follows").select("following_id", {count:"exact", head:true}).eq("follower_id", target.id),
-      req.sb.from("follows").select("follower_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle()
-    ]);
-    res.json({...safeUser(target), postCount:postCount||0, followers:followers||0, following:following||0, followingByMe:!!followingByMe});
-  }catch(e){res.status(500).json({error:e.message});}
-});
-
-app.get("/api/search", auth, async (req,res)=>{
-  try{
-    const q=String(req.query.q||"").trim().toLowerCase();
-    if(!q) return res.json([]);
-    const {data,error}=await req.sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
-    if(error) throw error; res.json((data||[]).map(safeUser));
-  }catch(e){res.status(500).json({error:e.message});}
-});
-
-app.get("/api/messages", auth, async (req,res)=>{
-  try{
-    const {data,error}=await req.sb.from("messages").select("*,profiles:sender_id(username,display_name)").or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`).order("created_at",{ascending:true});
-    if(error) throw error;
-    res.json((data||[]).map(m=>({id:m.id,from:m.sender_id,to:m.recipient_id,text:m.text,createdAt:m.created_at,username:m.profiles?.username||""})));
-  }catch(e){res.status(500).json({error:e.message});}
-});
-app.post("/api/messages", auth, async (req,res)=>{
-  try{
-    const target=await findProfile(req.sb,req.body?.to);
-    const text=String(req.body?.text||"").trim();
-    if(!target)return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    if(!text)return res.status(400).json({error:"Mesaj boş olamaz"});
-    const {data,error}=await req.sb.from("messages").insert({sender_id:req.user.id,recipient_id:target.id,text}).select("*").single();
-    if(error) throw error;
-    res.json({id:data.id,from:data.sender_id,to:data.recipient_id,text:data.text,createdAt:data.created_at});
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-app.patch("/api/me", auth, async (req,res)=>{
-  try{
-    const patch={};
-    if(req.body?.displayName!==undefined) patch.display_name=String(req.body.displayName).slice(0,80);
-    if(req.body?.bio!==undefined) patch.bio=String(req.body.bio).slice(0,300);
-    if(Object.keys(patch).length){ const {error}=await req.sb.from("profiles").update(patch).eq("id",req.user.id); if(error) throw error; }
-    const {data,error}=await req.sb.from("profiles").select("*").eq("id",req.user.id).single(); if(error) throw error;
-    res.json(safeUser(data));
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-app.patch("/api/settings", auth, async (req,res)=>{
-  try{
-    const next={...(req.user.settings||{}),...(req.body||{})};
-    const {error}=await req.sb.from("profiles").update({settings:next}).eq("id",req.user.id); if(error) throw error;
-    res.json(next);
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-app.use((req, res) => {
-  // Prefer public/index.html when it exists; otherwise serve root index.html.
-  const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
-    ? path.join(publicDir, "index.html")
-    : rootIndex;
-  res.sendFile(indexPath);
-});
-app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
