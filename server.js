@@ -8,6 +8,7 @@ import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 
 // Render Environment Variables are injected directly into process.env.
@@ -244,6 +245,129 @@ app.post("/api/forgot", async (req, res) => {
     if (error) return res.status(400).json({ error: error.message });
     res.json({ ok: true });
   } catch { res.json({ ok: true }); }
+});
+
+
+// Public auth configuration for the browser-side Supabase recovery flow.
+app.get("/api/auth-config", (req, res) => {
+  if (!CONFIG_OK) return res.status(500).json({ error: "Supabase yapılandırması eksik." });
+  res.json({ url: SUPABASE_URL, key: SUPABASE_KEY });
+});
+
+const recoveryCodes = new Map();
+function publicOrigin(req) {
+  const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
+}
+function maskEmail(email) {
+  const [u, d] = String(email).split("@");
+  if (!u || !d) return email;
+  const shown = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "*".repeat(Math.max(1, u.length - 2));
+  return `${shown}@${d}`;
+}
+function normalizeRecoveryPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
+async function findUserByPhone(phone) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const wanted = normalizeRecoveryPhone(phone);
+  if (!wanted || wanted.length < 10) return null;
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const found = users.find(u => normalizeRecoveryPhone(u.phone) === wanted);
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
+async function resolveRecoveryEmail(identifier, mode = "email") {
+  const anon = client();
+  const raw = String(identifier || "").trim();
+  let email = raw;
+  let profile = null;
+
+  if (mode === "phone") {
+    const authUser = await findUserByPhone(raw);
+    if (!authUser?.email) return null;
+    email = authUser.email;
+    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("id", authUser.id).maybeSingle();
+    profile = data || null;
+    return { email, profile, authUser };
+  }
+
+  if (!email.includes("@")) {
+    profile = await findProfile(anon, email);
+    if (!profile) return null;
+    if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await admin.auth.admin.getUserById(profile.id);
+    if (error || !data?.user?.email) return null;
+    email = data.user.email;
+  }
+  if (!profile) {
+    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("email", email).maybeSingle();
+    profile = data || null;
+  }
+  return { email, profile };
+}
+async function sendResendEmail(to, subject, html, text) {
+  const key = String(process.env.RESEND_API_KEY || "").trim();
+  if (!key) throw new Error("RESEND_API_KEY eksik.");
+  const from = String(process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev").trim();
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: [to], subject, html, text })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.message || "E-posta gönderilemedi.");
+  return j;
+}
+
+app.post("/api/forgot/start", async (req, res) => {
+  try {
+    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
+    if (!found) return res.status(404).json({ error: "Hesap bulunamadı." });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    recoveryCodes.set(found.email.toLowerCase(), { code, expires: Date.now() + 10 * 60 * 1000, profile: found.profile });
+    await sendResendEmail(
+      found.email,
+      "Minegram doğrulama kodun",
+      `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Şifre sıfırlama işlemin için doğrulama kodun:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
+      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+    );
+    res.json({ ok: true, email: found.email, maskedEmail: maskEmail(found.email) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/forgot/verify", async (req, res) => {
+  try {
+    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
+    const entry = found && recoveryCodes.get(found.email.toLowerCase());
+    if (!entry || entry.expires < Date.now() || entry.code !== String(req.body?.code || "").trim()) {
+      return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
+    }
+    recoveryCodes.delete(found.email.toLowerCase());
+    const p = entry.profile || found.profile || {};
+    res.json({ ok: true, email: found.email, account: { username: p.username || "minegram", email: found.email, displayName: p.display_name || p.displayName || "" } });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post("/api/forgot/send-reset", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim();
+    if (!email) return res.status(400).json({ error: "E-posta gerekli." });
+    const anon = client();
+    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/` });
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get("/api/me", auth, (req, res) => res.json(safeUser(req.user)));
