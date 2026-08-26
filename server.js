@@ -9,6 +9,7 @@ import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.disable("x-powered-by");
 app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -37,13 +38,27 @@ const publicDir = path.join(__dirname, "public");
 const rootIndex = path.join(__dirname, "index.html");
 app.use(express.static(publicDir));
 app.use(express.static(__dirname));
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /^(image\/(jpeg|png|gif|webp|avif)|video\/(mp4|webm|quicktime))$/i.test(file.mimetype || "");
+    if (!allowed) return cb(new Error("Sadece JPG, PNG, GIF, WEBP, AVIF, MP4, WEBM veya MOV yüklenebilir."));
+    cb(null, true);
+  }
+});
 
 function client(token = null) {
   if (!CONFIG_OK) throw new Error("Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et.");
   const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
   if (token) options.global = { headers: { Authorization: `Bearer ${token}` } };
   return createClient(SUPABASE_URL, SUPABASE_KEY, options);
+}
+
+// Anonymous browser client. Kept as a separate named helper because the login
+// flow intentionally uses the public Supabase key for password sign-in.
+function anonClient() {
+  return client();
 }
 
 function bearer(req) {
@@ -58,7 +73,9 @@ async function auth(req, res, next) {
     const sb = client(token);
     const { data: { user }, error } = await sb.auth.getUser(token);
     if (error || !user) throw error || new Error("Oturum gerekli");
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    // The bundled Supabase schema uses profiles.id = auth.users.id.
+    // Do not depend on the optional auth_user_id column used by older experiments.
+    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (pError || !profile) throw pError || new Error("Profil bulunamadı");
     req.token = token;
     req.sb = sb;
@@ -81,6 +98,9 @@ function safeUser(u) {
     settings: u.settings || {}
   };
 }
+
+// Backwards-compatible name used by older multi-profile frontend code.
+const safeProfile = safeUser;
 
 function normalizeUsername(x) {
   return String(x || "").trim().replace(/^@/, "").toLowerCase();
@@ -188,34 +208,63 @@ app.post("/api/login", async (req, res) => {
   try {
     const identifier = String(req.body?.username ?? req.body?.email ?? "").trim();
     const password = String(req.body?.password ?? "");
-    if (!identifier || !password) return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
+    if (!identifier || !password) {
+      return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
+    }
     if (!CONFIG_OK) return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
-    const admin = adminClient();
+
+    const anon = anonClient();
     let email = identifier.toLowerCase();
+
     if (!identifier.includes("@")) {
-      const username = normalizeUsername(identifier);
-      const { data: profile, error: pe } = await admin.from("profiles").select("*").eq("username", username).maybeSingle();
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "Kullanıcı adıyla giriş için SUPABASE_SERVICE_ROLE_KEY gerekli." });
+      }
+      const admin = adminClient();
+      const { data: profile, error: pe } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("username", normalizeUsername(identifier))
+        .maybeSingle();
       if (pe) return res.status(500).json({ error: pe.message });
       if (!profile) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
-      const authId = profile.auth_user_id || profile.id;
-      const { data: au, error: ae } = await admin.auth.admin.getUserById(authId);
+
+      const { data: au, error: ae } = await admin.auth.admin.getUserById(profile.id);
       if (ae || !au?.user?.email) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
       email = au.user.email.toLowerCase();
     }
-    const anon = anonClient();
+
     const { data: sd, error: le } = await anon.auth.signInWithPassword({ email, password });
-    if (le || !sd?.session || !sd?.user) return res.status(401).json({ error: /invalid login credentials/i.test(le?.message || "") ? "Kullanıcı adı/e-posta veya şifre hatalı." : (le?.message || "Giriş başarısız.") });
-    const authId = sd.user.id;
-    const { data: profiles, error: pe2 } = await admin.from("profiles").select("*").eq("auth_user_id", authId).order("created_at", { ascending: true });
-    if (pe2) return res.status(500).json({ error: pe2.message });
-    let list = profiles || [];
-    if (!list.length) { const { data: legacy } = await admin.from("profiles").select("*").eq("id", authId).maybeSingle(); if (legacy) list=[legacy]; }
-    if (!list.length) return res.status(404).json({ error: "Bu hesap için Minegram profili bulunamadı." });
-    const fn = typeof safeProfile === "function" ? safeProfile : safeUser;
-    const safe = list.map(fn);
-    const selected = identifier.includes("@") ? safe[0] : (safe.find(x => x.username === normalizeUsername(identifier)) || safe[0]);
-    return res.json({ ok:true, multipleProfiles:safe.length>1, profiles:safe, profile:selected, token:sd.session.access_token, user:selected });
-  } catch (e) { console.error("LOGIN ERROR:",e); return res.status(500).json({ error:e?.message || "Giriş başarısız." }); }
+    if (le || !sd?.session || !sd?.user) {
+      const msg = le?.message || "Giriş başarısız.";
+      if (/email not confirmed/i.test(msg)) {
+        return res.status(403).json({ error: "E-posta adresin henüz doğrulanmamış. Supabase doğrulama e-postasındaki bağlantıyı aç." });
+      }
+      if (/invalid login credentials/i.test(msg)) {
+        return res.status(401).json({ error: "Kullanıcı adı/e-posta veya şifre hatalı." });
+      }
+      return res.status(401).json({ error: msg });
+    }
+
+    const sb = client(sd.session.access_token);
+    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", sd.user.id).single();
+    if (pError || !profile) return res.status(404).json({ error: "Bu hesap için Minegram profili bulunamadı." });
+
+    const safe = safeProfile(profile);
+    // Keep the multi-profile response shape so older frontend builds continue to work,
+    // while the supplied schema remains one profile per Supabase Auth user.
+    return res.json({
+      ok: true,
+      multipleProfiles: false,
+      profiles: [safe],
+      profile: safe,
+      token: sd.session.access_token,
+      user: safe
+    });
+  } catch (e) {
+    console.error("LOGIN ERROR:", e);
+    return res.status(500).json({ error: e?.message || "Giriş başarısız." });
+  }
 });
 
 app.post("/api/forgot", async (req, res) => {
@@ -238,6 +287,16 @@ app.post("/api/forgot", async (req, res) => {
   } catch { res.json({ ok: true }); }
 });
 
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    service: "minegram",
+    supabaseConfigured: CONFIG_OK,
+    serviceRoleConfigured: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+    time: new Date().toISOString()
+  });
+});
 
 // Public auth configuration for the browser-side Supabase recovery flow.
 app.get("/api/auth-config", (req, res) => {
@@ -325,7 +384,7 @@ app.post("/api/forgot/start", async (req, res) => {
   try {
     const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
     if (!found) return res.status(404).json({ error: "Hesap bulunamadı." });
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(crypto.randomInt(100000, 1000000));
     recoveryCodes.set(found.email.toLowerCase(), { code, expires: Date.now() + 10 * 60 * 1000, profile: found.profile });
     await sendResendEmail(
       found.email,
@@ -539,11 +598,23 @@ app.patch("/api/settings", auth, async (req,res)=>{
   }catch(e){res.status(400).json({error:e.message});}
 });
 
+// Multer and unexpected errors should still return JSON for /api/* routes.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (req.path.startsWith("/api/")) {
+    const status = /too large|file too large/i.test(err?.message || "") ? 413 : 400;
+    return res.status(status).json({ error: err?.message || "İstek işlenemedi." });
+  }
+  next(err);
+});
+
 app.use((req, res) => {
   // Prefer public/index.html when it exists; otherwise serve root index.html.
   const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
     ? path.join(publicDir, "index.html")
     : rootIndex;
+  if (!fs.existsSync(indexPath)) return res.status(404).send("Minegram index.html bulunamadı.");
   res.sendFile(indexPath);
 });
-app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
+
+app.listen(PORT, () => console.log(`Minegram: http://localhost:${PORT}`));
