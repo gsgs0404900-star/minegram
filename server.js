@@ -250,6 +250,74 @@ function fallbackUuid() {
   });
 }
 
+app.post("/api/login", async (req, res) => {
+  try {
+    if (!CONFIG_OK) {
+      return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
+    }
+
+    const identifier = String(req.body?.email || req.body?.username || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!identifier || !password) {
+      return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
+    }
+
+    const admin = adminClient();
+    const auth = anonClient();
+    let email = identifier.toLowerCase();
+    let selectedProfile = null;
+
+    if (!identifier.includes("@")) {
+      selectedProfile = await profileByUsername(admin, normalizeUsername(identifier));
+      if (!selectedProfile) {
+        return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+      }
+
+      const { data: ownerData, error: ownerError } =
+        await admin.auth.admin.getUserById(selectedProfile.auth_user_id);
+
+      if (ownerError || !ownerData?.user?.email) {
+        return res.status(401).json({ error: "Hesap bulunamadı." });
+      }
+      email = ownerData.user.email;
+    }
+
+    const { data, error } = await auth.auth.signInWithPassword({ email, password });
+    if (error || !data?.user) {
+      return res.status(401).json({ error: "Kullanıcı adı/e-posta veya şifre hatalı." });
+    }
+
+    const { data: profiles, error: profilesError } = await admin
+      .from("profiles")
+      .select("*")
+      .eq("auth_user_id", data.user.id)
+      .order("created_at", { ascending: true });
+
+    if (profilesError) throw profilesError;
+
+    const safeProfiles = (profiles || []).map(safeProfile);
+
+    return res.json({
+      ok: true,
+      multipleProfiles: safeProfiles.length > 1,
+      profiles: safeProfiles,
+      profile: selectedProfile
+        ? safeProfile(selectedProfile)
+        : (safeProfiles.length === 1 ? safeProfiles[0] : null),
+      user: {
+        authUserId: data.user.id,
+        email: data.user.email,
+        accessToken: data.session?.access_token || null,
+        refreshToken: data.session?.refresh_token || null
+      }
+    });
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    return res.status(500).json({ error: error?.message || "Giriş başarısız." });
+  }
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, multiProfile: true });
 });
