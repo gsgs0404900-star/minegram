@@ -1,327 +1,619 @@
+import "dotenv/config";
 import express from "express";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
+import crypto from "crypto";
+import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 
+// Render Environment Variables are injected directly into process.env.
+// Support both the new Supabase publishable key and the legacy anon key.
 function env(name) {
   const value = process.env[name];
   if (value == null) return "";
-  return String(value).trim().replace(/^([\"'])|([\"'])$/g, "");
+  return String(value).trim().replace(/^([\"\'])|([\"\'])$/g, "");
 }
 
 const SUPABASE_URL = env("SUPABASE_URL");
 const SUPABASE_KEY = env("SUPABASE_PUBLISHABLE_KEY") || env("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
-const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY && SUPABASE_SERVICE_ROLE_KEY);
+const BUCKET = "media";
+
+const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY);
+if (!CONFIG_OK) {
+  console.error("Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY (veya SUPABASE_ANON_KEY) gerekli.");
+}
 
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+
+// Support both layouts: public/index.html and a root index.html.
+const publicDir = path.join(__dirname, "public");
+const rootIndex = path.join(__dirname, "index.html");
+app.use(express.static(publicDir));
 app.use(express.static(__dirname));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
-void upload;
 
-function anonClient() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error("Supabase yapılandırması eksik.");
-  return createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  });
+function client(token = null) {
+  if (!CONFIG_OK) throw new Error("Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et.");
+  const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+  if (token) options.global = { headers: { Authorization: `Bearer ${token}` } };
+  return createClient(SUPABASE_URL, SUPABASE_KEY, options);
 }
 
-function adminClient() {
-  if (!CONFIG_OK) throw new Error("Supabase ortam değişkenleri eksik.");
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  });
+function bearer(req) {
+  const h = req.headers.authorization || "";
+  return h.startsWith("Bearer ") ? h.slice(7) : null;
 }
 
-function normalizeUsername(value) {
-  return String(value || "").trim().replace(/^@/, "").toLowerCase();
-}
-
-function safeProfile(profile) {
-  return {
-    id: profile.id,
-    authUserId: profile.auth_user_id,
-    username: profile.username,
-    displayName: profile.display_name || profile.username,
-    bio: profile.bio || "",
-    avatar: profile.avatar_url || null,
-    verified: Boolean(profile.verified),
-    settings: profile.settings || {}
-  };
-}
-
-async function findAuthUserByEmail(admin, email) {
-  const target = email.toLowerCase();
-  let page = 1;
-  const perPage = 1000;
-
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
-    if (error) throw error;
-
-    const user = (data?.users || []).find(
-      (candidate) => String(candidate.email || "").toLowerCase() === target
-    );
-
-    if (user) return user;
-    if (!data?.users || data.users.length < perPage) return null;
-    page += 1;
+async function auth(req, res, next) {
+  try {
+    const token = bearer(req);
+    if (!token) throw new Error("Oturum gerekli");
+    const sb = client(token);
+    const { data: { user }, error } = await sb.auth.getUser(token);
+    if (error || !user) throw error || new Error("Oturum gerekli");
+    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    if (pError || !profile) throw pError || new Error("Profil bulunamadı");
+    req.token = token;
+    req.sb = sb;
+    req.authUser = user;
+    req.user = profile;
+    next();
+  } catch (e) {
+    res.status(401).json({ error: "Oturum gerekli" });
   }
 }
 
-async function profileByUsername(admin, username) {
-  const { data, error } = await admin
-    .from("profiles")
-    .select("*")
-    .eq("username", username)
-    .maybeSingle();
+function safeUser(u) {
+  return {
+    id: u.id,
+    username: u.username,
+    displayName: u.display_name ?? u.displayName ?? u.username,
+    bio: u.bio || "",
+    avatar: u.avatar_url ?? u.avatar ?? null,
+    verified: !!u.verified,
+    settings: u.settings || {}
+  };
+}
+
+function normalizeUsername(x) {
+  return String(x || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+async function findProfile(sb, username) {
+  const q = normalizeUsername(username);
+  const { data, error } = await sb.from("profiles").select("*").eq("username", q).maybeSingle();
   if (error) throw error;
   return data;
 }
 
-async function profileByOwnerAndUsername(admin, authUserId, username) {
-  const { data, error } = await admin
-    .from("profiles")
-    .select("*")
-    .eq("auth_user_id", authUserId)
-    .eq("username", username)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+async function adminClient() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik.");
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/*
- * Multi-profile registration:
- *
- * - A new email creates one Supabase Auth user and its first Minegram profile.
- * - An existing email is NOT rejected. The password is verified against the
- *   existing Auth user, then a new independent profiles row is created.
- * - profiles.id is a new UUID; profiles.auth_user_id points to auth.users.id.
- */
+async function findAuthUserByEmail(admin, email) {
+  const target = String(email || "").trim().toLowerCase();
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const found = users.find(u => String(u.email || "").toLowerCase() === target);
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
+async function addNotification({ userId, type, fromUserId, postId = null, text }) {
+  if (userId === fromUserId) return;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return;
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  await admin.from("notifications").insert({ user_id: userId, type, from_user_id: fromUserId, post_id: postId, text });
+}
+
+async function hydratePosts(sb, posts, userId) {
+  if (!posts.length) return [];
+  const userIds = [...new Set(posts.map(p => p.user_id))];
+  const postIds = posts.map(p => p.id);
+  const [{ data: profiles }, { data: likes }, { data: comments }, { data: saves }] = await Promise.all([
+    sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").in("id", userIds),
+    sb.from("post_likes").select("post_id,user_id").in("post_id", postIds),
+    sb.from("comments").select("id,post_id,user_id,text,created_at,profiles(username,display_name)").in("post_id", postIds).order("created_at", { ascending: true }),
+    sb.from("saves").select("post_id,user_id").eq("user_id", userId).in("post_id", postIds)
+  ]);
+  const pmap = new Map((profiles || []).map(p => [p.id, p]));
+  const likeMap = new Map();
+  for (const l of likes || []) likeMap.set(l.post_id, (likeMap.get(l.post_id) || 0) + 1);
+  const liked = new Set((likes || []).filter(x => x.user_id === userId).map(x => x.post_id));
+  const saved = new Set((saves || []).map(x => x.post_id));
+  const commentsMap = new Map();
+  for (const c of comments || []) {
+    if (!commentsMap.has(c.post_id)) commentsMap.set(c.post_id, []);
+    commentsMap.get(c.post_id).push({ id: c.id, userId: c.user_id, text: c.text, createdAt: c.created_at, username: c.profiles?.username || "" });
+  }
+  return posts.map(p => ({
+    id: p.id, userId: p.user_id, caption: p.caption, media: p.media_url, mediaName: p.media_name, mediaType: p.media_type,
+    createdAt: p.created_at, likes: Array(likeMap.get(p.id) || 0).fill(null), comments: commentsMap.get(p.id) || [],
+    likedByMe: liked.has(p.id), savedByMe: saved.has(p.id), user: safeUser(pmap.get(p.user_id) || { id: p.user_id, username: "user" })
+  }));
+}
+
 app.post("/api/register", async (req, res) => {
   try {
-    if (!CONFIG_OK) {
-      return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
-    }
-
     const username = normalizeUsername(req.body?.username);
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
     const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
 
     if (!username || !email || password.length < 6) {
-      return res.status(400).json({
-        error: "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli."
-      });
+      return res.status(400).json({ error: "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli." });
     }
-
     if (!/^[a-z0-9._]{3,30}$/.test(username)) {
-      return res.status(400).json({
-        error: "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan."
-      });
+      return res.status(400).json({ error: "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan." });
+    }
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ error: "Render Environment Variables içine SUPABASE_SERVICE_ROLE_KEY eklenmeli." });
     }
 
-    const admin = adminClient();
+    const anon = client();
+    const admin = await adminClient();
+    const { data: existing } = await admin.from("profiles").select("id").eq("username", username).maybeSingle();
+    if (existing) return res.status(409).json({ error: "Bu kullanıcı adı zaten alınmış." });
 
-    // Username is globally unique across Minegram profiles.
-    const existingProfile = await profileByUsername(admin, username);
-    if (existingProfile) {
-      return res.status(409).json({ error: "Bu kullanıcı adı zaten alınmış." });
-    }
+    // Kayıtta e-posta doğrulamasını zorunlu kılma.
+    // Supabase Auth kullanıcısını admin API ile doğrudan doğrulanmış oluşturuyoruz.
+    let { data, error } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { username, display_name: displayName }
+    });
 
-    let authUser = await findAuthUserByEmail(admin, email);
-    let createdAuthUser = false;
-
-    if (!authUser) {
-      // First profile for this email. The DB trigger may create the first
-      // profile automatically; we reuse it instead of creating a duplicate.
-      const { data, error } = await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: false,
-        user_metadata: {
-          username,
-          display_name: displayName
+    if (error) {
+      // Aynı e-posta zaten varsa yeni Auth kullanıcısı oluşturma; mevcut şifreyi doğrula.
+      if (/already registered|already exists|user already registered/i.test(error.message || "")) {
+        const existingAuth = await findAuthUserByEmail(admin, email);
+        if (!existingAuth?.id) return res.status(400).json({ error: error.message });
+        const check = await anon.auth.signInWithPassword({ email, password });
+        if (check.error || !check.data?.user) {
+          return res.status(401).json({ error: "Bu e-posta zaten kayıtlı. Mevcut hesabın şifresini doğru gir." });
         }
-      });
-
-      if (error) {
+        data = { user: check.data.user };
+      } else {
         return res.status(400).json({ error: error.message });
       }
-
-      authUser = data?.user || null;
-      createdAuthUser = true;
-    } else {
-      // Existing email: prove that the person knows the Auth password before
-      // allowing a new Minegram profile to be attached to the same email.
-      const auth = anonClient();
-      const { data, error } = await auth.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error || !data?.user) {
-        return res.status(401).json({
-          error: "Bu e-posta zaten kayıtlı. Yeni profil oluşturmak için mevcut hesabın şifresini doğru gir."
-        });
-      }
-
-      authUser = data.user;
     }
 
-    if (!authUser?.id) {
-      return res.status(500).json({ error: "Auth kullanıcısı oluşturulamadı." });
+    if (!data?.user?.id) return res.status(400).json({ error: "Kullanıcı oluşturulamadı." });
+
+    const { error: profileError } = await admin.from("profiles").upsert({
+      id: data.user.id,
+      username,
+      display_name: displayName,
+      bio: "",
+      avatar_url: null,
+      verified: false,
+      settings: {}
+    }, { onConflict: "id" });
+    if (profileError) return res.status(500).json({ error: `Profil oluşturulamadı: ${profileError.message}` });
+
+    // Kullanıcı daha önce doğrulanmamışsa da doğrulamayı kapalı mantığıyla düzelt.
+    const authUser = await admin.auth.admin.getUserById(data.user.id);
+    if (authUser?.data?.user && !authUser.data.user.email_confirmed_at) {
+      await admin.auth.admin.updateUserById(data.user.id, { email_confirm: true });
     }
 
-    // If the trigger already created exactly this requested first profile,
-    // reuse it. Otherwise create a new profile for the same Auth user.
-    let profile = await profileByOwnerAndUsername(admin, authUser.id, username);
-
-    if (!profile) {
-      const { data, error } = await admin
-        .from("profiles")
-        .insert({
-          id: cryptoRandomUuid(),
-          auth_user_id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        })
-        .select("*")
-        .single();
-
-      if (error) {
-        // If this was a newly-created Auth user, do not leave a half-created
-        // account behind when the requested profile cannot be inserted.
-        if (createdAuthUser) {
-          await admin.auth.admin.deleteUser(authUser.id).catch(() => {});
-        }
-        return res.status(500).json({
-          error: `Profil oluşturulamadı: ${error.message}`
-        });
-      }
-
-      profile = data;
+    const loginResult = await anon.auth.signInWithPassword({ email, password });
+    if (loginResult.error || !loginResult.data?.session) {
+      return res.status(500).json({ error: loginResult.error?.message || "Kayıt tamamlandı fakat oturum açılamadı." });
     }
+
+    const { data: profile, error: pError } = await admin.from("profiles").select("*").eq("id", data.user.id).single();
+    if (pError || !profile) return res.status(500).json({ error: "Profil oluşturulamadı." });
 
     return res.json({
-      needsConfirmation: !authUser.email_confirmed_at,
-      multipleProfiles: true,
-      message: authUser.email_confirmed_at
-        ? "Yeni Minegram profilin oluşturuldu."
-        : "Profil oluşturuldu. E-posta doğrulaması gerekiyorsa doğrulama bağlantısını aç.",
-      user: {
-        id: profile.id,
-        authUserId: authUser.id,
-        email: authUser.email,
-        username: profile.username,
-        profile: safeProfile(profile)
-      }
+      token: loginResult.data.session.access_token,
+      needsConfirmation: false,
+      message: "Kayıt başarılı.",
+      user: safeUser(profile)
     });
-  } catch (error) {
-    console.error("REGISTER ERROR:", error);
-    return res.status(500).json({
-      error: error?.message || "Kayıt başarısız."
-    });
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
+    return res.status(500).json({ error: e.message || "Kayıt başarısız" });
   }
 });
-
-function cryptoRandomUuid() {
-  // crypto.randomUUID is available in Node 24, but keeping this isolated makes
-  // the intent explicit and avoids importing the whole crypto namespace.
-  return globalThis.crypto?.randomUUID?.() || fallbackUuid();
-}
-
-function fallbackUuid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === "x" ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
 
 app.post("/api/login", async (req, res) => {
   try {
-    if (!CONFIG_OK) {
-      return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
-    }
-
-    const identifier = String(req.body?.email || req.body?.username || "").trim();
+    const identifier = String(req.body?.username || "").trim();
     const password = String(req.body?.password || "");
+    if (!identifier || !password) return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
 
-    if (!identifier || !password) {
-      return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
-    }
-
-    const admin = adminClient();
-    const auth = anonClient();
+    const anon = client();
     let email = identifier.toLowerCase();
-    let selectedProfile = null;
+    let admin = null;
 
     if (!identifier.includes("@")) {
-      selectedProfile = await profileByUsername(admin, normalizeUsername(identifier));
-      if (!selectedProfile) {
-        return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+      const profile = await findProfile(anon, identifier);
+      if (!profile) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "Kullanıcı adıyla giriş için SUPABASE_SERVICE_ROLE_KEY gerekli." });
       }
-
-      const { data: ownerData, error: ownerError } =
-        await admin.auth.admin.getUserById(selectedProfile.auth_user_id);
-
-      if (ownerError || !ownerData?.user?.email) {
-        return res.status(401).json({ error: "Hesap bulunamadı." });
-      }
-      email = ownerData.user.email;
+      admin = await adminClient();
+      const { data: authUser, error: authError } = await admin.auth.admin.getUserById(profile.id);
+      if (authError || !authUser?.user?.email) return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+      email = authUser.user.email;
+    } else if (SUPABASE_SERVICE_ROLE_KEY) {
+      admin = await adminClient();
     }
 
-    const { data, error } = await auth.auth.signInWithPassword({ email, password });
-    if (error || !data?.user) {
-      return res.status(401).json({ error: "Kullanıcı adı/e-posta veya şifre hatalı." });
+    // E-posta doğrulaması kapalı: eski/doğrulanmamış hesapları da otomatik doğrula.
+    if (admin) {
+      const authUser = await findAuthUserByEmail(admin, email);
+      if (authUser?.id && !authUser.email_confirmed_at) {
+        await admin.auth.admin.updateUserById(authUser.id, { email_confirm: true });
+      }
     }
 
-    const { data: profiles, error: profilesError } = await admin
-      .from("profiles")
-      .select("*")
-      .eq("auth_user_id", data.user.id)
-      .order("created_at", { ascending: true });
-
-    if (profilesError) throw profilesError;
-
-    const safeProfiles = (profiles || []).map(safeProfile);
-
-    return res.json({
-      ok: true,
-      multipleProfiles: safeProfiles.length > 1,
-      profiles: safeProfiles,
-      profile: selectedProfile
-        ? safeProfile(selectedProfile)
-        : (safeProfiles.length === 1 ? safeProfiles[0] : null),
-      user: {
-        authUserId: data.user.id,
-        email: data.user.email,
-        accessToken: data.session?.access_token || null,
-        refreshToken: data.session?.refresh_token || null
-      }
+    const { data, error } = await anon.auth.signInWithPassword({
+      email: String(email).trim().toLowerCase(),
+      password
     });
-  } catch (error) {
-    console.error("LOGIN ERROR:", error);
-    return res.status(500).json({ error: error?.message || "Giriş başarısız." });
+
+    if (error || !data?.session) {
+      const msg = error?.message || "Giriş başarısız.";
+      if (/email not confirmed/i.test(msg)) {
+        return res.status(403).json({ error: "E-posta doğrulaması kapalı olmasına rağmen hesap doğrulanamadı. Render Environment Variables içindeki SUPABASE_SERVICE_ROLE_KEY değerini kontrol et." });
+      }
+      if (/invalid login credentials/i.test(msg)) {
+        return res.status(401).json({ error: "E-posta/kullanıcı adı veya şifre hatalı." });
+      }
+      return res.status(401).json({ error: msg });
+    }
+
+    const sb = client(data.session.access_token);
+    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
+    if (pError) return res.status(500).json({ error: "Profil bulunamadı." });
+    res.json({ token: data.session.access_token, user: safeUser(profile) });
+  } catch (e) {
+    console.error("LOGIN ERROR:", e);
+    res.status(401).json({ error: e.message || "Kullanıcı adı veya şifre hatalı." });
   }
 });
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, multiProfile: true });
+app.post("/api/forgot", async (req, res) => {
+  try {
+    const identifier = String(req.body?.identifier || "").trim();
+    const anon = client();
+    let email = identifier;
+    if (!identifier.includes("@")) {
+      if (!SUPABASE_SERVICE_ROLE_KEY) return res.status(200).json({ ok: true });
+      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const profile = await findProfile(anon, identifier);
+      if (!profile) return res.status(200).json({ ok: true });
+      const { data, error } = await admin.auth.admin.getUserById(profile.id);
+      if (error || !data?.user?.email) return res.status(200).json({ ok: true });
+      email = data.user.email;
+    }
+    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${req.protocol}://${req.get("host")}/` });
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ ok: true });
+  } catch { res.json({ ok: true }); }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Minegram server running on port ${PORT}`);
+
+// Public auth configuration for the browser-side Supabase recovery flow.
+app.get("/api/auth-config", (req, res) => {
+  if (!CONFIG_OK) return res.status(500).json({ error: "Supabase yapılandırması eksik." });
+  res.json({ url: SUPABASE_URL, key: SUPABASE_KEY });
 });
+
+const recoveryCodes = new Map();
+function publicOrigin(req) {
+  const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
+}
+function maskEmail(email) {
+  const [u, d] = String(email).split("@");
+  if (!u || !d) return email;
+  const shown = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "*".repeat(Math.max(1, u.length - 2));
+  return `${shown}@${d}`;
+}
+function normalizeRecoveryPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
+async function findUserByPhone(phone) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const wanted = normalizeRecoveryPhone(phone);
+  if (!wanted || wanted.length < 10) return null;
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const found = users.find(u => normalizeRecoveryPhone(u.phone) === wanted);
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
+async function resolveRecoveryEmail(identifier, mode = "email") {
+  const anon = client();
+  const raw = String(identifier || "").trim();
+  let email = raw;
+  let profile = null;
+
+  if (mode === "phone") {
+    const authUser = await findUserByPhone(raw);
+    if (!authUser?.email) return null;
+    email = authUser.email;
+    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("id", authUser.id).maybeSingle();
+    profile = data || null;
+    return { email, profile, authUser };
+  }
+
+  if (!email.includes("@")) {
+    profile = await findProfile(anon, email);
+    if (!profile) return null;
+    if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await admin.auth.admin.getUserById(profile.id);
+    if (error || !data?.user?.email) return null;
+    email = data.user.email;
+  }
+  if (!profile) {
+    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("email", email).maybeSingle();
+    profile = data || null;
+  }
+  return { email, profile };
+}
+async function sendResendEmail(to, subject, html, text) {
+  const key = String(process.env.RESEND_API_KEY || "").trim();
+  if (!key) throw new Error("RESEND_API_KEY eksik.");
+  const from = String(process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev").trim();
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: [to], subject, html, text })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.message || "E-posta gönderilemedi.");
+  return j;
+}
+
+app.post("/api/forgot/start", async (req, res) => {
+  try {
+    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
+    if (!found) return res.status(404).json({ error: "Hesap bulunamadı." });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    recoveryCodes.set(found.email.toLowerCase(), { code, expires: Date.now() + 10 * 60 * 1000, profile: found.profile });
+    await sendResendEmail(
+      found.email,
+      "Minegram doğrulama kodun",
+      `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Şifre sıfırlama işlemin için doğrulama kodun:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
+      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+    );
+    res.json({ ok: true, email: found.email, maskedEmail: maskEmail(found.email) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/forgot/verify", async (req, res) => {
+  try {
+    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
+    const entry = found && recoveryCodes.get(found.email.toLowerCase());
+    if (!entry || entry.expires < Date.now() || entry.code !== String(req.body?.code || "").trim()) {
+      return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
+    }
+    recoveryCodes.delete(found.email.toLowerCase());
+    const p = entry.profile || found.profile || {};
+    res.json({ ok: true, email: found.email, account: { username: p.username || "minegram", email: found.email, displayName: p.display_name || p.displayName || "" } });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post("/api/forgot/send-reset", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim();
+    if (!email) return res.status(400).json({ error: "E-posta gerekli." });
+    const anon = client();
+    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/` });
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/me", auth, (req, res) => res.json(safeUser(req.user)));
+
+app.get("/api/feed", auth, async (req, res) => {
+  try {
+    const { data, error } = await req.sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
+    if (error) throw error;
+    res.json(await hydratePosts(req.sb, data || [], req.user.id));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
+  try {
+    let mediaUrl = null;
+    let mediaName = null;
+    let mediaType = null;
+    if (req.file) {
+      const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
+      const objectPath = `${req.user.id}/${crypto.randomUUID()}${ext}`;
+      const { error: uploadError } = await req.sb.storage.from(BUCKET).upload(objectPath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: publicData } = req.sb.storage.from(BUCKET).getPublicUrl(objectPath);
+      mediaUrl = publicData.publicUrl;
+      mediaName = req.file.originalname;
+      mediaType = req.file.mimetype;
+    }
+    const { data, error } = await req.sb.from("posts").insert({ user_id: req.user.id, caption: req.body?.caption || "", media_url: mediaUrl, media_name: mediaName, media_type: mediaType }).select("*").single();
+    if (error) throw error;
+    res.json({ ...data, id: data.id, userId: data.user_id, media: data.media_url, mediaName: data.media_name, createdAt: data.created_at });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post("/api/posts/:id/like", auth, async (req, res) => {
+  try {
+    const { data: existing } = await req.sb.from("post_likes").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (existing) {
+      await req.sb.from("post_likes").delete().eq("post_id", req.params.id).eq("user_id", req.user.id);
+      return res.json({ liked: false });
+    }
+    const { error } = await req.sb.from("post_likes").insert({ post_id: req.params.id, user_id: req.user.id });
+    if (error) throw error;
+    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
+    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "like", postId: req.params.id, text: `@${req.user.username} beğendi` });
+    res.json({ liked: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post("/api/posts/:id/comments", auth, async (req, res) => {
+  try {
+    const text = String(req.body?.text || "").trim();
+    if (!text) return res.status(400).json({ error: "Yorum boş olamaz" });
+    const { data, error } = await req.sb.from("comments").insert({ post_id: req.params.id, user_id: req.user.id, text }).select("*").single();
+    if (error) throw error;
+    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
+    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "comment", postId: req.params.id, text: `@${req.user.username} yorum yaptı` });
+    res.json({ id: data.id, userId: data.user_id, text: data.text, createdAt: data.created_at, username: req.user.username });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post("/api/posts/:id/save", auth, async (req, res) => {
+  try {
+    const { data: existing } = await req.sb.from("saves").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (existing) { await req.sb.from("saves").delete().eq("post_id", req.params.id).eq("user_id", req.user.id); return res.json({ saved: false }); }
+    const { error } = await req.sb.from("saves").insert({ post_id: req.params.id, user_id: req.user.id });
+    if (error) throw error;
+    res.json({ saved: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get("/api/saved", auth, async (req, res) => {
+  try {
+    const { data: saves, error } = await req.sb.from("saves").select("post_id,created_at").eq("user_id", req.user.id).order("created_at", { ascending: false });
+    if (error) throw error;
+    const ids = (saves || []).map(x => x.post_id);
+    if (!ids.length) return res.json([]);
+    const { data: posts, error: pError } = await req.sb.from("posts").select("*").in("id", ids);
+    if (pError) throw pError;
+    const hydrated = await hydratePosts(req.sb, posts || [], req.user.id);
+    res.json(hydrated.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id)));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/notifications", auth, async (req, res) => {
+  try {
+    const { data, error } = await req.sb.from("notifications").select("*").eq("user_id", req.user.id).order("created_at", { ascending: false }).limit(50);
+    if (error) throw error;
+    res.json((data || []).map(n => ({ id:n.id, type:n.type, text:n.text, read:n.read, createdAt:n.created_at })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/notifications/read", auth, async (req, res) => {
+  try { await req.sb.from("notifications").update({ read:true }).eq("user_id", req.user.id); res.json({ok:true}); }
+  catch(e){ res.status(400).json({error:e.message}); }
+});
+
+app.post("/api/users/:username/follow", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+    if (target.id === req.user.id) return res.status(400).json({ error: "Kendini takip edemezsin" });
+    const { data: existing } = await req.sb.from("follows").select("follower_id,following_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle();
+    if (existing) { await req.sb.from("follows").delete().eq("follower_id", req.user.id).eq("following_id", target.id); return res.json({ following:false }); }
+    const { error } = await req.sb.from("follows").insert({ follower_id:req.user.id, following_id:target.id });
+    if (error) throw error;
+    await addNotification({ userId:target.id, fromUserId:req.user.id, type:"follow", text:`@${req.user.username} seni takip etti` });
+    res.json({ following:true });
+  } catch(e){ res.status(400).json({error:e.message}); }
+});
+
+app.get("/api/users/:username/posts", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
+    const { data, error } = await req.sb.from("posts").select("*").eq("user_id", target.id).order("created_at", { ascending:false });
+    if(error) throw error;
+    res.json(await hydratePosts(req.sb, data || [], req.user.id));
+  } catch(e){ res.status(500).json({error:e.message}); }
+});
+
+app.get("/api/users/:username", auth, async (req,res)=>{
+  try{
+    const target = await findProfile(req.sb, req.params.username);
+    if(!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
+    const [{ count:postCount }, { count:followers }, { count:following }, { data:followingByMe }] = await Promise.all([
+      req.sb.from("posts").select("id", {count:"exact", head:true}).eq("user_id", target.id),
+      req.sb.from("follows").select("follower_id", {count:"exact", head:true}).eq("following_id", target.id),
+      req.sb.from("follows").select("following_id", {count:"exact", head:true}).eq("follower_id", target.id),
+      req.sb.from("follows").select("follower_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle()
+    ]);
+    res.json({...safeUser(target), postCount:postCount||0, followers:followers||0, following:following||0, followingByMe:!!followingByMe});
+  }catch(e){res.status(500).json({error:e.message});}
+});
+
+app.get("/api/search", auth, async (req,res)=>{
+  try{
+    const q=String(req.query.q||"").trim().toLowerCase();
+    if(!q) return res.json([]);
+    const {data,error}=await req.sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
+    if(error) throw error; res.json((data||[]).map(safeUser));
+  }catch(e){res.status(500).json({error:e.message});}
+});
+
+app.get("/api/messages", auth, async (req,res)=>{
+  try{
+    const {data,error}=await req.sb.from("messages").select("*,profiles:sender_id(username,display_name)").or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`).order("created_at",{ascending:true});
+    if(error) throw error;
+    res.json((data||[]).map(m=>({id:m.id,from:m.sender_id,to:m.recipient_id,text:m.text,createdAt:m.created_at,username:m.profiles?.username||""})));
+  }catch(e){res.status(500).json({error:e.message});}
+});
+app.post("/api/messages", auth, async (req,res)=>{
+  try{
+    const target=await findProfile(req.sb,req.body?.to);
+    const text=String(req.body?.text||"").trim();
+    if(!target)return res.status(404).json({error:"Kullanıcı bulunamadı"});
+    if(!text)return res.status(400).json({error:"Mesaj boş olamaz"});
+    const {data,error}=await req.sb.from("messages").insert({sender_id:req.user.id,recipient_id:target.id,text}).select("*").single();
+    if(error) throw error;
+    res.json({id:data.id,from:data.sender_id,to:data.recipient_id,text:data.text,createdAt:data.created_at});
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+app.patch("/api/me", auth, async (req,res)=>{
+  try{
+    const patch={};
+    if(req.body?.displayName!==undefined) patch.display_name=String(req.body.displayName).slice(0,80);
+    if(req.body?.bio!==undefined) patch.bio=String(req.body.bio).slice(0,300);
+    if(Object.keys(patch).length){ const {error}=await req.sb.from("profiles").update(patch).eq("id",req.user.id); if(error) throw error; }
+    const {data,error}=await req.sb.from("profiles").select("*").eq("id",req.user.id).single(); if(error) throw error;
+    res.json(safeUser(data));
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+app.patch("/api/settings", auth, async (req,res)=>{
+  try{
+    const next={...(req.user.settings||{}),...(req.body||{})};
+    const {error}=await req.sb.from("profiles").update({settings:next}).eq("id",req.user.id); if(error) throw error;
+    res.json(next);
+  }catch(e){res.status(400).json({error:e.message});}
+});
+
+app.use((req, res) => {
+  // Prefer public/index.html when it exists; otherwise serve root index.html.
+  const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
+    ? path.join(publicDir, "index.html")
+    : rootIndex;
+  res.sendFile(indexPath);
+});
+app.listen(PORT,()=>console.log(`Minegram: http://localhost:${PORT}`));
