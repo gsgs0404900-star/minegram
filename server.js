@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
@@ -241,7 +242,7 @@ app.post("/api/forgot", async (req, res) => {
       if (error || !data?.user?.email) return res.status(200).json({ ok: true });
       email = data.user.email;
     }
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${req.protocol}://${req.get("host")}/` });
+    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/reset-password` });
     if (error) return res.status(400).json({ error: error.message });
     res.json({ ok: true });
   } catch { res.json({ ok: true }); }
@@ -364,7 +365,7 @@ app.post("/api/forgot/send-reset", async (req, res) => {
     const email = String(req.body?.email || "").trim();
     if (!email) return res.status(400).json({ error: "E-posta gerekli." });
     const anon = client();
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/` });
+    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/reset-password` });
     if (error) return res.status(400).json({ error: error.message });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
