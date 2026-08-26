@@ -61,7 +61,44 @@ async function forgotPassword(mode="email"){try{const id=mode==="phone"?forgotPh
 async function resendForgotCode(){const mode=recoveryMode||"email";const id=recoveryIdentifier||(mode==="phone"?forgotPhone.value.trim():forgotId.value.trim());if(!id)return go(mode==="phone"?"forgot-phone":"forgot");try{const j=await api("/forgot/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier:id,mode})});recoveryEmail=j.email||recoveryEmail;toast("Yeni kod gönderildi.");}catch(e){toast(e.message)}}
 async function verifyForgotCode(){try{const code=forgotCode.value.trim();if(!/^\d{6}$/.test(code))return toast("6 haneli kodu gir.");const identifier=recoveryIdentifier||(recoveryMode==="phone"?forgotPhone.value.trim():forgotId.value.trim());const j=await api("/forgot/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier,mode:recoveryMode||"email",code})});recoveryEmail=j.email||recoveryEmail;recoveryAccount=j.account;recoveryCodePending=false;const a=recoveryAccount||{};document.getElementById("recoveryAccount").innerHTML=`<div class="account-avatar">${(a.username||"M")[0].toUpperCase()}</div><div class="account-meta"><b>@${escapeHtml(a.username||"minegram")}</b><small>${escapeHtml(a.email||recoveryEmail)}</small></div>`;go("forgot-account");}catch(e){toast(e.message)}}
 async function sendResetLink(){try{await api("/forgot/send-reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:recoveryEmail})});toast("Şifre değiştirme bağlantısı gönderildi.");}catch(e){toast(e.message)}}
-async function initRecovery(){try{const raw=(location.hash||"").replace(/^#/,"");const hash=new URLSearchParams(raw);const query=new URLSearchParams(location.search||"");const type=hash.get("type")||query.get("type");const accessToken=hash.get("access_token")||query.get("access_token");const refreshToken=hash.get("refresh_token")||query.get("refresh_token");if(type!=="recovery"||!accessToken)return;const cfg=await fetch(API+"/auth-config").then(r=>r.json());if(!window.supabase||!cfg.url||!cfg.key)throw new Error("Supabase auth config missing");browserSupabase=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {error}=await browserSupabase.auth.setSession({access_token:accessToken,refresh_token:refreshToken||""});if(error)throw error;document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById("reset-password").classList.add("active");}catch(e){console.error(e);toast("Şifre yenileme bağlantısı geçersiz veya süresi dolmuş.")}}
+async function initRecovery(){
+  try{
+    const rawHash=(location.hash||"").replace(/^#/ ,"");
+    const hash=new URLSearchParams(rawHash);
+    const query=new URLSearchParams(location.search||"");
+    const type=hash.get("type")||query.get("type");
+    const accessToken=hash.get("access_token")||query.get("access_token");
+    const refreshToken=hash.get("refresh_token")||query.get("refresh_token");
+    const code=query.get("code");
+    const isResetPath=location.pathname.replace(/\/$/,"").endsWith("/reset-password");
+    if(!isResetPath && type!=="recovery" && !accessToken && !code)return;
+
+    const cfg=await fetch(API+"/auth-config").then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||"Supabase auth config missing");return j});
+    if(!window.supabase||!cfg.url||!cfg.key)throw new Error("Supabase auth config missing");
+    browserSupabase=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+
+    let error=null;
+    if(code){
+      const result=await browserSupabase.auth.exchangeCodeForSession(code);
+      error=result.error||null;
+    }else if(accessToken){
+      const result=await browserSupabase.auth.setSession({access_token:accessToken,refresh_token:refreshToken||""});
+      error=result.error||null;
+    }
+    if(error)throw error;
+
+    const sessionResult=await browserSupabase.auth.getSession();
+    if(!sessionResult.data?.session)throw new Error("Recovery session missing");
+
+    document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+    document.getElementById("reset-password").classList.add("active");
+  }catch(e){
+    console.error("[RECOVERY]",e);
+    document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+    document.getElementById("reset-password").classList.add("active");
+    toast("Şifre yenileme bağlantısı geçersiz veya süresi dolmuş.");
+  }
+}
 async function updatePassword(){try{if(!browserSupabase)return toast("Şifre yenileme oturumu bulunamadı.");const p=newPassword.value,p2=newPassword2.value;if(p.length<6)return toast("Şifre en az 6 karakter olmalı.");if(p!==p2)return toast("Şifreler eşleşmiyor.");const {error}=await browserSupabase.auth.updateUser({password:p});if(error)throw error;await browserSupabase.auth.signOut();history.replaceState({},document.title,location.pathname+location.search);location.hash="";toast("Şifren değiştirildi.");setTimeout(()=>go("login"),700);}catch(e){toast(e.message||"Şifre değiştirilemedi.")}}
 function togglePassword(id,btn){const el=document.getElementById(id);el.type=el.type==="password"?"text":"password";btn.textContent=el.type==="password"?"Göster":"Gizle"}
 function logout(){localStorage.removeItem("minegram_token");token=null;me=null;go("login")}
