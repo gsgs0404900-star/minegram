@@ -105,6 +105,34 @@ async function profileByOwnerAndUsername(admin, authUserId, username) {
  *   existing Auth user, then a new independent profiles row is created.
  * - profiles.id is a new UUID; profiles.auth_user_id points to auth.users.id.
  */
+app.post("/api/login", async (req, res) => {
+  try {
+    if (!CONFIG_OK) return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    const requestedUsername = normalizeUsername(req.body?.username || req.body?.profileUsername || "");
+    if (!email || !password) return res.status(400).json({ error: "E-posta ve şifre gerekli." });
+    const auth = anonClient();
+    const { data: loginData, error: loginError } = await auth.auth.signInWithPassword({ email, password });
+    if (loginError || !loginData?.user || !loginData?.session) return res.status(401).json({ error: loginError?.message || "E-posta veya şifre hatalı." });
+    const admin = adminClient();
+    const { data: profiles, error: profilesError } = await admin.from("profiles").select("*").eq("auth_user_id", loginData.user.id).order("created_at", { ascending: true });
+    if (profilesError) return res.status(500).json({ error: profilesError.message });
+    const safeProfiles = (profiles || []).map(safeProfile);
+    if (!safeProfiles.length) return res.status(404).json({ error: "Bu kullanıcı için Minegram profili bulunamadı." });
+    let selectedProfile = safeProfiles[0];
+    if (requestedUsername) {
+      const found = safeProfiles.find(profile => profile.username === requestedUsername);
+      if (!found) return res.status(404).json({ error: "Bu kullanıcı adına ait Minegram profili bulunamadı." });
+      selectedProfile = found;
+    }
+    return res.json({ ok: true, multipleProfiles: safeProfiles.length > 1, profiles: safeProfiles, profile: selectedProfile, user: { authUserId: loginData.user.id, email: loginData.user.email, accessToken: loginData.session.access_token, refreshToken: loginData.session.refresh_token } });
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    return res.status(500).json({ error: error?.message || "Giriş başarısız." });
+  }
+});
+
 app.post("/api/register", async (req, res) => {
   try {
     if (!CONFIG_OK) {
