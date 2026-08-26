@@ -1,641 +1,208 @@
-import "dotenv/config";
-import express from "express";
-import multer from "multer";
-import { createClient } from "@supabase/supabase-js";
-import path from "path";
-import { fileURLToPath } from "url";
-import crypto from "crypto";
-import fs from "fs";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const app = express();
-app.disable("x-powered-by");
-app.set("trust proxy", 1);
-const PORT = Number(process.env.PORT) || 3000;
-
-// Render Environment Variables are injected directly into process.env.
-// Support both the new Supabase publishable key and the legacy anon key.
-function env(name) {
-  const value = process.env[name];
-  if (value == null) return "";
-  return String(value).trim().replace(/^([\"\'])|([\"\'])$/g, "");
-}
-
-const SUPABASE_URL = env("SUPABASE_URL");
-const SUPABASE_KEY = env("SUPABASE_PUBLISHABLE_KEY") || env("SUPABASE_ANON_KEY");
-const SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
-const BUCKET = "media";
-
-const CONFIG_OK = Boolean(SUPABASE_URL && SUPABASE_KEY);
-if (!CONFIG_OK) {
-  console.error("Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY (veya SUPABASE_ANON_KEY) gerekli.");
-}
-
-app.use(express.json({ limit: "2mb" }));
-
-// Support both layouts: public/index.html and a root index.html.
-const publicDir = path.join(__dirname, "public");
-const rootIndex = path.join(__dirname, "index.html");
-app.use(express.static(publicDir));
-app.use(express.static(__dirname));
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = /^(image\/(jpeg|png|gif|webp|avif)|video\/(mp4|webm|quicktime))$/i.test(file.mimetype || "");
-    if (!allowed) return cb(new Error("Sadece JPG, PNG, GIF, WEBP, AVIF, MP4, WEBM veya MOV yüklenebilir."));
-    cb(null, true);
-  }
-});
-
-function client(token = null) {
-  if (!CONFIG_OK) throw new Error("Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et.");
-  const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
-  if (token) options.global = { headers: { Authorization: `Bearer ${token}` } };
-  return createClient(SUPABASE_URL, SUPABASE_KEY, options);
-}
-
-// Anonymous browser client. Kept as a separate named helper because the login
-// flow intentionally uses the public Supabase key for password sign-in.
-function anonClient() {
-  return client();
-}
-
-function bearer(req) {
-  const h = req.headers.authorization || "";
-  return h.startsWith("Bearer ") ? h.slice(7) : null;
-}
-
-async function auth(req, res, next) {
-  try {
-    const token = bearer(req);
-    if (!token) throw new Error("Oturum gerekli");
-    const sb = client(token);
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (error || !user) throw error || new Error("Oturum gerekli");
-    // The bundled Supabase schema uses profiles.id = auth.users.id.
-    // Do not depend on the optional auth_user_id column used by older experiments.
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    if (pError || !profile) throw pError || new Error("Profil bulunamadı");
-    req.token = token;
-    req.sb = sb;
-    req.authUser = user;
-    req.user = profile;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: "Oturum gerekli" });
-  }
-}
-
-function safeUser(u) {
-  return {
-    id: u.id,
-    username: u.username,
-    displayName: u.display_name ?? u.displayName ?? u.username,
-    bio: u.bio || "",
-    avatar: u.avatar_url ?? u.avatar ?? null,
-    verified: !!u.verified,
-    settings: u.settings || {}
-  };
-}
-
-// Backwards-compatible name used by older multi-profile frontend code.
-const safeProfile = safeUser;
-
-function normalizeUsername(x) {
-  return String(x || "").trim().replace(/^@/, "").toLowerCase();
-}
-
-async function findProfile(sb, username) {
-  const q = normalizeUsername(username);
-  const { data, error } = await sb.from("profiles").select("*").eq("username", q).maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-async function addNotification({ userId, type, fromUserId, postId = null, text }) {
-  if (userId === fromUserId) return;
-  if (!SUPABASE_SERVICE_ROLE_KEY) return;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  await admin.from("notifications").insert({ user_id: userId, type, from_user_id: fromUserId, post_id: postId, text });
-}
-
-async function hydratePosts(sb, posts, userId) {
-  if (!posts.length) return [];
-  const userIds = [...new Set(posts.map(p => p.user_id))];
-  const postIds = posts.map(p => p.id);
-  const [{ data: profiles }, { data: likes }, { data: comments }, { data: saves }] = await Promise.all([
-    sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").in("id", userIds),
-    sb.from("post_likes").select("post_id,user_id").in("post_id", postIds),
-    sb.from("comments").select("id,post_id,user_id,text,created_at,profiles(username,display_name)").in("post_id", postIds).order("created_at", { ascending: true }),
-    sb.from("saves").select("post_id,user_id").eq("user_id", userId).in("post_id", postIds)
-  ]);
-  const pmap = new Map((profiles || []).map(p => [p.id, p]));
-  const likeMap = new Map();
-  for (const l of likes || []) likeMap.set(l.post_id, (likeMap.get(l.post_id) || 0) + 1);
-  const liked = new Set((likes || []).filter(x => x.user_id === userId).map(x => x.post_id));
-  const saved = new Set((saves || []).map(x => x.post_id));
-  const commentsMap = new Map();
-  for (const c of comments || []) {
-    if (!commentsMap.has(c.post_id)) commentsMap.set(c.post_id, []);
-    commentsMap.get(c.post_id).push({ id: c.id, userId: c.user_id, text: c.text, createdAt: c.created_at, username: c.profiles?.username || "" });
-  }
-  return posts.map(p => ({
-    id: p.id, userId: p.user_id, caption: p.caption, media: p.media_url, mediaName: p.media_name, mediaType: p.media_type,
-    createdAt: p.created_at, likes: Array(likeMap.get(p.id) || 0).fill(null), comments: commentsMap.get(p.id) || [],
-    likedByMe: liked.has(p.id), savedByMe: saved.has(p.id), user: safeUser(pmap.get(p.user_id) || { id: p.user_id, username: "user" })
-  }));
-}
-
-app.post("/api/register", async (req, res) => {
-  try {
-    const username = normalizeUsername(req.body?.username);
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    const password = String(req.body?.password || "");
-    const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
-    if (!username || !email || password.length < 6) return res.status(400).json({ error: "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli." });
-    if (!/^[a-z0-9._]{3,30}$/.test(username)) return res.status(400).json({ error: "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan." });
-    const anon = client();
-    const { data: existing } = await anon.from("profiles").select("id").eq("username", username).maybeSingle();
-    if (existing) return res.status(409).json({ error: "Bu kullanıcı adı zaten alınmış." });
-    const { data, error } = await anon.auth.signUp({ email, password, options: { data: { username, display_name: displayName } } });
-    if (error) return res.status(400).json({ error: error.message });
-    if (!data.user) return res.status(400).json({ error: "Kullanıcı oluşturulamadı." });
-
-    // Profil oluşturmayı SQL trigger'ına bırakma; Service Role ile sunucu tarafında garanti et.
-    if (SUPABASE_SERVICE_ROLE_KEY) {
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      const { error: profileError } = await admin.from("profiles").upsert({
-        id: data.user.id,
-        username,
-        display_name: displayName,
-        bio: "",
-        avatar_url: null,
-        verified: false,
-        settings: {}
-      }, { onConflict: "id" });
-      if (profileError) return res.status(500).json({ error: `Profil oluşturulamadı: ${profileError.message}` });
-    }
-
-    // E-posta doğrulaması açıksa Supabase session döndürmeyebilir.
-    if (!data.session) {
-      return res.json({
-        needsConfirmation: true,
-        message: "Kayıt tamamlandı. E-posta adresini doğrula, ardından giriş yap.",
-        user: { id: data.user.id, email: data.user.email, username }
-      });
-    }
-
-    const sb = client(data.session.access_token);
-    let { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-
-    if ((pError || !profile) && SUPABASE_SERVICE_ROLE_KEY) {
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      const result = await admin.from("profiles").select("*").eq("id", data.user.id).single();
-      profile = result.data;
-      pError = result.error;
-    }
-    if (pError || !profile) return res.status(500).json({ error: "Profil oluşturulamadı." });
-    res.json({ token: data.session.access_token, user: safeUser(profile) });
-  } catch (e) { res.status(500).json({ error: e.message || "Kayıt başarısız" }); }
-});
-
-app.post("/api/login", async (req, res) => {
-  try {
-    const identifier = String(req.body?.username ?? req.body?.email ?? "").trim();
-    const password = String(req.body?.password ?? "");
-    if (!identifier || !password) {
-      return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
-    }
-    if (!CONFIG_OK) return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
-
-    const anon = client();
-let email = identifier.toLowerCase();
-
-if (!identifier.includes("@")) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({
-      error: "Kullanıcı adıyla giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
-    });
-  }
-
-  const admin = adminClient();
-
-  const { data: profile, error: pe } = await admin
-    .from("profiles")
-    .select("*")
-    .eq("username", normalizeUsername(identifier))
-    .maybeSingle();
-
-  if (pe) {
-    return res.status(500).json({ error: pe.message });
-  }
-
-  if (!profile) {
-    return res.status(401).json({
-      error: "Kullanıcı adı veya şifre hatalı."
-    });
-  }
-
-  const authId = profile.auth_user_id || profile.id;
-
-  const { data: au, error: ae } =
-    await admin.auth.admin.getUserById(authId);
-
-  if (ae || !au?.user?.email) {
-    return res.status(401).json({
-      error: "Kullanıcı adı veya şifre hatalı."
-    });
-  }
-
-  email = au.user.email.toLowerCase();
-}
-
-    const { data: sd, error: le } = await anon.auth.signInWithPassword({ email, password });
-    if (le || !sd?.session || !sd?.user) {
-      const msg = le?.message || "Giriş başarısız.";
-      if (/email not confirmed/i.test(msg)) {
-        return res.status(403).json({ error: "E-posta adresin henüz doğrulanmamış. Supabase doğrulama e-postasındaki bağlantıyı aç." });
-      }
-      if (/invalid login credentials/i.test(msg)) {
-        return res.status(401).json({ error: "Kullanıcı adı/e-posta veya şifre hatalı." });
-      }
-      return res.status(401).json({ error: msg });
-    }
-
-    const sb = client(sd.session.access_token);
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", sd.user.id).single();
-    if (pError || !profile) return res.status(404).json({ error: "Bu hesap için Minegram profili bulunamadı." });
-
-    const safe = safeProfile(profile);
-    // Keep the multi-profile response shape so older frontend builds continue to work,
-    // while the supplied schema remains one profile per Supabase Auth user.
-    return res.json({
-      ok: true,
-      multipleProfiles: false,
-      profiles: [safe],
-      profile: safe,
-      token: sd.session.access_token,
-      user: safe
-    });
-  } catch (e) {
-    console.error("LOGIN ERROR:", e);
-    return res.status(500).json({ error: e?.message || "Giriş başarısız." });
-  }
-});
-
-app.post("/api/forgot", async (req, res) => {
-  try {
-    const identifier = String(req.body?.identifier || "").trim();
-    const anon = client();
-    let email = identifier;
-    if (!identifier.includes("@")) {
-      if (!SUPABASE_SERVICE_ROLE_KEY) return res.status(200).json({ ok: true });
-      const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-      const profile = await findProfile(anon, identifier);
-      if (!profile) return res.status(200).json({ ok: true });
-      const { data, error } = await admin.auth.admin.getUserById(profile.id);
-      if (error || !data?.user?.email) return res.status(200).json({ ok: true });
-      email = data.user.email;
-    }
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${req.protocol}://${req.get("host")}/` });
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ ok: true });
-  } catch { res.json({ ok: true }); }
-});
-
-
-app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    service: "minegram",
-    supabaseConfigured: CONFIG_OK,
-    serviceRoleConfigured: Boolean(SUPABASE_SERVICE_ROLE_KEY),
-    time: new Date().toISOString()
-  });
-});
-
-// Public auth configuration for the browser-side Supabase recovery flow.
-app.get("/api/auth-config", (req, res) => {
-  if (!CONFIG_OK) return res.status(500).json({ error: "Supabase yapılandırması eksik." });
-  res.json({ url: SUPABASE_URL, key: SUPABASE_KEY });
-});
-
-const recoveryCodes = new Map();
-function publicOrigin(req) {
-  const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
-  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
-}
-function maskEmail(email) {
-  const [u, d] = String(email).split("@");
-  if (!u || !d) return email;
-  const shown = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "*".repeat(Math.max(1, u.length - 2));
-  return `${shown}@${d}`;
-}
-function normalizeRecoveryPhone(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  return digits.length > 10 ? digits.slice(-10) : digits;
-}
-
-async function findUserByPhone(phone) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  const wanted = normalizeRecoveryPhone(phone);
-  if (!wanted || wanted.length < 10) return null;
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const users = data?.users || [];
-    const found = users.find(u => normalizeRecoveryPhone(u.phone) === wanted);
-    if (found) return found;
-    if (users.length < 1000) break;
-  }
-  return null;
-}
-
-async function resolveRecoveryEmail(identifier, mode = "email") {
-  const anon = client();
-  const raw = String(identifier || "").trim();
-  let email = raw;
-  let profile = null;
-
-  if (mode === "phone") {
-    const authUser = await findUserByPhone(raw);
-    if (!authUser?.email) return null;
-    email = authUser.email;
-    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("id", authUser.id).maybeSingle();
-    profile = data || null;
-    return { email, profile, authUser };
-  }
-
-  if (!email.includes("@")) {
-    profile = await findProfile(anon, email);
-    if (!profile) return null;
-    if (!SUPABASE_SERVICE_ROLE_KEY) return null;
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error } = await admin.auth.admin.getUserById(profile.id);
-    if (error || !data?.user?.email) return null;
-    email = data.user.email;
-  }
-  if (!profile) {
-    const { data } = await anon.from("profiles").select("id,username,email,display_name").eq("email", email).maybeSingle();
-    profile = data || null;
-  }
-  return { email, profile };
-}
-async function sendResendEmail(to, subject, html, text) {
-  const key = String(process.env.RESEND_API_KEY || "").trim();
-  if (!key) throw new Error("RESEND_API_KEY eksik.");
-  const from = String(process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev").trim();
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, text })
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.message || "E-posta gönderilemedi.");
-  return j;
-}
-
-app.post("/api/forgot/start", async (req, res) => {
-  try {
-    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
-    if (!found) return res.status(404).json({ error: "Hesap bulunamadı." });
-    const code = String(crypto.randomInt(100000, 1000000));
-    recoveryCodes.set(found.email.toLowerCase(), { code, expires: Date.now() + 10 * 60 * 1000, profile: found.profile });
-    await sendResendEmail(
-      found.email,
-      "Minegram doğrulama kodun",
-      `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Şifre sıfırlama işlemin için doğrulama kodun:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
-      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-    );
-    res.json({ ok: true, email: found.email, maskedEmail: maskEmail(found.email) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/forgot/verify", async (req, res) => {
-  try {
-    const found = await resolveRecoveryEmail(req.body?.identifier, req.body?.mode || "email");
-    const entry = found && recoveryCodes.get(found.email.toLowerCase());
-    if (!entry || entry.expires < Date.now() || entry.code !== String(req.body?.code || "").trim()) {
-      return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
-    }
-    recoveryCodes.delete(found.email.toLowerCase());
-    const p = entry.profile || found.profile || {};
-    res.json({ ok: true, email: found.email, account: { username: p.username || "minegram", email: found.email, displayName: p.display_name || p.displayName || "" } });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/forgot/send-reset", async (req, res) => {
-  try {
-    const email = String(req.body?.email || "").trim();
-    if (!email) return res.status(400).json({ error: "E-posta gerekli." });
-    const anon = client();
-    const { error } = await anon.auth.resetPasswordForEmail(email, { redirectTo: `${publicOrigin(req)}/` });
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/me", auth, (req, res) => res.json(safeUser(req.user)));
-
-app.get("/api/feed", auth, async (req, res) => {
-  try {
-    const { data, error } = await req.sb.from("posts").select("*").order("created_at", { ascending: false }).limit(100);
-    if (error) throw error;
-    res.json(await hydratePosts(req.sb, data || [], req.user.id));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
-  try {
-    let mediaUrl = null;
-    let mediaName = null;
-    let mediaType = null;
-    if (req.file) {
-      const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
-      const objectPath = `${req.user.id}/${crypto.randomUUID()}${ext}`;
-      const { error: uploadError } = await req.sb.storage.from(BUCKET).upload(objectPath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
-      if (uploadError) throw uploadError;
-      const { data: publicData } = req.sb.storage.from(BUCKET).getPublicUrl(objectPath);
-      mediaUrl = publicData.publicUrl;
-      mediaName = req.file.originalname;
-      mediaType = req.file.mimetype;
-    }
-    const { data, error } = await req.sb.from("posts").insert({ user_id: req.user.id, caption: req.body?.caption || "", media_url: mediaUrl, media_name: mediaName, media_type: mediaType }).select("*").single();
-    if (error) throw error;
-    res.json({ ...data, id: data.id, userId: data.user_id, media: data.media_url, mediaName: data.media_name, createdAt: data.created_at });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/like", auth, async (req, res) => {
-  try {
-    const { data: existing } = await req.sb.from("post_likes").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
-    if (existing) {
-      await req.sb.from("post_likes").delete().eq("post_id", req.params.id).eq("user_id", req.user.id);
-      return res.json({ liked: false });
-    }
-    const { error } = await req.sb.from("post_likes").insert({ post_id: req.params.id, user_id: req.user.id });
-    if (error) throw error;
-    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
-    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "like", postId: req.params.id, text: `@${req.user.username} beğendi` });
-    res.json({ liked: true });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/comments", auth, async (req, res) => {
-  try {
-    const text = String(req.body?.text || "").trim();
-    if (!text) return res.status(400).json({ error: "Yorum boş olamaz" });
-    const { data, error } = await req.sb.from("comments").insert({ post_id: req.params.id, user_id: req.user.id, text }).select("*").single();
-    if (error) throw error;
-    const { data: post } = await req.sb.from("posts").select("user_id").eq("id", req.params.id).single();
-    if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "comment", postId: req.params.id, text: `@${req.user.username} yorum yaptı` });
-    res.json({ id: data.id, userId: data.user_id, text: data.text, createdAt: data.created_at, username: req.user.username });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post("/api/posts/:id/save", auth, async (req, res) => {
-  try {
-    const { data: existing } = await req.sb.from("saves").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
-    if (existing) { await req.sb.from("saves").delete().eq("post_id", req.params.id).eq("user_id", req.user.id); return res.json({ saved: false }); }
-    const { error } = await req.sb.from("saves").insert({ post_id: req.params.id, user_id: req.user.id });
-    if (error) throw error;
-    res.json({ saved: true });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.get("/api/saved", auth, async (req, res) => {
-  try {
-    const { data: saves, error } = await req.sb.from("saves").select("post_id,created_at").eq("user_id", req.user.id).order("created_at", { ascending: false });
-    if (error) throw error;
-    const ids = (saves || []).map(x => x.post_id);
-    if (!ids.length) return res.json([]);
-    const { data: posts, error: pError } = await req.sb.from("posts").select("*").in("id", ids);
-    if (pError) throw pError;
-    const hydrated = await hydratePosts(req.sb, posts || [], req.user.id);
-    res.json(hydrated.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/notifications", auth, async (req, res) => {
-  try {
-    const { data, error } = await req.sb.from("notifications").select("*").eq("user_id", req.user.id).order("created_at", { ascending: false }).limit(50);
-    if (error) throw error;
-    res.json((data || []).map(n => ({ id:n.id, type:n.type, text:n.text, read:n.read, createdAt:n.created_at })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.post("/api/notifications/read", auth, async (req, res) => {
-  try { await req.sb.from("notifications").update({ read:true }).eq("user_id", req.user.id); res.json({ok:true}); }
-  catch(e){ res.status(400).json({error:e.message}); }
-});
-
-app.post("/api/users/:username/follow", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    if (target.id === req.user.id) return res.status(400).json({ error: "Kendini takip edemezsin" });
-    const { data: existing } = await req.sb.from("follows").select("follower_id,following_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle();
-    if (existing) { await req.sb.from("follows").delete().eq("follower_id", req.user.id).eq("following_id", target.id); return res.json({ following:false }); }
-    const { error } = await req.sb.from("follows").insert({ follower_id:req.user.id, following_id:target.id });
-    if (error) throw error;
-    await addNotification({ userId:target.id, fromUserId:req.user.id, type:"follow", text:`@${req.user.username} seni takip etti` });
-    res.json({ following:true });
-  } catch(e){ res.status(400).json({error:e.message}); }
-});
-
-app.get("/api/users/:username/posts", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    const { data, error } = await req.sb.from("posts").select("*").eq("user_id", target.id).order("created_at", { ascending:false });
-    if(error) throw error;
-    res.json(await hydratePosts(req.sb, data || [], req.user.id));
-  } catch(e){ res.status(500).json({error:e.message}); }
-});
-
-app.get("/api/users/:username", auth, async (req,res)=>{
-  try{
-    const target = await findProfile(req.sb, req.params.username);
-    if(!target) return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    const [{ count:postCount }, { count:followers }, { count:following }, { data:followingByMe }] = await Promise.all([
-      req.sb.from("posts").select("id", {count:"exact", head:true}).eq("user_id", target.id),
-      req.sb.from("follows").select("follower_id", {count:"exact", head:true}).eq("following_id", target.id),
-      req.sb.from("follows").select("following_id", {count:"exact", head:true}).eq("follower_id", target.id),
-      req.sb.from("follows").select("follower_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle()
-    ]);
-    res.json({...safeUser(target), postCount:postCount||0, followers:followers||0, following:following||0, followingByMe:!!followingByMe});
-  }catch(e){res.status(500).json({error:e.message});}
-});
-
-app.get("/api/search", auth, async (req,res)=>{
-  try{
-    const q=String(req.query.q||"").trim().toLowerCase();
-    if(!q) return res.json([]);
-    const {data,error}=await req.sb.from("profiles").select("id,username,display_name,bio,avatar_url,verified").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
-    if(error) throw error; res.json((data||[]).map(safeUser));
-  }catch(e){res.status(500).json({error:e.message});}
-});
-
-app.get("/api/messages", auth, async (req,res)=>{
-  try{
-    const {data,error}=await req.sb.from("messages").select("*,profiles:sender_id(username,display_name)").or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`).order("created_at",{ascending:true});
-    if(error) throw error;
-    res.json((data||[]).map(m=>({id:m.id,from:m.sender_id,to:m.recipient_id,text:m.text,createdAt:m.created_at,username:m.profiles?.username||""})));
-  }catch(e){res.status(500).json({error:e.message});}
-});
-app.post("/api/messages", auth, async (req,res)=>{
-  try{
-    const target=await findProfile(req.sb,req.body?.to);
-    const text=String(req.body?.text||"").trim();
-    if(!target)return res.status(404).json({error:"Kullanıcı bulunamadı"});
-    if(!text)return res.status(400).json({error:"Mesaj boş olamaz"});
-    const {data,error}=await req.sb.from("messages").insert({sender_id:req.user.id,recipient_id:target.id,text}).select("*").single();
-    if(error) throw error;
-    res.json({id:data.id,from:data.sender_id,to:data.recipient_id,text:data.text,createdAt:data.created_at});
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-app.patch("/api/me", auth, async (req,res)=>{
-  try{
-    const patch={};
-    if(req.body?.displayName!==undefined) patch.display_name=String(req.body.displayName).slice(0,80);
-    if(req.body?.bio!==undefined) patch.bio=String(req.body.bio).slice(0,300);
-    if(Object.keys(patch).length){ const {error}=await req.sb.from("profiles").update(patch).eq("id",req.user.id); if(error) throw error; }
-    const {data,error}=await req.sb.from("profiles").select("*").eq("id",req.user.id).single(); if(error) throw error;
-    res.json(safeUser(data));
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-app.patch("/api/settings", auth, async (req,res)=>{
-  try{
-    const next={...(req.user.settings||{}),...(req.body||{})};
-    const {error}=await req.sb.from("profiles").update({settings:next}).eq("id",req.user.id); if(error) throw error;
-    res.json(next);
-  }catch(e){res.status(400).json({error:e.message});}
-});
-
-// Multer and unexpected errors should still return JSON for /api/* routes.
-app.use((err, req, res, next) => {
-  if (res.headersSent) return next(err);
-  if (req.path.startsWith("/api/")) {
-    const status = /too large|file too large/i.test(err?.message || "") ? 413 : 400;
-    return res.status(status).json({ error: err?.message || "İstek işlenemedi." });
-  }
-  next(err);
-});
-
-app.use((req, res) => {
-  // Prefer public/index.html when it exists; otherwise serve root index.html.
-  const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
-    ? path.join(publicDir, "index.html")
-    : rootIndex;
-  if (!fs.existsSync(indexPath)) return res.status(404).send("Minegram index.html bulunamadı.");
-  res.sendFile(indexPath);
-});
-
-app.listen(PORT, () => console.log(`Minegram: http://localhost:${PORT}`));
+-- Minegram / Supabase setup
+-- Run this whole file in Supabase SQL Editor.
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text not null unique check (username = lower(username)),
+  display_name text not null default '',
+  bio text not null default '',
+  avatar_url text,
+  verified boolean not null default false,
+  settings jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  caption text not null default '',
+  media_url text,
+  media_name text,
+  media_type text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.post_likes (
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  text text not null check (char_length(trim(text)) > 0),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.saves (
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+create table if not exists public.follows (
+  follower_id uuid not null references public.profiles(id) on delete cascade,
+  following_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, following_id),
+  check (follower_id <> following_id)
+);
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  type text not null,
+  from_user_id uuid references public.profiles(id) on delete set null,
+  post_id uuid references public.posts(id) on delete cascade,
+  text text not null,
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  text text not null check (char_length(trim(text)) > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists posts_created_at_idx on public.posts(created_at desc);
+create index if not exists posts_user_id_idx on public.posts(user_id);
+create index if not exists comments_post_id_idx on public.comments(post_id);
+create index if not exists comments_user_id_idx on public.comments(user_id);
+create index if not exists notifications_user_id_idx on public.notifications(user_id, created_at desc);
+create index if not exists messages_pair_idx on public.messages(sender_id, recipient_id, created_at);
+create index if not exists follows_following_idx on public.follows(following_id);
+
+-- Create a profile automatically when Supabase Auth creates a user.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_username text;
+  requested_display text;
+begin
+  requested_username := lower(regexp_replace(coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)), '[^a-zA-Z0-9_\.]+', '', 'g'));
+  if requested_username = '' then requested_username := 'user'; end if;
+  requested_display := coalesce(new.raw_user_meta_data->>'display_name', requested_username);
+
+  if exists (select 1 from public.profiles where username = requested_username) then
+    requested_username := requested_username || '_' || substr(replace(new.id::text, '-', ''), 1, 6);
+  end if;
+
+  insert into public.profiles (id, username, display_name)
+  values (new.id, requested_username, requested_display)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute procedure public.handle_new_user();
+
+alter table public.profiles enable row level security;
+alter table public.posts enable row level security;
+alter table public.post_likes enable row level security;
+alter table public.comments enable row level security;
+alter table public.saves enable row level security;
+alter table public.follows enable row level security;
+alter table public.notifications enable row level security;
+alter table public.messages enable row level security;
+
+-- Profiles: public to read; users edit only their own.
+drop policy if exists profiles_select on public.profiles;
+create policy profiles_select on public.profiles for select using (true);
+drop policy if exists profiles_insert on public.profiles;
+create policy profiles_insert on public.profiles for insert to authenticated with check ((select auth.uid()) = id);
+drop policy if exists profiles_update on public.profiles;
+create policy profiles_update on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
+
+-- Posts: public read; authenticated users create their own and delete/update their own.
+drop policy if exists posts_select on public.posts;
+create policy posts_select on public.posts for select using (true);
+drop policy if exists posts_insert on public.posts;
+create policy posts_insert on public.posts for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists posts_update on public.posts;
+create policy posts_update on public.posts for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists posts_delete on public.posts;
+create policy posts_delete on public.posts for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Likes / comments / saves are public to read; authenticated users own their rows.
+drop policy if exists likes_select on public.post_likes;
+create policy likes_select on public.post_likes for select using (true);
+drop policy if exists likes_insert on public.post_likes;
+create policy likes_insert on public.post_likes for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists likes_delete on public.post_likes;
+create policy likes_delete on public.post_likes for delete to authenticated using ((select auth.uid()) = user_id);
+
+drop policy if exists comments_select on public.comments;
+create policy comments_select on public.comments for select using (true);
+drop policy if exists comments_insert on public.comments;
+create policy comments_insert on public.comments for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists comments_update on public.comments;
+create policy comments_update on public.comments for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists comments_delete on public.comments;
+create policy comments_delete on public.comments for delete to authenticated using ((select auth.uid()) = user_id);
+
+drop policy if exists saves_select on public.saves;
+create policy saves_select on public.saves for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists saves_insert on public.saves;
+create policy saves_insert on public.saves for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists saves_delete on public.saves;
+create policy saves_delete on public.saves for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Follows: public read; authenticated user owns follower_id.
+drop policy if exists follows_select on public.follows;
+create policy follows_select on public.follows for select using (true);
+drop policy if exists follows_insert on public.follows;
+create policy follows_insert on public.follows for insert to authenticated with check ((select auth.uid()) = follower_id);
+drop policy if exists follows_delete on public.follows;
+create policy follows_delete on public.follows for delete to authenticated using ((select auth.uid()) = follower_id);
+
+-- Notifications: recipient only.
+drop policy if exists notifications_select on public.notifications;
+create policy notifications_select on public.notifications for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists notifications_update on public.notifications;
+create policy notifications_update on public.notifications for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+-- Messages: participants only.
+drop policy if exists messages_select on public.messages;
+create policy messages_select on public.messages for select to authenticated using ((select auth.uid()) = sender_id or (select auth.uid()) = recipient_id);
+drop policy if exists messages_insert on public.messages;
+create policy messages_insert on public.messages for insert to authenticated with check ((select auth.uid()) = sender_id);
+
+-- Storage bucket for public social-media files.
+insert into storage.buckets (id, name, public)
+values ('media', 'media', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists media_public_read on storage.objects;
+create policy media_public_read on storage.objects for select using (bucket_id = 'media');
+drop policy if exists media_authenticated_insert on storage.objects;
+create policy media_authenticated_insert on storage.objects for insert to authenticated with check (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists media_owner_update on storage.objects;
+create policy media_owner_update on storage.objects for update to authenticated using (bucket_id = 'media' and owner_id = (select auth.uid())::text);
+drop policy if exists media_owner_delete on storage.objects;
+create policy media_owner_delete on storage.objects for delete to authenticated using (bucket_id = 'media' and owner_id = (select auth.uid())::text);
+
+-- Data API permissions (least privilege for the browser/server publishable key).
+grant select on public.profiles, public.posts, public.post_likes, public.comments, public.follows to anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant insert, update, delete on public.posts to authenticated;
+grant insert, delete on public.post_likes to authenticated;
+grant insert, update, delete on public.comments to authenticated;
+grant select, insert, delete on public.saves to authenticated;
+grant insert, delete on public.follows to authenticated;
+grant select, update on public.notifications to authenticated;
+grant select, insert on public.messages to authenticated;
