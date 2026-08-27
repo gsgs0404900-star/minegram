@@ -129,7 +129,7 @@ button{font:inherit;cursor:pointer}
 
 /* Highlight full screen viewer */
 .highlight-view-screen{position:fixed;inset:0;background:#000;display:none;z-index:300;color:#fff}.highlight-view-screen.open{display:block}.highlight-view-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333}.highlight-view-back{width:42px;border:0;background:none;color:#fff;font-size:38px}.highlight-view-title{font-size:21px;font-weight:700}.highlight-view-body{height:calc(100vh - 62px);display:flex;flex-direction:column;align-items:center;justify-content:center}.highlight-big-cover{width:220px;height:220px;border-radius:50%;border:2px solid #777;overflow:hidden;display:grid;place-items:center;font-size:70px}.highlight-big-cover img,.highlight-big-cover video{width:100%;height:100%;object-fit:cover}.highlight-view-name{margin-top:20px;font-size:24px;font-weight:700}.highlight-delete{margin-top:40px;width:220px;height:50px;border-radius:12px;border:1px solid #555;background:#000;color:#fff;font-size:17px}
-</style>
+.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}</style>
 </head>
 <body>
 <div class="app">
@@ -612,6 +612,13 @@ document.getElementById('profileNav').onclick=()=>location.href='profile.html';
 document.getElementById('postsTab').onclick=()=>load();
 
 load();
+
+let highlightMenuIndex=-1;
+function openHighlightMenu(i){highlightMenuIndex=i;document.getElementById('highlightMenu').classList.add('open');}
+document.getElementById('highlightMenu').onclick=e=>{if(e.target.id==='highlightMenu')document.getElementById('highlightMenu').classList.remove('open')};
+document.getElementById('removeHighlightBtn').onclick=()=>{let a=getHighlights();a.splice(highlightMenuIndex,1);saveHighlights(a);document.getElementById('highlightMenu').classList.remove('open');renderHighlights();};
+document.getElementById('editHighlightBtn').onclick=()=>{let a=getHighlights();let n=prompt('Öne çıkan adı',a[highlightMenuIndex]?.title||'');if(n){a[highlightMenuIndex].title=n;saveHighlights(a);renderHighlights();}document.getElementById('highlightMenu').classList.remove('open');};
+document.getElementById('shareHighlightBtn').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(location.href);toast('Paylaşım bağlantısı kopyalandı');document.getElementById('highlightMenu').classList.remove('open');};
 </script>
-</body>
+<div id="highlightMenu" class="highlight-menu"><div class="highlight-menu-box"><button class="highlight-menu-item" id="removeHighlightBtn"><span>🗑</span>Öne çıkarmadan kaldır</button><button class="highlight-menu-item" id="editHighlightBtn"><span>✏️</span>Öne çıkarmayı düzenle</button><button class="highlight-menu-item" id="shareHighlightBtn"><span>↗</span>Paylaş</button></div></div></body>
 </html>
