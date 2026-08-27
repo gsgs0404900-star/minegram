@@ -542,8 +542,11 @@ document.getElementById('photoShareBtn').onclick=()=>location.href='index.html#c
 document.getElementById('phoneBtn').onclick=async()=>{
  const phone=prompt('Telefon numaranı gir:',(me&&me.phone)||'');if(phone===null)return;
  if(!phone.trim()){toast('Telefon numarası boş bırakılamaz');return}
- try{me=await api('/api/me',{method:'PATCH',body:{phone:phone.trim()}});toast('Telefon numarası kaydedildi');renderPhone();renderPrompts(currentPosts)}
- catch(e){toast(e.message)}
+ try{
+  me=await api('/api/me',{method:'PATCH',body:{phone:phone.trim()}});
+  toast('Telefon numarası kaydedildi');
+  document.getElementById('phoneRow').remove();
+ }catch(e){toast(e.message)}
 };
 document.getElementById('followersStat').onclick=()=>openUserList('followers');
 document.getElementById('followingStat').onclick=()=>openUserList('following');
