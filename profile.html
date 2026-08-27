@@ -126,6 +126,9 @@ button{font:inherit;cursor:pointer}
 .gender-option:active{background:#302e36}
 
 
+
+/* Highlight full screen viewer */
+.highlight-view-screen{position:fixed;inset:0;background:#000;display:none;z-index:300;color:#fff}.highlight-view-screen.open{display:block}.highlight-view-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333}.highlight-view-back{width:42px;border:0;background:none;color:#fff;font-size:38px}.highlight-view-title{font-size:21px;font-weight:700}.highlight-view-body{height:calc(100vh - 62px);display:flex;flex-direction:column;align-items:center;justify-content:center}.highlight-big-cover{width:220px;height:220px;border-radius:50%;border:2px solid #777;overflow:hidden;display:grid;place-items:center;font-size:70px}.highlight-big-cover img{width:100%;height:100%;object-fit:cover}.highlight-view-name{margin-top:20px;font-size:24px;font-weight:700}.highlight-delete{margin-top:40px;width:220px;height:50px;border-radius:12px;border:1px solid #555;background:#000;color:#fff;font-size:17px}
 </style>
 </head>
 <body>
@@ -223,6 +226,9 @@ button{font:inherit;cursor:pointer}
   </div>
 </div>
 
+
+<div id="highlightViewScreen" class="highlight-view-screen"><div class="highlight-view-head"><button id="highlightViewBack" class="highlight-view-back">‹</button><div class="highlight-view-title">Öne çıkanlar</div></div><div class="highlight-view-body"><div id="highlightBigCover" class="highlight-big-cover">★</div><div id="highlightViewName" class="highlight-view-name">Öne çıkan</div><button id="highlightDeleteBtn" class="highlight-delete">Sil</button></div></div>
+
 <div id="genderPicker" class="gender-picker" aria-hidden="true">
   <div class="gender-picker-box">
     <button class="gender-option" data-gender="Kadın">Kadın</button>
@@ -310,6 +316,13 @@ function renderPrompts(posts){
 function highlightsKey(){return 'minegram_highlights_'+String(currentProfile?.username||'').toLowerCase()}
 function getHighlights(){try{return JSON.parse(localStorage.getItem(highlightsKey())||'[]')}catch(e){return[]}}
 function saveHighlights(a){localStorage.setItem(highlightsKey(),JSON.stringify(a))}
+
+let openedHighlightIndex=-1;
+function openHighlightView(index){const items=getHighlights();const item=items[index];if(!item)return;openedHighlightIndex=index;const cover=document.getElementById('highlightBigCover');cover.innerHTML=item.image?'<img src="'+escapeHtml(item.image)+'">':'★';document.getElementById('highlightViewName').textContent=item.title;document.getElementById('highlightViewScreen').classList.add('open');}
+function closeHighlightView(){document.getElementById('highlightViewScreen').classList.remove('open');openedHighlightIndex=-1;}
+document.getElementById('highlightViewBack').onclick=closeHighlightView;
+document.getElementById('highlightDeleteBtn').onclick=()=>{if(openedHighlightIndex<0)return;const items=getHighlights();items.splice(openedHighlightIndex,1);saveHighlights(items);closeHighlightView();renderHighlights();};
+
 function renderHighlights(){
  const mine=currentProfile&&me&&currentProfile.id===me.id;
  const section=document.getElementById('highlightsSection'),box=document.getElementById('highlights');
@@ -321,7 +334,7 @@ function renderHighlights(){
  items.forEach((item,i)=>{
    const b=document.createElement('button');b.className='highlight';
    b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title)+'</span>';
-   b.onclick=()=>{if(confirm('“'+item.title+'” öne çıkanını silmek ister misin?')){items.splice(i,1);saveHighlights(items);renderHighlights()}};
+   b.onclick=()=>{openHighlightView(i)};
    box.appendChild(b);
  });
 }
