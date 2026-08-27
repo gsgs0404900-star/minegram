@@ -291,7 +291,18 @@ function renderPhone(){
 }
 function renderPrompts(posts){
  const hasPosts=Array.isArray(posts)&&posts.length>0;
- const complete=!!(currentProfile&&(String(currentProfile.displayName||'').trim()||String(currentProfile.bio||'').trim()||String((me&&me.phone)||'').trim()));
+ const id=currentProfile&&currentProfile.id;
+ const pronouns=id?(localStorage.getItem('minegram_pronouns_'+id)||'').trim():'';
+ const link=id?(localStorage.getItem('minegram_profile_link_'+id)||'').trim():'';
+ const gender=id?(localStorage.getItem('minegram_gender_'+id)||'').trim():'';
+ // Profil düzenle ekranında herhangi bir alan doldurulduysa
+ // 'Profili Tamamla' satırını artık gösterme.
+ const complete=!!(currentProfile && (
+   String(currentProfile.displayName||'').trim() ||
+   String(currentProfile.bio||'').trim() ||
+   String((me&&me.phone)||'').trim() ||
+   pronouns || link || gender
+ ));
  document.getElementById('photoPromptRow').classList.toggle('hidden',hasPosts);
  document.getElementById('completeProfileRow').classList.toggle('hidden',complete);
  renderPhone();
