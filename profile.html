@@ -221,6 +221,11 @@ button{font:inherit;cursor:pointer}
 .story-actions{position:absolute;bottom:28px;left:18px;right:18px;display:flex;align-items:center;gap:12px;z-index:20;}
 .story-send{flex:1;height:60px;border-radius:32px;font-size:20px;font-weight:700;}
 .story-more.bottom{width:42px;height:60px;background:transparent;border:0;color:white;font-size:38px;display:flex;align-items:center;justify-content:center;}
+
+/* final button placement */
+.story-actions{position:absolute;bottom:25px;left:20px;right:20px;display:flex;align-items:center;gap:10px;z-index:50;}
+.story-actions .story-send{flex:1;height:60px;border-radius:35px;}
+.story-actions .story-more{width:45px;height:60px;background:transparent;border:0;color:#fff;font-size:38px;display:flex;align-items:center;justify-content:center;}
 </style>
 </head>
 <body>
@@ -444,7 +449,7 @@ function openHighlightView(index){
    
   </div>
   ${item.type==='video'?`<video id="storyMedia" src="${item.image}" autoplay></video>`:`<img id="storyMedia" src="${item.image}">`}
-  <div class="story-actions"><button class="story-send">Gönder</button><button class="story-more bottom">⋮</button></div>
+  <div class="story-actions"><button class="story-send">Gönder</button></div>
   <div class="story-menu" id="storyMenu">
    <button id="removeStory">Öne çıkarmayı kaldır</button>
    <button id="editStory">Öne çıkarmayı düzenle</button>
@@ -456,7 +461,7 @@ function openHighlightView(index){
  v.querySelector('.story-close').onclick=closeStoryViewer;
  const menu=v.querySelector('#storyMenu');
  v.querySelector('.story-more.bottom').onclick=()=>menu.classList.toggle('open');
- 
+ v.querySelector('.bottom').onclick=()=>menu.classList.toggle('open');
 
  v.querySelector('#removeStory').onclick=()=>{
    let a=getHighlights();a.splice(index,1);saveHighlights(a);closeStoryViewer();renderHighlights();
