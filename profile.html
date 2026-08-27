@@ -116,6 +116,12 @@ button{font:inherit;cursor:pointer}
 .edit-profile-field.gender-field{min-height:52px;border-radius:28px;justify-content:center;margin-bottom:16px;padding:8px 16px}
 .edit-profile-gender-btn{width:100%;height:38px;border:0;background:none;color:#63b1ed;font-size:16px;font-weight:700}
 .edit-profile-photo-help{color:#888;font-size:14px;line-height:1.5;margin-top:8px}
+.gender-picker{position:fixed;inset:0;background:rgba(0,0,0,.18);display:none;z-index:260}
+.gender-picker.open{display:block}
+.gender-picker-box{position:absolute;left:34px;top:50%;transform:translateY(-50%);width:min(355px,calc(100% - 68px));background:#211f26;border-radius:8px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,.55)}
+.gender-option{width:100%;min-height:76px;padding:0 25px;border:0;background:none;color:#fff;text-align:left;font-size:18px;font-weight:700}
+.gender-option:active{background:#302e36}
+
 
 </style>
 </head>
@@ -206,6 +212,16 @@ button{font:inherit;cursor:pointer}
     <div class="edit-profile-field"><input id="profileLinkInput" maxlength="300" placeholder="Bağlantı ekle"></div>
     <div class="edit-profile-field gender-field"><button class="edit-profile-gender-btn" id="profileGenderBtn">Cinsiyet özellikleri</button></div>
     <div class="edit-profile-photo-help">Profil fotoğrafını değiştirmek için profilindeki yuvarlak<br>fotoğrafa dokunun.</div>
+  </div>
+</div>
+
+<div id="genderPicker" class="gender-picker" aria-hidden="true">
+  <div class="gender-picker-box">
+    <button class="gender-option" data-gender="Kadın">Kadın</button>
+    <button class="gender-option" data-gender="Erkek">Erkek</button>
+    <button class="gender-option" data-gender="Belirtmek istemiyorum">Belirtmek istemiyorum</button>
+    <button class="gender-option" data-gender="Özel">Özel</button>
+    <button class="gender-option" data-gender="Belirtme">Belirtme</button>
   </div>
 </div>
 
@@ -385,18 +401,31 @@ document.getElementById('editBtn').onclick=async()=>{
 };
 document.getElementById('completeProfileBtn').onclick=()=>openEditProfileScreen();
 document.getElementById('editProfileBack').onclick=closeEditProfileScreen;
-document.getElementById('profileGenderBtn').onclick=()=>{
-  const current=localStorage.getItem('minegram_gender_'+currentProfile.id)||'';
-  const value=prompt('Cinsiyet özelliği',current);
-  if(value===null)return;
-  const clean=value.trim();
-  if(clean){
-    localStorage.setItem('minegram_gender_'+currentProfile.id,clean);
-    document.getElementById('profileGenderBtn').textContent=clean;
-  }else{
-    localStorage.removeItem('minegram_gender_'+currentProfile.id);
-    document.getElementById('profileGenderBtn').textContent='Cinsiyet özellikleri';
-  }
+function openGenderPicker(){
+  const picker=document.getElementById('genderPicker');
+  picker.classList.add('open');
+  picker.setAttribute('aria-hidden','false');
+}
+function closeGenderPicker(){
+  const picker=document.getElementById('genderPicker');
+  picker.classList.remove('open');
+  picker.setAttribute('aria-hidden','true');
+}
+document.getElementById('profileGenderBtn').onclick=openGenderPicker;
+
+document.querySelectorAll('.gender-option').forEach(btn=>{
+  btn.onclick=()=>{
+    const value=btn.dataset.gender;
+    if(currentProfile){
+      localStorage.setItem('minegram_gender_'+currentProfile.id,value);
+    }
+    document.getElementById('profileGenderBtn').textContent=value;
+    closeGenderPicker();
+  };
+});
+
+document.getElementById('genderPicker').onclick=e=>{
+  if(e.target.id==='genderPicker')closeGenderPicker();
 };
 document.getElementById('editProfileSave').onclick=async()=>{
   if(!currentProfile || !me)return;
@@ -451,7 +480,7 @@ document.getElementById('logoutMenu').onclick=()=>{
 };
 
 ['editModal'].forEach(id=>document.getElementById(id).onclick=e=>{if(e.target.id===id)closeModal(id)});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeEditProfileScreen();closeModal('editModal');closeModal('usersModal');closeMenu()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeGenderPicker();closeEditProfileScreen();closeModal('editModal');closeModal('usersModal');closeMenu()}});
 
 document.getElementById('homeNav').onclick=()=>location.href='index.html';
 document.getElementById('searchNav').onclick=()=>location.href='index.html#search';
