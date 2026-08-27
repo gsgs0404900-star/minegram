@@ -211,26 +211,12 @@ button{font:inherit;cursor:pointer}
 .story-progress div{height:100%;width:0;background:#fff}
 .story-head{position:absolute;top:22px;left:14px;right:14px;z-index:4;display:flex;align-items:center;gap:10px;color:#fff}
 .story-close,.story-more{margin-left:auto;background:none;border:0;color:#fff;font-size:28px}
-.story-more{margin-left:0}
-.story-actions{position:absolute;bottom:25px;left:14px;right:14px;z-index:4;display:flex;align-items:center;gap:10px}
-.story-send{flex:1;border:0;background:#2388df;color:#fff;border-radius:22px;height:45px;font-weight:bold;font-size:16px}
+.story-actions{position:absolute;bottom:28px;left:30px;right:30px;z-index:4;display:flex;align-items:center;gap:18px}
+.story-send{flex:1;border:0;background:#65b5f5;color:#17235c;border-radius:35px;height:62px;font-weight:700;font-size:22px}
+.story-more.bottom{width:35px;height:55px;background:transparent;color:#fff;border:0;font-size:38px;display:flex;align-items:center;justify-content:center}
 .story-menu{position:absolute;right:15px;bottom:80px;background:#222;border-radius:12px;padding:8px;z-index:5;display:none}
 .story-menu.open{display:block}
 .story-menu button{display:block;background:none;border:0;color:#fff;padding:12px 20px;width:100%;text-align:left}
-
-/* Öne çıkanlar 3 nokta aşağı alındı */
-.story-actions .story-more{
- width:45px;
- height:45px;
- font-size:32px;
- background:none;
- border:0;
- color:#fff;
- display:flex;
- align-items:center;
- justify-content:center;
-}
-
 </style>
 </head>
 <body>
@@ -451,7 +437,7 @@ function openHighlightView(index){
   <div class="story-head">
    <b>${item.title||'Öne çıkan'}</b>
    <button class="story-close">×</button>
-   <button class="story-more">⋮</button>
+   
   </div>
   ${item.type==='video'?`<video id="storyMedia" src="${item.image}" autoplay></video>`:`<img id="storyMedia" src="${item.image}">`}
   <div class="story-actions"><button class="story-send">Gönder</button><button class="story-more bottom">⋮</button></div>
@@ -465,7 +451,7 @@ function openHighlightView(index){
 
  v.querySelector('.story-close').onclick=closeStoryViewer;
  const menu=v.querySelector('#storyMenu');
- v.querySelector('.story-actions .story-more').onclick=()=>menu.classList.toggle('open');
+ v.querySelector('.story-more.bottom').onclick=()=>menu.classList.toggle('open');
  v.querySelector('.bottom').onclick=()=>menu.classList.toggle('open');
 
  v.querySelector('#removeStory').onclick=()=>{
