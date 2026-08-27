@@ -200,6 +200,20 @@ button{font:inherit;cursor:pointer}
   padding-left:18px;
 }
 </style>
+
+<style>
+.ig-story-overlay{position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center}
+.ig-story-card{width:min(430px,100vw);height:min(850px,100vh);background:#111;position:relative;overflow:hidden}
+.ig-story-card img,.ig-story-card video{width:100%;height:100%;object-fit:cover}
+.ig-story-top{position:absolute;top:12px;left:12px;right:12px;z-index:2;color:white}
+.ig-bars span{display:block;height:3px;background:white;border-radius:5px}
+.ig-user{margin-top:12px;font-weight:700;display:flex;gap:10px;align-items:center}
+.ig-user button{margin-left:auto;background:none;border:0;color:white;font-size:28px}
+.ig-user .ig-more{margin-left:0}
+.ig-bottom{position:absolute;bottom:20px;left:15px;right:15px;display:flex;gap:12px;color:white;align-items:center}
+.ig-bottom div{flex:1;border:1px solid #aaa;border-radius:25px;padding:12px;color:#aaa}
+.ig-bottom button{background:none;border:0;color:white;font-size:28px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -388,7 +402,24 @@ function getHighlights(){try{return JSON.parse(localStorage.getItem(highlightsKe
 function saveHighlights(a){localStorage.setItem(highlightsKey(),JSON.stringify(a))}
 
 let openedHighlightIndex=-1;
-function openHighlightView(index){const items=getHighlights();const item=items[index];if(!item)return;openedHighlightIndex=index;const cover=document.getElementById('highlightBigCover');cover.innerHTML=item.type==='video'?'<video src="'+escapeHtml(item.image)+'" controls autoplay></video>':'<img src="'+escapeHtml(item.image)+'">';document.getElementById('highlightViewName').textContent=item.title;document.getElementById('highlightViewScreen').classList.add('open');}
+function openHighlightView(index){
+ const items=getHighlights(); const item=items[index]; if(!item)return;
+ openedHighlightIndex=index;
+ const old=document.getElementById('igStoryViewer'); if(old) old.remove();
+ const v=document.createElement('div');
+ v.id='igStoryViewer';
+ v.className='ig-story-overlay';
+ v.innerHTML=`<div class="ig-story-card">
+ <div class="ig-story-top"><div class="ig-bars"><span class="active"></span></div><div class="ig-user">@${currentProfile?.username||'minegram'} <button class="ig-close">×</button><button class="ig-more">⋯</button></div></div>
+ ${item.type==='video'?`<video autoplay playsinline src="${escapeHtml(item.image)}"></video>`:`<img src="${escapeHtml(item.image)}">`}
+ <div class="ig-bottom"><div>Yanıt ver...</div><button>♡</button><button>➤</button></div>
+ </div>`;
+ v.querySelector('.ig-close').onclick=()=>v.remove();
+ v.querySelector('.ig-more').onclick=()=>alert('Öne çıkan seçenekleri');
+ v.onclick=e=>{if(e.target===v)v.remove();};
+ v.querySelector('.ig-story-card').onclick=e=>{ if(e.target.closest('button'))return; const x=e.clientX; if(x>innerWidth/2) openHighlightView(Math.min(index+1,items.length-1)); else openHighlightView(Math.max(index-1,0)); };
+ document.body.appendChild(v);
+}
 function closeHighlightView(){document.getElementById('highlightViewScreen').classList.remove('open');openedHighlightIndex=-1;}
 document.getElementById('highlightViewBack').onclick=closeHighlightView;
 document.getElementById('highlightDeleteBtn').onclick=()=>{if(openedHighlightIndex<0)return;const items=getHighlights();items.splice(openedHighlightIndex,1);saveHighlights(items);closeHighlightView();renderHighlights();};
