@@ -129,7 +129,14 @@ button{font:inherit;cursor:pointer}
 
 /* Highlight full screen viewer */
 .highlight-view-screen{position:fixed;inset:0;background:#000;display:none;z-index:300;color:#fff}.highlight-view-screen.open{display:block}.highlight-view-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333}.highlight-view-back{width:42px;border:0;background:none;color:#fff;font-size:38px}.highlight-view-title{font-size:21px;font-weight:700}.highlight-view-body{height:calc(100vh - 62px);display:flex;flex-direction:column;align-items:center;justify-content:center}.highlight-big-cover{width:220px;height:220px;border-radius:50%;border:2px solid #777;overflow:hidden;display:grid;place-items:center;font-size:70px}.highlight-big-cover img,.highlight-big-cover video{width:100%;height:100%;object-fit:cover}.highlight-view-name{margin-top:20px;font-size:24px;font-weight:700}.highlight-delete{margin-top:40px;width:220px;height:50px;border-radius:12px;border:1px solid #555;background:#000;color:#fff;font-size:17px}
-.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}</style>
+.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}
+/* Otomatik öne çıkan görünümü */
+.highlight-auto-note{
+  color:#888;
+  font-size:13px;
+  margin-top:8px;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -610,6 +617,22 @@ document.getElementById('createNav').onclick=()=>location.href='index.html#creat
 document.getElementById('reelsNav').onclick=()=>location.href='index.html#reels';
 document.getElementById('profileNav').onclick=()=>location.href='profile.html';
 document.getElementById('postsTab').onclick=()=>load();
+
+// Gönderi medyasını öne çıkana ekleme yardımcı fonksiyonu
+function addPostToHighlight(media, title='Gönderi'){
+  const key=highlightsKey();
+  let items=[];
+  try{items=JSON.parse(localStorage.getItem(key)||'[]')}catch(e){}
+  items.push({
+    title:title,
+    image:media,
+    type:'image',
+    createdAt:Date.now()
+  });
+  localStorage.setItem(key,JSON.stringify(items));
+  if(typeof renderHighlights==='function') renderHighlights();
+}
+
 
 load();
 
