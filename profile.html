@@ -99,6 +99,24 @@ button{font:inherit;cursor:pointer}
 .menu-icon{width:34px;color:#63b1ed;font-size:31px;text-align:center;flex:none}
 .menu-label{font-size:22px;flex:1}
 .menu-arrow{font-size:38px;font-weight:300}
+
+/* Profil düzenle ekranı */
+.edit-profile-screen{position:fixed;inset:0;background:#000;color:#fff;display:none;z-index:200;overflow-y:auto}
+.edit-profile-screen.open{display:block}
+.edit-profile-head{height:72px;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid #333;background:#000;position:sticky;top:0;z-index:3}
+.edit-profile-back{width:48px;border:0;background:none;color:#fff;font-size:48px;line-height:1;padding:0;text-align:left}
+.edit-profile-title{font-size:28px;font-weight:700}
+.edit-profile-save{margin-left:auto;border:0;background:none;color:#63b1ed;font-size:22px;font-weight:700;padding:8px 0}
+.edit-profile-body{padding:52px 34px 60px}
+.edit-profile-field{width:100%;min-height:118px;border:2px solid #777;border-radius:8px;background:#000;color:#fff;margin-bottom:30px;padding:25px 32px;display:flex;align-items:center;position:relative}
+.edit-profile-field input,.edit-profile-field textarea{width:100%;border:0;outline:0;background:transparent;color:#fff;font:inherit;font-size:25px;padding:0}
+.edit-profile-field textarea{resize:none;min-height:115px;line-height:1.35}
+.edit-profile-field.username-field .field-label{position:absolute;top:-17px;left:30px;background:#000;padding:0 8px;font-size:24px;color:#ddd}
+.edit-profile-field .field-value{font-size:25px;color:#fff}
+.edit-profile-field.gender-field{min-height:84px;border-radius:45px;justify-content:center;margin-bottom:30px;padding:15px 25px}
+.edit-profile-gender-btn{width:100%;height:52px;border:0;background:none;color:#63b1ed;font-size:23px;font-weight:700}
+.edit-profile-photo-help{color:#999;font-size:22px;line-height:1.65;margin-top:12px}
+
 </style>
 </head>
 <body>
@@ -169,6 +187,27 @@ button{font:inherit;cursor:pointer}
 </div>
 
 <div id="toast" class="toast"></div>
+
+
+<div id="editProfileScreen" class="edit-profile-screen" aria-hidden="true">
+  <div class="edit-profile-head">
+    <button class="edit-profile-back" id="editProfileBack" aria-label="Geri">‹</button>
+    <div class="edit-profile-title">Profili düzenle</div>
+    <button class="edit-profile-save" id="editProfileSave">Kaydet</button>
+  </div>
+  <div class="edit-profile-body">
+    <div class="edit-profile-field"><input id="profileNameInput" maxlength="50" placeholder="Ad"></div>
+    <div class="edit-profile-field username-field">
+      <span class="field-label">Kullanıcı adı</span>
+      <span id="profileUsernameValue" class="field-value">@minegram</span>
+    </div>
+    <div class="edit-profile-field"><input id="profilePronounsInput" maxlength="80" placeholder="Hitaplar"></div>
+    <div class="edit-profile-field"><textarea id="profileBioInput" maxlength="160" placeholder="Biyografi"></textarea></div>
+    <div class="edit-profile-field"><input id="profileLinkInput" maxlength="300" placeholder="Bağlantı ekle"></div>
+    <div class="edit-profile-field gender-field"><button class="edit-profile-gender-btn" id="profileGenderBtn">Cinsiyet özellikleri</button></div>
+    <div class="edit-profile-photo-help">Profil fotoğrafını değiştirmek için profilindeki yuvarlak<br>fotoğrafa dokunun.</div>
+  </div>
+</div>
 
 <div id="editModal" class="modal" aria-hidden="true">
 <div class="dialog">
@@ -318,20 +357,62 @@ async function openUserList(type){
 }
 
 document.getElementById('backBtn').onclick=()=>history.length>1?history.back():location.href='index.html';
+function openEditProfileScreen(){
+  if(!currentProfile || !me || currentProfile.id!==me.id)return;
+  document.getElementById('profileNameInput').value=currentProfile.displayName||'';
+  document.getElementById('profileUsernameValue').textContent='@'+(currentProfile.username||'minegram');
+  document.getElementById('profilePronounsInput').value=localStorage.getItem('minegram_pronouns_'+currentProfile.id)||'';
+  document.getElementById('profileBioInput').value=currentProfile.bio||'';
+  document.getElementById('profileLinkInput').value=localStorage.getItem('minegram_profile_link_'+currentProfile.id)||'';
+  const gender=localStorage.getItem('minegram_gender_'+currentProfile.id)||'';
+  document.getElementById('profileGenderBtn').textContent=gender||'Cinsiyet özellikleri';
+  document.getElementById('editProfileScreen').classList.add('open');
+  document.getElementById('editProfileScreen').setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+}
+function closeEditProfileScreen(){
+  document.getElementById('editProfileScreen').classList.remove('open');
+  document.getElementById('editProfileScreen').setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
 document.getElementById('editBtn').onclick=async()=>{
- if(!currentProfile)return;
- if(currentProfile.id!==me.id){
-   try{await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/follow',{method:'POST'});await load()}catch(e){toast(e.message)}
-   return;
- }
- document.getElementById('nameInput').value=currentProfile.displayName||'';
- document.getElementById('bioInput').value=currentProfile.bio||'';
- openModal('editModal');
+  if(!currentProfile)return;
+  if(currentProfile.id!==me.id){
+    try{await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/follow',{method:'POST'});await load()}catch(e){toast(e.message)}
+    return;
+  }
+  openEditProfileScreen();
 };
-document.getElementById('completeProfileBtn').onclick=()=>{
- document.getElementById('nameInput').value=currentProfile?.displayName||'';
- document.getElementById('bioInput').value=currentProfile?.bio||'';
- openModal('editModal');
+document.getElementById('completeProfileBtn').onclick=()=>openEditProfileScreen();
+document.getElementById('editProfileBack').onclick=closeEditProfileScreen;
+document.getElementById('profileGenderBtn').onclick=()=>{
+  const current=localStorage.getItem('minegram_gender_'+currentProfile.id)||'';
+  const value=prompt('Cinsiyet özelliği',current);
+  if(value===null)return;
+  const clean=value.trim();
+  if(clean){
+    localStorage.setItem('minegram_gender_'+currentProfile.id,clean);
+    document.getElementById('profileGenderBtn').textContent=clean;
+  }else{
+    localStorage.removeItem('minegram_gender_'+currentProfile.id);
+    document.getElementById('profileGenderBtn').textContent='Cinsiyet özellikleri';
+  }
+};
+document.getElementById('editProfileSave').onclick=async()=>{
+  if(!currentProfile || !me)return;
+  const displayName=document.getElementById('profileNameInput').value.trim();
+  const bio=document.getElementById('profileBioInput').value.trim();
+  const pronouns=document.getElementById('profilePronounsInput').value.trim();
+  const link=document.getElementById('profileLinkInput').value.trim();
+  try{
+    await api('/api/me',{method:'PATCH',body:{displayName,bio}});
+    localStorage.setItem('minegram_pronouns_'+currentProfile.id,pronouns);
+    if(link)localStorage.setItem('minegram_profile_link_'+currentProfile.id,link);
+    else localStorage.removeItem('minegram_profile_link_'+currentProfile.id);
+    closeEditProfileScreen();
+    toast('Profil güncellendi');
+    await load();
+  }catch(e){toast(e.message)}
 };
 document.getElementById('editCancel').onclick=()=>closeModal('editModal');
 document.getElementById('editSave').onclick=async()=>{
@@ -370,7 +451,7 @@ document.getElementById('logoutMenu').onclick=()=>{
 };
 
 ['editModal'].forEach(id=>document.getElementById(id).onclick=e=>{if(e.target.id===id)closeModal(id)});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('editModal');closeModal('usersModal');closeMenu()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeEditProfileScreen();closeModal('editModal');closeModal('usersModal');closeMenu()}});
 
 document.getElementById('homeNav').onclick=()=>location.href='index.html';
 document.getElementById('searchNav').onclick=()=>location.href='index.html#search';
