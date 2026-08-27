@@ -24,6 +24,8 @@ button{font:inherit;cursor:pointer}
 .stat{border:0;background:none;color:#fff;padding:0;width:100%;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .stat b{display:block;font-size:20px;line-height:1.15}
 .stat span{display:block;font-size:14px;margin-top:5px;white-space:nowrap}
+.profile-extra{margin-top:6px;display:flex;flex-direction:column;gap:3px;font-size:14px;line-height:1.35;color:#aaa}
+.profile-extra a{color:#63b1ed;text-decoration:none;word-break:break-word}
 .username-wrap{margin-top:18px}
 .username{font-size:28px;font-weight:700}
 .verified{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#2388df;color:#fff;font-size:14px;vertical-align:3px}
@@ -148,6 +150,11 @@ button{font:inherit;cursor:pointer}
 <div id="username" class="username">@minegram <span class="verified">✓</span></div>
 <div id="display" class="display"></div>
 <div id="bio" class="bio"></div>
+<div id="profileExtra" class="profile-extra" style="display:none">
+  <div id="profilePronounsDisplay"></div>
+  <a id="profileLinkDisplay" href="#" target="_blank" rel="noopener" style="display:none"></a>
+  <div id="profileGenderDisplay"></div>
+</div>
 </section>
 
 <div class="actions">
@@ -322,26 +329,35 @@ function renderPosts(posts){
    '<div class="empty">Henüz gönderi yok</div>';
  renderPrompts(currentPosts);
 }
+function renderProfileExtra(){
+ if(!currentProfile)return;
+ const id=currentProfile.id;
+ const pronouns=(localStorage.getItem('minegram_pronouns_'+id)||'').trim();
+ const link=(localStorage.getItem('minegram_profile_link_'+id)||'').trim();
+ const gender=(localStorage.getItem('minegram_gender_'+id)||'').trim();
+ const box=document.getElementById('profileExtra');
+ const p=document.getElementById('profilePronounsDisplay');
+ const a=document.getElementById('profileLinkDisplay');
+ const g=document.getElementById('profileGenderDisplay');
+ p.textContent=pronouns; p.style.display=pronouns?'':'none';
+ g.textContent=gender; g.style.display=gender?'':'none';
+ if(link){
+   a.href=/^https?:\/\//i.test(link)?link:'https://'+link;
+   a.textContent=link.replace(/^https?:\/\//i,'').replace(/\/$/,'');
+   a.style.display='';
+ }else{a.style.display='none';a.textContent='';a.removeAttribute('href');}
+ box.style.display=(pronouns||link||gender)?'flex':'none';
+}
 async function load(){
  if(!token){location.href='index.html';return}
  try{
    me=await api('/api/me');
    const username=target||me.username;
    currentProfile=await api('/api/users/'+encodeURIComponent(username));
-
-   // Son düzenleme bu cihazda kaydedildiyse, API henüz eski veriyi döndürse bile
-   // profil ekranında en son düzenlenen ad/biyografiyi göster.
-   try{
-     const localEdit=JSON.parse(localStorage.getItem('minegram_profile_edit_'+currentProfile.id)||'null');
-     if(localEdit){
-       if(typeof localEdit.displayName==='string')currentProfile.displayName=localEdit.displayName;
-       if(typeof localEdit.bio==='string')currentProfile.bio=localEdit.bio;
-     }
-   }catch(e){}
-
    document.getElementById('username').innerHTML='@'+escapeHtml(currentProfile.username)+(currentProfile.verified?' <span class="verified">✓</span>':'');
    document.getElementById('display').textContent=currentProfile.displayName||'';
    document.getElementById('bio').textContent=currentProfile.bio||'';
+   renderProfileExtra();
    document.getElementById('postCount').textContent=currentProfile.postCount||0;
    document.getElementById('followers').textContent=currentProfile.followers||0;
    document.getElementById('following').textContent=currentProfile.following||0;
@@ -480,35 +496,20 @@ document.getElementById('editProfileSave').onclick=async()=>{
   const bio=document.getElementById('profileBioInput').value.trim();
   const pronouns=document.getElementById('profilePronounsInput').value.trim();
   const link=document.getElementById('profileLinkInput').value.trim();
+  const gender=document.getElementById('profileGenderBtn').textContent.trim();
   try{
-    const result=await api('/api/me',{method:'PATCH',body:{displayName,bio}});
-
-    // Önce ekrandaki mevcut profil nesnesini hemen güncelle.
-    // Böylece Kaydet'e bastıktan sonra profil alanları kaybolmaz.
+    await api('/api/me',{method:'PATCH',body:{displayName,bio}});
     currentProfile.displayName=displayName;
     currentProfile.bio=bio;
-
-    // API kullanıcı nesnesi döndürüyorsa onu da kullan.
-    if(result && result.user){
-      currentProfile={...currentProfile,...result.user};
-    }else if(result && result.username){
-      currentProfile={...currentProfile,...result};
-    }
-
-    // Yerel yedek: API eski veriyi döndürürse aynı cihazda son düzenleme korunur.
-    localStorage.setItem('minegram_profile_edit_'+currentProfile.id,
-      JSON.stringify({displayName,bio}));
-
     localStorage.setItem('minegram_pronouns_'+currentProfile.id,pronouns);
     if(link)localStorage.setItem('minegram_profile_link_'+currentProfile.id,link);
     else localStorage.removeItem('minegram_profile_link_'+currentProfile.id);
-
-    // Profil ekranını doğrudan güncelle.
+    if(gender && gender!=='Cinsiyet özellikleri')localStorage.setItem('minegram_gender_'+currentProfile.id,gender);
+    else localStorage.removeItem('minegram_gender_'+currentProfile.id);
     document.getElementById('display').textContent=displayName;
     document.getElementById('bio').textContent=bio;
-
+    renderProfileExtra();
     closeEditProfileScreen();
-    renderPrompts(currentPosts);
     toast('Profil güncellendi');
   }catch(e){toast(e.message)}
 };
