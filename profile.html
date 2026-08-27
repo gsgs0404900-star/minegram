@@ -129,7 +129,18 @@ button{font:inherit;cursor:pointer}
 
 /* Highlight full screen viewer */
 .highlight-view-screen{position:fixed;inset:0;background:#000;display:none;z-index:300;color:#fff}.highlight-view-screen.open{display:block}.highlight-view-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333}.highlight-view-back{width:42px;border:0;background:none;color:#fff;font-size:38px}.highlight-view-title{font-size:21px;font-weight:700}.highlight-view-body{height:calc(100vh - 62px);display:flex;flex-direction:column;align-items:center;justify-content:center}.highlight-big-cover{width:220px;height:220px;border-radius:50%;border:2px solid #777;overflow:hidden;display:grid;place-items:center;font-size:70px}.highlight-big-cover img,.highlight-big-cover video{width:100%;height:100%;object-fit:cover}.highlight-view-name{margin-top:20px;font-size:24px;font-weight:700}.highlight-delete{margin-top:40px;width:220px;height:50px;border-radius:12px;border:1px solid #555;background:#000;color:#fff;font-size:17px}
-.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}</style>
+.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}
+/* Story tarzı öne çıkan izleyici */
+.highlight-view-head{position:absolute;top:0;left:0;right:0;height:70px;border:0;z-index:5;background:linear-gradient(#0008,transparent)}
+.highlight-view-body{height:100vh;display:block;position:relative}
+.highlight-big-cover{width:100%;height:100%;border:0;border-radius:0;font-size:0}
+.highlight-big-cover img,.highlight-big-cover video{width:100%;height:100%;object-fit:cover}
+.story-bars{position:absolute;top:10px;left:12px;right:12px;display:flex;gap:4px;z-index:10}
+.story-bars span{height:3px;background:#777;flex:1;border-radius:5px}
+.story-bars span.active{background:#fff}
+.story-actions{position:absolute;bottom:20px;left:14px;right:14px;display:flex;gap:12px;z-index:10}
+.story-input{flex:1;border:1px solid #aaa;border-radius:25px;padding:13px 18px;color:#fff}
+</style>
 </head>
 <body>
 <div class="app">
@@ -318,7 +329,7 @@ function getHighlights(){try{return JSON.parse(localStorage.getItem(highlightsKe
 function saveHighlights(a){localStorage.setItem(highlightsKey(),JSON.stringify(a))}
 
 let openedHighlightIndex=-1;
-function openHighlightView(index){const items=getHighlights();const item=items[index];if(!item)return;openedHighlightIndex=index;const cover=document.getElementById('highlightBigCover');cover.innerHTML=item.type==='video'?'<video src="'+escapeHtml(item.image)+'" controls autoplay></video>':'<img src="'+escapeHtml(item.image)+'">';document.getElementById('highlightViewName').textContent=item.title;document.getElementById('highlightViewScreen').classList.add('open');}
+function openHighlightView(index){const items=getHighlights();const item=items[index];if(!item)return;openedHighlightIndex=index;const cover=document.getElementById('highlightBigCover');cover.innerHTML='<div class="story-bars"><span class="active"></span><span></span><span></span></div>'+(item.type==='video'?'<video src="'+escapeHtml(item.image)+'" controls autoplay></video>':'<img src="'+escapeHtml(item.image)+'">')+'<div class="story-actions"><div class="story-input">Mesaj gönder</div>♡　➤</div>';document.getElementById('highlightViewName').textContent=item.title;document.getElementById('highlightViewScreen').classList.add('open');}
 function closeHighlightView(){document.getElementById('highlightViewScreen').classList.remove('open');openedHighlightIndex=-1;}
 document.getElementById('highlightViewBack').onclick=closeHighlightView;
 document.getElementById('highlightDeleteBtn').onclick=()=>{if(openedHighlightIndex<0)return;const items=getHighlights();items.splice(openedHighlightIndex,1);saveHighlights(items);closeHighlightView();renderHighlights();};
