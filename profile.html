@@ -78,15 +78,16 @@ button{font:inherit;cursor:pointer}
 .list-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333;position:sticky;top:0;background:#000;z-index:2}
 .list-back{border:0;background:none;color:#fff;font-size:39px;width:42px}
 .list-title{font-size:25px;font-weight:700}
-.list-body{padding:4px 0 90px}
-.user-item{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #222}
-.user-avatar{width:54px;height:54px;border-radius:50%;background:#398bc4;display:grid;place-items:center;overflow:hidden;flex:none}
+.list-body{padding:0 0 90px}
+.user-item{display:flex;align-items:center;gap:16px;min-height:84px;padding:12px 18px;border-bottom:1px solid #333}
+.user-avatar{width:56px;height:56px;border-radius:50%;background:#398bc4;display:grid;place-items:center;overflow:hidden;flex:none;font-size:24px}
 .user-avatar img{width:100%;height:100%;object-fit:cover}
 .user-copy{flex:1;min-width:0}
-.user-name{font-weight:700;font-size:16px}
-.user-handle{color:#888;font-size:13px;margin-top:4px}
-.user-action{border:1px solid #555;background:#000;color:#fff;border-radius:9px;padding:8px 12px;font-size:13px}
-.list-empty{text-align:center;color:#777;padding:60px 20px}
+.user-name{font-weight:700;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-handle{color:#888;font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-action{border:0;background:#63b1ed;color:#30206d;border-radius:28px;padding:13px 22px;font-size:17px;font-weight:700;white-space:nowrap}
+.user-action.secondary{background:#000;color:#fff;border:1px solid #555}
+.list-empty{text-align:center;color:#777;padding:60px 20px;font-size:18px}
 
 /* Ekran görüntüsündeki Menü sayfası */
 .menu-screen{position:fixed;inset:0;background:#000;display:none;z-index:120;overflow:auto}
@@ -353,20 +354,55 @@ async function load(){
  }
 }
 async function openUserList(type){
- document.getElementById('usersTitle').textContent=type==='followers'?'Takipçiler':'Takip';
+ document.getElementById('usersTitle').textContent=type==='followers'?'Takipçiler':'Takip Edilenler';
  document.getElementById('usersBody').innerHTML='<div class="list-empty">Yükleniyor...</div>';
  openModal('usersModal');
  try{
    const data=await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/'+type);
    const users=Array.isArray(data)?data:(data.users||data.followers||data.following||[]);
    const body=document.getElementById('usersBody');
-   if(!users.length){body.innerHTML='<div class="list-empty">Henüz kullanıcı yok.</div>';return}
-   body.innerHTML=users.map(u=>{
-     const username=u.username||u.handle||'',name=u.displayName||u.name||username,avatar=u.avatar||'';
-     return '<div class="user-item"><div class="user-avatar">'+(avatar?'<img src="'+escapeHtml(avatar)+'" alt="">':escapeHtml((name||'M')[0].toUpperCase()))+'</div><div class="user-copy"><div class="user-name">'+escapeHtml(name)+'</div><div class="user-handle">@'+escapeHtml(username)+'</div></div>'+
-     (username?'<button class="user-action" data-user="'+escapeHtml(username)+'">Profili Gör</button>':'')+'</div>';
+   // Sadece gerçekten mevcut kullanıcıları göster.
+   const validUsers=users.filter(u=>u && (u.username||u.handle));
+   if(!validUsers.length){
+     body.innerHTML='';
+     return;
+   }
+   body.innerHTML=validUsers.map(u=>{
+     const username=u.username||u.handle||'';
+     const name=u.displayName||u.name||username;
+     const avatar=u.avatar||'';
+     const actionText=type==='following'?'Takibi Bırak':'Takip Et';
+     const actionClass=type==='following'?'user-action secondary':'user-action';
+     return '<div class="user-item">'+
+       '<div class="user-avatar">'+(avatar?'<img src="'+escapeHtml(avatar)+'" alt="">':escapeHtml((name||'M')[0].toUpperCase()))+'</div>'+
+       '<div class="user-copy"><div class="user-name">'+escapeHtml(name)+'</div><div class="user-handle">@'+escapeHtml(username)+'</div></div>'+
+       '<button class="'+actionClass+' user-action-btn" data-user="'+escapeHtml(username)+'" data-type="'+type+'">'+actionText+'</button>'+
+       '</div>';
    }).join('');
-   body.querySelectorAll('.user-action').forEach(b=>b.onclick=()=>location.href='profile.html?username='+encodeURIComponent(b.dataset.user));
+
+   body.querySelectorAll('.user-action-btn').forEach(b=>{
+     b.onclick=async e=>{
+       e.stopPropagation();
+       const username=b.dataset.user;
+       if(!username)return;
+       if(b.dataset.type==='following'){
+         try{
+           await api('/api/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});
+           await openUserList('following');
+           await load();
+         }catch(e){toast(e.message)}
+       }else{
+         location.href='profile.html?username='+encodeURIComponent(username);
+       }
+     };
+   });
+
+   body.querySelectorAll('.user-item').forEach(row=>{
+     row.onclick=()=>{
+       const btn=row.querySelector('.user-action-btn');
+       if(btn?.dataset.user)location.href='profile.html?username='+encodeURIComponent(btn.dataset.user);
+     };
+   });
  }catch(e){
    document.getElementById('usersBody').innerHTML='<div class="list-empty">Liste yüklenemedi.</div>';toast(e.message);
  }
