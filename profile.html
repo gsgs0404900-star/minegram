@@ -326,10 +326,23 @@ function renderHighlights(){
  });
 }
 async function addHighlight(){
- const title=prompt('Öne çıkan adı:');if(title===null)return;
- if(!title.trim()){toast('Öne çıkan adı boş olamaz');return}
- const image=prompt('Kapak fotoğrafı URL’si (istersen boş bırak):');
- const items=getHighlights();items.push({title:title.trim(),image:(image||'').trim()});saveHighlights(items);renderHighlights();toast('Öne çıkan eklendi');
+  // PC ve telefonda tarayıcının yerel dosya seçicisini aç.
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='image/*,video/*';
+  input.multiple=false;
+  input.style.display='none';
+
+  input.onchange=()=>{
+    if(input.files && input.files.length){
+      const file=input.files[0];
+      toast(file.name+' seçildi');
+    }
+    input.remove();
+  };
+
+  document.body.appendChild(input);
+  input.click();
 }
 function renderPosts(posts){
  currentPosts=Array.isArray(posts)?posts:[];
