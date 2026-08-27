@@ -129,7 +129,21 @@ button{font:inherit;cursor:pointer}
 
 /* Highlight full screen viewer */
 .highlight-view-screen{position:fixed;inset:0;background:#000;display:none;z-index:300;color:#fff}.highlight-view-screen.open{display:block}.highlight-view-head{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #333}.highlight-view-back{width:42px;border:0;background:none;color:#fff;font-size:38px}.highlight-view-title{font-size:21px;font-weight:700}.highlight-view-body{height:calc(100vh - 62px);display:flex;flex-direction:column;align-items:center;justify-content:center}.highlight-big-cover{width:220px;height:220px;border-radius:50%;border:2px solid #777;overflow:hidden;display:grid;place-items:center;font-size:70px}.highlight-big-cover img,.highlight-big-cover video{width:100%;height:100%;object-fit:cover}.highlight-view-name{margin-top:20px;font-size:24px;font-weight:700}.highlight-delete{margin-top:40px;width:220px;height:50px;border-radius:12px;border:1px solid #555;background:#000;color:#fff;font-size:17px}
-.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}</style>
+.highlight-menu{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:350}.highlight-menu.open{display:block}.highlight-menu-box{position:absolute;right:30px;bottom:120px;width:300px;background:#211f26;border-radius:10px;overflow:hidden}.highlight-menu-item{width:100%;height:70px;border:0;background:none;color:#fff;text-align:left;padding:0 25px;font-size:18px;font-weight:700}.highlight-menu-item span{display:inline-block;width:42px;font-size:25px}.highlight-edit-input{width:calc(100% - 40px);margin:20px;background:#111;color:#fff;border:1px solid #555;padding:12px;border-radius:8px;font-size:16px}
+/* Fullscreen highlight story view */
+.story-screen{position:fixed;inset:0;background:#000;display:none;z-index:400;color:#fff}
+.story-screen.open{display:flex;flex-direction:column}
+.story-head{height:60px;display:flex;align-items:center;padding:0 14px;background:#000}
+.story-close{background:none;border:0;color:#fff;font-size:38px;width:45px}
+.story-name{font-size:20px;font-weight:700}
+.story-media{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.story-media img,.story-media video{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
+.story-actions{height:70px;display:flex;justify-content:center;align-items:center}
+.story-menu-btn{background:#222;color:#fff;border:0;border-radius:25px;padding:12px 22px;font-size:16px}
+.story-menu{position:absolute;bottom:85px;left:20px;right:20px;background:#1d1d1d;border-radius:16px;display:none;overflow:hidden}
+.story-menu.open{display:block}
+.story-menu button{width:100%;padding:18px;background:none;border:0;color:#fff;text-align:left;font-size:17px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -262,6 +276,14 @@ button{font:inherit;cursor:pointer}
 <button class="menu-item" id="aboutMenu"><span class="menu-icon">ⓘ</span><span class="menu-label">Hakkında</span><span class="menu-arrow">›</span></button>
 <button class="menu-item" id="logoutMenu"><span class="menu-icon">⇥</span><span class="menu-label">Çıkış Yap</span><span class="menu-arrow">›</span></button>
 </div>
+</div>
+
+
+<div id="storyScreen" class="story-screen">
+ <div class="story-head"><button id="storyClose" class="story-close">‹</button><div id="storyName" class="story-name">Öne çıkan</div></div>
+ <div id="storyMedia" class="story-media"></div>
+ <div class="story-actions"><button id="storyMenuBtn" class="story-menu-btn">•••</button></div>
+ <div id="storyMenu" class="story-menu"><button>🗑 Öne çıkarmadan kaldır</button><button>✏️ Öne çıkarmayı düzenle</button><button>↗️ Paylaş</button></div>
 </div>
 
 <script>
