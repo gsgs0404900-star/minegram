@@ -437,10 +437,10 @@ function openHighlightView(index){
   <div class="story-head">
    <b>${item.title||'Öne çıkan'}</b>
    <button class="story-close">×</button>
-   <button class="story-more">⋮</button>
+   
   </div>
   ${item.type==='video'?`<video id="storyMedia" src="${item.image}" autoplay></video>`:`<img id="storyMedia" src="${item.image}">`}
-  <div class="story-actions"><button class="story-send">Gönder</button><button class="story-more bottom">⋮</button></div>
+  <div class="story-actions"><button class="story-send">Gönder</button><button class="story-more-bottom">⋮</button></div>
   <div class="story-menu" id="storyMenu">
    <button id="removeStory">Öne çıkarmayı kaldır</button>
    <button id="editStory">Öne çıkarmayı düzenle</button>
@@ -451,7 +451,7 @@ function openHighlightView(index){
 
  v.querySelector('.story-close').onclick=closeStoryViewer;
  const menu=v.querySelector('#storyMenu');
- v.querySelector('.story-more').onclick=()=>menu.classList.toggle('open');
+ v.querySelector('.story-more-bottom').onclick=()=>menu.classList.toggle('open');
  v.querySelector('.bottom').onclick=()=>menu.classList.toggle('open');
 
  v.querySelector('#removeStory').onclick=()=>{
@@ -778,3 +778,8 @@ document.getElementById('shareHighlightBtn').onclick=()=>{navigator.clipboard&&n
 </script>
 <div id="highlightMenu" class="highlight-menu"><div class="highlight-menu-box"><button class="highlight-menu-item" id="removeHighlightBtn"><span>🗑</span>Öne çıkarmadan kaldır</button><button class="highlight-menu-item" id="editHighlightBtn"><span>✏️</span>Öne çıkarmayı düzenle</button><button class="highlight-menu-item" id="shareHighlightBtn"><span>↗</span>Paylaş</button></div></div></body>
 </html>
+<style>
+.story-actions{position:absolute;bottom:28px;left:24px;right:24px;z-index:20;display:flex;align-items:center;gap:12px;}
+.story-send{flex:1;height:60px;border:0;border-radius:32px;background:#2388df;color:#fff;font-weight:700;font-size:20px;}
+.story-more-bottom{width:48px;height:60px;background:transparent;border:0;color:#fff;font-size:40px;display:flex;align-items:center;justify-content:center;}
+</style>
