@@ -328,6 +328,17 @@ async function load(){
    me=await api('/api/me');
    const username=target||me.username;
    currentProfile=await api('/api/users/'+encodeURIComponent(username));
+
+   // Son düzenleme bu cihazda kaydedildiyse, API henüz eski veriyi döndürse bile
+   // profil ekranında en son düzenlenen ad/biyografiyi göster.
+   try{
+     const localEdit=JSON.parse(localStorage.getItem('minegram_profile_edit_'+currentProfile.id)||'null');
+     if(localEdit){
+       if(typeof localEdit.displayName==='string')currentProfile.displayName=localEdit.displayName;
+       if(typeof localEdit.bio==='string')currentProfile.bio=localEdit.bio;
+     }
+   }catch(e){}
+
    document.getElementById('username').innerHTML='@'+escapeHtml(currentProfile.username)+(currentProfile.verified?' <span class="verified">✓</span>':'');
    document.getElementById('display').textContent=currentProfile.displayName||'';
    document.getElementById('bio').textContent=currentProfile.bio||'';
@@ -470,13 +481,35 @@ document.getElementById('editProfileSave').onclick=async()=>{
   const pronouns=document.getElementById('profilePronounsInput').value.trim();
   const link=document.getElementById('profileLinkInput').value.trim();
   try{
-    await api('/api/me',{method:'PATCH',body:{displayName,bio}});
+    const result=await api('/api/me',{method:'PATCH',body:{displayName,bio}});
+
+    // Önce ekrandaki mevcut profil nesnesini hemen güncelle.
+    // Böylece Kaydet'e bastıktan sonra profil alanları kaybolmaz.
+    currentProfile.displayName=displayName;
+    currentProfile.bio=bio;
+
+    // API kullanıcı nesnesi döndürüyorsa onu da kullan.
+    if(result && result.user){
+      currentProfile={...currentProfile,...result.user};
+    }else if(result && result.username){
+      currentProfile={...currentProfile,...result};
+    }
+
+    // Yerel yedek: API eski veriyi döndürürse aynı cihazda son düzenleme korunur.
+    localStorage.setItem('minegram_profile_edit_'+currentProfile.id,
+      JSON.stringify({displayName,bio}));
+
     localStorage.setItem('minegram_pronouns_'+currentProfile.id,pronouns);
     if(link)localStorage.setItem('minegram_profile_link_'+currentProfile.id,link);
     else localStorage.removeItem('minegram_profile_link_'+currentProfile.id);
+
+    // Profil ekranını doğrudan güncelle.
+    document.getElementById('display').textContent=displayName;
+    document.getElementById('bio').textContent=bio;
+
     closeEditProfileScreen();
+    renderPrompts(currentPosts);
     toast('Profil güncellendi');
-    await load();
   }catch(e){toast(e.message)}
 };
 document.getElementById('editCancel').onclick=()=>closeModal('editModal');
