@@ -58,6 +58,8 @@ button{font:inherit;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:2px}
 .tile{aspect-ratio:1/1;background:#111;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
 .tile img{width:100%;height:100%;object-fit:cover;display:block}
+.post-tile{border:0;padding:0;margin:0;color:inherit;font:inherit;cursor:pointer;position:relative}
+.post-tile:active{opacity:.92}
 .tile .txt{padding:10px;font-size:12px;color:#ccc}
 .tile-views{position:absolute;left:10px;bottom:9px;display:flex;align-items:center;gap:5px;color:#fff;font-size:15px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.8);z-index:2}
 .tile-views svg{width:20px;height:20px;display:block;fill:none;stroke:#fff;stroke-width:2.2}
@@ -618,12 +620,23 @@ function renderPosts(posts){
  grid.innerHTML=currentPosts.length?currentPosts.map(x=>{
    const views=x.views??x.viewCount??x.viewsCount??x.impressions??0;
    const viewHtml='<span class="tile-views">'+eyeIcon+'<span>'+escapeHtml(formatViews(views))+'</span></span>';
+   const postJson=encodeURIComponent(JSON.stringify(x));
    return x.media?
-     '<div class="tile"><img src="'+escapeHtml(x.media)+'" loading="lazy" alt="Gönderi">'+viewHtml+'</div>':
-     '<div class="tile"><div class="txt">'+escapeHtml(x.caption||'')+'</div>'+viewHtml+'</div>';
+     '<button class="tile post-tile" data-post="'+postJson+'"><img src="'+escapeHtml(x.media)+'" loading="lazy" alt="Gönderi">'+viewHtml+'</button>':
+     '<button class="tile post-tile" data-post="'+postJson+'"><div class="txt">'+escapeHtml(x.caption||'')+'</div>'+viewHtml+'</button>';
  }).join(''):
    '<div class="empty">Henüz gönderi yok</div>';
  renderPrompts(currentPosts);
+ grid.querySelectorAll('.post-tile').forEach(tile=>{
+   tile.onclick=()=>{
+     try{
+       const post=JSON.parse(decodeURIComponent(tile.dataset.post||''));
+       sessionStorage.setItem('minegram_selected_post',JSON.stringify(post));
+       sessionStorage.setItem('minegram_selected_profile',JSON.stringify(currentProfile||{}));
+       location.href='post.html';
+     }catch(e){toast('Gönderi açılamadı')}
+   };
+ });
 }
 function renderProfileExtra(){
  if(!currentProfile)return;
