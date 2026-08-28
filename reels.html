@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -18,10 +17,11 @@ html,body{
   background:#000;
   color:#eee;
   font-family:Inter,Arial,sans-serif;
+  padding-bottom:88px;
 }
 
 body{
-  padding-bottom:80px;
+  overflow-x:hidden;
 }
 
 .app{
@@ -30,10 +30,9 @@ body{
   background:#000;
 }
 
-/* ÜST BAR */
+/* ÜST BAŞLIK */
 .top{
   height:62px;
-  width:100%;
   display:flex;
   align-items:center;
   border-bottom:1px solid #25222b;
@@ -48,7 +47,7 @@ body{
   font-size:19px;
 }
 
-/* TAM ORTADAKİ ANA ALAN */
+/* ORTA ALAN */
 .page{
   width:100%;
   max-width:760px;
@@ -56,91 +55,17 @@ body{
   padding:22px 20px;
 }
 
-/* REELS SÜTUNU */
-.feed{
+/* REELS ALANI */
+.reels-box{
   width:100%;
-  max-width:620px;
-  margin:0 auto;
-}
-
-/* REEL */
-.reel-card{
-  width:100%;
-  margin:0 auto 22px;
-  border-bottom:1px solid #222;
-  padding-bottom:18px;
-}
-
-/* KULLANICI */
-.reel-head{
-  width:100%;
+  min-height:calc(100vh - 150px);
   display:flex;
-  align-items:center;
-  gap:10px;
-  padding:0 4px 12px;
-}
-
-.reel-head b{
-  font-size:14px;
-}
-
-.avatar{
-  width:38px;
-  height:38px;
-  border-radius:50%;
-  background:#4b99d2;
-  display:grid;
-  place-items:center;
-  font-size:14px;
-  font-weight:700;
-}
-
-/* VİDEO */
-.reel-video{
-  display:block;
-  width:100%;
-  height:auto;
-  max-height:700px;
-  min-height:300px;
-  object-fit:cover;
-  background:#111;
-  border-radius:10px;
-}
-
-/* AKSİYONLAR */
-.reel-actions{
-  display:flex;
-  align-items:center;
-  gap:18px;
-  margin-top:9px;
-  padding:0 4px;
-}
-
-.reel-actions button{
-  background:none;
-  border:0;
-  color:#eee;
-  font-size:15px;
-  cursor:pointer;
-  padding:5px 0;
-}
-
-/* AÇIKLAMA */
-.reel-caption{
-  font-size:14px;
-  line-height:1.4;
-  margin-top:8px;
-  padding:0 4px;
-}
-
-/* BOŞ REELS */
-.empty{
-  width:100%;
-  min-height:500px;
-  display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
+}
+
+.empty{
+  width:100%;
   text-align:center;
   color:#999;
 }
@@ -148,7 +73,8 @@ body{
 .empty svg{
   width:52px;
   height:52px;
-  margin-bottom:12px;
+  margin:0 auto;
+  display:block;
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
@@ -159,83 +85,76 @@ body{
 .empty strong{
   display:block;
   color:#ddd;
-  margin-top:4px;
+  margin-top:14px;
+  font-size:16px;
 }
 
 .empty small{
   display:block;
   margin-top:6px;
-}
-
-/* TOAST */
-.toast{
-  position:fixed;
-  left:50%;
-  bottom:95px;
-  transform:translateX(-50%);
-  background:#252329;
-  padding:10px 15px;
-  border-radius:20px;
-  opacity:0;
-  pointer-events:none;
-  transition:.2s;
-  z-index:999999;
-  font-size:12px;
-}
-
-.toast.show{
-  opacity:1;
+  color:#888;
+  font-size:13px;
 }
 
 /* ALT MENÜ */
-.bottom-nav{
+.nav{
   position:fixed;
   left:0;
   right:0;
   bottom:0;
   width:100%;
-  height:78px;
-  display:flex;
-  align-items:stretch;
-  justify-content:space-evenly;
-  padding:8px 5px;
-  margin:0;
-  background:#18161e;
+  height:76px;
+  background:#121018;
   border-top:1px solid #201d27;
-  z-index:99999;
+
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-around;
+
+  z-index:1000;
+
+  padding:5px 8px env(safe-area-inset-bottom);
 }
 
-.bottom-nav a{
-  flex:1 1 0;
-  width:20%;
+.nav a{
+  flex:1;
+  height:100%;
   min-width:0;
+
+  color:#ddd;
+  text-decoration:none;
+
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
+
   gap:3px;
-  text-align:center;
-  text-decoration:none;
-  color:#ddd;
   font-size:9px;
+
+  border:0;
+  background:transparent;
+  cursor:pointer;
 }
 
-.bottom-nav a i{
+.nav-icon{
+  width:45px;
+  height:32px;
+  border-radius:18px;
+
   display:grid;
   place-items:center;
-  width:46px;
-  height:32px;
-  border-radius:20px;
-  font-style:normal;
 }
 
-.bottom-nav a.active i{
-  background:#3c3450;
+.nav a.active .nav-icon{
+  background:#3b3150;
 }
 
-.bottom-nav svg{
-  width:22px;
-  height:22px;
+.nav .svg{
+  width:21px;
+  height:21px;
+
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
@@ -243,33 +162,29 @@ body{
   stroke-linejoin:round;
 }
 
-/* MOBİL */
+/* MASAÜSTÜNDE DE TAM ORTADA */
+@media(min-width:700px){
+
+  .nav{
+    padding-left:calc((100% - 760px)/2);
+    padding-right:calc((100% - 760px)/2);
+  }
+
+}
+
+/* TELEFON */
 @media(max-width:699px){
 
   .page{
-    padding:18px 14px;
+    padding:18px 16px;
   }
 
-  .feed{
-    max-width:100%;
+  .reels-box{
+    min-height:calc(100vh - 145px);
   }
 
-  .reel-card{
-    margin-bottom:18px;
-  }
-
-  .reel-video{
-    max-height:600px;
-    min-height:0;
-    border-radius:10px;
-  }
-
-  .empty{
-    min-height:calc(100vh - 170px);
-  }
 }
 </style>
-
 </head>
 
 <body>
@@ -277,466 +192,121 @@ body{
 <main class="app">
 
   <!-- ÜST -->
-
   <div class="top">
     <b>Reels</b>
   </div>
 
-  <!-- ORTALANMIŞ ALAN -->
-
+  <!-- REELS İÇERİĞİ -->
   <div class="page">
 
-```
-<div id="feed" class="feed">
+    <div class="reels-box">
 
-  <div id="emptyReels" class="empty">
+      <div class="empty">
 
-    <svg viewBox="0 0 24 24">
-      <rect x="3" y="4" width="18" height="16" rx="2"/>
-      <path d="M3 9h18"/>
-      <path d="M8 4l3 5"/>
-      <path d="M13 4l3 5"/>
-    </svg>
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <path d="M3 9h18"></path>
+          <path d="M8 4l3 5"></path>
+          <path d="M13 4l3 5"></path>
+        </svg>
 
-    <strong>Henüz Reel yok</strong>
+        <strong>Henüz Reel yok</strong>
 
-    <small>
-      İlk videoyu sen paylaş.
-    </small>
+        <small>
+          İlk videoyu sen paylaş.
+        </small>
 
-  </div>
+      </div>
 
-</div>
-```
+    </div>
 
   </div>
+
+  <!-- ALT MENÜ -->
+  <nav class="nav">
+
+    <!-- ANA SAYFA -->
+    <a href="index.html">
+      <span class="nav-icon">
+        <svg class="svg" viewBox="0 0 24 24">
+          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"></path>
+        </svg>
+      </span>
+      <span>Ana Sayfa</span>
+    </a>
+
+    <!-- ARA -->
+    <a href="ara.html">
+      <span class="nav-icon">
+        <svg class="svg" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6.5"></circle>
+          <path d="m16 16 5 5"></path>
+        </svg>
+      </span>
+      <span>Ara</span>
+    </a>
+
+    <!-- OLUŞTUR -->
+    <a href="olustur.html">
+      <span class="nav-icon">
+        <svg class="svg" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+      </span>
+      <span>Oluştur</span>
+    </a>
+
+    <!-- REELS -->
+    <a class="active" href="reels.html">
+      <span class="nav-icon">
+        <svg class="svg" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <path d="M3 9h18"></path>
+          <path d="M8 4l3 5"></path>
+          <path d="M13 4l3 5"></path>
+        </svg>
+      </span>
+      <span>Reels</span>
+    </a>
+
+    <!-- PROFİL -->
+    <a href="profile.html">
+      <span class="nav-icon">
+        <svg class="svg" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="3.5"></circle>
+          <path d="M5 20a7 7 0 0 1 14 0"></path>
+        </svg>
+      </span>
+      <span>Profil</span>
+    </a>
+
+  </nav>
 
 </main>
 
-<!-- TOAST -->
-
-<div id="toast" class="toast"></div>
-
-<!-- ALT MENÜ -->
-
-<nav class="bottom-nav">
-
-  <!-- ANA SAYFA -->
-
-  <a href="index.html">
-
-```
-<i>
-  <svg viewBox="0 0 24 24">
-    <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
-  </svg>
-</i>
-
-<span>Ana Sayfa</span>
-```
-
-  </a>
-
-  <!-- ARA -->
-
-  <a href="ara.html">
-
-```
-<i>
-  <svg viewBox="0 0 24 24">
-    <circle cx="11" cy="11" r="6.5"/>
-    <path d="m16 16 5 5"/>
-  </svg>
-</i>
-
-<span>Ara</span>
-```
-
-  </a>
-
-  <!-- OLUŞTUR -->
-
-  <a href="olustur.html">
-
-```
-<i>
-  <svg viewBox="0 0 24 24">
-    <rect x="4" y="4" width="16" height="16" rx="4"/>
-    <path d="M12 8v8M8 12h8"/>
-  </svg>
-</i>
-
-<span>Oluştur</span>
-```
-
-  </a>
-
-  <!-- REELS AKTİF -->
-
-  <a class="active" href="reels.html">
-
-```
-<i>
-  <svg viewBox="0 0 24 24">
-    <rect x="3" y="4" width="18" height="16" rx="2"/>
-    <path d="M3 9h18"/>
-    <path d="M8 4l3 5"/>
-    <path d="M13 4l3 5"/>
-  </svg>
-</i>
-
-<span>Reels</span>
-```
-
-  </a>
-
-  <!-- PROFİL -->
-
-  <a href="profile.html">
-
-```
-<i>
-  <svg viewBox="0 0 24 24">
-    <circle cx="12" cy="8" r="3.5"/>
-    <path d="M5 20a7 7 0 0 1 14 0"/>
-  </svg>
-</i>
-
-<span>Profil</span>
-```
-
-  </a>
-
-</nav>
-
 <script>
-
 const API="/api";
 
-let token=
-  localStorage.getItem("minegram_token");
+let token=localStorage.getItem("minegram_token");
 
-let me=null;
-
-
-/* API */
-async function api(path,opt={}){
-
-  opt.headers={
-    ...(opt.headers||{}),
-    ...(token
-      ? {Authorization:"Bearer "+token}
-      : {})
-  };
-
-  const r=
-    await fetch(API+path,opt);
-
-  const j=
-    await r.json().catch(()=>({}));
-
-  if(!r.ok){
-
-    throw Error(
-      j.error ||
-      "İşlem başarısız"
-    );
-
-  }
-
-  return j;
-}
-
-
-/* TOAST */
-function toast(message){
-
-  const t=
-    document.getElementById("toast");
-
-  if(!t)return;
-
-  t.textContent=message;
-
-  t.classList.add("show");
-
-  setTimeout(
-    ()=>t.classList.remove("show"),
-    2200
-  );
-
-}
-
-
-/* HTML GÜVENLİĞİ */
-function escapeHtml(text=""){
-
-  return String(text).replace(
-    /[&<>"']/g,
-    char=>({
-
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-
-    }[char])
-  );
-
-}
-
-
-/* REELS YÜKLE */
-async function loadReels(){
-
-  const feed=
-    document.getElementById("feed");
-
-  const empty=
-    document.getElementById("emptyReels");
-
-  try{
-
-    const data=
-      await api("/reels");
-
-    const reels=
-      Array.isArray(data)
-      ? data
-      : (data.reels || []);
-
-
-    if(!reels.length){
-
-      empty.style.display="flex";
-
-      return;
-
+if(!token){
+  location.href="index.html";
+}else{
+  fetch(API+"/me",{
+    headers:{
+      Authorization:"Bearer "+token
     }
-
-
-    empty.style.display="none";
-
-
-    reels.forEach(reel=>{
-
-      const username=
-        reel.user?.username ||
-        reel.username ||
-        "kullanıcı";
-
-
-      const caption=
-        reel.caption || "";
-
-
-      const video=
-        reel.media ||
-        reel.video ||
-        reel.url ||
-        "";
-
-
-      const likes=
-        reel.likes || 0;
-
-
-      const comments=
-        reel.comments?.length ||
-        reel.commentCount ||
-        0;
-
-
-      const card=
-        document.createElement("article");
-
-      card.className="reel-card";
-
-
-      card.innerHTML=`
-
-        <div class="reel-head">
-
-          <div class="avatar">
-            ${escapeHtml(
-              username
-                .charAt(0)
-                .toUpperCase()
-            )}
-          </div>
-
-          <b>
-            @${escapeHtml(username)}
-          </b>
-
-        </div>
-
-
-        ${
-          video
-          ?
-          `
-          <video
-            class="reel-video"
-            src="${escapeHtml(video)}"
-            controls
-            playsinline
-            preload="metadata">
-          </video>
-          `
-          :
-          ""
-        }
-
-
-        <div class="reel-actions">
-
-          <button
-            onclick="likeReel('${escapeHtml(reel.id||"")}')">
-            ♡ ${likes}
-          </button>
-
-          <button
-            onclick="commentReel('${escapeHtml(reel.id||"")}')">
-            ○ ${comments}
-          </button>
-
-          <button
-            onclick="saveReel('${escapeHtml(reel.id||"")}')">
-            ♧
-          </button>
-
-        </div>
-
-
-        ${
-          caption
-          ?
-          `
-          <div class="reel-caption">
-            <b>@${escapeHtml(username)}</b>
-            ${escapeHtml(caption)}
-          </div>
-          `
-          :
-          ""
-        }
-
-      `;
-
-
-      feed.appendChild(card);
-
-    });
-
-
-  }catch(error){
-
-    console.log(
-      "Reels yüklenemedi:",
-      error
-    );
-
-    empty.style.display="flex";
-
-  }
-
-}
-
-
-/* BEĞEN */
-async function likeReel(id){
-
-  if(!id)return;
-
-  try{
-
-    await api(
-      "/reels/"+encodeURIComponent(id)+"/like",
-      {
-        method:"POST"
-      }
-    );
-
-    loadReels();
-
-  }catch(error){
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* KAYDET */
-async function saveReel(id){
-
-  if(!id)return;
-
-  try{
-
-    await api(
-      "/reels/"+encodeURIComponent(id)+"/save",
-      {
-        method:"POST"
-      }
-    );
-
-    toast("Kaydedildi");
-
-  }catch(error){
-
-    toast(error.message);
-
-  }
-
-}
-
-
-/* YORUM */
-function commentReel(id){
-
-  toast("Yorumlar yakında");
-
-}
-
-
-/* GİRİŞ KONTROLÜ */
-async function checkLogin(){
-
-  if(!token){
-
+  })
+  .then(r=>{
+    if(!r.ok) throw new Error();
+    return r.json();
+  })
+  .catch(()=>{
     location.href="index.html";
-
-    return;
-
-  }
-
-
-  try{
-
-    me=
-      await api("/me");
-
-    loadReels();
-
-  }catch(error){
-
-    localStorage.removeItem(
-      "minegram_token"
-    );
-
-    location.href="index.html";
-
-  }
-
+  });
 }
-
-
-checkLogin();
-
 </script>
 
 </body>
