@@ -14,6 +14,7 @@ button,input{font:inherit}button{cursor:pointer}
 .back{border:0;background:none;color:#fff;font-size:39px;line-height:1;width:42px}
 .title{font-size:20px;font-weight:700}
 .more{margin-left:auto;border:0;background:none;color:#fff;font-size:29px;width:42px}
+.post-menu{position:fixed;inset:0;display:none;z-index:80}.post-menu.open{display:block}.post-menu-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.58)}.post-menu-box{position:absolute;top:76px;right:24px;width:310px;background:#242229;border-radius:8px;overflow:hidden;box-shadow:0 10px 35px rgba(0,0,0,.55)}.post-menu-btn{width:100%;border:0;background:none;color:#fff;display:flex;align-items:center;gap:18px;padding:19px 22px;text-align:left;font-size:17px}.post-menu-btn:hover{background:#302e37}.post-menu-btn .mi{width:28px;text-align:center;font-size:24px}.post-menu-btn.danger{color:#ff5b5b}.post-menu-btn[aria-pressed="true"]{background:#302e37}.hidden-comments{display:none!important}
 .page{width:min(100%,1120px);margin:0 auto;padding:26px 24px 40px}
 .post-layout{display:flex;justify-content:center;align-items:flex-start;width:100%}
 .post-card{border:1px solid #292929;border-radius:8px;overflow:hidden;background:#050505;width:min(720px,100%)}
@@ -51,8 +52,19 @@ button,input{font:inherit}button{cursor:pointer}
 <button class="nav" id="profileNav"><span>♙</span>Profil</button>
 </nav></div>
 <div id="toast" class="toast"></div>
+<div id="postMenu" class="post-menu" aria-hidden="true">
+  <div class="post-menu-backdrop" id="postMenuBackdrop"></div>
+  <div class="post-menu-box" role="menu">
+    <button class="post-menu-btn" id="savePostBtn" role="menuitem"><span class="mi">🔖</span><span>Kaydet</span></button>
+    <button class="post-menu-btn" id="shareMenuBtn" role="menuitem"><span class="mi">↗</span><span>Gönderiyi paylaş</span></button>
+    <button class="post-menu-btn" id="hideCommentsBtn" role="menuitem"><span class="mi">▱</span><span>Yorum sayısını gizle</span></button>
+    <button class="post-menu-btn danger" id="deletePostBtn" role="menuitem"><span class="mi">🗑</span><span>Gönderiyi sil</span></button>
+  </div>
+</div>
 <script>
+const token=localStorage.getItem('minegram_token')||localStorage.getItem('token');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&typeof opt.body!=='string'){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body)}const r=await fetch(url,opt);if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'İşlem başarısız')}return r.json().catch(()=>({}))}
 function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2000)}
 function formatViews(v){const n=Number(v||0);if(!Number.isFinite(n))return '0';if(n>=1000000)return (n/1000000).toFixed(n%1000000?1:0).replace('.0','')+' mn';if(n>=10000)return (n/1000).toFixed(n%1000?1:0).replace('.0','')+' bin';return n.toLocaleString('tr-TR')}
 const eye='<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.8"/></svg>';
@@ -64,20 +76,39 @@ function load(){
  const avatar=profile.avatar||post.avatar||'';
  const verified=profile.verified||post.verified;
  const views=post.views??post.viewCount??post.viewsCount??post.impressions??0;
+ const postId=post.id??post._id??post.postId??post.uuid??null;
+ const savedKey='minegram_saved_post_'+(postId||btoa(unescape(encodeURIComponent(media))).slice(0,40));
+ const hiddenKey='minegram_hidden_comments_'+(postId||btoa(unescape(encodeURIComponent(media))).slice(0,40));
  const media=post.media||post.image||'';
  const type=post.type||'';
  const mediaHtml=media?(type.startsWith('video')||post.video?'<video src="'+esc(media)+'" controls playsinline></video>':'<img src="'+esc(media)+'" alt="Gönderi">'):'<div class="empty">Bu gönderide medya yok.</div>';
  document.getElementById('content').className='post-layout';
  document.getElementById('content').innerHTML=`
  <article class="post-card">
-  <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" onclick="toast('Gönderi menüsü')">⋮</button></div>
+  <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" id="moreBtn" aria-label="Gönderi seçenekleri" aria-expanded="false">⋮</button></div>
   <div class="post-media">${mediaHtml}</div>
   <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" onclick="sharePost()">➤</button></div>
   <div class="likes">${Number(post.likes??post.likeCount??0).toLocaleString('tr-TR')} beğenme</div>
   ${post.caption?'<div class="post-caption"><b>'+esc(username)+'</b> '+esc(post.caption)+'</div>':''}
-  <div class="comments">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
+  <div class="comments" id="commentsCount">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
  </article>`;
  document.getElementById('likeBtn').onclick=function(){this.textContent=this.textContent==='♡'?'♥':'♡';};
+ const menu=document.getElementById('postMenu');
+ const saveBtn=document.getElementById('savePostBtn');
+ const hideBtn=document.getElementById('hideCommentsBtn');
+ const commentsEl=document.getElementById('commentsCount');
+ const isSaved=localStorage.getItem(savedKey)==='1';
+ const isHidden=localStorage.getItem(hiddenKey)==='1';
+ saveBtn.setAttribute('aria-pressed',String(isSaved));
+ saveBtn.querySelector('span:last-child').textContent=isSaved?'Kaydedildi':'Kaydet';
+ if(isHidden){commentsEl.classList.add('hidden-comments');hideBtn.querySelector('span:last-child').textContent='Yorum sayısını göster';hideBtn.setAttribute('aria-pressed','true');}
+ document.getElementById('moreBtn').onclick=()=>{menu.classList.add('open');menu.setAttribute('aria-hidden','false');document.getElementById('moreBtn').setAttribute('aria-expanded','true')};
+ function closePostMenu(){menu.classList.remove('open');menu.setAttribute('aria-hidden','true');document.getElementById('moreBtn').setAttribute('aria-expanded','false')}
+ document.getElementById('postMenuBackdrop').onclick=closePostMenu;
+ saveBtn.onclick=()=>{const next=localStorage.getItem(savedKey)!=='1';if(next)localStorage.setItem(savedKey,'1');else localStorage.removeItem(savedKey);saveBtn.querySelector('span:last-child').textContent=next?'Kaydedildi':'Kaydet';saveBtn.setAttribute('aria-pressed',String(next));toast(next?'Gönderi kaydedildi':'Kayıt kaldırıldı');closePostMenu()};
+ document.getElementById('shareMenuBtn').onclick=async()=>{closePostMenu();await sharePost()};
+ hideBtn.onclick=()=>{const next=!commentsEl.classList.contains('hidden-comments');commentsEl.classList.toggle('hidden-comments',next);if(next)localStorage.setItem(hiddenKey,'1');else localStorage.removeItem(hiddenKey);hideBtn.querySelector('span:last-child').textContent=next?'Yorum sayısını göster':'Yorum sayısını gizle';hideBtn.setAttribute('aria-pressed',String(next));toast(next?'Yorum sayısı gizlendi':'Yorum sayısı gösteriliyor');closePostMenu()};
+ document.getElementById('deletePostBtn').onclick=async()=>{closePostMenu();if(!confirm('Bu gönderiyi silmek istediğine emin misin?'))return;if(!postId){toast('Gönderi kimliği bulunamadı');return}try{await api('/api/posts/'+encodeURIComponent(postId),{method:'DELETE'});sessionStorage.removeItem('minegram_selected_post');toast('Gönderi silindi');setTimeout(()=>location.href='profile.html',500)}catch(e){toast(e.message||'Gönderi silinemedi')}};
 }
 async function sharePost(){try{if(navigator.share)await navigator.share({title:'Minegram gönderisi',url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Bağlantı kopyalandı')}}catch(e){}}
 document.getElementById('backBtn').onclick=()=>history.length>1?history.back():location.href='profile.html';
