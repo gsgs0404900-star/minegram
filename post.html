@@ -107,13 +107,15 @@ function load(){
  document.getElementById('deletePostBtn').onclick=async()=>{closePostMenu();if(!confirm('Bu gönderiyi silmek istediğine emin misin?'))return;if(!postId){toast('Gönderi kimliği bulunamadı');return}try{await api('/api/posts/'+encodeURIComponent(postId),{method:'DELETE'});sessionStorage.removeItem('minegram_selected_post');toast('Gönderi silindi');setTimeout(()=>location.href='profile.html',500)}catch(e){toast(e.message||'Gönderi silinemedi')}};
 }
 async function sharePost(){try{if(navigator.share)await navigator.share({title:'Minegram gönderisi',url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Bağlantı kopyalandı')}}catch(e){}}
-document.getElementById('backBtn').onclick=()=>history.length>1?history.back():location.href='profile.html';
-document.getElementById('homeNav').onclick=()=>location.href='index.html';
-document.getElementById('searchNav').onclick=()=>location.href='ara.html';
-document.getElementById('createNav').onclick=()=>location.href='olustur.html';
-document.getElementById('reelsNav').onclick=()=>location.href='reels.html';
-document.getElementById('profileNav').onclick=()=>location.href='profile.html';
-load();
+window.addEventListener('DOMContentLoaded',()=>{
+ document.getElementById('backBtn').onclick=()=>history.length>1?history.back():location.href='profile.html';
+ document.getElementById('homeNav').onclick=()=>location.href='index.html';
+ document.getElementById('searchNav').onclick=()=>location.href='ara.html';
+ document.getElementById('createNav').onclick=()=>location.href='olustur.html';
+ document.getElementById('reelsNav').onclick=()=>location.href='reels.html';
+ document.getElementById('profileNav').onclick=()=>location.href='profile.html';
+ load();
+});
 </script>
 <style id="uniform-bottom-nav">
 .bottom-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:78px!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;justify-content:space-between!important;padding:8px 0!important;margin:0!important;background:#18161e!important;border-top:1px solid #25232c!important;z-index:99999!important}
