@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -6,7 +7,9 @@
 <title>Reels - Minegram</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
 html,body{
   margin:0;
@@ -18,7 +21,7 @@ html,body{
 }
 
 body{
-  padding-bottom:88px;
+  padding-bottom:80px;
 }
 
 .app{
@@ -30,6 +33,7 @@ body{
 /* ÜST BAR */
 .top{
   height:62px;
+  width:100%;
   display:flex;
   align-items:center;
   border-bottom:1px solid #25222b;
@@ -44,36 +48,40 @@ body{
   font-size:19px;
 }
 
-/* SAYFA */
+/* TAM ORTADAKİ ANA ALAN */
 .page{
+  width:100%;
   max-width:760px;
   margin:0 auto;
   padding:22px 20px;
 }
 
-/* REELS */
+/* REELS SÜTUNU */
 .feed{
-  width:min(680px,100%);
+  width:100%;
+  max-width:620px;
   margin:0 auto;
 }
 
+/* REEL */
 .reel-card{
-  margin:15px auto;
-  border-bottom:1px solid #222;
-  padding-bottom:16px;
   width:100%;
-  max-width:680px;
+  margin:0 auto 22px;
+  border-bottom:1px solid #222;
+  padding-bottom:18px;
 }
 
+/* KULLANICI */
 .reel-head{
+  width:100%;
   display:flex;
   align-items:center;
   gap:10px;
-  padding:0 14px 12px;
+  padding:0 4px 12px;
 }
 
 .reel-head b{
-  cursor:pointer;
+  font-size:14px;
 }
 
 .avatar{
@@ -87,20 +95,25 @@ body{
   font-weight:700;
 }
 
+/* VİDEO */
 .reel-video{
   display:block;
   width:100%;
-  max-height:680px;
+  height:auto;
+  max-height:700px;
+  min-height:300px;
   object-fit:cover;
   background:#111;
-  border-radius:4px;
+  border-radius:10px;
 }
 
+/* AKSİYONLAR */
 .reel-actions{
   display:flex;
+  align-items:center;
   gap:18px;
   margin-top:9px;
-  padding:0 14px;
+  padding:0 4px;
 }
 
 .reel-actions button{
@@ -109,26 +122,33 @@ body{
   color:#eee;
   font-size:15px;
   cursor:pointer;
+  padding:5px 0;
 }
 
+/* AÇIKLAMA */
 .reel-caption{
   font-size:14px;
+  line-height:1.4;
   margin-top:8px;
-  padding:0 14px;
+  padding:0 4px;
 }
 
-/* BOŞ */
+/* BOŞ REELS */
 .empty{
+  width:100%;
+  min-height:500px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   text-align:center;
-  padding:150px 20px;
   color:#999;
 }
 
 .empty svg{
   width:52px;
   height:52px;
-  margin:auto;
-  display:block;
+  margin-bottom:12px;
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
@@ -139,12 +159,12 @@ body{
 .empty strong{
   display:block;
   color:#ddd;
-  margin-top:14px;
+  margin-top:4px;
 }
 
 .empty small{
   display:block;
-  margin-top:5px;
+  margin-top:6px;
 }
 
 /* TOAST */
@@ -176,7 +196,6 @@ body{
   width:100%;
   height:78px;
   display:flex;
-  flex-direction:row;
   align-items:stretch;
   justify-content:space-evenly;
   padding:8px 5px;
@@ -189,7 +208,6 @@ body{
 .bottom-nav a{
   flex:1 1 0;
   width:20%;
-  max-width:none;
   min-width:0;
   display:flex;
   flex-direction:column;
@@ -199,7 +217,6 @@ body{
   text-align:center;
   text-decoration:none;
   color:#ddd;
-  box-sizing:border-box;
   font-size:9px;
 }
 
@@ -230,154 +247,171 @@ body{
 @media(max-width:699px){
 
   .page{
-    padding:18px 0;
+    padding:18px 14px;
   }
 
   .feed{
-    width:100%;
+    max-width:100%;
   }
 
   .reel-card{
-    max-width:100%;
-    margin:0 auto 16px;
-  }
-
-  .reel-head{
-    padding:10px 14px;
+    margin-bottom:18px;
   }
 
   .reel-video{
-    max-height:520px;
-    border-radius:0;
+    max-height:600px;
+    min-height:0;
+    border-radius:10px;
   }
 
-  .reel-actions{
-    padding:0 14px;
-  }
-
-  .reel-caption{
-    padding:0 14px;
-  }
-
-  .top{
-    padding:0 16px;
+  .empty{
+    min-height:calc(100vh - 170px);
   }
 }
 </style>
+
 </head>
 
 <body>
 
 <main class="app">
 
-  <!-- REELS ÜST BAR -->
+  <!-- ÜST -->
+
   <div class="top">
     <b>Reels</b>
   </div>
 
-  <!-- REELS İÇERİĞİ -->
+  <!-- ORTALANMIŞ ALAN -->
+
   <div class="page">
 
-    <div id="feed" class="feed">
+```
+<div id="feed" class="feed">
 
-      <!-- ŞİMDİLİK BOŞ REELS -->
-      <div id="emptyReels" class="empty">
+  <div id="emptyReels" class="empty">
 
-        <svg viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="16" rx="2"/>
-          <path d="M3 9h18"/>
-          <path d="M8 4l3 5"/>
-          <path d="M13 4l3 5"/>
-        </svg>
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M3 9h18"/>
+      <path d="M8 4l3 5"/>
+      <path d="M13 4l3 5"/>
+    </svg>
 
-        <strong>Henüz Reel yok</strong>
-        <small>İlk videoyu sen paylaş.</small>
+    <strong>Henüz Reel yok</strong>
 
-      </div>
+    <small>
+      İlk videoyu sen paylaş.
+    </small>
 
-    </div>
+  </div>
+
+</div>
+```
 
   </div>
 
 </main>
 
-
 <!-- TOAST -->
+
 <div id="toast" class="toast"></div>
 
-
 <!-- ALT MENÜ -->
+
 <nav class="bottom-nav">
 
   <!-- ANA SAYFA -->
-  <a href="index.html">
-    <i>
-      <svg viewBox="0 0 24 24">
-        <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
-      </svg>
-    </i>
-    <span>Ana Sayfa</span>
-  </a>
 
+  <a href="index.html">
+
+```
+<i>
+  <svg viewBox="0 0 24 24">
+    <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+  </svg>
+</i>
+
+<span>Ana Sayfa</span>
+```
+
+  </a>
 
   <!-- ARA -->
-  <a href="ara.html">
-    <i>
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="6.5"/>
-        <path d="m16 16 5 5"/>
-      </svg>
-    </i>
-    <span>Ara</span>
-  </a>
 
+  <a href="ara.html">
+
+```
+<i>
+  <svg viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="6.5"/>
+    <path d="m16 16 5 5"/>
+  </svg>
+</i>
+
+<span>Ara</span>
+```
+
+  </a>
 
   <!-- OLUŞTUR -->
+
   <a href="olustur.html">
-    <i>
-      <svg viewBox="0 0 24 24">
-        <rect x="4" y="4" width="16" height="16" rx="4"/>
-        <path d="M12 8v8M8 12h8"/>
-      </svg>
-    </i>
-    <span>Oluştur</span>
+
+```
+<i>
+  <svg viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16" rx="4"/>
+    <path d="M12 8v8M8 12h8"/>
+  </svg>
+</i>
+
+<span>Oluştur</span>
+```
+
   </a>
 
+  <!-- REELS AKTİF -->
 
-  <!-- REELS -->
   <a class="active" href="reels.html">
-    <i>
-      <svg viewBox="0 0 24 24">
-        <rect x="3" y="4" width="18" height="16" rx="2"/>
-        <path d="M3 9h18"/>
-        <path d="M8 4l3 5"/>
-        <path d="M13 4l3 5"/>
-      </svg>
-    </i>
-    <span>Reels</span>
-  </a>
 
+```
+<i>
+  <svg viewBox="0 0 24 24">
+    <rect x="3" y="4" width="18" height="16" rx="2"/>
+    <path d="M3 9h18"/>
+    <path d="M8 4l3 5"/>
+    <path d="M13 4l3 5"/>
+  </svg>
+</i>
+
+<span>Reels</span>
+```
+
+  </a>
 
   <!-- PROFİL -->
+
   <a href="profile.html">
-    <i>
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="8" r="3.5"/>
-        <path d="M5 20a7 7 0 0 1 14 0"/>
-      </svg>
-    </i>
-    <span>Profil</span>
+
+```
+<i>
+  <svg viewBox="0 0 24 24">
+    <circle cx="12" cy="8" r="3.5"/>
+    <path d="M5 20a7 7 0 0 1 14 0"/>
+  </svg>
+</i>
+
+<span>Profil</span>
+```
+
   </a>
 
 </nav>
 
-
 <script>
 
 const API="/api";
-
-const PREVIEW=
-  new URLSearchParams(location.search).get("preview")==="1";
 
 let token=
   localStorage.getItem("minegram_token");
@@ -402,10 +436,12 @@ async function api(path,opt={}){
     await r.json().catch(()=>({}));
 
   if(!r.ok){
+
     throw Error(
       j.error ||
       "İşlem başarısız"
     );
+
   }
 
   return j;
@@ -413,14 +449,14 @@ async function api(path,opt={}){
 
 
 /* TOAST */
-function toast(x){
+function toast(message){
 
   const t=
     document.getElementById("toast");
 
   if(!t)return;
 
-  t.textContent=x;
+  t.textContent=message;
 
   t.classList.add("show");
 
@@ -428,27 +464,30 @@ function toast(x){
     ()=>t.classList.remove("show"),
     2200
   );
+
 }
 
 
 /* HTML GÜVENLİĞİ */
-function escapeHtml(s=""){
+function escapeHtml(text=""){
 
-  return String(s).replace(
+  return String(text).replace(
     /[&<>"']/g,
-    m=>({
+    char=>({
+
       "&":"&amp;",
       "<":"&lt;",
       ">":"&gt;",
       '"':"&quot;",
       "'":"&#039;"
-    }[m])
+
+    }[char])
   );
 
 }
 
 
-/* REELS */
+/* REELS YÜKLE */
 async function loadReels(){
 
   const feed=
@@ -465,16 +504,20 @@ async function loadReels(){
     const reels=
       Array.isArray(data)
       ? data
-      : (data.reels||[]);
+      : (data.reels || []);
+
 
     if(!reels.length){
 
-      empty.style.display="block";
+      empty.style.display="flex";
 
       return;
+
     }
 
+
     empty.style.display="none";
+
 
     reels.forEach(reel=>{
 
@@ -483,8 +526,10 @@ async function loadReels(){
         reel.username ||
         "kullanıcı";
 
+
       const caption=
         reel.caption || "";
+
 
       const video=
         reel.media ||
@@ -492,8 +537,10 @@ async function loadReels(){
         reel.url ||
         "";
 
+
       const likes=
         reel.likes || 0;
+
 
       const comments=
         reel.comments?.length ||
@@ -501,13 +548,13 @@ async function loadReels(){
         0;
 
 
-      const article=
+      const card=
         document.createElement("article");
 
-      article.className="reel-card";
+      card.className="reel-card";
 
 
-      article.innerHTML=`
+      card.innerHTML=`
 
         <div class="reel-head">
 
@@ -578,23 +625,20 @@ async function loadReels(){
 
       `;
 
-      feed.appendChild(article);
+
+      feed.appendChild(card);
 
     });
 
-  }catch(e){
 
-    /*
-      API /reels henüz hazır değilse
-      boş ekran gösterilir.
-    */
-
-    empty.style.display="block";
+  }catch(error){
 
     console.log(
       "Reels yüklenemedi:",
-      e
+      error
     );
+
+    empty.style.display="flex";
 
   }
 
@@ -617,9 +661,9 @@ async function likeReel(id){
 
     loadReels();
 
-  }catch(e){
+  }catch(error){
 
-    toast(e.message);
+    toast(error.message);
 
   }
 
@@ -642,9 +686,9 @@ async function saveReel(id){
 
     toast("Kaydedildi");
 
-  }catch(e){
+  }catch(error){
 
-    toast(e.message);
+    toast(error.message);
 
   }
 
@@ -653,8 +697,6 @@ async function saveReel(id){
 
 /* YORUM */
 function commentReel(id){
-
-  if(!id)return;
 
   toast("Yorumlar yakında");
 
@@ -669,7 +711,9 @@ async function checkLogin(){
     location.href="index.html";
 
     return;
+
   }
+
 
   try{
 
@@ -678,7 +722,7 @@ async function checkLogin(){
 
     loadReels();
 
-  }catch(e){
+  }catch(error){
 
     localStorage.removeItem(
       "minegram_token"
@@ -691,7 +735,6 @@ async function checkLogin(){
 }
 
 
-/* BAŞLAT */
 checkLogin();
 
 </script>
