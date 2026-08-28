@@ -23,7 +23,7 @@ button,input{font:inherit}button{cursor:pointer}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .user{font-size:17px;font-weight:700;flex:1}.verified{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#2388df;font-size:12px;margin-left:4px}
 .post-media{width:100%;background:#111;display:flex;justify-content:center;align-items:center;height:620px;min-height:280px;overflow:hidden}
-.post-media img,.post-media video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.post-media{position:relative;overflow:hidden}.post-media img,.post-media video{width:100%;height:100%;object-fit:cover;display:block;background:#000}.double-heart{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.4);font-size:105px;color:#ff3040;text-shadow:0 2px 12px rgba(0,0,0,.45);opacity:0;pointer-events:none;z-index:4}.double-heart.show{animation:heartPop .75s ease forwards}@keyframes heartPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.35)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}45%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.12)}}
 .post-caption{padding:12px 18px 4px;color:#ddd;white-space:pre-wrap;line-height:1.45;font-size:15px}
 .post-actions{height:60px;display:flex;align-items:center;padding:0 15px;gap:16px}
 .action{border:0;background:none;color:#fff;font-size:30px;padding:0;display:flex;align-items:center;gap:8px}
@@ -38,6 +38,7 @@ button,input{font:inherit}button{cursor:pointer}
 .toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:#24222a;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:100}.toast.show{opacity:1}
 @media(max-width:899px){.post-menu-box{width:280px;max-width:100vw;right:0;top:165px}.post-menu-btn{height:88px;font-size:20px;padding:0 25px;gap:24px}.page{padding:0 0 30px}.post-layout{display:block}.post-card{border-left:0;border-right:0;border-radius:0}.side{display:none}.post-head{height:68px}.post-media{height:520px;min-height:220px}.post-media img,.post-media video{height:100%;object-fit:cover}.app{padding-bottom:78px}}
 @media(min-width:900px){.header{padding:0 24px}.post-card{box-shadow:0 2px 18px rgba(0,0,0,.25)}}
+.action.liked{color:#ff3040}
 </style>
 </head>
 <body>
@@ -87,13 +88,29 @@ function load(){
  document.getElementById('content').innerHTML=`
  <article class="post-card">
   <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" id="moreBtn" aria-label="Gönderi seçenekleri" aria-expanded="false">⋮</button></div>
-  <div class="post-media">${mediaHtml}</div>
+  <div class="post-media" id="postMedia">${mediaHtml}<div class="double-heart" id="doubleHeart">♥</div></div>
   <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" onclick="sharePost()">➤</button></div>
   <div class="likes">${Number(post.likes??post.likeCount??0).toLocaleString('tr-TR')} beğenme</div>
   ${post.caption?'<div class="post-caption"><b>'+esc(username)+'</b> '+esc(post.caption)+'</div>':''}
   <div class="comments" id="commentsCount">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
  </article>`;
- document.getElementById('likeBtn').onclick=function(){this.textContent=this.textContent==='♡'?'♥':'♡';};
+ const likeBtn=document.getElementById('likeBtn');
+const likesEl=document.querySelector('.likes');
+let liked=likeBtn.textContent.trim()==='♥';
+function setLiked(value){
+  liked=value;
+  likeBtn.textContent=liked?'♥':'♡';
+  likeBtn.classList.toggle('liked',liked);
+  const n=Number(post.likes??post.likeCount??0)+(liked?1:0);
+  likesEl.textContent=n.toLocaleString('tr-TR')+' beğenme';
+}
+likeBtn.onclick=()=>setLiked(!liked);
+let lastTap=0;
+document.getElementById('postMedia').addEventListener('dblclick',()=>{
+  if(!liked) setLiked(true);
+  const h=document.getElementById('doubleHeart');
+  h.classList.remove('show'); void h.offsetWidth; h.classList.add('show');
+});
  const menu=document.getElementById('postMenu');
  const saveBtn=document.getElementById('savePostBtn');
  const hideBtn=document.getElementById('hideCommentsBtn');
