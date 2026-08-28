@@ -33,17 +33,62 @@ button,input{font:inherit}button{cursor:pointer}
 .side{border:1px solid #292929;border-radius:8px;padding:18px;position:sticky;top:84px}
 .side-title{font-size:15px;color:#999;margin-bottom:16px}.profile-row{display:flex;align-items:center;gap:12px}.profile-row .avatar{width:48px;height:48px}.profile-row b{font-size:16px}.side-bio{color:#aaa;font-size:13px;line-height:1.4;margin-top:15px}
 .empty{text-align:center;color:#777;padding:80px 20px}
-.bottom{position:fixed;left:0;right:0;bottom:0;height:76px;padding:5px 4px max(5px,env(safe-area-inset-bottom));display:flex;background:#19171f;border-top:1px solid #25232c;z-index:30}
-.nav{flex:1;border:0;background:none;color:#ddd;font-size:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}.nav span{font-size:24px}.nav.active span{background:#3b3450;border-radius:18px;padding:3px 13px}
 .toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:#24222a;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:100}.toast.show{opacity:1}
 @media(max-width:899px){.post-menu-box{width:340px;max-width:100vw;right:0;top:165px}.post-menu-btn{height:88px;font-size:20px;padding:0 25px;gap:24px}.page{padding:0 0 30px}.post-layout{display:block}.post-card{border-left:0;border-right:0;border-radius:0}.side{display:none}.post-head{height:68px}.post-media{height:520px;min-height:220px}.post-media img,.post-media video{height:100%;object-fit:cover}.app{padding-bottom:78px}}
 @media(min-width:900px){.header{padding:0 24px}.post-card{box-shadow:0 2px 18px rgba(0,0,0,.25)}}
-.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;align-items:center;justify-content:center;z-index:100;padding:5px 8px env(safe-area-inset-bottom)}
-.nav a,.nav button{flex:1;color:#ddd;text-decoration:none;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;font-size:9px;border:0;background:transparent;cursor:pointer;white-space:nowrap}
-.nav-icon,.nav i{width:32px;height:32px;border-radius:18px;display:grid;place-items:center;font-style:normal;flex:none}
-.nav a.active .nav-icon,.nav button.active .nav-icon,.nav.active .nav-icon{background:#3b3150}
-.nav .ico,.nav .svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-@media(max-width:699px){.nav a,.nav button{flex:1;gap:4px;font-size:8px}}
+.nav{
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+height:76px;
+background:#121018;
+border-top:1px solid #201d27;
+display:flex;
+flex-direction:row;
+align-items:center;
+justify-content:space-around;
+z-index:100;
+padding:5px 8px env(safe-area-inset-bottom);
+}
+.nav a{
+flex:1;
+height:100%;
+color:#ddd;
+text-decoration:none;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:3px;
+font-size:9px;
+background:transparent;
+border:0;
+cursor:pointer;
+}
+.nav-icon{
+width:45px;
+height:32px;
+border-radius:18px;
+display:grid;
+place-items:center;
+}
+.nav a.active .nav-icon{background:#3b3150}
+.nav .svg{
+width:21px;
+height:21px;
+fill:none;
+stroke:currentColor;
+stroke-width:1.8;
+stroke-linecap:round;
+stroke-linejoin:round;
+}
+@media(min-width:700px){
+.nav{
+padding-left:calc((100% - 760px)/2);
+padding-right:calc((100% - 760px)/2);
+}
+}
 </style>
 </head>
 <body>
@@ -120,9 +165,9 @@ function load(){
 async function sharePost(){try{if(navigator.share)await navigator.share({title:'Minegram gönderisi',url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Bağlantı kopyalandı')}}catch(e){}}
 document.getElementById('backBtn').onclick=()=>history.length>1?history.back():location.href='profile.html';
 document.getElementById('homeNav').onclick=()=>location.href='index.html';
-document.getElementById('searchNav').onclick=()=>location.href='index.html#search';
-document.getElementById('createNav').onclick=()=>location.href='index.html#create';
-document.getElementById('reelsNav').onclick=()=>location.href='index.html#reels';
+document.getElementById('searchNav').onclick=()=>location.href='ara.html';
+document.getElementById('createNav').onclick=()=>location.href='olustur.html';
+document.getElementById('reelsNav').onclick=()=>location.href='reels.html';
 document.getElementById('profileNav').onclick=()=>location.href='profile.html';
 load();
 </script>
