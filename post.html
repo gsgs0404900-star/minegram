@@ -41,7 +41,7 @@ button,input{font:inherit}button{cursor:pointer}
 </head>
 <body>
 <div class="app">
-<header class="header"><button class="back" id="backBtn" aria-label="Geri">‹</button><div class="title">Gönderi</div><button class="more" id="moreBtn">⋮</button></header>
+<header class="header"><button class="back" id="backBtn" aria-label="Geri">‹</button><div class="title">Gönderi</div></header>
 <main class="page"><div id="content" class="empty">Gönderi yükleniyor...</div></main>
 <nav class="bottom">
 <button class="nav" id="homeNav"><span>⌂</span>Ana Sayfa</button>
@@ -70,14 +70,13 @@ function load(){
  document.getElementById('content').className='post-layout';
  document.getElementById('content').innerHTML=`
  <article class="post-card">
-  <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" onclick="toast('Gönderi menüsü')">⋮</button></div>
+  <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div></div>
   <div class="post-media">${mediaHtml}</div>
   <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" onclick="sharePost()">➤</button></div>
   <div class="likes">${Number(post.likes??post.likeCount??0).toLocaleString('tr-TR')} beğenme</div>
   ${post.caption?'<div class="post-caption"><b>'+esc(username)+'</b> '+esc(post.caption)+'</div>':''}
   <div class="comments">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
- </article>
- <aside class="side"><div class="side-title">Gönderi sahibi</div><div class="profile-row"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div><b>${esc(username)}</b><div style="color:#888;font-size:13px;margin-top:3px">Minegram</div></div></div>${profile.bio?'<div class="side-bio">'+esc(profile.bio)+'</div>':''}<div style="margin-top:16px;color:#888;font-size:13px">${eye} &nbsp;${formatViews(views)} görüntülenme</div></aside>`;
+ </article>`;
  document.getElementById('likeBtn').onclick=function(){this.textContent=this.textContent==='♡'?'♥':'♡';};
 }
 async function sharePost(){try{if(navigator.share)await navigator.share({title:'Minegram gönderisi',url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Bağlantı kopyalandı')}}catch(e){}}
