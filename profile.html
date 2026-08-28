@@ -254,18 +254,10 @@ button{font:inherit;cursor:pointer}
  height:60px!important;
  border-radius:35px!important;
 }
-</style>
 
-<style>
-.story-time{
-  display:block;
-  margin-top:6px;
-  font-size:15px;
-  font-weight:400;
-  color:#bdbdbd;
-}
+.story-head-info{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:2px!important;}
+.story-time{display:block!important;color:#bdbdbd!important;font-size:15px!important;font-weight:400!important;line-height:20px!important;white-space:nowrap!important;}
 </style>
-
 </head>
 <body>
 <div class="app">
@@ -478,10 +470,7 @@ function formatHighlightDate(value){
  const d=new Date(value);
  if(Number.isNaN(d.getTime())) return '';
  const months=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
- const day=String(d.getDate()).padStart(2,'0');
- const hour=String(d.getHours()).padStart(2,'0');
- const min=String(d.getMinutes()).padStart(2,'0');
- return `${day} ${months[d.getMonth()]} ${d.getFullYear()} ${hour}:${min}`;
+ return String(d.getDate()).padStart(2,'0')+' '+months[d.getMonth()]+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
 }
 
 function openHighlightView(index){
@@ -493,9 +482,11 @@ function openHighlightView(index){
  <div class="story-box">
   <div class="story-progress"><div id="storyProgressBar"></div></div>
   <div class="story-head">
-   <b>${item.title||'Öne çıkan'}</b>
+   <div class="story-head-info">
+    <b>${item.title||'Öne çıkan'}</b>
+    <span class="story-time">${formatHighlightDate(item.createdAt)||''}</span>
+   </div>
    <button class="story-close">×</button>
-   
   </div>
   ${item.type==='video'?`<video id="storyMedia" src="${item.image}" autoplay></video>`:`<img id="storyMedia" src="${item.image}">`}
   <div class="story-actions"><button class="story-send">Gönder</button><button class="story-more bottom" id="bottomStoryMore">⋮</button></div>
@@ -508,6 +499,14 @@ function openHighlightView(index){
  document.body.appendChild(v);
 
  v.querySelector('.story-close').onclick=closeStoryViewer;
+ v.querySelector('.story-send').onclick=async()=>{
+   const data={title:item.title||'Öne çıkan',text:'Minegram öne çıkan paylaşımı',url:location.href};
+   try{
+     if(navigator.share) await navigator.share(data);
+     else if(navigator.clipboard){await navigator.clipboard.writeText(location.href);toast('Bağlantı kopyalandı');}
+     else window.prompt('Bağlantıyı kopyalayın:',location.href);
+   }catch(e){}
+ };
  const menu=v.querySelector('#storyMenu');
  v.querySelector('.story-more.bottom').onclick=()=>menu.classList.toggle('open');
  v.querySelector('.bottom').onclick=()=>menu.classList.toggle('open');
@@ -570,7 +569,7 @@ async function addHighlight(){
           title:'Öne çıkan '+(items.length+1),
           image:reader.result,
           type:file.type.startsWith('video')?'video':'image',
-          createdAt: new Date().toISOString()
+          createdAt:new Date().toISOString()
         });
         saveHighlights(items);
         renderHighlights();
@@ -837,61 +836,3 @@ document.getElementById('shareHighlightBtn').onclick=()=>{navigator.clipboard&&n
 </script>
 <div id="highlightMenu" class="highlight-menu"><div class="highlight-menu-box"><button class="highlight-menu-item" id="removeHighlightBtn"><span>🗑</span>Öne çıkarmadan kaldır</button><button class="highlight-menu-item" id="editHighlightBtn"><span>✏️</span>Öne çıkarmayı düzenle</button><button class="highlight-menu-item" id="shareHighlightBtn"><span>↗</span>Paylaş</button></div></div></body>
 </html>
-
-<script>
-/* MINEGRAM_FEATURED_SEND_FIX */
-(function () {
-  if (window.__minegramFeaturedSendFix) return;
-  window.__minegramFeaturedSendFix = true;
-
-  document.addEventListener("click", async function (e) {
-    const btn = e.target && e.target.closest ? e.target.closest(".story-send") : null;
-    if (!btn) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const story = btn.closest("[data-story-url], [data-story-id], .story, .story-viewer, .featured-story") || btn.parentElement;
-    const url =
-      (story && story.dataset && story.dataset.storyUrl) ||
-      (story && story.dataset && story.dataset.url) ||
-      (btn.dataset && (btn.dataset.storyUrl || btn.dataset.url)) ||
-      window.location.href;
-
-    const title =
-      (story && story.dataset && story.dataset.storyTitle) ||
-      document.title ||
-      "Minegram";
-
-    const shareData = {
-      title: title,
-      text: "Minegram'da bir öne çıkan gönderi",
-      url: url
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        return;
-      }
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-        const original = btn.textContent;
-        btn.textContent = "Kopyalandı ✓";
-        setTimeout(() => { btn.textContent = original; }, 1400);
-        return;
-      }
-
-      window.prompt("Gönderi bağlantısını kopyalayın:", url);
-    } catch (err) {
-      // User cancellation or an unavailable share target should not break the page.
-      if (err && err.name === "AbortError") return;
-      try {
-        window.prompt("Gönderi bağlantısını kopyalayın:", url);
-      } catch (_) {}
-    }
-  }, true);
-})();
-</script>
-
