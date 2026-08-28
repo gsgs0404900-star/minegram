@@ -255,6 +255,17 @@ button{font:inherit;cursor:pointer}
  border-radius:35px!important;
 }
 </style>
+
+<style>
+.story-time{
+  display:block;
+  margin-top:6px;
+  font-size:15px;
+  font-weight:400;
+  color:#bdbdbd;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -463,6 +474,16 @@ function startStoryProgress(duration, onEnd){
  storyProgressTimer=requestAnimationFrame(step);
 }
 
+function formatHighlightDate(value){
+ const d=new Date(value);
+ if(Number.isNaN(d.getTime())) return '';
+ const months=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+ const day=String(d.getDate()).padStart(2,'0');
+ const hour=String(d.getHours()).padStart(2,'0');
+ const min=String(d.getMinutes()).padStart(2,'0');
+ return `${day} ${months[d.getMonth()]} ${d.getFullYear()} ${hour}:${min}`;
+}
+
 function openHighlightView(index){
  storyItems=getHighlights(); storyIndex=index;
  const item=storyItems[index]; if(!item)return;
@@ -548,7 +569,8 @@ async function addHighlight(){
         items.push({
           title:'Öne çıkan '+(items.length+1),
           image:reader.result,
-          type:file.type.startsWith('video')?'video':'image'
+          type:file.type.startsWith('video')?'video':'image',
+          createdAt: new Date().toISOString()
         });
         saveHighlights(items);
         renderHighlights();
