@@ -54,8 +54,8 @@ button,input{font:inherit}button{cursor:pointer}
 .comment-empty{text-align:center;color:#777;margin-top:55px;font-size:15px}
 .comment-row{display:flex;gap:12px;margin:12px 0}
 .comment-avatar{width:42px;height:42px;border-radius:50%;background:#59616b;display:grid;place-items:center;font-weight:700;flex:none}
-.comment-body{background:#22262b;border-radius:18px;padding:9px 13px;max-width:78%}
-.comment-name{font-weight:700;font-size:14px}.comment-text{font-size:15px;line-height:1.35;margin-top:3px;white-space:pre-wrap}
+.comment-body{background:#22262b;border-radius:18px;padding:9px 13px;max-width:78%;flex:1;min-width:0}
+.comment-name{font-weight:700;font-size:14px}.comment-name a{color:#fff;text-decoration:none}.comment-name a:hover{text-decoration:underline}.comment-meta{display:flex;align-items:center;gap:10px;margin-top:5px}.comment-time{font-size:12px;color:#8e939b}.comment-like{margin-left:auto;border:0;background:transparent;color:#9aa0a8;font-size:13px;display:flex;align-items:center;gap:5px;padding:3px 0;cursor:pointer}.comment-like .heart{font-size:19px;line-height:1}.comment-like.liked{color:#ff3040}.comment-text{font-size:15px;line-height:1.35;margin-top:3px;white-space:pre-wrap}
 .comment-compose{padding:10px 22px 20px;background:#171a1d;flex:none}
 .comment-emojis{display:flex;justify-content:space-between;gap:10px;padding:0 22px 16px;font-size:34px}.emoji-btn{border:0;background:transparent;padding:0;margin:0;color:inherit;font-size:34px;line-height:1;appearance:none;box-shadow:none}.emoji-btn:hover,.emoji-btn:focus{background:transparent;outline:none;transform:scale(1.08)}
 .comment-input-row{display:flex;align-items:center;gap:10px}
@@ -182,6 +182,18 @@ function load(){
  initComments(post,username,keyBase);
 }
 
+function formatCommentTime(value){
+ const ts=Number(value); if(!ts||!Number.isFinite(ts)) return '';
+ const diff=Math.max(0,Date.now()-ts); const sec=Math.floor(diff/1000);
+ if(sec<60)return sec<=1?'1 saniye önce':sec+' saniye önce';
+ const min=Math.floor(sec/60); if(min<60)return min+' dakika önce';
+ const hr=Math.floor(min/60); if(hr<24)return hr+' saat önce';
+ const day=Math.floor(hr/24); if(day<7)return day+' gün önce';
+ const d=new Date(ts), now=new Date();
+ if(d.getFullYear()===now.getFullYear())return d.toLocaleDateString('tr-TR',{day:'numeric',month:'long'});
+ return d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
+}
+
 function initComments(post, username, keyBase){
  const sheet=document.getElementById('commentsSheet'), list=document.getElementById('commentsList');
  const input=document.getElementById('commentInput'), send=document.getElementById('commentSend');
@@ -194,7 +206,9 @@ function initComments(post, username, keyBase){
    let arr=[...comments];
    if(sort==='newest')arr.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
    if(sort==='oldest')arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-   list.innerHTML=arr.length?arr.map(c=>{const n=esc(c.username||'minegram');const t=esc(c.text||c.comment||'');return `<div class="comment-row"><div class="comment-avatar">${esc((c.username||'M')[0]?.toUpperCase()||'M')}</div><div class="comment-body"><div class="comment-name">${n}</div><div class="comment-text">${t}</div></div></div>`}).join(''):'<div class="comment-empty">Henüz yorum yok.</div>';
+   list.innerHTML=arr.length?arr.map((c,i)=>{const rawName=String(c.username||'minegram');const n=esc(rawName);const t=esc(c.text||c.comment||'');const when=formatCommentTime(c.createdAt);const likes=Number(c.likes||0);const liked=!!c.liked;const avatarSrc=c.avatar||'';const avatar=avatarSrc?`<img src="${esc(avatarSrc)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:esc(rawName[0]?.toUpperCase()||'M');return `<div class="comment-row"><button class="comment-avatar" data-profile="${esc(rawName)}" aria-label="@${n} profiline git">${avatar}</button><div class="comment-body"><div class="comment-name"><a href="profile.html?username=${encodeURIComponent(rawName)}" data-profile="${esc(rawName)}">@${n}</a></div><div class="comment-text">${t}</div><div class="comment-meta"><span class="comment-time">${when}</span><button class="comment-like${liked?' liked':''}" data-index="${i}"><span class="heart">${liked?'♥':'♡'}</span><span>${likes||''}</span></button></div></div></div>`}).join(''):'<div class="comment-empty">Henüz yorum yok.</div>';
+   list.querySelectorAll('[data-profile]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();const u=el.dataset.profile||'minegram';try{sessionStorage.setItem('minegram_profile_username',u)}catch(_e){}location.href='profile.html?username='+encodeURIComponent(u)}));
+   list.querySelectorAll('.comment-like').forEach(btn=>btn.addEventListener('click',()=>{const i=Number(btn.dataset.index);const c=arr[i];if(!c)return;c.liked=!c.liked;c.likes=Math.max(0,Number(c.likes||0)+(c.liked?1:-1));localStorage.setItem(storageKey,JSON.stringify(comments));render()});
    list.scrollTop=list.scrollHeight;
  };
  const open=()=>{sheet.classList.add('open');sheet.setAttribute('aria-hidden','false');render();setTimeout(()=>input.focus(),120)};
@@ -207,7 +221,7 @@ function initComments(post, username, keyBase){
  document.querySelectorAll('#commentSortMenu button').forEach(b=>b.onclick=()=>{document.getElementById('commentSortBtn').dataset.sort=b.dataset.sort;document.getElementById('commentSortBtn').firstChild.textContent=b.textContent+' ';document.getElementById('commentSortMenu').classList.remove('open');render()});
  document.querySelectorAll('.emoji-btn').forEach(b=>b.onclick=()=>{input.value+=b.textContent;input.focus()});
  document.getElementById('commentGif').onclick=()=>toast('GIF seçici yakında');
- const submit=()=>{const text=input.value.trim();if(!text)return;comments.push({username:localStorage.getItem('minegram_username')||username||'minegram',text,createdAt:Date.now()});localStorage.setItem(storageKey,JSON.stringify(comments));input.value='';render();toast('Yorum eklendi')};
+ const submit=()=>{const text=input.value.trim();if(!text)return;comments.push({username:localStorage.getItem('minegram_username')||username||'minegram',text,createdAt:Date.now(),likes:0,liked:false});localStorage.setItem(storageKey,JSON.stringify(comments));input.value='';render();toast('Yorum eklendi')};
  send.onclick=submit;
  input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit()}});
  render();
