@@ -815,3 +815,61 @@ document.getElementById('shareHighlightBtn').onclick=()=>{navigator.clipboard&&n
 </script>
 <div id="highlightMenu" class="highlight-menu"><div class="highlight-menu-box"><button class="highlight-menu-item" id="removeHighlightBtn"><span>🗑</span>Öne çıkarmadan kaldır</button><button class="highlight-menu-item" id="editHighlightBtn"><span>✏️</span>Öne çıkarmayı düzenle</button><button class="highlight-menu-item" id="shareHighlightBtn"><span>↗</span>Paylaş</button></div></div></body>
 </html>
+
+<script>
+/* MINEGRAM_FEATURED_SEND_FIX */
+(function () {
+  if (window.__minegramFeaturedSendFix) return;
+  window.__minegramFeaturedSendFix = true;
+
+  document.addEventListener("click", async function (e) {
+    const btn = e.target && e.target.closest ? e.target.closest(".story-send") : null;
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const story = btn.closest("[data-story-url], [data-story-id], .story, .story-viewer, .featured-story") || btn.parentElement;
+    const url =
+      (story && story.dataset && story.dataset.storyUrl) ||
+      (story && story.dataset && story.dataset.url) ||
+      (btn.dataset && (btn.dataset.storyUrl || btn.dataset.url)) ||
+      window.location.href;
+
+    const title =
+      (story && story.dataset && story.dataset.storyTitle) ||
+      document.title ||
+      "Minegram";
+
+    const shareData = {
+      title: title,
+      text: "Minegram'da bir öne çıkan gönderi",
+      url: url
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        const original = btn.textContent;
+        btn.textContent = "Kopyalandı ✓";
+        setTimeout(() => { btn.textContent = original; }, 1400);
+        return;
+      }
+
+      window.prompt("Gönderi bağlantısını kopyalayın:", url);
+    } catch (err) {
+      // User cancellation or an unavailable share target should not break the page.
+      if (err && err.name === "AbortError") return;
+      try {
+        window.prompt("Gönderi bağlantısını kopyalayın:", url);
+      } catch (_) {}
+    }
+  }, true);
+})();
+</script>
+
