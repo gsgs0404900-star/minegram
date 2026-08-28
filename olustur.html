@@ -7,8 +7,66 @@ body{padding-bottom:78px}.app{width:100%;min-height:100vh;background:#000}.head{
 .page{max-width:760px;margin:0 auto;padding:22px 20px}.top{height:62px;display:flex;align-items:center;border-bottom:1px solid #25222b;padding:0 20px;position:sticky;top:0;background:#000;z-index:3}.top b{font-size:19px}.back{background:none;border:0;color:#eee;font-size:30px;cursor:pointer}.field{width:100%;height:50px;background:#080808;border:1px solid #555;color:#eee;border-radius:8px;padding:0 14px;outline:none}.field:focus{border-color:#4b99d2}.btn{width:100%;height:48px;border:0;border-radius:24px;background:#4b99d2;color:#101820;font-weight:700;cursor:pointer}.picker{height:300px;border-radius:15px;background:#080808;border:1px solid #222;display:grid;place-items:center;text-align:center;color:#aaa;cursor:pointer}.picker span{font-size:48px;color:#4b99d2}.preview{max-width:100%;max-height:290px;border-radius:12px}.empty{text-align:center;padding:100px 20px;color:#999}.empty strong{display:block;color:#ddd;margin-top:14px}.empty small{display:block;margin-top:5px}.userrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #222;cursor:pointer}.userrow div:last-child{margin-left:auto;color:#4b99d2}
 .toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#252329;padding:10px 15px;border-radius:20px;opacity:0;pointer-events:none;transition:.2s;z-index:30;font-size:12px}.toast.show{opacity:1}
 @media(max-width:699px){.feed{width:100%}.card{max-width:100%;margin:0 auto 16px}.postmedia{max-height:520px}.head{padding:0 16px}.page{padding:18px 16px}}
-.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;z-index:100;padding:5px 8px env(safe-area-inset-bottom)}.nav a,.nav button{flex:1;color:#ddd;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;border:0;background:transparent;cursor:pointer}.nav-icon,.nav i{width:45px;height:32px;border-radius:18px;display:grid;place-items:center;font-style:normal}.nav a.active .nav-icon,.nav button.active .nav-icon,.nav.active .nav-icon{background:#3b3150}.nav .ico,.nav .svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-</style></head><body><main class="app"><section><div class="top"><button class="back" onclick="location.href='index.html'">‹</button><b>Yeni Gönderi</b></div><div class="page"><div id="picker" class="picker" onclick="file.click()"><div><span>＋</span><br><b>Fotoğraf / Video seç</b><small style="display:block;margin-top:6px">Galeriyi açmak için dokun</small></div></div><input id="file" type="file" accept="image/*,video/*" hidden onchange="previewFile()"><textarea id="cap" class="field" placeholder="Açıklama / etiket" style="height:90px;padding-top:12px;margin-top:12px;resize:vertical"></textarea><button class="btn" style="margin-top:12px" onclick="post()">Paylaş</button></div></section><div id="toast" class="toast"></div></main><script>const API="/api";
+.nav{
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+height:76px;
+background:#121018;
+border-top:1px solid #201d27;
+display:flex;
+flex-direction:row;
+align-items:center;
+justify-content:space-around;
+z-index:100;
+padding:5px 8px env(safe-area-inset-bottom);
+}
+.nav a{
+flex:1;
+height:100%;
+color:#ddd;
+text-decoration:none;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:3px;
+font-size:9px;
+border:0;
+background:transparent;
+cursor:pointer;
+}
+.nav-icon{
+width:45px;
+height:32px;
+border-radius:18px;
+display:grid;
+place-items:center;
+}
+.nav a.active .nav-icon{background:#3b3150}
+.nav .ico,.nav .svg{
+width:21px;
+height:21px;
+fill:none;
+stroke:currentColor;
+stroke-width:1.8;
+stroke-linecap:round;
+stroke-linejoin:round;
+}
+@media(min-width:700px){
+.nav{
+padding-left:calc((100% - 760px)/2);
+padding-right:calc((100% - 760px)/2);
+}
+}
+</style></head><body><main class="app"><section><div class="top"><button class="back" onclick="location.href='index.html'">‹</button><b>Yeni Gönderi</b></div><div class="page"><div id="picker" class="picker" onclick="file.click()"><div><span>＋</span><br><b>Fotoğraf / Video seç</b><small style="display:block;margin-top:6px">Galeriyi açmak için dokun</small></div></div><input id="file" type="file" accept="image/*,video/*" hidden onchange="previewFile()"><textarea id="cap" class="field" placeholder="Açıklama / etiket" style="height:90px;padding-top:12px;margin-top:12px;resize:vertical"></textarea><button class="btn" style="margin-top:12px" onclick="post()">Paylaş</button></div></section><nav class="nav">
+<a class="" id="homeNav" href="index.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>Ana Sayfa</a>
+<a class="" id="searchNav" href="ara.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></span>Ara</a>
+<a class="active" id="createNav" href="olustur.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>Oluştur</a>
+<a class="" id="reelsNav" href="reels.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></span>Reels</a>
+<a class="" id="profileNav" href="profile.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>Profil</a>
+</nav><div id="toast" class="toast"></div></main><script>const API="/api";
 const PREVIEW=new URLSearchParams(location.search).get("preview")==="1";
 let token=localStorage.getItem("minegram_token"),me=null;
 function navHTML(active){return `<div class="nav"><button class="${active==="home"?"on":""}" onclick="go('home')"><i><svg class="ico" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></i>Ana Sayfa</button><button class="${active==="search"?"on":""}" onclick="go('search')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></i>Ara</button><button onclick="go('create')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></i>Oluştur</button><button class="${active==="reels"?"on":""}" onclick="go('reels')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></i>Reels</button><button class="${active==="profile"?"on":""}" onclick="go('profile')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Profil</button></div>`}
@@ -62,47 +120,4 @@ function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","
 function previewFile(){let f=file.files[0];if(!f)return;let old=document.getElementById("pickerPreview");if(old)old.remove();let url=URL.createObjectURL(f),tag=/^video\//.test(f.type)?document.createElement("video"):document.createElement("img");tag.id="pickerPreview";tag.className="preview";tag.src=url;if(tag.tagName==="VIDEO"){tag.controls=true;tag.muted=true}picker.replaceChildren(tag)}
 async function post(){let f=file.files[0],fd=new FormData();if(f)fd.append("media",f);fd.append("caption",cap.value);if(!f&&!cap.value.trim())return toast("Bir fotoğraf/video veya açıklama ekle");try{await api("/posts",{method:"POST",body:fd});cap.value="";file.value="";toast("Gönderi paylaşıldı");setTimeout(()=>location.href="index.html",400)}catch(e){toast(e.message)}}
 if(!token){location.href="index.html"}else{api("/me").then(u=>me=u).catch(()=>location.href="index.html")}
-</script>
-<style id="uniform-bottom-nav">
-.bottom-nav, .nav {
-  position: fixed !important;
-  left: 0 !important; right: 0 !important; bottom: 0 !important;
-  width: 100% !important; height: 78px !important;
-  display: flex !important; flex-direction: row !important;
-  align-items: stretch !important; justify-content: space-evenly !important;
-  padding: 8px 5px !important; margin: 0 !important;
-  background: #18161e !important; z-index: 99999 !important;
-}
-.bottom-nav a, .nav a {
-  flex: 1 1 0 !important; width: 20% !important; max-width: none !important;
-  min-width: 0 !important; display: flex !important;
-  flex-direction: column !important; align-items: center !important;
-  justify-content: center !important; gap: 3px !important;
-  text-align: center !important; text-decoration: none !important;
-  color: #ddd !important; box-sizing: border-box !important;
-}
-.bottom-nav a i, .nav a i {
-  display: grid !important; place-items: center !important;
-  width: 46px !important; height: 29px !important;
-  font-style: normal !important;
-}
-.bottom-nav a.active i, .nav a.active i {
-  background: #3c3450 !important; border-radius: 20px !important;
-}
-.bottom-nav svg, .nav svg { width: 22px !important; height: 22px !important; }
-body { padding-bottom: 88px !important; }
-
-<style id="uniform-bottom-nav">
-.bottom-nav,.nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:78px!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;justify-content:space-evenly!important;padding:8px 5px!important;margin:0!important;background:#18161e!important;z-index:99999!important}
-.bottom-nav a,.nav a{flex:1 1 0!important;width:20%!important;max-width:none!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;text-align:center!important;text-decoration:none!important;color:#ddd!important;box-sizing:border-box!important}
-.bottom-nav a i,.nav a i{display:grid!important;place-items:center!important;width:46px!important;height:29px!important;font-style:normal!important}
-.bottom-nav a.active i,.nav a.active i{background:#3c3450!important;border-radius:20px!important}
-.bottom-nav svg,.nav svg{width:22px!important;height:22px!important}body{padding-bottom:88px!important}
-</style><nav class="bottom-nav">
-<a class="" href="index.html"><i>⌂</i><span>Ana Sayfa</span></a>
-<a class="" href="ara.html"><i>⌕</i><span>Ara</span></a>
-<a class="active" href="olustur.html"><i>＋</i><span>Oluştur</span></a>
-<a class="" href="reels.html"><i>▣</i><span>Reels</span></a>
-<a class="" href="profile.html"><i>♙</i><span>Profil</span></a>
-</nav>
-</body></html>
+</script></body></html>
