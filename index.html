@@ -62,7 +62,7 @@ async function login(){try{const j=await api('/login',{method:'POST',headers:{'C
 async function forgot(){const x=prompt('E-posta adresini veya kullanıcı adını gir:');if(!x)return;try{await api('/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:x})});toast('Kurtarma bağlantısı gönderildi.')}catch(e){toast(e.message)}}
 function profileUrl(username){return 'profile.html?user='+encodeURIComponent(username)}
 function renderPost(p){
- const user=esc(p.user?.username||'minegram');const initial=esc((p.user?.username||'M')[0].toUpperCase());const liked=!!p.likedByMe;const saved=!!p.savedByMe;const likes=Array.isArray(p.likes)?p.likes.length:Number(p.likes||0);const comments=Array.isArray(p.comments)?p.comments:[];
+ const user=esc(p.user?.username||'minegram');const initial=esc((p.user?.username||'M')[0].toUpperCase());const liked=!!p.likedByMe;const saved=!!p.savedByMe;const likes=Array.isArray(p.likes)?p.likes.length:Number(p.likes||0);const comments=Array.isArray(p.comments)?p.comments:(Array.isArray(p.post?.comments)?p.post.comments:[]);
  let media='';if(p.media){if(p.mediaName&&/\.(mp4|webm|mov|m4v)$/i.test(p.mediaName))media=`<video class="post-media" src="${esc(p.media)}" controls playsinline></video>`;else media=`<img class="post-media" src="${esc(p.media)}" loading="lazy" alt="Gönderi">`}
  return `<article class="post" data-id="${esc(p.id)}"><div class="post-head"><div class="avatar small">${initial}</div><div class="username" onclick="location.href='${profileUrl(user)}'">@${user}</div><button class="icon-btn more" onclick="openMenu(event,'${esc(p.id)}')">⋯</button></div>${media?`<div class="media-wrap" ondblclick="doubleLike('${esc(p.id)}')">${media}<div class="heart-pop" id="heart-${esc(p.id)}">♥</div></div>`:''}<div class="actions"><button class="action like ${liked?'liked':''}" onclick="likePost('${esc(p.id)}')"><svg class="svg" viewBox="0 0 24 24"><path d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z" ${liked?'fill="currentColor"':''}/></svg></button><button class="action" onclick="openComments('${esc(p.id)}')"><svg class="svg" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4Z"/></svg></button><button class="action share-action" onclick="sharePost('${esc(p.id)}')" aria-label="Gönderiyi paylaş"><svg class="share-plane" viewBox="0 0 32 24" aria-hidden="true"><path d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z" fill="currentColor"/></svg></button></div><div class="likes">${likes} beğenme</div><div class="caption"><b onclick="location.href='${profileUrl(user)}'">@${user}</b> ${esc(p.caption||'')}</div>${comments.length?`<div class="comments-preview" onclick="openComments('${esc(p.id)}')">${comments.length>3?'Tüm '+comments.length+' yorumu gör':comments.map(c=>`<div><b>@${esc(c.username||'')}</b> ${esc(c.text||'')}</div>`).join('')}</div>`:''}</article>`
 }
@@ -75,11 +75,84 @@ function openMenu(ev,id){ev.stopPropagation();currentMenuPost=id;const menu=docu
 function closeMenu(e){if(!e||e.target===document.getElementById('menuBackdrop'))document.getElementById('menuBackdrop').classList.remove('open')}
 async function saveFromMenu(){if(currentMenuPost)await savePost(currentMenuPost);closeMenu()}
 async function deletePostFromMenu(){if(!currentMenuPost)return;closeMenu();if(!confirm('Bu gönderiyi silmek istediğine emin misin?'))return;try{await api('/posts/'+currentMenuPost,{method:'DELETE'});toast('Gönderi silindi');loadFeed()}catch(e){toast(e.message)}}
-async function openComments(id){currentCommentPost=id;document.getElementById('commentsModal').classList.add('open');document.getElementById('commentList').innerHTML='<div class="empty">Yorumlar yükleniyor...</div>';try{const p=await api('/posts/'+id);const comments=p.comments||[];document.getElementById('commentList').innerHTML=comments.length?comments.map(renderComment).join(''):'<div class="empty">Henüz yorum yok.</div>'}catch(e){document.getElementById('commentList').innerHTML='<div class="empty">Yorumlar yüklenemedi.</div>'}}
+async function openComments(id){
+  currentCommentPost=id;
+  document.getElementById('commentsModal').classList.add('open');
+  document.getElementById('commentList').innerHTML='<div class="empty">Yorumlar yükleniyor...</div>';
+  try{
+    const p=await api('/posts/'+encodeURIComponent(id));
+    const comments=Array.isArray(p.comments)
+      ? p.comments
+      : (Array.isArray(p.post?.comments)?p.post.comments:[]);
+
+    document.getElementById('commentList').innerHTML=
+      comments.length
+        ? comments.map(renderComment).join('')
+        : '<div class="empty">Henüz yorum yok.</div>';
+  }catch(e){
+    document.getElementById('commentList').innerHTML='<div class="empty">Yorumlar yüklenemedi.</div>';
+  }
+}
 function closeComments(e){if(!e||e.target===document.getElementById('commentsModal')){document.getElementById('commentsModal').classList.remove('open');currentCommentPost=null}}
 function relativeTime(v){const d=new Date(v);if(!v||isNaN(d))return '';let s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return s+' saniye önce';let m=Math.floor(s/60);if(m<60)return m+' dakika önce';let h=Math.floor(m/60);if(h<24)return h+' saat önce';let days=Math.floor(h/24);if(days<7)return days+' gün önce';if(days<365)return Math.floor(days/7)+' hafta önce';return d.toLocaleDateString('tr-TR')}
 function renderComment(c){const u=esc(c.username||'minegram');const initial=esc(u[0].toUpperCase());const liked=!!c.likedByMe;return `<div class="comment-row"><div class="avatar small">${initial}</div><div class="comment-body"><div class="comment-user" onclick="location.href='${profileUrl(u)}'">@${u}</div><div class="comment-text">${esc(c.text||'')}</div><div class="comment-meta">${relativeTime(c.createdAt||c.created_at)} &nbsp; Yanıtla</div></div><button class="comment-like ${liked?'liked':''}" onclick="likeComment('${esc(c.id)}')">${liked?'♥':'♡'}</button></div>`}
-async function sendComment(){const input=document.getElementById('commentInput');const text=input.value.trim();if(!text||!currentCommentPost)return;try{await api('/posts/'+currentCommentPost+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});input.value='';openComments(currentCommentPost);loadFeed()}catch(e){toast(e.message)}}
+async function sendComment(){
+  const input=document.getElementById('commentInput');
+  const text=input.value.trim();
+  if(!text||!currentCommentPost)return;
+
+  const postId=currentCommentPost;
+  const sendButton=document.querySelector('.comment-compose .send');
+  if(sendButton)sendButton.disabled=true;
+
+  try{
+    const result=await api('/posts/'+encodeURIComponent(postId)+'/comments',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text})
+    });
+
+    input.value='';
+
+    /* Yorumu sunucudan tekrar çekmeye çalış. */
+    try{
+      const p=await api('/posts/'+encodeURIComponent(postId));
+      const comments=Array.isArray(p.comments)?p.comments:[];
+
+      document.getElementById('commentList').innerHTML=
+        comments.length
+          ? comments.map(renderComment).join('')
+          : '<div class="empty">Henüz yorum yok.</div>';
+
+      /* Ana sayfadaki yorum önizlemesini de güncelle. */
+      loadFeed();
+    }catch(refreshError){
+      /* GET başarısız olsa bile POST başarılıysa yorumu ekranda hemen göster. */
+      const me=currentUser||{};
+      const u=me.username||me.name||'ben';
+      const tempComment={
+        id:result?.comment?.id||result?.id||('local-'+Date.now()),
+        username:u,
+        text:text,
+        createdAt:new Date().toISOString(),
+        likedByMe:false
+      };
+
+      const list=document.getElementById('commentList');
+      if(list){
+        if(list.querySelector('.empty'))list.innerHTML='';
+        list.insertAdjacentHTML('beforeend',renderComment(tempComment));
+      }
+      loadFeed();
+    }
+
+    toast('Yorum gönderildi');
+  }catch(e){
+    toast(e.message||'Yorum gönderilemedi');
+  }finally{
+    if(sendButton)sendButton.disabled=false;
+  }
+}
 async function likeComment(id){try{await api('/comments/'+id+'/like',{method:'POST'});if(currentCommentPost)openComments(currentCommentPost)}catch(e){toast(e.message)}}
 async function init(){if(!token){showLogin();return}try{currentUser=await api('/me');showHome();loadFeed()}catch(e){logout()}}
 init();
