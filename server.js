@@ -456,6 +456,9 @@ const result = await req.sb
     .single();
 
 console.log("RESULT:", JSON.stringify(result, null, 2));
+console.log("AUTH UID:", req.authUser.id);
+console.log("PROFILE ID:", req.user.id);
+console.log("TOKEN UID:", (await req.sb.auth.getUser()).data.user.id);
 
 if (result.error) {
     return res.status(400).json(result.error);
