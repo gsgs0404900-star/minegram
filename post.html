@@ -4,563 +4,685 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000">
-<title>Minegram • Gönderi</title>
+<title>Minegram - Ana Sayfa</title>
 
 <style>
 *{box-sizing:border-box}
 
 html,body{
-  margin:0;
-  padding:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,sans-serif;
-  min-height:100%;
-  overflow-x:hidden;
+margin:0;
+min-height:100%;
+background:#000;
+color:#f5f5f5;
+font-family:Arial,Helvetica,sans-serif
 }
 
 body{
-  padding-bottom:76px;
+overflow-x:hidden;
+padding-bottom:76px
 }
 
-button,input{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-button:focus-visible,
-a:focus-visible{
-  outline:2px solid #777;
-  outline-offset:2px;
-}
-
-/* APP */
 .app{
-  min-height:100dvh;
-  background:#000;
-  padding-bottom:76px;
+min-height:100vh;
+background:#000
 }
 
-/* HEADER */
-.header{
-  height:62px;
-  display:flex;
-  align-items:center;
-  padding:0 14px;
-  border-bottom:1px solid #24242a;
-  position:sticky;
-  top:0;
-  background:#000;
-  z-index:20;
+/* TOPBAR */
+.topbar{
+height:70px;
+border-bottom:1px solid #202020;
+display:flex;
+align-items:center;
+padding:0 22px;
+position:sticky;
+top:0;
+background:#000;
+z-index:50
 }
 
-.back{
-  width:42px;
-  height:46px;
-  border:0;
-  background:none;
-  color:#fff;
-  font-size:39px;
-  line-height:1;
-  padding:0;
+.logo{
+font-size:22px;
+font-weight:700
 }
 
-.title{
-  font-size:20px;
-  font-weight:700;
+.top-actions{
+margin-left:auto;
+display:flex;
+gap:6px
 }
 
-/* PAGE */
-.page{
-  width:min(100%,1120px);
-  margin:0 auto;
-  padding:26px 24px 40px;
+.icon-btn{
+width:42px;
+height:42px;
+border:0;
+background:transparent;
+color:#eee;
+display:grid;
+place-items:center;
+cursor:pointer
 }
 
-.post-layout{
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  width:100%;
-  margin:0 auto;
+.svg{
+width:23px;
+height:23px;
+fill:none;
+stroke:currentColor;
+stroke-width:1.8;
+stroke-linecap:round;
+stroke-linejoin:round
 }
 
-.post-card{
-  width:100%;
-  border:1px solid #171717;
-  border-radius:2px;
-  background:#000;
-  margin:0 auto;
-  overflow:hidden;
+/* STORIES */
+.stories{
+height:92px;
+border-bottom:1px solid #202020;
+display:flex;
+align-items:center;
+padding:12px 20px;
+overflow:hidden
 }
 
-/* POST HEADER */
-.post-head{
-  min-height:66px;
-  display:flex;
-  align-items:center;
-  padding:10px 14px;
-  gap:10px;
-  border-bottom:1px solid #161616;
+.story{
+width:68px;
+text-align:center;
+font-size:10px;
+color:#aaa;
+flex:none
 }
 
 .avatar{
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  overflow:hidden;
-  background:#3f91cc;
-  display:grid;
-  place-items:center;
-  font-weight:700;
-  font-size:19px;
-  flex:none;
+width:58px;
+height:58px;
+border-radius:50%;
+background:#3f91cc;
+display:grid;
+place-items:center;
+font-size:21px;
+color:#eee;
+margin:auto;
+position:relative
 }
 
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
+.avatar.small{
+width:40px;
+height:40px;
+font-size:15px;
+margin:0
 }
 
-.user{
-  min-width:0;
-  font-size:17px;
-  font-weight:700;
-  flex:1;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+.plus{
+position:absolute;
+right:-2px;
+bottom:-2px;
+width:19px;
+height:19px;
+border-radius:50%;
+background:#eee;
+color:#111;
+display:grid;
+place-items:center;
+font-weight:bold
 }
 
-.verified{
-  display:inline-grid;
-  place-items:center;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:#2388df;
-  font-size:12px;
-  margin-left:5px;
-  vertical-align:-2px;
+/* FEED */
+.feed{
+width:min(680px,100%);
+margin:0 auto
 }
 
-/* MORE */
-.more{
-  width:42px;
-  height:42px;
-  margin-left:auto;
-  border:0;
-  background:none;
-  color:#eee;
-  font-size:25px;
-  line-height:1;
-  flex:none;
+.post{
+width:100%;
+border:1px solid #171717;
+border-radius:2px;
+background:#000;
+margin:15px 0 18px;
+overflow:hidden
 }
 
-/* MEDIA */
+.post-head{
+height:66px;
+display:flex;
+align-items:center;
+padding:0 14px;
+gap:10px;
+border-bottom:1px solid #161616
+}
+
+.username{
+font-size:14px;
+font-weight:700;
+cursor:pointer
+}
+
+.media-wrap{
+width:100%;
+display:flex;
+justify-content:center;
+background:#080808;
+position:relative;
+overflow:hidden
+}
+
 .post-media{
-  width:100%;
-  background:#080808;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  max-height:610px;
-  min-height:220px;
-  overflow:hidden;
+display:block;
+width:100%;
+max-height:610px;
+object-fit:contain;
+background:#080808;
+cursor:pointer
 }
 
-.post-media img,
-.post-media video{
-  display:block;
-  width:100%;
-  max-height:610px;
-  object-fit:contain;
-  background:#080808;
+.heart-pop{
+position:absolute;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%) scale(.55);
+font-size:92px;
+color:#ff1744;
+opacity:0;
+pointer-events:none;
+text-shadow:0 3px 18px #000;
+transition:.18s
 }
 
-.post-media video{
-  outline:none;
-}
-
-/* CAPTION */
-.post-caption{
-  font-size:14px;
-  line-height:1.45;
-  padding:7px 14px 14px;
-  color:#ddd;
-  white-space:pre-wrap;
-  overflow-wrap:anywhere;
-}
-
-.post-caption b{
-  color:#fff;
+.heart-pop.show{
+opacity:1;
+transform:translate(-50%,-50%) scale(1)
 }
 
 /* ACTIONS */
-.post-actions{
-  height:52px;
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  gap:3px;
+.actions{
+height:50px;
+display:flex;
+align-items:center;
+padding:0 12px;
+gap:6px
 }
 
 .action{
-  height:44px;
-  min-width:42px;
-  border:0;
-  background:transparent;
-  color:#eee;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  padding:0 5px;
-  cursor:pointer;
-  font-size:14px;
-  transition:transform .12s ease,opacity .12s ease;
+height:42px;
+min-width:42px;
+border:0;
+background:transparent;
+color:#eee;
+display:flex;
+align-items:center;
+gap:5px;
+padding:0 5px;
+cursor:pointer;
+font-size:14px
 }
 
-.action:active{
-  transform:scale(.92);
+.action .svg{
+width:25px;
+height:25px
 }
 
-.action .post-action-svg{
-  width:25px;
-  height:25px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
+/* GÖNDERİ KALBİ */
+.action.like{
+color:#eee;
+transition:transform .12s,color .15s
 }
 
-.action.liked{
-  color:#ff3040;
+.action.like.liked{
+color:#ed1b3a
 }
 
-.action.liked .post-action-svg{
-  fill:#ff3040;
-  stroke:#ff3040;
+.action.like.liked .svg{
+fill:currentColor
 }
 
-.send{
-  margin-left:auto;
+.action.like:not(.liked) .svg{
+fill:none
 }
 
-.send-icon{
-  width:30px;
-  height:23px;
-  display:block;
-  fill:currentColor;
+.action.like:active{
+transform:scale(.85)
 }
 
-/* LIKE / COMMENTS */
 .likes{
-  font-size:14px;
-  font-weight:700;
-  padding:0 14px;
-  margin-top:-2px;
+font-size:14px;
+font-weight:700;
+padding:0 14px;
+margin-top:-2px
 }
 
-.comments{
-  padding:0 14px 12px;
-  color:#999;
-  font-size:13px;
-  cursor:pointer;
+.caption{
+font-size:14px;
+line-height:1.45;
+padding:7px 14px 14px
 }
 
-.hidden-comments{
-  display:none!important;
+.caption b{
+cursor:pointer
+}
+
+.comments-preview{
+padding:0 14px 12px;
+color:#999;
+font-size:13px;
+cursor:pointer
 }
 
 /* EMPTY */
 .empty{
-  text-align:center;
-  color:#777;
-  padding:80px 20px;
+padding:110px 20px;
+text-align:center;
+color:#999
 }
 
-/* SIDE */
-.side{
-  border:1px solid #292929;
-  border-radius:8px;
-  padding:18px;
-  position:sticky;
-  top:84px;
-}
-
-.side-title{
-  font-size:15px;
-  color:#999;
-  margin-bottom:16px;
-}
-
-.profile-row{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.profile-row .avatar{
-  width:48px;
-  height:48px;
-}
-
-.profile-row b{
-  font-size:16px;
-}
-
-.side-bio{
-  color:#aaa;
-  font-size:13px;
-  line-height:1.4;
-  margin-top:15px;
-}
-
-/* TOAST */
-.toast{
-  position:fixed;
-  left:50%;
-  bottom:88px;
-  transform:translateX(-50%) translateY(8px);
-  background:#24222a;
-  color:#fff;
-  padding:11px 16px;
-  border-radius:10px;
-  font-size:13px;
-  opacity:0;
-  pointer-events:none;
-  transition:.2s ease;
-  z-index:200;
-  max-width:calc(100vw - 30px);
-  text-align:center;
-}
-
-.toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-
-/* POST MENU */
-.post-menu{
-  position:fixed;
-  inset:0;
-  display:none;
-  z-index:180;
-}
-
-.post-menu.open{
-  display:block;
-}
-
-.post-menu-backdrop{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.58);
-}
-
-.post-menu-box{
-  position:absolute;
-  top:165px;
-  right:0;
-  width:340px;
-  max-width:100vw;
-  background:#242229;
-  border-radius:4px;
-  overflow:hidden;
-  box-shadow:0 10px 35px rgba(0,0,0,.55);
-}
-
-.post-menu-btn{
-  width:100%;
-  min-height:78px;
-  border:0;
-  background:transparent;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  gap:24px;
-  padding:0 25px;
-  text-align:left;
-  font-size:19px;
-  font-weight:600;
-}
-
-.post-menu-btn:hover{
-  background:#2b2931;
-}
-
-.post-menu-btn .mi{
-  width:30px;
-  height:30px;
-  display:grid;
-  place-items:center;
-  flex:none;
-}
-
-.post-menu-btn .mi svg{
-  width:30px;
-  height:30px;
-  stroke:#fff;
-}
-
-.post-menu-btn[aria-pressed="true"]{
-  background:#302e37;
+.empty strong{
+display:block;
+color:#eee;
+font-size:16px;
+margin-bottom:7px
 }
 
 /* BOTTOM NAV */
 .nav{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  height:76px;
-  background:#121018;
-  border-top:1px solid #201d27;
-  display:flex;
-  flex-direction:row;
-  align-items:center;
-  justify-content:space-around;
-  z-index:100;
-  padding:5px 8px env(safe-area-inset-bottom);
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+height:76px;
+background:#121018;
+border-top:1px solid #201d27;
+display:flex;
+z-index:100;
+padding:5px 8px env(safe-area-inset-bottom)
 }
 
 .nav a{
-  flex:1;
-  height:100%;
-  color:#ddd;
-  text-decoration:none;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:3px;
-  font-size:9px;
-  background:transparent;
-  border:0;
-  cursor:pointer;
+flex:1;
+color:#ddd;
+text-decoration:none;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:3px;
+font-size:9px
 }
 
 .nav-icon{
-  width:45px;
-  height:32px;
-  border-radius:18px;
-  display:grid;
-  place-items:center;
+width:45px;
+height:32px;
+border-radius:18px;
+display:grid;
+place-items:center
 }
 
 .nav a.active .nav-icon{
-  background:#3b3150;
+background:#3b3150
 }
 
 .nav .svg{
-  width:21px;
-  height:21px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
+width:21px;
+height:21px
 }
 
-/* MOBILE */
-@media(max-width:899px){
-
-  .page{
-    padding:0 0 30px;
-  }
-
-  .post-layout{
-    display:block;
-  }
-
-  .post-card{
-    border-left:0;
-    border-right:0;
-    border-radius:0;
-  }
-
-  .post-head{
-    min-height:60px;
-  }
-
-  .post-media{
-    max-height:520px;
-    min-height:220px;
-  }
-
-  .post-media img,
-  .post-media video{
-    max-height:520px;
-    object-fit:contain;
-  }
-
-  .post-menu-box{
-    top:62px;
-    right:0;
-    width:340px;
-    max-width:100vw;
-    border-radius:0 0 6px 6px;
-  }
-
-  .post-menu-btn{
-    min-height:72px;
-    font-size:18px;
-  }
-
-  .app{
-    padding-bottom:76px;
-  }
+/* LOGIN */
+.login{
+width:min(420px,calc(100% - 32px));
+margin:0 auto;
+padding:90px 0
 }
 
-/* DESKTOP */
-@media(min-width:900px){
-
-  .header{
-    padding:0 24px;
-  }
-
-  .post-card{
-    box-shadow:0 2px 18px rgba(0,0,0,.25);
-  }
+.login h1{
+text-align:center;
+font-size:30px;
+margin:0 0 34px
 }
 
-/* TABLET NAV */
+.field{
+width:100%;
+height:50px;
+margin-bottom:10px;
+border:1px solid #444;
+border-radius:8px;
+background:#050505;
+color:#fff;
+padding:0 14px;
+outline:none
+}
+
+.field:focus{
+border-color:#3f91cc
+}
+
+.login-btn{
+width:100%;
+height:48px;
+border:0;
+border-radius:24px;
+background:#3f91cc;
+color:#06111a;
+font-weight:700;
+cursor:pointer
+}
+
+.forgot{
+text-align:center;
+margin-top:16px
+}
+
+.forgot a{
+color:#2ba9ed
+}
+
+.hidden{
+display:none!important
+}
+
+/* TOAST */
+.toast{
+position:fixed;
+left:50%;
+bottom:92px;
+transform:translateX(-50%);
+background:#25232a;
+color:#fff;
+padding:10px 16px;
+border-radius:20px;
+font-size:12px;
+opacity:0;
+pointer-events:none;
+transition:.2s;
+z-index:300
+}
+
+.toast.show{
+opacity:1
+}
+
+/* COMMENTS */
+.comments-modal{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.58);
+z-index:250;
+display:none;
+align-items:flex-end
+}
+
+.comments-modal.open{
+display:flex
+}
+
+.comments-sheet{
+width:min(680px,100%);
+height:min(78vh,720px);
+margin:0 auto;
+background:#171b1e;
+border-radius:28px 28px 0 0;
+display:flex;
+flex-direction:column;
+overflow:hidden
+}
+
+.sheet-head{
+height:88px;
+position:relative;
+border-bottom:1px solid #25292c;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+font-weight:700
+}
+
+.grab{
+position:absolute;
+top:10px;
+width:74px;
+height:8px;
+border-radius:9px;
+background:#9aa0a9
+}
+
+.close-comments{
+position:absolute;
+left:20px;
+top:28px;
+background:none;
+border:0;
+color:#fff;
+font-size:34px;
+cursor:pointer
+}
+
+.sort{
+padding:12px 22px;
+border-bottom:1px solid #25292c
+}
+
+.sort-select{
+width:100%;
+height:42px;
+border:0;
+border-radius:10px;
+background:#20252a;
+color:#f5f5f5;
+padding:0 12px;
+font-size:15px;
+font-weight:700;
+outline:none
+}
+
+.comment-list{
+flex:1;
+overflow:auto;
+padding:0 22px 15px
+}
+
+.comment-row{
+display:flex;
+gap:12px;
+padding:13px 0
+}
+
+.comment-body{
+flex:1;
+min-width:0
+}
+
+.comment-user{
+font-size:15px;
+font-weight:700;
+cursor:pointer
+}
+
+.comment-text{
+font-size:15px;
+margin-top:5px;
+white-space:pre-wrap;
+overflow-wrap:anywhere
+}
+
+.comment-meta{
+font-size:12px;
+color:#92979f;
+margin-top:8px
+}
+
+.reply-link{
+border:0;
+background:transparent;
+color:#858b94;
+padding:0;
+margin:0;
+font:inherit;
+font-weight:600;
+cursor:pointer
+}
+
+.reply-link:hover{
+color:#aeb4bd
+}
+
+.replies{
+margin-left:52px;
+border-left:1px solid #2c3035;
+padding-left:12px
+}
+
+.replies.hidden{
+display:none
+}
+
+.reply-row{
+display:flex;
+gap:12px;
+padding:10px 0
+}
+
+/* YORUM KALBİ */
+.comment-like{
+width:34px;
+background:none;
+border:0;
+color:#fff;
+font-size:21px;
+cursor:pointer;
+align-self:flex-start;
+transition:transform .12s,color .15s
+}
+
+.comment-like.liked{
+color:#ed1b3a
+}
+
+.comment-like:active{
+transform:scale(.85)
+}
+
+/* EMOJİLER */
+.emoji-row{
+display:flex;
+justify-content:space-around;
+align-items:center;
+padding:10px 20px 5px;
+gap:4px
+}
+
+.emoji-row button{
+width:40px;
+height:40px;
+padding:0;
+border:0;
+background:transparent;
+color:#fff;
+font-size:27px;
+cursor:pointer;
+display:grid;
+place-items:center;
+border-radius:10px;
+transition:transform .12s,background .12s
+}
+
+.emoji-row button:hover{
+background:#252a2f
+}
+
+.emoji-row button:active{
+transform:scale(.82)
+}
+
+/* COMMENT COMPOSE */
+.comment-compose{
+display:flex;
+align-items:center;
+gap:9px;
+padding:10px 16px 18px;
+border-top:0
+}
+
+.compose-input{
+flex:1;
+min-width:0;
+height:58px;
+border:1px solid #3b3e42;
+border-radius:16px;
+background:#171b1e;
+color:#fff;
+padding:0 15px;
+font-size:15px;
+outline:none
+}
+
+.compose-input:focus{
+border-color:#3f91cc
+}
+
+.send{
+height:52px;
+width:52px;
+border:0;
+background:transparent;
+color:#fff;
+font-size:27px;
+cursor:pointer
+}
+
+.send:disabled{
+opacity:.5;
+cursor:not-allowed
+}
+
+@media(max-width:699px){
+
+.topbar{
+height:62px;
+padding:0 14px
+}
+
+.stories{
+height:84px;
+padding-left:14px
+}
+
+.feed{
+width:100%
+}
+
+.post{
+margin:0 0 12px;
+border-left:0;
+border-right:0
+}
+
+.post-media{
+max-height:520px
+}
+
+.post-head{
+height:60px
+}
+
+.comments-sheet{
+height:82vh
+}
+
+.emoji-row{
+padding-left:8px;
+padding-right:8px
+}
+
+.emoji-row button{
+width:36px;
+height:36px;
+font-size:24px
+}
+
+}
+
 @media(min-width:700px){
 
-  .nav{
-    padding-left:calc((100% - 760px)/2);
-    padding-right:calc((100% - 760px)/2);
-  }
+.nav{
+padding-left:calc((100% - 760px)/2);
+padding-right:calc((100% - 760px)/2)
 }
 
-/* SMALL PHONES */
-@media(max-width:380px){
-
-  .post-menu-btn{
-    gap:18px;
-    padding:0 18px;
-    font-size:17px;
-  }
-
-  .post-menu-btn .mi{
-    width:27px;
-  }
-
-  .post-menu-btn .mi svg{
-    width:27px;
-    height:27px;
-  }
-
-  .nav a{
-    font-size:8px;
-  }
 }
 </style>
 </head>
@@ -569,1284 +691,2305 @@ a:focus-visible{
 
 <div class="app">
 
-<header class="header">
-  <button class="back" id="backBtn" aria-label="Geri">‹</button>
-  <div class="title">Gönderi</div>
+<!-- LOGIN -->
+
+<section id="login" class="login hidden">
+
+<h1>Minegram</h1>
+
+<input
+id="lu"
+class="field"
+placeholder="Kullanıcı adı, e-posta veya telefon"
+autocomplete="username"
+>
+
+<input
+id="lp"
+class="field"
+type="password"
+placeholder="Şifre"
+autocomplete="current-password"
+>
+
+<button
+class="login-btn"
+onclick="login()"
+>
+Giriş Yap
+</button>
+
+<div class="forgot">
+<a
+href="#"
+onclick="forgot();return false"
+>
+Şifremi unuttum
+</a>
+</div>
+
+</section>
+
+
+<!-- HOME -->
+
+<section id="home" class="hidden">
+
+<header class="topbar">
+
+<div class="logo">
+Minegram
+</div>
+
+<div class="top-actions">
+
+<button
+class="icon-btn"
+onclick="location.href='bildirimler.html'"
+aria-label="Bildirimler"
+>
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+<path d="M10 21h4"/>
+
+</svg>
+
+</button>
+
+<button
+class="icon-btn"
+onclick="location.href='mesajlar.html'"
+aria-label="Mesajlar"
+>
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="M22 2 11 13"/>
+<path d="m22 2-7 20-4-9-9-4Z"/>
+
+</svg>
+
+</button>
+
+</div>
+
 </header>
 
-<main class="page">
-  <div id="content" class="empty">Gönderi yükleniyor...</div>
-</main>
 
-<nav class="nav">
+<!-- STORIES -->
 
-<a id="homeNav" href="index.html">
-  <span class="nav-icon">
-    <svg class="svg" viewBox="0 0 24 24">
-      <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
-    </svg>
-  </span>
-  Ana Sayfa
+<div class="stories">
+
+<div class="story">
+
+<div class="avatar">
+
+M
+
+<span class="plus">
++
+</span>
+
+</div>
+
+<div>
+Hikayen
+</div>
+
+</div>
+
+</div>
+
+
+<!-- FEED -->
+
+<div id="feed" class="feed">
+
+<div class="empty">
+Yükleniyor...
+</div>
+
+</div>
+
+</section>
+
+
+<!-- BOTTOM NAV -->
+
+<nav id="bottomNav" class="nav hidden">
+
+<a class="active" href="index.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+
+</svg>
+
+</span>
+
+Ana Sayfa
+
 </a>
 
-<a id="searchNav" href="ara.html">
-  <span class="nav-icon">
-    <svg class="svg" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="6.5"/>
-      <path d="m16 16 5 5"/>
-    </svg>
-  </span>
-  Ara
+
+<a href="ara.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<circle cx="11" cy="11" r="6.5"/>
+
+<path d="m16 16 5 5"/>
+
+</svg>
+
+</span>
+
+Ara
+
 </a>
 
-<a id="createNav" href="olustur.html">
-  <span class="nav-icon">
-    <svg class="svg" viewBox="0 0 24 24">
-      <rect x="4" y="4" width="16" height="16" rx="4"/>
-      <path d="M12 8v8M8 12h8"/>
-    </svg>
-  </span>
-  Oluştur
+
+<a href="olustur.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<rect x="4" y="4" width="16" height="16" rx="4"/>
+
+<path d="M12 8v8M8 12h8"/>
+
+</svg>
+
+</span>
+
+Oluştur
+
 </a>
 
-<a id="reelsNav" href="reels.html">
-  <span class="nav-icon">
-    <svg class="svg" viewBox="0 0 24 24">
-      <rect x="3" y="4" width="18" height="16" rx="2"/>
-      <path d="M3 9h18M8 4l3 5M13 4l3 5"/>
-    </svg>
-  </span>
-  Reels
+
+<a href="reels.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+
+<path d="M3 9h18M8 4l3 5M13 4l3 5"/>
+
+</svg>
+
+</span>
+
+Reels
+
 </a>
 
-<a id="profileNav" href="profile.html">
-  <span class="nav-icon">
-    <svg class="svg" viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="3.5"/>
-      <path d="M5 20a7 7 0 0 1 14 0"/>
-    </svg>
-  </span>
-  Profil
+
+<a href="profile.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<circle cx="12" cy="8" r="3.5"/>
+
+<path d="M5 20a7 7 0 0 1 14 0"/>
+
+</svg>
+
+</span>
+
+Profil
+
 </a>
 
 </nav>
+
 </div>
+
+
+<!-- COMMENTS -->
+
+<div
+id="commentsModal"
+class="comments-modal"
+onclick="closeComments(event)"
+>
+
+<div
+class="comments-sheet"
+onclick="event.stopPropagation()"
+>
+
+<div class="sheet-head">
+
+<span class="grab"></span>
+
+<button
+class="close-comments"
+onclick="closeComments()"
+>
+×
+</button>
+
+Yorumlar
+
+</div>
+
+
+<div class="sort">
+
+<select
+id="commentSort"
+class="sort-select"
+onchange="changeCommentSort(this.value)"
+>
+
+<option value="forYou">
+Senin için
+</option>
+
+<option value="newest">
+En yeni
+</option>
+
+<option value="popular">
+En çok beğenilen
+</option>
+
+</select>
+
+</div>
+
+
+<div
+id="commentList"
+class="comment-list"
+></div>
+
+
+<!-- EMOJİLER -->
+
+<div class="emoji-row">
+
+<button type="button" onclick="addEmoji('❤️')">❤️</button>
+
+<button type="button" onclick="addEmoji('🙌')">🙌</button>
+
+<button type="button" onclick="addEmoji('🔥')">🔥</button>
+
+<button type="button" onclick="addEmoji('👋')">👋</button>
+
+<button type="button" onclick="addEmoji('😢')">😢</button>
+
+<button type="button" onclick="addEmoji('😍')">😍</button>
+
+<button type="button" onclick="addEmoji('😮')">😮</button>
+
+<button type="button" onclick="addEmoji('😂')">😂</button>
+
+</div>
+
+
+<!-- COMMENT COMPOSE -->
+
+<div class="comment-compose">
+
+<div
+id="composeAvatar"
+class="avatar small"
+>
+M
+</div>
+
+<input
+id="commentInput"
+class="compose-input"
+placeholder="Bunun hakkında ne düşünüyorsun?"
+onkeydown="if(event.key==='Enter')sendComment()"
+>
+
+<button
+class="send"
+type="button"
+onclick="sendComment()"
+>
+➤
+</button>
+
+</div>
+
+</div>
+
+</div>
+
 
 <div id="toast" class="toast"></div>
 
-<!-- POST MENU -->
-<div id="postMenu" class="post-menu" aria-hidden="true">
-
-  <div class="post-menu-backdrop" id="postMenuBackdrop"></div>
-
-  <div class="post-menu-box" role="menu">
-
-    <button class="post-menu-btn" id="savePostBtn" role="menuitem">
-      <span class="mi">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 3h12v18l-6-4-6 4V3z"/>
-        </svg>
-      </span>
-      <span>Kaydet</span>
-    </button>
-
-    <button class="post-menu-btn" id="shareMenuBtn" role="menuitem">
-      <span class="mi">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="2.5"/>
-          <circle cx="6" cy="12" r="2.5"/>
-          <circle cx="18" cy="19" r="2.5"/>
-          <path d="m8.2 10.8 7.5-4.2M8.2 13.2l7.5 4.2"/>
-        </svg>
-      </span>
-      <span>Gönderiyi paylaş</span>
-    </button>
-
-    <button class="post-menu-btn" id="hideCommentsBtn" role="menuitem">
-      <span class="mi">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 4h16v12H8l-4 4V4z"/>
-        </svg>
-      </span>
-      <span>Yorum sayısını gizle</span>
-    </button>
-
-    <button class="post-menu-btn danger" id="deletePostBtn" role="menuitem">
-      <span class="mi">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 7h14M9 7V4h6v3m-8 0 1 14h8l1-14M10 11v6m4-6v6"/>
-        </svg>
-      </span>
-      <span>Gönderiyi sil</span>
-    </button>
-
-  </div>
-</div>
 
 <script>
-/* =========================
-   AUTH
-========================= */
 
-const token =
-  localStorage.getItem('minegram_token') ||
-  localStorage.getItem('token') ||
-  '';
+const API='/api';
 
-/* =========================
-   HELPERS
-========================= */
+let token=
+localStorage.getItem('minegram_token');
 
-const esc = value =>
-  String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  }[char]));
+let currentUser=null;
+let currentCommentPost=null;
+let currentCommentSort='forYou';
+let replyingTo=null;
 
-function toast(message){
-  const element = document.getElementById('toast');
+const feedEl=
+document.getElementById('feed');
 
-  element.textContent = message;
-  element.classList.add('show');
 
-  clearTimeout(window.__toastTimer);
+/* =====================================================
+   ESCAPE
+===================================================== */
 
-  window.__toastTimer = setTimeout(() => {
-    element.classList.remove('show');
-  },2000);
-}
+function esc(s=''){
 
-function formatNumber(value){
-  const number = Number(value ?? 0);
-
-  if(!Number.isFinite(number)){
-    return '0';
-  }
-
-  return number.toLocaleString('tr-TR');
-}
-
-function makeStorageKey(prefix,value){
-  const raw = String(value ?? '');
-
-  let encoded = '';
-
-  try{
-    encoded = btoa(
-      unescape(
-        encodeURIComponent(raw)
-      )
-    );
-  }catch{
-    encoded = btoa(
-      raw.replace(/[^\x00-\xFF]/g,'')
-    );
-  }
-
-  return prefix + encoded.slice(0,50);
-}
-
-/* =========================
-   API
-========================= */
-
-async function api(url,options = {}){
-
-  const config = {
-    ...options,
-    headers:{
-      ...(options.headers || {})
-    }
-  };
-
-  if(token){
-    config.headers.Authorization = 'Bearer ' + token;
-  }
-
-  if(
-    config.body &&
-    typeof config.body !== 'string'
-  ){
-    config.headers['Content-Type'] = 'application/json';
-    config.body = JSON.stringify(config.body);
-  }
-
-  const response = await fetch(url,config);
-
-  if(!response.ok){
-
-    const data =
-      await response.json().catch(() => ({}));
-
-    throw new Error(
-      data.error ||
-      data.message ||
-      'İşlem başarısız'
-    );
-  }
-
-  return response
-    .json()
-    .catch(() => ({}));
-}
-
-/* =========================
-   SELECTED POST
-========================= */
-
-let currentPost = null;
-let currentPostId = null;
-let currentSavedKey = '';
-let currentHiddenKey = '';
-
-/* =========================
-   LOAD POST
-========================= */
-
-function load(){
-
-  let post = null;
-  let profile = {};
-
-  try{
-
-    post = JSON.parse(
-      sessionStorage.getItem(
-        'minegram_selected_post'
-      ) || 'null'
-    );
-
-    profile = JSON.parse(
-      sessionStorage.getItem(
-        'minegram_selected_profile'
-      ) || '{}'
-    );
-
-  }catch(error){
-
-    post = null;
-    profile = {};
-
-  }
-
-  if(!post){
-
-    document.getElementById('content').innerHTML =
-      '<div class="empty">Gönderi bulunamadı.</div>';
-
-    return;
-  }
-
-  currentPost = post;
-
-  const username =
-    profile.username ||
-    post.username ||
-    'minegram';
-
-  const displayName =
-    profile.displayName ||
-    post.displayName ||
-    username;
-
-  const avatar =
-    profile.avatar ||
-    post.avatar ||
-    '';
-
-  const verified =
-    Boolean(
-      profile.verified ??
-      post.verified
-    );
-
-  const views =
-    post.views ??
-    post.viewCount ??
-    post.viewsCount ??
-    post.impressions ??
-    0;
-
-  currentPostId =
-    post.id ??
-    post._id ??
-    post.postId ??
-    post.uuid ??
-    null;
-
-  const media =
-    post.media ||
-    post.image ||
-    post.video ||
-    '';
-
-  const type =
-    String(post.type || '').toLowerCase();
-
-  const isVideo =
-    type.startsWith('video') ||
-    Boolean(post.video) ||
-    /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(
-      String(media)
-    );
-
-  const keyBase =
-    currentPostId ||
-    media ||
-    username ||
-    'post';
-
-  currentSavedKey =
-    makeStorageKey(
-      'minegram_saved_post_',
-      keyBase
-    );
-
-  currentHiddenKey =
-    makeStorageKey(
-      'minegram_hidden_comments_',
-      keyBase
-    );
-
-  let mediaHtml = '';
-
-  if(media){
-
-    if(isVideo){
-
-      mediaHtml = `
-        <video
-          src="${esc(media)}"
-          controls
-          playsinline
-          preload="metadata"
-        ></video>
-      `;
-
-    }else{
-
-      mediaHtml = `
-        <img
-          src="${esc(media)}"
-          alt="Gönderi"
-          loading="eager"
-          onerror="this.parentElement.innerHTML='<div class=&quot;empty&quot;>Medya yüklenemedi.</div>'"
-        >
-      `;
-
-    }
-
-  }else{
-
-    mediaHtml =
-      '<div class="empty">Bu gönderide medya yok.</div>';
-
-  }
-
-  const likes =
-    Number(
-      post.likes ??
-      post.likeCount ??
-      0
-    );
-
-  const comments =
-    Number(
-      post.comments ??
-      post.commentCount ??
-      0
-    );
-
-  const liked =
-    Boolean(
-      post.liked ??
-      post.isLiked ??
-      false
-    );
-
-  document.getElementById('content').className =
-    'post-layout';
-
-  document.getElementById('content').innerHTML = `
-
-    <article class="post-card">
-
-      <div class="post-head">
-
-        <div class="avatar">
-          ${
-            avatar
-            ? `<img src="${esc(avatar)}" alt="">`
-            : esc(
-                String(displayName || username)
-                .charAt(0)
-                .toUpperCase() || 'M'
-              )
-          }
-        </div>
-
-        <div class="user">
-          ${esc(username)}
-          ${
-            verified
-            ? '<span class="verified" aria-label="Doğrulanmış">✓</span>'
-            : ''
-          }
-        </div>
-
-        <button
-          class="more"
-          id="moreBtn"
-          aria-label="Gönderi seçenekleri"
-          aria-expanded="false"
-          type="button"
-        >⋯</button>
-
-      </div>
-
-      <div class="post-media">
-        ${mediaHtml}
-      </div>
-
-      <div class="post-actions">
-
-        <button
-          class="action ${liked ? 'liked' : ''}"
-          id="likeBtn"
-          aria-label="${liked ? 'Beğeniyi kaldır' : 'Gönderiyi beğen'}"
-          aria-pressed="${liked}"
-          type="button"
-        >
-
-          <svg
-            class="post-action-svg"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"/>
-          </svg>
-
-        </button>
-
-        <button
-          class="action"
-          id="commentBtn"
-          aria-label="Yorumlar"
-          type="button"
-        >
-
-          <svg
-            class="post-action-svg"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path d="M4 5h16v11H8l-4 4Z"/>
-          </svg>
-
-        </button>
-
-        <button
-          class="action send"
-          id="sharePostBtn"
-          aria-label="Gönderiyi paylaş"
-          type="button"
-        >
-
-          <svg
-            class="send-icon"
-            viewBox="0 0 32 24"
-            aria-hidden="true"
-          >
-            <path d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"/>
-          </svg>
-
-        </button>
-
-      </div>
-
-      <div class="likes" id="likesCount">
-        ${formatNumber(likes)} beğenme
-      </div>
-
-      ${
-        post.caption
-        ? `
-          <div class="post-caption">
-            <b>${esc(username)}</b>
-            ${esc(post.caption)}
-          </div>
-        `
-        : ''
-      }
-
-      <div
-        class="comments"
-        id="commentsCount"
-        role="button"
-        tabindex="0"
-      >
-        ${formatNumber(comments)} yorum
-      </div>
-
-    </article>
-  `;
-
-  setupPostActions();
-
-  setupPostMenu();
-
-  setupCommentAction();
-
-  setupImageErrorHandling();
-
-  /* VIEW */
-  if(
-    currentPostId &&
-    !sessionStorage.getItem(
-      'minegram_viewed_' + currentPostId
-    )
-  ){
-
-    sessionStorage.setItem(
-      'minegram_viewed_' + currentPostId,
-      '1'
-    );
-
-    /* API'nizde görüntülenme endpoint'i varsa
-       burada kullanılabilir. */
-  }
-
-  void views;
-}
-
-/* =========================
-   POST ACTIONS
-========================= */
-
-function setupPostActions(){
-
-  const likeBtn =
-    document.getElementById('likeBtn');
-
-  const shareBtn =
-    document.getElementById('sharePostBtn');
-
-  if(likeBtn){
-
-    likeBtn.addEventListener(
-      'click',
-      () => {
-
-        const next =
-          likeBtn.getAttribute('aria-pressed')
-          !== 'true';
-
-        likeBtn.setAttribute(
-          'aria-pressed',
-          String(next)
-        );
-
-        likeBtn.classList.toggle(
-          'liked',
-          next
-        );
-
-        likeBtn.setAttribute(
-          'aria-label',
-          next
-          ? 'Beğeniyi kaldır'
-          : 'Gönderiyi beğen'
-        );
-
-        const likesElement =
-          document.getElementById(
-            'likesCount'
-          );
-
-        if(likesElement){
-
-          let count =
-            Number(
-              currentPost.likes ??
-              currentPost.likeCount ??
-              0
-            );
-
-          if(next && !currentPost.liked){
-            count++;
-          }
-
-          if(!next && currentPost.liked){
-            count = Math.max(0,count - 1);
-          }
-
-          currentPost.liked = next;
-          currentPost.likes = count;
-
-          likesElement.textContent =
-            formatNumber(count) +
-            ' beğenme';
-        }
-
-      }
-    );
-  }
-
-  if(shareBtn){
-
-    shareBtn.addEventListener(
-      'click',
-      sharePost
-    );
-
-  }
-}
-
-/* =========================
-   COMMENTS
-========================= */
-
-function setupCommentAction(){
-
-  const commentBtn =
-    document.getElementById(
-      'commentBtn'
-    );
-
-  const comments =
-    document.getElementById(
-      'commentsCount'
-    );
-
-  const openComments = () => {
-
-    toast('Yorumlar yakında');
-
-  };
-
-  if(commentBtn){
-    commentBtn.addEventListener(
-      'click',
-      openComments
-    );
-  }
-
-  if(comments){
-
-    comments.addEventListener(
-      'click',
-      openComments
-    );
-
-    comments.addEventListener(
-      'keydown',
-      event => {
-
-        if(
-          event.key === 'Enter' ||
-          event.key === ' '
-        ){
-
-          event.preventDefault();
-          openComments();
-
-        }
-
-      }
-    );
-  }
-}
-
-/* =========================
-   MENU
-========================= */
-
-function setupPostMenu(){
-
-  const menu =
-    document.getElementById(
-      'postMenu'
-    );
-
-  const moreBtn =
-    document.getElementById(
-      'moreBtn'
-    );
-
-  const saveBtn =
-    document.getElementById(
-      'savePostBtn'
-    );
-
-  const shareMenuBtn =
-    document.getElementById(
-      'shareMenuBtn'
-    );
-
-  const hideBtn =
-    document.getElementById(
-      'hideCommentsBtn'
-    );
-
-  const deleteBtn =
-    document.getElementById(
-      'deletePostBtn'
-    );
-
-  const commentsEl =
-    document.getElementById(
-      'commentsCount'
-    );
-
-  const closeMenu = () => {
-
-    menu.classList.remove('open');
-
-    menu.setAttribute(
-      'aria-hidden',
-      'true'
-    );
-
-    if(moreBtn){
-
-      moreBtn.setAttribute(
-        'aria-expanded',
-        'false'
-      );
-
-    }
-
-  };
-
-  const openMenu = () => {
-
-    menu.classList.add('open');
-
-    menu.setAttribute(
-      'aria-hidden',
-      'false'
-    );
-
-    if(moreBtn){
-
-      moreBtn.setAttribute(
-        'aria-expanded',
-        'true'
-      );
-
-    }
-
-  };
-
-  /* SAVED */
-
-  const isSaved =
-    localStorage.getItem(
-      currentSavedKey
-    ) === '1';
-
-  saveBtn.setAttribute(
-    'aria-pressed',
-    String(isSaved)
-  );
-
-  saveBtn.querySelector(
-    'span:last-child'
-  ).textContent =
-    isSaved
-    ? 'Kaydedildi'
-    : 'Kaydet';
-
-  /* HIDDEN COMMENTS */
-
-  const isHidden =
-    localStorage.getItem(
-      currentHiddenKey
-    ) === '1';
-
-  if(isHidden){
-
-    commentsEl.classList.add(
-      'hidden-comments'
-    );
-
-    hideBtn.querySelector(
-      'span:last-child'
-    ).textContent =
-      'Yorum sayısını göster';
-
-    hideBtn.setAttribute(
-      'aria-pressed',
-      'true'
-    );
-
-  }else{
-
-    hideBtn.setAttribute(
-      'aria-pressed',
-      'false'
-    );
-
-  }
-
-  if(moreBtn){
-    moreBtn.addEventListener(
-      'click',
-      openMenu
-    );
-  }
-
-  document
-    .getElementById('postMenuBackdrop')
-    .addEventListener(
-      'click',
-      closeMenu
-    );
-
-  /* SAVE */
-
-  saveBtn.addEventListener(
-    'click',
-    () => {
-
-      const next =
-        localStorage.getItem(
-          currentSavedKey
-        ) !== '1';
-
-      if(next){
-
-        localStorage.setItem(
-          currentSavedKey,
-          '1'
-        );
-
-      }else{
-
-        localStorage.removeItem(
-          currentSavedKey
-        );
-
-      }
-
-      saveBtn.querySelector(
-        'span:last-child'
-      ).textContent =
-        next
-        ? 'Kaydedildi'
-        : 'Kaydet';
-
-      saveBtn.setAttribute(
-        'aria-pressed',
-        String(next)
-      );
-
-      toast(
-        next
-        ? 'Gönderi kaydedildi'
-        : 'Kayıt kaldırıldı'
-      );
-
-      closeMenu();
-
-    }
-  );
-
-  /* SHARE */
-
-  shareMenuBtn.addEventListener(
-    'click',
-    async () => {
-
-      closeMenu();
-
-      await sharePost();
-
-    }
-  );
-
-  /* HIDE COMMENTS */
-
-  hideBtn.addEventListener(
-    'click',
-    () => {
-
-      const next =
-        !commentsEl.classList.contains(
-          'hidden-comments'
-        );
-
-      commentsEl.classList.toggle(
-        'hidden-comments',
-        next
-      );
-
-      if(next){
-
-        localStorage.setItem(
-          currentHiddenKey,
-          '1'
-        );
-
-      }else{
-
-        localStorage.removeItem(
-          currentHiddenKey
-        );
-
-      }
-
-      hideBtn.querySelector(
-        'span:last-child'
-      ).textContent =
-        next
-        ? 'Yorum sayısını göster'
-        : 'Yorum sayısını gizle';
-
-      hideBtn.setAttribute(
-        'aria-pressed',
-        String(next)
-      );
-
-      toast(
-        next
-        ? 'Yorum sayısı gizlendi'
-        : 'Yorum sayısı gösteriliyor'
-      );
-
-      closeMenu();
-
-    }
-  );
-
-  /* DELETE */
-
-  deleteBtn.addEventListener(
-    'click',
-    async () => {
-
-      closeMenu();
-
-      const confirmed =
-        window.confirm(
-          'Bu gönderiyi silmek istediğine emin misin?'
-        );
-
-      if(!confirmed){
-        return;
-      }
-
-      if(!currentPostId){
-
-        toast(
-          'Gönderi kimliği bulunamadı'
-        );
-
-        return;
-      }
-
-      try{
-
-        await api(
-          '/api/posts/' +
-          encodeURIComponent(
-            currentPostId
-          ),
-          {
-            method:'DELETE'
-          }
-        );
-
-        sessionStorage.removeItem(
-          'minegram_selected_post'
-        );
-
-        toast(
-          'Gönderi silindi'
-        );
-
-        setTimeout(
-          () => {
-            location.href =
-              'profile.html';
-          },
-          500
-        );
-
-      }catch(error){
-
-        toast(
-          error.message ||
-          'Gönderi silinemedi'
-        );
-
-      }
-
-    }
-  );
-}
-
-/* =========================
-   SHARE
-========================= */
-
-async function sharePost(){
-
-  try{
-
-    const shareData = {
-      title:'Minegram gönderisi',
-      text:'Minegram gönderisi',
-      url:location.href
-    };
-
-    if(
-      navigator.share &&
-      typeof navigator.share === 'function'
-    ){
-
-      await navigator.share(
-        shareData
-      );
-
-      return;
-    }
-
-    if(
-      navigator.clipboard &&
-      navigator.clipboard.writeText
-    ){
-
-      await navigator.clipboard.writeText(
-        location.href
-      );
-
-      toast(
-        'Bağlantı kopyalandı'
-      );
-
-      return;
-    }
-
-    toast(
-      'Paylaşım desteklenmiyor'
-    );
-
-  }catch(error){
-
-    if(
-      error &&
-      error.name === 'AbortError'
-    ){
-      return;
-    }
-
-    try{
-
-      const textarea =
-        document.createElement(
-          'textarea'
-        );
-
-      textarea.value =
-        location.href;
-
-      textarea.style.position =
-        'fixed';
-
-      textarea.style.opacity =
-        '0';
-
-      document.body.appendChild(
-        textarea
-      );
-
-      textarea.select();
-
-      document.execCommand(
-        'copy'
-      );
-
-      textarea.remove();
-
-      toast(
-        'Bağlantı kopyalandı'
-      );
-
-    }catch{
-
-      toast(
-        'Paylaşım başarısız'
-      );
-
-    }
-
-  }
-}
-
-/* =========================
-   IMAGE ERROR
-========================= */
-
-function setupImageErrorHandling(){
-
-  const images =
-    document.querySelectorAll(
-      '.post-media img'
-    );
-
-  images.forEach(image => {
-
-    image.addEventListener(
-      'error',
-      () => {
-
-        const parent =
-          image.parentElement;
-
-        if(parent){
-
-          parent.innerHTML =
-            '<div class="empty">Medya yüklenemedi.</div>';
-
-        }
-
-      },
-      {once:true}
-    );
-
-  });
-}
-
-/* =========================
-   BACK
-========================= */
-
-document
-  .getElementById('backBtn')
-  .addEventListener(
-    'click',
-    () => {
-
-      if(
-        document
-          .getElementById('postMenu')
-          .classList.contains('open')
-      ){
-
-        document
-          .getElementById('postMenu')
-          .classList.remove('open');
-
-        return;
-      }
-
-      if(
-        window.history.length > 1
-      ){
-
-        window.history.back();
-
-      }else{
-
-        location.href =
-          'profile.html';
-
-      }
-
-    }
-  );
-
-/* =========================
-   NAVIGATION
-========================= */
-
-document
-  .getElementById('homeNav')
-  .addEventListener(
-    'click',
-    () => {
-      location.href='index.html';
-    }
-  );
-
-document
-  .getElementById('searchNav')
-  .addEventListener(
-    'click',
-    () => {
-      location.href='ara.html';
-    }
-  );
-
-document
-  .getElementById('createNav')
-  .addEventListener(
-    'click',
-    () => {
-      location.href='olustur.html';
-    }
-  );
-
-document
-  .getElementById('reelsNav')
-  .addEventListener(
-    'click',
-    () => {
-      location.href='reels.html';
-    }
-  );
-
-document
-  .getElementById('profileNav')
-  .addEventListener(
-    'click',
-    () => {
-      location.href='profile.html';
-    }
-  );
-
-/* =========================
-   ESC = CLOSE MENU
-========================= */
-
-document.addEventListener(
-  'keydown',
-  event => {
-
-    if(event.key !== 'Escape'){
-      return;
-    }
-
-    const menu =
-      document.getElementById(
-        'postMenu'
-      );
-
-    if(menu.classList.contains('open')){
-
-      menu.classList.remove(
-        'open'
-      );
-
-      menu.setAttribute(
-        'aria-hidden',
-        'true'
-      );
-
-    }
-
-  }
+return String(s).replace(
+/[&<>"']/g,
+m=>({
+'&':'&amp;',
+'<':'&lt;',
+'>':'&gt;',
+'"':'&quot;',
+"'":'&#039;'
+}[m])
 );
 
-/* =========================
-   START
-========================= */
+}
 
-load();
+
+/* =====================================================
+   API
+===================================================== */
+
+async function api(path,opt={}){
+
+opt.headers={
+...(opt.headers||{}),
+...(token
+?{Authorization:'Bearer '+token}
+:{})
+};
+
+const r=
+await fetch(API+path,opt);
+
+const j=
+await r.json().catch(()=>({}));
+
+if(!r.ok){
+
+throw Error(
+j.error||
+'İşlem başarısız'
+);
+
+}
+
+return j;
+
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+function toast(t){
+
+const e=
+document.getElementById('toast');
+
+e.textContent=t;
+
+e.classList.add('show');
+
+clearTimeout(window.__toast);
+
+window.__toast=
+setTimeout(
+()=>e.classList.remove('show'),
+2200
+);
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function showLogin(){
+
+document.getElementById('login')
+.classList.remove('hidden');
+
+document.getElementById('home')
+.classList.add('hidden');
+
+document.getElementById('bottomNav')
+.classList.add('hidden');
+
+}
+
+
+function showHome(){
+
+document.getElementById('login')
+.classList.add('hidden');
+
+document.getElementById('home')
+.classList.remove('hidden');
+
+document.getElementById('bottomNav')
+.classList.remove('hidden');
+
+}
+
+
+function logout(){
+
+localStorage.removeItem('minegram_token');
+
+token=null;
+
+currentUser=null;
+
+showLogin();
+
+}
+
+
+async function login(){
+
+try{
+
+const j=
+await api(
+'/login',
+{
+method:'POST',
+headers:{
+'Content-Type':'application/json'
+},
+body:JSON.stringify({
+username:lu.value,
+password:lp.value
+})
+}
+);
+
+if(!j.token){
+
+return toast(
+'E-posta adresini doğrula, sonra giriş yap.'
+);
+
+}
+
+token=j.token;
+
+localStorage.setItem(
+'minegram_token',
+token
+);
+
+showHome();
+
+loadFeed();
+
+}catch(e){
+
+toast(e.message);
+
+}
+
+}
+
+
+async function forgot(){
+
+const x=
+prompt(
+'E-posta adresini veya kullanıcı adını gir:'
+);
+
+if(!x)return;
+
+try{
+
+await api(
+'/forgot',
+{
+method:'POST',
+headers:{
+'Content-Type':'application/json'
+},
+body:JSON.stringify({
+identifier:x
+})
+}
+);
+
+toast('Kurtarma bağlantısı gönderildi.');
+
+}catch(e){
+
+toast(e.message);
+
+}
+
+}
+
+
+/* =====================================================
+   PROFILE URL
+===================================================== */
+
+function profileUrl(username){
+
+return 'profile.html?user='+
+encodeURIComponent(username);
+
+}
+
+
+/* =====================================================
+   POST RENDER
+===================================================== */
+
+function renderPost(p){
+
+const user=
+esc(
+p.user?.username||
+'minegram'
+);
+
+const initial=
+esc(
+(p.user?.username||'M')[0]
+.toUpperCase()
+);
+
+const liked=
+!!p.likedByMe;
+
+let likes=0;
+
+if(Array.isArray(p.likes)){
+
+likes=p.likes.length;
+
+}else{
+
+likes=Number(p.likes||0);
+
+}
+
+const comments=
+mergeComments(
+Array.isArray(p.comments)
+?p.comments
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]),
+p.id
+);
+
+
+let media='';
+
+if(p.media){
+
+if(
+p.mediaName &&
+/\.(mp4|webm|mov|m4v)$/i.test(p.mediaName)
+){
+
+media=`
+
+<video
+class="post-media"
+src="${esc(p.media)}"
+controls
+playsinline
+></video>
+
+`;
+
+}else{
+
+media=`
+
+<img
+class="post-media"
+src="${esc(p.media)}"
+loading="lazy"
+alt="Gönderi"
+>
+
+`;
+
+}
+
+}
+
+
+return `
+
+<article
+class="post"
+data-id="${esc(p.id)}"
+>
+
+<div class="post-head">
+
+<div class="avatar small">
+${initial}
+</div>
+
+<div
+class="username"
+onclick="location.href='${profileUrl(user)}'"
+>
+@${user}
+</div>
+
+</div>
+
+
+${
+media
+?`
+
+<div
+class="media-wrap"
+ondblclick="doubleLike('${esc(p.id)}')"
+>
+
+${media}
+
+<div
+class="heart-pop"
+id="heart-${esc(p.id)}"
+>
+♥
+</div>
+
+</div>
+
+`
+:''
+}
+
+
+<div class="actions">
+
+<!-- GÖNDERİ BEĞENİ -->
+
+<button
+type="button"
+class="action like ${liked?'liked':''}"
+data-liked="${liked?'1':'0'}"
+onclick="likePost('${esc(p.id)}')"
+aria-label="Gönderiyi beğen"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<path
+d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"
+${liked?'fill="currentColor"':''}
+>
+</path>
+
+</svg>
+
+</button>
+
+
+<!-- YORUMLAR -->
+
+<button
+type="button"
+class="action"
+onclick="openComments('${esc(p.id)}')"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<path d="M4 5h16v11H8l-4 4Z"></path>
+
+</svg>
+
+</button>
+
+</div>
+
+
+<div class="likes">
+${likes} beğenme
+</div>
+
+
+<div class="caption">
+
+<b
+onclick="location.href='${profileUrl(user)}'"
+>
+@${user}
+</b>
+
+${esc(p.caption||'')}
+
+</div>
+
+
+${
+comments.length
+?`
+
+<div
+class="comments-preview"
+onclick="openComments('${esc(p.id)}')"
+>
+
+${
+comments.length>3
+?'Tüm '+comments.length+' yorumu gör'
+:comments.map(
+c=>`
+<div>
+<b>@${esc(c.username||'')}</b>
+${esc(c.text||'')}
+</div>
+`
+).join('')
+}
+
+</div>
+
+`
+:''
+}
+
+</article>
+
+`;
+
+}
+
+
+/* =====================================================
+   LOAD FEED
+===================================================== */
+
+async function loadFeed(){
+
+feedEl.innerHTML=
+'<div class="empty">Yükleniyor...</div>';
+
+try{
+
+const posts=
+await api('/feed');
+
+feedEl.innerHTML=
+posts.length
+?posts.map(renderPost).join('')
+:`
+
+<div class="empty">
+
+<strong>
+Henüz gönderi yok
+</strong>
+
+İlk gönderini oluştur.
+
+</div>
+
+`;
+
+}catch(e){
+
+if(
+String(e.message).toLowerCase().includes('token')||
+String(e.message).toLowerCase().includes('auth')
+){
+
+logout();
+
+}else{
+
+feedEl.innerHTML=`
+
+<div class="empty">
+
+<strong>
+Gönderiler yüklenemedi
+</strong>
+
+<small>
+Sayfayı yenileyip tekrar dene.
+</small>
+
+</div>
+
+`;
+
+toast(e.message);
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   GÖNDERİ BEĞENİSİ
+===================================================== */
+
+async function likePost(id){
+
+const article=
+document.querySelector(
+'.post[data-id="'+
+CSS.escape(String(id))+
+'"]'
+);
+
+if(!article){
+
+toast('Gönderi bulunamadı');
+
+return;
+
+}
+
+const btn=
+article.querySelector('.action.like');
+
+const path=
+btn?.querySelector('path');
+
+const likesEl=
+article.querySelector('.likes');
+
+if(!btn)return;
+
+if(btn.dataset.loading==='1')return;
+
+btn.dataset.loading='1';
+
+const wasLiked=
+btn.classList.contains('liked');
+
+const nextLiked=
+!wasLiked;
+
+
+/* HEMEN GÖRSEL OLARAK DEĞİŞTİR */
+
+btn.classList.toggle(
+'liked',
+nextLiked
+);
+
+btn.dataset.liked=
+nextLiked?'1':'0';
+
+if(path){
+
+path.setAttribute(
+'fill',
+nextLiked
+?'currentColor'
+:'none'
+);
+
+}
+
+
+/* SAYIYI DEĞİŞTİR */
+
+if(likesEl){
+
+const match=
+(likesEl.textContent||'').match(/\d+/);
+
+let count=
+match
+?parseInt(match[0],10)
+:0;
+
+count=
+Math.max(
+0,
+count+(nextLiked?1:-1)
+);
+
+likesEl.textContent=
+count+' beğenme';
+
+}
+
+
+try{
+
+const r=
+await api(
+'/posts/'+
+encodeURIComponent(id)+
+'/like',
+{
+method:'POST'
+}
+);
+
+
+/* API SAYI DÖNDÜRÜYORSA SAYIYI GÜNCELLE */
+
+if(
+typeof r.likes==='number' &&
+likesEl
+){
+
+likesEl.textContent=
+r.likes+' beğenme';
+
+}
+
+
+/* KALBİ FRONTEND DURUMUNDA TUT */
+
+btn.classList.toggle(
+'liked',
+nextLiked
+);
+
+btn.dataset.liked=
+nextLiked?'1':'0';
+
+if(path){
+
+path.setAttribute(
+'fill',
+nextLiked
+?'currentColor'
+:'none'
+);
+
+}
+
+}catch(e){
+
+/* HATA OLURSA GERİ AL */
+
+btn.classList.toggle(
+'liked',
+wasLiked
+);
+
+btn.dataset.liked=
+wasLiked?'1':'0';
+
+if(path){
+
+path.setAttribute(
+'fill',
+wasLiked
+?'currentColor'
+:'none'
+);
+
+}
+
+if(likesEl){
+
+const match=
+(likesEl.textContent||'').match(/\d+/);
+
+let count=
+match
+?parseInt(match[0],10)
+:0;
+
+count=
+Math.max(
+0,
+count+(nextLiked?-1:1)
+);
+
+likesEl.textContent=
+count+' beğenme';
+
+}
+
+toast(
+e.message||
+'Beğeni işlemi başarısız'
+);
+
+}finally{
+
+btn.dataset.loading='0';
+
+}
+
+}
+
+
+/* =====================================================
+   DOUBLE LIKE
+===================================================== */
+
+async function doubleLike(id){
+
+const heart=
+document.getElementById(
+'heart-'+CSS.escape(String(id))
+);
+
+if(heart){
+
+heart.classList.add('show');
+
+setTimeout(
+()=>heart.classList.remove('show'),
+650
+);
+
+}
+
+const article=
+document.querySelector(
+'.post[data-id="'+
+CSS.escape(String(id))+
+'"]'
+);
+
+const btn=
+article?.querySelector(
+'.action.like'
+);
+
+
+/* ZATEN BEĞENİLDİYSE TEKRAR KALDIRMA */
+
+if(
+btn &&
+btn.classList.contains('liked')
+){
+
+return;
+
+}
+
+await likePost(id);
+
+}
+
+
+/* =====================================================
+   LOCAL COMMENTS
+===================================================== */
+
+function localCommentsKey(id){
+
+return 'minegram_comments_'+String(id);
+
+}
+
+
+function getLocalComments(id){
+
+try{
+
+const x=
+JSON.parse(
+localStorage.getItem(
+localCommentsKey(id)
+)||'[]'
+);
+
+return Array.isArray(x)
+?x
+:[];
+
+}catch(e){
+
+return [];
+
+}
+
+}
+
+
+function saveLocalComment(id,c){
+
+const arr=
+getLocalComments(id);
+
+arr.push(c);
+
+localStorage.setItem(
+localCommentsKey(id),
+JSON.stringify(
+arr.slice(-100)
+)
+);
+
+}
+
+
+function mergeComments(server,id){
+
+const remote=
+Array.isArray(server)
+?server
+:[];
+
+const local=
+getLocalComments(id);
+
+const all=[...remote];
+
+
+for(const c of local){
+
+const exists=
+all.some(
+x=>
+String(x.id||'')===
+String(c.id||'')||
+
+(
+x.username===c.username&&
+x.text===c.text&&
+Math.abs(
+new Date(
+x.createdAt||
+x.created_at||
+0
+)-
+new Date(
+c.createdAt||
+0
+)
+)<10000
+)
+);
+
+if(!exists){
+
+all.push(c);
+
+}
+
+}
+
+return all;
+
+}
+
+
+/* =====================================================
+   COMMENT SORT
+===================================================== */
+
+function sortComments(comments){
+
+const a=[...(comments||[])];
+
+if(currentCommentSort==='newest'){
+
+return a.sort(
+(x,y)=>
+new Date(
+y.createdAt||
+y.created_at||
+0
+)-
+new Date(
+x.createdAt||
+x.created_at||
+0
+)
+);
+
+}
+
+if(currentCommentSort==='popular'){
+
+return a.sort(
+(x,y)=>
+Number(
+y.likes||
+y.likeCount||
+0
+)-
+Number(
+x.likes||
+x.likeCount||
+0
+)
+);
+
+}
+
+return a.sort(
+(x,y)=>
+new Date(
+x.createdAt||
+x.created_at||
+0
+)-
+new Date(
+y.createdAt||
+y.created_at||
+0
+)
+);
+
+}
+
+
+/* =====================================================
+   RENDER COMMENTS
+===================================================== */
+
+function renderCommentsForPost(comments){
+
+const sorted=
+sortComments(comments);
+
+return sorted.length
+?sorted.map(renderComment).join('')
+:'<div class="empty">Henüz yorum yok.</div>';
+
+}
+
+
+function changeCommentSort(value){
+
+currentCommentSort=value;
+
+if(currentCommentPost){
+
+const all=
+mergeComments(
+getLocalComments(currentCommentPost),
+currentCommentPost
+);
+
+document.getElementById(
+'commentList'
+).innerHTML=
+renderCommentsForPost(all);
+
+refreshComments(false);
+
+}
+
+}
+
+
+/* =====================================================
+   REFRESH COMMENTS
+===================================================== */
+
+async function refreshComments(showLoading=true){
+
+if(!currentCommentPost)return;
+
+const id=
+currentCommentPost;
+
+const list=
+document.getElementById('commentList');
+
+if(showLoading){
+
+list.innerHTML=
+renderCommentsForPost(
+getLocalComments(id)
+);
+
+}
+
+try{
+
+const p=
+await api(
+'/posts/'+
+encodeURIComponent(id)
+);
+
+const remote=
+Array.isArray(p.comments)
+?p.comments
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]);
+
+list.innerHTML=
+renderCommentsForPost(
+mergeComments(remote,id)
+);
+
+}catch(e){}
+
+}
+
+
+/* =====================================================
+   OPEN COMMENTS
+===================================================== */
+
+async function openComments(id){
+
+currentCommentPost=id;
+
+currentCommentSort='forYou';
+
+const sort=
+document.getElementById('commentSort');
+
+if(sort){
+
+sort.value='forYou';
+
+}
+
+document
+.getElementById('commentsModal')
+.classList.add('open');
+
+const list=
+document.getElementById('commentList');
+
+list.innerHTML=
+renderCommentsForPost(
+getLocalComments(id)
+);
+
+try{
+
+const p=
+await api(
+'/posts/'+
+encodeURIComponent(id)
+);
+
+const remote=
+Array.isArray(p.comments)
+?p.comments
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]);
+
+list.innerHTML=
+renderCommentsForPost(
+mergeComments(remote,id)
+);
+
+}catch(e){
+
+const local=
+getLocalComments(id);
+
+list.innerHTML=
+local.length
+?local.map(renderComment).join('')
+:'<div class="empty">Yorumlar yüklenemedi.</div>';
+
+}
+
+}
+
+
+/* =====================================================
+   CLOSE COMMENTS
+===================================================== */
+
+function closeComments(e){
+
+if(
+!e||
+e.target===
+document.getElementById('commentsModal')
+){
+
+document
+.getElementById('commentsModal')
+.classList.remove('open');
+
+currentCommentPost=null;
+
+replyingTo=null;
+
+}
+
+}
+
+
+/* =====================================================
+   TIME
+===================================================== */
+
+function relativeTime(v){
+
+const d=new Date(v);
+
+if(!v||isNaN(d))
+return '';
+
+let s=
+Math.floor(
+(Date.now()-d.getTime())/1000
+);
+
+if(s<60)
+return s+' saniye önce';
+
+let m=Math.floor(s/60);
+
+if(m<60)
+return m+' dakika önce';
+
+let h=Math.floor(m/60);
+
+if(h<24)
+return h+' saat önce';
+
+let days=Math.floor(h/24);
+
+if(days<7)
+return days+' gün önce';
+
+if(days<365)
+return Math.floor(days/7)+' hafta önce';
+
+return d.toLocaleDateString('tr-TR');
+
+}
+
+
+/* =====================================================
+   RENDER COMMENT
+===================================================== */
+
+function renderComment(c){
+
+const u=
+esc(
+c.username||
+c.user?.username||
+currentUser?.username||
+'minegram'
+);
+
+const initial=
+esc(u[0].toUpperCase());
+
+const liked=
+!!c.likedByMe;
+
+const id=
+esc(c.id||'');
+
+const replyCount=
+Array.isArray(c.replies)
+?c.replies.length
+:Number(c.replyCount||0);
+
+
+return `
+
+<div
+class="comment-wrap"
+data-comment-id="${id}"
+>
+
+<div class="comment-row">
+
+<div class="avatar small">
+${initial}
+</div>
+
+
+<div class="comment-body">
+
+<div
+class="comment-user"
+onclick="location.href='${profileUrl(u)}'"
+>
+@${u}
+</div>
+
+
+<div class="comment-text">
+${esc(c.text||c.content||'')}
+</div>
+
+
+<div class="comment-meta">
+
+${relativeTime(
+c.createdAt||
+c.created_at
+)}
+
+&nbsp;
+
+<button
+class="reply-link"
+onclick="startReply('${id}','${esc(u)}')"
+>
+Yanıtla
+</button>
+
+${
+replyCount
+?`
+
+&nbsp;
+
+<button
+class="reply-link"
+onclick="toggleReplies('${id}')"
+>
+${replyCount} yanıt
+</button>
+
+`
+:''
+}
+
+</div>
+
+</div>
+
+
+<!-- YORUM BEĞENİ -->
+
+<button
+type="button"
+class="comment-like ${liked?'liked':''}"
+data-comment-liked="${liked?'1':'0'}"
+onclick="likeComment('${id}')"
+aria-label="Yorumu beğen"
+>
+${liked?'♥':'♡'}
+</button>
+
+</div>
+
+
+<div
+id="replies-${id}"
+class="replies hidden"
+>
+
+${
+Array.isArray(c.replies)
+?c.replies.map(renderReply).join('')
+:''
+}
+
+</div>
+
+</div>
+
+`;
+
+}
+
+
+/* =====================================================
+   REPLY
+===================================================== */
+
+function renderReply(r){
+
+const u=
+esc(
+r.username||
+r.user?.username||
+'minegram'
+);
+
+return `
+
+<div class="reply-row">
+
+<div class="avatar small">
+${esc(u[0].toUpperCase())}
+</div>
+
+<div>
+
+<b>
+@${u}
+</b>
+
+<div class="comment-text">
+${esc(
+r.text||
+r.content||
+''
+)}
+</div>
+
+<div class="comment-meta">
+${relativeTime(
+r.createdAt||
+r.created_at
+)}
+</div>
+
+</div>
+
+</div>
+
+`;
+
+}
+
+
+function startReply(id,username){
+
+replyingTo=id;
+
+const input=
+document.getElementById('commentInput');
+
+input.placeholder=
+'@'+
+username+
+' kişisine yanıt yaz...';
+
+input.focus();
+
+}
+
+
+function toggleReplies(id){
+
+document
+.getElementById(
+'replies-'+
+CSS.escape(id)
+)
+?.classList.toggle('hidden');
+
+}
+
+
+/* =====================================================
+   EMOJİLER
+===================================================== */
+
+function addEmoji(emoji){
+
+const input=
+document.getElementById('commentInput');
+
+if(!input)return;
+
+const start=
+input.selectionStart ??
+input.value.length;
+
+const end=
+input.selectionEnd ??
+input.value.length;
+
+const before=
+input.value.substring(0,start);
+
+const after=
+input.value.substring(end);
+
+input.value=
+before+
+emoji+
+after;
+
+const cursorPosition=
+start+
+emoji.length;
+
+input.focus();
+
+try{
+
+input.setSelectionRange(
+cursorPosition,
+cursorPosition
+);
+
+}catch(e){}
+
+}
+
+
+/* =====================================================
+   SEND COMMENT
+===================================================== */
+
+async function sendComment(){
+
+const input=
+document.getElementById('commentInput');
+
+const textValue=
+input.value.trim();
+
+if(
+!textValue||
+!currentCommentPost
+){
+
+return;
+
+}
+
+const postId=
+currentCommentPost;
+
+const replyId=
+replyingTo;
+
+const sendButton=
+document.querySelector(
+'.comment-compose .send'
+);
+
+if(sendButton){
+
+sendButton.disabled=true;
+
+}
+
+const me=
+typeof currentUser==='object'&&
+currentUser
+?currentUser
+:{};
+
+const username=
+me.username||
+me.name||
+'minegram';
+
+const now=
+new Date().toISOString();
+
+const tempId=
+'local-'+
+Date.now()+
+'-'+
+Math.random()
+.toString(36)
+.slice(2);
+
+const item={
+
+id:tempId,
+
+username,
+
+text:textValue,
+
+createdAt:now,
+
+likedByMe:false,
+
+local:true
+
+};
+
+
+/* YANIT */
+
+if(replyId){
+
+const local=
+getLocalComments(postId);
+
+let parent=
+local.find(
+c=>
+String(c.id)===
+String(replyId)
+);
+
+if(parent){
+
+parent.replies=
+Array.isArray(parent.replies)
+?parent.replies
+:[];
+
+parent.replies.push(item);
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
+);
+
+}
+
+const wrap=
+document.querySelector(
+'.comment-wrap[data-comment-id="'+
+CSS.escape(String(replyId))+
+'"]'
+);
+
+const replies=
+wrap?.querySelector('.replies');
+
+if(replies){
+
+replies.classList.remove('hidden');
+
+replies.insertAdjacentHTML(
+'beforeend',
+renderReply(item)
+);
+
+}
+
+}else{
+
+/* NORMAL YORUM */
+
+saveLocalComment(
+postId,
+item
+);
+
+const list=
+document.getElementById('commentList');
+
+if(list){
+
+const empty=
+list.querySelector('.empty');
+
+if(empty){
+
+empty.remove();
+
+}
+
+list.insertAdjacentHTML(
+'beforeend',
+renderComment(item)
+);
+
+list.scrollTop=
+list.scrollHeight;
+
+}
+
+}
+
+input.value='';
+
+replyingTo=null;
+
+input.placeholder=
+'Bunun hakkında ne düşünüyorsun?';
+
+toast(
+replyId
+?'Yanıt gönderildi'
+:'Yorum gönderildi'
+);
+
+
+try{
+
+let result;
+
+if(replyId){
+
+try{
+
+result=
+await api(
+'/comments/'+
+encodeURIComponent(replyId)+
+'/reply',
+{
+method:'POST',
+headers:{
+'Content-Type':
+'application/json'
+},
+body:JSON.stringify({
+text:textValue
+})
+}
+);
+
+}catch(firstError){
+
+result=
+await api(
+'/posts/'+
+encodeURIComponent(postId)+
+'/comments/'+
+encodeURIComponent(replyId)+
+'/reply',
+{
+method:'POST',
+headers:{
+'Content-Type':
+'application/json'
+},
+body:JSON.stringify({
+text:textValue
+})
+}
+);
+
+}
+
+}else{
+
+result=
+await api(
+'/posts/'+
+encodeURIComponent(postId)+
+'/comments',
+{
+method:'POST',
+headers:{
+'Content-Type':
+'application/json'
+},
+body:JSON.stringify({
+text:textValue
+})
+}
+);
+
+}
+
+
+const returned=
+result?.comment||
+result?.data||
+result;
+
+if(
+returned &&
+typeof returned==='object'
+){
+
+const realId=
+returned.id;
+
+if(realId){
+
+const local=
+getLocalComments(postId);
+
+for(const c of local){
+
+if(
+String(c.id)===
+String(tempId)
+){
+
+c.id=realId;
+
+c.local=false;
+
+c.username=
+returned.username||
+returned.user?.username||
+c.username;
+
+c.text=
+returned.text||
+c.text;
+
+c.createdAt=
+returned.createdAt||
+returned.created_at||
+c.createdAt;
+
+}
+
+}
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
+);
+
+}
+
+}
+
+refreshComments(false);
+
+loadFeed();
+
+}catch(e){
+
+const local=
+getLocalComments(postId);
+
+if(replyId){
+
+for(const c of local){
+
+if(Array.isArray(c.replies)){
+
+c.replies=
+c.replies.filter(
+r=>
+String(r.id)!==
+String(tempId)
+);
+
+}
+
+}
+
+}else{
+
+const filtered=
+local.filter(
+c=>
+String(c.id)!==
+String(tempId)
+);
+
+local.length=0;
+
+local.push(...filtered);
+
+}
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
+);
+
+if(currentCommentPost===postId){
+
+document.getElementById(
+'commentList'
+).innerHTML=
+renderCommentsForPost(local);
+
+}
+
+toast(
+e.message||
+'Gönderilemedi'
+);
+
+}finally{
+
+if(sendButton){
+
+sendButton.disabled=false;
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   YORUM BEĞENİSİ
+===================================================== */
+
+async function likeComment(id){
+
+if(!id){
+
+toast('Yorum kimliği bulunamadı');
+
+return;
+
+}
+
+const wrap=
+document.querySelector(
+'.comment-wrap[data-comment-id="'+
+CSS.escape(String(id))+
+'"]'
+);
+
+const btn=
+wrap?.querySelector('.comment-like');
+
+if(!btn)return;
+
+if(btn.dataset.loading==='1')return;
+
+btn.dataset.loading='1';
+
+const wasLiked=
+btn.classList.contains('liked');
+
+const nextLiked=
+!wasLiked;
+
+
+/* HEMEN DEĞİŞTİR */
+
+btn.classList.toggle(
+'liked',
+nextLiked
+);
+
+btn.dataset.commentLiked=
+nextLiked?'1':'0';
+
+btn.textContent=
+nextLiked
+?'♥'
+:'♡';
+
+
+try{
+
+await api(
+'/comments/'+
+encodeURIComponent(id)+
+'/like',
+{
+method:'POST'
+}
+);
+
+
+/* DURUMU KORU */
+
+btn.classList.toggle(
+'liked',
+nextLiked
+);
+
+btn.dataset.commentLiked=
+nextLiked?'1':'0';
+
+btn.textContent=
+nextLiked
+?'♥'
+:'♡';
+
+toast(
+nextLiked
+?'Yorum beğenildi'
+:'Yorum beğenisi kaldırıldı'
+);
+
+}catch(e){
+
+/* GERİ AL */
+
+btn.classList.toggle(
+'liked',
+wasLiked
+);
+
+btn.dataset.commentLiked=
+wasLiked?'1':'0';
+
+btn.textContent=
+wasLiked
+?'♥'
+:'♡';
+
+toast(
+e.message||
+'Yorum beğenisi işlemi başarısız'
+);
+
+}finally{
+
+btn.dataset.loading='0';
+
+}
+
+}
+
+
+/* =====================================================
+   INIT
+===================================================== */
+
+async function init(){
+
+if(!token){
+
+showLogin();
+
+return;
+
+}
+
+try{
+
+currentUser=
+await api('/me');
+
+showHome();
+
+loadFeed();
+
+}catch(e){
+
+logout();
+
+}
+
+}
+
+
+init();
+
 </script>
 
 </body>
