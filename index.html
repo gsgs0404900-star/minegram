@@ -409,21 +409,22 @@ display:block
 position:absolute;
 right:12px;
 top:78px;
-width:285px;
-background:#211f27;
-border-radius:10px;
+width:340px;
+background:#17141d;
+border-radius:5px;
 overflow:hidden;
-box-shadow:0 10px 35px #000
+box-shadow:0 10px 35px rgba(0,0,0,.65)
 }
 
 .menu-item{
-height:62px;
-padding:0 22px;
+height:88px;
+padding:0 28px;
 display:flex;
 align-items:center;
-gap:18px;
-color:#f5f5f5;
-font-size:17px;
+gap:24px;
+color:#d8d6dc;
+font-size:20px;
+font-weight:700;
 border:0;
 background:transparent;
 width:100%;
@@ -432,16 +433,17 @@ cursor:pointer
 }
 
 .menu-item:hover{
-background:#2a2731
+background:#211e28
 }
 
 .menu-item.danger{
-color:#ff5267
+color:#d8d6dc
 }
 
 .menu-item .svg{
-width:25px;
-height:25px
+width:27px;
+height:27px;
+stroke-width:1.9
 }
 
 /* TOAST */
@@ -740,7 +742,7 @@ height:82vh
 .menu-backdrop .post-menu{
 right:8px;
 top:68px;
-width:270px
+width:min(340px,calc(100vw - 16px))
 }
 
 .emoji-row{
@@ -1720,9 +1722,13 @@ fill="currentColor"
 </div>
 
 
+${
+localStorage.getItem('minegram_hide_comments_'+String(p.id))==='1'
+?'':`
 <div class="likes">
 ${likes} beğenme
 </div>
+`}
 
 
 <div class="caption">
@@ -2235,6 +2241,11 @@ document.getElementById(
 );
 
 
+const commentsHidden =
+localStorage.getItem(
+'minegram_hide_comments_'+String(id)
+)==='1';
+
 menu.innerHTML=`
 
 <button
@@ -2282,7 +2293,7 @@ Gönderiyi paylaş
 
 <button
 class="menu-item"
-onclick="openComments(currentMenuPost);closeMenu()"
+onclick="toggleCommentCountFromMenu();closeMenu()"
 >
 
 <svg
@@ -2295,7 +2306,7 @@ viewBox="0 0 24 24"
 
 </svg>
 
-Yorumları gör
+${commentsHidden?'Yorum sayısını göster':'Yorum sayısını gizle'}
 
 </button>
 
@@ -2361,6 +2372,29 @@ currentMenuPost
 }
 
 closeMenu();
+
+}
+
+
+function toggleCommentCountFromMenu(){
+
+if(!currentMenuPost)return;
+
+const postId=String(currentMenuPost);
+const hidden=localStorage.getItem('minegram_hide_comments_'+postId)==='1';
+
+localStorage.setItem(
+'minegram_hide_comments_'+postId,
+hidden?'0':'1'
+);
+
+toast(
+hidden
+?'Yorum sayısı gösteriliyor'
+:'Yorum sayısı gizlendi'
+);
+
+loadFeed();
 
 }
 
