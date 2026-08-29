@@ -1062,37 +1062,32 @@ class="toast"
 
 <script>
 
-const API='/api';
+const API = '/api';
 
-let token=
-localStorage.getItem(
-'minegram_token'
-);
+const token =
+    localStorage.getItem('minegram_token') ||
+    localStorage.getItem('token');
 
-let currentUser=null;
-let currentPost=null;
-let currentCommentPost=null;
-let currentMenuPost=null;
-let currentCommentSort='forYou';
-let replyingTo=null;
+let post = null;
+let currentPostId = null;
 
 
 /* =====================================================
    ESCAPE
 ===================================================== */
 
-function esc(s=''){
+function esc(s = '') {
 
-return String(s).replace(
-/[&<>"']/g,
-m=>({
-'&':'&amp;',
-'<':'&lt;',
-'>':'&gt;',
-'"':'&quot;',
-"'":'&#039;'
-}[m])
-);
+    return String(s ?? '').replace(
+        /[&<>"']/g,
+        c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c])
+    );
 
 }
 
@@ -1101,39 +1096,49 @@ m=>({
    API
 ===================================================== */
 
-async function api(
-path,
-opt={}
-){
+async function api(path, options = {}) {
 
-opt.headers={
-...(opt.headers||{}),
-...(token
-?{Authorization:'Bearer '+token}
-:{})
-};
+    options.headers = {
+        ...(options.headers || {}),
+        ...(token
+            ? { Authorization: 'Bearer ' + token }
+            : {})
+    };
 
-const r=
-await fetch(
-API+path,
-opt
-);
+    if (
+        options.body &&
+        typeof options.body !== 'string'
+    ) {
 
-const j=
-await r.json().catch(
-()=>({})
-);
+        options.headers['Content-Type'] =
+            'application/json';
 
-if(!r.ok){
+        options.body =
+            JSON.stringify(options.body);
 
-throw Error(
-j.error||
-'İşlem başarısız'
-);
+    }
 
-}
+    const response =
+        await fetch(
+            API + path,
+            options
+        );
 
-return j;
+    const data =
+        await response
+            .json()
+            .catch(() => ({}));
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.error ||
+            'İşlem başarısız'
+        );
+
+    }
+
+    return data;
 
 }
 
@@ -1142,901 +1147,788 @@ return j;
    TOAST
 ===================================================== */
 
-function toast(t){
+function toast(message) {
 
-const e=
-document.getElementById(
-'toast'
-);
+    const el =
+        document.getElementById('toast');
 
-e.textContent=t;
+    el.textContent = message;
 
-e.classList.add('show');
+    el.classList.add('show');
 
-clearTimeout(
-window.__toast
-);
+    clearTimeout(window.__toast);
 
-window.__toast=
-setTimeout(
-()=>e.classList.remove('show'),
-2200
-);
+    window.__toast =
+        setTimeout(
+            () => el.classList.remove('show'),
+            2200
+        );
 
 }
 
 
 /* =====================================================
-   PROFILE
+   MEDIA URL
 ===================================================== */
 
-function profileUrl(username){
+function getMediaUrl(value) {
 
-return 'profile.html?user='+
-encodeURIComponent(username);
+    if (!value) {
+        return '';
+    }
+
+    /* API bazen object döndürebilir */
+
+    if (typeof value === 'object') {
+
+        return (
+            value.url ||
+            value.src ||
+            value.path ||
+            value.location ||
+            value.secure_url ||
+            ''
+        );
+
+    }
+
+    let url = String(value);
+
+    /*
+       Tam URL ise olduğu gibi bırak
+    */
+
+    if (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('blob:') ||
+        url.startsWith('data:')
+    ) {
+
+        return url;
+
+    }
+
+    /*
+       /uploads/... gibi ise
+       doğrudan kullan
+    */
+
+    if (url.startsWith('/')) {
+
+        return url;
+
+    }
+
+    /*
+       uploads/... ise
+    */
+
+    if (
+        url.startsWith('uploads/') ||
+        url.startsWith('media/')
+    ) {
+
+        return '/' + url;
+
+    }
+
+    /*
+       Geri kalan relatif yollar
+    */
+
+    return '/' + url;
 
 }
 
 
 /* =====================================================
-   TIME
+   MEDIA TYPE
 ===================================================== */
 
-function relativeTime(v){
+function isVideo(post) {
 
-const d=new Date(v);
+    const type =
+        String(
+            post.type ||
+            post.mediaType ||
+            ''
+        ).toLowerCase();
 
-if(!v||isNaN(d))
-return '';
+    const name =
+        String(
+            post.mediaName ||
+            post.filename ||
+            post.fileName ||
+            post.media?.name ||
+            ''
+        ).toLowerCase();
 
-let s=
-Math.floor(
-(Date.now()-d.getTime())/1000
-);
+    if (
+        type.includes('video')
+    ) {
 
-if(s<60)
-return s+' saniye önce';
+        return true;
 
-let m=Math.floor(s/60);
+    }
 
-if(m<60)
-return m+' dakika önce';
-
-let h=Math.floor(m/60);
-
-if(h<24)
-return h+' saat önce';
-
-let days=Math.floor(h/24);
-
-if(days<7)
-return days+' gün önce';
-
-if(days<365)
-return Math.floor(days/7)+' hafta önce';
-
-return d.toLocaleDateString('tr-TR');
+    return /\.(mp4|webm|mov|m4v|ogg)$/i.test(name);
 
 }
 
 
 /* =====================================================
-   COMMENTS LOCAL
+   POST DATA NORMALIZE
 ===================================================== */
 
-function localCommentsKey(id){
+function normalizePost(raw) {
 
-return 'minegram_comments_'+String(id);
+    /*
+       API bazen:
 
-}
+       { id, user, media, ... }
 
+       bazen:
 
-function getLocalComments(id){
+       { post: {...} }
 
-try{
+       döndürebilir.
+    */
 
-const x=
-JSON.parse(
-localStorage.getItem(
-localCommentsKey(id)
-)||'[]'
-);
+    const p =
+        raw?.post &&
+        typeof raw.post === 'object'
+            ? raw.post
+            : raw;
 
-return Array.isArray(x)
-?x
-:[];
+    if (!p) {
+        return null;
+    }
 
-}catch(e){
+    const user =
+        p.user ||
+        p.author ||
+        {};
 
-return [];
+    const username =
+        user.username ||
+        p.username ||
+        'minegram';
 
-}
+    const avatar =
+        user.avatar ||
+        user.avatarUrl ||
+        p.avatar ||
+        p.avatarUrl ||
+        '';
 
-}
+    const media =
+        getMediaUrl(
+            p.media ||
+            p.image ||
+            p.imageUrl ||
+            p.photo ||
+            p.video ||
+            ''
+        );
 
+    const likes =
+        Array.isArray(p.likes)
+            ? p.likes.length
+            : Number(
+                p.likes ??
+                p.likeCount ??
+                0
+            );
 
-function saveLocalComment(id,c){
+    const comments =
+        Array.isArray(p.comments)
+            ? p.comments.length
+            : Number(
+                p.commentsCount ??
+                p.commentCount ??
+                p.comments ??
+                0
+            );
 
-const arr=
-getLocalComments(id);
+    return {
 
-arr.push(c);
+        ...p,
 
-localStorage.setItem(
-localCommentsKey(id),
-JSON.stringify(
-arr.slice(-100)
-)
-);
+        id:
+            p.id ??
+            p._id ??
+            p.postId ??
+            p.uuid,
 
-}
+        username,
 
+        avatar,
 
-function mergeComments(server,id){
+        media,
 
-const remote=
-Array.isArray(server)
-?server
-:[];
+        mediaName:
+            p.mediaName ||
+            p.filename ||
+            p.fileName ||
+            '',
 
-const local=
-getLocalComments(id);
+        verified:
+            !!(
+                user.verified ||
+                p.verified
+            ),
 
-const all=[...remote];
+        likes,
 
-for(const c of local){
+        comments,
 
-const exists=
-all.some(
-x=>
-String(x.id||'')===
-String(c.id||'')||
+        likedByMe:
+            !!(
+                p.likedByMe ||
+                p.isLiked ||
+                p.liked
+            )
 
-(
-x.username===c.username&&
-x.text===c.text&&
-Math.abs(
-new Date(
-x.createdAt||
-x.created_at||
-0
-)-
-new Date(
-c.createdAt||
-0
-)
-)<10000
-)
-);
-
-if(!exists){
-
-all.push(c);
-
-}
-
-}
-
-return all;
+    };
 
 }
 
 
 /* =====================================================
-   COMMENT SORT
+   POST ID
 ===================================================== */
 
-function sortComments(comments){
+function getPostId() {
 
-const a=[...(comments||[])];
+    const params =
+        new URLSearchParams(
+            location.search
+        );
 
-if(
-currentCommentSort===
-'newest'
-){
-
-return a.sort(
-(x,y)=>
-new Date(
-y.createdAt||
-y.created_at||
-0
-)-
-new Date(
-x.createdAt||
-x.created_at||
-0
-)
-);
-
-}
-
-if(
-currentCommentSort===
-'popular'
-){
-
-return a.sort(
-(x,y)=>
-Number(
-y.likes||
-y.likeCount||
-0
-)-
-Number(
-x.likes||
-x.likeCount||
-0
-)
-);
-
-}
-
-return a.sort(
-(x,y)=>
-new Date(
-x.createdAt||
-x.created_at||
-0
-)-
-new Date(
-y.createdAt||
-y.created_at||
-0
-)
-);
+    return (
+        params.get('id') ||
+        params.get('postId')
+    );
 
 }
 
 
 /* =====================================================
-   RENDER REPLY
+   LOAD SELECTED POST
 ===================================================== */
 
-function renderReply(r){
+async function loadPost() {
 
-const u=
-esc(
-r.username||
-r.user?.username||
-'minegram'
-);
+    const content =
+        document.getElementById('content');
 
-return `
+    /*
+       Önce sessionStorage
+    */
 
-<div class="comment-row">
+    try {
 
-<div class="avatar small">
-${esc(
-u[0].toUpperCase()
-)}
-</div>
+        const saved =
+            sessionStorage.getItem(
+                'minegram_selected_post'
+            );
 
-<div class="comment-body">
+        if (saved) {
 
-<div class="comment-user">
-@${u}
-</div>
+            const parsed =
+                JSON.parse(saved);
 
-<div class="comment-text">
-${esc(
-r.text||
-r.content||
-''
-)}
-</div>
+            post =
+                normalizePost(parsed);
 
-<div class="comment-meta">
-${relativeTime(
-r.createdAt||
-r.created_at
-)}
-</div>
+        }
 
-</div>
+    } catch (e) {
 
-</div>
+        post = null;
 
-`;
+    }
+
+
+    /*
+       URL'deki ID varsa onu önceliklendir.
+       Böylece post.html?id=123 çalışır.
+    */
+
+    const urlId =
+        getPostId();
+
+
+    if (urlId) {
+
+        try {
+
+            const result =
+                await api(
+                    '/posts/' +
+                    encodeURIComponent(urlId)
+                );
+
+            post =
+                normalizePost(result);
+
+        } catch (e) {
+
+            /*
+               Eğer API endpoint yoksa
+               sessionStorage'daki gönderiyi kullan.
+            */
+
+            if (!post) {
+
+                content.innerHTML = `
+                    <div class="empty">
+                        Gönderi yüklenemedi.<br>
+                        <small>${esc(e.message)}</small>
+                    </div>
+                `;
+
+                return;
+
+            }
+
+        }
+
+    }
+
+
+    if (!post || !post.id) {
+
+        content.innerHTML = `
+            <div class="empty">
+                Gönderi bulunamadı.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    currentPostId =
+        String(post.id);
+
+
+    renderPost();
 
 }
 
 
 /* =====================================================
-   RENDER COMMENT
+   RENDER POST
 ===================================================== */
 
-function renderComment(c){
+function renderPost() {
 
-const u=
-esc(
-c.username||
-c.user?.username||
-currentUser?.username||
-'minegram'
-);
+    const content =
+        document.getElementById('content');
 
-const initial=
-esc(
-u[0].toUpperCase()
-);
+    const username =
+        post.username ||
+        'minegram';
 
-const liked=
-!!c.likedByMe;
+    const initial =
+        String(username)
+            .charAt(0)
+            .toUpperCase();
 
-const id=
-esc(c.id||'');
+    const avatar =
+        getMediaUrl(post.avatar);
 
-const replyCount=
-Array.isArray(c.replies)
-?c.replies.length
-:Number(
-c.replyCount||0
-);
+    let avatarHtml = '';
 
-return `
+    if (avatar) {
 
-<div
-class="comment-wrap"
-data-comment-id="${id}"
->
+        avatarHtml = `
+            <img
+                src="${esc(avatar)}"
+                alt=""
+                onerror="this.style.display='none'"
+            >
+        `;
 
-<div class="comment-row">
+    } else {
 
-<div class="avatar small">
-${initial}
-</div>
+        avatarHtml =
+            esc(initial || 'M');
 
-<div class="comment-body">
-
-<div
-class="comment-user"
-onclick="location.href='${profileUrl(u)}'"
->
-@${u}
-</div>
-
-<div class="comment-text">
-${esc(c.text||c.content||'')}
-</div>
-
-<div class="comment-meta">
-
-${relativeTime(
-c.createdAt||
-c.created_at
-)}
-
-&nbsp;
-
-<button
-class="reply-link"
-onclick="startReply('${id}','${esc(u)}')"
->
-Yanıtla
-</button>
-
-${
-replyCount
-?`
-&nbsp;
-
-<button
-class="reply-link"
-onclick="toggleReplies('${id}')"
->
-${replyCount} yanıt
-</button>
-`
-:''
-}
-
-</div>
-
-</div>
+    }
 
 
-<button
-type="button"
-class="comment-like ${liked?'liked':''}"
-data-comment-liked="${liked?'1':'0'}"
-onclick="likeComment('${id}')"
->
-${liked?'♥':'♡'}
-</button>
+    /*
+       MEDIA
+    */
 
-</div>
+    let mediaHtml = '';
+
+    if (post.media) {
+
+        if (isVideo(post)) {
+
+            mediaHtml = `
+                <video
+                    src="${esc(post.media)}"
+                    controls
+                    playsinline
+                    preload="metadata"
+                ></video>
+            `;
+
+        } else {
+
+            mediaHtml = `
+                <img
+                    src="${esc(post.media)}"
+                    alt="Gönderi"
+                    loading="eager"
+                    onerror="
+                        this.style.display='none';
+                        this.parentElement.insertAdjacentHTML(
+                            'beforeend',
+                            '<div class=&quot;empty&quot;>Resim yüklenemedi.</div>'
+                        );
+                    "
+                >
+            `;
+
+        }
+
+    } else {
+
+        mediaHtml = `
+            <div class="empty">
+                Bu gönderide medya yok.
+            </div>
+        `;
+
+    }
 
 
-<div
-id="replies-${id}"
-class="replies hidden"
->
+    const liked =
+        !!post.likedByMe;
 
-${
-Array.isArray(c.replies)
-?c.replies.map(renderReply).join('')
-:''
-}
 
-</div>
+    content.className =
+        'post-layout';
 
-</div>
 
-`;
+    content.innerHTML = `
+
+        <article
+            class="post-card"
+            id="postCard"
+        >
+
+            <div class="post-head">
+
+                <div class="avatar">
+                    ${avatarHtml}
+                </div>
+
+                <div class="user">
+                    ${esc(username)}
+
+                    ${
+                        post.verified
+                            ? '<span class="verified">✓</span>'
+                            : ''
+                    }
+                </div>
+
+                <button
+                    class="more"
+                    id="moreBtn"
+                    type="button"
+                    aria-label="Gönderi seçenekleri"
+                    aria-expanded="false"
+                >
+                    ⋯
+                </button>
+
+            </div>
+
+
+            <div class="post-media">
+
+                ${mediaHtml}
+
+            </div>
+
+
+            <div class="post-actions">
+
+                <button
+                    class="action ${liked ? 'liked' : ''}"
+                    id="likeBtn"
+                    type="button"
+                    aria-label="Gönderiyi beğen"
+                >
+
+                    <svg
+                        class="post-action-svg"
+                        viewBox="0 0 24 24"
+                    >
+
+                        <path
+                            d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"
+                            ${
+                                liked
+                                    ? 'fill="currentColor"'
+                                    : ''
+                            }
+                        >
+                        </path>
+
+                    </svg>
+
+                </button>
+
+
+                <button
+                    class="action"
+                    id="commentsBtn"
+                    type="button"
+                    aria-label="Yorumlar"
+                >
+
+                    <svg
+                        class="post-action-svg"
+                        viewBox="0 0 24 24"
+                    >
+
+                        <path
+                            d="M4 5h16v11H8l-4 4Z"
+                        >
+                        </path>
+
+                    </svg>
+
+                </button>
+
+
+                <button
+                    class="action send"
+                    id="sharePostBtn"
+                    type="button"
+                    aria-label="Gönderiyi paylaş"
+                >
+
+                    <svg
+                        class="send-icon"
+                        viewBox="0 0 32 24"
+                    >
+
+                        <path
+                            d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"
+                        >
+                        </path>
+
+                    </svg>
+
+                </button>
+
+            </div>
+
+
+            <div
+                class="likes"
+                id="likesCount"
+            >
+                ${Number(post.likes || 0).toLocaleString('tr-TR')}
+                beğenme
+            </div>
+
+
+            ${
+                post.caption
+                    ? `
+                        <div class="post-caption">
+                            <b>${esc(username)}</b>
+                            ${esc(post.caption)}
+                        </div>
+                    `
+                    : ''
+            }
+
+
+            <div
+                class="comments"
+                id="commentsCount"
+            >
+                ${Number(post.comments || 0).toLocaleString('tr-TR')}
+                yorum
+            </div>
+
+        </article>
+
+    `;
+
+
+    setupPostEvents();
 
 }
 
 
 /* =====================================================
-   RENDER COMMENTS
+   POST EVENTS
 ===================================================== */
 
-function renderCommentsForPost(comments){
+function setupPostEvents() {
 
-const sorted=
-sortComments(comments);
+    const moreBtn =
+        document.getElementById('moreBtn');
 
-return sorted.length
-?sorted.map(renderComment).join('')
-:'<div class="empty">Henüz yorum yok.</div>';
+    const menu =
+        document.getElementById('postMenu');
+
+    const backdrop =
+        document.getElementById(
+            'postMenuBackdrop'
+        );
+
+
+    /*
+       3 NOKTA
+    */
+
+    moreBtn.onclick =
+        function(event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            menu.classList.add('open');
+
+            menu.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+
+            moreBtn.setAttribute(
+                'aria-expanded',
+                'true'
+            );
+
+        };
+
+
+    /*
+       Menü arka planı
+    */
+
+    backdrop.onclick =
+        closePostMenu;
+
+
+    /*
+       BEĞENİ
+    */
+
+    document
+        .getElementById('likeBtn')
+        .onclick =
+        likePost;
+
+
+    /*
+       YORUMLAR
+    */
+
+    document
+        .getElementById('commentsBtn')
+        .onclick =
+        function() {
+
+            toast(
+                'Yorumlar için ana sayfadaki yorumlar bölümünü kullanabilirsin.'
+            );
+
+        };
+
+
+    /*
+       PAYLAŞ
+    */
+
+    document
+        .getElementById('sharePostBtn')
+        .onclick =
+        sharePost;
+
+
+    /*
+       MENÜ BUTONLARI
+    */
+
+    document
+        .getElementById('savePostBtn')
+        .onclick =
+        savePost;
+
+
+    document
+        .getElementById('shareMenuBtn')
+        .onclick =
+        async function() {
+
+            closePostMenu();
+
+            await sharePost();
+
+        };
+
+
+    document
+        .getElementById('hideCommentsBtn')
+        .onclick =
+        toggleComments;
+
+
+    document
+        .getElementById('deletePostBtn')
+        .onclick =
+        deletePost;
 
 }
 
 
 /* =====================================================
-   LOAD POST
+   CLOSE MENU
 ===================================================== */
 
-async function loadPost(){
+function closePostMenu() {
 
-let post=null;
-let profile={};
+    const menu =
+        document.getElementById(
+            'postMenu'
+        );
 
-try{
+    const moreBtn =
+        document.getElementById(
+            'moreBtn'
+        );
 
-post=
-JSON.parse(
-sessionStorage.getItem(
-'minegram_selected_post'
-)||'null'
-);
+    menu.classList.remove('open');
 
-profile=
-JSON.parse(
-sessionStorage.getItem(
-'minegram_selected_profile'
-)||'{}'
-);
+    menu.setAttribute(
+        'aria-hidden',
+        'true'
+    );
 
-}catch(e){}
+    if (moreBtn) {
 
+        moreBtn.setAttribute(
+            'aria-expanded',
+            'false'
+        );
 
-if(!post){
-
-document.getElementById(
-'content'
-).innerHTML=`
-
-<div class="empty">
-
-<strong>
-Gönderi bulunamadı
-</strong>
-
-Ana sayfadan gönderiyi tekrar aç.
-
-</div>
-
-`;
-
-return;
-
-}
-
-
-currentPost=post;
-
-
-/* =====================================================
-   API'DEN GÜNCEL GÖNDERİ
-===================================================== */
-
-const postId=
-post.id||
-post._id||
-post.postId||
-post.uuid;
-
-if(postId){
-
-try{
-
-const fresh=
-await api(
-'/posts/'+
-encodeURIComponent(postId)
-);
-
-if(fresh){
-
-post=
-fresh.post||
-fresh.data||
-fresh;
-
-currentPost=post;
-
-}
-
-}catch(e){
-
-/* sessionStorage'daki gönderi kullanılmaya devam eder */
-
-}
-
-}
-
-
-const username=
-profile.username||
-post.user?.username||
-post.username||
-'minegram';
-
-const avatar=
-profile.avatar||
-post.user?.avatar||
-post.avatar||
-'';
-
-const verified=
-profile.verified||
-post.user?.verified||
-post.verified;
-
-const id=
-post.id||
-post._id||
-post.postId||
-post.uuid||
-null;
-
-const media=
-post.media||
-post.image||
-post.video||
-'';
-
-const mediaName=
-post.mediaName||
-post.filename||
-'';
-
-const liked=
-!!(
-post.likedByMe||
-post.userLiked||
-post.isLiked
-);
-
-let likes=0;
-
-if(Array.isArray(post.likes)){
-
-likes=post.likes.length;
-
-}else{
-
-likes=
-Number(
-post.likes||
-post.likeCount||
-0
-);
-
-}
-
-
-const comments=
-mergeComments(
-Array.isArray(post.comments)
-?post.comments
-:(Array.isArray(post.post?.comments)
-?post.post.comments
-:[]),
-id
-);
-
-
-let mediaHtml='';
-
-if(media){
-
-if(
-post.video||
-/\.(mp4|webm|mov|m4v)$/i.test(mediaName)||
-String(post.type||'').startsWith('video')
-){
-
-mediaHtml=`
-
-<video
-class="post-media"
-src="${esc(media)}"
-controls
-playsinline
-></video>
-
-`;
-
-}else{
-
-mediaHtml=`
-
-<img
-class="post-media"
-src="${esc(media)}"
-loading="eager"
-alt="Gönderi"
->
-
-`;
-
-}
-
-}
-
-
-/* =====================================================
-   RENDER
-===================================================== */
-
-document.getElementById(
-'content'
-).className='';
-
-document.getElementById(
-'content'
-).innerHTML=`
-
-<article
-class="post-card"
-data-id="${esc(id||'')}"
->
-
-<div class="post-head">
-
-<div class="avatar">
-
-${
-avatar
-?`
-<img
-src="${esc(avatar)}"
-alt=""
->
-`
-:esc(
-(
-post.user?.displayName||
-post.displayName||
-username||
-'M'
-)[0]?.toUpperCase()||
-'M'
-)
-}
-
-</div>
-
-
-<div
-class="username"
-onclick="location.href='${profileUrl(username)}'"
->
-@${esc(username)}
-
-${
-verified
-?'<span class="verified">✓</span>'
-:''
-}
-
-</div>
-
-
-<button
-class="header-more"
-id="moreBtn"
-aria-label="Gönderi seçenekleri"
->
-⋯
-</button>
-
-</div>
-
-
-${
-mediaHtml
-?`
-
-<div
-class="media-wrap"
-ondblclick="doubleLike('${esc(id)}')"
->
-
-${mediaHtml}
-
-<div
-class="heart-pop"
-id="heart-${esc(id)}"
->
-♥
-</div>
-
-</div>
-
-`
-:''
-}
-
-
-<div class="actions">
-
-<button
-type="button"
-id="likeBtn"
-class="action like ${liked?'liked':''}"
-data-liked="${liked?'1':'0'}"
-onclick="likePost('${esc(id)}')"
-aria-label="Gönderiyi beğen"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<path
-d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"
-${liked?'fill="currentColor"':''}
->
-</path>
-
-</svg>
-
-</button>
-
-
-<button
-type="button"
-class="action"
-onclick="openComments('${esc(id)}')"
-aria-label="Yorumlar"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<path d="M4 5h16v11H8l-4 4Z">
-</path>
-
-</svg>
-
-</button>
-
-
-<button
-type="button"
-class="action share-action"
-onclick="sharePost()"
-aria-label="Gönderiyi paylaş"
->
-
-<svg
-class="share-plane"
-viewBox="0 0 32 24"
->
-
-<path
-d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"
-fill="currentColor"
->
-</path>
-
-</svg>
-
-</button>
-
-</div>
-
-
-<div
-class="likes"
-id="likesCount"
->
-${likes} beğenme
-</div>
-
-
-${
-post.caption
-?`
-
-<div class="caption">
-
-<b
-onclick="location.href='${profileUrl(username)}'"
->
-@${esc(username)}
-</b>
-
-${esc(post.caption)}
-
-</div>
-
-`
-:''
-}
-
-
-${
-comments.length
-?`
-
-<div
-class="comments-preview"
-onclick="openComments('${esc(id)}')"
->
-
-${
-comments.length>3
-?'Tüm '+comments.length+' yorumu gör'
-:
-comments.map(
-c=>`
-
-<div>
-
-<b>
-@${esc(
-c.username||
-c.user?.username||
-''
-)}
-</b>
-
-${esc(c.text||c.content||'')}
-
-</div>
-
-`
-).join('')
-}
-
-</div>
-
-`
-:''
-
-}
-
-</article>
-
-`;
-
-
-/* =====================================================
-   MENU
-===================================================== */
-
-openPostMenuSetup(
-post,
-id
-);
+    }
 
 }
 
@@ -2045,1043 +1937,237 @@ id
    LIKE POST
 ===================================================== */
 
-async function likePost(id){
+async function likePost() {
 
-if(!id){
+    const button =
+        document.getElementById(
+            'likeBtn'
+        );
 
-toast(
-'Gönderi kimliği bulunamadı'
-);
+    const likesEl =
+        document.getElementById(
+            'likesCount'
+        );
 
-return;
+    if (!button || !currentPostId) {
 
-}
+        return;
 
+    }
 
-const article=
-document.querySelector(
-'.post-card[data-id="'+
-CSS.escape(String(id))+
-'"]'
-);
 
-const btn=
-article?.querySelector(
-'.action.like'
-);
+    /*
+       Çift tıklama sırasında
+       ikinci request gönderme.
+    */
 
-const likesEl=
-document.getElementById(
-'likesCount'
-);
+    if (
+        button.dataset.loading === '1'
+    ) {
 
-if(!btn)return;
+        return;
 
+    }
 
-if(
-btn.dataset.loading==='1'
-){
+    button.dataset.loading = '1';
 
-return;
 
-}
+    const wasLiked =
+        button.classList.contains(
+            'liked'
+        );
 
-btn.dataset.loading='1';
+    const nextLiked =
+        !wasLiked;
 
 
-const wasLiked=
-btn.classList.contains(
-'liked'
-);
+    /*
+       Önce UI
+    */
 
-const nextLiked=
-!wasLiked;
+    button.classList.toggle(
+        'liked',
+        nextLiked
+    );
 
 
-btn.classList.toggle(
-'liked',
-nextLiked
-);
+    const path =
+        button.querySelector('path');
 
-btn.dataset.liked=
-nextLiked?'1':'0';
+    if (path) {
 
+        if (nextLiked) {
 
-const path=
-btn.querySelector('path');
+            path.setAttribute(
+                'fill',
+                'currentColor'
+            );
 
-if(path){
+        } else {
 
-path.setAttribute(
-'fill',
-nextLiked
-?'currentColor'
-:'none'
-);
+            path.removeAttribute(
+                'fill'
+            );
 
-}
+        }
 
+    }
 
-if(likesEl){
 
-const match=
-likesEl.textContent.match(/\d+/);
+    let count =
+        Number(post.likes || 0);
 
-let count=
-match
-?parseInt(match[0],10)
-:0;
 
-count=
-Math.max(
-0,
-count+
-(nextLiked?1:-1)
-);
+    count =
+        Math.max(
+            0,
+            count +
+            (nextLiked ? 1 : -1)
+        );
 
-likesEl.textContent=
-count+' beğenme';
 
-}
+    post.likes = count;
 
+    post.likedByMe =
+        nextLiked;
 
-try{
 
-const r=
-await api(
-'/posts/'+
-encodeURIComponent(id)+
-'/like',
-{
-method:'POST'
-}
-);
+    likesEl.textContent =
+        count.toLocaleString(
+            'tr-TR'
+        ) +
+        ' beğenme';
 
 
-if(
-typeof r.likes==='number'
-){
+    try {
 
-likesEl.textContent=
-r.likes+
-' beğenme';
+        const result =
+            await api(
+                '/posts/' +
+                encodeURIComponent(
+                    currentPostId
+                ) +
+                '/like',
+                {
+                    method: 'POST'
+                }
+            );
 
-}
 
+        /*
+           API sayı döndürüyorsa
+           sadece sayıyı güncelle.
+        */
 
-btn.classList.toggle(
-'liked',
-nextLiked
-);
+        if (
+            result &&
+            typeof result.likes === 'number'
+        ) {
 
-btn.dataset.liked=
-nextLiked?'1':'0';
+            post.likes =
+                result.likes;
 
-if(path){
+            likesEl.textContent =
+                result.likes.toLocaleString(
+                    'tr-TR'
+                ) +
+                ' beğenme';
 
-path.setAttribute(
-'fill',
-nextLiked
-?'currentColor'
-:'none'
-);
+        }
 
-}
 
-}catch(e){
+        /*
+           ÖNEMLİ:
+           API'nin yanlış liked değerinin
+           UI'ı bozmasına izin vermiyoruz.
+        */
 
-btn.classList.toggle(
-'liked',
-wasLiked
-);
+        button.classList.toggle(
+            'liked',
+            nextLiked
+        );
 
-btn.dataset.liked=
-wasLiked?'1':'0';
+        if (path) {
 
-if(path){
+            if (nextLiked) {
 
-path.setAttribute(
-'fill',
-wasLiked
-?'currentColor'
-:'none'
-);
+                path.setAttribute(
+                    'fill',
+                    'currentColor'
+                );
 
-}
+            } else {
 
-if(likesEl){
+                path.removeAttribute(
+                    'fill'
+                );
 
-const match=
-likesEl.textContent.match(/\d+/);
+            }
 
-let count=
-match
-?parseInt(match[0],10)
-:0;
+        }
 
-count=
-Math.max(
-0,
-count+
-(nextLiked?-1:1)
-);
 
-likesEl.textContent=
-count+' beğenme';
+    } catch (error) {
 
-}
+        /*
+           Hata olursa geri al
+        */
 
-toast(
-e.message||
-'Beğeni işlemi başarısız'
-);
+        button.classList.toggle(
+            'liked',
+            wasLiked
+        );
 
-}finally{
+        post.likedByMe =
+            wasLiked;
 
-btn.dataset.loading='0';
 
-}
+        post.likes =
+            Math.max(
+                0,
+                count +
+                (nextLiked ? -1 : 1)
+            );
 
-}
 
+        likesEl.textContent =
+            post.likes.toLocaleString(
+                'tr-TR'
+            ) +
+            ' beğenme';
 
-/* =====================================================
-   DOUBLE LIKE
-===================================================== */
 
-async function doubleLike(id){
+        if (path) {
 
-const heart=
-document.getElementById(
-'heart-'+
-CSS.escape(String(id))
-);
+            if (wasLiked) {
 
-if(heart){
+                path.setAttribute(
+                    'fill',
+                    'currentColor'
+                );
 
-heart.classList.add('show');
+            } else {
 
-setTimeout(
-()=>heart.classList.remove('show'),
-650
-);
+                path.removeAttribute(
+                    'fill'
+                );
 
-}
+            }
 
+        }
 
-const btn=
-document.querySelector(
-'.post-card[data-id="'+
-CSS.escape(String(id))+
-'"] .action.like'
-);
 
-if(
-btn &&
-btn.classList.contains('liked')
-){
+        toast(
+            error.message ||
+            'Beğeni işlemi başarısız'
+        );
 
-return;
+    } finally {
 
-}
+        button.dataset.loading =
+            '0';
 
-await likePost(id);
-
-}
-
-
-/* =====================================================
-   COMMENTS
-===================================================== */
-
-async function openComments(id){
-
-if(!id){
-
-toast(
-'Gönderi kimliği bulunamadı'
-);
-
-return;
-
-}
-
-currentCommentPost=id;
-
-currentCommentSort='forYou';
-
-document.getElementById(
-'commentSort'
-).value='forYou';
-
-document.getElementById(
-'commentsModal'
-).classList.add('open');
-
-
-const list=
-document.getElementById(
-'commentList'
-);
-
-list.innerHTML=
-renderCommentsForPost(
-getLocalComments(id)
-);
-
-
-try{
-
-const p=
-await api(
-'/posts/'+
-encodeURIComponent(id)
-);
-
-const remote=
-Array.isArray(p.comments)
-?p.comments
-:(Array.isArray(p.post?.comments)
-?p.post.comments
-:[]);
-
-list.innerHTML=
-renderCommentsForPost(
-mergeComments(
-remote,
-id
-)
-);
-
-}catch(e){
-
-const local=
-getLocalComments(id);
-
-list.innerHTML=
-local.length
-?local.map(renderComment).join('')
-:'<div class="empty">Yorumlar yüklenemedi.</div>';
-
-}
-
-}
-
-
-/* =====================================================
-   CLOSE COMMENTS
-===================================================== */
-
-function closeComments(e){
-
-if(
-!e||
-e.target===
-document.getElementById(
-'commentsModal'
-)
-){
-
-document.getElementById(
-'commentsModal'
-).classList.remove('open');
-
-currentCommentPost=null;
-
-}
-
-}
-
-
-/* =====================================================
-   REFRESH COMMENTS
-===================================================== */
-
-async function refreshComments(){
-
-if(!currentCommentPost)return;
-
-const id=
-currentCommentPost;
-
-try{
-
-const p=
-await api(
-'/posts/'+
-encodeURIComponent(id)
-);
-
-const remote=
-Array.isArray(p.comments)
-?p.comments
-:(Array.isArray(p.post?.comments)
-?p.post.comments
-:[]);
-
-document.getElementById(
-'commentList'
-).innerHTML=
-renderCommentsForPost(
-mergeComments(
-remote,
-id
-)
-);
-
-}catch(e){}
-
-}
-
-
-/* =====================================================
-   SORT
-===================================================== */
-
-function changeCommentSort(value){
-
-currentCommentSort=value;
-
-if(!currentCommentPost)
-return;
-
-const local=
-getLocalComments(
-currentCommentPost
-);
-
-document.getElementById(
-'commentList'
-).innerHTML=
-renderCommentsForPost(local);
-
-refreshComments();
-
-}
-
-
-/* =====================================================
-   EMOJI
-===================================================== */
-
-function addEmoji(emoji){
-
-const input=
-document.getElementById(
-'commentInput'
-);
-
-if(!input)return;
-
-const start=
-input.selectionStart ??
-input.value.length;
-
-const end=
-input.selectionEnd ??
-input.value.length;
-
-const before=
-input.value.substring(
-0,
-start
-);
-
-const after=
-input.value.substring(
-end
-);
-
-input.value=
-before+
-emoji+
-after;
-
-const cursor=
-start+
-emoji.length;
-
-input.focus();
-
-try{
-
-input.setSelectionRange(
-cursor,
-cursor
-);
-
-}catch(e){}
-
-}
-
-
-/* =====================================================
-   REPLY
-===================================================== */
-
-function startReply(id,username){
-
-replyingTo=id;
-
-const input=
-document.getElementById(
-'commentInput'
-);
-
-input.placeholder=
-'@'+
-username+
-' kişisine yanıt yaz...';
-
-input.focus();
-
-}
-
-
-function toggleReplies(id){
-
-document.getElementById(
-'replies-'+
-CSS.escape(id)
-)?.classList.toggle(
-'hidden'
-);
-
-}
-
-
-/* =====================================================
-   SEND COMMENT
-===================================================== */
-
-async function sendComment(){
-
-const input=
-document.getElementById(
-'commentInput'
-);
-
-const textValue=
-input.value.trim();
-
-if(
-!textValue||
-!currentCommentPost
-){
-
-return;
-
-}
-
-
-const postId=
-currentCommentPost;
-
-const replyId=
-replyingTo;
-
-const sendButton=
-document.querySelector(
-'.comment-compose .send'
-);
-
-if(sendButton){
-
-sendButton.disabled=true;
-
-}
-
-
-const username=
-currentUser?.username||
-currentUser?.name||
-'minegram';
-
-const now=
-new Date().toISOString();
-
-const tempId=
-'local-'+
-Date.now()+
-'-'+
-Math.random()
-.toString(36)
-.slice(2);
-
-
-const item={
-
-id:tempId,
-
-username,
-
-text:textValue,
-
-createdAt:now,
-
-likedByMe:false,
-
-local:true
-
-};
-
-
-/* =====================================================
-   REPLY
-===================================================== */
-
-if(replyId){
-
-const local=
-getLocalComments(postId);
-
-let parent=
-local.find(
-c=>
-String(c.id)===
-String(replyId)
-);
-
-if(parent){
-
-parent.replies=
-Array.isArray(parent.replies)
-?parent.replies
-:[];
-
-parent.replies.push(item);
-
-localStorage.setItem(
-localCommentsKey(postId),
-JSON.stringify(
-local.slice(-100)
-)
-);
-
-}
-
-
-const wrap=
-document.querySelector(
-'.comment-wrap[data-comment-id="'+
-CSS.escape(String(replyId))+
-'"]'
-);
-
-const replies=
-wrap?.querySelector(
-'.replies'
-);
-
-if(replies){
-
-replies.classList.remove('hidden');
-
-replies.insertAdjacentHTML(
-'beforeend',
-renderReply(item)
-);
-
-}
-
-}else{
-
-/* =====================================================
-   NORMAL COMMENT
-===================================================== */
-
-saveLocalComment(
-postId,
-item
-);
-
-const list=
-document.getElementById(
-'commentList'
-);
-
-const empty=
-list.querySelector('.empty');
-
-if(empty){
-
-empty.remove();
-
-}
-
-list.insertAdjacentHTML(
-'beforeend',
-renderComment(item)
-);
-
-list.scrollTop=
-list.scrollHeight;
-
-}
-
-
-input.value='';
-
-replyingTo=null;
-
-input.placeholder=
-'Bunun hakkında ne düşünüyorsun?';
-
-
-toast(
-replyId
-?'Yanıt gönderildi'
-:'Yorum gönderildi'
-);
-
-
-try{
-
-let result;
-
-if(replyId){
-
-try{
-
-result=
-await api(
-'/comments/'+
-encodeURIComponent(replyId)+
-'/reply',
-{
-method:'POST',
-headers:{
-'Content-Type':
-'application/json'
-},
-body:JSON.stringify({
-text:textValue
-})
-}
-);
-
-}catch(firstError){
-
-result=
-await api(
-'/posts/'+
-encodeURIComponent(postId)+
-'/comments/'+
-encodeURIComponent(replyId)+
-'/reply',
-{
-method:'POST',
-headers:{
-'Content-Type':
-'application/json'
-},
-body:JSON.stringify({
-text:textValue
-})
-}
-);
-
-}
-
-}else{
-
-result=
-await api(
-'/posts/'+
-encodeURIComponent(postId)+
-'/comments',
-{
-method:'POST',
-headers:{
-'Content-Type':
-'application/json'
-},
-body:JSON.stringify({
-text:textValue
-})
-}
-);
-
-}
-
-
-const returned=
-result?.comment||
-result?.data||
-result;
-
-
-if(
-returned &&
-typeof returned==='object' &&
-returned.id
-){
-
-const local=
-getLocalComments(postId);
-
-for(const c of local){
-
-if(
-String(c.id)===
-String(tempId)
-){
-
-c.id=
-returned.id;
-
-c.local=false;
-
-c.username=
-returned.username||
-returned.user?.username||
-c.username;
-
-c.text=
-returned.text||
-c.text;
-
-c.createdAt=
-returned.createdAt||
-returned.created_at||
-c.createdAt;
-
-}
-
-}
-
-localStorage.setItem(
-localCommentsKey(postId),
-JSON.stringify(
-local.slice(-100)
-)
-);
-
-}
-
-
-await refreshComments();
-
-}catch(e){
-
-const local=
-getLocalComments(postId);
-
-if(replyId){
-
-for(const c of local){
-
-if(Array.isArray(c.replies)){
-
-c.replies=
-c.replies.filter(
-r=>
-String(r.id)!==
-String(tempId)
-);
-
-}
-
-}
-
-}else{
-
-const filtered=
-local.filter(
-c=>
-String(c.id)!==
-String(tempId)
-);
-
-local.length=0;
-
-local.push(...filtered);
-
-}
-
-localStorage.setItem(
-localCommentsKey(postId),
-JSON.stringify(
-local.slice(-100)
-)
-);
-
-document.getElementById(
-'commentList'
-).innerHTML=
-renderCommentsForPost(local);
-
-toast(
-e.message||
-'Yorum gönderilemedi'
-);
-
-}finally{
-
-if(sendButton){
-
-sendButton.disabled=false;
-
-}
-
-}
-
-}
-
-
-/* =====================================================
-   COMMENT LIKE
-===================================================== */
-
-async function likeComment(id){
-
-if(!id){
-
-toast(
-'Yorum kimliği bulunamadı'
-);
-
-return;
-
-}
-
-const wrap=
-document.querySelector(
-'.comment-wrap[data-comment-id="'+
-CSS.escape(String(id))+
-'"]'
-);
-
-const btn=
-wrap?.querySelector(
-'.comment-like'
-);
-
-if(!btn)return;
-
-if(
-btn.dataset.loading==='1'
-){
-
-return;
-
-}
-
-btn.dataset.loading='1';
-
-const wasLiked=
-btn.classList.contains('liked');
-
-const nextLiked=
-!wasLiked;
-
-btn.classList.toggle(
-'liked',
-nextLiked
-);
-
-btn.dataset.commentLiked=
-nextLiked?'1':'0';
-
-btn.textContent=
-nextLiked
-?'♥'
-:'♡';
-
-try{
-
-await api(
-'/comments/'+
-encodeURIComponent(id)+
-'/like',
-{
-method:'POST'
-}
-);
-
-btn.classList.toggle(
-'liked',
-nextLiked
-);
-
-btn.textContent=
-nextLiked
-?'♥'
-:'♡';
-
-toast(
-nextLiked
-?'Yorum beğenildi'
-:'Yorum beğenisi kaldırıldı'
-);
-
-}catch(e){
-
-btn.classList.toggle(
-'liked',
-wasLiked
-);
-
-btn.dataset.commentLiked=
-wasLiked?'1':'0';
-
-btn.textContent=
-wasLiked
-?'♥'
-:'♡';
-
-toast(
-e.message||
-'Yorum beğenisi işlemi başarısız'
-);
-
-}finally{
-
-btn.dataset.loading='0';
-
-}
-
-}
-
-
-/* =====================================================
-   SHARE
-===================================================== */
-
-async function sharePost(){
-
-const url=
-location.origin+
-'/post.html?id='+
-encodeURIComponent(
-currentPost?.id||
-currentPost?._id||
-''
-);
-
-try{
-
-if(navigator.share){
-
-await navigator.share({
-
-title:'Minegram gönderisi',
-
-url
-
-});
-
-}else{
-
-await navigator.clipboard.writeText(url);
-
-toast(
-'Gönderi bağlantısı kopyalandı'
-);
-
-}
-
-}catch(e){}
+    }
 
 }
 
@@ -3090,317 +2176,363 @@ toast(
    SAVE
 ===================================================== */
 
-async function savePost(id){
+function savePost() {
 
-try{
+    if (!currentPostId) {
 
-const r=
-await api(
-'/posts/'+
-encodeURIComponent(id)+
-'/save',
-{
-method:'POST'
-}
-);
+        closePostMenu();
 
-toast(
-r.saved
-?'Gönderi kaydedildi'
-:'Kayıt kaldırıldı'
-);
+        return;
 
-}catch(e){
+    }
 
-toast(e.message);
 
-}
+    const key =
+        'minegram_saved_post_' +
+        String(currentPostId);
+
+
+    const saved =
+        localStorage.getItem(key) === '1';
+
+
+    if (saved) {
+
+        localStorage.removeItem(key);
+
+        document
+            .getElementById('savePostBtn')
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Kaydet';
+
+        toast(
+            'Kayıt kaldırıldı'
+        );
+
+    } else {
+
+        localStorage.setItem(
+            key,
+            '1'
+        );
+
+        document
+            .getElementById('savePostBtn')
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Kaydedildi';
+
+        toast(
+            'Gönderi kaydedildi'
+        );
+
+    }
+
+
+    closePostMenu();
 
 }
 
 
 /* =====================================================
-   MENU
+   HIDE COMMENTS COUNT
 ===================================================== */
 
-function openPostMenuSetup(post,id){
+function toggleComments() {
 
-currentMenuPost=id;
+    const comments =
+        document.getElementById(
+            'commentsCount'
+        );
 
-const menu=
-document.getElementById(
-'postMenu'
-);
-
-const commentsHidden=
-localStorage.getItem(
-'minegram_hide_comments_'+
-String(id)
-)==='1';
+    const button =
+        document.getElementById(
+            'hideCommentsBtn'
+        );
 
 
-menu.innerHTML=`
-
-<button
-class="menu-item"
-onclick="saveFromMenu()"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
-fill="none"
-stroke="currentColor"
->
-
-<path d="M6 4h12v17l-6-4-6 4Z"/>
-
-</svg>
-
-Kaydet
-
-</button>
+    const key =
+        'minegram_hide_comments_' +
+        String(currentPostId);
 
 
-<button
-class="menu-item"
-onclick="shareFromMenu()"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
-fill="none"
-stroke="currentColor"
->
-
-<circle cx="18" cy="5" r="2"/>
-<circle cx="6" cy="12" r="2"/>
-<circle cx="18" cy="19" r="2"/>
-
-<path d="m8 11 8-5M8 13l8 5"/>
-
-</svg>
-
-Gönderiyi paylaş
-
-</button>
+    const hidden =
+        comments.classList.contains(
+            'hidden-comments'
+        );
 
 
-<button
-class="menu-item"
-onclick="toggleCommentCountFromMenu()"
->
+    if (hidden) {
 
-<svg
-class="svg"
-viewBox="0 0 24 24"
-fill="none"
-stroke="currentColor"
->
+        comments.classList.remove(
+            'hidden-comments'
+        );
 
-<path d="M4 5h16v11H8l-4 4Z"/>
+        localStorage.removeItem(
+            key
+        );
 
-</svg>
+        button
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Yorum sayısını gizle';
 
-${
-commentsHidden
-?'Yorum sayısını göster'
-:'Yorum sayısını gizle'
-}
+        toast(
+            'Yorum sayısı gösteriliyor'
+        );
 
-</button>
+    } else {
 
+        comments.classList.add(
+            'hidden-comments'
+        );
 
-<button
-class="menu-item danger"
-onclick="deletePostFromMenu()"
->
+        localStorage.setItem(
+            key,
+            '1'
+        );
 
-<svg
-class="svg"
-viewBox="0 0 24 24"
-fill="none"
-stroke="currentColor"
->
+        button
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Yorum sayısını göster';
 
-<path d="M5 7h14M10 11v6M14 11v6M8 7l1-3h6l1 3v13H8Z"/>
+        toast(
+            'Yorum sayısı gizlendi'
+        );
 
-</svg>
-
-Gönderiyi sil
-
-</button>
-
-`;
+    }
 
 
-document.getElementById(
-'moreBtn'
-).onclick=
-function(ev){
-
-ev.stopPropagation();
-
-menu=
-document.getElementById(
-'postMenu'
-);
-
-document.getElementById(
-'menuBackdrop'
-).classList.add('open');
-
-};
+    closePostMenu();
 
 }
 
 
-function closeMenu(e){
+/* =====================================================
+   DELETE
+===================================================== */
 
-if(
-!e||
-e.target===
-document.getElementById(
-'menuBackdrop'
-)
-){
+async function deletePost() {
 
-document.getElementById(
-'menuBackdrop'
-).classList.remove('open');
-
-}
-
-}
+    closePostMenu();
 
 
-async function saveFromMenu(){
+    if (
+        !confirm(
+            'Bu gönderiyi silmek istediğine emin misin?'
+        )
+    ) {
 
-if(currentMenuPost){
+        return;
 
-await savePost(
-currentMenuPost
-);
-
-}
-
-closeMenu();
-
-}
+    }
 
 
-async function shareFromMenu(){
+    if (!currentPostId) {
 
-closeMenu();
+        toast(
+            'Gönderi kimliği bulunamadı'
+        );
 
-await sharePost();
+        return;
 
-}
+    }
 
 
-function toggleCommentCountFromMenu(){
+    try {
 
-if(!currentMenuPost)
-return;
+        await api(
+            '/posts/' +
+            encodeURIComponent(
+                currentPostId
+            ),
+            {
+                method: 'DELETE'
+            }
+        );
 
-const id=
-String(currentMenuPost);
 
-const key=
-'minegram_hide_comments_'+id;
+        sessionStorage.removeItem(
+            'minegram_selected_post'
+        );
 
-const hidden=
-localStorage.getItem(key)==='1';
 
-localStorage.setItem(
-key,
-hidden?'0':'1'
-);
+        toast(
+            'Gönderi silindi'
+        );
 
-const preview=
-document.querySelector(
-'.comments-preview'
-);
 
-if(hidden){
+        setTimeout(
+            () => {
+                location.href =
+                    'profile.html';
+            },
+            600
+        );
 
-toast(
-'Yorum sayısı gösteriliyor'
-);
 
-}else{
+    } catch (error) {
 
-toast(
-'Yorum sayısı gizlendi'
-);
+        toast(
+            error.message ||
+            'Gönderi silinemedi'
+        );
 
-}
-
-const comments=
-document.querySelector(
-'.comments-preview'
-);
-
-if(!hidden){
-
-/* preview gizleme değil, ana yorum sayısı mantığı */
-
-}
+    }
 
 }
 
 
-async function deletePostFromMenu(){
+/* =====================================================
+   SHARE
+===================================================== */
 
-if(!currentMenuPost)
-return;
+async function sharePost() {
 
-closeMenu();
+    const url =
+        location.origin +
+        '/post.html?id=' +
+        encodeURIComponent(
+            currentPostId
+        );
 
-if(
-!confirm(
-'Bu gönderiyi silmek istediğine emin misin?'
-)
-){
 
-return;
+    try {
+
+        if (
+            navigator.share
+        ) {
+
+            await navigator.share({
+
+                title:
+                    'Minegram gönderisi',
+
+                url
+
+            });
+
+        } else {
+
+            await navigator.clipboard.writeText(
+                url
+            );
+
+            toast(
+                'Gönderi bağlantısı kopyalandı'
+            );
+
+        }
+
+    } catch (error) {
+
+        /*
+           Kullanıcı paylaşım penceresini
+           kapattıysa hata gösterme.
+        */
+
+    }
 
 }
 
-try{
 
-await api(
-'/posts/'+
-encodeURIComponent(
-currentMenuPost
-),
-{
-method:'DELETE'
-}
-);
+/* =====================================================
+   SAVED / HIDDEN STATE
+===================================================== */
 
-sessionStorage.removeItem(
-'minegram_selected_post'
-);
+function restoreMenuState() {
 
-toast(
-'Gönderi silindi'
-);
+    const saveBtn =
+        document.getElementById(
+            'savePostBtn'
+        );
 
-setTimeout(
-()=>location.href='profile.html',
-500
-);
+    const hideBtn =
+        document.getElementById(
+            'hideCommentsBtn'
+        );
 
-}catch(e){
+    const comments =
+        document.getElementById(
+            'commentsCount'
+        );
 
-toast(
-e.message||
-'Gönderi silinemedi'
-);
 
-}
+    const savedKey =
+        'minegram_saved_post_' +
+        String(currentPostId);
+
+
+    const hiddenKey =
+        'minegram_hide_comments_' +
+        String(currentPostId);
+
+
+    const saved =
+        localStorage.getItem(
+            savedKey
+        ) === '1';
+
+
+    const hidden =
+        localStorage.getItem(
+            hiddenKey
+        ) === '1';
+
+
+    saveBtn
+        .querySelector(
+            'span:last-child'
+        )
+        .textContent =
+        saved
+            ? 'Kaydedildi'
+            : 'Kaydet';
+
+
+    saveBtn.setAttribute(
+        'aria-pressed',
+        String(saved)
+    );
+
+
+    if (hidden) {
+
+        comments.classList.add(
+            'hidden-comments'
+        );
+
+        hideBtn
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Yorum sayısını göster';
+
+    } else {
+
+        comments.classList.remove(
+            'hidden-comments'
+        );
+
+        hideBtn
+            .querySelector(
+                'span:last-child'
+            )
+            .textContent =
+            'Yorum sayısını gizle';
+
+    }
 
 }
 
@@ -3409,93 +2541,106 @@ e.message||
    BACK
 ===================================================== */
 
-document.getElementById(
-'backBtn'
-).onclick=
-()=>{
+document
+    .getElementById('backBtn')
+    .onclick =
+    function() {
 
-if(history.length>1){
+        if (
+            history.length > 1
+        ) {
 
-history.back();
+            history.back();
 
-}else{
+        } else {
 
-location.href='profile.html';
+            location.href =
+                'profile.html';
 
-}
+        }
 
-};
+    };
+
+
+/* =====================================================
+   NAV
+===================================================== */
+
+document
+    .getElementById('homeNav')
+    .onclick =
+    () => location.href =
+        'index.html';
+
+document
+    .getElementById('searchNav')
+    .onclick =
+    () => location.href =
+        'ara.html';
+
+document
+    .getElementById('createNav')
+    .onclick =
+    () => location.href =
+        'olustur.html';
+
+document
+    .getElementById('reelsNav')
+    .onclick =
+    () => location.href =
+        'reels.html';
+
+document
+    .getElementById('profileNav')
+    .onclick =
+    () => location.href =
+        'profile.html';
 
 
 /* =====================================================
    INIT
 ===================================================== */
 
-async function init(){
+async function init() {
 
-if(!token){
+    if (!token) {
 
-location.href='index.html';
+        location.href =
+            'index.html';
 
-return;
+        return;
 
-}
-
-try{
-
-currentUser=
-await api('/me');
-
-}catch(e){
-
-localStorage.removeItem(
-'minegram_token'
-);
-
-location.href='index.html';
-
-return;
-
-}
+    }
 
 
-/* Avatar */
+    try {
 
-const composeAvatar=
-document.getElementById(
-'composeAvatar'
-);
+        await loadPost();
 
-if(
-composeAvatar &&
-currentUser
-){
+        if (post) {
 
-if(currentUser.avatar){
+            restoreMenuState();
 
-composeAvatar.innerHTML=
-`
-<img
-src="${esc(currentUser.avatar)}"
-alt=""
->
-`;
+        }
 
-}else{
+    } catch (error) {
 
-composeAvatar.textContent=
-(
-currentUser.username||
-currentUser.name||
-'M'
-)[0].toUpperCase();
+        console.error(
+            error
+        );
 
-}
+        document
+            .getElementById('content')
+            .innerHTML = `
+                <div class="empty">
+                    Gönderi yüklenemedi.<br>
+                    <small>
+                        ${esc(error.message)}
+                    </small>
+                </div>
+            `;
 
-}
-
-
-await loadPost();
+    }
 
 }
 
@@ -3503,6 +2648,3 @@ await loadPost();
 init();
 
 </script>
-
-</body>
-</html>
