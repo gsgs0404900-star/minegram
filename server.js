@@ -70,17 +70,6 @@ async function auth(req, res, next) {
   }
 }
 
-console.log("TOKEN USER:", req.authUser.id);
-console.log("PROFILE USER:", req.user.id);
-
-const {
-  data: authUser,
-  error: authError
-} = await req.sb.auth.getUser();
-
-console.log("AUTH GETUSER:", authUser.user?.id);
-console.log("AUTH ERROR:", authError);
-
 function safeUser(u) {
   return {
     id: u.id,
