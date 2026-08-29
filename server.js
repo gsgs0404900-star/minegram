@@ -655,6 +655,10 @@ app.patch("/api/settings", auth, async (req,res)=>{
   }catch(e){res.status(400).json({error:e.message});}
 });
 
+app.get("/mesaj", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "mesaj.html"));
+});
+
 app.use((req, res) => {
   // Prefer public/index.html when it exists; otherwise serve root index.html.
   const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
