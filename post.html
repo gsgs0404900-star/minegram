@@ -27,7 +27,7 @@ button,input{font:inherit}button{cursor:pointer}
 .post-caption{padding:12px 18px 4px;color:#ddd;white-space:pre-wrap;line-height:1.45;font-size:15px}
 .post-actions{height:60px;display:flex;align-items:center;padding:0 15px;gap:16px}
 .action{border:0;background:none;color:#fff;font-size:30px;padding:0;display:flex;align-items:center;gap:8px}
-.action span{font-size:15px;color:#aaa}.send{margin-left:auto;font-size:31px}
+.action span{font-size:15px;color:#aaa}.send{margin-left:auto;width:42px;height:42px;justify-content:center}.send-icon{width:31px;height:24px;display:block;fill:currentColor}
 .likes{font-size:16px;font-weight:700;padding:0 18px 10px}
 .comments{border-top:1px solid #222;padding:14px 18px;color:#999;font-size:14px}
 .side{border:1px solid #292929;border-radius:8px;padding:18px;position:sticky;top:84px}
@@ -139,7 +139,11 @@ function load(){
  <article class="post-card">
   <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" id="moreBtn" aria-label="Gönderi seçenekleri" aria-expanded="false">⋮</button></div>
   <div class="post-media">${mediaHtml}</div>
-  <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" onclick="sharePost()">➤</button></div>
+  <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" id="sharePostBtn" onclick="sharePost()" aria-label="Gönderiyi paylaş">
+<svg class="send-icon" viewBox="0 0 32 24" aria-hidden="true">
+<path d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"></path>
+</svg>
+</button></div>
   <div class="likes">${Number(post.likes??post.likeCount??0).toLocaleString('tr-TR')} beğenme</div>
   ${post.caption?'<div class="post-caption"><b>'+esc(username)+'</b> '+esc(post.caption)+'</div>':''}
   <div class="comments" id="commentsCount">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
