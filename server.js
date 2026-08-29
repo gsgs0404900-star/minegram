@@ -427,32 +427,23 @@ app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
 
 app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
     try {
-        const authTest = await req.sb.auth.getUser();
 
         console.log("=================================");
+        console.log("REQ TOKEN:", req.token);
         console.log("REQ AUTH USER:", req.authUser.id);
         console.log("REQ PROFILE:", req.user.id);
-        console.log("AUTH GETUSER:", authTest.data.user?.id);
-        console.log("AUTH ERROR:", authTest.error);
-        console.log("=================================");
-        console.log("=================================");
-        console.log("TOKEN USER:", req.authUser.id);
-        console.log("PROFILE USER:", req.user.id);
 
-        const {
-            data: authData,
-            error: authError
-        } = await req.sb.auth.getUser();
+        const authNow = await req.sb.auth.getUser();
 
-        console.log("AUTH GETUSER:", authData.user?.id);
-        console.log("AUTH ERROR:", authError);
+        console.log("AUTH NOW:", authNow.data.user?.id);
+        console.log("AUTH NOW ERROR:", authNow.error);
+        console.log("=================================");
 
         if (!req.file)
             return res.status(400).json({ error: "Dosya seçilmedi" });
 
         const ext = path.extname(req.file.originalname);
-        const objectPath =
-            `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
+        const objectPath = `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
         const { error: uploadError } =
             await req.sb.storage
@@ -479,7 +470,6 @@ app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
             .single();
 
         console.log("RESULT:", JSON.stringify(result, null, 2));
-        console.log("=================================");
 
         if (result.error)
             return res.status(400).json(result.error);
