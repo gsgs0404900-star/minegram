@@ -57,6 +57,9 @@ async function auth(req, res, next) {
     if (!token) throw new Error("Oturum gerekli");
     const sb = client(token);
     const { data: { user }, error } = await sb.auth.getUser(token);
+    console.log("TOKEN:", token);
+    console.log("GET USER:", user?.id);
+    console.log("ERROR:", error);
     if (error || !user) throw error || new Error("Oturum gerekli");
     const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).single();
     if (pError || !profile) throw pError || new Error("Profil bulunamadı");
@@ -424,7 +427,14 @@ app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
 
 app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
     try {
+        const authTest = await req.sb.auth.getUser();
 
+        console.log("=================================");
+        console.log("REQ AUTH USER:", req.authUser.id);
+        console.log("REQ PROFILE:", req.user.id);
+        console.log("AUTH GETUSER:", authTest.data.user?.id);
+        console.log("AUTH ERROR:", authTest.error);
+        console.log("=================================");
         console.log("=================================");
         console.log("TOKEN USER:", req.authUser.id);
         console.log("PROFILE USER:", req.user.id);
