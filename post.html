@@ -27,7 +27,7 @@ button,input{font:inherit}button{cursor:pointer}
 .post-caption{font-size:14px;line-height:1.45;padding:7px 14px 14px;color:#ddd;white-space:pre-wrap}
 .post-actions{height:50px;display:flex;align-items:center;padding:0 12px;gap:6px}
 .action{height:42px;min-width:42px;border:0;background:transparent;color:#eee;display:flex;align-items:center;gap:5px;padding:0 5px;cursor:pointer;font-size:14px}.action .post-action-svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.action span{font-size:15px;color:#aaa}.send{margin-left:auto}.send-icon{width:30px;height:23px;display:block;fill:currentColor}
+.action span{font-size:15px;color:#aaa}.send{margin-left:auto;font-size:31px}
 .likes{font-size:14px;font-weight:700;padding:0 14px;margin-top:-2px}
 .comments{padding:0 14px 12px;color:#999;font-size:13px;cursor:pointer}
 .side{border:1px solid #292929;border-radius:8px;padding:18px;position:sticky;top:84px}
@@ -139,27 +139,13 @@ function load(){
  <article class="post-card">
   <div class="post-head"><div class="avatar">${avatar?'<img src="'+esc(avatar)+'" alt="">':esc((profile.displayName||username)[0]?.toUpperCase()||'M')}</div><div class="user">${esc(username)}${verified?'<span class="verified">✓</span>':''}</div><button class="more" id="moreBtn" aria-label="Gönderi seçenekleri" aria-expanded="false">⋯</button></div>
   <div class="post-media">${mediaHtml}</div>
-  <div class="post-actions">
-<button class="action" id="likeBtn" aria-label="Gönderiyi beğen">
-<svg class="post-action-svg" viewBox="0 0 24 24">
-<path d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"></path>
-</svg>
-</button>
-<button class="action" onclick="toast('Yorumlar yakında')" aria-label="Yorumlar">
-<svg class="post-action-svg" viewBox="0 0 24 24">
-<path d="M4 5h16v11H8l-4 4Z"></path>
-</svg>
-</button>
-<button class="action send" id="sharePostBtn" onclick="sharePost()" aria-label="Gönderiyi paylaş">
-<svg class="send-icon" viewBox="0 0 32 24" aria-hidden="true">
-<path d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"></path>
-</svg>
-</button>
-</div>
+  <div class="post-actions"><button class="action" id="likeBtn">♡</button><button class="action" onclick="toast('Yorumlar yakında')">▢ <span>Yorum</span></button><button class="action send" onclick="sharePost()">➤</button></div>
   <div class="likes">${Number(post.likes??post.likeCount??0).toLocaleString('tr-TR')} beğenme</div>
   ${post.caption?'<div class="post-caption"><b>'+esc(username)+'</b> '+esc(post.caption)+'</div>':''}
   <div class="comments" id="commentsCount">${Number(post.comments??post.commentCount??0).toLocaleString('tr-TR')} yorum</div>
  </article>`;
+ const commentsBtn=document.getElementById('commentsBtn');
+ if(commentsBtn){ commentsBtn.onclick=()=>{ if(typeof openComments==='function'){ openComments(postId); } else { location.href='yorumlar.html?postId='+encodeURIComponent(postId||''); } }; }
  document.getElementById('likeBtn').onclick=function(){this.textContent=this.textContent==='♡'?'♥':'♡';};
  const menu=document.getElementById('postMenu');
  const saveBtn=document.getElementById('savePostBtn');
