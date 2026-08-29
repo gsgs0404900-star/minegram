@@ -866,10 +866,16 @@ viewBox="0 0 24 24"
 
 </header>
 
-
 <!-- STORIES -->
 
 <div class="stories">
+
+<input
+    id="storyInput"
+    type="file"
+    accept="image/*,video/*"
+    hidden
+>
 
 <div class="story">
 
@@ -1244,6 +1250,54 @@ class="toast"
 
 
 <script>
+
+const storyInput = document.getElementById("storyInput");
+const plusBtn = document.querySelector(".story .plus");
+
+plusBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    storyInput.click();
+});
+
+storyInput.addEventListener("change", uploadStory);
+
+async function uploadStory(e){
+
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const fd = new FormData();
+    fd.append("story", file);
+
+    const token = localStorage.getItem("token");
+
+    try{
+
+        const res = await fetch("/api/stories",{
+            method:"POST",
+            headers:{
+                Authorization:`Bearer ${token}`
+            },
+            body:fd
+        });
+
+        const data = await res.json();
+
+        if(!res.ok){
+            alert(data.error || "Hikaye yüklenemedi");
+            return;
+        }
+
+        alert("Hikaye paylaşıldı.");
+
+        loadStories();
+
+    }catch(err){
+        console.error(err);
+        alert("Bağlantı hatası");
+    }
+
+}
 
 const API='/api';
 
