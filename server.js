@@ -422,6 +422,49 @@ app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
+    try {
+
+        if (!req.file)
+            return res.status(400).json({ error: "Dosya seçilmedi" });
+
+        const ext = path.extname(req.file.originalname);
+        const objectPath = `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
+
+        const { error: uploadError } =
+            await req.sb.storage
+                .from(BUCKET)
+                .upload(objectPath, req.file.buffer, {
+                    contentType: req.file.mimetype
+                });
+
+        if (uploadError) throw uploadError;
+
+        const { data } =
+            req.sb.storage
+                .from(BUCKET)
+                .getPublicUrl(objectPath);
+
+        const { data: story, error } =
+            await req.sb
+                .from("stories")
+                .insert({
+                    user_id: req.user.id,
+                    media_url: data.publicUrl,
+                    media_type: req.file.mimetype
+                })
+                .select()
+                .single();
+
+        if (error) throw error;
+
+        res.json(story);
+
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
 app.post("/api/posts/:id/like", auth, async (req, res) => {
   try {
     const { data: existing } = await req.sb.from("post_likes").select("post_id").eq("post_id", req.params.id).eq("user_id", req.user.id).maybeSingle();
@@ -435,6 +478,32 @@ app.post("/api/posts/:id/like", auth, async (req, res) => {
     if (post) await addNotification({ userId: post.user_id, fromUserId: req.user.id, type: "like", postId: req.params.id, text: `@${req.user.username} beğendi` });
     res.json({ liked: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get("/api/stories", auth, async (req, res) => {
+
+    const yesterday =
+        new Date(Date.now() - 86400000).toISOString();
+
+    const { data, error } =
+        await req.sb
+            .from("stories")
+            .select(`
+                *,
+                profiles(
+                    username,
+                    display_name,
+                    avatar_url
+                )
+            `)
+            .gte("created_at", yesterday)
+            .order("created_at");
+
+    if (error)
+        return res.status(400).json(error);
+
+    res.json(data);
+
 });
 
 app.post("/api/posts/:id/comments", auth, async (req, res) => {
