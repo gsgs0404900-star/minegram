@@ -1,10 +1,10 @@
+```html
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Minegram - Gönderi</title>
+<title>Minegram - Ana Sayfa</title>
 
 <style>
 *{box-sizing:border-box}
@@ -19,7 +19,7 @@ font-family:Arial,Helvetica,sans-serif
 
 body{
 overflow-x:hidden;
-padding-bottom:20px
+padding-bottom:76px
 }
 
 .app{
@@ -73,6 +73,60 @@ stroke-linecap:round;
 stroke-linejoin:round
 }
 
+/* STORIES */
+
+.stories{
+height:92px;
+border-bottom:1px solid #202020;
+display:flex;
+align-items:center;
+padding:12px 20px;
+overflow:hidden
+}
+
+.story{
+width:68px;
+text-align:center;
+font-size:10px;
+color:#aaa;
+flex:none
+}
+
+.avatar{
+width:58px;
+height:58px;
+border-radius:50%;
+background:#3f91cc;
+display:grid;
+place-items:center;
+font-size:21px;
+color:#eee;
+margin:auto;
+position:relative
+}
+
+.avatar.small{
+width:40px;
+height:40px;
+font-size:15px;
+margin:0;
+flex:none
+}
+
+.plus{
+position:absolute;
+right:-2px;
+bottom:-2px;
+width:19px;
+height:19px;
+border-radius:50%;
+background:#eee;
+color:#111;
+display:grid;
+place-items:center;
+font-weight:bold
+}
+
 /* FEED */
 
 .feed{
@@ -104,13 +158,23 @@ font-weight:700;
 cursor:pointer
 }
 
+/* 3 NOKTA */
+
 .more{
 margin-left:auto;
-font-size:25px;
+font-size:27px;
 line-height:1;
 color:#eee;
-cursor:pointer
+width:42px;
+height:42px;
+border-radius:50%
 }
+
+.more:hover{
+background:#151515
+}
+
+/* MEDIA */
 
 .media-wrap{
 width:100%;
@@ -177,6 +241,8 @@ width:25px;
 height:25px
 }
 
+/* POST LIKE */
+
 .action.like{
 color:#eee;
 transition:transform .12s,color .15s
@@ -190,12 +256,21 @@ color:#ed1b3a
 fill:currentColor
 }
 
-.action.like:not(.liked) .svg{
-fill:none
-}
-
 .action.like:active{
 transform:scale(.85)
+}
+
+/* SHARE */
+
+.share-action{
+margin-left:auto
+}
+
+.share-plane{
+width:30px;
+height:23px;
+display:block;
+fill:currentColor
 }
 
 .likes{
@@ -222,6 +297,12 @@ font-size:13px;
 cursor:pointer
 }
 
+.comments-preview div{
+margin-top:4px
+}
+
+/* EMPTY */
+
 .empty{
 padding:110px 20px;
 text-align:center;
@@ -233,6 +314,104 @@ display:block;
 color:#eee;
 font-size:16px;
 margin-bottom:7px
+}
+
+/* BOTTOM NAV */
+
+.nav{
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+height:76px;
+background:#121018;
+border-top:1px solid #201d27;
+display:flex;
+z-index:100;
+padding:5px 8px env(safe-area-inset-bottom)
+}
+
+.nav a{
+flex:1;
+color:#ddd;
+text-decoration:none;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:3px;
+font-size:9px
+}
+
+.nav-icon{
+width:45px;
+height:32px;
+border-radius:18px;
+display:grid;
+place-items:center
+}
+
+.nav a.active .nav-icon{
+background:#3b3150
+}
+
+.nav .svg{
+width:21px;
+height:21px
+}
+
+/* LOGIN */
+
+.login{
+width:min(420px,calc(100% - 32px));
+margin:0 auto;
+padding:90px 0
+}
+
+.login h1{
+text-align:center;
+font-size:30px;
+margin:0 0 34px
+}
+
+.field{
+width:100%;
+height:50px;
+margin-bottom:10px;
+border:1px solid #444;
+border-radius:8px;
+background:#050505;
+color:#fff;
+padding:0 14px;
+outline:none
+}
+
+.field:focus{
+border-color:#3f91cc
+}
+
+.login-btn{
+width:100%;
+height:48px;
+border:0;
+border-radius:24px;
+background:#3f91cc;
+color:#06111a;
+font-weight:700;
+cursor:pointer
+}
+
+.forgot{
+text-align:center;
+margin-top:16px
+}
+
+.forgot a{
+color:#2ba9ed
+}
+
+.hidden{
+display:none!important
 }
 
 /* MENU */
@@ -253,37 +432,52 @@ display:block
 position:absolute;
 right:12px;
 top:78px;
-width:300px;
+width:340px;
+max-width:calc(100vw - 24px);
 background:#17141d;
-border-radius:7px;
+border-radius:8px;
 overflow:hidden;
-box-shadow:0 10px 35px rgba(0,0,0,.65)
+box-shadow:0 12px 40px rgba(0,0,0,.75);
+border:1px solid #29252f
 }
 
 .menu-item{
-height:72px;
-padding:0 24px;
+width:100%;
+min-height:76px;
+padding:0 25px;
 display:flex;
 align-items:center;
-gap:18px;
-color:#d8d6dc;
-font-size:17px;
+gap:20px;
+color:#eee;
+font-size:18px;
 font-weight:700;
 border:0;
+border-bottom:1px solid #29252f;
 background:transparent;
-width:100%;
 text-align:left;
 cursor:pointer
+}
+
+.menu-item:last-child{
+border-bottom:0
 }
 
 .menu-item:hover{
 background:#211e28
 }
 
+.menu-item:active{
+background:#2a2632
+}
+
 .menu-item .svg{
-width:25px;
-height:25px;
-stroke-width:1.9
+width:26px;
+height:26px;
+flex:none
+}
+
+.menu-item.danger{
+color:#ff5c6c
 }
 
 /* TOAST */
@@ -291,7 +485,7 @@ stroke-width:1.9
 .toast{
 position:fixed;
 left:50%;
-bottom:30px;
+bottom:92px;
 transform:translateX(-50%);
 background:#25232a;
 color:#fff;
@@ -342,7 +536,8 @@ display:flex;
 align-items:center;
 justify-content:center;
 font-size:22px;
-font-weight:700
+font-weight:700;
+flex:none
 }
 
 .grab{
@@ -365,8 +560,6 @@ font-size:34px;
 cursor:pointer
 }
 
-/* SORT */
-
 .sort{
 padding:12px 22px;
 border-bottom:1px solid #25292c
@@ -384,8 +577,6 @@ font-size:15px;
 font-weight:700;
 outline:none
 }
-
-/* COMMENT LIST */
 
 .comment-list{
 flex:1;
@@ -438,8 +629,6 @@ cursor:pointer
 color:#aeb4bd
 }
 
-/* REPLIES */
-
 .replies{
 margin-left:52px;
 border-left:1px solid #2c3035;
@@ -477,14 +666,15 @@ color:#ed1b3a
 transform:scale(.85)
 }
 
-/* EMOJIS */
+/* EMOJI */
 
 .emoji-row{
 display:flex;
 justify-content:space-around;
 align-items:center;
 padding:10px 20px 5px;
-gap:4px
+gap:4px;
+flex:none
 }
 
 .emoji-row button{
@@ -510,13 +700,14 @@ background:#252a2f
 transform:scale(.82)
 }
 
-/* COMMENT COMPOSE */
+/* COMPOSE */
 
 .comment-compose{
 display:flex;
 align-items:center;
 gap:9px;
-padding:10px 16px 18px
+padding:10px 16px 18px;
+flex:none
 }
 
 .compose-input{
@@ -536,6 +727,17 @@ outline:none
 border-color:#3f91cc
 }
 
+.gif{
+height:52px;
+padding:0 15px;
+border:0;
+border-radius:15px;
+background:#20252a;
+color:#fff;
+font-weight:700;
+cursor:pointer
+}
+
 .send{
 height:52px;
 width:52px;
@@ -551,36 +753,16 @@ opacity:.5;
 cursor:not-allowed
 }
 
-/* AVATAR */
-
-.avatar{
-width:58px;
-height:58px;
-border-radius:50%;
-background:#3f91cc;
-display:grid;
-place-items:center;
-font-size:21px;
-color:#eee;
-margin:auto;
-position:relative
-}
-
-.avatar.small{
-width:40px;
-height:40px;
-font-size:15px;
-margin:0;
-flex:none
-}
-
-/* RESPONSIVE */
-
 @media(max-width:699px){
 
 .topbar{
 height:62px;
 padding:0 14px
+}
+
+.stories{
+height:84px;
+padding-left:14px
 }
 
 .feed{
@@ -608,7 +790,13 @@ height:82vh
 .post-menu{
 right:8px;
 top:68px;
-width:min(300px,calc(100vw - 16px))
+width:min(340px,calc(100vw - 16px))
+}
+
+.menu-item{
+min-height:70px;
+font-size:17px;
+padding:0 22px
 }
 
 .emoji-row{
@@ -623,13 +811,65 @@ font-size:24px
 }
 
 }
-</style>
 
+@media(min-width:700px){
+
+.nav{
+padding-left:calc((100% - 760px)/2);
+padding-right:calc((100% - 760px)/2)
+}
+
+}
+</style>
 </head>
 
 <body>
 
 <div class="app">
+
+<!-- LOGIN -->
+
+<section id="login" class="login hidden">
+
+<h1>Minegram</h1>
+
+<input
+id="lu"
+class="field"
+placeholder="Kullanıcı adı, e-posta veya telefon"
+autocomplete="username"
+>
+
+<input
+id="lp"
+class="field"
+type="password"
+placeholder="Şifre"
+autocomplete="current-password"
+>
+
+<button
+class="login-btn"
+onclick="login()"
+>
+Giriş Yap
+</button>
+
+<div class="forgot">
+<a
+href="#"
+onclick="forgot();return false"
+>
+Şifremi unuttum
+</a>
+</div>
+
+</section>
+
+
+<!-- HOME -->
+
+<section id="home" class="hidden">
 
 <header class="topbar">
 
@@ -640,22 +880,69 @@ Minegram
 <div class="top-actions">
 
 <button
-class="icon-btn more"
-onclick="openMenu(event)"
-aria-label="Menü"
-
+class="icon-btn"
+onclick="location.href='bildirimler.html'"
+aria-label="Bildirimler"
 >
 
-⋯ </button>
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+<path d="M10 21h4"/>
+
+</svg>
+
+</button>
+
+
+<button
+class="icon-btn"
+onclick="location.href='mesajlar.html'"
+aria-label="Mesajlar"
+>
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="M22 2 11 13"/>
+<path d="m22 2-7 20-4-9-9-4Z"/>
+
+</svg>
+
+</button>
 
 </div>
 
 </header>
 
-<div
-id="feed"
-class="feed"
->
+
+<!-- STORIES -->
+
+<div class="stories">
+
+<div class="story">
+
+<div class="avatar">
+
+M
+
+<span class="plus">
++
+</span>
+
+</div>
+
+<div>
+Hikayen
+</div>
+
+</div>
+
+</div>
+
+
+<!-- FEED -->
+
+<div id="feed" class="feed">
 
 <div class="empty">
 Yükleniyor...
@@ -663,9 +950,107 @@ Yükleniyor...
 
 </div>
 
+</section>
+
+
+<!-- BOTTOM NAV -->
+
+<nav id="bottomNav" class="nav hidden">
+
+<a class="active" href="index.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+
+</svg>
+
+</span>
+
+Ana Sayfa
+
+</a>
+
+
+<a href="ara.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<circle cx="11" cy="11" r="6.5"/>
+<path d="m16 16 5 5"/>
+
+</svg>
+
+</span>
+
+Ara
+
+</a>
+
+
+<a href="olustur.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<rect x="4" y="4" width="16" height="16" rx="4"/>
+<path d="M12 8v8M8 12h8"/>
+
+</svg>
+
+</span>
+
+Oluştur
+
+</a>
+
+
+<a href="reels.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+<path d="M3 9h18M8 4l3 5M13 4l3 5"/>
+
+</svg>
+
+</span>
+
+Reels
+
+</a>
+
+
+<a href="profile.html">
+
+<span class="nav-icon">
+
+<svg class="svg" viewBox="0 0 24 24">
+
+<circle cx="12" cy="8" r="3.5"/>
+<path d="M5 20a7 7 0 0 1 14 0"/>
+
+</svg>
+
+</span>
+
+Profil
+
+</a>
+
+</nav>
+
 </div>
 
-<!-- 3 NOKTA MENÜ -->
+
+<!-- 3 NOKTA MENÜSÜ -->
 
 <div
 id="menuBackdrop"
@@ -676,54 +1061,11 @@ onclick="closeMenu(event)"
 <div
 id="postMenu"
 class="post-menu"
->
-
-<button
-class="menu-item"
-onclick="toast('Menü')"
-
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
-
->
-
-<path d="M6 4h12v17l-6-4-6 4Z"></path>
-
-</svg>
-
-Kaydet
-
-</button>
-
-<button
-class="menu-item"
-onclick="shareCurrentPost()"
-
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
-
->
-
-<circle cx="18" cy="5" r="2"/>
-<circle cx="6" cy="12" r="2"/>
-<circle cx="18" cy="19" r="2"/>
-<path d="m8 11 8-5M8 13l8 5"/>
-
-</svg>
-
-Paylaş
-
-</button>
+onclick="event.stopPropagation()"
+></div>
 
 </div>
 
-</div>
 
 <!-- COMMENTS -->
 
@@ -745,14 +1087,14 @@ onclick="event.stopPropagation()"
 <button
 class="close-comments"
 onclick="closeComments()"
-
 >
-
-× </button>
+×
+</button>
 
 Yorumlar
 
 </div>
+
 
 <div class="sort">
 
@@ -760,7 +1102,6 @@ Yorumlar
 id="commentSort"
 class="sort-select"
 onchange="changeCommentSort(this.value)"
-
 >
 
 <option value="forYou">
@@ -779,27 +1120,41 @@ En çok beğenilen
 
 </div>
 
+
 <div
 id="commentList"
 class="comment-list"
 ></div>
 
-<!-- EMOJİ -->
+
+<!-- EMOJİLER -->
 
 <div class="emoji-row">
 
-<button onclick="addEmoji('❤️')">❤️</button> <button onclick="addEmoji('🙌')">🙌</button> <button onclick="addEmoji('🔥')">🔥</button> <button onclick="addEmoji('👋')">👋</button> <button onclick="addEmoji('😢')">😢</button> <button onclick="addEmoji('😍')">😍</button> <button onclick="addEmoji('😮')">😮</button> <button onclick="addEmoji('😂')">😂</button>
+<button type="button" onclick="addEmoji('❤️')">❤️</button>
+
+<button type="button" onclick="addEmoji('🙌')">🙌</button>
+
+<button type="button" onclick="addEmoji('🔥')">🔥</button>
+
+<button type="button" onclick="addEmoji('👋')">👋</button>
+
+<button type="button" onclick="addEmoji('😢')">😢</button>
+
+<button type="button" onclick="addEmoji('😍')">😍</button>
+
+<button type="button" onclick="addEmoji('😮')">😮</button>
+
+<button type="button" onclick="addEmoji('😂')">😂</button>
 
 </div>
+
 
 <!-- COMMENT COMPOSE -->
 
 <div class="comment-compose">
 
-<div
-id="composeAvatar"
-class="avatar small"
->
+<div id="composeAvatar" class="avatar small">
 M
 </div>
 
@@ -808,46 +1163,50 @@ id="commentInput"
 class="compose-input"
 placeholder="Bunun hakkında ne düşünüyorsun?"
 onkeydown="if(event.key==='Enter')sendComment()"
-
 >
+
+<button class="gif" type="button">
+GIF
+</button>
 
 <button
 class="send"
+type="button"
 onclick="sendComment()"
-
 >
-
-➤ </button>
-
-</div>
+➤
+</button>
 
 </div>
 
 </div>
 
-<div
-id="toast"
-class="toast"
-></div>
+</div>
+
+
+<div id="toast" class="toast"></div>
+
 
 <script>
 
 const API='/api';
 
-let token=
+let token =
 localStorage.getItem('minegram_token');
 
 let currentUser=null;
-let currentPost=null;
 let currentCommentPost=null;
+let currentMenuPost=null;
 let currentCommentSort='forYou';
 let replyingTo=null;
 
-const feedEl=
+const feedEl =
 document.getElementById('feed');
 
 
-/* ESCAPE */
+/* =====================================================
+   ESCAPE
+===================================================== */
 
 function esc(s=''){
 
@@ -865,7 +1224,9 @@ m=>({
 }
 
 
-/* API */
+/* =====================================================
+   API
+===================================================== */
 
 async function api(path,opt={}){
 
@@ -876,16 +1237,16 @@ opt.headers={
 :{})
 };
 
-const r=
+const r =
 await fetch(API+path,opt);
 
-const j=
+const j =
 await r.json().catch(()=>({}));
 
 if(!r.ok){
 
 throw Error(
-j.error||
+j.error ||
 'İşlem başarısız'
 );
 
@@ -896,11 +1257,13 @@ return j;
 }
 
 
-/* TOAST */
+/* =====================================================
+   TOAST
+===================================================== */
 
 function toast(t){
 
-const e=
+const e =
 document.getElementById('toast');
 
 e.textContent=t;
@@ -909,7 +1272,7 @@ e.classList.add('show');
 
 clearTimeout(window.__toast);
 
-window.__toast=
+window.__toast =
 setTimeout(
 ()=>e.classList.remove('show'),
 2200
@@ -918,7 +1281,135 @@ setTimeout(
 }
 
 
-/* PROFILE */
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function showLogin(){
+
+document.getElementById('login')
+.classList.remove('hidden');
+
+document.getElementById('home')
+.classList.add('hidden');
+
+document.getElementById('bottomNav')
+.classList.add('hidden');
+
+}
+
+
+function showHome(){
+
+document.getElementById('login')
+.classList.add('hidden');
+
+document.getElementById('home')
+.classList.remove('hidden');
+
+document.getElementById('bottomNav')
+.classList.remove('hidden');
+
+}
+
+
+function logout(){
+
+localStorage.removeItem('minegram_token');
+
+token=null;
+currentUser=null;
+
+showLogin();
+
+}
+
+
+async function login(){
+
+try{
+
+const j =
+await api(
+'/login',
+{
+method:'POST',
+headers:{
+'Content-Type':'application/json'
+},
+body:JSON.stringify({
+username:document.getElementById('lu').value,
+password:document.getElementById('lp').value
+})
+}
+);
+
+if(!j.token){
+
+return toast(
+'E-posta adresini doğrula, sonra giriş yap.'
+);
+
+}
+
+token=j.token;
+
+localStorage.setItem(
+'minegram_token',
+token
+);
+
+showHome();
+
+await loadFeed();
+
+}catch(e){
+
+toast(e.message);
+
+}
+
+}
+
+
+async function forgot(){
+
+const x =
+prompt(
+'E-posta adresini veya kullanıcı adını gir:'
+);
+
+if(!x)return;
+
+try{
+
+await api(
+'/forgot',
+{
+method:'POST',
+headers:{
+'Content-Type':'application/json'
+},
+body:JSON.stringify({
+identifier:x
+})
+}
+);
+
+toast('Kurtarma bağlantısı gönderildi.');
+
+}catch(e){
+
+toast(e.message);
+
+}
+
+}
+
+
+/* =====================================================
+   PROFILE
+===================================================== */
 
 function profileUrl(username){
 
@@ -928,23 +1419,25 @@ encodeURIComponent(username);
 }
 
 
-/* POST */
+/* =====================================================
+   POST RENDER
+===================================================== */
 
 function renderPost(p){
 
-const user=
+const user =
 esc(
-p.user?.username||
+p.user?.username ||
 'minegram'
 );
 
-const initial=
+const initial =
 esc(
-(p.user?.username||'M')[0]
+(p.user?.username || 'M')[0]
 .toUpperCase()
 );
 
-const liked=
+const liked =
 !!p.likedByMe;
 
 let likes=0;
@@ -959,20 +1452,26 @@ likes=Number(p.likes||0);
 
 }
 
-const comments=
+
+const comments =
+mergeComments(
 Array.isArray(p.comments)
 ?p.comments
-:[];
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]),
+p.id
+);
 
 
 let media='';
+
 
 if(p.media){
 
 if(
 p.mediaName &&
-/\.(mp4|webm|mov|m4v)$/i
-.test(p.mediaName)
+/\.(mp4|webm|mov|m4v)$/i.test(p.mediaName)
 ){
 
 media=`
@@ -1024,9 +1523,14 @@ onclick="location.href='${profileUrl(user)}'"
 @${user}
 </div>
 
+
+<!-- SAĞ TARAFTA 3 NOKTA -->
+
 <button
+type="button"
 class="icon-btn more"
 onclick="openMenu(event,'${esc(p.id)}')"
+aria-label="Gönderi seçenekleri"
 >
 ⋯
 </button>
@@ -1061,10 +1565,15 @@ id="heart-${esc(p.id)}"
 
 <div class="actions">
 
+
+<!-- BEĞEN -->
+
 <button
 type="button"
 class="action like ${liked?'liked':''}"
+data-liked="${liked?'1':'0'}"
 onclick="likePost('${esc(p.id)}')"
+aria-label="Gönderiyi beğen"
 >
 
 <svg
@@ -1083,10 +1592,13 @@ ${liked?'fill="currentColor"':''}
 </button>
 
 
+<!-- YORUMLAR -->
+
 <button
 type="button"
 class="action"
 onclick="openComments('${esc(p.id)}')"
+aria-label="Yorumlar"
 >
 
 <svg
@@ -1094,7 +1606,33 @@ class="svg"
 viewBox="0 0 24 24"
 >
 
-<path d="M4 5h16v11H8l-4 4Z"></path>
+<path d="M4 5h16v11H8l-4 4Z">
+</path>
+
+</svg>
+
+</button>
+
+
+<!-- PAYLAŞ -->
+
+<button
+type="button"
+class="action share-action"
+onclick="sharePost('${esc(p.id)}')"
+aria-label="Paylaş"
+>
+
+<svg
+class="share-plane"
+viewBox="0 0 32 24"
+>
+
+<path
+d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"
+fill="currentColor"
+>
+</path>
 
 </svg>
 
@@ -1103,9 +1641,20 @@ viewBox="0 0 24 24"
 </div>
 
 
+${
+localStorage.getItem(
+'minegram_hide_comments_'+
+String(p.id)
+)==='1'
+?''
+:`
+
 <div class="likes">
 ${likes} beğenme
 </div>
+
+`
+}
 
 
 <div class="caption">
@@ -1133,7 +1682,8 @@ onclick="openComments('${esc(p.id)}')"
 ${
 comments.length>3
 ?'Tüm '+comments.length+' yorumu gör'
-:comments.map(
+:
+comments.map(
 c=>`
 <div>
 <b>@${esc(c.username||c.user?.username||'')}</b>
@@ -1156,23 +1706,24 @@ ${esc(c.text||c.content||'')}
 }
 
 
-/* LOAD */
+/* =====================================================
+   LOAD FEED
+===================================================== */
 
 async function loadFeed(){
 
-feedEl.innerHTML=
+feedEl.innerHTML =
 '<div class="empty">Yükleniyor...</div>';
 
 try{
 
-const posts=
+const posts =
 await api('/feed');
 
-feedEl.innerHTML=
+feedEl.innerHTML =
 posts.length
 ?posts.map(renderPost).join('')
 :`
-
 <div class="empty">
 
 <strong>
@@ -1182,10 +1733,18 @@ Henüz gönderi yok
 İlk gönderini oluştur.
 
 </div>
-
 `;
 
 }catch(e){
+
+if(
+String(e.message).toLowerCase().includes('token') ||
+String(e.message).toLowerCase().includes('auth')
+){
+
+logout();
+
+}else{
 
 feedEl.innerHTML=`
 
@@ -1209,45 +1768,69 @@ toast(e.message);
 
 }
 
+}
 
-/* LIKE POST */
+
+/* =====================================================
+   POST LIKE
+===================================================== */
 
 async function likePost(id){
 
-const article=
+const article =
 document.querySelector(
 '.post[data-id="'+
 CSS.escape(String(id))+
 '"]'
 );
 
-if(!article)return;
+if(!article){
 
-const btn=
+toast('Gönderi bulunamadı');
+
+return;
+
+}
+
+
+const btn =
 article.querySelector('.action.like');
 
-const likesEl=
+const path =
+btn?.querySelector('path');
+
+const likesEl =
 article.querySelector('.likes');
 
 if(!btn)return;
 
-if(btn.dataset.loading==='1')return;
+
+if(btn.dataset.loading==='1'){
+
+return;
+
+}
 
 btn.dataset.loading='1';
 
-const wasLiked=
+
+const wasLiked =
 btn.classList.contains('liked');
 
-const nextLiked=
+const nextLiked =
 !wasLiked;
+
+
+/* UI HEMEN GÜNCELLE */
 
 btn.classList.toggle(
 'liked',
 nextLiked
 );
 
-const path=
-btn.querySelector('path');
+btn.dataset.liked =
+nextLiked?'1':'0';
+
 
 if(path){
 
@@ -1260,20 +1843,25 @@ nextLiked
 
 }
 
+
 if(likesEl){
 
-const match=
-(likesEl.textContent||'').match(/\d+/);
+const match =
+(likesEl.textContent||'')
+.match(/\d+/);
 
-let count=
-match?parseInt(match[0],10):0;
+let count =
+match
+?parseInt(match[0],10)
+:0;
 
-count=Math.max(
+count =
+Math.max(
 0,
 count+(nextLiked?1:-1)
 );
 
-likesEl.textContent=
+likesEl.textContent =
 count+' beğenme';
 
 }
@@ -1281,7 +1869,7 @@ count+' beğenme';
 
 try{
 
-const r=
+const r =
 await api(
 '/posts/'+
 encodeURIComponent(id)+
@@ -1291,19 +1879,43 @@ method:'POST'
 }
 );
 
+
 if(
-typeof r.likes==='number'
+typeof r.likes==='number' &&
+likesEl
 ){
 
-likesEl.textContent=
+likesEl.textContent =
 r.likes+' beğenme';
 
 }
+
+
+/*
+ API yanlış liked döndürse bile
+ kullanıcının seçtiği durum korunur.
+ */
 
 btn.classList.toggle(
 'liked',
 nextLiked
 );
+
+btn.dataset.liked =
+nextLiked?'1':'0';
+
+
+if(path){
+
+path.setAttribute(
+'fill',
+nextLiked
+?'currentColor'
+:'none'
+);
+
+}
+
 
 }catch(e){
 
@@ -1311,6 +1923,10 @@ btn.classList.toggle(
 'liked',
 wasLiked
 );
+
+btn.dataset.liked =
+wasLiked?'1':'0';
+
 
 if(path){
 
@@ -1323,7 +1939,33 @@ wasLiked
 
 }
 
-toast(e.message);
+
+if(likesEl){
+
+const match =
+(likesEl.textContent||'')
+.match(/\d+/);
+
+let count =
+match
+?parseInt(match[0],10)
+:0;
+
+count =
+Math.max(
+0,
+count+(nextLiked?-1:1)
+);
+
+likesEl.textContent =
+count+' beğenme';
+
+}
+
+toast(
+e.message ||
+'Beğeni işlemi başarısız'
+);
 
 }finally{
 
@@ -1334,14 +1976,18 @@ btn.dataset.loading='0';
 }
 
 
-/* DOUBLE LIKE */
+/* =====================================================
+   DOUBLE LIKE
+===================================================== */
 
 async function doubleLike(id){
 
-const heart=
+const heart =
 document.getElementById(
-'heart-'+CSS.escape(String(id))
+'heart-'+
+CSS.escape(String(id))
 );
+
 
 if(heart){
 
@@ -1354,15 +2000,21 @@ setTimeout(
 
 }
 
-const article=
+
+const article =
 document.querySelector(
 '.post[data-id="'+
 CSS.escape(String(id))+
 '"]'
 );
 
-const btn=
+const btn =
 article?.querySelector('.action.like');
+
+
+/*
+ Zaten beğenilmişse unlike yapma.
+ */
 
 if(
 btn &&
@@ -1378,49 +2030,50 @@ await likePost(id);
 }
 
 
-/* MENU */
+/* =====================================================
+   SAVE
+===================================================== */
 
-function openMenu(ev,id){
+async function savePost(id){
 
-if(ev)ev.stopPropagation();
+try{
 
-currentPost=id||currentPost;
+const r =
+await api(
+'/posts/'+
+encodeURIComponent(id)+
+'/save',
+{
+method:'POST'
+}
+);
 
-document
-.getElementById('menuBackdrop')
-.classList.add('open');
+toast(
+r.saved
+?'Kaydedildi'
+:'Kayıttan kaldırıldı'
+);
+
+}catch(e){
+
+toast(e.message);
 
 }
 
-function closeMenu(e){
-
-if(
-!e||
-e.target===
-document.getElementById('menuBackdrop')
-){
-
-document
-.getElementById('menuBackdrop')
-.classList.remove('open');
-
-}
-
 }
 
 
-/* MENU SHARE */
+/* =====================================================
+   SHARE
+===================================================== */
 
-async function shareCurrentPost(){
+async function sharePost(id){
 
-closeMenu();
-
-if(!currentPost)return;
-
-const url=
+const url =
 location.origin+
 '/post.html?id='+
-encodeURIComponent(currentPost);
+encodeURIComponent(id);
+
 
 try{
 
@@ -1441,71 +2094,436 @@ toast(
 
 }
 
-}catch(e){}
-
-}
-
-
-/* COMMENTS */
-
-async function openComments(id){
-
-currentCommentPost=id;
-currentCommentSort='forYou';
-replyingTo=null;
-
-document
-.getElementById('commentsModal')
-.classList.add('open');
-
-document
-.getElementById('commentSort')
-.value='forYou';
-
-document
-.getElementById('commentInput')
-.value='';
-
-document
-.getElementById('commentInput')
-.placeholder=
-'Bunun hakkında ne düşünüyorsun?';
-
-await refreshComments();
-
-}
-
-
-function closeComments(e){
+}catch(e){
 
 if(
-!e||
-e.target===
-document.getElementById('commentsModal')
+e &&
+e.name!=='AbortError'
 ){
 
+toast(
+'Paylaşım yapılamadı'
+);
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   3 NOKTA MENÜSÜ
+===================================================== */
+
+function openMenu(ev,id){
+
+if(ev){
+
+ev.stopPropagation();
+
+}
+
+currentMenuPost =
+String(id);
+
+
+const menu =
+document.getElementById('postMenu');
+
+if(!menu)return;
+
+
+const hidden =
+localStorage.getItem(
+'minegram_hide_comments_'+
+String(id)
+)==='1';
+
+
+menu.innerHTML = `
+
+<button
+type="button"
+class="menu-item"
+onclick="saveFromMenu()"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<path d="M6 4h12v17l-6-4-6 4Z"/>
+
+</svg>
+
+<span>Kaydet</span>
+
+</button>
+
+
+<button
+type="button"
+class="menu-item"
+onclick="shareFromMenu()"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<circle cx="18" cy="5" r="2"/>
+<circle cx="6" cy="12" r="2"/>
+<circle cx="18" cy="19" r="2"/>
+
+<path d="m8 11 8-5"/>
+<path d="m8 13 8 5"/>
+
+</svg>
+
+<span>Gönderiyi paylaş</span>
+
+</button>
+
+
+<button
+type="button"
+class="menu-item"
+onclick="toggleCommentCountFromMenu()"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<path d="M4 5h16v11H8l-4 4Z"/>
+
+</svg>
+
+<span>
+${
+hidden
+?'Yorum sayısını göster'
+:'Yorum sayısını gizle'
+}
+</span>
+
+</button>
+
+
+<button
+type="button"
+class="menu-item danger"
+onclick="deletePostFromMenu()"
+>
+
+<svg
+class="svg"
+viewBox="0 0 24 24"
+>
+
+<path d="M5 7h14"/>
+<path d="M10 11v6"/>
+<path d="M14 11v6"/>
+<path d="M8 7l1-3h6l1 3v13H8Z"/>
+
+</svg>
+
+<span>Gönderiyi sil</span>
+
+</button>
+
+`;
+
+
 document
-.getElementById('commentsModal')
-.classList.remove('open');
+.getElementById('menuBackdrop')
+.classList.add('open');
 
-currentCommentPost=null;
-replyingTo=null;
+}
+
+
+function closeMenu(ev){
+
+const backdrop =
+document.getElementById('menuBackdrop');
+
+
+if(
+!ev ||
+ev.target===backdrop
+){
+
+backdrop.classList.remove('open');
 
 }
 
 }
 
 
-/* SORT */
+/* =====================================================
+   MENU SAVE
+===================================================== */
 
-function changeCommentSort(value){
+async function saveFromMenu(){
 
-currentCommentSort=value;
+const id =
+currentMenuPost;
 
-refreshComments();
+closeMenu();
+
+if(!id)return;
+
+await savePost(id);
 
 }
 
+
+/* =====================================================
+   MENU SHARE
+===================================================== */
+
+async function shareFromMenu(){
+
+const id =
+currentMenuPost;
+
+closeMenu();
+
+if(!id)return;
+
+await sharePost(id);
+
+}
+
+
+/* =====================================================
+   COMMENT COUNT
+===================================================== */
+
+function toggleCommentCountFromMenu(){
+
+const id =
+currentMenuPost;
+
+closeMenu();
+
+if(!id)return;
+
+
+const key =
+'minegram_hide_comments_'+
+String(id);
+
+const hidden =
+localStorage.getItem(key)==='1';
+
+
+localStorage.setItem(
+key,
+hidden?'0':'1'
+);
+
+
+toast(
+hidden
+?'Yorum sayısı gösteriliyor'
+:'Yorum sayısı gizlendi'
+);
+
+
+loadFeed();
+
+}
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+async function deletePostFromMenu(){
+
+const id =
+currentMenuPost;
+
+closeMenu();
+
+if(!id)return;
+
+
+if(
+!confirm(
+'Bu gönderiyi silmek istediğine emin misin?'
+)
+){
+
+return;
+
+}
+
+
+try{
+
+await api(
+'/posts/'+
+encodeURIComponent(id),
+{
+method:'DELETE'
+}
+);
+
+
+const article =
+document.querySelector(
+'.post[data-id="'+
+CSS.escape(String(id))+
+'"]'
+);
+
+
+if(article){
+
+article.remove();
+
+}
+
+
+toast('Gönderi silindi');
+
+
+if(
+!document.querySelector('.post')
+){
+
+await loadFeed();
+
+}
+
+
+}catch(e){
+
+toast(
+e.message ||
+'Gönderi silinemedi'
+);
+
+}
+
+}
+
+
+/* =====================================================
+   LOCAL COMMENTS
+===================================================== */
+
+function localCommentsKey(id){
+
+return 'minegram_comments_'+
+String(id);
+
+}
+
+
+function getLocalComments(id){
+
+try{
+
+const x =
+JSON.parse(
+localStorage.getItem(
+localCommentsKey(id)
+)||'[]'
+);
+
+return Array.isArray(x)
+?x
+:[];
+
+}catch(e){
+
+return [];
+
+}
+
+}
+
+
+function saveLocalComment(id,c){
+
+const arr =
+getLocalComments(id);
+
+arr.push(c);
+
+localStorage.setItem(
+localCommentsKey(id),
+JSON.stringify(
+arr.slice(-100)
+)
+);
+
+}
+
+
+function mergeComments(server,id){
+
+const remote =
+Array.isArray(server)
+?server
+:[];
+
+const local =
+getLocalComments(id);
+
+const all=[...remote];
+
+
+for(const c of local){
+
+const exists =
+all.some(
+x=>
+String(x.id||'')===
+String(c.id||'') ||
+
+(
+x.username===c.username &&
+x.text===c.text &&
+Math.abs(
+new Date(
+x.createdAt||
+x.created_at||
+0
+)-
+new Date(
+c.createdAt||
+0
+)
+)<10000
+)
+);
+
+
+if(!exists){
+
+all.push(c);
+
+}
+
+}
+
+
+return all;
+
+}
+
+
+/* =====================================================
+   COMMENT SORT
+===================================================== */
 
 function sortComments(comments){
 
@@ -1516,72 +2534,63 @@ if(currentCommentSort==='newest'){
 return a.sort(
 (x,y)=>
 new Date(
-y.createdAt||y.created_at||0
+y.createdAt||
+y.created_at||
+0
 )-
 new Date(
-x.createdAt||x.created_at||0
+x.createdAt||
+x.created_at||
+0
 )
 );
 
 }
 
+
 if(currentCommentSort==='popular'){
 
 return a.sort(
 (x,y)=>
-Number(y.likes||y.likeCount||0)-
-Number(x.likes||x.likeCount||0)
+Number(
+y.likes||
+y.likeCount||
+0
+)-
+Number(
+x.likes||
+x.likeCount||
+0
+)
 );
 
 }
 
-return a;
 
-}
-
-
-/* REFRESH */
-
-async function refreshComments(){
-
-if(!currentCommentPost)return;
-
-const list=
-document.getElementById('commentList');
-
-try{
-
-const p=
-await api(
-'/posts/'+
-encodeURIComponent(currentCommentPost)
+return a.sort(
+(x,y)=>
+new Date(
+x.createdAt||
+x.created_at||
+0
+)-
+new Date(
+y.createdAt||
+y.created_at||
+0
+)
 );
 
-const comments=
-Array.isArray(p.comments)
-?p.comments
-:(Array.isArray(p.post?.comments)
-?p.post.comments
-:[]);
-
-list.innerHTML=
-renderCommentsForPost(comments);
-
-}catch(e){
-
-list.innerHTML=
-'<div class="empty">Yorumlar yüklenemedi.</div>';
-
-}
-
 }
 
 
-/* RENDER COMMENTS */
+/* =====================================================
+   COMMENT RENDER
+===================================================== */
 
 function renderCommentsForPost(comments){
 
-const sorted=
+const sorted =
 sortComments(comments);
 
 return sorted.length
@@ -1591,32 +2600,287 @@ return sorted.length
 }
 
 
-/* COMMENT */
+function changeCommentSort(value){
+
+currentCommentSort=value;
+
+if(currentCommentPost){
+
+document.getElementById(
+'commentList'
+).innerHTML =
+renderCommentsForPost(
+mergeComments(
+getLocalComments(currentCommentPost),
+currentCommentPost
+)
+);
+
+refreshComments(false);
+
+}
+
+}
+
+
+/* =====================================================
+   REFRESH COMMENTS
+===================================================== */
+
+async function refreshComments(showLoading=true){
+
+if(!currentCommentPost)return;
+
+
+const id =
+currentCommentPost;
+
+const list =
+document.getElementById(
+'commentList'
+);
+
+
+if(showLoading){
+
+list.innerHTML =
+renderCommentsForPost(
+getLocalComments(id)
+);
+
+}
+
+
+try{
+
+const p =
+await api(
+'/posts/'+
+encodeURIComponent(id)
+);
+
+
+const remote =
+Array.isArray(p.comments)
+?p.comments
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]);
+
+
+list.innerHTML =
+renderCommentsForPost(
+mergeComments(
+remote,
+id
+)
+);
+
+}catch(e){}
+
+}
+
+
+/* =====================================================
+   OPEN COMMENTS
+===================================================== */
+
+async function openComments(id){
+
+currentCommentPost =
+String(id);
+
+currentCommentSort='forYou';
+
+const sort =
+document.getElementById(
+'commentSort'
+);
+
+if(sort){
+
+sort.value='forYou';
+
+}
+
+
+document.getElementById(
+'commentsModal'
+).classList.add('open');
+
+
+const list =
+document.getElementById(
+'commentList'
+);
+
+
+list.innerHTML =
+renderCommentsForPost(
+getLocalComments(id)
+);
+
+
+try{
+
+const p =
+await api(
+'/posts/'+
+encodeURIComponent(id)
+);
+
+
+const remote =
+Array.isArray(p.comments)
+?p.comments
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]);
+
+
+list.innerHTML =
+renderCommentsForPost(
+mergeComments(
+remote,
+id
+)
+);
+
+}catch(e){
+
+const local =
+getLocalComments(id);
+
+list.innerHTML =
+local.length
+?local.map(renderComment).join('')
+:'<div class="empty">Yorumlar yüklenemedi.</div>';
+
+}
+
+}
+
+
+/* =====================================================
+   CLOSE COMMENTS
+===================================================== */
+
+function closeComments(e){
+
+const modal =
+document.getElementById(
+'commentsModal'
+);
+
+
+if(
+!e ||
+e.target===modal
+){
+
+modal.classList.remove('open');
+
+currentCommentPost=null;
+replyingTo=null;
+
+}
+
+}
+
+
+/* =====================================================
+   TIME
+===================================================== */
+
+function relativeTime(v){
+
+const d =
+new Date(v);
+
+if(!v || isNaN(d))
+return '';
+
+
+let s =
+Math.floor(
+(
+Date.now()-
+d.getTime()
+)/1000
+);
+
+
+if(s<60)
+return s+' saniye önce';
+
+
+let m =
+Math.floor(s/60);
+
+
+if(m<60)
+return m+' dakika önce';
+
+
+let h =
+Math.floor(m/60);
+
+
+if(h<24)
+return h+' saat önce';
+
+
+let days =
+Math.floor(h/24);
+
+
+if(days<7)
+return days+' gün önce';
+
+
+if(days<365)
+return Math.floor(days/7)+' hafta önce';
+
+
+return d.toLocaleDateString('tr-TR');
+
+}
+
+
+/* =====================================================
+   RENDER COMMENT
+===================================================== */
 
 function renderComment(c){
 
-const username=
+const u =
 esc(
 c.username||
 c.user?.username||
+currentUser?.username||
 'minegram'
 );
 
-const initial=
+
+const initial =
 esc(
-username[0].toUpperCase()
+u[0].toUpperCase()
 );
 
-const id=
-esc(c.id||'');
 
-const liked=
+const liked =
 !!c.likedByMe;
 
-const replies=
+
+const id =
+esc(c.id||'');
+
+
+const replyCount =
 Array.isArray(c.replies)
-?c.replies
-:[];
+?c.replies.length
+:Number(c.replyCount||0);
+
 
 return `
 
@@ -1631,34 +2895,41 @@ data-comment-id="${id}"
 ${initial}
 </div>
 
+
 <div class="comment-body">
 
 <div
 class="comment-user"
-onclick="location.href='${profileUrl(username)}'"
+onclick="location.href='${profileUrl(u)}'"
 >
-@${username}
+@${u}
 </div>
+
 
 <div class="comment-text">
 ${esc(c.text||c.content||'')}
 </div>
 
+
 <div class="comment-meta">
 
-${relativeTime(c.createdAt||c.created_at)}
+${relativeTime(
+c.createdAt||
+c.created_at
+)}
 
 &nbsp;
 
 <button
 class="reply-link"
-onclick="startReply('${id}','${username}')"
+onclick="startReply('${id}','${esc(u)}')"
 >
 Yanıtla
 </button>
 
+
 ${
-replies.length
+replyCount
 ?`
 
 &nbsp;
@@ -1667,7 +2938,7 @@ replies.length
 class="reply-link"
 onclick="toggleReplies('${id}')"
 >
-${replies.length} yanıt
+${replyCount} yanıt
 </button>
 
 `
@@ -1679,9 +2950,14 @@ ${replies.length} yanıt
 </div>
 
 
+<!-- YORUM BEĞEN -->
+
 <button
+type="button"
 class="comment-like ${liked?'liked':''}"
+data-comment-liked="${liked?'1':'0'}"
 onclick="likeComment('${id}')"
+aria-label="Yorumu beğen"
 >
 ${liked?'♥':'♡'}
 </button>
@@ -1694,7 +2970,11 @@ id="replies-${id}"
 class="replies hidden"
 >
 
-${replies.map(renderReply).join('')}
+${
+Array.isArray(c.replies)
+?c.replies.map(renderReply).join('')
+:''
+}
 
 </div>
 
@@ -1705,37 +2985,55 @@ ${replies.map(renderReply).join('')}
 }
 
 
-/* REPLY */
+/* =====================================================
+   REPLY RENDER
+===================================================== */
 
 function renderReply(r){
 
-const username=
+const u =
 esc(
 r.username||
 r.user?.username||
 'minegram'
 );
 
+
 return `
 
 <div class="reply-row">
 
 <div class="avatar small">
-${username[0].toUpperCase()}
+
+${esc(
+u[0].toUpperCase()
+)}
+
 </div>
 
 <div>
 
 <b>
-@${username}
+@${u}
 </b>
 
 <div class="comment-text">
-${esc(r.text||r.content||'')}
+
+${esc(
+r.text||
+r.content||
+''
+)}
+
 </div>
 
 <div class="comment-meta">
-${relativeTime(r.createdAt||r.created_at)}
+
+${relativeTime(
+r.createdAt||
+r.created_at
+)}
+
 </div>
 
 </div>
@@ -1747,17 +3045,22 @@ ${relativeTime(r.createdAt||r.created_at)}
 }
 
 
-/* START REPLY */
+/* =====================================================
+   REPLY
+===================================================== */
 
 function startReply(id,username){
 
 replyingTo=id;
 
-const input=
-document.getElementById('commentInput');
+const input =
+document.getElementById(
+'commentInput'
+);
 
-input.placeholder=
-'@'+username+
+input.placeholder =
+'@'+
+username+
 ' kişisine yanıt yaz...';
 
 input.focus();
@@ -1765,91 +3068,273 @@ input.focus();
 }
 
 
-/* TOGGLE REPLIES */
-
 function toggleReplies(id){
 
 document
 .getElementById(
-'replies-'+CSS.escape(id)
+'replies-'+
+CSS.escape(String(id))
 )
 ?.classList.toggle('hidden');
 
 }
 
 
-/* EMOJI */
+/* =====================================================
+   EMOJI
+===================================================== */
 
 function addEmoji(emoji){
 
-const input=
-document.getElementById('commentInput');
+const input =
+document.getElementById(
+'commentInput'
+);
 
 if(!input)return;
 
-const start=
-input.selectionStart??
+
+const start =
+input.selectionStart ??
 input.value.length;
 
-const end=
-input.selectionEnd??
+const end =
+input.selectionEnd ??
 input.value.length;
 
-input.value=
-input.value.substring(0,start)+
-emoji+
+
+const before =
+input.value.substring(0,start);
+
+const after =
 input.value.substring(end);
 
-const pos=
-start+emoji.length;
+
+input.value =
+before+
+emoji+
+after;
+
+
+const cursorPosition =
+start+
+emoji.length;
+
 
 input.focus();
 
+
 try{
 
-input.setSelectionRange(pos,pos);
+input.setSelectionRange(
+cursorPosition,
+cursorPosition
+);
 
 }catch(e){}
 
 }
 
 
-/* SEND COMMENT */
+/* =====================================================
+   SEND COMMENT
+===================================================== */
 
 async function sendComment(){
 
-const input=
-document.getElementById('commentInput');
+const input =
+document.getElementById(
+'commentInput'
+);
 
-const text=
+
+const textValue =
 input.value.trim();
 
+
 if(
-!text||
+!textValue||
 !currentCommentPost
-)return;
+){
 
-const button=
-document.querySelector('.comment-compose .send');
+return;
 
-if(button)
-button.disabled=true;
+}
 
-const postId=
+
+const postId =
 currentCommentPost;
 
-const replyId=
+const replyId =
 replyingTo;
+
+
+const sendButton =
+document.querySelector(
+'.comment-compose .send'
+);
+
+
+if(sendButton){
+
+sendButton.disabled=true;
+
+}
+
+
+const username =
+currentUser?.username||
+currentUser?.name||
+'minegram';
+
+
+const now =
+new Date().toISOString();
+
+
+const tempId =
+'local-'+
+Date.now()+
+'-'+
+Math.random()
+.toString(36)
+.slice(2);
+
+
+const item={
+
+id:tempId,
+
+username,
+
+text:textValue,
+
+createdAt:now,
+
+likedByMe:false,
+
+local:true
+
+};
+
+
+if(replyId){
+
+const local =
+getLocalComments(postId);
+
+
+let parent =
+local.find(
+c=>
+String(c.id)===
+String(replyId)
+);
+
+
+if(parent){
+
+parent.replies =
+Array.isArray(parent.replies)
+?parent.replies
+:[];
+
+parent.replies.push(item);
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
+);
+
+}
+
+
+const wrap =
+document.querySelector(
+'.comment-wrap[data-comment-id="'+
+CSS.escape(String(replyId))+
+'"]'
+);
+
+
+const replies =
+wrap?.querySelector('.replies');
+
+
+if(replies){
+
+replies.classList.remove('hidden');
+
+replies.insertAdjacentHTML(
+'beforeend',
+renderReply(item)
+);
+
+}
+
+}else{
+
+saveLocalComment(
+postId,
+item
+);
+
+
+const list =
+document.getElementById(
+'commentList'
+);
+
+
+if(list){
+
+const empty =
+list.querySelector('.empty');
+
+if(empty){
+empty.remove();
+}
+
+list.insertAdjacentHTML(
+'beforeend',
+renderComment(item)
+);
+
+list.scrollTop =
+list.scrollHeight;
+
+}
+
+}
+
+
+input.value='';
+
+replyingTo=null;
+
+input.placeholder =
+'Bunun hakkında ne düşünüyorsun?';
+
+
+toast(
+replyId
+?'Yanıt gönderildi'
+:'Yorum gönderildi'
+);
+
 
 try{
 
 let result;
 
+
 if(replyId){
 
 try{
 
-result=
+result =
 await api(
 '/comments/'+
 encodeURIComponent(replyId)+
@@ -1857,18 +3342,17 @@ encodeURIComponent(replyId)+
 {
 method:'POST',
 headers:{
-'Content-Type':
-'application/json'
+'Content-Type':'application/json'
 },
 body:JSON.stringify({
-text
+text:textValue
 })
 }
 );
 
-}catch(e){
+}catch(firstError){
 
-result=
+result =
 await api(
 '/posts/'+
 encodeURIComponent(postId)+
@@ -1878,11 +3362,10 @@ encodeURIComponent(replyId)+
 {
 method:'POST',
 headers:{
-'Content-Type':
-'application/json'
+'Content-Type':'application/json'
 },
 body:JSON.stringify({
-text
+text:textValue
 })
 }
 );
@@ -1891,7 +3374,7 @@ text
 
 }else{
 
-result=
+result =
 await api(
 '/posts/'+
 encodeURIComponent(postId)+
@@ -1899,85 +3382,210 @@ encodeURIComponent(postId)+
 {
 method:'POST',
 headers:{
-'Content-Type':
-'application/json'
+'Content-Type':'application/json'
 },
 body:JSON.stringify({
-text
+text:textValue
 })
 }
 );
 
 }
 
-input.value='';
 
-replyingTo=null;
+const returned =
+result?.comment||
+result?.data||
+result;
 
-input.placeholder=
-'Bunun hakkında ne düşünüyorsun?';
 
-toast(
-replyId
-?'Yanıt gönderildi'
-:'Yorum gönderildi'
+if(
+returned &&
+typeof returned==='object' &&
+returned.id
+){
+
+const local =
+getLocalComments(postId);
+
+
+for(const c of local){
+
+if(
+String(c.id)===
+String(tempId)
+){
+
+c.id=returned.id;
+
+c.local=false;
+
+c.username =
+returned.username||
+returned.user?.username||
+c.username;
+
+c.text =
+returned.text||
+c.text;
+
+c.createdAt =
+returned.createdAt||
+returned.created_at||
+c.createdAt;
+
+}
+
+}
+
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
 );
 
-await refreshComments();
+}
 
-loadFeed();
+
+await refreshComments(false);
+
+await loadFeed();
+
 
 }catch(e){
 
+const local =
+getLocalComments(postId);
+
+
+if(replyId){
+
+for(const c of local){
+
+if(Array.isArray(c.replies)){
+
+c.replies =
+c.replies.filter(
+r=>
+String(r.id)!==
+String(tempId)
+);
+
+}
+
+}
+
+}else{
+
+const filtered =
+local.filter(
+c=>
+String(c.id)!==
+String(tempId)
+);
+
+local.length=0;
+
+local.push(...filtered);
+
+}
+
+
+localStorage.setItem(
+localCommentsKey(postId),
+JSON.stringify(
+local.slice(-100)
+)
+);
+
+
+if(currentCommentPost===postId){
+
+document.getElementById(
+'commentList'
+).innerHTML =
+renderCommentsForPost(local);
+
+}
+
+
 toast(
 e.message||
-'Yorum gönderilemedi'
+'Gönderilemedi'
 );
 
 }finally{
 
-if(button)
-button.disabled=false;
+if(sendButton){
+
+sendButton.disabled=false;
 
 }
 
 }
 
+}
 
-/* COMMENT LIKE */
+
+/* =====================================================
+   COMMENT LIKE
+===================================================== */
 
 async function likeComment(id){
 
-const wrap=
+if(!id){
+
+toast('Yorum kimliği bulunamadı');
+
+return;
+
+}
+
+
+const wrap =
 document.querySelector(
 '.comment-wrap[data-comment-id="'+
 CSS.escape(String(id))+
 '"]'
 );
 
-const btn=
+
+const btn =
 wrap?.querySelector('.comment-like');
+
 
 if(!btn)return;
 
-if(btn.dataset.loading==='1')
+
+if(btn.dataset.loading==='1'){
+
 return;
+
+}
 
 btn.dataset.loading='1';
 
-const wasLiked=
+
+const wasLiked =
 btn.classList.contains('liked');
 
-const nextLiked=
+const nextLiked =
 !wasLiked;
+
 
 btn.classList.toggle(
 'liked',
 nextLiked
 );
 
-btn.textContent=
+btn.dataset.commentLiked =
+nextLiked?'1':'0';
+
+btn.textContent =
 nextLiked?'♥':'♡';
+
 
 try{
 
@@ -1990,13 +3598,25 @@ method:'POST'
 }
 );
 
+
 btn.classList.toggle(
 'liked',
 nextLiked
 );
 
-btn.textContent=
+btn.dataset.commentLiked =
+nextLiked?'1':'0';
+
+btn.textContent =
 nextLiked?'♥':'♡';
+
+
+toast(
+nextLiked
+?'Yorum beğenildi'
+:'Yorum beğenisi kaldırıldı'
+);
+
 
 }catch(e){
 
@@ -2005,10 +3625,17 @@ btn.classList.toggle(
 wasLiked
 );
 
-btn.textContent=
+btn.dataset.commentLiked =
+wasLiked?'1':'0';
+
+btn.textContent =
 wasLiked?'♥':'♡';
 
-toast(e.message);
+
+toast(
+e.message||
+'Yorum beğenisi işlemi başarısız'
+);
 
 }finally{
 
@@ -2019,79 +3646,38 @@ btn.dataset.loading='0';
 }
 
 
-/* TIME */
-
-function relativeTime(v){
-
-const d=new Date(v);
-
-if(!v||isNaN(d))
-return '';
-
-let s=
-Math.floor(
-(Date.now()-d.getTime())/1000
-);
-
-if(s<60)
-return s+' saniye önce';
-
-let m=
-Math.floor(s/60);
-
-if(m<60)
-return m+' dakika önce';
-
-let h=
-Math.floor(m/60);
-
-if(h<24)
-return h+' saat önce';
-
-let days=
-Math.floor(h/24);
-
-if(days<7)
-return days+' gün önce';
-
-if(days<365)
-return Math.floor(days/7)+' hafta önce';
-
-return d.toLocaleDateString('tr-TR');
-
-}
-
-
-/* INIT */
+/* =====================================================
+   INIT
+===================================================== */
 
 async function init(){
 
 if(!token){
 
-feedEl.innerHTML=
-'<div class="empty"><strong>Giriş yapmalısın</strong></div>';
+showLogin();
 
 return;
 
 }
 
+
 try{
 
-currentUser=
+currentUser =
 await api('/me');
+
+showHome();
 
 await loadFeed();
 
 }catch(e){
 
-feedEl.innerHTML=
-'<div class="empty"><strong>Gönderi yüklenemedi</strong></div>';
-
-toast(e.message);
+logout();
 
 }
 
 }
+
 
 init();
 
@@ -2099,3 +3685,4 @@ init();
 
 </body>
 </html>
+```
