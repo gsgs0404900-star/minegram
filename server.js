@@ -445,16 +445,23 @@ app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
                 .from(BUCKET)
                 .getPublicUrl(objectPath);
 
-        const { data: story, error } =
-            await req.sb
-                .from("stories")
-                .insert({
-                    user_id: req.user.id,
-                    media_url: data.publicUrl,
-                    media_type: req.file.mimetype
-                })
-                .select()
-                .single();
+const result = await req.sb
+    .from("stories")
+    .insert({
+        user_id: req.user.id,
+        media_url: data.publicUrl,
+        media_type: req.file.mimetype
+    })
+    .select()
+    .single();
+
+console.log("RESULT:", JSON.stringify(result, null, 2));
+
+if (result.error) {
+    return res.status(400).json(result.error);
+}
+
+res.json(result.data);
 
         if (error) throw error;
 
