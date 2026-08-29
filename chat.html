@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Instagram Chat</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+html,body{
+width:100%;
+height:100%;
+background:#000;
+overflow:hidden;
+}
+
+body{
+display:flex;
+justify-content:center;
+align-items:center;
+background:#000;
+}
+
+.app{
+width:100%;
+max-width:430px;
+height:100vh;
+background:#000;
+color:#fff;
+display:flex;
+flex-direction:column;
+}
+
+@media(min-width:768px){
+
+body{
+padding:20px;
+}
+
+.app{
+height:900px;
+border:1px solid #262626;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 0 35px rgba(0,0,0,.55);
+}
+
+}
+
+header{
+height:60px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 16px;
+border-bottom:1px solid #262626;
+flex-shrink:0;
+}
+
+.left{
+display:flex;
+align-items:center;
+gap:12px;
+}
+
+.back{
+color:#fff;
+font-size:22px;
+text-decoration:none;
+}
+
+.left img{
+width:40px;
+height:40px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.user{
+display:flex;
+flex-direction:column;
+}
+
+.name{
+display:flex;
+align-items:center;
+gap:4px;
+font-size:15px;
+font-weight:700;
+}
+
+.name i{
+font-size:13px;
+color:#0095f6;
+}
+
+.status{
+font-size:12px;
+color:#8e8e8e;
+margin-top:2px;
+}
+
+.right{
+display:flex;
+gap:18px;
+}
+
+.right button{
+background:none;
+border:none;
+color:#fff;
+font-size:20px;
+cursor:pointer;
+}
+
+.profile-card{
+padding:28px 0;
+display:flex;
+flex-direction:column;
+align-items:center;
+border-bottom:1px solid #262626;
+}
+
+.profile-card img{
+width:90px;
+height:90px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.profile-card h2{
+margin-top:12px;
+font-size:22px;
+font-weight:700;
+}
+
+.profile-card p{
+margin-top:4px;
+color:#8e8e8e;
+font-size:14px;
+}
+
+.profile-card button{
+margin-top:16px;
+padding:8px 20px;
+border:none;
+border-radius:22px;
+background:#262626;
+color:#fff;
+font-weight:600;
+cursor:pointer;
+}
+
+.messages{
+flex:1;
+overflow-y:auto;
+padding:18px;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.messages::-webkit-scrollbar{
+display:none;
+}
+
+.msg{
+max-width:72%;
+padding:12px 15px;
+border-radius:22px;
+font-size:15px;
+word-break:break-word;
+animation:show .25s;
+}
+
+.msg.other{
+background:#262626;
+align-self:flex-start;
+border-bottom-left-radius:8px;
+}
+
+.msg.me{
+background:#3797f0;
+align-self:flex-end;
+border-bottom-right-radius:8px;
+}
+
+.time{
+margin-top:5px;
+font-size:11px;
+opacity:.7;
+text-align:right;
+}
+
+.input-area{
+height:70px;
+padding:12px;
+display:flex;
+align-items:center;
+gap:10px;
+border-top:1px solid #262626;
+}
+
+.input-area button{
+background:none;
+border:none;
+color:#fff;
+font-size:20px;
+cursor:pointer;
+}
+
+.input-area input{
+flex:1;
+height:44px;
+background:#262626;
+border:none;
+outline:none;
+border-radius:22px;
+padding:0 18px;
+color:#fff;
+font-size:15px;
+}
+
+.input-area input::placeholder{
+color:#8e8e8e;
+}
+
+.seen{
+margin-top:5px;
+font-size:11px;
+color:#8e8e8e;
+text-align:right;
+}
+
+.msg img{
+max-width:220px;
+border-radius:16px;
+display:block;
+}
+
+button:hover{
+opacity:.8;
+}
+
+button:active{
+transform:scale(.95);
+}
+
+@keyframes show{
+
+from{
+opacity:0;
+transform:translateY(10px);
+}
+
+to{
+opacity:1;
+transform:translateY(0);
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+
+<div class="left">
+
+<a href="mesaj.html" class="back">
+<i class="fa-solid fa-arrow-left"></i>
+</a>
+
+<img src="https://i.pravatar.cc/150?img=12">
+
+<div class="user">
+
+<div class="name">
+test
+<i class="fa-solid fa-circle-check"></i>
+</div>
+
+<div class="status">
+Aktif
+</div>
+
+</div>
+
+</div>
+
+<div class="right">
+
+<button id="callBtn">
+<i class="fa-solid fa-phone"></i>
+</button>
+
+<button id="videoBtn">
+<i class="fa-solid fa-video"></i>
+</button>
+
+<button id="infoBtn">
+<i class="fa-solid fa-circle-info"></i>
+</button>
+
+</div>
+
+</header>
+
+<div class="profile-card">
+
+<img src="https://i.pravatar.cc/300?img=12">
+
+<h2>test</h2>
+
+<p>@test</p>
+
+<button id="profileBtn">
+Profili Gör
+</button>
+
+</div>
+
+<div id="messages" class="messages">
+
+<div class="msg other">
+Merhaba 👋
+<div class="time">20:14</div>
+</div>
+
+<div class="msg me">
+Merhaba 😊
+<div class="time">20:15</div>
+</div>
+
+<div class="msg other">
+Nasılsın?
+<div class="time">20:16</div>
+</div>
+
+</div>
+
+<div class="input-area">
+
+<button id="emojiBtn">😊</button>
+
+<button id="galleryBtn">
+<i class="fa-regular fa-image"></i>
+</button>
+
+<button id="cameraBtn">
+<i class="fa-solid fa-camera"></i>
+</button>
+
+<input
+id="messageInput"
+type="text"
+placeholder="Mesaj">
+
+<button id="micBtn">
+<i class="fa-solid fa-microphone"></i>
+</button>
+
+<button id="sendBtn">
+<i class="fa-solid fa-paper-plane"></i>
+</button>
+
+</div>
+
+<input
+type="file"
+id="galleryInput"
+accept="image/*"
+hidden>
+
+<script>
+
+const input = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const messages = document.getElementById("messages");
+
+const replies = [
+    "Tamam 👍",
+    "Olur 😊",
+    "Hahah 😄",
+    "Harika.",
+    "Şimdi bakıyorum.",
+    "❤️",
+    "👌",
+    "Birazdan yazarım."
+];
+
+let typing = false;
+
+function getTime(){
+    const d = new Date();
+    return d.getHours().toString().padStart(2,"0")+":"+
+           d.getMinutes().toString().padStart(2,"0");
+}
+
+function scrollBottom(){
+    messages.scrollTop = messages.scrollHeight;
+}
+
+function showTyping(){
+
+    if(typing) return;
+
+    typing = true;
+
+    const div = document.createElement("div");
+    div.className = "msg other";
+    div.id = "typing";
+    div.innerHTML = "Yazıyor...";
+
+    messages.appendChild(div);
+
+    scrollBottom();
+
+}
+
+function hideTyping(){
+
+    const t = document.getElementById("typing");
+
+    if(t) t.remove();
+
+    typing = false;
+
+}
+
+function autoReply(){
+
+    showTyping();
+
+    setTimeout(function(){
+
+        hideTyping();
+
+        const div = document.createElement("div");
+
+        div.className = "msg other";
+
+        div.innerHTML = `
+            ${replies[Math.floor(Math.random()*replies.length)]}
+            <div class="time">${getTime()}</div>
+        `;
+
+        messages.appendChild(div);
+
+        scrollBottom();
+
+    },2500);
+
+}
+
+function sendMessage(){
+
+    const text = input.value.trim();
+
+    if(text==="") return;
+
+    const div = document.createElement("div");
+
+    div.className = "msg me";
+
+    div.innerHTML = `
+        ${text}
+        <div class="time">${getTime()}</div>
+    `;
+
+    messages.appendChild(div);
+
+    input.value="";
+
+    sendBtn.style.opacity=".4";
+
+    scrollBottom();
+
+    autoReply();
+
+}
+
+sendBtn.onclick = sendMessage;
+
+input.addEventListener("keydown",function(e){
+
+    if(e.key==="Enter"){
+
+        e.preventDefault();
+
+        sendMessage();
+
+    }
+
+});
+
+input.addEventListener("input",function(){
+
+    if(input.value.trim()===""){
+
+        sendBtn.style.opacity=".4";
+
+    }else{
+
+        sendBtn.style.opacity="1";
+
+    }
+
+});
+
+// Emoji
+
+document.getElementById("emojiBtn").onclick=function(){
+
+    input.value+="😊";
+
+    input.focus();
+
+};
+
+// Galeri
+
+document.getElementById("galleryBtn").onclick=function(){
+
+    document.getElementById("galleryInput").click();
+
+};
+
+document.getElementById("galleryInput").onchange=function(){
+
+    if(!this.files.length) return;
+
+    const file=this.files[0];
+
+    const reader=new FileReader();
+
+    reader.onload=function(){
+
+        const div=document.createElement("div");
+
+        div.className="msg me";
+
+        div.innerHTML=`
+            <img src="${reader.result}">
+            <div class="time">${getTime()}</div>
+        `;
+
+        messages.appendChild(div);
+
+        scrollBottom();
+
+        autoReply();
+
+    };
+
+    reader.readAsDataURL(file);
+
+};
+
+// Kamera
+
+document.getElementById("cameraBtn").onclick=function(){
+
+    alert("Kamera yakında eklenecek.");
+
+};
+
+// Mikrofon
+
+document.getElementById("micBtn").onclick=function(){
+
+    alert("Ses kaydı yakında eklenecek.");
+
+};
+
+// Geri
+
+document.querySelector(".back").onclick=function(e){
+
+    e.preventDefault();
+
+    location.href="mesaj.html";
+
+};
+
+// Profil
+
+document.getElementById("profileBtn").onclick=function(){
+
+    location.href="profile.html";
+
+};
+
+// Üst butonlar
+
+document.getElementById("callBtn").onclick=function(){
+
+    alert("Sesli arama");
+
+};
+
+document.getElementById("videoBtn").onclick=function(){
+
+    alert("Görüntülü arama");
+
+};
+
+document.getElementById("infoBtn").onclick=function(){
+
+    alert("Sohbet bilgileri");
+
+};
+
+window.onload=function(){
+
+    sendBtn.style.opacity=".4";
+
+    scrollBottom();
+
+};
+
+</script>
+
+
+</div>
+
+</body>
+</html>
