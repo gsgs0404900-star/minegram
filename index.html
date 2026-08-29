@@ -1261,42 +1261,34 @@ plusBtn.addEventListener("click", (e) => {
 
 storyInput.addEventListener("change", uploadStory);
 
-async function uploadStory(e){
+async function uploadStory(e) {
 
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
 
     const fd = new FormData();
     fd.append("story", file);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("minegram_token");
+    console.log("TOKEN:", token);
 
-    try{
+    const res = await fetch("/api/stories", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: fd
+    });
 
-        const res = await fetch("/api/stories",{
-            method:"POST",
-            headers:{
-                Authorization:`Bearer ${token}`
-            },
-            body:fd
-        });
+    const data = await res.json();
+	console.log("SERVER:", data);
 
-        const data = await res.json();
+if (!res.ok) {
+    alert(data.error || "Hikaye yüklenemedi");
+    return;
+}
 
-        if(!res.ok){
-            alert(data.error || "Hikaye yüklenemedi");
-            return;
-        }
-
-        alert("Hikaye paylaşıldı.");
-
-        loadStories();
-
-    }catch(err){
-        console.error(err);
-        alert("Bağlantı hatası");
-    }
-
+alert("Hikaye paylaşıldı.");
 }
 
 const API='/api';
