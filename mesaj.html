@@ -1,683 +1,350 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Minegram • Mesajlar</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mesajlar</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-body{overflow:hidden}
-button,input{font:inherit}
-button{border:0;background:none;color:#fff}
 
-.page{
-  width:100%;
-  height:100dvh;
-  display:flex;
-  flex-direction:column;
-  background:#000;
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,Helvetica,sans-serif;
 }
 
-/* Header */
-.top{
-  height:62px;
-  min-height:62px;
-  display:flex;
-  align-items:center;
-  gap:9px;
-  padding:0 22px;
-  border-bottom:1px solid #262626;
-}
-.back{
-  width:30px;
-  padding:0;
-  font-size:28px;
-  line-height:1;
-  cursor:pointer;
-}
-.title{
-  font-size:19px;
-  font-weight:700;
+body{
+background:#000;
+color:#fff;
 }
 
-/* Search */
-.search-wrap{
-  width:min(100%,720px);
-  margin:0 auto;
-  padding:10px 20px 8px;
+header{
+display:flex;
+align-items:center;
+padding:18px;
+font-size:30px;
+font-weight:bold;
+gap:20px;
+border-bottom:1px solid #222;
 }
+
+header i{
+font-size:28px;
+cursor:pointer;
+}
+
 .search{
-  height:40px;
-  width:100%;
-  display:flex;
-  align-items:center;
-  gap:9px;
-  padding:0 12px;
-  border:1px solid #666;
-  border-radius:8px;
-  background:#050505;
+margin:20px;
+background:#111;
+border:1px solid #444;
+border-radius:18px;
+display:flex;
+align-items:center;
+padding:15px;
 }
-.search svg{width:17px;height:17px;flex:none}
+
 .search input{
-  width:100%;
-  border:0;
-  outline:0;
-  background:transparent;
-  color:#fff;
-  font-size:16px;
+background:transparent;
+border:none;
+outline:none;
+color:#fff;
+width:100%;
+font-size:20px;
+margin-left:15px;
 }
-.search input::placeholder{color:#aaa}
 
-/* Notes */
-.section{
-  width:min(100%,720px);
-  margin:0 auto;
-  padding:3px 20px 9px;
-}
 .section-title{
-  margin:0 0 8px;
-  font-size:15px;
-  font-weight:700;
+font-size:22px;
+font-weight:bold;
+margin:0 20px 20px;
 }
-.notes-row{
-  display:flex;
-  gap:15px;
-  overflow-x:auto;
-  padding:0 1px;
-  scrollbar-width:none;
+
+.notes{
+display:flex;
+overflow-x:auto;
+padding:0 20px 20px;
+gap:18px;
 }
-.notes-row::-webkit-scrollbar{display:none}
+
+.notes::-webkit-scrollbar{
+display:none;
+}
+
 .note{
-  width:58px;
-  min-width:58px;
-  text-align:center;
-}
-.note-bubble{
-  width:58px;
-  height:34px;
-  margin:0 auto 5px;
-  padding:5px;
-  border-radius:9px;
-  background:#090d11;
-  color:#ddd;
-  font-size:7px;
-  line-height:1.35;
-  overflow:hidden;
-}
-.note-avatar{
-  width:44px;
-  height:44px;
-  margin:0 auto;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#378fc8;
-  font-size:15px;
-  position:relative;
-}
-.plus{
-  position:absolute;
-  right:-1px;
-  bottom:-1px;
-  width:16px;
-  height:16px;
-  border:2px solid #000;
-  border-radius:50%;
-  background:#2e89c9;
-  font-size:15px;
-  line-height:12px;
-}
-.note-name{
-  margin-top:5px;
-  font-size:9px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.note-sub{
-  margin-top:3px;
-  font-size:7px;
-  color:#aaa;
+min-width:95px;
+text-align:center;
 }
 
-.divider{
-  width:min(100%,760px);
-  height:1px;
-  margin:0 auto;
-  background:#292929;
+.bubble{
+background:#111827;
+color:#fff;
+padding:10px;
+border-radius:18px;
+font-size:13px;
+margin-bottom:10px;
+height:58px;
+display:flex;
+align-items:center;
+justify-content:center;
 }
 
-/* Message list */
-.messages{
-  flex:1;
-  min-height:0;
-  overflow-y:auto;
-  width:min(100%,760px);
-  margin:0 auto;
-}
-.messages-head{
-  height:45px;
-  display:flex;
-  align-items:center;
-  padding:0 20px;
-  font-size:15px;
-  font-weight:700;
-}
-.list{padding-bottom:10px}
-.thread{
-  height:64px;
-  display:flex;
-  align-items:center;
-  padding:6px 20px;
-  border-top:1px solid #242424;
-  cursor:pointer;
-}
-.thread:last-child{border-bottom:1px solid #242424}
 .avatar{
-  width:44px;
-  height:44px;
-  min-width:44px;
-  border-radius:50%;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#161616;
+width:72px;
+height:72px;
+border-radius:50%;
+background:#61AFFF;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+font-weight:bold;
+margin:auto;
+position:relative;
 }
-.avatar img{width:100%;height:100%;object-fit:cover}
-.avatar-fallback{font-size:15px}
-.thread-main{
-  flex:1;
-  min-width:0;
-  margin-left:12px;
+
+.plus{
+position:absolute;
+right:-3px;
+bottom:-3px;
+width:28px;
+height:28px;
+background:#2196F3;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+border:3px solid #000;
 }
-.userline{
-  display:flex;
-  align-items:center;
-  gap:4px;
-  font-size:16px;
-  font-weight:700;
+
+.name{
+margin-top:10px;
+font-size:18px;
 }
-.verified{
-  width:14px;
-  height:14px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background:#218bd0;
-  font-size:9px;
+
+.messages{
+margin-top:10px;
+border-top:1px solid #222;
+padding-top:20px;
 }
-.preview{
-  margin-top:4px;
-  color:#aaa;
-  font-size:15px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+
+.chat{
+display:flex;
+align-items:center;
+padding:20px;
+cursor:pointer;
 }
+
+.chat:hover{
+background:#111;
+}
+
+.chat img{
+width:70px;
+height:70px;
+border-radius:50%;
+}
+
+.chat-avatar{
+width:70px;
+height:70px;
+border-radius:50%;
+background:#61AFFF;
+margin-right:15px;
+}
+
+.chat-info{
+flex:1;
+}
+
+.username{
+font-size:25px;
+font-weight:bold;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.username i{
+color:#1da1f2;
+font-size:20px;
+}
+
+.last{
+color:#bbb;
+font-size:21px;
+margin-top:5px;
+}
+
 .arrow{
-  padding-left:8px;
-  color:#aaa;
-  font-size:23px;
-}
-.empty{
-  padding:35px 20px;
-  text-align:center;
-  color:#777;
-  font-size:15px;
+font-size:28px;
 }
 
-@media(min-width:900px){
-  .top{padding-left:28px}
-  .search-wrap{padding-left:0;padding-right:0}
-  .section{padding-left:0;padding-right:0}
-  .messages-head{padding-left:0;padding-right:0}
-  .thread{padding-left:0;padding-right:0}
-}
 </style>
 
-
-<style>
-  body { font-size: 17px !important; }
-  button, input, textarea { font-size: 17px !important; }
-  .message, .msg, .message-text, .chat-message { font-size: 18px !important; }
-  .username, .name, .display-name { font-size: 17px !important; }
-  .time, .meta, .status { font-size: 14px !important; }
-  .nav-item, .nav-label { font-size: 15px !important; }
-</style>
-
-
-<style>
-.note-bubble{
-  font-size:12px !important;
-  line-height:1.35 !important;
-  padding:7px 8px !important;
-}
-.note-name{
-  font-size:12px !important;
-}
-.note-sub{
-  font-size:10px !important;
-}
-</style>
-
-
-<style>
-.note-bubble{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  line-height:1.2 !important;
-  padding:5px 8px 7px !important;
-  transform:translateY(-1px);
-}
-.note-name{
-  line-height:1.15 !important;
-  margin-top:2px !important;
-}
-.note-sub{
-  line-height:1.15 !important;
-  margin-top:1px !important;
-}
-</style>
-
-
-<style>
-.notes-row{
-  gap:18px !important;
-}
-.note{
-  width:76px !important;
-  min-width:76px !important;
-}
-.note-bubble{
-  width:76px !important;
-  min-height:42px !important;
-  height:auto !important;
-  max-height:48px !important;
-  padding:6px 7px !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  white-space:normal !important;
-  overflow:hidden !important;
-  word-break:break-word !important;
-  overflow-wrap:anywhere !important;
-  font-size:12px !important;
-  line-height:1.2 !important;
-  text-align:center !important;
-}
-.note-name{
-  font-size:12px !important;
-  line-height:1.2 !important;
-  margin-top:4px !important;
-}
-.note-sub{
-  font-size:10px !important;
-  line-height:1.15 !important;
-  margin-top:2px !important;
-}
-</style>
-
-
-<style>
-.note-add {
-  cursor: pointer !important;
-  user-select: none;
-}
-.note-add button {
-  width: 100% !important;
-  height: 100% !important;
-  border: 0 !important;
-  background: transparent !important;
-  color: inherit !important;
-  cursor: pointer !important;
-  font: inherit !important;
-}
-.note-composer {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,.62);
-  z-index: 9999;
-}
-.note-composer.open { display: flex; }
-.note-dialog {
-  width: min(420px, 90vw);
-  background: #1b1b1b;
-  border: 1px solid #333;
-  border-radius: 18px;
-  padding: 20px;
-  box-sizing: border-box;
-  box-shadow: 0 18px 60px rgba(0,0,0,.45);
-}
-.note-dialog h3 { margin: 0 0 12px; font-size: 20px; }
-.note-dialog textarea {
-  width: 100%;
-  min-height: 90px;
-  resize: none;
-  box-sizing: border-box;
-  border: 1px solid #444;
-  border-radius: 12px;
-  padding: 12px;
-  background: #111;
-  color: #fff;
-  outline: none;
-}
-.note-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-.note-actions button {
-  border: 0;
-  border-radius: 10px;
-  padding: 9px 14px;
-  cursor: pointer;
-}
-.note-cancel { background: #333; color: #fff; }
-.note-publish { background: #fff; color: #000; }
-</style>
-
-
-<style>
-/* Minegram Notlar */
-.notes-row{
-  display:flex !important;
-  align-items:flex-start !important;
-  gap:14px !important;
-  overflow-x:auto !important;
-  overflow-y:hidden !important;
-  padding:6px 2px 10px !important;
-  scrollbar-width:none !important;
-}
-.notes-row::-webkit-scrollbar{display:none !important;}
-
-.note{
-  flex:0 0 76px !important;
-  width:76px !important;
-  min-width:76px !important;
-  text-align:center !important;
-}
-.note-bubble{
-  width:76px !important;
-  min-height:42px !important;
-  max-height:52px !important;
-  height:auto !important;
-  box-sizing:border-box !important;
-  padding:6px 7px !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  white-space:normal !important;
-  overflow:hidden !important;
-  overflow-wrap:anywhere !important;
-  word-break:break-word !important;
-  text-align:center !important;
-  font-size:12px !important;
-  line-height:1.2 !important;
-}
-.note-name{
-  margin-top:5px !important;
-  font-size:12px !important;
-  line-height:1.15 !important;
-}
-.note-add{
-  cursor:pointer !important;
-}
-.note-add button{
-  cursor:pointer !important;
-  border:0 !important;
-  background:transparent !important;
-  color:inherit !important;
-  font:inherit !important;
-}
-</style>
-
-<style id="minegram-note-final-fix">
-.note-add{display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;margin:0!important;box-sizing:border-box!important;cursor:pointer!important}
-.note-add button{width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important;color:inherit!important;font:inherit!important;line-height:1!important;text-align:center!important;position:static!important;transform:none!important;box-sizing:border-box!important;cursor:pointer!important}
-.note-composer{position:fixed!important;inset:0!important;display:none;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.62)!important;z-index:999999!important}
-.note-composer.open{display:flex!important}
-.note-dialog{width:min(420px,90vw)!important;background:#1b1b1b!important;color:#fff!important;border:1px solid #333!important;border-radius:18px!important;padding:20px!important;box-sizing:border-box!important;box-shadow:0 20px 70px rgba(0,0,0,.45)!important}
-.note-dialog h3{margin:0 0 12px!important;font-size:20px!important}
-.note-dialog textarea{width:100%!important;min-height:90px!important;resize:none!important;box-sizing:border-box!important;border:1px solid #444!important;border-radius:12px!important;padding:12px!important;background:#111!important;color:#fff!important;outline:none!important;font:inherit!important}
-.note-actions{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin-top:12px!important}
-.note-actions button{border:0!important;border-radius:10px!important;padding:9px 14px!important;cursor:pointer!important}
-</style>
 </head>
+
 <body>
-<div class="page">
-  <header class="top">
-    <button class="back" id="backBtn" aria-label="Geri">‹</button>
-    <div class="title">Mesajlar</div>
-  </header>
 
-  <div class="search-wrap">
-    <label class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-      <input id="searchInput" placeholder="Kişileri ara..." autocomplete="off">
-    </label>
-  </div>
+<header>
 
-  <section class="section">
-    <h2 class="section-title">Notlar</h2>
-    <div class="notes-row" id="notesRow"></div>
-  </section>
+<i class="fa-solid fa-arrow-left"></i>
 
-  <div class="divider"></div>
+<span>Mesajlar</span>
 
-  <main class="messages">
-    <div class="messages-head">Mesajlar</div>
-    <div class="list" id="messageList"></div>
-  </main>
-</div>
+</header>
 
-<script>
-const token = localStorage.getItem("minegram_token") || localStorage.getItem("token") || "";
-const API = "";
+<div class="search">
 
-const sampleNotes = [
-  {name:"Notun", initial:"N", text:"Bugün güzel bir gün ☀️"},
-  {name:"ahmet", initial:"A", text:"Biraz müzik dinliyorum 🎵"},
-  {name:"mehmet", initial:"M", text:"Maç günü ⚽"},
-  {name:"galatasaray", initial:"G", text:""}
-];
+<i class="fa fa-search"></i>
 
-let profiles = [];
-let messages = [];
-
-function esc(v){
-  return String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function headers(){
-  return token ? {Authorization:"Bearer "+token, "Content-Type":"application/json"} : {"Content-Type":"application/json"};
-}
-function initials(name){
-  const s=String(name||"?").trim();
-  return (s[0]||"?").toUpperCase();
-}
-function renderNotes(list=sampleNotes){
-  const row=document.getElementById("notesRow");
-  row.innerHTML=list.map((n,i)=>`
-    <div class="note">
-      ${i<4?`<div class="note-bubble">${esc(n.text)}</div>`:""}
-      <div class="note-avatar">${i===0?'<button type="button" class="plus note-add" aria-label="Not paylaş">+</button>':esc(initials(n.initial||n.name))}</div>
-      <div class="note-name">${esc(n.name)}</div>
-      ${i===2?'':''}
-    </div>`).join("");
-}
-function bindNoteAddButtons(){
-  document.querySelectorAll(".note-add").forEach(el=>{
-    if(el.dataset.bound) return;
-    el.dataset.bound="1";
-    el.addEventListener("click",openNoteComposer);
-  });
-}
-function openNoteComposer(){
-  const modal=document.getElementById("noteComposer");
-  const input=document.getElementById("noteText");
-  if(!modal) return;
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden","false");
-  if(input){ input.value=""; setTimeout(()=>input.focus(),30); }
-}
-
-function renderMessages(list){
-  const el=document.getElementById("messageList");
-  if(!list.length){
-    el.innerHTML='<div class="empty">Henüz mesaj yok.</div>';
-    return;
-  }
-  el.innerHTML=list.map(m=>{
-    const username=m.username || m.fromUsername || m.toUsername || "kullanıcı";
-    const text=m.text || "Mesaj göndermek için dokun";
-    const avatar=m.avatar || m.avatar_url || "";
-    return `<div class="thread" data-user="${esc(username)}">
-      <div class="avatar">${avatar?`<img src="${esc(avatar)}" alt="">`:`<div class="avatar-fallback">${esc(initials(username))}</div>`}</div>
-      <div class="thread-main">
-        <div class="userline"><span>${esc(username)}</span>${m.verified?'<span class="verified">✓</span>':''}</div>
-        <div class="preview">${esc(text)}</div>
-      </div>
-      <div class="arrow">›</div>
-    </div>`;
-  }).join("");
-  document.querySelectorAll(".thread").forEach(t=>{
-    t.addEventListener("click",()=>openConversation(t.dataset.user));
-  });
-}
-async function loadMessages(){
-  if(!token){ renderMessages([]); return; }
-  try{
-    const r=await fetch(API+"/api/messages",{headers:headers()});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.error||"Mesajlar alınamadı");
-    messages=data||[];
-    const map=new Map();
-    for(const m of messages){
-      const other = String(m.from)===String(getMeId()) ? m.to : m.from;
-      const username=m.username||"kullanıcı";
-      map.set(other,{...m,username});
-    }
-    renderMessages([...map.values()]);
-  }catch(e){
-    console.warn(e);
-    renderMessages([]);
-  }
-}
-function getMeId(){
-  try{
-    const u=JSON.parse(localStorage.getItem("minegram_user")||localStorage.getItem("user")||"null");
-    return u?.id||"";
-  }catch{return ""}
-}
-function openConversation(username){
-  const target="messages-chat.html?user="+encodeURIComponent(username);
-  window.location.href=target;
-}
-document.getElementById("backBtn").onclick=()=>history.length>1?history.back():window.location.href="index.html";
-document.getElementById("searchInput").addEventListener("input",async e=>{
-  const q=e.target.value.trim().toLowerCase();
-  if(!q){ renderMessages(messages.length?messages:[]); return; }
-  const local=messages.filter(m=>String(m.username||"").toLowerCase().includes(q));
-  renderMessages(local);
-  if(token){
-    try{
-      const r=await fetch(API+"/api/search?q="+encodeURIComponent(q),{headers:headers()});
-      if(r.ok){
-        const p=await r.json();
-        profiles=p||[];
-      }
-    }catch{}
-  }
-});
-renderNotes();
-loadMessages();
-</script>
-
+<input placeholder="Kişileri ara...">
 
 </div>
-<script>
-(() => {
-  const modal = document.getElementById('noteComposer');
-  const input = document.getElementById('noteText');
-  const cancel = document.getElementById('noteCancel');
-  const publish = document.getElementById('notePublish');
 
-  function openComposer() {
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    input.value = '';
-    setTimeout(() => input.focus(), 30);
-  }
-  function closeComposer() {
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-  }
+<div class="section-title">
 
-  document.querySelectorAll('.note-add').forEach(el => {
-    el.addEventListener('click', openComposer);
-  });
+Notlar
 
-  cancel.addEventListener('click', closeComposer);
-  modal.addEventListener('click', e => {
-    if (e.target === modal) closeComposer();
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modal.classList.contains('open')) closeComposer();
-  });
+</div>
 
-  publish.addEventListener('click', () => {
-    const text = input.value.trim();
-    if (!text) {
-      input.focus();
-      return;
-    }
+<div class="notes">
 
-    // Put the new note into the first available note bubble.
-    const bubbles = document.querySelectorAll('.note-bubble');
-    if (bubbles.length) {
-      const target = bubbles[0];
-      target.textContent = text;
-      target.classList.add('user-note');
-    }
-    closeComposer();
-  });
-})();
-</script>
+<div class="note">
 
+<div class="bubble"></div>
 
+<div class="avatar">
 
+N
 
-<div class="note-composer" id="noteComposer" aria-hidden="true">
-<div class="note-dialog" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
-<h3 id="noteTitle">Not paylaş</h3>
-<textarea id="noteText" maxlength="80" placeholder="Notun..."></textarea>
-<div class="note-actions"><button id="noteCancel" type="button">İptal</button><button id="notePublish" type="button">Paylaş</button></div>
-</div></div>
-<script id="minegram-note-final-script">
-(function(){
-function init(){
-const modal=document.getElementById('noteComposer'), input=document.getElementById('noteText'),
-cancel=document.getElementById('noteCancel'), publish=document.getElementById('notePublish');
-if(!modal||!input||!cancel||!publish)return;
-function openNote(){modal.classList.add('open');modal.setAttribute('aria-hidden','false');input.value='';setTimeout(()=>input.focus(),20);}
-function closeNote(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
-document.addEventListener('click',e=>{const add=e.target.closest('.note-add');if(add){e.preventDefault();openNote();}});
-cancel.addEventListener('click',closeNote);
-modal.addEventListener('click',e=>{if(e.target===modal)closeNote();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeNote();});
-publish.addEventListener('click',()=>{const text=input.value.trim();if(!text){input.focus();return;}const b=document.querySelector('.note-bubble');if(b)b.textContent=text;closeNote();});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
+<div class="plus">
+
++
+
+</div>
+
+</div>
+
+<div class="name">
+
+Notun
+
+</div>
+
+</div>
+
+<div class="note">
+
+<div class="bubble">
+
+Bugün güzel bir gün ☀
+
+</div>
+
+<div class="avatar">
+
+A
+
+</div>
+
+<div class="name">
+
+ahmet
+
+</div>
+
+</div>
+
+<div class="note">
+
+<div class="bubble">
+
+Biraz müzik 🎵
+
+</div>
+
+<div class="avatar">
+
+M
+
+</div>
+
+<div class="name">
+
+mehmet
+
+</div>
+
+</div>
+
+<div class="note">
+
+<div class="bubble">
+
+Maç günü!
+
+</div>
+
+<div class="avatar">
+
+G
+
+</div>
+
+<div class="name">
+
+galatasaray
+
+</div>
+
+</div>
+
+</div>
+
+<div class="messages">
+
+<div class="section-title">
+
+Mesajlar
+
+</div>
+
+<div class="chat">
+
+<div class="chat-avatar"></div>
+
+<div class="chat-info">
+
+<div class="username">
+
+test
+
+<i class="fa-solid fa-circle-check"></i>
+
+</div>
+
+<div class="last">
+
+Mesaj göndermek için dokun
+
+</div>
+
+</div>
+
+<div class="arrow">
+
+❯
+
+</div>
+
+</div>
+
+</div>
+
 </body>
+
 </html>
