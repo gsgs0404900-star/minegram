@@ -51,18 +51,6 @@ function bearer(req) {
   return h.startsWith("Bearer ") ? h.slice(7) : null;
 }
 
-const token = localStorage.getItem("minegram_token");
-
-console.log("TOKEN:", token);
-
-const res = await fetch("/api/stories", {
-    method: "POST",
-    headers: {
-        Authorization: `Bearer ${token}`
-    },
-    body: fd
-});
-
 async function auth(req, res, next) {
   try {
     const token = bearer(req);
