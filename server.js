@@ -425,6 +425,42 @@ app.post("/api/posts", auth, upload.single("media"), async (req, res) => {
 app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
     try {
 
+        console.log("TOKEN USER:", req.authUser.id);
+        console.log("PROFILE USER:", req.user.id);
+
+        const {
+            data: authUser,
+            error: authError
+        } = await req.sb.auth.getUser();
+
+        console.log("AUTH GETUSER:", authUser.user?.id);
+        console.log("AUTH ERROR:", authError);
+
+        const result = await req.sb
+            .from("stories")
+            .insert({
+                user_id: req.user.id,
+                media_url: data.publicUrl,
+                media_type: req.file.mimetype
+            })
+            .select()
+            .single();
+
+        console.log("RESULT:", JSON.stringify(result, null, 2));
+
+        if (result.error)
+            return res.status(400).json(result.error);
+
+        res.json(result.data);
+
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
+    try {
+
         if (!req.file)
             return res.status(400).json({ error: "Dosya seçilmedi" });
 
