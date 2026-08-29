@@ -461,11 +461,24 @@ app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
 app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
     try {
 
+        console.log("=================================");
+        console.log("TOKEN USER:", req.authUser.id);
+        console.log("PROFILE USER:", req.user.id);
+
+        const {
+            data: authData,
+            error: authError
+        } = await req.sb.auth.getUser();
+
+        console.log("AUTH GETUSER:", authData.user?.id);
+        console.log("AUTH ERROR:", authError);
+
         if (!req.file)
             return res.status(400).json({ error: "Dosya seçilmedi" });
 
         const ext = path.extname(req.file.originalname);
-        const objectPath = `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
+        const objectPath =
+            `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
         const { error: uploadError } =
             await req.sb.storage
@@ -481,32 +494,26 @@ app.post("/api/stories", auth, upload.single("story"), async (req, res) => {
                 .from(BUCKET)
                 .getPublicUrl(objectPath);
 
-const result = await req.sb
-    .from("stories")
-    .insert({
-        user_id: req.user.id,
-        media_url: data.publicUrl,
-        media_type: req.file.mimetype
-    })
-    .select()
-    .single();
+        const result = await req.sb
+            .from("stories")
+            .insert({
+                user_id: req.user.id,
+                media_url: data.publicUrl,
+                media_type: req.file.mimetype
+            })
+            .select()
+            .single();
 
-console.log("RESULT:", JSON.stringify(result, null, 2));
-console.log("AUTH UID:", req.authUser.id);
-console.log("PROFILE ID:", req.user.id);
-console.log("TOKEN UID:", (await req.sb.auth.getUser()).data.user.id);
+        console.log("RESULT:", JSON.stringify(result, null, 2));
+        console.log("=================================");
 
-if (result.error) {
-    return res.status(400).json(result.error);
-}
+        if (result.error)
+            return res.status(400).json(result.error);
 
-res.json(result.data);
-
-        if (error) throw error;
-
-        res.json(story);
+        res.json(result.data);
 
     } catch (e) {
+        console.error("STORY ERROR:", e);
         res.status(400).json({ error: e.message });
     }
 });
