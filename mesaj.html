@@ -1,14 +1,16 @@
+```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Minegram Mesaj</title>
+<title>Minegram Chat</title>
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -144,8 +146,7 @@ body{
     font-size:21px;
 }
 
-.action-btn:active,
-.back:active{
+.action-btn:active{
     opacity:.5;
 }
 
@@ -182,7 +183,7 @@ body{
 }
 
 /* =========================
-   MESAJLAR
+   CHAT
 ========================= */
 
 .chat-area{
@@ -296,10 +297,6 @@ body{
     font-size:18px;
 }
 
-#messageInput::placeholder{
-    color:#ddd;
-}
-
 #sendBtn{
     width:58px;
     height:100%;
@@ -362,7 +359,7 @@ body{
     opacity:0;
     pointer-events:none;
     transition:.2s;
-    z-index:100;
+    z-index:500;
     white-space:nowrap;
 }
 
@@ -372,7 +369,7 @@ body{
 }
 
 /* =========================
-   ARAMA EKRANI
+   ARAMA
 ========================= */
 
 .call-screen{
@@ -394,7 +391,6 @@ body{
     align-items:center;
     justify-content:center;
     color:#aaa;
-    font-size:14px;
 }
 
 .call-user{
@@ -426,6 +422,8 @@ body{
 .call-status{
     color:#aaa;
     font-size:16px;
+    text-align:center;
+    padding:0 20px;
 }
 
 .call-buttons{
@@ -463,7 +461,7 @@ body{
 .incoming-screen{
     position:absolute;
     inset:0;
-    background:rgba(0,0,0,.96);
+    background:rgba(0,0,0,.97);
     z-index:300;
     display:none;
     flex-direction:column;
@@ -532,6 +530,7 @@ body{
     height:100%;
     object-fit:cover;
     background:#111;
+    display:none;
 }
 
 #localVideo{
@@ -545,23 +544,144 @@ body{
     background:#222;
     border:2px solid #fff;
     z-index:4;
+    display:none;
 }
 
 /* =========================
-   LOADING
+   İZİN PANELİ
 ========================= */
 
-.loading{
-    color:#777;
+.permission-screen{
+    position:absolute;
+    inset:0;
+    background:#050505;
+    z-index:1000;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:25px;
     text-align:center;
-    padding:20px;
 }
+
+.permission-screen.show{
+    display:flex;
+}
+
+.permission-icon{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    background:#202020;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:40px;
+    margin-bottom:22px;
+}
+
+.permission-title{
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:12px;
+}
+
+.permission-message{
+    color:#aaa;
+    font-size:15px;
+    line-height:22px;
+    max-width:350px;
+}
+
+.permission-status{
+    width:100%;
+    max-width:360px;
+    margin-top:20px;
+    background:#171717;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:14px;
+    text-align:left;
+}
+
+.permission-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    font-size:14px;
+}
+
+.permission-row i{
+    width:22px;
+    text-align:center;
+}
+
+.permission-ok{
+    color:#22c55e;
+}
+
+.permission-error{
+    color:#ff4d67;
+}
+
+.permission-warning{
+    color:#f59e0b;
+}
+
+.permission-button{
+    margin-top:22px;
+    height:48px;
+    padding:0 25px;
+    border:0;
+    border-radius:12px;
+    background:#62afea;
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+}
+
+.permission-close{
+    margin-top:12px;
+    background:transparent;
+    color:#aaa;
+    border:0;
+    padding:10px;
+}
+
+/* =========================
+   DURUM
+========================= */
+
+.debug-status{
+    position:absolute;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    background:#111;
+    border:1px solid #333;
+    border-radius:10px;
+    padding:10px;
+    font-size:12px;
+    color:#aaa;
+    display:none;
+    z-index:1500;
+}
+
+.debug-status.show{
+    display:block;
+}
+
 </style>
 </head>
 
 <body>
 
 <div class="app">
+
+<!-- =========================
+     ÜST BAR
+========================= -->
 
 <header class="topbar">
 
@@ -576,25 +696,32 @@ body{
 <div class="info">
 
 <div class="name-row">
-<div class="name">test</div>
+
+<div class="name">
+test
+</div>
 
 <span class="verified">
 <i class="fa-solid fa-check"></i>
 </span>
-</div>
-
-<div class="profile">Profil</div>
 
 </div>
+
+<div class="profile">
+Profil
+</div>
+
+</div>
+
 </div>
 
 <div class="actions">
 
-<button class="action-btn" id="callBtn">
+<button class="action-btn" id="callBtn" title="Sesli arama">
 <i class="fa-solid fa-phone"></i>
 </button>
 
-<button class="action-btn" id="videoBtn">
+<button class="action-btn" id="videoBtn" title="Görüntülü arama">
 <i class="fa-solid fa-video"></i>
 </button>
 
@@ -606,7 +733,10 @@ body{
 
 </header>
 
-<!-- MENÜ -->
+
+<!-- =========================
+     MENÜ
+========================= -->
 
 <div class="menu" id="menu">
 
@@ -632,15 +762,27 @@ body{
 
 </div>
 
+
+<!-- =========================
+     PROFİL
+========================= -->
+
 <section class="profile-card">
 
-<div class="avatar-large">T</div>
+<div class="avatar-large">
+T
+</div>
 
 <a href="#" class="profile-link" id="profileLink">
 Profili gör
 </a>
 
 </section>
+
+
+<!-- =========================
+     CHAT
+========================= -->
 
 <main id="chatArea" class="chat-area">
 
@@ -649,6 +791,11 @@ Mesajlar yükleniyor...
 </div>
 
 </main>
+
+
+<!-- =========================
+     INPUT
+========================= -->
 
 <div class="input-bar">
 
@@ -688,7 +835,8 @@ autocomplete="off">
 
 </div>
 
-<!-- GİZLİ DOSYALAR -->
+
+<!-- DOSYALAR -->
 
 <input
 id="fileInput"
@@ -703,29 +851,46 @@ accept="image/*"
 capture="environment"
 hidden>
 
+
 <!-- TOAST -->
 
 <div class="toast" id="toast"></div>
 
+
 <!-- =========================
-     GİDEN / AKTİF ARAMA
+     AKTİF ARAMA
 ========================= -->
 
 <div class="call-screen" id="callScreen">
 
-<video id="remoteVideo" autoplay playsinline></video>
+<video
+id="remoteVideo"
+autoplay
+playsinline>
+</video>
 
-<video id="localVideo" autoplay muted playsinline></video>
+<video
+id="localVideo"
+autoplay
+muted
+playsinline>
+</video>
 
 <div class="call-top">
-<span id="callTypeText">Sesli arama</span>
+<span id="callTypeText">
+Sesli arama
+</span>
 </div>
 
-<div class="call-user" id="callUserInfo">
+<div class="call-user">
 
-<div class="call-avatar">T</div>
+<div class="call-avatar">
+T
+</div>
 
-<div class="call-name">test</div>
+<div class="call-name">
+test
+</div>
 
 <div class="call-status" id="callStatus">
 Aranıyor...
@@ -751,13 +916,14 @@ Aranıyor...
 
 </div>
 
+
 <!-- =========================
      GELEN ARAMA
 ========================= -->
 
 <div class="incoming-screen" id="incomingScreen">
 
-<div class="incoming-avatar" id="incomingAvatar">
+<div class="incoming-avatar">
 T
 </div>
 
@@ -783,7 +949,80 @@ Gelen sesli arama
 
 </div>
 
+
+<!-- =========================
+     İZİN KONTROL
+========================= -->
+
+<div class="permission-screen" id="permissionScreen">
+
+<div class="permission-icon" id="permissionIcon">
+<i class="fa-solid fa-shield-halved"></i>
 </div>
+
+<div class="permission-title" id="permissionTitle">
+Kamera ve mikrofon kontrolü
+</div>
+
+<div class="permission-message" id="permissionMessage">
+Arama yapabilmek için cihazındaki mikrofon ve kamera izinlerini kontrol ediyoruz.
+</div>
+
+<div class="permission-status">
+
+<div class="permission-row" id="secureRow">
+<i class="fa-solid fa-globe"></i>
+<span id="secureText">
+Bağlantı kontrol ediliyor...
+</span>
+</div>
+
+<div class="permission-row" id="micRow">
+<i class="fa-solid fa-microphone"></i>
+<span id="micText">
+Mikrofon kontrol ediliyor...
+</span>
+</div>
+
+<div class="permission-row" id="cameraRow">
+<i class="fa-solid fa-camera"></i>
+<span id="cameraText">
+Kamera kontrol ediliyor...
+</span>
+</div>
+
+<div class="permission-row" id="browserRow">
+<i class="fa-solid fa-browser"></i>
+<span id="browserText">
+Tarayıcı kontrol ediliyor...
+</span>
+</div>
+
+</div>
+
+<button
+class="permission-button"
+id="permissionRetry">
+İzinleri kontrol et
+</button>
+
+<button
+class="permission-close"
+id="permissionClose">
+Kapat
+</button>
+
+</div>
+
+
+<!-- DEBUG -->
+
+<div class="debug-status" id="debugStatus">
+Hazırlanıyor...
+</div>
+
+</div>
+
 
 <script type="module">
 
@@ -799,7 +1038,6 @@ import {
     ref,
     push,
     set,
-    get,
     remove,
     onChildAdded,
     onValue
@@ -809,18 +1047,23 @@ from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 const firebaseConfig = {
 
-    apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+    apiKey:
+    "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
 
-    authDomain:"mim-ea133.firebaseapp.com",
+    authDomain:
+    "mim-ea133.firebaseapp.com",
 
     databaseURL:
     "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
 
-    projectId:"mim-ea133",
+    projectId:
+    "mim-ea133",
 
-    storageBucket:"mim-ea133.firebasestorage.app",
+    storageBucket:
+    "mim-ea133.firebasestorage.app",
 
-    messagingSenderId:"303525353436",
+    messagingSenderId:
+    "303525353436",
 
     appId:
     "1:303525353436:web:082fc090b5025e19942119"
@@ -828,9 +1071,11 @@ const firebaseConfig = {
 };
 
 
-const firebaseApp = initializeApp(firebaseConfig);
+const firebaseApp =
+initializeApp(firebaseConfig);
 
-const db = getDatabase(firebaseApp);
+const db =
+getDatabase(firebaseApp);
 
 
 /* =====================================================
@@ -843,7 +1088,8 @@ localStorage.getItem("username");
 if(!myUsername){
 
     myUsername =
-    prompt("Kullanıcı adın:") || "misafir";
+    prompt("Kullanıcı adın:") ||
+    "misafir";
 
     localStorage.setItem(
         "username",
@@ -852,11 +1098,8 @@ if(!myUsername){
 }
 
 
-/* =====================================================
-   HEDEF KULLANICI
-===================================================== */
-
-const targetUsername = "test";
+const targetUsername =
+"test";
 
 
 /* =====================================================
@@ -864,46 +1107,99 @@ const targetUsername = "test";
 ===================================================== */
 
 const input =
-document.getElementById("messageInput");
-
-const sendBtn =
-document.getElementById("sendBtn");
+document.getElementById(
+    "messageInput"
+);
 
 const chatArea =
-document.getElementById("chatArea");
+document.getElementById(
+    "chatArea"
+);
 
 const loading =
-document.getElementById("loading");
+document.getElementById(
+    "loading"
+);
 
 const toast =
-document.getElementById("toast");
+document.getElementById(
+    "toast"
+);
 
 const menu =
-document.getElementById("menu");
+document.getElementById(
+    "menu"
+);
 
 const callScreen =
-document.getElementById("callScreen");
+document.getElementById(
+    "callScreen"
+);
 
 const incomingScreen =
-document.getElementById("incomingScreen");
+document.getElementById(
+    "incomingScreen"
+);
 
 const callStatus =
-document.getElementById("callStatus");
+document.getElementById(
+    "callStatus"
+);
 
 const callTypeText =
-document.getElementById("callTypeText");
+document.getElementById(
+    "callTypeText"
+);
 
 const incomingName =
-document.getElementById("incomingName");
+document.getElementById(
+    "incomingName"
+);
 
 const incomingType =
-document.getElementById("incomingType");
+document.getElementById(
+    "incomingType"
+);
 
 const remoteVideo =
-document.getElementById("remoteVideo");
+document.getElementById(
+    "remoteVideo"
+);
 
 const localVideo =
-document.getElementById("localVideo");
+document.getElementById(
+    "localVideo"
+);
+
+const permissionScreen =
+document.getElementById(
+    "permissionScreen"
+);
+
+const permissionTitle =
+document.getElementById(
+    "permissionTitle"
+);
+
+const permissionMessage =
+document.getElementById(
+    "permissionMessage"
+);
+
+const permissionRetry =
+document.getElementById(
+    "permissionRetry"
+);
+
+const permissionClose =
+document.getElementById(
+    "permissionClose"
+);
+
+const debugStatus =
+document.getElementById(
+    "debugStatus"
+);
 
 
 /* =====================================================
@@ -912,27 +1208,55 @@ document.getElementById("localVideo");
 
 function showToast(text){
 
-    toast.textContent = text;
+    toast.textContent =
+    text;
 
-    toast.classList.add("show");
+    toast.classList.add(
+        "show"
+    );
 
-    clearTimeout(showToast.timer);
+    clearTimeout(
+        showToast.timer
+    );
 
     showToast.timer =
-    setTimeout(()=>{
-        toast.classList.remove("show");
-    },1800);
+    setTimeout(
+        ()=>{
+            toast.classList.remove(
+                "show"
+            );
+        },
+        2200
+    );
 }
 
 
 /* =====================================================
-   HTML GÜVENLİĞİ
+   DEBUG
+===================================================== */
+
+function debug(text){
+
+    console.log(
+        "[Minegram]",
+        text
+    );
+
+    debugStatus.textContent =
+    text;
+}
+
+
+/* =====================================================
+   HTML
 ===================================================== */
 
 function escapeHtml(text){
 
     const div =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
     div.textContent =
     text;
@@ -942,7 +1266,7 @@ function escapeHtml(text){
 
 
 /* =====================================================
-   SAAT
+   MESAJ
 ===================================================== */
 
 function formatTime(time){
@@ -959,17 +1283,15 @@ function formatTime(time){
 }
 
 
-/* =====================================================
-   MESAJ EKLE
-===================================================== */
-
 function addMessage(data){
 
     const mine =
     data.sender === myUsername;
 
     const wrapper =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
     wrapper.className =
     mine
@@ -977,22 +1299,30 @@ function addMessage(data){
     : "message received";
 
     const bubble =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
     bubble.className =
     "bubble";
 
     bubble.innerHTML =
     escapeHtml(
-        String(data.text || "")
+        String(
+            data.text || ""
+        )
     ) +
     `<span class="message-time">
         ${formatTime(data.time)}
     </span>`;
 
-    wrapper.appendChild(bubble);
+    wrapper.appendChild(
+        bubble
+    );
 
-    chatArea.appendChild(wrapper);
+    chatArea.appendChild(
+        wrapper
+    );
 
     chatArea.scrollTop =
     chatArea.scrollHeight;
@@ -1006,28 +1336,37 @@ function addMessage(data){
 async function sendMessage(text){
 
     text =
-    String(text || "").trim();
+    String(text || "")
+    .trim();
 
-    if(!text) return;
+    if(!text)
+        return;
 
     try{
 
         await push(
-            ref(db,"messages"),
+            ref(
+                db,
+                "messages"
+            ),
             {
 
                 text:text,
 
-                sender:myUsername,
+                sender:
+                myUsername,
 
-                receiver:targetUsername,
+                receiver:
+                targetUsername,
 
-                time:Date.now()
+                time:
+                Date.now()
 
             }
         );
 
-        input.value="";
+        input.value =
+        "";
 
         input.focus();
 
@@ -1042,22 +1381,30 @@ async function sendMessage(text){
 }
 
 
-sendBtn.onclick =
+document
+.getElementById("sendBtn")
+.addEventListener(
+"click",
 ()=>{
-    sendMessage(input.value);
-};
+    sendMessage(
+        input.value
+    );
+});
 
 
 input.addEventListener(
 "keydown",
 event=>{
 
-    if(event.key==="Enter"){
+    if(event.key === "Enter"){
 
         event.preventDefault();
 
-        sendMessage(input.value);
+        sendMessage(
+            input.value
+        );
     }
+
 });
 
 
@@ -1066,33 +1413,49 @@ event=>{
 ===================================================== */
 
 onChildAdded(
-    ref(db,"messages"),
+    ref(
+        db,
+        "messages"
+    ),
     snapshot=>{
 
         const data =
         snapshot.val();
 
-        if(!data) return;
+        if(!data)
+            return;
 
         const valid =
+
         (
-            data.sender === myUsername &&
-            data.receiver === targetUsername
+            data.sender ===
+            myUsername &&
+            data.receiver ===
+            targetUsername
         )
+
         ||
+
         (
-            data.sender === targetUsername &&
-            data.receiver === myUsername
+            data.sender ===
+            targetUsername &&
+            data.receiver ===
+            myUsername
         )
+
         ||
+
         !data.receiver;
+
 
         if(valid){
 
             loading.style.display =
             "none";
 
-            addMessage(data);
+            addMessage(
+                data
+            );
         }
 
     }
@@ -1100,24 +1463,30 @@ onChildAdded(
 
 
 /* =====================================================
-   WEBRTC
+   ARAMA DEĞİŞKENLERİ
 ===================================================== */
 
-let peerConnection = null;
+let peerConnection =
+null;
 
-let localStream = null;
+let localStream =
+null;
 
-let currentCallId = null;
+let currentCallId =
+null;
 
-let currentCallType = "audio";
+let currentCallType =
+"audio";
 
-let isCaller = false;
+let pendingIncomingCall =
+null;
 
-let pendingIncomingCall = null;
+let candidateQueue =
+[];
 
 
 /* =====================================================
-   WEBRTC SERVERS
+   WEBRTC
 ===================================================== */
 
 const rtcConfig = {
@@ -1140,70 +1509,485 @@ const rtcConfig = {
 
 
 /* =====================================================
-   ARAMA ID
+   HTTPS / LOCALHOST KONTROLÜ
 ===================================================== */
 
-function createCallId(){
+function checkSecureContext(){
 
-    return (
-        myUsername +
-        "_" +
-        targetUsername +
-        "_" +
-        Date.now()
-    )
-    .replace(
-        /[^a-zA-Z0-9_-]/g,
-        "_"
+    const protocol =
+    location.protocol;
+
+    const hostname =
+    location.hostname;
+
+
+    const isLocalhost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1";
+
+
+    const secure =
+    window.isSecureContext;
+
+
+    const row =
+    document.getElementById(
+        "secureRow"
+    );
+
+    const text =
+    document.getElementById(
+        "secureText"
+    );
+
+
+    if(
+        secure ||
+        isLocalhost
+    ){
+
+        row.className =
+        "permission-row permission-ok";
+
+        text.textContent =
+        "Güvenli bağlantı uygun";
+
+        return true;
+
+    }
+
+
+    if(protocol === "file:"){
+
+        row.className =
+        "permission-row permission-error";
+
+        text.textContent =
+        "HATA: Dosya file:// üzerinden açıldı";
+
+        return false;
+
+    }
+
+
+    row.className =
+    "permission-row permission-error";
+
+    text.textContent =
+    "HTTPS bağlantısı gerekiyor";
+
+    return false;
+}
+
+
+/* =====================================================
+   TARAYICI KONTROLÜ
+===================================================== */
+
+function checkBrowser(){
+
+    const row =
+    document.getElementById(
+        "browserRow"
+    );
+
+    const text =
+    document.getElementById(
+        "browserText"
+    );
+
+
+    if(
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ){
+
+        row.className =
+        "permission-row permission-error";
+
+        text.textContent =
+        "Bu tarayıcı kamera/mikrofon API'sini desteklemiyor";
+
+        return false;
+    }
+
+
+    row.className =
+    "permission-row permission-ok";
+
+    text.textContent =
+    "Tarayıcı destekliyor";
+
+    return true;
+}
+
+
+/* =====================================================
+   İZİN DURUMU
+===================================================== */
+
+async function checkPermissionState(){
+
+    let micState =
+    "unknown";
+
+    let cameraState =
+    "unknown";
+
+
+    try{
+
+        if(
+            navigator.permissions &&
+            navigator.permissions.query
+        ){
+
+            try{
+
+                const mic =
+                await navigator.permissions.query({
+                    name:"microphone"
+                });
+
+                micState =
+                mic.state;
+
+            }catch(e){}
+
+
+            try{
+
+                const camera =
+                await navigator.permissions.query({
+                    name:"camera"
+                });
+
+                cameraState =
+                camera.state;
+
+            }catch(e){}
+
+        }
+
+    }catch(error){
+
+        console.log(
+            error
+        );
+    }
+
+
+    const micRow =
+    document.getElementById(
+        "micRow"
+    );
+
+    const micText =
+    document.getElementById(
+        "micText"
+    );
+
+
+    const cameraRow =
+    document.getElementById(
+        "cameraRow"
+    );
+
+    const cameraText =
+    document.getElementById(
+        "cameraText"
+    );
+
+
+    /* MİKROFON */
+
+    if(micState === "denied"){
+
+        micRow.className =
+        "permission-row permission-error";
+
+        micText.textContent =
+        "Mikrofon izni REDDEDİLDİ";
+
+    }else if(micState === "granted"){
+
+        micRow.className =
+        "permission-row permission-ok";
+
+        micText.textContent =
+        "Mikrofon izni verildi";
+
+    }else{
+
+        micRow.className =
+        "permission-row permission-warning";
+
+        micText.textContent =
+        "Mikrofon izni henüz kontrol edilmedi";
+
+    }
+
+
+    /* KAMERA */
+
+    if(cameraState === "denied"){
+
+        cameraRow.className =
+        "permission-row permission-error";
+
+        cameraText.textContent =
+        "Kamera izni REDDEDİLDİ";
+
+    }else if(cameraState === "granted"){
+
+        cameraRow.className =
+        "permission-row permission-ok";
+
+        cameraText.textContent =
+        "Kamera izni verildi";
+
+    }else{
+
+        cameraRow.className =
+        "permission-row permission-warning";
+
+        cameraText.textContent =
+        "Kamera izni henüz kontrol edilmedi";
+
+    }
+
+
+    return {
+        mic:micState,
+        camera:cameraState
+    };
+}
+
+
+/* =====================================================
+   İZİN PANELİ
+===================================================== */
+
+async function showPermissionPanel(){
+
+    permissionScreen.classList.add(
+        "show"
+    );
+
+    permissionTitle.textContent =
+    "Kamera ve mikrofon kontrolü";
+
+    permissionMessage.textContent =
+    "Arama yapabilmek için bağlantı, tarayıcı, mikrofon ve kamera izinlerini kontrol ediyoruz.";
+
+    checkSecureContext();
+
+    checkBrowser();
+
+    await checkPermissionState();
+}
+
+
+function hidePermissionPanel(){
+
+    permissionScreen.classList.remove(
+        "show"
     );
 }
 
 
 /* =====================================================
-   MEDYA İZNİ
+   MEDYA İZNİ İSTE
 ===================================================== */
 
-async function getMedia(type){
+async function requestMedia(type){
+
+    debug(
+        type === "video"
+        ? "Kamera ve mikrofon isteniyor..."
+        : "Mikrofon isteniyor..."
+    );
+
+
+    if(!checkSecureContext()){
+
+        await showPermissionPanel();
+
+        permissionTitle.textContent =
+        "Güvenli bağlantı gerekli";
+
+        permissionMessage.innerHTML =
+        "Sayfa <b>file://</b> üzerinden açılmış. " +
+        "Chrome/Edge güvenlik nedeniyle kamera ve mikrofonu engeller. " +
+        "<br><br>" +
+        "<b>http://localhost/...</b> üzerinden açmalısın.";
+
+        return false;
+    }
+
+
+    if(!checkBrowser()){
+
+        await showPermissionPanel();
+
+        permissionTitle.textContent =
+        "Tarayıcı desteklenmiyor";
+
+        permissionMessage.textContent =
+        "Bu tarayıcı kamera ve mikrofon erişimini desteklemiyor.";
+
+        return false;
+    }
+
 
     try{
 
-        localStream =
-        await navigator.mediaDevices
-        .getUserMedia({
+        const constraints = {
 
             audio:true,
 
             video:
             type === "video"
 
-        });
+        };
 
-        localVideo.srcObject =
-        localStream;
 
-        if(type !== "video"){
+        localStream =
+        await navigator.mediaDevices
+        .getUserMedia(
+            constraints
+        );
+
+
+        debug(
+            "Mikrofon/kamera izni başarıyla alındı."
+        );
+
+
+        const states =
+        await checkPermissionState();
+
+
+        hidePermissionPanel();
+
+
+        if(type === "video"){
 
             localVideo.style.display =
-            "none";
+            "block";
+
+            localVideo.srcObject =
+            localStream;
 
         }else{
 
             localVideo.style.display =
-            "block";
+            "none";
+
         }
 
+
         return true;
+
 
     }catch(error){
 
         console.error(
-            "Media error:",
+            "getUserMedia:",
             error
         );
 
-        showToast(
-            "Mikrofon/kamera izni verilmedi"
-        );
+
+        await showPermissionPanel();
+
+
+        let title =
+        "Kamera/mikrofon açılamadı";
+
+        let message =
+        "Bilinmeyen bir hata oluştu.";
+
+
+        if(
+            error.name ===
+            "NotAllowedError"
+        ){
+
+            title =
+            "İzin reddedildi";
+
+            message =
+            "Tarayıcı kamera veya mikrofon kullanımına izin vermedi. " +
+            "Adres çubuğundaki site izinlerinden Mikrofon/Kamera → İzin ver seç.";
+
+        }
+
+
+        else if(
+            error.name ===
+            "NotFoundError"
+        ){
+
+            title =
+            "Cihaz bulunamadı";
+
+            message =
+            "Bilgisayarda uygun mikrofon veya kamera bulunamadı. " +
+            "Cihazın bağlı olduğunu ve Windows tarafından görüldüğünü kontrol et.";
+
+        }
+
+
+        else if(
+            error.name ===
+            "NotReadableError"
+        ){
+
+            title =
+            "Cihaz kullanılıyor";
+
+            message =
+            "Kamera veya mikrofon başka bir uygulama tarafından kullanılıyor olabilir. " +
+            "Discord, OBS, Teams, Zoom veya başka kamera uygulamalarını kapatıp tekrar dene.";
+
+        }
+
+
+        else if(
+            error.name ===
+            "SecurityError"
+        ){
+
+            title =
+            "Güvenlik nedeniyle engellendi";
+
+            message =
+            "Tarayıcı güvenlik nedeniyle kamera/mikrofon erişimini engelledi. " +
+            "Sayfayı localhost veya HTTPS üzerinden aç.";
+
+        }
+
+
+        else if(
+            error.name ===
+            "AbortError"
+        ){
+
+            title =
+            "İşlem iptal edildi";
+
+            message =
+            "Kamera/mikrofon erişimi başlatılırken işlem iptal edildi. Tekrar dene.";
+
+        }
+
+
+        permissionTitle.textContent =
+        title;
+
+        permissionMessage.textContent =
+        message;
+
 
         return false;
     }
@@ -1211,7 +1995,7 @@ async function getMedia(type){
 
 
 /* =====================================================
-   PEER CONNECTION
+   PEER
 ===================================================== */
 
 function createPeer(){
@@ -1222,108 +2006,154 @@ function createPeer(){
     );
 
 
-    /* LOCAL TRACK */
+    candidateQueue =
+    [];
+
 
     if(localStream){
 
         localStream
         .getTracks()
-        .forEach(track=>{
+        .forEach(
+            track=>{
 
-            peerConnection.addTrack(
-                track,
-                localStream
-            );
+                peerConnection.addTrack(
+                    track,
+                    localStream
+                );
 
-        });
+            }
+        );
     }
 
-
-    /* REMOTE TRACK */
 
     peerConnection.ontrack =
     event=>{
 
-        if(event.streams &&
-           event.streams[0]){
+        if(
+            event.streams &&
+            event.streams[0]
+        ){
 
             remoteVideo.srcObject =
             event.streams[0];
 
+            if(
+                currentCallType ===
+                "video"
+            ){
+
+                remoteVideo.style.display =
+                "block";
+
+            }
+
         }
 
     };
 
-
-    /* ICE */
 
     peerConnection.onicecandidate =
     async event=>{
 
-        if(!event.candidate ||
-           !currentCallId){
-
+        if(
+            !event.candidate ||
+            !currentCallId
+        )
             return;
+
+
+        try{
+
+            const candidateRef =
+            push(
+                ref(
+                    db,
+                    "calls/" +
+                    currentCallId +
+                    "/candidates"
+                )
+            );
+
+
+            await set(
+                candidateRef,
+                {
+
+                    candidate:
+                    event.candidate.toJSON(),
+
+                    from:
+                    myUsername
+
+                }
+            );
+
+        }catch(error){
+
+            console.error(
+                "ICE gönderilemedi:",
+                error
+            );
         }
-
-        const candidateRef =
-        push(
-            ref(
-                db,
-                "calls/" +
-                currentCallId +
-                "/candidates"
-            )
-        );
-
-        await set(
-            candidateRef,
-            {
-
-                candidate:
-                event.candidate.toJSON(),
-
-                from:
-                myUsername
-
-            }
-        );
 
     };
 
 
-    /* CONNECTION STATE */
-
     peerConnection.onconnectionstatechange =
     ()=>{
+
+        if(!peerConnection)
+            return;
+
 
         const state =
         peerConnection.connectionState;
 
-        console.log(
-            "WebRTC:",
+
+        debug(
+            "WebRTC bağlantı: " +
             state
         );
 
-        if(state==="connected"){
+
+        if(state === "connected"){
 
             callStatus.textContent =
             "Bağlandı";
 
         }
 
+
+        if(state === "connecting"){
+
+            callStatus.textContent =
+            "Bağlanıyor...";
+
+        }
+
+
         if(
-            state==="failed" ||
-            state==="disconnected" ||
-            state==="closed"
+            state === "failed"
         ){
 
-            if(
-                state !== "closed"
-            ){
+            callStatus.textContent =
+            "Bağlantı başarısız";
 
-                endCall(false);
-            }
+            showToast(
+                "WebRTC bağlantısı kurulamadı"
+            );
+
+        }
+
+
+        if(
+            state === "disconnected"
+        ){
+
+            callStatus.textContent =
+            "Bağlantı kesildi";
+
         }
 
     };
@@ -1334,18 +2164,133 @@ function createPeer(){
 
 
 /* =====================================================
+   ICE DİNLE
+===================================================== */
+
+function listenCandidates(
+    callId
+){
+
+    onChildAdded(
+
+        ref(
+            db,
+            "calls/" +
+            callId +
+            "/candidates"
+        ),
+
+        async snapshot=>{
+
+            const data =
+            snapshot.val();
+
+
+            if(
+                !data ||
+                data.from ===
+                myUsername
+            )
+                return;
+
+
+            const candidate =
+            new RTCIceCandidate(
+                data.candidate
+            );
+
+
+            if(
+                peerConnection &&
+                peerConnection.remoteDescription
+            ){
+
+                try{
+
+                    await peerConnection
+                    .addIceCandidate(
+                        candidate
+                    );
+
+                }catch(error){
+
+                    console.error(
+                        "ICE eklenemedi:",
+                        error
+                    );
+
+                }
+
+            }else{
+
+                candidateQueue.push(
+                    candidate
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   QUEUE ICE
+===================================================== */
+
+async function flushCandidateQueue(){
+
+    if(
+        !peerConnection ||
+        !peerConnection.remoteDescription
+    )
+        return;
+
+
+    for(
+        const candidate
+        of candidateQueue
+    ){
+
+        try{
+
+            await peerConnection
+            .addIceCandidate(
+                candidate
+            );
+
+        }catch(error){
+
+            console.error(
+                error
+            );
+
+        }
+
+    }
+
+
+    candidateQueue =
+    [];
+
+}
+
+
+/* =====================================================
    GİDEN ARAMA
 ===================================================== */
 
-async function startCall(type){
+async function startCall(
+    type
+){
 
     if(
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
+        currentCallId
     ){
 
         showToast(
-            "Tarayıcı mikrofon/kamerayı desteklemiyor"
+            "Zaten bir arama var"
         );
 
         return;
@@ -1355,26 +2300,32 @@ async function startCall(type){
     currentCallType =
     type;
 
-    isCaller =
-    true;
-
 
     const mediaOK =
-    await getMedia(type);
+    await requestMedia(
+        type
+    );
+
 
     if(!mediaOK)
         return;
 
 
     currentCallId =
-    createCallId();
+    (
+        myUsername +
+        "_" +
+        targetUsername +
+        "_" +
+        Date.now()
+    )
+    .replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_"
+    );
 
 
     callScreen.classList.add(
-        "show"
-    );
-
-    incomingScreen.classList.remove(
         "show"
     );
 
@@ -1392,14 +2343,6 @@ async function startCall(type){
     createPeer();
 
 
-    const callRef =
-    ref(
-        db,
-        "calls/" +
-        currentCallId
-    );
-
-
     const offer =
     await peerConnection
     .createOffer();
@@ -1412,7 +2355,13 @@ async function startCall(type){
 
 
     await set(
-        callRef,
+
+        ref(
+            db,
+            "calls/" +
+            currentCallId
+        ),
+
         {
 
             caller:
@@ -1421,9 +2370,11 @@ async function startCall(type){
             receiver:
             targetUsername,
 
-            type:type,
+            type:
+            type,
 
-            status:"ringing",
+            status:
+            "ringing",
 
             offer:{
                 type:
@@ -1437,6 +2388,7 @@ async function startCall(type){
             Date.now()
 
         }
+
     );
 
 
@@ -1445,9 +2397,11 @@ async function startCall(type){
     );
 
 
-    showToast(
-        "Arama gönderildi"
+    debug(
+        "Arama oluşturuldu: " +
+        currentCallId
     );
+
 }
 
 
@@ -1455,23 +2409,24 @@ async function startCall(type){
    ANSWER DİNLE
 ===================================================== */
 
-function listenForAnswer(callId){
-
-    const answerRef =
-    ref(
-        db,
-        "calls/" +
-        callId +
-        "/answer"
-    );
-
+function listenForAnswer(
+    callId
+){
 
     onValue(
-        answerRef,
+
+        ref(
+            db,
+            "calls/" +
+            callId +
+            "/answer"
+        ),
+
         async snapshot=>{
 
             const answer =
             snapshot.val();
+
 
             if(
                 !answer ||
@@ -1495,14 +2450,20 @@ function listenForAnswer(callId){
                         )
                     );
 
+
+                    await flushCandidateQueue();
+
+
                     callStatus.textContent =
                     "Bağlanıyor...";
+
 
                 }catch(error){
 
                     console.error(
                         error
                     );
+
                 }
 
             }
@@ -1514,86 +2475,41 @@ function listenForAnswer(callId){
     listenCandidates(
         callId
     );
+
 }
 
 
 /* =====================================================
-   ICE DİNLE
-===================================================== */
-
-function listenCandidates(callId){
-
-    onChildAdded(
-
-        ref(
-            db,
-            "calls/" +
-            callId +
-            "/candidates"
-        ),
-
-        async snapshot=>{
-
-            const data =
-            snapshot.val();
-
-            if(!data ||
-               data.from === myUsername)
-                return;
-
-            if(
-                peerConnection &&
-                peerConnection.remoteDescription
-            ){
-
-                try{
-
-                    await peerConnection
-                    .addIceCandidate(
-                        new RTCIceCandidate(
-                            data.candidate
-                        )
-                    );
-
-                }catch(error){
-
-                    console.error(
-                        "ICE:",
-                        error
-                    );
-                }
-            }
-
-        }
-    );
-}
-
-
-/* =====================================================
-   GELEN ARAMA DİNLE
+   GELEN ARAMA
 ===================================================== */
 
 onChildAdded(
 
-    ref(db,"calls"),
+    ref(
+        db,
+        "calls"
+    ),
 
     snapshot=>{
 
         const call =
         snapshot.val();
 
+
         if(!call)
             return;
 
 
         if(
-            call.receiver !== myUsername
+            call.receiver !==
+            myUsername
         )
             return;
 
 
         if(
-            call.status !== "ringing"
+            call.status !==
+            "ringing"
         )
             return;
 
@@ -1605,16 +2521,23 @@ onChildAdded(
 
 
         pendingIncomingCall = {
-            id:snapshot.key,
-            data:call
+
+            id:
+            snapshot.key,
+
+            data:
+            call
+
         };
 
 
         currentCallId =
         snapshot.key;
 
+
         currentCallType =
-        call.type || "audio";
+        call.type ||
+        "audio";
 
 
         incomingName.textContent =
@@ -1622,8 +2545,11 @@ onChildAdded(
 
 
         incomingType.textContent =
+
         call.type === "video"
+
         ? "Gelen görüntülü arama"
+
         : "Gelen sesli arama";
 
 
@@ -1631,12 +2557,19 @@ onChildAdded(
             "show"
         );
 
+
+        debug(
+            "Gelen arama: " +
+            call.caller
+        );
+
     }
+
 );
 
 
 /* =====================================================
-   GELEN ARAMAYI KABUL ET
+   KABUL
 ===================================================== */
 
 async function acceptCall(){
@@ -1650,31 +2583,25 @@ async function acceptCall(){
     const callId =
     pendingIncomingCall.id;
 
+
     const call =
     pendingIncomingCall.data;
 
 
-    isCaller =
-    false;
-
-
     const mediaOK =
-    await getMedia(
+    await requestMedia(
         call.type
     );
 
 
-    if(!mediaOK){
-
-        rejectCall();
-
+    if(!mediaOK)
         return;
-    }
 
 
     incomingScreen.classList.remove(
         "show"
     );
+
 
     callScreen.classList.add(
         "show"
@@ -1702,6 +2629,9 @@ async function acceptCall(){
                 call.offer
             )
         );
+
+
+        await flushCandidateQueue();
 
 
         const answer =
@@ -1733,6 +2663,7 @@ async function acceptCall(){
                 answer.sdp
 
             }
+
         );
 
 
@@ -1762,58 +2693,59 @@ async function acceptCall(){
     }catch(error){
 
         console.error(
+            "Kabul hatası:",
             error
         );
+
 
         showToast(
             "Arama başlatılamadı"
         );
 
-        endCall();
+
+        await endCall(
+            true
+        );
+
     }
+
 }
 
 
 /* =====================================================
-   GELEN ARAMAYI REDDET
+   REDDET
 ===================================================== */
 
 async function rejectCall(){
 
-    if(!currentCallId)
-        return;
+    const id =
+    currentCallId;
 
 
-    try{
+    if(id){
 
-        await set(
+        try{
 
-            ref(
-                db,
-                "calls/" +
-                currentCallId +
-                "/status"
-            ),
+            await set(
 
-            "rejected"
+                ref(
+                    db,
+                    "calls/" +
+                    id +
+                    "/status"
+                ),
 
-        );
+                "rejected"
 
-        await remove(
+            );
 
-            ref(
-                db,
-                "calls/" +
-                currentCallId
-            )
+        }catch(error){
 
-        );
+            console.error(
+                error
+            );
+        }
 
-    }catch(error){
-
-        console.error(
-            error
-        );
     }
 
 
@@ -1823,25 +2755,34 @@ async function rejectCall(){
     currentCallId =
     null;
 
+
     incomingScreen.classList.remove(
         "show"
     );
+
 }
 
 
 /* =====================================================
-   ARAMAYI KAPAT
+   ARAMAYI BİTİR
 ===================================================== */
 
-async function endCall(removeFirebase=true){
+async function endCall(
+    removeFirebase = true
+){
+
+    const callId =
+    currentCallId;
+
 
     if(localStream){
 
         localStream
         .getTracks()
         .forEach(
-            track =>
-            track.stop()
+            track=>{
+                track.stop();
+            }
         );
 
         localStream =
@@ -1852,7 +2793,9 @@ async function endCall(removeFirebase=true){
     if(peerConnection){
 
         try{
+
             peerConnection.close();
+
         }catch(e){}
 
         peerConnection =
@@ -1867,6 +2810,13 @@ async function endCall(removeFirebase=true){
     null;
 
 
+    remoteVideo.style.display =
+    "none";
+
+    localVideo.style.display =
+    "none";
+
+
     callScreen.classList.remove(
         "show"
     );
@@ -1878,7 +2828,7 @@ async function endCall(removeFirebase=true){
 
     if(
         removeFirebase &&
-        currentCallId
+        callId
     ){
 
         try{
@@ -1888,29 +2838,12 @@ async function endCall(removeFirebase=true){
                 ref(
                     db,
                     "calls/" +
-                    currentCallId +
+                    callId +
                     "/status"
                 ),
 
                 "ended"
 
-            );
-
-            setTimeout(
-                async()=>{
-                    try{
-
-                        await remove(
-                            ref(
-                                db,
-                                "calls/" +
-                                currentCallId
-                            )
-                        );
-
-                    }catch(e){}
-                },
-                1000
             );
 
         }catch(error){
@@ -1919,6 +2852,7 @@ async function endCall(removeFirebase=true){
                 error
             );
         }
+
     }
 
 
@@ -1928,9 +2862,96 @@ async function endCall(removeFirebase=true){
     pendingIncomingCall =
     null;
 
-    isCaller =
-    false;
+    candidateQueue =
+    [];
+
+
+    debug(
+        "Arama kapatıldı."
+    );
+
 }
+
+
+/* =====================================================
+   ARAMA DURUMU
+===================================================== */
+
+onValue(
+
+    ref(
+        db,
+        "calls"
+    ),
+
+    snapshot=>{
+
+        const calls =
+        snapshot.val();
+
+
+        if(!calls)
+            return;
+
+
+        Object
+        .entries(
+            calls
+        )
+        .forEach(
+        ([id,call])=>{
+
+            if(
+                !call
+            )
+                return;
+
+
+            if(
+                call.caller !==
+                myUsername
+            )
+                return;
+
+
+            if(
+                id !==
+                currentCallId
+            )
+                return;
+
+
+            if(
+                call.status ===
+                "rejected"
+            ){
+
+                showToast(
+                    "Arama reddedildi"
+                );
+
+                endCall(
+                    false
+                );
+
+            }
+
+
+            if(
+                call.status ===
+                "ended"
+            ){
+
+                endCall(
+                    false
+                );
+
+            }
+
+        });
+
+    }
+);
 
 
 /* =====================================================
@@ -1942,9 +2963,9 @@ document
 .addEventListener(
 "click",
 ()=>{
-
-    startCall("audio");
-
+    startCall(
+        "audio"
+    );
 });
 
 
@@ -1953,9 +2974,9 @@ document
 .addEventListener(
 "click",
 ()=>{
-
-    startCall("video");
-
+    startCall(
+        "video"
+    );
 });
 
 
@@ -1980,9 +3001,9 @@ document
 .addEventListener(
 "click",
 ()=>{
-
-    endCall(true);
-
+    endCall(
+        true
+    );
 });
 
 
@@ -2001,7 +3022,8 @@ document
 
 
     const tracks =
-    localStream.getAudioTracks();
+    localStream
+    .getAudioTracks();
 
 
     tracks.forEach(
@@ -2014,7 +3036,8 @@ document
 
     const muted =
     !tracks.some(
-        track=>track.enabled
+        track=>
+        track.enabled
     );
 
 
@@ -2052,7 +3075,8 @@ document
 
 
     const tracks =
-    localStream.getVideoTracks();
+    localStream
+    .getVideoTracks();
 
 
     if(!tracks.length){
@@ -2073,71 +3097,6 @@ document
     );
 
 });
-
-
-/* =====================================================
-   ARAMA DURUMU DİNLE
-===================================================== */
-
-onValue(
-
-    ref(db,"calls"),
-
-    snapshot=>{
-
-        const calls =
-        snapshot.val();
-
-        if(!calls)
-            return;
-
-
-        Object
-        .entries(calls)
-        .forEach(
-        ([id,call])=>{
-
-            if(
-                !call ||
-                call.caller !==
-                myUsername
-            )
-                return;
-
-
-            if(
-                id !== currentCallId
-            )
-                return;
-
-
-            if(
-                call.status ===
-                "rejected"
-            ){
-
-                showToast(
-                    "Arama reddedildi"
-                );
-
-                endCall(false);
-
-            }
-
-
-            if(
-                call.status ===
-                "ended"
-            ){
-
-                endCall(false);
-
-            }
-
-        });
-
-    }
-);
 
 
 /* =====================================================
@@ -2241,9 +3200,7 @@ document
 .addEventListener(
 "click",
 ()=>{
-
     fileInput.click();
-
 });
 
 
@@ -2251,15 +3208,18 @@ fileInput.addEventListener(
 "change",
 ()=>{
 
-    if(fileInput.files.length){
+    if(
+        fileInput.files.length
+    ){
 
         showToast(
-            "Fotoğraf/video seçildi"
+            "Dosya seçildi"
         );
 
     }
 
-    fileInput.value="";
+    fileInput.value =
+    "";
 
 });
 
@@ -2273,9 +3233,7 @@ document
 .addEventListener(
 "click",
 ()=>{
-
     cameraInput.click();
-
 });
 
 
@@ -2283,7 +3241,9 @@ cameraInput.addEventListener(
 "change",
 ()=>{
 
-    if(cameraInput.files.length){
+    if(
+        cameraInput.files.length
+    ){
 
         showToast(
             "Kamera görüntüsü seçildi"
@@ -2291,13 +3251,14 @@ cameraInput.addEventListener(
 
     }
 
-    cameraInput.value="";
+    cameraInput.value =
+    "";
 
 });
 
 
 /* =====================================================
-   MİKROFONLA YAZMA
+   SESLİ YAZMA
 ===================================================== */
 
 document
@@ -2404,7 +3365,10 @@ async()=>{
     try{
 
         await remove(
-            ref(db,"messages")
+            ref(
+                db,
+                "messages"
+            )
         );
 
         chatArea.innerHTML =
@@ -2416,7 +3380,9 @@ async()=>{
 
     }catch(error){
 
-        console.error(error);
+        console.error(
+            error
+        );
 
         showToast(
             "Sohbet temizlenemedi"
@@ -2450,7 +3416,9 @@ document
 
     localStorage.setItem(
         "minegram_muted",
-        muted ? "0" : "1"
+        muted
+        ? "0"
+        : "1"
     );
 
 
@@ -2504,7 +3472,77 @@ document
 
 
 /* =====================================================
-   SAYFA KAPATILIRKEN
+   İZİN PANEL BUTONLARI
+===================================================== */
+
+permissionRetry
+.addEventListener(
+"click",
+async()=>{
+
+    await requestMedia(
+        "audio"
+    );
+
+});
+
+
+permissionClose
+.addEventListener(
+"click",
+()=>{
+
+    hidePermissionPanel();
+
+});
+
+
+/* =====================================================
+   SAYFA İLK AÇILIŞ
+===================================================== */
+
+(async()=>{
+
+    debug(
+        "Minegram başlatılıyor..."
+    );
+
+
+    checkSecureContext();
+
+    checkBrowser();
+
+
+    const states =
+    await checkPermissionState();
+
+
+    /*
+       İzin zaten reddedilmişse
+       kullanıcıya otomatik göster.
+    */
+
+    if(
+        states.mic === "denied" ||
+        states.camera === "denied"
+    ){
+
+        await showPermissionPanel();
+
+        permissionTitle.textContent =
+        "Kamera/mikrofon izni kapalı";
+
+        permissionMessage.textContent =
+        "Tarayıcı daha önce bu site için kamera veya mikrofon iznini reddetmiş. " +
+        "Adres çubuğundaki site izinlerinden Kamera ve Mikrofon'u 'İzin ver' yap.";
+
+    }
+
+})();
+
+
+/* =====================================================
+   SAYFA KAPANIRKEN
 ===================================================== */
 
 window.addEventListener(
@@ -2516,11 +3554,13 @@ window.addEventListener(
         localStream
         .getTracks()
         .forEach(
-            track =>
-            track.stop()
+            track=>{
+                track.stop();
+            }
         );
 
     }
+
 
     if(peerConnection){
 
@@ -2530,8 +3570,8 @@ window.addEventListener(
 
 });
 
-
 </script>
 
 </body>
 </html>
+```
