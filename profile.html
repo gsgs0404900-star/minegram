@@ -204,6 +204,27 @@ button{font:inherit;cursor:pointer}
   padding-left:18px;
 }
 
+/* SADECE AYARLAR YERİNİ KÜÇÜLT */
+#settingsMenu{
+min-height:58px !important;
+height:58px !important;
+padding:0 16px !important;
+gap:12px !important;
+}
+
+#settingsMenu .menu-icon{
+width:28px !important;
+font-size:22px !important;
+}
+
+#settingsMenu .menu-label{
+font-size:16px !important;
+}
+
+#settingsMenu .menu-arrow{
+font-size:27px !important;
+}
+
 .story-viewer-new{
  position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;
 }
@@ -1005,12 +1026,86 @@ document.getElementById('postsTab').onclick=()=>load();
 
 load();
 
-let highlightMenuIndex=-1;
-function openHighlightMenu(i){highlightMenuIndex=i;document.getElementById('highlightMenu').classList.add('open');}
-document.getElementById('highlightMenu').onclick=e=>{if(e.target.id==='highlightMenu')document.getElementById('highlightMenu').classList.remove('open')};
-document.getElementById('removeHighlightBtn').onclick=()=>{let a=getHighlights();a.splice(highlightMenuIndex,1);saveHighlights(a);document.getElementById('highlightMenu').classList.remove('open');renderHighlights();};
-document.getElementById('editHighlightBtn').onclick=()=>{let a=getHighlights();let n=prompt('Öne çıkan adı',a[highlightMenuIndex]?.title||'');if(n){a[highlightMenuIndex].title=n;saveHighlights(a);renderHighlights();}document.getElementById('highlightMenu').classList.remove('open');};
-document.getElementById('shareHighlightBtn').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(location.href);toast('Paylaşım bağlantısı kopyalandı');document.getElementById('highlightMenu').classList.remove('open');};
+js
+/* ÖNE ÇIKAN MENÜSÜ - DÜZELTİLDİ */
+let highlightMenuIndex = -1;
+
+function openHighlightMenu(i){
+  highlightMenuIndex = i;
+  const menu = document.getElementById('highlightMenu');
+  if(menu) menu.classList.add('open');
+}
+
+document.addEventListener('click', function(e){
+
+  const menu = document.getElementById('highlightMenu');
+  if(!menu) return;
+
+  if(e.target.id === 'highlightMenu'){
+    menu.classList.remove('open');
+    return;
+  }
+
+  if(e.target.closest('#removeHighlightBtn')){
+    if(highlightMenuIndex < 0) return;
+
+    const items = getHighlights();
+    items.splice(highlightMenuIndex,1);
+    saveHighlights(items);
+
+    highlightMenuIndex = -1;
+    menu.classList.remove('open');
+    renderHighlights();
+
+    toast('Öne çıkarmadan kaldırıldı');
+    return;
+  }
+
+  if(e.target.closest('#editHighlightBtn')){
+    if(highlightMenuIndex < 0) return;
+
+    const items = getHighlights();
+    const current = items[highlightMenuIndex];
+
+    if(!current) return;
+
+    const name = prompt(
+      'Öne çıkan adı',
+      current.title || 'Öne çıkan'
+    );
+
+    if(name !== null && name.trim()){
+      current.title = name.trim();
+      saveHighlights(items);
+      renderHighlights();
+      toast('Öne çıkan düzenlendi');
+    }
+
+    menu.classList.remove('open');
+    highlightMenuIndex = -1;
+    return;
+  }
+
+  if(e.target.closest('#shareHighlightBtn')){
+    const url = location.href;
+
+    if(navigator.share){
+      navigator.share({
+        title:'Minegram',
+        text:'Minegram öne çıkan paylaşımı',
+        url:url
+      }).catch(()=>{});
+    }else if(navigator.clipboard){
+      navigator.clipboard.writeText(url)
+        .then(()=>toast('Paylaşım bağlantısı kopyalandı'))
+        .catch(()=>toast('Bağlantı kopyalanamadı'));
+    }
+
+    menu.classList.remove('open');
+    highlightMenuIndex = -1;
+  }
+});
+
 </script>
 <div id="highlightMenu" class="highlight-menu"><div class="highlight-menu-box"><button class="highlight-menu-item" id="removeHighlightBtn"><span>🗑</span>Öne çıkarmadan kaldır</button><button class="highlight-menu-item" id="editHighlightBtn"><span>✏️</span>Öne çıkarmayı düzenle</button><button class="highlight-menu-item" id="shareHighlightBtn"><span>↗</span>Paylaş</button></div></div></body>
-</html>C
+</html>
