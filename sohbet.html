@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000">
+<title>Minegram • Mesajlar</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,sans-serif}body{padding-bottom:78px;overflow-x:hidden}button,input{font:inherit}button{cursor:pointer}
+.app{min-height:100dvh;background:#000}
+.header{height:72px;display:flex;align-items:center;padding:0 25px;border-bottom:1px solid #24242a;background:#000;position:sticky;top:0;z-index:20}.back{width:48px;height:48px;border:0;background:none;color:#fff;font-size:46px;line-height:1;padding:0;margin-left:-8px}.title{font-size:32px;font-weight:700;margin-left:7px}
+.search-wrap{padding:16px 22px 0}.search{height:103px;border:2px solid #77727d;border-radius:28px;display:flex;align-items:center;padding:0 24px;gap:22px}.search-icon{font-size:44px;line-height:1;transform:rotate(-15deg)}.search input{flex:1;background:transparent;border:0;outline:0;color:#fff;font-size:28px}.search input::placeholder{color:#ddd}
+.section{padding:38px 0 0}.section h2{font-size:31px;margin:0 0 22px 27px}.notes-scroll{display:flex;gap:28px;overflow-x:auto;padding:0 48px 34px;scrollbar-width:none}.notes-scroll::-webkit-scrollbar{display:none}.note{width:142px;min-width:142px;text-align:center;position:relative}.note-text{height:102px;background:#071018;border-radius:25px;padding:18px 13px;color:#fff;font-size:17px;line-height:1.8;text-align:left;overflow:hidden;margin-bottom:0}.note-avatar{width:108px;height:108px;border-radius:50%;background:#64afe9;margin:-19px auto 17px;display:grid;place-items:center;font-size:35px;font-weight:400;border:0;position:relative}.note-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.note-name{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-name.bold{font-weight:700}.plus{position:absolute;right:5px;top:135px;width:40px;height:40px;border-radius:50%;background:#64afe9;border:2px solid #000;color:#fff;font-size:31px;line-height:34px}.music{margin-top:25px;font-size:16px;white-space:nowrap}.music::first-letter{font-size:22px}.notes-divider{border-bottom:1px solid #38383e;margin-top:1px}
+.messages-section{padding-top:26px}.messages-section h2{margin-bottom:23px}.message-list{border-bottom:1px solid #38383e}.message-row{height:140px;border-top:1px solid #24242a;display:flex;align-items:center;padding:0 25px;gap:21px;text-decoration:none;color:#fff}.message-avatar{width:106px;height:106px;min-width:106px;border-radius:50%;background:#64afe9;display:grid;place-items:center;font-size:35px;overflow:hidden}.message-avatar img{width:100%;height:100%;object-fit:cover}.message-info{min-width:0;flex:1}.message-user{font-size:29px;font-weight:700;display:flex;align-items:center;gap:7px}.verified{width:33px;height:33px;border-radius:50%;background:#2388df;display:inline-grid;place-items:center;font-size:21px;font-weight:400}.message-preview{font-size:25px;color:#f4f4f4;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chevron{font-size:48px;font-weight:300;margin-left:auto;color:#fff}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;height:78px;background:#18161e;border-top:1px solid #25232c;display:flex;z-index:100;padding:5px 0 env(safe-area-inset-bottom)}.bottom-nav a{flex:1;color:#ddd;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px}.bottom-nav i{width:46px;height:32px;border-radius:18px;display:grid;place-items:center;font-style:normal;font-size:25px}.bottom-nav a.active i{background:#3b3450}.bottom-nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#29272e;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:200}.toast.show{opacity:1}
+@media(max-width:600px){.header{height:72px;padding:0 25px}.title{font-size:31px}.search-wrap{padding:16px 22px 0}.search{height:103px}.search input{font-size:27px}.section{padding-top:38px}.section h2{font-size:30px}.notes-scroll{gap:28px;padding-left:49px}.message-row{height:140px;padding:0 25px}.message-avatar{width:106px;height:106px;min-width:106px}.message-user{font-size:29px}.message-preview{font-size:24px}}
+@media(min-width:700px){.app{max-width:720px;margin:auto;border-left:1px solid #202024;border-right:1px solid #202024}.bottom-nav{max-width:720px;left:50%;right:auto;transform:translateX(-50%);width:720px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header"><button class="back" id="back">‹</button><div class="title">Mesajlar</div></header>
+<div class="search-wrap"><div class="search"><span class="search-icon">⌕</span><input id="search" placeholder="Kişileri ara..." autocomplete="off"></div></div>
+<section class="section"><h2>Notlar</h2><div class="notes-scroll" id="notes"></div><div class="notes-divider"></div></section>
+<section class="section messages-section"><h2>Mesajlar</h2><div class="message-list" id="messageList"><div style="padding:35px;text-align:center;color:#777">Mesajlar yükleniyor...</div></div></section>
+</div>
+<nav class="bottom-nav">
+<a href="index.html"><i>⌂</i><span>Ana Sayfa</span></a>
+<a href="ara.html"><i>⌕</i><span>Ara</span></a>
+<a href="olustur.html"><i>＋</i><span>Oluştur</span></a>
+<a href="reels.html"><i>▣</i><span>Reels</span></a>
+<a href="profile.html"><i>♙</i><span>Profil</span></a>
+</nav>
+<div class="toast" id="toast"></div>
+<script>
+const token=localStorage.getItem('minegram_token')||localStorage.getItem('token')||'';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,opt={}){const headers={...(opt.headers||{})};if(token)headers.Authorization='Bearer '+token;if(opt.body&&typeof opt.body!=='string'){headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body)}const r=await fetch(url,{...opt,headers});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||('HTTP '+r.status));return r.status===204?{}:r.json().catch(()=>({}))}
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),1800)}
+const demoNotes=[
+ {username:'Notun',displayName:'Notun',text:'Ahmet kaya',avatar:'',plus:true},
+ {username:'ahmet',displayName:'ahmet',text:'Bugün güzel bir gün ☀️',avatar:''},
+ {username:'mehmet',displayName:'mehmet',text:'Biraz müzik dinliyorum 🎵',avatar:'',music:true},
+ {username:'galatasaray',displayName:'galatasaray',text:'Maç günü!',avatar:''}
+];
+function avatarHtml(item,cls){const name=(item.displayName||item.username||'M')[0].toUpperCase();return `<div class="${cls}">${item.avatar?`<img src="${esc(item.avatar)}" alt="">`:esc(name)}</div>`}
+function renderNotes(list){$('notes').innerHTML=list.map((n,i)=>`<div class="note"><div class="note-text">${esc(n.text)}</div>${avatarHtml(n,'note-avatar')}${n.plus?'<button class="plus" type="button">+</button>':''}<div class="note-name ${n.plus?'bold':''}">${esc(n.displayName||n.username)}</div>${n.music?'<div class="music">▶ Şarkıyı çal</div>':''}</div>`).join('')}
+function conversationUsers(raw){
+ const map=new Map();
+ for(const m of raw){const sender=m.sender||m.from||'';const recipient=m.recipient||m.to||'';const me=m.me||'';const target=String(sender).toLowerCase()===String(me).toLowerCase()?recipient:sender;if(target)map.set(target.toLowerCase(),{username:target,displayName:target,avatar:m.avatar||'',verified:m.verified||false,text:m.text||m.message||'',createdAt:Number(m.createdAt||m.timestamp||0)});}
+ return [...map.values()].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+}
+function renderMessages(list){
+ if(!list.length){$('messageList').innerHTML=`<div style="padding:55px 20px;text-align:center;color:#777">Henüz mesaj yok.</div>`;return}
+ $('messageList').innerHTML=list.map(m=>`<a class="message-row" href="sohbet.html?username=${encodeURIComponent(m.username)}"><div>${avatarHtml(m,'message-avatar')}</div><div class="message-info"><div class="message-user">${esc(m.displayName||m.username)}${m.verified?'<span class="verified">✓</span>':''}</div><div class="message-preview">${esc(m.text||'Mesaj gönderme için dokun')}</div></div><div class="chevron">›</div></a>`).join('');
+}
+async function load(){
+ renderNotes(demoNotes);
+ try{
+   const me=await api('/api/me');
+   let raw=[];
+   try{const data=await api('/api/messages');raw=Array.isArray(data)?data:(data.messages||data.items||[])}catch(e){raw=[]}
+   raw=raw.map(x=>({...x,me:me?.username||''}));
+   let users=conversationUsers(raw);
+   if(!users.length){users=[{username:'test',displayName:'test',text:'Mesaj gönderme için dokun',verified:true,avatar:''}]}
+   renderMessages(users);
+ }catch(e){renderMessages([{username:'test',displayName:'test',text:'Mesaj gönderme için dokun',verified:true,avatar:''}])}
+}
+$('search').addEventListener('input',async e=>{
+ const q=e.target.value.trim().toLowerCase();
+ if(!q){load();return}
+ try{const data=await api('/api/users?search='+encodeURIComponent(q));const users=Array.isArray(data)?data:(data.users||data.items||[]);renderMessages(users.map(u=>({username:u.username,displayName:u.displayName||u.username,avatar:u.avatar||'',verified:!!u.verified,text:'Mesaj göndermek için dokun'})))}catch(e){renderMessages([])}
+});
+$('back').onclick=()=>history.length>1?history.back():location.href='index.html';
+$('notes').addEventListener('click',e=>{const n=e.target.closest('.note');if(!n)return;const name=n.querySelector('.note-name')?.textContent?.trim();if(name&&name!=='Notun')location.href='sohbet.html?username='+encodeURIComponent(name)});
+load();
+</script>
+</body>
+</html>
