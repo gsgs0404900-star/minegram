@@ -890,11 +890,8 @@ body{
 >
 
 
+```html
 <script type="module">
-
-/* ============================================================
-   FIREBASE
-============================================================ */
 
 import {
     initializeApp
@@ -902,22 +899,25 @@ import {
 
 import {
     getDatabase,
-    ref,
+    ref as dbRef,
     push,
     set,
     onChildAdded,
     onValue,
-    remove,
-    serverTimestamp
+    remove
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 import {
     getStorage,
-    storageRef,
+    ref as storageRef,
     uploadBytes,
     getDownloadURL
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
 
+
+/* ============================================================
+   FIREBASE AYARLARI
+============================================================ */
 
 const firebaseConfig = {
 
@@ -941,11 +941,14 @@ const firebaseConfig = {
 };
 
 
-const app = initializeApp(firebaseConfig);
+const app =
+    initializeApp(firebaseConfig);
 
-const db = getDatabase(app);
+const db =
+    getDatabase(app);
 
-const storage = getStorage(app);
+const storage =
+    getStorage(app);
 
 
 /* ============================================================
@@ -961,7 +964,9 @@ if(!myUsername){
         prompt("Kullanıcı adın:");
 
     myUsername =
-        String(myUsername || "misafir")
+        String(
+            myUsername || "misafir"
+        )
         .trim()
         .toLowerCase();
 
@@ -972,17 +977,9 @@ if(!myUsername){
 }
 
 
-/*
-   Karşı taraf.
-
-   Şimdilik test.
-
-   İleride mesaj sayfasından:
-
-   mesaj.html?user=ahmet
-
-   şeklinde açarsan otomatik olarak ahmet'i alır.
-*/
+/* ============================================================
+   KARŞI KULLANICI
+============================================================ */
 
 const urlParams =
     new URLSearchParams(
@@ -1028,7 +1025,7 @@ const conversationId =
 
 
 const messagesRef =
-    ref(
+    dbRef(
         db,
         "conversations/" +
         conversationId +
@@ -1087,12 +1084,13 @@ const loading =
 
 
 /* ============================================================
-   PROFİL BİLGİSİ
+   PROFİL
 ============================================================ */
 
 document.getElementById(
     "userName"
-).textContent = otherUsername;
+).textContent =
+    otherUsername;
 
 const firstLetter =
     otherUsername
@@ -1101,11 +1099,13 @@ const firstLetter =
 
 document.getElementById(
     "smallAvatar"
-).textContent = firstLetter;
+).textContent =
+    firstLetter;
 
 document.getElementById(
     "largeAvatar"
-).textContent = firstLetter;
+).textContent =
+    firstLetter;
 
 
 /* ============================================================
@@ -1114,22 +1114,28 @@ document.getElementById(
 
 function showToast(text){
 
-    toast.textContent = text;
+    toast.textContent =
+        text;
 
-    toast.classList.add("show");
+    toast.classList.add(
+        "show"
+    );
 
     clearTimeout(
         showToast.timer
     );
 
     showToast.timer =
-        setTimeout(() => {
+        setTimeout(
+            () => {
 
-            toast.classList.remove(
-                "show"
-            );
+                toast.classList.remove(
+                    "show"
+                );
 
-        },1800);
+            },
+            1800
+        );
 }
 
 
@@ -1140,7 +1146,9 @@ function showToast(text){
 function escapeHtml(text){
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     div.textContent =
         String(text || "");
@@ -1155,22 +1163,10 @@ function escapeHtml(text){
 
 function formatTime(timestamp){
 
-    let date;
-
-    if(
-        timestamp &&
-        typeof timestamp === "number"
-    ){
-
-        date =
-            new Date(timestamp);
-
-    }else{
-
-        date =
-            new Date();
-
-    }
+    const date =
+        timestamp
+        ? new Date(timestamp)
+        : new Date();
 
     return date.toLocaleTimeString(
         "tr-TR",
@@ -1192,9 +1188,6 @@ function addMessage(data,key){
         return;
     }
 
-    /*
-       Aynı mesajın iki kere görünmesini önler.
-    */
 
     if(
         document.querySelector(
@@ -1210,7 +1203,9 @@ function addMessage(data,key){
 
 
     const wrapper =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     wrapper.className =
         mine
@@ -1222,15 +1217,17 @@ function addMessage(data,key){
 
 
     const bubble =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     bubble.className =
         "bubble";
 
 
-    /* =========================
+    /* ========================================================
        RESİM
-    ========================= */
+    ======================================================== */
 
     if(data.type === "image"){
 
@@ -1239,7 +1236,9 @@ function addMessage(data,key){
         );
 
         const img =
-            document.createElement("img");
+            document.createElement(
+                "img"
+            );
 
         img.src =
             data.url;
@@ -1250,14 +1249,16 @@ function addMessage(data,key){
         img.alt =
             "Gönderilen fotoğraf";
 
-        bubble.appendChild(img);
+        bubble.appendChild(
+            img
+        );
 
     }
 
 
-    /* =========================
+    /* ========================================================
        VİDEO
-    ========================= */
+    ======================================================== */
 
     else if(data.type === "video"){
 
@@ -1266,7 +1267,9 @@ function addMessage(data,key){
         );
 
         const video =
-            document.createElement("video");
+            document.createElement(
+                "video"
+            );
 
         video.src =
             data.url;
@@ -1274,18 +1277,22 @@ function addMessage(data,key){
         video.className =
             "media-content";
 
-        video.controls = true;
+        video.controls =
+            true;
 
-        video.playsInline = true;
+        video.playsInline =
+            true;
 
-        bubble.appendChild(video);
+        bubble.appendChild(
+            video
+        );
 
     }
 
 
-    /* =========================
+    /* ========================================================
        SES
-    ========================= */
+    ======================================================== */
 
     else if(data.type === "audio"){
 
@@ -1294,24 +1301,29 @@ function addMessage(data,key){
         );
 
         const audio =
-            document.createElement("audio");
+            document.createElement(
+                "audio"
+            );
 
         audio.src =
             data.url;
 
-        audio.controls = true;
+        audio.controls =
+            true;
 
         audio.className =
             "audio-message";
 
-        bubble.appendChild(audio);
+        bubble.appendChild(
+            audio
+        );
 
     }
 
 
-    /* =========================
+    /* ========================================================
        GIF
-    ========================= */
+    ======================================================== */
 
     else if(data.type === "gif"){
 
@@ -1320,7 +1332,9 @@ function addMessage(data,key){
         );
 
         const img =
-            document.createElement("img");
+            document.createElement(
+                "img"
+            );
 
         img.src =
             data.url;
@@ -1328,19 +1342,23 @@ function addMessage(data,key){
         img.className =
             "media-content";
 
-        bubble.appendChild(img);
+        bubble.appendChild(
+            img
+        );
 
     }
 
 
-    /* =========================
+    /* ========================================================
        NORMAL MESAJ
-    ========================= */
+    ======================================================== */
 
     else{
 
         const text =
-            document.createElement("span");
+            document.createElement(
+                "span"
+            );
 
         text.className =
             "message-text";
@@ -1350,17 +1368,21 @@ function addMessage(data,key){
                 data.text || ""
             );
 
-        bubble.appendChild(text);
+        bubble.appendChild(
+            text
+        );
 
     }
 
 
-    /* =========================
+    /* ========================================================
        SAAT
-    ========================= */
+    ======================================================== */
 
     const time =
-        document.createElement("span");
+        document.createElement(
+            "span"
+        );
 
     time.className =
         "message-time";
@@ -1370,22 +1392,26 @@ function addMessage(data,key){
             data.time
         );
 
-    bubble.appendChild(time);
+    bubble.appendChild(
+        time
+    );
 
 
-    /* =========================
+    /* ========================================================
        OKUNDU
-    ========================= */
+    ======================================================== */
 
     if(mine){
 
         const status =
-            document.createElement("span");
+            document.createElement(
+                "span"
+            );
 
         status.className =
             "message-status";
 
-        status.innerHTML =
+        status.textContent =
             data.read
             ? "✓✓"
             : "✓";
@@ -1405,18 +1431,18 @@ function addMessage(data,key){
         wrapper
     );
 
-    requestAnimationFrame(() => {
 
-        chatArea.scrollTop =
-            chatArea.scrollHeight;
+    requestAnimationFrame(
+        () => {
 
-    });
+            chatArea.scrollTop =
+                chatArea.scrollHeight;
+
+        }
+    );
 
 
-    /*
-       Karşıdan gelen mesajı
-       otomatik okundu yap.
-    */
+    /* Gelen mesajı okundu yap */
 
     if(
         !mine &&
@@ -1424,7 +1450,7 @@ function addMessage(data,key){
     ){
 
         set(
-            ref(
+            dbRef(
                 db,
                 "conversations/" +
                 conversationId +
@@ -1457,9 +1483,7 @@ async function sendMessage(text){
     }
 
 
-    /*
-       Engelli kullanıcı kontrolü
-    */
+    /* Engellenmiş kullanıcı */
 
     if(
         localStorage.getItem(
@@ -1503,7 +1527,9 @@ async function sendMessage(text){
 
         input.value = "";
 
-        setTyping(false);
+        setTyping(
+            false
+        );
 
         input.focus();
 
@@ -1511,6 +1537,7 @@ async function sendMessage(text){
     }catch(error){
 
         console.error(
+            "MESAJ HATASI:",
             error
         );
 
@@ -1524,7 +1551,7 @@ async function sendMessage(text){
 
 
 /* ============================================================
-   GÖNDER BUTONU
+   GÖNDER
 ============================================================ */
 
 sendBtn.addEventListener(
@@ -1562,7 +1589,7 @@ input.addEventListener(
 
 
 /* ============================================================
-   FIREBASE MESAJ DİNLE
+   FIREBASE MESAJLAR
 ============================================================ */
 
 onChildAdded(
@@ -1576,8 +1603,16 @@ onChildAdded(
             return;
         }
 
-        loading.style.display =
-            "none";
+
+        if(
+            loading
+        ){
+
+            loading.style.display =
+                "none";
+
+        }
+
 
         addMessage(
             data,
@@ -1588,14 +1623,21 @@ onChildAdded(
     (error) => {
 
         console.error(
+            "FIREBASE MESAJ OKUMA HATASI:",
             error
         );
 
-        loading.textContent =
-            "Mesajlar yüklenemedi";
+
+        if(loading){
+
+            loading.textContent =
+                "Firebase erişim hatası";
+
+        }
+
 
         showToast(
-            "Firebase bağlantısı başarısız"
+            "Mesajlara erişilemiyor"
         );
 
     }
@@ -1617,7 +1659,10 @@ async function uploadMedia(file){
         100 * 1024 * 1024;
 
 
-    if(file.size > maxSize){
+    if(
+        file.size >
+        maxSize
+    ){
 
         showToast(
             "Dosya en fazla 100 MB olabilir"
@@ -1650,6 +1695,8 @@ async function uploadMedia(file){
             "_" +
             safeName;
 
+
+        /* BURASI ARTIK DOĞRU STORAGE REF */
 
         const fileRef =
             storageRef(
@@ -1729,6 +1776,7 @@ async function uploadMedia(file){
     }catch(error){
 
         console.error(
+            "DOSYA YÜKLEME HATASI:",
             error
         );
 
@@ -1773,13 +1821,13 @@ fileInput.addEventListener(
     "change",
     async () => {
 
-        if(fileInput.files.length){
-
-            const file =
-                fileInput.files[0];
+        if(
+            fileInput.files &&
+            fileInput.files.length
+        ){
 
             await uploadMedia(
-                file
+                fileInput.files[0]
             );
 
         }
@@ -1816,7 +1864,10 @@ cameraInput.addEventListener(
     "change",
     async () => {
 
-        if(cameraInput.files.length){
+        if(
+            cameraInput.files &&
+            cameraInput.files.length
+        ){
 
             await uploadMedia(
                 cameraInput.files[0]
@@ -1949,6 +2000,7 @@ async function toggleRecording(){
     }catch(error){
 
         console.error(
+            "MİKROFON HATASI:",
             error
         );
 
@@ -1960,6 +2012,10 @@ async function toggleRecording(){
 
 }
 
+
+/* ============================================================
+   SES YÜKLE
+============================================================ */
 
 async function uploadAudio(blob){
 
@@ -1978,7 +2034,7 @@ async function uploadAudio(blob){
             ".webm";
 
 
-        const fileRef =
+        const audioRef =
             storageRef(
                 storage,
                 path
@@ -1986,14 +2042,14 @@ async function uploadAudio(blob){
 
 
         await uploadBytes(
-            fileRef,
+            audioRef,
             blob
         );
 
 
         const url =
             await getDownloadURL(
-                fileRef
+                audioRef
             );
 
 
@@ -2028,6 +2084,7 @@ async function uploadAudio(blob){
     }catch(error){
 
         console.error(
+            "SES YÜKLEME HATASI:",
             error
         );
 
@@ -2091,13 +2148,16 @@ document.querySelectorAll(
                     button.textContent;
 
                 const start =
-                    input.selectionStart;
+                    input.selectionStart ??
+                    input.value.length;
 
                 const end =
-                    input.selectionEnd;
+                    input.selectionEnd ??
+                    input.value.length;
 
                 const value =
                     input.value;
+
 
                 input.value =
                     value.substring(
@@ -2114,9 +2174,11 @@ document.querySelectorAll(
 
                 input.focus();
 
+
                 const position =
                     start +
                     emoji.length;
+
 
                 input.setSelectionRange(
                     position,
@@ -2140,12 +2202,6 @@ document.getElementById(
     "click",
     () => {
 
-        /*
-           Şimdilik gerçek GIF URL'si
-           girerek gönderebileceğin
-           basit pencere.
-        */
-
         const gifUrl =
             prompt(
                 "GIF URL'sini gir:"
@@ -2156,7 +2212,9 @@ document.getElementById(
             !gifUrl ||
             !gifUrl.trim()
         ){
+
             return;
+
         }
 
 
@@ -2195,6 +2253,7 @@ document.getElementById(
             error => {
 
                 console.error(
+                    "GIF HATASI:",
                     error
                 );
 
@@ -2444,7 +2503,7 @@ document.getElementById(
 
 
 /* ============================================================
-   SOHBETİ TEMİZLE
+   SOHBET TEMİZLE
 ============================================================ */
 
 document.getElementById(
@@ -2471,7 +2530,9 @@ document.getElementById(
             );
 
 
-            chatArea.innerHTML = "";
+            chatArea.innerHTML =
+                "";
+
 
             showToast(
                 "Sohbet temizlendi"
@@ -2486,6 +2547,7 @@ document.getElementById(
         }catch(error){
 
             console.error(
+                "TEMİZLEME HATASI:",
                 error
             );
 
@@ -2500,16 +2562,29 @@ document.getElementById(
 
 
 /* ============================================================
-   YAZIYOR DURUMU
+   YAZIYOR
 ============================================================ */
 
 let typingTimer =
     null;
 
 
-function typingRef(){
+function getMyTypingRef(){
 
-    return ref(
+    return dbRef(
+        db,
+        "typing/" +
+        conversationId +
+        "/" +
+        myUsername
+    );
+
+}
+
+
+function getOtherTypingRef(){
+
+    return dbRef(
         db,
         "typing/" +
         conversationId +
@@ -2528,13 +2603,7 @@ function setTyping(value){
 
 
     set(
-        ref(
-            db,
-            "typing/" +
-            conversationId +
-            "/" +
-            myUsername
-        ),
+        getMyTypingRef(),
         value
     ).catch(
         console.error
@@ -2573,20 +2642,22 @@ input.addEventListener(
 
 
 /* ============================================================
-   KARŞI TARAF YAZIYOR MU
+   KARŞI TARAF YAZIYOR
 ============================================================ */
 
 onValue(
-    typingRef(),
+    getOtherTypingRef(),
     snapshot => {
 
         const value =
             snapshot.val();
 
+
         typingBox.classList.toggle(
             "show",
             value === true
         );
+
 
         if(value === true){
 
@@ -2595,16 +2666,24 @@ onValue(
 
         }
 
+    },
+    error => {
+
+        console.error(
+            "TYPING HATASI:",
+            error
+        );
+
     }
 );
 
 
 /* ============================================================
-   ONLINE DURUM
+   ONLINE
 ============================================================ */
 
 const onlineRef =
-    ref(
+    dbRef(
         db,
         "presence/" +
         otherUsername
@@ -2617,6 +2696,7 @@ onValue(
 
         const online =
             snapshot.val();
+
 
         if(
             online &&
@@ -2637,16 +2717,24 @@ onValue(
 
         }
 
+    },
+    error => {
+
+        console.error(
+            "ONLINE HATASI:",
+            error
+        );
+
     }
 );
 
 
 /* ============================================================
-   KENDİ ONLINE DURUMUN
+   KENDİ ONLINE DURUM
 ============================================================ */
 
 const myPresenceRef =
-    ref(
+    dbRef(
         db,
         "presence/" +
         myUsername
@@ -2669,7 +2757,7 @@ set(
 
 
 /* ============================================================
-   SAYFADAN ÇIKINCA OFFLINE
+   ÇIKIŞTA OFFLINE
 ============================================================ */
 
 window.addEventListener(
@@ -2700,20 +2788,24 @@ window.addEventListener(
 
 
 /* ============================================================
-   BAŞLANGIÇ
+   HAZIR
 ============================================================ */
 
 console.log(
-    "Minegram Chat hazır."
+    "================================"
 );
 
 console.log(
-    "Kullanıcı:",
+    "MINEGRAM CHAT"
+);
+
+console.log(
+    "Ben:",
     myUsername
 );
 
 console.log(
-    "Karşı kullanıcı:",
+    "Karşı:",
     otherUsername
 );
 
@@ -2722,6 +2814,19 @@ console.log(
     conversationId
 );
 
+console.log(
+    "Database bağlantısı hazır."
+);
+
+console.log(
+    "Storage bağlantısı hazır."
+);
+
+console.log(
+    "================================"
+);
+
 </script>
 
 </body>
+</html>
