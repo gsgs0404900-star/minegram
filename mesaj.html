@@ -1,287 +1,753 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Minegram Chat</title>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <style>
-
 *{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    background:#000;
+    color:#fff;
+    overflow:hidden;
 }
 
 body{
-background:#000;
-color:#fff;
+    display:flex;
+    justify-content:center;
 }
 
 .app{
-width:100%;
-max-width:430px;
-height:100vh;
-margin:auto;
-display:flex;
-flex-direction:column;
-background:#000;
+    width:100%;
+    max-width:430px;
+    height:100dvh;
+    min-height:100vh;
+    background:#000;
+    display:flex;
+    flex-direction:column;
+    position:relative;
 }
 
+/* ÜST BAR */
 .topbar{
-height:65px;
-display:flex;
-align-items:center;
-padding:0 15px;
-border-bottom:1px solid #262626;
+    height:72px;
+    min-height:72px;
+    display:flex;
+    align-items:center;
+    padding:0 14px;
+    border-bottom:1px solid #202020;
+    background:#000;
+    z-index:5;
 }
 
 .back{
-color:#fff;
-font-size:22px;
-text-decoration:none;
-margin-right:12px;
+    width:38px;
+    height:50px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    text-decoration:none;
+    font-size:25px;
+    margin-right:3px;
 }
 
 .user{
-flex:1;
-display:flex;
-align-items:center;
+    flex:1;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    cursor:pointer;
 }
 
-.avatar{
-width:42px;
-height:42px;
-border-radius:50%;
-background:#3797F0;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-font-size:18px;
+.avatar-small{
+    width:45px;
+    height:45px;
+    min-width:45px;
+    border-radius:50%;
+    background:#62afea;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:21px;
+    font-weight:700;
+    color:#fff;
 }
 
 .info{
-margin-left:10px;
+    margin-left:10px;
+    min-width:0;
+}
+
+.name-row{
+    display:flex;
+    align-items:center;
+    gap:5px;
 }
 
 .name{
-font-size:15px;
-font-weight:600;
+    font-size:18px;
+    line-height:21px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.verified{
+    width:23px;
+    height:23px;
+    border-radius:50%;
+    background:#1877f2;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    color:#fff;
+    flex:none;
 }
 
 .profile{
-font-size:12px;
-color:#999;
-margin-top:2px;
+    margin-top:2px;
+    color:#aaa;
+    font-size:14px;
 }
 
 .actions{
-display:flex;
-gap:18px;
-font-size:20px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding-left:7px;
 }
 
+.action-btn{
+    width:25px;
+    height:42px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:21px;
+}
+
+.action-btn:active,
+.back:active{
+    opacity:.55;
+}
+
+/* PROFİL ALANI */
+.profile-card{
+    text-align:center;
+    padding-top:30px;
+    flex:none;
+}
+
+.avatar-large{
+    width:162px;
+    height:162px;
+    margin:0 auto;
+    border-radius:50%;
+    background:#62afea;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:72px;
+    font-weight:700;
+}
+
+.profile-link{
+    display:inline-block;
+    margin-top:45px;
+    color:#62afea;
+    font-size:19px;
+    font-weight:600;
+    text-decoration:none;
+}
+
+.profile-link:active{
+    opacity:.6;
+}
+
+/* MESAJ ALANI */
 .chat-area{
-flex:1;
-overflow-y:auto;
-padding:15px;
-display:flex;
-flex-direction:column;
-gap:10px;
+    flex:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding:14px 14px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+    scroll-behavior:smooth;
+}
+
+.chat-area::-webkit-scrollbar{
+    width:0;
+    height:0;
 }
 
 .message{
-display:flex;
+    display:flex;
+    width:100%;
 }
 
 .message.sent{
-justify-content:flex-end;
+    justify-content:flex-end;
 }
 
 .message.received{
-justify-content:flex-start;
+    justify-content:flex-start;
 }
 
 .bubble{
-max-width:75%;
-padding:10px 14px;
-border-radius:22px;
-font-size:15px;
-word-break:break-word;
+    max-width:76%;
+    padding:9px 13px 8px;
+    border-radius:23px;
+    font-size:18px;
+    line-height:23px;
+    word-break:break-word;
+    position:relative;
+    min-width:45px;
 }
 
 .sent .bubble{
-background:#3797F0;
-color:#fff;
+    background:#62afea;
+    color:#fff;
+    border-bottom-right-radius:23px;
 }
 
 .received .bubble{
-background:#262626;
-color:#fff;
+    background:#262626;
+    color:#fff;
 }
 
+.message-time{
+    font-size:10px;
+    opacity:.65;
+    margin-left:5px;
+    white-space:nowrap;
+    vertical-align:bottom;
+    position:relative;
+    top:1px;
+}
+
+/* YAZMA ALANI */
 .input-bar{
-height:60px;
-display:flex;
-align-items:center;
-gap:10px;
-padding:0 15px;
-border-top:1px solid #262626;
+    min-height:91px;
+    padding:13px 12px calc(13px + env(safe-area-inset-bottom));
+    border-top:1px solid #282828;
+    background:#000;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    z-index:6;
 }
 
-.input-bar input{
-flex:1;
-background:#111;
-border:1px solid #333;
-border-radius:25px;
-padding:10px 15px;
-color:#fff;
-outline:none;
-font-size:15px;
+.tool-buttons{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    flex:none;
 }
 
-.input-bar i{
-font-size:22px;
-color:#fff;
-cursor:pointer;
+.tool-btn{
+    width:30px;
+    height:48px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+    cursor:pointer;
+}
+
+.tool-btn:active{
+    opacity:.55;
+    transform:scale(.94);
+}
+
+.gif-btn{
+    width:37px;
+    height:30px;
+    border-radius:5px;
+    border:2px solid #fff;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    background:transparent;
+}
+
+.composer{
+    height:60px;
+    min-width:0;
+    flex:1;
+    display:flex;
+    align-items:center;
+    border:2px solid #777;
+    border-radius:9px;
+    overflow:hidden;
+    background:#050505;
+}
+
+#messageInput{
+    flex:1;
+    min-width:0;
+    height:100%;
+    border:0;
+    outline:0;
+    background:transparent;
+    color:#fff;
+    padding:0 13px;
+    font-size:18px;
+}
+
+#messageInput::placeholder{
+    color:#e5e5e5;
+    opacity:1;
 }
 
 #sendBtn{
-background:none;
-border:none;
-color:#3797F0;
-font-size:22px;
-cursor:pointer;
+    width:58px;
+    height:100%;
+    border:0;
+    background:transparent;
+    color:#fff;
+    font-size:33px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
-</style>
+#sendBtn:active{
+    transform:scale(.9);
+}
 
+/* MENÜ */
+.menu{
+    position:absolute;
+    top:63px;
+    right:10px;
+    width:205px;
+    background:#171717;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:6px;
+    box-shadow:0 10px 30px rgba(0,0,0,.55);
+    display:none;
+    z-index:20;
+}
+
+.menu.show{
+    display:block;
+}
+
+.menu button{
+    width:100%;
+    height:45px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    text-align:left;
+    padding:0 12px;
+    border-radius:8px;
+    font-size:15px;
+    cursor:pointer;
+}
+
+.menu button:hover{
+    background:#292929;
+}
+
+.menu .danger{
+    color:#ff4d67;
+}
+
+/* TOAST */
+.toast{
+    position:absolute;
+    left:50%;
+    bottom:105px;
+    transform:translate(-50%,20px);
+    background:#242424;
+    color:#fff;
+    padding:10px 15px;
+    border-radius:10px;
+    font-size:14px;
+    opacity:0;
+    pointer-events:none;
+    transition:.22s;
+    z-index:30;
+    white-space:nowrap;
+}
+
+.toast.show{
+    opacity:1;
+    transform:translate(-50%,0);
+}
+
+/* MOBİL UYUMLULUK */
+@media(max-width:370px){
+    .tool-buttons{gap:8px}
+    .tool-btn{font-size:23px}
+    .actions{gap:14px}
+    .bubble{font-size:16px}
+    #messageInput{font-size:16px}
+}
+
+@media(min-width:431px){
+    .app{
+        border-left:1px solid #151515;
+        border-right:1px solid #151515;
+    }
+}
+</style>
 </head>
 
 <body>
-
 <div class="app">
 
-<header class="topbar">
+    <header class="topbar">
+        <a href="messages.html" class="back" aria-label="Geri">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
 
-<a href="messages.html" class="back">
-<i class="fa-solid fa-arrow-left"></i>
-</a>
+        <div class="user" id="profileHeader">
+            <div class="avatar-small">T</div>
+            <div class="info">
+                <div class="name-row">
+                    <div class="name">test</div>
+                    <span class="verified"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="profile">Profil</div>
+            </div>
+        </div>
 
-<div class="user">
+        <div class="actions">
+            <button class="action-btn" id="callBtn" aria-label="Ara">
+                <i class="fa-solid fa-phone"></i>
+            </button>
+            <button class="action-btn" id="videoBtn" aria-label="Görüntülü ara">
+                <i class="fa-solid fa-video"></i>
+            </button>
+            <button class="action-btn" id="moreBtn" aria-label="Daha fazla">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+        </div>
+    </header>
 
-<div class="avatar">T</div>
+    <div class="menu" id="menu">
+        <button id="viewProfile"><i class="fa-regular fa-user"></i>&nbsp;&nbsp;Profili gör</button>
+        <button id="muteBtn"><i class="fa-regular fa-bell-slash"></i>&nbsp;&nbsp;Sessize al</button>
+        <button id="clearBtn"><i class="fa-regular fa-trash-can"></i>&nbsp;&nbsp;Sohbeti temizle</button>
+        <button class="danger" id="blockBtn"><i class="fa-solid fa-ban"></i>&nbsp;&nbsp;Engelle</button>
+    </div>
 
-<div class="info">
-<div class="name">test</div>
-<div class="profile">Çevrimiçi</div>
+    <section class="profile-card">
+        <div class="avatar-large">T</div>
+        <a href="#" class="profile-link" id="profileLink">Profili gör</a>
+    </section>
+
+    <main id="chatArea" class="chat-area"></main>
+
+    <div class="input-bar">
+        <div class="tool-buttons">
+            <button class="tool-btn" id="galleryBtn" aria-label="Galeri">
+                <i class="fa-regular fa-images"></i>
+            </button>
+
+            <button class="tool-btn" id="cameraBtn" aria-label="Kamera">
+                <i class="fa-solid fa-camera"></i>
+            </button>
+
+            <button class="tool-btn" id="micBtn" aria-label="Ses">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+
+            <button class="tool-btn gif-btn" id="gifBtn" aria-label="GIF">GIF</button>
+        </div>
+
+        <div class="composer">
+            <input id="messageInput" type="text" placeholder="Mesaj" autocomplete="off">
+            <button id="sendBtn" aria-label="Gönder">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
 </div>
 
-</div>
-
-<div class="actions">
-<i class="fa-solid fa-phone"></i>
-<i class="fa-solid fa-video"></i>
-<i class="fa-solid fa-ellipsis-vertical"></i>
-</div>
-
-</header>
-
-<div id="chatArea" class="chat-area">
-
-</div>
-
-<div class="input-bar">
-
-<i class="fa-regular fa-face-smile"></i>
-
-<input
-id="messageInput"
-type="text"
-placeholder="Mesaj">
-
-<button id="sendBtn">
-<i class="fa-solid fa-paper-plane"></i>
-</button>
-
-</div>
-
-</div>
-
-<script type="module">
+<input id="fileInput" type="file" accept="image/*,video/*" hidden>
+<input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import {
-  getDatabase,
-  ref,
-  push,
-  onChildAdded
+    getDatabase,
+    ref,
+    push,
+    onChildAdded,
+    remove
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-  authDomain: "mim-ea133.firebaseapp.com",
-  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mim-ea133",
-  storageBucket: "mim-ea133.firebasestorage.app",
-  messagingSenderId: "303525353436",
-  appId: "1:303525353436:web:082fc090b5025e19942119"
+    apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+    authDomain: "mim-ea133.firebaseapp.com",
+    databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "mim-ea133",
+    storageBucket: "mim-ea133.firebasestorage.app",
+    messagingSenderId: "303525353436",
+    appId: "1:303525353436:web:082fc090b5025e19942119"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-if (!localStorage.getItem("username")) {
-  const username = prompt("Kullanıcı adın:");
-  localStorage.setItem("username", username);
-}
+let myUsername = localStorage.getItem("username");
 
-const myUsername = localStorage.getItem("username");
+if (!myUsername) {
+    myUsername = prompt("Kullanıcı adın:") || "misafir";
+    localStorage.setItem("username", myUsername);
+}
 
 const input = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const chatArea = document.getElementById("chatArea");
+const toast = document.getElementById("toast");
+const menu = document.getElementById("menu");
 
-function addMessage(text, mine) {
-  const div = document.createElement("div");
-  div.className = mine ? "message sent" : "message received";
-  div.innerHTML = `<div class="bubble">${text}</div>`;
-  chatArea.appendChild(div);
-  chatArea.scrollTop = chatArea.scrollHeight;
+function showToast(text){
+    toast.textContent = text;
+    toast.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
 }
 
-sendBtn.onclick = () => {
-  const text = input.value.trim();
-  if (!text) return;
+function escapeHtml(text){
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-  push(ref(db, "messages"), {
-    text: text,
-    sender: myUsername,
-    time: Date.now()
-  });
+function formatTime(timestamp){
+    return new Date(timestamp || Date.now()).toLocaleTimeString("tr-TR", {
+        hour:"2-digit",
+        minute:"2-digit"
+    });
+}
 
-  input.value = "";
-};
+function addMessage(data){
+    const mine = data.sender === myUsername;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = mine ? "message sent" : "message received";
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+
+    bubble.innerHTML =
+        escapeHtml(String(data.text || "")) +
+        `<span class="message-time">${formatTime(data.time)}</span>`;
+
+    wrapper.appendChild(bubble);
+    chatArea.appendChild(wrapper);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+async function sendMessage(text){
+    text = String(text || "").trim();
+    if(!text) return;
+
+    try{
+        await push(ref(db, "messages"), {
+            text,
+            sender: myUsername,
+            receiver: "test",
+            time: Date.now()
+        });
+        input.value = "";
+        input.focus();
+    }catch(error){
+        console.error(error);
+        showToast("Mesaj gönderilemedi");
+    }
+}
+
+sendBtn.addEventListener("click", () => sendMessage(input.value));
 
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    sendBtn.click();
-  }
+    if(e.key === "Enter"){
+        e.preventDefault();
+        sendMessage(input.value);
+    }
 });
 
+/* Firebase'den gelen mesajlar */
 onChildAdded(ref(db, "messages"), (snapshot) => {
-  const data = snapshot.val();
-  addMessage(data.text, data.sender === myUsername);
+    const data = snapshot.val();
+    if(!data) return;
+
+    /* Eski yapıyla uyumluluk: receiver alanı olmayan mesajları da göster */
+    if(
+        !data.receiver ||
+        data.receiver === myUsername ||
+        data.sender === myUsername ||
+        data.sender === "test"
+    ){
+        addMessage(data);
+    }
+});
+
+/* Menü */
+document.getElementById("moreBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.classList.toggle("show");
+});
+
+document.addEventListener("click", (e) => {
+    if(!menu.contains(e.target) && e.target.id !== "moreBtn"){
+        menu.classList.remove("show");
+    }
+});
+
+/* Profil */
+function openProfile(){
+    window.location.href = "profile.html";
+}
+
+document.getElementById("profileHeader").addEventListener("click", openProfile);
+document.getElementById("profileLink").addEventListener("click", (e) => {
+    e.preventDefault();
+    openProfile();
+});
+document.getElementById("viewProfile").addEventListener("click", openProfile);
+
+/* Telefon / video */
+document.getElementById("callBtn").addEventListener("click", () => {
+    showToast("Sesli arama başlatılıyor...");
+});
+
+document.getElementById("videoBtn").addEventListener("click", () => {
+    showToast("Görüntülü arama başlatılıyor...");
+});
+
+/* Galeri */
+const fileInput = document.getElementById("fileInput");
+const cameraInput = document.getElementById("cameraInput");
+
+document.getElementById("galleryBtn").addEventListener("click", () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener("change", () => {
+    if(fileInput.files.length){
+        showToast("Fotoğraf/video seçildi");
+    }
+    fileInput.value = "";
+});
+
+/* Kamera */
+document.getElementById("cameraBtn").addEventListener("click", () => {
+    cameraInput.click();
+});
+
+cameraInput.addEventListener("change", () => {
+    if(cameraInput.files.length){
+        showToast("Kamera görüntüsü seçildi");
+    }
+    cameraInput.value = "";
+});
+
+/* Mikrofon */
+document.getElementById("micBtn").addEventListener("click", () => {
+    if(!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)){
+        showToast("Sesli yazma bu tarayıcıda desteklenmiyor");
+        return;
+    }
+
+    const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "tr-TR";
+    recognition.interimResults = false;
+
+    showToast("Dinliyorum...");
+
+    recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        input.value = text;
+        input.focus();
+    };
+
+    recognition.onerror = () => {
+        showToast("Ses alınamadı");
+    };
+
+    recognition.start();
+});
+
+/* GIF */
+document.getElementById("gifBtn").addEventListener("click", () => {
+    input.value = "🎬 GIF";
+    input.focus();
+    showToast("GIF seçici hazır");
+});
+
+/* Emoji: klavyeden hızlı emoji */
+document.querySelector(".profile-card").addEventListener("dblclick", () => {
+    input.value += " ❤️";
+    input.focus();
+});
+
+/* Sohbeti temizle */
+document.getElementById("clearBtn").addEventListener("click", async () => {
+    if(!confirm("Bu sohbeti temizlemek istediğine emin misin?")) return;
+
+    try{
+        await remove(ref(db, "messages"));
+        chatArea.innerHTML = "";
+        showToast("Sohbet temizlendi");
+        menu.classList.remove("show");
+    }catch(error){
+        console.error(error);
+        showToast("Sohbet temizlenemedi");
+    }
+});
+
+/* Sessize al */
+document.getElementById("muteBtn").addEventListener("click", () => {
+    const muted = localStorage.getItem("minegram_muted") === "1";
+    localStorage.setItem("minegram_muted", muted ? "0" : "1");
+    showToast(muted ? "Bildirimler açıldı" : "Sohbet sessize alındı");
+    menu.classList.remove("show");
+});
+
+/* Engelle */
+document.getElementById("blockBtn").addEventListener("click", () => {
+    if(confirm("test kullanıcısını engellemek istiyor musun?")){
+        localStorage.setItem("blocked_test", "1");
+        showToast("Kullanıcı engellendi");
+    }
+    menu.classList.remove("show");
 });
 </script>
-
 </body>
 </html>
