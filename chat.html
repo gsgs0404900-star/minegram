@@ -7,268 +7,247 @@
 
 <title>Instagram Chat</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 <style>
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+.chat-header{
+    height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    background:#000;
+    border-bottom:1px solid #262626;
+    flex-shrink:0;
+
+    position:sticky;
+    top:0;
+    z-index:100;
 }
 
-html,body{
-width:100%;
-height:100%;
-background:#000;
-overflow:hidden;
-}
-
-body{
-display:flex;
-justify-content:center;
-align-items:center;
-background:#000;
-}
-
-.app{
-width:100%;
-max-width:430px;
-height:100vh;
-background:#000;
-color:#fff;
-display:flex;
-flex-direction:column;
-}
-
-@media(min-width:768px){
-
-body{
-padding:20px;
-}
-
-.app{
-height:900px;
-border:1px solid #262626;
-border-radius:14px;
-overflow:hidden;
-box-shadow:0 0 35px rgba(0,0,0,.55);
-}
-
-}
-
-header{
-height:60px;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 16px;
-border-bottom:1px solid #262626;
-flex-shrink:0;
-}
-
-.left{
-display:flex;
-align-items:center;
-gap:12px;
+.header-left{
+    display:flex;
+    align-items:center;
 }
 
 .back{
-color:#fff;
-font-size:22px;
-text-decoration:none;
+    color:#fff;
+    text-decoration:none;
+    font-size:22px;
+    margin-right:15px;
 }
 
-.left img{
-width:40px;
-height:40px;
-border-radius:50%;
-object-fit:cover;
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    object-fit:cover;
 }
 
-.user{
-display:flex;
-flex-direction:column;
+.user-info{
+    margin-left:10px;
 }
 
-.name{
-display:flex;
-align-items:center;
-gap:4px;
-font-size:15px;
-font-weight:700;
+.username{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    font-size:16px;
+    font-weight:700;
+    color:#fff;
 }
 
-.name i{
-font-size:13px;
-color:#0095f6;
+.verified{
+    color:#0095f6;
+    font-size:13px;
 }
 
-.status{
-font-size:12px;
-color:#8e8e8e;
-margin-top:2px;
+.subtitle{
+    margin-top:2px;
+    color:#a8a8a8;
+    font-size:12px;
 }
 
-.right{
-display:flex;
-gap:18px;
+.next-profile{
+    color:#fff;
+    font-size:11px;
+    margin-left:8px;
 }
 
-.right button{
-background:none;
-border:none;
-color:#fff;
-font-size:20px;
-cursor:pointer;
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:22px;
+}
+
+.header-right button{
+    background:none;
+    border:none;
+    color:#fff;
+    font-size:21px;
+    cursor:pointer;
+}
+
+.header-right button:hover{
+    opacity:.8;
+}
+
+body{
+    margin:0;
+    background:#000;
+    color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
+.app{
+    max-width:430px;
+    margin:auto;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:#000;
 }
 
 .profile-card{
-padding:28px 0;
-display:flex;
-flex-direction:column;
-align-items:center;
-border-bottom:1px solid #262626;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 20px;
+    border-bottom:1px solid #262626;
 }
 
-.profile-card img{
-width:90px;
-height:90px;
-border-radius:50%;
-object-fit:cover;
+.profile-card > img{
+    width:96px;
+    height:96px;
+    border-radius:50%;
+    object-fit:cover;
 }
 
 .profile-card h2{
-margin-top:12px;
-font-size:22px;
-font-weight:700;
+    margin:12px 0 4px;
+    font-size:22px;
 }
 
 .profile-card p{
-margin-top:4px;
-color:#8e8e8e;
-font-size:14px;
+    color:#a8a8a8;
+    margin-bottom:16px;
 }
 
-.profile-card button{
-margin-top:16px;
-padding:8px 20px;
-border:none;
-border-radius:22px;
-background:#262626;
-color:#fff;
-font-weight:600;
-cursor:pointer;
+#profileBtn{
+    background:#262626;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 18px;
+    cursor:pointer;
 }
 
 .messages{
-flex:1;
-overflow-y:auto;
-padding:18px;
-display:flex;
-flex-direction:column;
-gap:10px;
-}
-
-.messages::-webkit-scrollbar{
-display:none;
+    flex:1;
+    overflow-y:auto;
+    padding:15px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
 }
 
 .msg{
-max-width:72%;
-padding:12px 15px;
-border-radius:22px;
-font-size:15px;
-word-break:break-word;
-animation:show .25s;
-}
-
-.msg.other{
-background:#262626;
-align-self:flex-start;
-border-bottom-left-radius:8px;
+    max-width:75%;
+    padding:10px 14px;
+    border-radius:22px;
+    position:relative;
+    word-break:break-word;
+    animation:fade .25s ease;
 }
 
 .msg.me{
-background:#3797f0;
-align-self:flex-end;
-border-bottom-right-radius:8px;
+    background:#3797f0;
+    margin-left:auto;
 }
 
-.time{
-margin-top:5px;
-font-size:11px;
-opacity:.7;
-text-align:right;
+.msg.other{
+    background:#262626;
 }
 
-.input-area{
-height:70px;
-padding:12px;
-display:flex;
-align-items:center;
-gap:10px;
-border-top:1px solid #262626;
+.msg::after{
+    content:"";
+    position:absolute;
+    bottom:0;
+    width:12px;
+    height:12px;
 }
 
-.input-area button{
-background:none;
-border:none;
-color:#fff;
-font-size:20px;
-cursor:pointer;
+.msg.me::after{
+    right:-4px;
+    background:#3797f0;
+    clip-path:polygon(0 0,100% 100%,0 100%);
 }
 
-.input-area input{
-flex:1;
-height:44px;
-background:#262626;
-border:none;
-outline:none;
-border-radius:22px;
-padding:0 18px;
-color:#fff;
-font-size:15px;
-}
-
-.input-area input::placeholder{
-color:#8e8e8e;
-}
-
-.seen{
-margin-top:5px;
-font-size:11px;
-color:#8e8e8e;
-text-align:right;
+.msg.other::after{
+    left:-4px;
+    background:#262626;
+    clip-path:polygon(100% 0,100% 100%,0 100%);
 }
 
 .msg img{
-max-width:220px;
-border-radius:16px;
-display:block;
+    max-width:220px;
+    border-radius:15px;
+    display:block;
 }
 
-button:hover{
-opacity:.8;
+.seen{
+    font-size:12px;
+    color:#a8a8a8;
+    text-align:right;
+    margin:4px 8px 12px 0;
 }
 
-button:active{
-transform:scale(.95);
+.input-area input{
+    flex:1;
+    background:#111;
+    border:1px solid #333;
+    border-radius:25px;
+    color:#fff;
+    padding:10px 15px;
+    outline:none;
 }
 
-@keyframes show{
-
-from{
-opacity:0;
-transform:translateY(10px);
+.input-area button{
+    background:none;
+    border:none;
+    color:#0095f6;
+    font-size:20px;
+    cursor:pointer;
 }
 
-to{
-opacity:1;
-transform:translateY(0);
+/* BURAYA EKLE */
+
+.time{
+    font-size:11px;
+    color:#d9d9d9;
+    text-align:right;
+    margin-top:4px;
 }
 
+.input-area{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    border-top:1px solid #262626;
+}
+
+@keyframes fade{
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
 }
 
 </style>
@@ -279,46 +258,50 @@ transform:translateY(0);
 
 <div class="app">
 
-<header>
+<header class="chat-header">
 
-<div class="left">
+    <div class="header-left">
 
-<a href="mesaj.html" class="back">
-<i class="fa-solid fa-arrow-left"></i>
-</a>
+        <a href="mesaj.html" class="back">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
 
-<img src="https://i.pravatar.cc/150?img=12">
+        <img
+            src="https://i.pravatar.cc/150?img=12"
+            class="avatar">
 
-<div class="user">
+        <div class="user-info">
 
-<div class="name">
-test
-<i class="fa-solid fa-circle-check"></i>
-</div>
+            <div class="username">
+                test
+                <i class="fa-solid fa-circle-check verified"></i>
+            </div>
 
-<div class="status">
-Aktif
-</div>
+            <div class="subtitle">
+                Profil
+            </div>
 
-</div>
+        </div>
 
-</div>
+        <i class="fa-solid fa-chevron-right next-profile"></i>
 
-<div class="right">
+    </div>
 
-<button id="callBtn">
-<i class="fa-solid fa-phone"></i>
-</button>
+    <div class="header-right">
 
-<button id="videoBtn">
-<i class="fa-solid fa-video"></i>
-</button>
+        <button id="callBtn">
+            <i class="fa-solid fa-phone"></i>
+        </button>
 
-<button id="infoBtn">
-<i class="fa-solid fa-circle-info"></i>
-</button>
+        <button id="videoBtn">
+            <i class="fa-solid fa-video"></i>
+        </button>
 
-</div>
+        <button id="infoBtn">
+            <i class="fa-solid fa-ellipsis"></i>
+        </button>
+
+    </div>
 
 </header>
 
@@ -336,6 +319,7 @@ Profili Gör
 
 </div>
 
+
 <div id="messages" class="messages">
 
 <div class="msg other">
@@ -351,6 +335,10 @@ Merhaba 😊
 <div class="msg other">
 Nasılsın?
 <div class="time">20:16</div>
+</div>
+
+<div id="seen" class="seen" style="display:none;">
+    Görüldü
 </div>
 
 </div>
@@ -393,6 +381,7 @@ hidden>
 const input = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const messages = document.getElementById("messages");
+const seen = document.getElementById("seen");
 
 const replies = [
     "Tamam 👍",
@@ -463,6 +452,9 @@ function autoReply(){
 
         messages.appendChild(div);
 
+        seen.style.display = "block";
+        messages.appendChild(seen);
+
         scrollBottom();
 
     },2500);
@@ -486,13 +478,15 @@ function sendMessage(){
 
     messages.appendChild(div);
 
-    input.value="";
+	seen.style.display = "none";
 
-    sendBtn.style.opacity=".4";
+	input.value="";
 
-    scrollBottom();
+	sendBtn.style.opacity=".4";
 
-    autoReply();
+	scrollBottom();
+
+	autoReply();
 
 }
 
@@ -563,9 +557,11 @@ document.getElementById("galleryInput").onchange=function(){
 
         messages.appendChild(div);
 
-        scrollBottom();
+		seen.style.display = "none";
 
-        autoReply();
+		scrollBottom();
+
+		autoReply();
 
     };
 
@@ -635,8 +631,67 @@ window.onload=function(){
 
 };
 
-</script>
+// Mesaj silme
+messages.addEventListener("dblclick", function(e){
 
+    const msg = e.target.closest(".msg.me");
+
+    if(msg && confirm("Mesaj silinsin mi?")){
+        msg.remove();
+    }
+
+});
+
+// Mesaj düzenleme
+messages.addEventListener("contextmenu", function(e){
+
+    const msg = e.target.closest(".msg.me");
+
+    if(!msg) return;
+
+    e.preventDefault();
+
+    const eskiMesaj = msg.childNodes[0].textContent.trim();
+
+    const yeniMesaj = prompt("Mesajı düzenle:", eskiMesaj);
+
+    if(yeniMesaj && yeniMesaj.trim() !== ""){
+
+        msg.innerHTML = `
+            ${yeniMesaj}
+            <div class="time">${getTime()}</div>
+        `;
+
+    }
+
+});
+
+// Mesajı kopyala
+messages.addEventListener("click", async function(e){
+
+    const msg = e.target.closest(".msg");
+
+    if(!msg) return;
+
+    const text = msg.innerText.replace(/\d{2}:\d{2}/, "").trim();
+
+    if(!text) return;
+
+    try{
+
+        await navigator.clipboard.writeText(text);
+
+        alert("Mesaj kopyalandı 📋");
+
+    }catch{
+
+        alert("Kopyalanamadı.");
+
+    }
+
+});
+
+</script>
 
 </div>
 
