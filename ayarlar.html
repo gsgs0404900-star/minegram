@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ayarlar - Minegram</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background: #fff;
+    color: #111;
+}
+
+.app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    margin: auto;
+    background: #fff;
+}
+
+/* ÜST BAR */
+.header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding: 0 18px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+}
+
+.back {
+    font-size: 28px;
+    cursor: pointer;
+    width: 40px;
+}
+
+.header-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* İÇERİK */
+.content {
+    padding-bottom: 30px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #777;
+    padding: 25px 20px 10px;
+}
+
+.setting {
+    min-height: 58px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.setting:hover {
+    background: #f7f7f7;
+}
+
+.icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #f1f1f1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 21px;
+    margin-right: 14px;
+}
+
+.info {
+    flex: 1;
+}
+
+.name {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.description {
+    font-size: 13px;
+    color: #888;
+    margin-top: 3px;
+}
+
+.arrow {
+    font-size: 23px;
+    color: #999;
+}
+
+/* ÇIKIŞ */
+.logout {
+    margin: 25px 20px;
+    height: 50px;
+    border: 1px solid #ed4956;
+    border-radius: 10px;
+    color: #ed4956;
+    background: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.logout:hover {
+    background: #fff4f5;
+}
+
+/* ALT YAZI */
+.version {
+    text-align: center;
+    color: #aaa;
+    font-size: 12px;
+    margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ÜST BAR -->
+    <div class="header">
+        <div class="back" onclick="goBack()">‹</div>
+        <div class="header-title">Ayarlar</div>
+    </div>
+
+    <div class="content">
+
+        <!-- HESAP -->
+        <div class="section-title">HESAP</div>
+
+        <div class="setting" onclick="openPage('profile')">
+            <div class="icon">👤</div>
+            <div class="info">
+                <div class="name">Hesap</div>
+                <div class="description">Profil ve hesap bilgilerini yönet</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+        <div class="setting" onclick="openPage('security')">
+            <div class="icon">🔒</div>
+            <div class="info">
+                <div class="name">Güvenlik</div>
+                <div class="description">Şifre ve güvenlik ayarları</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+        <div class="setting" onclick="openPage('privacy')">
+            <div class="icon">🛡️</div>
+            <div class="info">
+                <div class="name">Gizlilik</div>
+                <div class="description">Hesabının gizlilik seçeneklerini yönet</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+
+        <!-- BİLDİRİMLER -->
+        <div class="section-title">BİLDİRİMLER</div>
+
+        <div class="setting" onclick="openPage('notifications')">
+            <div class="icon">🔔</div>
+            <div class="info">
+                <div class="name">Bildirimler</div>
+                <div class="description">Bildirim tercihlerini düzenle</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+
+        <!-- UYGULAMA -->
+        <div class="section-title">UYGULAMA</div>
+
+        <div class="setting" onclick="openPage('theme')">
+            <div class="icon">🌙</div>
+            <div class="info">
+                <div class="name">Tema</div>
+                <div class="description">Açık veya koyu görünüm</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+        <div class="setting" onclick="openPage('language')">
+            <div class="icon">🌐</div>
+            <div class="info">
+                <div class="name">Dil</div>
+                <div class="description">Uygulama dilini değiştir</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+
+        <!-- DESTEK -->
+        <div class="section-title">DESTEK</div>
+
+        <div class="setting" onclick="openPage('help')">
+            <div class="icon">❓</div>
+            <div class="info">
+                <div class="name">Yardım</div>
+                <div class="description">Minegram hakkında yardım al</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+        <div class="setting" onclick="openPage('about')">
+            <div class="icon">ⓘ</div>
+            <div class="info">
+                <div class="name">Hakkında</div>
+                <div class="description">Minegram hakkında bilgiler</div>
+            </div>
+            <div class="arrow">›</div>
+        </div>
+
+
+        <!-- ÇIKIŞ -->
+        <button class="logout" onclick="logout()">
+            Çıkış Yap
+        </button>
+
+        <div class="version">
+            Minegram · Sürüm 1.0
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = "profile.html";
+    }
+}
+
+function openPage(page) {
+
+    if (page === "profile") {
+        window.location.href = "profile.html";
+    }
+
+    else if (page === "security") {
+        alert("Güvenlik ayarları");
+    }
+
+    else if (page === "privacy") {
+        alert("Gizlilik ayarları");
+    }
+
+    else if (page === "notifications") {
+        alert("Bildirim ayarları");
+    }
+
+    else if (page === "theme") {
+        alert("Tema ayarları");
+    }
+
+    else if (page === "language") {
+        alert("Dil ayarları");
+    }
+
+    else if (page === "help") {
+        alert("Yardım");
+    }
+
+    else if (page === "about") {
+        alert("Minegram hakkında");
+    }
+}
+
+function logout() {
+    const result = confirm("Hesabından çıkış yapmak istediğine emin misin?");
+
+    if (result) {
+        localStorage.clear();
+        sessionStorage.clear();
+
+        window.location.href = "index.html";
+    }
+}
+
+</script>
+
+</body>
+</html>
