@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -12,21 +11,19 @@
   box-sizing:border-box;
 }
 
-html,body{
+html,
+body{
   margin:0;
   width:100%;
-  min-height:100%;
+  height:100%;
   background:#000;
   color:#fff;
   font-family:Arial,sans-serif;
+  overflow:hidden;
 }
 
-body{
-  overflow-x:hidden;
-  padding-bottom:78px;
-}
-
-button,input{
+button,
+input{
   font:inherit;
 }
 
@@ -35,21 +32,27 @@ button{
 }
 
 .app{
-  min-height:100dvh;
+  width:100%;
+  height:100dvh;
   background:#000;
+  display:flex;
+  flex-direction:column;
 }
 
-/* HEADER */
+
+/* ==================================================
+   HEADER
+================================================== */
 
 .header{
   height:72px;
+  min-height:72px;
   display:flex;
   align-items:center;
-  padding:0 25px;
+  padding:0 18px;
   border-bottom:1px solid #24242a;
   background:#000;
-  position:sticky;
-  top:0;
+  position:relative;
   z-index:20;
 }
 
@@ -62,41 +65,53 @@ button{
   font-size:46px;
   line-height:1;
   padding:0;
-  margin-left:-8px;
+  margin-left:-7px;
 }
 
 .profile{
   display:flex;
   align-items:center;
-  gap:11px;
-  margin-left:7px;
   min-width:0;
+  flex:1;
+  margin-left:3px;
 }
 
-.avatar{
-  width:42px;
-  height:42px;
-  min-width:42px;
+.profile-avatar{
+  width:48px;
+  height:48px;
+  min-width:48px;
   border-radius:50%;
   background:#64afe9;
   display:grid;
   place-items:center;
-  font-size:18px;
   overflow:hidden;
+  font-size:20px;
+  font-weight:500;
 }
 
-.avatar img{
+.profile-avatar img{
   width:100%;
   height:100%;
   object-fit:cover;
 }
 
-.username{
-  font-size:21px;
+.profile-info{
+  min-width:0;
+  margin-left:12px;
+}
+
+.profile-name{
+  font-size:20px;
   font-weight:700;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+}
+
+.profile-status{
+  color:#999;
+  font-size:13px;
+  margin-top:3px;
 }
 
 .verified{
@@ -106,142 +121,415 @@ button{
   height:18px;
   border-radius:50%;
   background:#2388df;
+  color:#fff;
   font-size:12px;
-  margin-left:3px;
+  font-weight:bold;
+  vertical-align:middle;
+  margin-left:4px;
 }
 
-/* CHAT */
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.header-button{
+  width:43px;
+  height:43px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-size:25px;
+}
+
+.header-button:active{
+  background:#1b1b20;
+}
+
+
+/* ==================================================
+   CHAT AREA
+================================================== */
 
 .chat{
-  min-height:calc(100dvh - 150px);
-  padding:20px 18px 95px;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:18px 15px 20px;
+  scroll-behavior:smooth;
 }
 
+.chat::-webkit-scrollbar{
+  width:5px;
+}
+
+.chat::-webkit-scrollbar-track{
+  background:#000;
+}
+
+.chat::-webkit-scrollbar-thumb{
+  background:#29272e;
+  border-radius:10px;
+}
+
+
+/* DATE */
+
+.date{
+  text-align:center;
+  color:#888;
+  font-size:12px;
+  margin:8px 0 20px;
+}
+
+
+/* EMPTY */
+
 .empty{
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   text-align:center;
   color:#777;
   font-size:14px;
-  padding:20px;
 }
 
+
+/* MESSAGE */
+
 .message{
-  max-width:75%;
-  padding:11px 15px;
-  margin:4px 0;
-  border-radius:20px;
-  font-size:16px;
-  line-height:1.4;
-  word-wrap:break-word;
+  display:flex;
+  width:100%;
+  margin:5px 0;
 }
 
 .message.me{
-  align-self:flex-end;
-  background:#3797f0;
-  border-bottom-right-radius:6px;
+  justify-content:flex-end;
 }
 
 .message.other{
-  align-self:flex-start;
-  background:#26262c;
+  justify-content:flex-start;
+}
+
+.message-content{
+  max-width:76%;
+  display:flex;
+  flex-direction:column;
+}
+
+.bubble{
+  padding:10px 14px;
+  border-radius:21px;
+  font-size:16px;
+  line-height:1.35;
+  word-wrap:break-word;
+  overflow-wrap:anywhere;
+}
+
+.message.other .bubble{
+  background:#26242b;
+  color:#fff;
   border-bottom-left-radius:6px;
 }
 
-/* INPUT */
+.message.me .bubble{
+  background:#3797f0;
+  color:#fff;
+  border-bottom-right-radius:6px;
+}
+
+.time{
+  font-size:10px;
+  color:#777;
+  margin-top:3px;
+  padding:0 5px;
+}
+
+.message.me .time{
+  text-align:right;
+}
+
+
+/* IMAGE MESSAGE */
+
+.message-image{
+  max-width:270px;
+  max-height:360px;
+  border-radius:18px;
+  display:block;
+  object-fit:cover;
+}
+
+.message.me .message-image{
+  border-bottom-right-radius:6px;
+}
+
+.message.other .message-image{
+  border-bottom-left-radius:6px;
+}
+
+
+/* LINK */
+
+.message-link{
+  color:#fff;
+  text-decoration:underline;
+}
+
+
+/* ==================================================
+   TYPING
+================================================== */
+
+.typing{
+  display:none;
+  align-items:center;
+  gap:5px;
+  background:#26242b;
+  width:max-content;
+  padding:9px 13px;
+  border-radius:20px;
+  border-bottom-left-radius:6px;
+  margin:6px 0;
+}
+
+.typing.show{
+  display:flex;
+}
+
+.dot{
+  width:6px;
+  height:6px;
+  background:#aaa;
+  border-radius:50%;
+  animation:typing 1.2s infinite;
+}
+
+.dot:nth-child(2){
+  animation-delay:.15s;
+}
+
+.dot:nth-child(3){
+  animation-delay:.3s;
+}
+
+@keyframes typing{
+  0%,60%,100%{
+    transform:translateY(0);
+    opacity:.45;
+  }
+
+  30%{
+    transform:translateY(-4px);
+    opacity:1;
+  }
+}
+
+
+/* ==================================================
+   INPUT AREA
+================================================== */
 
 .input-area{
-  position:fixed;
-  bottom:78px;
-  left:0;
-  right:0;
-  height:68px;
+  min-height:70px;
+  padding:8px 10px;
+  padding-bottom:max(8px,env(safe-area-inset-bottom));
   background:#000;
   border-top:1px solid #24242a;
   display:flex;
-  align-items:center;
-  padding:9px 14px;
+  align-items:flex-end;
+  gap:7px;
   z-index:30;
 }
 
-.input-inner{
-  width:100%;
-  display:flex;
-  align-items:center;
-  gap:8px;
+.input-button{
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-size:25px;
 }
 
-.message-input{
+.input-button:active{
+  background:#19191e;
+}
+
+.input-box{
   flex:1;
   min-width:0;
-  height:48px;
-  border:1px solid #555;
-  border-radius:24px;
-  background:#17171b;
-  color:#fff;
-  outline:none;
-  padding:0 17px;
-  font-size:16px;
+  min-height:44px;
+  max-height:130px;
+  background:#18171c;
+  border:1px solid #39363f;
+  border-radius:23px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
 }
 
-.message-input::placeholder{
-  color:#999;
+#messageInput{
+  width:100%;
+  min-height:42px;
+  max-height:120px;
+  resize:none;
+  overflow-y:auto;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#fff;
+  font-size:16px;
+  line-height:21px;
+  padding:10px 0;
+}
+
+#messageInput::placeholder{
+  color:#888;
 }
 
 .send{
-  width:48px;
-  height:48px;
-  min-width:48px;
+  width:45px;
+  height:45px;
+  min-width:45px;
   border:0;
   border-radius:50%;
   background:#3797f0;
   color:#fff;
+  display:grid;
+  place-items:center;
   font-size:21px;
 }
 
-/* BOTTOM NAV */
+.send:active{
+  transform:scale(.94);
+}
 
-.bottom-nav{
-  position:fixed;
+.send:disabled{
+  opacity:.45;
+}
+
+
+/* ==================================================
+   EMOJI PANEL
+================================================== */
+
+.emoji-panel{
+  display:none;
+  position:absolute;
   left:0;
   right:0;
-  bottom:0;
-  height:78px;
-  background:#18161e;
-  border-top:1px solid #25232c;
-  display:flex;
-  z-index:100;
-  padding:5px 0 env(safe-area-inset-bottom);
+  bottom:70px;
+  background:#151419;
+  border-top:1px solid #2a2930;
+  padding:12px;
+  grid-template-columns:repeat(8,1fr);
+  gap:8px;
+  z-index:25;
 }
 
-.bottom-nav a{
-  flex:1;
-  color:#ddd;
-  text-decoration:none;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:3px;
-  font-size:9px;
-}
-
-.bottom-nav i{
-  width:46px;
-  height:32px;
-  border-radius:18px;
+.emoji-panel.show{
   display:grid;
-  place-items:center;
-  font-style:normal;
+}
+
+.emoji{
+  border:0;
+  background:transparent;
+  color:#fff;
   font-size:25px;
+  padding:7px;
+  border-radius:10px;
 }
 
-.bottom-nav a.active i{
-  background:#3b3450;
+.emoji:active{
+  background:#29272e;
 }
 
-/* DESKTOP */
+
+/* ==================================================
+   IMAGE PREVIEW
+================================================== */
+
+.preview{
+  display:none;
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:75px;
+  background:#18171c;
+  border:1px solid #333139;
+  border-radius:16px;
+  padding:10px;
+  z-index:40;
+}
+
+.preview.show{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.preview img{
+  width:65px;
+  height:65px;
+  object-fit:cover;
+  border-radius:10px;
+}
+
+.preview-info{
+  flex:1;
+  min-width:0;
+  font-size:13px;
+  color:#ccc;
+}
+
+.preview-remove{
+  width:35px;
+  height:35px;
+  border:0;
+  border-radius:50%;
+  background:#29272e;
+  color:#fff;
+}
+
+
+/* ==================================================
+   TOAST
+================================================== */
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:90px;
+  transform:translateX(-50%);
+  background:#29272e;
+  color:#fff;
+  padding:10px 15px;
+  border-radius:10px;
+  font-size:13px;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+  z-index:100;
+}
+
+.toast.show{
+  opacity:1;
+}
+
+
+/* ==================================================
+   DESKTOP
+================================================== */
 
 @media(min-width:700px){
 
@@ -252,166 +540,352 @@ button{
     border-right:1px solid #202024;
   }
 
-  .input-area{
-    max-width:720px;
-    left:50%;
-    right:auto;
-    transform:translateX(-50%);
-    width:720px;
-  }
-
-  .bottom-nav{
-    max-width:720px;
-    left:50%;
-    right:auto;
-    transform:translateX(-50%);
-    width:720px;
-  }
-}
-
-/* MOBILE */
-
-@media(max-width:600px){
-
   .header{
-    height:72px;
-    padding:0 25px;
-  }
-
-  .username{
-    font-size:20px;
+    padding-left:20px;
+    padding-right:20px;
   }
 
   .chat{
-    padding-left:14px;
-    padding-right:14px;
+    padding-left:25px;
+    padding-right:25px;
   }
 
-  .message{
-    max-width:78%;
-    font-size:16px;
+  .input-area{
+    padding-left:15px;
+    padding-right:15px;
+  }
+
+  .preview{
+    max-width:690px;
+    left:50%;
+    right:auto;
+    width:690px;
+    transform:translateX(-50%);
+  }
+}
+
+
+/* ==================================================
+   SMALL MOBILE
+================================================== */
+
+@media(max-width:380px){
+
+  .header{
+    padding:0 10px;
+  }
+
+  .profile-avatar{
+    width:43px;
+    height:43px;
+    min-width:43px;
+  }
+
+  .profile-info{
+    margin-left:8px;
+  }
+
+  .profile-name{
+    font-size:17px;
+  }
+
+  .header-button{
+    width:38px;
+    height:38px;
+  }
+
+  .bubble{
+    font-size:15px;
+  }
+
+  .message-content{
+    max-width:82%;
+  }
+
+  .emoji-panel{
+    grid-template-columns:repeat(7,1fr);
   }
 }
 </style>
-
 </head>
+
 
 <body>
 
 <div class="app">
 
-  <!-- HEADER -->
+
+  <!-- ==================================================
+       HEADER
+  ================================================== -->
 
   <header class="header">
 
-```
-<button
-  class="back"
-  id="back"
-  type="button"
->
-  ‹
-</button>
+    <button
+      class="back"
+      id="back"
+      type="button"
+      aria-label="Geri"
+    >
+      ‹
+    </button>
 
-<div class="profile">
 
-  <div
-    class="avatar"
-    id="avatar"
-  >
-    M
-  </div>
+    <div class="profile">
 
-  <div class="username">
+      <div
+        class="profile-avatar"
+        id="profileAvatar"
+      >
+        M
+      </div>
 
-    <span id="username">
-      Mesaj
-    </span>
 
-  </div>
+      <div class="profile-info">
 
-</div>
-```
+        <div
+          class="profile-name"
+          id="profileName"
+        >
+          Sohbet
+        </div>
+
+        <div
+          class="profile-status"
+          id="profileStatus"
+        >
+          Çevrimiçi
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="header-actions">
+
+      <button
+        class="header-button"
+        id="callButton"
+        type="button"
+        aria-label="Ara"
+      >
+        ☎
+      </button>
+
+      <button
+        class="header-button"
+        id="videoButton"
+        type="button"
+        aria-label="Görüntülü ara"
+      >
+        ▣
+      </button>
+
+      <button
+        class="header-button"
+        id="moreButton"
+        type="button"
+        aria-label="Daha fazla"
+      >
+        ⋯
+      </button>
+
+    </div>
 
   </header>
 
-  <!-- CHAT -->
+
+  <!-- ==================================================
+       CHAT
+  ================================================== -->
 
   <main
     class="chat"
     id="chat"
   >
 
-```
-<div class="empty">
-  Sohbet başlat
-</div>
-```
+    <div
+      class="date"
+      id="date"
+    >
+      Bugün
+    </div>
+
+
+    <div
+      class="empty"
+      id="empty"
+    >
+      Henüz mesaj yok.<br>
+      İlk mesajı sen gönder.
+    </div>
+
+
+    <div
+      class="typing"
+      id="typing"
+    >
+
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+
+    </div>
 
   </main>
 
-  <!-- MESSAGE INPUT -->
 
-  <div class="input-area">
+  <!-- ==================================================
+       EMOJI PANEL
+  ================================================== -->
 
-```
-<div class="input-inner">
-
-  <input
-    class="message-input"
-    id="messageInput"
-    type="text"
-    placeholder="Mesaj yaz..."
-    autocomplete="off"
+  <div
+    class="emoji-panel"
+    id="emojiPanel"
   >
 
-  <button
-    class="send"
-    id="send"
-    type="button"
-  >
-    ➤
-  </button>
+    <button class="emoji">😀</button>
+    <button class="emoji">😂</button>
+    <button class="emoji">😍</button>
+    <button class="emoji">🥰</button>
+    <button class="emoji">😘</button>
+    <button class="emoji">❤️</button>
+    <button class="emoji">🔥</button>
+    <button class="emoji">👍</button>
 
-</div>
-```
+    <button class="emoji">👏</button>
+    <button class="emoji">🤣</button>
+    <button class="emoji">😊</button>
+    <button class="emoji">😎</button>
+    <button class="emoji">🥳</button>
+    <button class="emoji">😢</button>
+    <button class="emoji">😭</button>
+    <button class="emoji">😡</button>
+
+    <button class="emoji">🤍</button>
+    <button class="emoji">🖤</button>
+    <button class="emoji">💙</button>
+    <button class="emoji">💚</button>
+    <button class="emoji">💛</button>
+    <button class="emoji">💜</button>
+    <button class="emoji">✨</button>
+    <button class="emoji">🎉</button>
 
   </div>
 
+
+  <!-- ==================================================
+       IMAGE PREVIEW
+  ================================================== -->
+
+  <div
+    class="preview"
+    id="preview"
+  >
+
+    <img
+      id="previewImage"
+      src=""
+      alt=""
+    >
+
+    <div
+      class="preview-info"
+      id="previewInfo"
+    >
+      Fotoğraf hazır.
+    </div>
+
+    <button
+      class="preview-remove"
+      id="previewRemove"
+      type="button"
+    >
+      ×
+    </button>
+
+  </div>
+
+
+  <!-- ==================================================
+       INPUT
+  ================================================== -->
+
+  <div class="input-area">
+
+    <button
+      class="input-button"
+      id="photoButton"
+      type="button"
+      aria-label="Fotoğraf"
+    >
+      ＋
+    </button>
+
+
+    <input
+      type="file"
+      id="photoInput"
+      accept="image/*"
+      hidden
+    >
+
+
+    <div class="input-box">
+
+      <textarea
+        id="messageInput"
+        rows="1"
+        placeholder="Mesaj yaz..."
+        autocomplete="off"
+      ></textarea>
+
+    </div>
+
+
+    <button
+      class="input-button"
+      id="emojiButton"
+      type="button"
+      aria-label="Emoji"
+    >
+      ☺
+    </button>
+
+
+    <button
+      class="send"
+      id="sendButton"
+      type="button"
+      disabled
+      aria-label="Gönder"
+    >
+      ➤
+    </button>
+
+  </div>
+
+
 </div>
 
-<!-- BOTTOM MENU -->
 
-<nav class="bottom-nav">
+<div
+  class="toast"
+  id="toast"
+></div>
 
-  <a href="index.html">
-    <i>⌂</i>
-    <span>Ana Sayfa</span>
-  </a>
-
-  <a href="ara.html">
-    <i>⌕</i>
-    <span>Ara</span>
-  </a>
-
-  <a href="olustur.html">
-    <i>＋</i>
-    <span>Oluştur</span>
-  </a>
-
-  <a href="reels.html">
-    <i>▣</i>
-    <span>Reels</span>
-  </a>
-
-  <a href="profile.html">
-    <i>♙</i>
-    <span>Profil</span>
-  </a>
-
-</nav>
 
 <script>
+
+/* ==================================================
+   TEMEL
+================================================== */
+
+const token =
+  localStorage.getItem('minegram_token') ||
+  localStorage.getItem('token') ||
+  '';
 
 const params =
   new URLSearchParams(
@@ -420,136 +894,1219 @@ const params =
 
 const username =
   params.get('username') ||
-  'Mesaj';
-
-const usernameEl =
-  document.getElementById('username');
-
-const avatarEl =
-  document.getElementById('avatar');
-
-const chat =
-  document.getElementById('chat');
-
-const input =
-  document.getElementById('messageInput');
-
-const send =
-  document.getElementById('send');
+  'test';
 
 
-/* Kullanıcı adı */
-
-usernameEl.textContent =
-  username;
+const $ = id =>
+  document.getElementById(id);
 
 
-/* Avatar */
+/* ==================================================
+   HTML GÜVENLİĞİ
+================================================== */
 
-avatarEl.textContent =
-  username
-    .charAt(0)
-    .toUpperCase();
+function esc(value){
 
+  return String(
+    value ?? ''
+  ).replace(
+    /[&<>"']/g,
+    char => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    }[char])
+  );
 
-/* Mesaj ekleme */
-
-function addMessage(text,type){
-
-  const empty =
-    chat.querySelector('.empty');
-
-  if(empty){
-    empty.remove();
-  }
-
-  const message =
-    document.createElement('div');
-
-  message.className =
-    'message ' + type;
-
-  message.textContent =
-    text;
-
-  chat.appendChild(message);
-
-  chat.scrollTop =
-    chat.scrollHeight;
 }
 
 
-/* Gönder */
+/* ==================================================
+   API
+================================================== */
 
-function sendMessage(){
+async function api(
+  url,
+  options={}
+){
+
+  const headers = {
+    ...(options.headers || {})
+  };
+
+
+  if(token){
+
+    headers.Authorization =
+      'Bearer ' + token;
+
+  }
+
+
+  if(
+    options.body &&
+    typeof options.body !== 'string'
+  ){
+
+    headers['Content-Type'] =
+      'application/json';
+
+    options.body =
+      JSON.stringify(
+        options.body
+      );
+
+  }
+
+
+  const response =
+    await fetch(
+      url,
+      {
+        ...options,
+        headers
+      }
+    );
+
+
+  if(!response.ok){
+
+    let error = {};
+
+    try{
+      error =
+        await response.json();
+    }catch(e){}
+
+    throw new Error(
+      error.error ||
+      'HTTP ' + response.status
+    );
+
+  }
+
+
+  if(
+    response.status === 204
+  ){
+
+    return {};
+
+  }
+
+
+  return response
+    .json()
+    .catch(() => ({}));
+
+}
+
+
+/* ==================================================
+   TOAST
+================================================== */
+
+function toast(message){
+
+  $('toast').textContent =
+    message;
+
+  $('toast').classList.add(
+    'show'
+  );
+
+  clearTimeout(
+    toast.timer
+  );
+
+  toast.timer =
+    setTimeout(
+      () => {
+
+        $('toast')
+          .classList
+          .remove('show');
+
+      },
+      1800
+    );
+
+}
+
+
+/* ==================================================
+   PROFİL
+================================================== */
+
+let currentUser = {
+
+  username,
+  displayName:
+    username,
+
+  avatar:'',
+  verified:false
+
+};
+
+
+function setProfile(user){
+
+  currentUser = {
+
+    ...currentUser,
+    ...user
+
+  };
+
+
+  const name =
+    currentUser.displayName ||
+    currentUser.username ||
+    username;
+
+
+  $('profileName').innerHTML =
+    esc(name) +
+
+    (
+      currentUser.verified
+
+      ? `
+        <span class="verified">
+          ✓
+        </span>
+      `
+
+      : ''
+    );
+
+
+  $('profileStatus')
+    .textContent =
+      currentUser.online
+      ? 'Çevrimiçi'
+      : '';
+
+
+  const avatar =
+    $('profileAvatar');
+
+
+  if(currentUser.avatar){
+
+    avatar.innerHTML = `
+      <img
+        src="${esc(
+          currentUser.avatar
+        )}"
+        alt=""
+      >
+    `;
+
+  }else{
+
+    avatar.textContent =
+      (
+        name[0] ||
+        'M'
+      ).toUpperCase();
+
+  }
+
+}
+
+
+/* ==================================================
+   MESAJ NORMALLEŞTİRME
+================================================== */
+
+function normalizeMessage(m){
+
+  const sender =
+    m.sender ||
+    m.from ||
+    m.sender_username ||
+    m.username ||
+    '';
+
+  const recipient =
+    m.recipient ||
+    m.to ||
+    m.recipient_username ||
+    '';
+
+  const text =
+    m.text ||
+    m.message ||
+    m.content ||
+    '';
+
+
+  let mine =
+    m.mine;
+
+
+  if(
+    mine === undefined
+  ){
+
+    mine =
+      String(sender)
+        .toLowerCase() !==
+      String(username)
+        .toLowerCase();
+
+  }
+
+
+  return {
+
+    id:
+      m.id ||
+      m.message_id ||
+      Date.now() +
+      Math.random(),
+
+    sender,
+
+    recipient,
+
+    text,
+
+    image:
+      m.image ||
+      m.image_url ||
+      '',
+
+    mine:!!mine,
+
+    createdAt:
+      m.createdAt ||
+      m.created_at ||
+      m.timestamp ||
+      Date.now()
+
+  };
+
+}
+
+
+/* ==================================================
+   TARİH
+================================================== */
+
+function formatTime(value){
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+
+    return '';
+
+  }
+
+
+  return date.toLocaleTimeString(
+    'tr-TR',
+    {
+      hour:'2-digit',
+      minute:'2-digit'
+    }
+  );
+
+}
+
+
+/* ==================================================
+   MESAJ GÖSTER
+================================================== */
+
+function renderMessages(messages){
+
+  const chat =
+    $('chat');
+
+  const empty =
+    $('empty');
+
+  const typing =
+    $('typing');
+
+
+  chat
+    .querySelectorAll(
+      '.message'
+    )
+    .forEach(
+      el => el.remove()
+    );
+
+
+  if(!messages.length){
+
+    empty.style.display =
+      'flex';
+
+    return;
+
+  }
+
+
+  empty.style.display =
+    'none';
+
+
+  messages
+    .sort(
+      (a,b) =>
+        new Date(a.createdAt) -
+        new Date(b.createdAt)
+    )
+    .forEach(
+      message => {
+
+        const wrapper =
+          document.createElement(
+            'div'
+          );
+
+
+        wrapper.className =
+          'message ' +
+          (
+            message.mine
+            ? 'me'
+            : 'other'
+          );
+
+
+        const content =
+          document.createElement(
+            'div'
+          );
+
+
+        content.className =
+          'message-content';
+
+
+        let html = '';
+
+
+        if(message.image){
+
+          html += `
+            <img
+              class="message-image"
+              src="${esc(
+                message.image
+              )}"
+              alt="Fotoğraf"
+            >
+          `;
+
+        }
+
+
+        if(message.text){
+
+          const safe =
+            esc(
+              message.text
+            ).replace(
+              /\n/g,
+              '<br>'
+            );
+
+
+          html += `
+            <div class="bubble">
+              ${safe}
+            </div>
+          `;
+
+        }
+
+
+        html += `
+          <div class="time">
+            ${formatTime(
+              message.createdAt
+            )}
+          </div>
+        `;
+
+
+        content.innerHTML =
+          html;
+
+
+        wrapper.appendChild(
+          content
+        );
+
+
+        chat.insertBefore(
+          wrapper,
+          typing
+        );
+
+      }
+    );
+
+
+  scrollBottom();
+
+}
+
+
+/* ==================================================
+   SCROLL
+================================================== */
+
+function scrollBottom(){
+
+  requestAnimationFrame(
+    () => {
+
+      $('chat').scrollTop =
+        $('chat').scrollHeight;
+
+    }
+  );
+
+}
+
+
+/* ==================================================
+   MESAJLARI API'DEN AL
+================================================== */
+
+async function loadMessages(){
+
+  try{
+
+    /*
+      Farklı backend isimleriyle
+      uyumlu olması için birkaç
+      olası endpoint destekleniyor.
+    */
+
+    let data;
+
+
+    try{
+
+      data =
+        await api(
+          '/api/messages?username=' +
+          encodeURIComponent(
+            username
+          )
+        );
+
+    }catch(error){
+
+      data =
+        await api(
+          '/api/messages/' +
+          encodeURIComponent(
+            username
+          )
+        );
+
+    }
+
+
+    let raw =
+      Array.isArray(data)
+
+      ? data
+
+      : (
+          data.messages ||
+          data.items ||
+          data.data ||
+          []
+        );
+
+
+    const messages =
+      raw.map(
+        normalizeMessage
+      );
+
+
+    renderMessages(
+      messages
+    );
+
+
+  }catch(error){
+
+    /*
+      API yoksa sohbet boş kalır.
+      Demo mesaj eklenmez.
+    */
+
+    renderMessages([]);
+
+  }
+
+}
+
+
+/* ==================================================
+   PROFİLİ YÜKLE
+================================================== */
+
+async function loadProfile(){
+
+  setProfile({
+
+    username,
+    displayName:
+      username
+
+  });
+
+
+  try{
+
+    const data =
+      await api(
+        '/api/users/' +
+        encodeURIComponent(
+          username
+        )
+      );
+
+
+    const user =
+      data.user ||
+      data;
+
+
+    if(user){
+
+      setProfile(user);
+
+    }
+
+  }catch(error){
+
+    try{
+
+      const data =
+        await api(
+          '/api/users?search=' +
+          encodeURIComponent(
+            username
+          )
+        );
+
+
+      const users =
+        Array.isArray(data)
+        ? data
+        : (
+            data.users ||
+            data.items ||
+            []
+          );
+
+
+      const user =
+        users.find(
+          u =>
+            String(
+              u.username
+            ).toLowerCase() ===
+            String(
+              username
+            ).toLowerCase()
+        );
+
+
+      if(user){
+
+        setProfile(user);
+
+      }
+
+    }catch(e){}
+
+  }
+
+}
+
+
+/* ==================================================
+   GÖNDERME
+================================================== */
+
+let selectedImage =
+  null;
+
+
+async function sendMessage(){
+
+  const input =
+    $('messageInput');
+
 
   const text =
     input.value.trim();
 
-  if(!text){
+
+  if(
+    !text &&
+    !selectedImage
+  ){
+
     return;
+
   }
 
-  addMessage(
-    text,
-    'me'
-  );
 
-  input.value = '';
-
-  input.focus();
-}
+  const button =
+    $('sendButton');
 
 
-/* Buton */
-
-send.addEventListener(
-  'click',
-  sendMessage
-);
+  button.disabled =
+    true;
 
 
-/* Enter */
+  try{
 
-input.addEventListener(
-  'keydown',
-  e => {
+    /*
+      Fotoğraf seçilmişse önce
+      fotoğrafı göndermeyi deniyoruz.
+    */
 
-    if(
-      e.key === 'Enter'
-    ){
+    if(selectedImage){
 
-      e.preventDefault();
+      const form =
+        new FormData();
 
-      sendMessage();
+
+      form.append(
+        'recipient',
+        username
+      );
+
+
+      if(text){
+
+        form.append(
+          'message',
+          text
+        );
+
+      }
+
+
+      form.append(
+        'image',
+        selectedImage
+      );
+
+
+      const headers = {};
+
+
+      if(token){
+
+        headers.Authorization =
+          'Bearer ' + token;
+
+      }
+
+
+      let response =
+        await fetch(
+          '/api/messages',
+          {
+            method:'POST',
+            headers,
+            body:form
+          }
+        );
+
+
+      if(!response.ok){
+
+        throw new Error(
+          'Fotoğraf gönderilemedi'
+        );
+
+      }
+
+
+      clearSelectedImage();
+
+
+    }else{
+
+      /*
+        Normal mesaj
+      */
+
+      await api(
+        '/api/messages',
+        {
+          method:'POST',
+
+          body:{
+            recipient:
+              username,
+
+            to:
+              username,
+
+            message:
+              text,
+
+            text:
+              text
+          }
+        }
+      );
 
     }
 
+
+    input.value =
+      '';
+
+    resizeInput();
+
+
+    await loadMessages();
+
+    scrollBottom();
+
+
+  }catch(error){
+
+    /*
+      Backend endpoint'i farklıysa
+      kullanıcıya hata gösterilir.
+    */
+
+    toast(
+      error.message ||
+      'Mesaj gönderilemedi'
+    );
+
   }
-);
 
 
-/* Geri */
+  updateSendButton();
 
-document
-  .getElementById('back')
+}
+
+
+/* ==================================================
+   INPUT
+================================================== */
+
+$('messageInput')
   .addEventListener(
-    'click',
+    'input',
     () => {
 
-      if(history.length > 1){
+      resizeInput();
 
-        history.back();
+      updateSendButton();
 
-      }else{
+    }
+  );
 
-        location.href =
-          'mesajlar.html';
+
+$('messageInput')
+  .addEventListener(
+    'keydown',
+    event => {
+
+      if(
+        event.key === 'Enter' &&
+        !event.shiftKey
+      ){
+
+        event.preventDefault();
+
+        sendMessage();
 
       }
 
     }
   );
+
+
+function resizeInput(){
+
+  const input =
+    $('messageInput');
+
+
+  input.style.height =
+    '42px';
+
+
+  input.style.height =
+    Math.min(
+      input.scrollHeight,
+      120
+    ) + 'px';
+
+}
+
+
+function updateSendButton(){
+
+  const hasText =
+    $('messageInput')
+      .value
+      .trim()
+      .length > 0;
+
+
+  $('sendButton').disabled =
+    !hasText &&
+    !selectedImage;
+
+}
+
+
+/* ==================================================
+   FOTOĞRAF
+================================================== */
+
+$('photoButton').onclick =
+  () => {
+
+    $('photoInput').click();
+
+  };
+
+
+$('photoInput').addEventListener(
+  'change',
+  event => {
+
+    const file =
+      event.target.files[0];
+
+
+    if(!file){
+
+      return;
+
+    }
+
+
+    if(
+      !file.type.startsWith(
+        'image/'
+      )
+    ){
+
+      toast(
+        'Lütfen fotoğraf seç.'
+      );
+
+      return;
+
+    }
+
+
+    selectedImage =
+      file;
+
+
+    const url =
+      URL.createObjectURL(
+        file
+      );
+
+
+    $('previewImage').src =
+      url;
+
+
+    $('previewInfo').textContent =
+      file.name;
+
+
+    $('preview')
+      .classList
+      .add('show');
+
+
+    updateSendButton();
+
+  }
+);
+
+
+function clearSelectedImage(){
+
+  selectedImage =
+    null;
+
+
+  $('photoInput').value =
+    '';
+
+
+  $('preview')
+    .classList
+    .remove('show');
+
+
+  $('previewImage').src =
+    '';
+
+  updateSendButton();
+
+}
+
+
+$('previewRemove').onclick =
+  clearSelectedImage;
+
+
+/* ==================================================
+   EMOJI
+================================================== */
+
+$('emojiButton').onclick =
+  () => {
+
+    $('emojiPanel')
+      .classList
+      .toggle('show');
+
+  };
+
+
+document
+  .querySelectorAll(
+    '.emoji'
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        'click',
+        () => {
+
+          const input =
+            $('messageInput');
+
+
+          const emoji =
+            button.textContent;
+
+
+          const start =
+            input.selectionStart;
+
+
+          const end =
+            input.selectionEnd;
+
+
+          input.value =
+            input.value.slice(
+              0,
+              start
+            ) +
+            emoji +
+            input.value.slice(
+              end
+            );
+
+
+          input.focus();
+
+
+          input.selectionStart =
+            input.selectionEnd =
+              start +
+              emoji.length;
+
+
+          resizeInput();
+
+          updateSendButton();
+
+        }
+      );
+
+    }
+  );
+
+
+/* ==================================================
+   GÖNDER BUTONU
+================================================== */
+
+$('sendButton').onclick =
+  sendMessage;
+
+
+/* ==================================================
+   GERİ
+================================================== */
+
+$('back').onclick =
+  () => {
+
+    if(
+      history.length > 1
+    ){
+
+      history.back();
+
+    }else{
+
+      location.href =
+        'mesajlar.html';
+
+    }
+
+  };
+
+
+/* ==================================================
+   ARAMA / VİDEO / MENÜ
+================================================== */
+
+$('callButton').onclick =
+  () => {
+
+    toast(
+      'Sesli arama yakında.'
+    );
+
+  };
+
+
+$('videoButton').onclick =
+  () => {
+
+    toast(
+      'Görüntülü arama yakında.'
+    );
+
+  };
+
+
+$('moreButton').onclick =
+  () => {
+
+    toast(
+      'Sohbet seçenekleri yakında.'
+    );
+
+  };
+
+
+/* ==================================================
+   DIŞARI TIKLAMA
+================================================== */
+
+document.addEventListener(
+  'click',
+  event => {
+
+    const panel =
+      $('emojiPanel');
+
+    const button =
+      $('emojiButton');
+
+
+    if(
+      panel.classList.contains(
+        'show'
+      ) &&
+      !panel.contains(
+        event.target
+      ) &&
+      event.target !== button
+    ){
+
+      panel.classList.remove(
+        'show'
+      );
+
+    }
+
+  }
+);
+
+
+/* ==================================================
+   BAŞLAT
+================================================== */
+
+(async function(){
+
+  const today =
+    new Date();
+
+
+  $('date').textContent =
+    today.toLocaleDateString(
+      'tr-TR',
+      {
+        day:'numeric',
+        month:'long',
+        year:'numeric'
+      }
+    );
+
+
+  await loadProfile();
+
+  await loadMessages();
+
+  scrollBottom();
+
+})();
+
+
+/* ==================================================
+   OTOMATİK YENİLEME
+================================================== */
+
+setInterval(
+  () => {
+
+    if(
+      document.visibilityState ===
+      'visible'
+    ){
+
+      loadMessages();
+
+    }
+
+  },
+  5000
+);
 
 </script>
 
