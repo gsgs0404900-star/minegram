@@ -107,8 +107,18 @@ firebaseApp=initializeApp(firebaseConfig);
 firebaseAuth=authModule.getAuth(firebaseApp);
 await new Promise(resolve=>{
 let done=false;
-const unsub=authModule.onAuthStateChanged(firebaseAuth,user=>{
-if(done)return;done=true;firebaseUser=user||null;unsub();resolve();
+const unsub = authModule.onIdTokenChanged(firebaseAuth, user => {
+
+    if(done) return;
+
+    done = true;
+
+    firebaseUser = user || null;
+
+    unsub();
+
+    resolve(firebaseUser);
+
 });
 });
 return firebaseUser;
