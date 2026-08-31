@@ -487,6 +487,114 @@ async function hydratePosts(
 }
 
 /* =========================================================
+   USERNAME CHECK
+========================================================= */
+
+app.get(
+  "/api/check-username",
+  async (req, res) => {
+    try {
+      const username =
+        normalizeUsername(
+          req.query?.username
+        );
+
+      if (!username) {
+        return res.json({
+          ok: true,
+          available: false,
+          error: "Kullanıcı adı gerekli."
+        });
+      }
+
+      if (
+        !/^[a-z0-9._]{3,30}$/.test(
+          username
+        )
+      ) {
+        return res.json({
+          ok: true,
+          available: false,
+          error:
+            "3-30 karakter kullan. Harf, sayı, _ veya . kullanabilirsin."
+        });
+      }
+
+      if (!SUPABASE_URL) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "SUPABASE_URL eksik."
+        });
+      }
+
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      const admin =
+        adminClient();
+
+      const {
+        data,
+        error
+      } =
+        await admin
+          .from("profiles")
+          .select("id")
+          .eq(
+            "username",
+            username
+          )
+          .limit(1);
+
+      if (error) {
+        console.error(
+          "CHECK USERNAME ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+          ok: false,
+          error:
+            "Kullanıcı adı kontrol edilemedi."
+        });
+      }
+
+      const taken =
+        Array.isArray(data) &&
+        data.length > 0;
+
+      return res.json({
+        ok: true,
+
+        available:
+          !taken,
+
+        username
+      });
+
+    } catch (e) {
+      console.error(
+        "CHECK USERNAME EXCEPTION:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Kullanıcı adı kontrol edilemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
    REGISTER - DÜZELTİLMİŞ VE GÜVENLİ KAYIT SİSTEMİ
 ========================================================= */
 
