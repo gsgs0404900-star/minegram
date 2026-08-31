@@ -309,6 +309,11 @@ body{
 <script>
 "use strict";
 
+
+/* =========================================
+   ELEMENTLER
+========================================= */
+
 const passwordInput =
     document.getElementById("password");
 
@@ -325,25 +330,30 @@ const topBack =
     document.getElementById("topBack");
 
 
-/* =========================
+/* =========================================
    MESAJ
-========================= */
+========================================= */
 
 function showMessage(text, type = ""){
 
-    message.textContent = text || "";
+    message.textContent =
+        text || "";
 
-    message.className = "message";
+    message.className =
+        "message";
 
     if(type){
+
         message.classList.add(type);
+
     }
+
 }
 
 
-/* =========================
+/* =========================================
    KULLANICI ADI
-========================= */
+========================================= */
 
 const params =
     new URLSearchParams(
@@ -363,9 +373,9 @@ const username =
     .toLowerCase();
 
 
-/* =========================
+/* =========================================
    KULLANICI ADINI SAKLA
-========================= */
+========================================= */
 
 if(username){
 
@@ -377,43 +387,79 @@ if(username){
 }
 
 
-/* =========================
-   ŞİFRE GÖSTER
-========================= */
+/* =========================================
+   KAYITLI ŞİFRE
+========================================= */
+
+const savedPassword =
+    sessionStorage.getItem(
+        "minegram_register_password"
+    );
+
+if(savedPassword){
+
+    passwordInput.value =
+        savedPassword;
+
+}
+
+
+/* =========================================
+   ŞİFRE GÖSTER / GİZLE
+========================================= */
 
 showPassword.addEventListener(
     "click",
     function(){
 
-        if(passwordInput.type === "password"){
+        if(
+            passwordInput.type ===
+            "password"
+        ){
 
-            passwordInput.type = "text";
+            passwordInput.type =
+                "text";
 
             showPassword.textContent =
                 "Gizle";
 
-        }else{
+        }
+        else{
 
-            passwordInput.type = "password";
+            passwordInput.type =
+                "password";
 
             showPassword.textContent =
                 "Göster";
+
         }
 
     }
 );
 
 
-/* =========================
+/* =========================================
    GERİ
-========================= */
+========================================= */
 
 function goBack(){
 
-    window.location.href =
+    let url =
         "./kullanici-adi.html";
 
+    if(username){
+
+        url +=
+            "?username=" +
+            encodeURIComponent(username);
+
+    }
+
+    window.location.href =
+        url;
+
 }
+
 
 topBack.addEventListener(
     "click",
@@ -421,9 +467,28 @@ topBack.addEventListener(
 );
 
 
-/* =========================
+topBack.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Enter" ||
+            event.key === " "
+        ){
+
+            event.preventDefault();
+
+            goBack();
+
+        }
+
+    }
+);
+
+
+/* =========================================
    ŞİFRE DEĞİŞİNCE
-========================= */
+========================================= */
 
 passwordInput.addEventListener(
     "input",
@@ -435,15 +500,17 @@ passwordInput.addEventListener(
 );
 
 
-/* =========================
+/* =========================================
    İLERİ
-========================= */
+========================================= */
 
-async function goNext(){
+function goNext(){
 
     const password =
         passwordInput.value;
 
+
+    /* KULLANICI ADI */
 
     if(!username){
 
@@ -452,8 +519,11 @@ async function goNext(){
         );
 
         return;
+
     }
 
+
+    /* ŞİFRE */
 
     if(!password){
 
@@ -464,6 +534,7 @@ async function goNext(){
         passwordInput.focus();
 
         return;
+
     }
 
 
@@ -476,15 +547,13 @@ async function goNext(){
         passwordInput.focus();
 
         return;
+
     }
 
 
-    /*
-     * Şifreyi kayıt akışı boyunca
-     * sessionStorage'da tutuyoruz.
-     *
-     * localStorage kullanılmıyor.
-     */
+    /* =====================================
+       ŞİFREYİ KAYDET
+    ===================================== */
 
     sessionStorage.setItem(
         "minegram_register_password",
@@ -492,7 +561,12 @@ async function goNext(){
     );
 
 
-    nextButton.disabled = true;
+    /* =====================================
+       BUTONU KİLİTLE
+    ===================================== */
+
+    nextButton.disabled =
+        true;
 
     nextButton.textContent =
         "Devam ediliyor...";
@@ -504,7 +578,11 @@ async function goNext(){
     );
 
 
-    let url =
+    /* =====================================
+       İLETİŞİM SAYFASINA GİT
+    ===================================== */
+
+    const url =
         "./iletisim-bilgileri.html?username=" +
         encodeURIComponent(username);
 
@@ -512,7 +590,8 @@ async function goNext(){
     setTimeout(
         function(){
 
-            window.location.href = url;
+            window.location.href =
+                url;
 
         },
         250
@@ -521,15 +600,19 @@ async function goNext(){
 }
 
 
+/* =========================================
+   İLERİ BUTONU
+========================================= */
+
 nextButton.addEventListener(
     "click",
     goNext
 );
 
 
-/* =========================
+/* =========================================
    ENTER
-========================= */
+========================================= */
 
 passwordInput.addEventListener(
     "keydown",
@@ -547,22 +630,9 @@ passwordInput.addEventListener(
 );
 
 
-/* =========================
-   KAYITLI ŞİFRE
-========================= */
-
-const savedPassword =
-    sessionStorage.getItem(
-        "minegram_register_password"
-    );
-
-if(savedPassword){
-
-    passwordInput.value =
-        savedPassword;
-
-}
-
+/* =========================================
+   DEBUG
+========================================= */
 
 console.log(
     "[MINEGRAM] Şifre sayfası hazır."
@@ -571,6 +641,10 @@ console.log(
 console.log(
     "[MINEGRAM] Username:",
     username
+);
+
+console.log(
+    "[MINEGRAM] Şifre kayıt akışı hazır."
 );
 
 </script>
