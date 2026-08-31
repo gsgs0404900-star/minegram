@@ -520,14 +520,28 @@ app.post(
           .trim()
           .slice(0, 80);
 
-      if (
-        !username ||
-        !email ||
-        password.length < 6
-      ) {
+      /* -----------------------------------------------------
+         TEMEL KONTROLLER
+      ----------------------------------------------------- */
+
+      if (!username) {
         return res.status(400).json({
           error:
-            "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli."
+            "Kullanıcı adı gerekli."
+        });
+      }
+
+      if (!email) {
+        return res.status(400).json({
+          error:
+            "E-posta gerekli."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          error:
+            "Şifre en az 6 karakter olmalı."
         });
       }
 
@@ -542,94 +556,205 @@ app.post(
         });
       }
 
-      const anon =
-        client();
+      if (!CONFIG_OK) {
+        return res.status(500).json({
+          error:
+            "Supabase yapılandırması eksik."
+        });
+      }
+
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      /* -----------------------------------------------------
+         ADMIN CLIENT
+         
+         Kullanıcı adı kontrolünü ANON yerine ADMIN ile
+         yapıyoruz. Böylece RLS nedeniyle mevcut kullanıcı
+         adlarının görünmemesi problemi olmaz.
+      ----------------------------------------------------- */
+
+      const admin =
+        adminClient();
+
+      /* -----------------------------------------------------
+         KULLANICI ADI KONTROLÜ
+      ----------------------------------------------------- */
 
       const {
-        data: existing
-      } = await anon
+        data: existingProfile,
+        error: usernameCheckError
+      } = await admin
         .from("profiles")
-        .select("id")
+        .select("id,username")
         .eq(
           "username",
           username
         )
         .maybeSingle();
 
-      if (existing) {
+      if (usernameCheckError) {
+        console.error(
+          "USERNAME CHECK ERROR:",
+          usernameCheckError
+        );
+
+        return res.status(500).json({
+          error:
+            "Kullanıcı adı kontrol edilemedi."
+        });
+      }
+
+      if (existingProfile) {
         return res.status(409).json({
+          ok: false,
+          code: "USERNAME_TAKEN",
           error:
             "Bu kullanıcı adı zaten alınmış."
         });
       }
 
+      /* -----------------------------------------------------
+         SUPABASE AUTH KAYDI
+      ----------------------------------------------------- */
+
+      const anon =
+        client();
+
       const {
         data,
         error
-      } = await anon.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            display_name:
-              displayName
+      } =
+        await anon.auth.signUp({
+          email,
+          password,
+
+          options: {
+            data: {
+              username,
+              display_name:
+                displayName
+            }
           }
-        }
-      });
+        });
 
       if (error) {
+        console.error(
+          "SUPABASE SIGNUP ERROR:",
+          error
+        );
+
+        /*
+         * Bazı Supabase durumlarında kullanıcı adı
+         * kontrolünden bağımsız olarak kayıt hatası
+         * dönebilir.
+         */
+
         return res.status(400).json({
-          error: error.message
+          ok: false,
+          error:
+            error.message
         });
       }
 
-      if (!data.user) {
+      if (!data?.user) {
         return res.status(400).json({
+          ok: false,
           error:
             "Kullanıcı oluşturulamadı."
         });
       }
 
-      if (
-        SUPABASE_SERVICE_ROLE_KEY
-      ) {
-        const admin =
-          adminClient();
+      const authUser =
+        data.user;
 
-        const {
-          error: profileError
-        } = await admin
+      /* -----------------------------------------------------
+         PROFİL OLUŞTUR
+      ----------------------------------------------------- */
+
+      const {
+        data: profile,
+        error: profileError
+      } =
+        await admin
           .from("profiles")
-          .upsert(
-            {
-              id: data.user.id,
-              auth_user_id:
-                data.user.id,
-              username,
-              display_name:
-                displayName,
-              bio: "",
-              avatar_url: null,
-              verified: false,
-              settings: {}
-            },
-            {
-              onConflict:
-                "id"
-            }
-          );
+          .insert({
+            id:
+              authUser.id,
 
-        if (profileError) {
-          return res.status(500).json({
+            auth_user_id:
+              authUser.id,
+
+            username:
+              username,
+
+            display_name:
+              displayName,
+
+            bio:
+              "",
+
+            avatar_url:
+              null,
+
+            verified:
+              false,
+
+            settings:
+              {}
+          })
+          .select("*")
+          .single();
+
+      /* -----------------------------------------------------
+         PROFİL EKLEME HATASI
+      ----------------------------------------------------- */
+
+      if (profileError) {
+        console.error(
+          "PROFILE CREATE ERROR:",
+          profileError
+        );
+
+        /*
+         * PostgreSQL UNIQUE hatası.
+         * Örneğin başka biri aynı kullanıcı adını
+         * aynı anda aldıysa buraya düşebilir.
+         */
+
+        if (
+          profileError.code === "23505" ||
+          /duplicate|unique/i.test(
+            profileError.message || ""
+          )
+        ) {
+          return res.status(409).json({
+            ok: false,
+            code: "USERNAME_TAKEN",
             error:
-              `Profil oluşturulamadı: ${profileError.message}`
+              "Bu kullanıcı adı zaten alınmış."
           });
         }
+
+        return res.status(500).json({
+          ok: false,
+          error:
+            `Profil oluşturulamadı: ${profileError.message}`
+        });
       }
+
+      /* -----------------------------------------------------
+         E-POSTA DOĞRULAMA AÇIKSA
+      ----------------------------------------------------- */
 
       if (!data.session) {
         return res.json({
+          ok: true,
+
           needsConfirmation:
             true,
 
@@ -637,84 +762,70 @@ app.post(
             "Kayıt tamamlandı. E-posta adresini doğrula, ardından giriş yap.",
 
           user: {
-            id: data.user.id,
+            id:
+              authUser.id,
+
             email:
-              data.user.email,
-            username
+              authUser.email,
+
+            username:
+              username,
+
+            displayName:
+              displayName
           }
         });
       }
 
-      const sb =
-        client(
-          data.session
-            .access_token
-        );
+      /* -----------------------------------------------------
+         OTOMATİK GİRİŞ
+      ----------------------------------------------------- */
 
-      let {
-        data: profile,
-        error: pError
-      } = await sb
-        .from("profiles")
-        .select("*")
-        .eq(
-          "id",
-          data.user.id
-        )
-        .maybeSingle();
+      return res.json({
+        ok: true,
 
-      if (
-        (!profile || pError) &&
-        SUPABASE_SERVICE_ROLE_KEY
-      ) {
-        const admin =
-          adminClient();
-
-        const result =
-          await admin
-            .from("profiles")
-            .select("*")
-            .eq(
-              "id",
-              data.user.id
-            )
-            .maybeSingle();
-
-        profile =
-          result.data;
-
-        pError =
-          result.error;
-      }
-
-      if (
-        pError ||
-        !profile
-      ) {
-        return res.status(500).json({
-          error:
-            "Profil oluşturulamadı."
-        });
-      }
-
-      res.json({
         token:
           data.session
             .access_token,
+
         user:
           safeUser(profile)
       });
 
     } catch (e) {
-      res.status(500).json({
+      console.error(
+        "REGISTER ERROR:",
+        e
+      );
+
+      /*
+       * Son güvenlik kontrolü:
+       * UNIQUE username hatası buradan da yakalanabilir.
+       */
+
+      if (
+        e?.code === "23505" ||
+        /duplicate|unique/i.test(
+          e?.message || ""
+        )
+      ) {
+        return res.status(409).json({
+          ok: false,
+          code: "USERNAME_TAKEN",
+          error:
+            "Bu kullanıcı adı zaten alınmış."
+        });
+      }
+
+      return res.status(500).json({
+        ok: false,
         error:
-          e.message ||
-          "Kayıt başarısız"
+          e?.message ||
+          "Kayıt başarısız."
       });
     }
   }
 );
-
 
 /* =========================================================
    LOGIN
