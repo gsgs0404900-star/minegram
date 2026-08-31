@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -134,8 +133,6 @@ left:37px;
 background:#3b197e;
 }
 
-/* ALT SAYFALAR */
-
 .sub-screen{
 position:fixed;
 inset:0;
@@ -184,8 +181,6 @@ font-size:17px;
 flex:1;
 }
 
-/* FORM */
-
 .form-group{
 margin-bottom:18px;
 }
@@ -225,9 +220,8 @@ margin-top:5px;
 
 .form-button:disabled{
 opacity:.5;
+cursor:not-allowed;
 }
-
-/* CİHAZLAR */
 
 .device-card{
 background:#171717;
@@ -278,8 +272,6 @@ color:#21104d;
 font-weight:700;
 }
 
-/* 2FA */
-
 .security-info-box{
 background:#171717;
 border:1px solid #303030;
@@ -306,7 +298,34 @@ text-align:center;
 font-size:20px;
 }
 
-/* DİYALOG */
+.phone-status{
+display:none;
+background:#171717;
+border:1px solid #303030;
+border-radius:14px;
+padding:16px;
+margin-top:18px;
+}
+
+.phone-status.show{
+display:block;
+}
+
+.phone-status-title{
+font-size:16px;
+font-weight:700;
+margin-bottom:7px;
+}
+
+.phone-status-text{
+color:#999;
+font-size:13px;
+line-height:1.5;
+}
+
+.recaptcha-box{
+margin-top:15px;
+}
 
 .dialog-bg{
 position:fixed;
@@ -361,8 +380,6 @@ color:#fff;
 background:#63b1ed;
 color:#2d176c;
 }
-
-/* SORUN BİLDİR */
 
 .report-title{
 font-size:22px;
@@ -462,8 +479,6 @@ color:#21104d;
 font-weight:700;
 }
 
-/* TOAST */
-
 .toast{
 position:fixed;
 left:50%;
@@ -479,6 +494,8 @@ pointer-events:none;
 transition:.2s;
 z-index:1000;
 white-space:nowrap;
+max-width:90%;
+text-align:center;
 }
 
 .toast.show{
@@ -523,7 +540,6 @@ padding-right:18px;
 }
 }
 </style>
-
 </head>
 
 <body>
@@ -585,6 +601,7 @@ padding-right:18px;
 </main>
 </div>
 
+
 <!-- MAVİ TİK -->
 
 <div class="sub-screen" id="verifiedScreen">
@@ -610,6 +627,7 @@ Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.
 </div>
 </div>
 
+
 <!-- ŞİFRE VE GÜVENLİK -->
 
 <div class="sub-screen" id="securityScreen">
@@ -622,13 +640,28 @@ Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.
 <div class="sub-content">
 
 <button class="sub-row" id="changePasswordRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Şifreyi değiştir</span> <span class="sub-arrow">›</span> </button>
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>Şifreyi değiştir</span>
+<span class="sub-arrow">›</span>
+
+</button>
 
 <button class="sub-row" id="loginActivityRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Giriş yaptığın yerler</span> <span class="sub-arrow">›</span> </button>
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>Giriş yaptığın yerler</span>
+<span class="sub-arrow">›</span>
+
+</button>
 
 <button class="sub-row" id="twoFactorRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>İki faktörlü kimlik doğrulama</span> <span class="sub-arrow">›</span> </button>
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>İki faktörlü kimlik doğrulama</span>
+<span class="sub-arrow">›</span>
+
+</button>
 
 <div class="sub-row">
 <span>Giriş bilgilerini kaydet</span>
@@ -637,6 +670,7 @@ style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>�
 
 </div>
 </div>
+
 
 <!-- ŞİFRE DEĞİŞTİR -->
 
@@ -656,30 +690,45 @@ Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.
 </p>
 
 <div class="form-group">
-<label class="form-label">Mevcut şifre</label>
+
+<label class="form-label">
+Mevcut şifre
+</label>
+
 <input
 type="password"
 class="form-input"
 id="oldPassword"
 placeholder="Mevcut şifren">
+
 </div>
 
 <div class="form-group">
-<label class="form-label">Yeni şifre</label>
+
+<label class="form-label">
+Yeni şifre
+</label>
+
 <input
 type="password"
 class="form-input"
 id="newPassword"
 placeholder="Yeni şifren">
+
 </div>
 
 <div class="form-group">
-<label class="form-label">Yeni şifre tekrar</label>
+
+<label class="form-label">
+Yeni şifre tekrar
+</label>
+
 <input
 type="password"
 class="form-input"
 id="newPasswordAgain"
 placeholder="Yeni şifreni tekrar yaz">
+
 </div>
 
 <button class="form-button" id="changePasswordButton">
@@ -689,13 +738,21 @@ placeholder="Yeni şifreni tekrar yaz">
 </div>
 </div>
 
+
 <!-- GİRİŞ YAPILAN YERLER -->
 
 <div class="sub-screen" id="loginActivityScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="loginActivityScreen">‹</button>
-<div class="sub-title">Giriş yaptığın yerler</div>
+
+<button class="sub-back" data-close="loginActivityScreen">
+‹
+</button>
+
+<div class="sub-title">
+Giriş yaptığın yerler
+</div>
+
 </header>
 
 <div class="sub-content">
@@ -703,7 +760,7 @@ placeholder="Yeni şifreni tekrar yaz">
 <h2>Cihazların</h2>
 
 <p>
-Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
+Minegram hesabında kullanılan cihaz ve tarayıcı bilgileri.
 </p>
 
 <div id="deviceList"></div>
@@ -711,13 +768,21 @@ Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
 </div>
 </div>
 
+
 <!-- 2FA -->
 
 <div class="sub-screen" id="twoFactorScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="twoFactorScreen">‹</button>
-<div class="sub-title">İki faktörlü doğrulama</div>
+
+<button class="sub-back" data-close="twoFactorScreen">
+‹
+</button>
+
+<div class="sub-title">
+İki faktörlü doğrulama
+</div>
+
 </header>
 
 <div class="sub-content">
@@ -729,20 +794,78 @@ Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
 </div>
 
 <div class="security-info-text">
-İki faktörlü kimlik doğrulamayı açtığında hesabına giriş sırasında ek bir doğrulama kodu istenir.
+İki faktörlü doğrulamayı açtığında hesabına giriş sırasında telefonuna gönderilen ek doğrulama kodu istenir.
 </div>
 
 </div>
+
 
 <div class="sub-row">
-<span>İki faktörlü doğrulama</span>
+
+<span>
+İki faktörlü doğrulama
+</span>
+
 <button class="switch" id="twoFactorSwitch"></button>
+
 </div>
 
-<div id="twoFactorSetup" style="display:none;margin-top:22px;">
+
+<div id="twoFactorSetup"
+style="display:none;margin-top:22px;">
+
+<div class="form-group">
 
 <label class="form-label">
-Doğrulama kodu
+Mevcut şifren
+</label>
+
+<input
+type="password"
+class="form-input"
+id="mfaPassword"
+placeholder="Güvenlik için mevcut şifren">
+
+</div>
+
+
+<div class="form-group">
+
+<label class="form-label">
+Telefon numarası
+</label>
+
+<input
+type="tel"
+class="form-input"
+id="mfaPhone"
+placeholder="+90 5XX XXX XX XX"
+autocomplete="tel">
+
+</div>
+
+
+<button
+class="form-button"
+id="sendMfaCodeButton">
+
+📱 SMS kodu gönder
+
+</button>
+
+
+<div
+id="recaptcha-container"
+class="recaptcha-box">
+</div>
+
+
+<div
+id="mfaCodeArea"
+style="display:none;margin-top:20px;">
+
+<label class="form-label">
+SMS doğrulama kodu
 </label>
 
 <input
@@ -750,59 +873,147 @@ class="form-input code-input"
 id="twoFactorCode"
 maxlength="6"
 inputmode="numeric"
+autocomplete="one-time-code"
 placeholder="000000">
 
 <button
 class="form-button"
 id="verifyTwoFactorButton"
 style="margin-top:15px;">
-Kodu doğrula </button>
+
+Kodu doğrula ve aktif et
+
+</button>
+
+</div>
+
+
+<div
+id="mfaStatus"
+class="phone-status">
+
+<div class="phone-status-title">
+📱 SMS doğrulaması
+</div>
+
+<div
+class="phone-status-text"
+id="mfaStatusText">
+Telefonuna doğrulama kodu gönderilecek.
+</div>
 
 </div>
 
 </div>
+
 </div>
+</div>
+
 
 <!-- GİZLİLİK -->
 
 <div class="sub-screen" id="privacyScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="privacyScreen">‹</button>
-<div class="sub-title">Gizlilik</div>
+
+<button class="sub-back" data-close="privacyScreen">
+‹
+</button>
+
+<div class="sub-title">
+Gizlilik
+</div>
+
 </header>
 
 <div class="sub-content">
 
 <div class="sub-row">
-<span>Gizli hesap</span>
-<button class="switch" id="privacyPrivateSwitch"></button>
-</div>
 
-<button class="sub-row" id="mentionsRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Bahsetmeler</span> <span class="sub-arrow">›</span> </button>
+<span>
+Gizli hesap
+</span>
 
-<button class="sub-row" id="commentsRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Yorumlar</span> <span class="sub-arrow">›</span> </button>
-
-<button class="sub-row" id="blockedRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Engellenen hesaplar</span> <span class="sub-arrow">›</span> </button>
+<button
+class="switch"
+id="privacyPrivateSwitch">
+</button>
 
 </div>
+
+
+<button
+class="sub-row"
+id="mentionsRow"
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>
+Bahsetmeler
+</span>
+
+<span class="sub-arrow">
+›
+</span>
+
+</button>
+
+
+<button
+class="sub-row"
+id="commentsRow"
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>
+Yorumlar
+</span>
+
+<span class="sub-arrow">
+›
+</span>
+
+</button>
+
+
+<button
+class="sub-row"
+id="blockedRow"
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>
+Engellenen hesaplar
+</span>
+
+<span class="sub-arrow">
+›
+</span>
+
+</button>
+
 </div>
+</div>
+
 
 <!-- HESAP MERKEZİ -->
 
 <div class="sub-screen" id="accountCenterScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="accountCenterScreen">‹</button>
-<div class="sub-title">Hesap merkezi</div>
+
+<button class="sub-back" data-close="accountCenterScreen">
+‹
+</button>
+
+<div class="sub-title">
+Hesap merkezi
+</div>
+
 </header>
 
 <div class="sub-content">
 
-<h2>Hesapların</h2>
+<h2>
+Hesapların
+</h2>
 
 <p>
 Minegram hesabınla ilgili hesap bilgilerini ve güvenlik seçeneklerini buradan yönetebilirsin.
@@ -831,13 +1042,21 @@ Minegram hesabınla ilgili hesap bilgilerini ve güvenlik seçeneklerini buradan
 </div>
 </div>
 
+
 <!-- YARDIM -->
 
 <div class="sub-screen" id="helpScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="helpScreen">‹</button>
-<div class="sub-title">Yardım</div>
+
+<button class="sub-back" data-close="helpScreen">
+‹
+</button>
+
+<div class="sub-title">
+Yardım
+</div>
+
 </header>
 
 <div class="sub-content">
@@ -847,8 +1066,16 @@ Minegram hesabınla ilgili hesap bilgilerini ve güvenlik seçeneklerini buradan
 <span class="sub-arrow">›</span>
 </div>
 
-<button class="sub-row" id="reportProblemRow"
-style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>Sorun bildir</span> <span class="sub-arrow">›</span> </button>
+<button
+class="sub-row"
+id="reportProblemRow"
+style="width:100%;background:#000;color:#fff;border:0;text-align:left;">
+
+<span>Sorun bildir</span>
+
+<span class="sub-arrow">›</span>
+
+</button>
 
 <div class="sub-row">
 <span>Koşullar</span>
@@ -863,13 +1090,25 @@ style="width:100%;background:#000;color:#fff;border:0;text-align:left;"> <span>S
 </div>
 </div>
 
+
 <!-- SORUN BİLDİR -->
 
 <div class="sub-screen" id="reportScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="reportScreen">‹</button>
-<div class="sub-title">Sorun bildir</div>
+
+<button
+class="sub-back"
+data-close="reportScreen">
+
+‹
+
+</button>
+
+<div class="sub-title">
+Sorun bildir
+</div>
+
 </header>
 
 <div class="sub-content">
@@ -902,7 +1141,10 @@ Fotoğraf ekle
 type="button"
 class="photo-button"
 id="photoButton">
-📷 Fotoğraf seç </button>
+
+📷 Fotoğraf seç
+
+</button>
 
 <input
 type="file"
@@ -911,11 +1153,18 @@ accept="image/*"
 multiple
 hidden>
 
-<div class="photo-count" id="photoCount">
+<div
+class="photo-count"
+id="photoCount">
+
 0 / 2 fotoğraf
+
 </div>
 
-<div class="preview-grid" id="previewGrid"></div>
+<div
+class="preview-grid"
+id="previewGrid">
+</div>
 
 </div>
 
@@ -923,43 +1172,84 @@ hidden>
 type="button"
 class="send-report"
 id="sendReport">
-Gönder </button>
+
+Gönder
+
+</button>
 
 </div>
 </div>
+
 
 <!-- HAKKINDA -->
 
 <div class="sub-screen" id="aboutScreen">
 
 <header class="sub-header">
-<button class="sub-back" data-close="aboutScreen">‹</button>
-<div class="sub-title">Hakkında</div>
+
+<button
+class="sub-back"
+data-close="aboutScreen">
+
+‹
+
+</button>
+
+<div class="sub-title">
+Hakkında
+</div>
+
 </header>
 
 <div class="sub-content">
 
-<h2>Minegram</h2>
+<h2>
+Minegram
+</h2>
 
-<p>Minegram sosyal paylaşım uygulaması.</p>
-
-<div class="sub-row">
-<span>Uygulama sürümü</span>
-<span>1.0</span>
-</div>
-
-<div class="sub-row">
-<span>Topluluk kuralları</span>
-<span class="sub-arrow">›</span>
-</div>
+<p>
+Minegram sosyal paylaşım uygulaması.
+</p>
 
 <div class="sub-row">
-<span>Hizmet koşulları</span>
-<span class="sub-arrow">›</span>
+
+<span>
+Uygulama sürümü
+</span>
+
+<span>
+1.0
+</span>
+
+</div>
+
+<div class="sub-row">
+
+<span>
+Topluluk kuralları
+</span>
+
+<span class="sub-arrow">
+›
+</span>
+
+</div>
+
+<div class="sub-row">
+
+<span>
+Hizmet koşulları
+</span>
+
+<span class="sub-arrow">
+›
+</span>
+
 </div>
 
 </div>
 </div>
+
 
 <!-- DİYALOG -->
 
@@ -967,16 +1257,26 @@ Gönder </button>
 
 <div class="dialog">
 
-<h3 id="dialogTitle">Minegram</h3>
+<h3 id="dialogTitle">
+Minegram
+</h3>
 
-<p id="dialogText">İşlem</p>
+<p id="dialogText">
+İşlem
+</p>
 
 <div class="dialog-buttons">
 
-<button id="dialogCancel">Kapat</button>
+<button id="dialogCancel">
+Kapat
+</button>
 
-<button class="primary" id="dialogOk">
+<button
+class="primary"
+id="dialogOk">
+
 Tamam
+
 </button>
 
 </div>
@@ -984,9 +1284,71 @@ Tamam
 </div>
 </div>
 
+
 <div class="toast" id="toast"></div>
 
-<script>
+
+<!-- FIREBASE -->
+
+<script type="module">
+
+import {
+initializeApp
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+
+import {
+getAuth,
+onAuthStateChanged,
+EmailAuthProvider,
+reauthenticateWithCredential,
+multiFactor,
+PhoneAuthProvider,
+PhoneMultiFactorGenerator,
+RecaptchaVerifier,
+updatePassword
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+/* =========================
+   FIREBASE AYARLARI
+========================= */
+
+const firebaseConfig={
+
+apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+authDomain:"mim-ea133.firebaseapp.com",
+
+projectId:"mim-ea133",
+
+storageBucket:"mim-ea133.firebasestorage.app",
+
+messagingSenderId:"303525353436",
+
+appId:"1:303525353436:web:082fc090b5025e19942119",
+
+measurementId:"G-K962QE5P1R"
+
+};
+
+
+const app=initializeApp(firebaseConfig);
+
+const auth=getAuth(app);
+
+let currentUser=null;
+
+let recaptchaVerifier=null;
+
+let mfaVerificationId=null;
+
+let mfaEnrollmentInProgress=false;
+
 
 /* =========================
    TOAST
@@ -994,19 +1356,79 @@ Tamam
 
 function toast(message){
 
-const el=document.getElementById('toast');
+const el=document.getElementById("toast");
 
 el.textContent=message;
 
-el.classList.add('show');
+el.classList.add("show");
 
 clearTimeout(window.__toastTimer);
 
 window.__toastTimer=setTimeout(function(){
 
-el.classList.remove('show');
+el.classList.remove("show");
 
-},2200);
+},2800);
+
+}
+
+
+/* =========================
+   FIREBASE HATA MESAJLARI
+========================= */
+
+function firebaseError(error){
+
+console.error(error);
+
+const code=error?.code||"";
+
+if(code==="auth/user-not-found")
+return "Oturum açmış kullanıcı bulunamadı.";
+
+if(code==="auth/wrong-password")
+return "Mevcut şifre yanlış.";
+
+if(code==="auth/invalid-credential")
+return "Mevcut şifre veya giriş bilgileri hatalı.";
+
+if(code==="auth/requires-recent-login")
+return "Güvenlik nedeniyle tekrar giriş yapman gerekiyor.";
+
+if(code==="auth/invalid-phone-number")
+return "Telefon numarası geçersiz.";
+
+if(code==="auth/too-many-requests")
+return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+
+if(code==="auth/quota-exceeded")
+return "SMS gönderme limiti aşıldı. Daha sonra tekrar dene.";
+
+if(code==="auth/captcha-check-failed")
+return "reCAPTCHA doğrulaması başarısız oldu.";
+
+if(code==="auth/operation-not-allowed")
+return "Firebase'de SMS çok faktörlü doğrulama etkin değil.";
+
+if(code==="auth/multi-factor-auth-required")
+return "Hesap için ek doğrulama gerekiyor.";
+
+if(code==="auth/second-factor-already-in-use")
+return "Bu telefon numarası zaten ikinci faktör olarak kullanılıyor.";
+
+if(code==="auth/missing-phone-number")
+return "Telefon numarası girilmedi.";
+
+if(code==="auth/code-expired")
+return "Doğrulama kodunun süresi doldu.";
+
+if(code==="auth/invalid-verification-code")
+return "Doğrulama kodu yanlış.";
+
+if(code==="auth/invalid-verification-id")
+return "Doğrulama oturumu geçersiz. Yeni kod iste.";
+
+return "İşlem başarısız oldu: "+(error?.message||"Bilinmeyen hata");
 
 }
 
@@ -1023,7 +1445,8 @@ if(value===null){
 return defaultValue;
 }
 
-return value==='true';
+return value==="true";
+
 }
 
 
@@ -1031,7 +1454,7 @@ function saveSetting(key,value){
 
 localStorage.setItem(
 key,
-value?'true':'false'
+value?"true":"false"
 );
 
 }
@@ -1047,7 +1470,7 @@ const el=document.getElementById(id);
 
 if(!el)return;
 
-el.classList.toggle('on',!!value);
+el.classList.toggle("on",!!value);
 
 }
 
@@ -1057,22 +1480,76 @@ el.classList.toggle('on',!!value);
 ========================= */
 
 let notifications=
-getSetting('minegram_notifications',true);
+getSetting("minegram_notifications",true);
 
 let privateAccount=
-getSetting('minegram_private_account',false);
+getSetting("minegram_private_account",false);
 
 let darkTheme=
-getSetting('minegram_dark_theme',true);
+getSetting("minegram_dark_theme",true);
 
 let verified=
-getSetting('minegram_verified',false);
+getSetting("minegram_verified",false);
 
 let savedLogin=
-getSetting('minegram_saved_login',true);
+getSetting("minegram_saved_login",true);
 
-let twoFactor=
-getSetting('minegram_two_factor',false);
+let twoFactor=false;
+
+
+/* =========================
+   GERÇEK FIREBASE MFA DURUMU
+========================= */
+
+function refreshMfaState(){
+
+if(!currentUser){
+
+twoFactor=false;
+
+setSwitch("twoFactorSwitch",false);
+
+return;
+
+}
+
+const enrolled=currentUser.multiFactor.enrolledFactors||[];
+
+const phoneFactor=enrolled.some(function(factor){
+
+return factor.factorId===
+PhoneMultiFactorGenerator.FACTOR_ID;
+
+});
+
+twoFactor=phoneFactor;
+
+setSwitch("twoFactorSwitch",twoFactor);
+
+if(twoFactor){
+
+document.getElementById("twoFactorSetup").style.display="none";
+
+}else{
+
+document.getElementById("twoFactorSetup").style.display="none";
+
+}
+
+}
+
+
+/* =========================
+   AUTH DURUMU
+========================= */
+
+onAuthStateChanged(auth,function(user){
+
+currentUser=user;
+
+refreshMfaState();
+
+});
 
 
 /* =========================
@@ -1081,36 +1558,67 @@ getSetting('minegram_two_factor',false);
 
 function initialize(){
 
-setSwitch('notificationsSwitch',notifications);
-setSwitch('privateSwitch',privateAccount);
-setSwitch('darkSwitch',darkTheme);
-setSwitch('verifiedSwitch',verified);
-setSwitch('savedLoginSwitch',savedLogin);
-setSwitch('privacyPrivateSwitch',privateAccount);
-setSwitch('twoFactorSwitch',twoFactor);
+setSwitch(
+"notificationsSwitch",
+notifications
+);
 
-document.getElementById('twoFactorSetup').style.display=
-twoFactor?'block':'none';
+setSwitch(
+"privateSwitch",
+privateAccount
+);
+
+setSwitch(
+"darkSwitch",
+darkTheme
+);
+
+setSwitch(
+"verifiedSwitch",
+verified
+);
+
+setSwitch(
+"savedLoginSwitch",
+savedLogin
+);
+
+setSwitch(
+"privacyPrivateSwitch",
+privateAccount
+);
+
+refreshMfaState();
 
 }
+
+initialize();
 
 
 /* =========================
    BİLDİRİMLER
 ========================= */
 
-document.getElementById('notificationsSwitch').onclick=function(){
+document.getElementById(
+"notificationsSwitch"
+).onclick=function(){
 
 notifications=!notifications;
 
-saveSetting('minegram_notifications',notifications);
+saveSetting(
+"minegram_notifications",
+notifications
+);
 
-setSwitch('notificationsSwitch',notifications);
+setSwitch(
+"notificationsSwitch",
+notifications
+);
 
 toast(
 notifications
-?'Bildirimler açıldı'
-:'Bildirimler kapatıldı'
+?"Bildirimler açıldı"
+:"Bildirimler kapatıldı"
 );
 
 };
@@ -1125,25 +1633,36 @@ function togglePrivateAccount(){
 privateAccount=!privateAccount;
 
 saveSetting(
-'minegram_private_account',
+"minegram_private_account",
 privateAccount
 );
 
-setSwitch('privateSwitch',privateAccount);
-setSwitch('privacyPrivateSwitch',privateAccount);
+setSwitch(
+"privateSwitch",
+privateAccount
+);
+
+setSwitch(
+"privacyPrivateSwitch",
+privateAccount
+);
 
 toast(
 privateAccount
-?'Gizli hesap açıldı'
-:'Gizli hesap kapatıldı'
+?"Gizli hesap açıldı"
+:"Gizli hesap kapatıldı"
 );
 
 }
 
-document.getElementById('privateSwitch').onclick=
+document.getElementById(
+"privateSwitch"
+).onclick=
 togglePrivateAccount;
 
-document.getElementById('privacyPrivateSwitch').onclick=
+document.getElementById(
+"privacyPrivateSwitch"
+).onclick=
 togglePrivateAccount;
 
 
@@ -1151,18 +1670,26 @@ togglePrivateAccount;
    SİYAH TEMA
 ========================= */
 
-document.getElementById('darkSwitch').onclick=function(){
+document.getElementById(
+"darkSwitch"
+).onclick=function(){
 
 darkTheme=!darkTheme;
 
-saveSetting('minegram_dark_theme',darkTheme);
+saveSetting(
+"minegram_dark_theme",
+darkTheme
+);
 
-setSwitch('darkSwitch',darkTheme);
+setSwitch(
+"darkSwitch",
+darkTheme
+);
 
 toast(
 darkTheme
-?'Siyah tema açıldı'
-:'Siyah tema kapatıldı'
+?"Siyah tema açıldı"
+:"Siyah tema kapatıldı"
 );
 
 };
@@ -1172,18 +1699,26 @@ darkTheme
    MAVİ TİK
 ========================= */
 
-document.getElementById('verifiedSwitch').onclick=function(){
+document.getElementById(
+"verifiedSwitch"
+).onclick=function(){
 
 verified=!verified;
 
-saveSetting('minegram_verified',verified);
+saveSetting(
+"minegram_verified",
+verified
+);
 
-setSwitch('verifiedSwitch',verified);
+setSwitch(
+"verifiedSwitch",
+verified
+);
 
 toast(
 verified
-?'Mavi tik etkinleştirildi'
-:'Mavi tik kapatıldı'
+?"Mavi tik etkinleştirildi"
+:"Mavi tik kapatıldı"
 );
 
 };
@@ -1193,21 +1728,26 @@ verified
    GİRİŞ BİLGİLERİ
 ========================= */
 
-document.getElementById('savedLoginSwitch').onclick=function(){
+document.getElementById(
+"savedLoginSwitch"
+).onclick=function(){
 
 savedLogin=!savedLogin;
 
 saveSetting(
-'minegram_saved_login',
+"minegram_saved_login",
 savedLogin
 );
 
-setSwitch('savedLoginSwitch',savedLogin);
+setSwitch(
+"savedLoginSwitch",
+savedLogin
+);
 
 toast(
 savedLogin
-?'Giriş bilgileri kaydedilecek'
-:'Giriş bilgileri kaydedilmeyecek'
+?"Giriş bilgileri kaydedilecek"
+:"Giriş bilgileri kaydedilmeyecek"
 );
 
 };
@@ -1222,7 +1762,9 @@ function openScreen(id){
 const screen=document.getElementById(id);
 
 if(screen){
-screen.classList.add('open');
+
+screen.classList.add("open");
+
 }
 
 }
@@ -1233,7 +1775,9 @@ function closeScreen(id){
 const screen=document.getElementById(id);
 
 if(screen){
-screen.classList.remove('open');
+
+screen.classList.remove("open");
+
 }
 
 }
@@ -1243,28 +1787,57 @@ screen.classList.remove('open');
    ANA SAYFA
 ========================= */
 
-document.getElementById('verifiedRow').onclick=function(){
-openScreen('verifiedScreen');
+document.getElementById(
+"verifiedRow"
+).onclick=function(){
+
+openScreen("verifiedScreen");
+
 };
 
-document.getElementById('securityRow').onclick=function(){
-openScreen('securityScreen');
+
+document.getElementById(
+"securityRow"
+).onclick=function(){
+
+openScreen("securityScreen");
+
 };
 
-document.getElementById('privacyRow').onclick=function(){
-openScreen('privacyScreen');
+
+document.getElementById(
+"privacyRow"
+).onclick=function(){
+
+openScreen("privacyScreen");
+
 };
 
-document.getElementById('accountCenterRow').onclick=function(){
-openScreen('accountCenterScreen');
+
+document.getElementById(
+"accountCenterRow"
+).onclick=function(){
+
+openScreen("accountCenterScreen");
+
 };
 
-document.getElementById('helpRow').onclick=function(){
-openScreen('helpScreen');
+
+document.getElementById(
+"helpRow"
+).onclick=function(){
+
+openScreen("helpScreen");
+
 };
 
-document.getElementById('aboutRow').onclick=function(){
-openScreen('aboutScreen');
+
+document.getElementById(
+"aboutRow"
+).onclick=function(){
+
+openScreen("aboutScreen");
+
 };
 
 
@@ -1272,33 +1845,46 @@ openScreen('aboutScreen');
    ŞİFRE DEĞİŞTİR
 ========================= */
 
-document.getElementById('changePasswordRow').onclick=function(){
+document.getElementById(
+"changePasswordRow"
+).onclick=function(){
 
-openScreen('changePasswordScreen');
+openScreen("changePasswordScreen");
 
 };
 
 
-/*
- Gerçek Firebase şifre değiştirme
- backend/Firebase Auth bağlandığında
- burada updatePassword kullanılabilir.
-*/
+document.getElementById(
+"changePasswordButton"
+).onclick=async function(){
 
-document.getElementById('changePasswordButton').onclick=function(){
+if(!currentUser){
+
+toast("Önce hesabına giriş yapmalısın.");
+
+return;
+
+}
 
 const oldPassword=
-document.getElementById('oldPassword').value.trim();
+document.getElementById(
+"oldPassword"
+).value.trim();
 
 const newPassword=
-document.getElementById('newPassword').value.trim();
+document.getElementById(
+"newPassword"
+).value.trim();
 
 const newPasswordAgain=
-document.getElementById('newPasswordAgain').value.trim();
+document.getElementById(
+"newPasswordAgain"
+).value.trim();
+
 
 if(!oldPassword){
 
-toast('Mevcut şifreni gir');
+toast("Mevcut şifreni gir.");
 
 return;
 
@@ -1306,7 +1892,7 @@ return;
 
 if(newPassword.length<6){
 
-toast('Yeni şifre en az 6 karakter olmalı');
+toast("Yeni şifre en az 6 karakter olmalı.");
 
 return;
 
@@ -1314,80 +1900,150 @@ return;
 
 if(newPassword!==newPasswordAgain){
 
-toast('Yeni şifreler aynı değil');
+toast("Yeni şifreler aynı değil.");
 
 return;
 
 }
 
-toast('Şifre değiştirme formu hazır');
+
+if(!currentUser.email){
+
+toast(
+"Bu hesap e-posta/şifre ile giriş yapmıyor."
+);
+
+return;
+
+}
+
+
+try{
+
+const credential=
+EmailAuthProvider.credential(
+currentUser.email,
+oldPassword
+);
+
+await reauthenticateWithCredential(
+currentUser,
+credential
+);
+
+await updatePassword(
+currentUser,
+newPassword
+);
+
+document.getElementById(
+"oldPassword"
+).value="";
+
+document.getElementById(
+"newPassword"
+).value="";
+
+document.getElementById(
+"newPasswordAgain"
+).value="";
+
+toast("Şifren başarıyla değiştirildi.");
+
+}
+catch(error){
+
+toast(firebaseError(error));
+
+}
 
 };
 
 
 /* =========================
-   GİRİŞ YAPTIĞIN YERLER
+   GİRİŞ YAPILAN YERLER
 ========================= */
 
-document.getElementById('loginActivityRow').onclick=function(){
+document.getElementById(
+"loginActivityRow"
+).onclick=function(){
 
-openScreen('loginActivityScreen');
+openScreen("loginActivityScreen");
 
 renderDevices();
 
 };
 
 
-/*
- Tarayıcı tarafında Firebase Auth bütün
- hesap cihazlarının oturum listesini vermez.
-
- Bu nedenle gerçek tüm cihazlar için
- backend/Cloud Functions + Admin SDK gerekir.
-
- Arayüz hazırdır.
-*/
-
 function renderDevices(){
 
-const list=document.getElementById('deviceList');
+const list=
+document.getElementById("deviceList");
 
-list.innerHTML='';
+list.innerHTML="";
 
-const ua=navigator.userAgent.toLowerCase();
+const ua=
+navigator.userAgent.toLowerCase();
 
-let device='Bilgisayar';
+let device="Bilgisayar";
 
-if(ua.includes('android')){
-device='Android cihaz';
-}else if(ua.includes('iphone')){
-device='iPhone';
-}else if(ua.includes('ipad')){
-device='iPad';
+let icon="💻";
+
+if(ua.includes("android")){
+
+device="Android cihaz";
+icon="📱";
+
+}
+else if(ua.includes("iphone")){
+
+device="iPhone";
+icon="📱";
+
+}
+else if(ua.includes("ipad")){
+
+device="iPad";
+icon="📱";
+
 }
 
-let browser='Tarayıcı';
 
-if(ua.includes('edg')){
-browser='Microsoft Edge';
-}else if(ua.includes('chrome')){
-browser='Google Chrome';
-}else if(ua.includes('firefox')){
-browser='Firefox';
-}else if(ua.includes('safari')){
-browser='Safari';
+let browser="Tarayıcı";
+
+if(ua.includes("edg")){
+
+browser="Microsoft Edge";
+
+}
+else if(ua.includes("chrome")){
+
+browser="Google Chrome";
+
+}
+else if(ua.includes("firefox")){
+
+browser="Firefox";
+
+}
+else if(ua.includes("safari")){
+
+browser="Safari";
+
 }
 
-const card=document.createElement('div');
 
-card.className='device-card';
+const card=
+document.createElement("div");
+
+card.className="device-card";
 
 card.innerHTML=`
 
 <div class="device-top">
 
 <div class="device-icon">
-💻
+${icon}
 </div>
 
 <div>
@@ -1413,103 +2069,654 @@ BU CİHAZ
 
 list.appendChild(card);
 
+const info=
+document.createElement("p");
 
-/*
- Backend bağlandığında Firebase/Firestore
- üzerinden diğer cihazlar da buraya eklenecek.
-*/
-
-const info=document.createElement('p');
-
-info.style.marginTop='20px';
+info.style.marginTop="20px";
 
 info.textContent=
-'Diğer cihazlardaki girişlerin gösterilmesi için hesap oturumlarının backend üzerinde kayıt altında tutulması gerekir.';
+"Not: Tarayıcı tarafında Firebase Authentication diğer tüm cihazların fiziksel konumunu veya IP listesini doğrudan vermez. Tüm cihaz geçmişini göstermek için ayrıca backend oturum kayıt sistemi gerekir.";
 
 list.appendChild(info);
 
-};
+}
 
 
 /* =========================
-   2FA
+   2FA EKRANI
 ========================= */
 
-document.getElementById('twoFactorRow').onclick=function(){
+document.getElementById(
+"twoFactorRow"
+).onclick=function(){
 
-openScreen('twoFactorScreen');
+openScreen("twoFactorScreen");
+
+refreshMfaState();
 
 };
 
 
-document.getElementById('twoFactorSwitch').onclick=function(){
+document.getElementById(
+"twoFactorSwitch"
+).onclick=async function(){
 
-twoFactor=!twoFactor;
-
-saveSetting(
-'minegram_two_factor',
-twoFactor
-);
-
-setSwitch('twoFactorSwitch',twoFactor);
-
-document.getElementById('twoFactorSetup').style.display=
-twoFactor?'block':'none';
+if(!currentUser){
 
 toast(
-twoFactor
-?'İki faktörlü doğrulama açıldı'
-:'İki faktörlü doğrulama kapatıldı'
+"Önce hesabına giriş yapmalısın."
 );
-
-};
-
-
-document.getElementById('verifyTwoFactorButton').onclick=function(){
-
-const code=
-document.getElementById('twoFactorCode').value.trim();
-
-if(code.length!==6){
-
-toast('6 haneli doğrulama kodunu gir');
 
 return;
 
 }
 
-toast('Doğrulama kodu kontrol edilecek');
+
+if(twoFactor){
+
+await disableMfa();
+
+return;
+
+}
+
+
+/*
+  Açarken direkt true yapmıyoruz.
+  Önce telefon numarası + SMS doğrulaması
+  tamamlanacak.
+*/
+
+document.getElementById(
+"twoFactorSetup"
+).style.display="block";
+
+document.getElementById(
+"mfaStatus"
+).classList.add("show");
+
+document.getElementById(
+"mfaStatusText"
+).textContent=
+"Mevcut şifreni ve telefon numaranı gir. Ardından SMS kodu gönderilecek.";
+
+toast(
+"Telefon numaranı girerek devam et."
+);
 
 };
+
+
+/* =========================
+   RECAPTCHA
+========================= */
+
+function createRecaptcha(){
+
+if(recaptchaVerifier){
+
+try{
+
+recaptchaVerifier.clear();
+
+}catch(e){}
+
+recaptchaVerifier=null;
+
+}
+
+recaptchaVerifier=
+new RecaptchaVerifier(
+auth,
+"recaptcha-container",
+{
+
+size:"normal",
+
+callback:function(){
+
+console.log(
+"reCAPTCHA tamamlandı"
+);
+
+},
+
+"expired-callback":function(){
+
+toast(
+"reCAPTCHA süresi doldu. Tekrar deneyin."
+);
+
+}
+
+}
+);
+
+}
+
+
+/* =========================
+   TELEFON NUMARASI
+========================= */
+
+function normalizePhone(phone){
+
+let value=phone.trim();
+
+if(value.startsWith("05")){
+
+value=
+"+90"+
+value.substring(1);
+
+}
+
+if(value.startsWith("5")&&
+value.length===10){
+
+value="+90"+value;
+
+}
+
+return value;
+
+}
+
+
+/* =========================
+   SMS KODU GÖNDER
+========================= */
+
+document.getElementById(
+"sendMfaCodeButton"
+).onclick=async function(){
+
+if(mfaEnrollmentInProgress){
+
+return;
+
+}
+
+if(!currentUser){
+
+toast(
+"Önce hesabına giriş yapmalısın."
+);
+
+return;
+
+}
+
+
+const password=
+document.getElementById(
+"mfaPassword"
+).value.trim();
+
+let phone=
+document.getElementById(
+"mfaPhone"
+).value.trim();
+
+
+if(!password){
+
+toast(
+"Mevcut şifreni gir."
+);
+
+return;
+
+}
+
+
+if(!phone){
+
+toast(
+"Telefon numaranı gir."
+);
+
+return;
+
+}
+
+
+phone=
+normalizePhone(phone);
+
+
+if(!/^\+[1-9]\d{7,14}$/.test(phone)){
+
+toast(
+"Telefon numarasını +90XXXXXXXXXX şeklinde gir."
+);
+
+return;
+
+}
+
+
+if(!currentUser.email){
+
+toast(
+"Bu hesap e-posta/şifre ile giriş yapmıyor. MFA kurulumu için mevcut giriş yöntemine göre yeniden doğrulama gerekir."
+);
+
+return;
+
+}
+
+
+const button=
+document.getElementById(
+"sendMfaCodeButton"
+);
+
+button.disabled=true;
+
+button.textContent=
+"Kontrol ediliyor...";
+
+
+try{
+
+/*
+  Firebase MFA enrollment öncesinde
+  kullanıcının yakın zamanda doğrulanmasını
+  istiyor. Bu yüzden mevcut şifreyle
+  yeniden doğruluyoruz.
+*/
+
+const credential=
+EmailAuthProvider.credential(
+currentUser.email,
+password
+);
+
+await reauthenticateWithCredential(
+currentUser,
+credential
+);
+
+
+/*
+  reCAPTCHA oluştur
+*/
+
+createRecaptcha();
+
+
+/*
+  Kullanıcının MFA oturumunu al
+*/
+
+const mfaSession=
+await multiFactor(
+currentUser
+).getSession();
+
+
+/*
+  Telefon + MFA session
+*/
+
+const phoneInfoOptions={
+
+phoneNumber:phone,
+
+session:mfaSession
+
+};
+
+
+const phoneAuthProvider=
+new PhoneAuthProvider(auth);
+
+
+/*
+  SMS gönder
+*/
+
+mfaVerificationId=
+await phoneAuthProvider.verifyPhoneNumber(
+phoneInfoOptions,
+recaptchaVerifier
+);
+
+
+document.getElementById(
+"mfaCodeArea"
+).style.display="block";
+
+
+document.getElementById(
+"mfaStatusText"
+).textContent=
+"SMS kodu gönderildi. Telefonuna gelen 6 haneli kodu gir.";
+
+
+toast(
+"SMS doğrulama kodu gönderildi."
+);
+
+}
+catch(error){
+
+toast(
+firebaseError(error)
+);
+
+if(recaptchaVerifier){
+
+try{
+
+recaptchaVerifier.clear();
+
+}catch(e){}
+
+recaptchaVerifier=null;
+
+}
+
+}
+finally{
+
+button.disabled=false;
+
+button.textContent=
+"📱 SMS kodu gönder";
+
+}
+
+};
+
+
+/* =========================
+   SMS KODU DOĞRULA
+========================= */
+
+document.getElementById(
+"verifyTwoFactorButton"
+).onclick=async function(){
+
+if(mfaEnrollmentInProgress){
+
+return;
+
+}
+
+if(!currentUser){
+
+toast(
+"Önce hesabına giriş yapmalısın."
+);
+
+return;
+
+}
+
+if(!mfaVerificationId){
+
+toast(
+"Önce SMS kodu gönder."
+);
+
+return;
+
+}
+
+
+const code=
+document.getElementById(
+"twoFactorCode"
+).value.trim();
+
+
+if(!/^\d{6}$/.test(code)){
+
+toast(
+"6 haneli SMS kodunu gir."
+);
+
+return;
+
+}
+
+
+const button=
+document.getElementById(
+"verifyTwoFactorButton"
+);
+
+button.disabled=true;
+
+button.textContent=
+"Doğrulanıyor...";
+
+mfaEnrollmentInProgress=true;
+
+
+try{
+
+/*
+  SMS credential
+*/
+
+const cred=
+PhoneAuthProvider.credential(
+mfaVerificationId,
+code
+);
+
+
+/*
+  MFA assertion
+*/
+
+const assertion=
+PhoneMultiFactorGenerator.assertion(
+cred
+);
+
+
+/*
+  İkinci faktörü gerçekten Firebase
+  hesabına kaydet
+*/
+
+await multiFactor(
+currentUser
+).enroll(
+assertion,
+"Minegram telefon numarası"
+);
+
+
+twoFactor=true;
+
+setSwitch(
+"twoFactorSwitch",
+true
+);
+
+document.getElementById(
+"mfaPassword"
+).value="";
+
+document.getElementById(
+"mfaPhone"
+).value="";
+
+document.getElementById(
+"twoFactorCode"
+).value="";
+
+document.getElementById(
+"mfaCodeArea"
+).style.display="none";
+
+document.getElementById(
+"twoFactorSetup"
+).style.display="none";
+
+document.getElementById(
+"mfaStatusText"
+).textContent=
+"Telefon numaran başarıyla ikinci doğrulama faktörü olarak kaydedildi.";
+
+toast(
+"✅ İki faktörlü doğrulama aktif edildi."
+);
+
+
+if(recaptchaVerifier){
+
+try{
+
+recaptchaVerifier.clear();
+
+}catch(e){}
+
+recaptchaVerifier=null;
+
+}
+
+}
+catch(error){
+
+toast(
+firebaseError(error)
+);
+
+}
+finally{
+
+button.disabled=false;
+
+button.textContent=
+"Kodu doğrula ve aktif et";
+
+mfaEnrollmentInProgress=false;
+
+}
+
+};
+
+
+/* =========================
+   2FA KAPAT
+========================= */
+
+async function disableMfa(){
+
+if(!currentUser){
+
+toast(
+"Önce hesabına giriş yapmalısın."
+);
+
+return;
+
+}
+
+
+const factors=
+currentUser.multiFactor.enrolledFactors||[];
+
+
+const phoneFactors=
+factors.filter(function(factor){
+
+return factor.factorId===
+PhoneMultiFactorGenerator.FACTOR_ID;
+
+});
+
+
+if(phoneFactors.length===0){
+
+twoFactor=false;
+
+setSwitch(
+"twoFactorSwitch",
+false
+);
+
+return;
+
+}
+
+
+try{
+
+for(const factor of phoneFactors){
+
+await multiFactor(
+currentUser
+).unenroll(
+factor.uid
+);
+
+}
+
+twoFactor=false;
+
+setSwitch(
+"twoFactorSwitch",
+false
+);
+
+toast(
+"İki faktörlü doğrulama kapatıldı."
+);
+
+}
+catch(error){
+
+toast(
+firebaseError(error)
+);
+
+}
+
+}
 
 
 /* =========================
    GİZLİLİK
 ========================= */
 
-document.getElementById('mentionsRow').onclick=function(){
+document.getElementById(
+"mentionsRow"
+).onclick=function(){
 
 showDialog(
-'Bahsetmeler',
-'Seni kimlerin gönderilerde ve yorumlarda etiketleyebileceğini buradan yönetebilirsin.'
+"Bahsetmeler",
+"Seni kimlerin gönderilerde ve yorumlarda etiketleyebileceğini buradan yönetebilirsin."
 );
 
 };
 
-document.getElementById('commentsRow').onclick=function(){
+
+document.getElementById(
+"commentsRow"
+).onclick=function(){
 
 showDialog(
-'Yorumlar',
-'Yorum yapabilecek kişilerin ayarlarını buradan yönetebilirsin.'
+"Yorumlar",
+"Yorum yapabilecek kişilerin ayarlarını buradan yönetebilirsin."
 );
 
 };
 
-document.getElementById('blockedRow').onclick=function(){
+
+document.getElementById(
+"blockedRow"
+).onclick=function(){
 
 showDialog(
-'Engellenen hesaplar',
-'Engellediğin hesaplar burada listelenecektir.'
+"Engellenen hesaplar",
+"Engellediğin hesaplar burada listelenecektir."
 );
 
 };
@@ -1519,9 +2726,11 @@ showDialog(
    SORUN BİLDİR
 ========================= */
 
-document.getElementById('reportProblemRow').onclick=function(){
+document.getElementById(
+"reportProblemRow"
+).onclick=function(){
 
-openScreen('reportScreen');
+openScreen("reportScreen");
 
 };
 
@@ -1531,18 +2740,19 @@ openScreen('reportScreen');
 ========================= */
 
 const photoInput=
-document.getElementById('photoInput');
+document.getElementById("photoInput");
 
 const photoButton=
-document.getElementById('photoButton');
+document.getElementById("photoButton");
 
 const previewGrid=
-document.getElementById('previewGrid');
+document.getElementById("previewGrid");
 
 const photoCount=
-document.getElementById('photoCount');
+document.getElementById("photoCount");
 
 let selectedPhotos=[];
+
 
 photoButton.onclick=function(){
 
@@ -1550,21 +2760,25 @@ photoInput.click();
 
 };
 
+
 photoInput.onchange=function(event){
 
-const files=Array.from(event.target.files);
+const files=
+Array.from(event.target.files);
 
 for(const file of files){
 
 if(selectedPhotos.length>=2){
 
-toast('En fazla 2 fotoğraf ekleyebilirsin');
+toast(
+"En fazla 2 fotoğraf ekleyebilirsin."
+);
 
 break;
 
 }
 
-if(file.type.startsWith('image/')){
+if(file.type.startsWith("image/")){
 
 selectedPhotos.push(file);
 
@@ -1572,7 +2786,7 @@ selectedPhotos.push(file);
 
 }
 
-photoInput.value='';
+photoInput.value="";
 
 renderPreviews();
 
@@ -1581,42 +2795,62 @@ renderPreviews();
 
 function renderPreviews(){
 
-previewGrid.innerHTML='';
+previewGrid.innerHTML="";
 
 photoCount.textContent=
-selectedPhotos.length+' / 2 fotoğraf';
+selectedPhotos.length+
+" / 2 fotoğraf";
 
-selectedPhotos.forEach(function(file,index){
 
-const item=document.createElement('div');
+selectedPhotos.forEach(
+function(file,index){
 
-item.className='preview-item';
+const item=
+document.createElement("div");
 
-const img=document.createElement('img');
+item.className=
+"preview-item";
 
-const remove=document.createElement('button');
 
-remove.className='remove-photo';
+const img=
+document.createElement("img");
 
-remove.type='button';
 
-remove.textContent='×';
+const remove=
+document.createElement("button");
 
-const url=URL.createObjectURL(file);
+remove.className=
+"remove-photo";
+
+remove.type="button";
+
+remove.textContent="×";
+
+
+const url=
+URL.createObjectURL(file);
 
 img.src=url;
 
+
 img.onload=function(){
+
 URL.revokeObjectURL(url);
+
 };
+
 
 remove.onclick=function(){
 
-selectedPhotos.splice(index,1);
+selectedPhotos.splice(
+index,
+1
+);
 
 renderPreviews();
 
 };
+
 
 item.appendChild(img);
 
@@ -1630,24 +2864,32 @@ previewGrid.appendChild(item);
 
 
 /* =========================
-   RAPOR GÖNDER
+   RAPOR
 ========================= */
 
-document.getElementById('sendReport').onclick=function(){
+document.getElementById(
+"sendReport"
+).onclick=function(){
 
 const text=
-document.getElementById('reportText').value.trim();
+document.getElementById(
+"reportText"
+).value.trim();
+
 
 if(!text){
 
-toast('Lütfen sorunu açıklayın');
+toast(
+"Lütfen sorunu açıklayın."
+);
 
 return;
 
 }
 
+
 toast(
-'Sorun bildirimi hazır. Backend bağlantısı bekleniyor.'
+"Sorun bildirimi hazır. Backend bağlantısı bekleniyor."
 );
 
 };
@@ -1659,27 +2901,39 @@ toast(
 
 function showDialog(title,text){
 
-document.getElementById('dialogTitle').textContent=title;
+document.getElementById(
+"dialogTitle"
+).textContent=title;
 
-document.getElementById('dialogText').textContent=text;
+document.getElementById(
+"dialogText"
+).textContent=text;
 
-document.getElementById('dialogBg')
-.classList.add('open');
+document.getElementById(
+"dialogBg"
+).classList.add("open");
 
 }
 
 
 function closeDialog(){
 
-document.getElementById('dialogBg')
-.classList.remove('open');
+document.getElementById(
+"dialogBg"
+).classList.remove("open");
 
 }
 
-document.getElementById('dialogCancel').onclick=
+
+document.getElementById(
+"dialogCancel"
+).onclick=
 closeDialog;
 
-document.getElementById('dialogOk').onclick=
+
+document.getElementById(
+"dialogOk"
+).onclick=
 closeDialog;
 
 
@@ -1687,38 +2941,38 @@ closeDialog;
    GERİ BUTONLARI
 ========================= */
 
-document.querySelectorAll('[data-close]')
+document.querySelectorAll(
+"[data-close]"
+)
 .forEach(function(button){
 
 button.onclick=function(){
 
-closeScreen(button.dataset.close);
+closeScreen(
+button.dataset.close
+);
 
 };
 
 });
 
 
-document.getElementById('backBtn').onclick=function(){
+document.getElementById(
+"backBtn"
+).onclick=function(){
 
 if(history.length>1){
 
 history.back();
 
-}else{
+}
+else{
 
-location.href='profile.html';
+location.href="profile.html";
 
 }
 
 };
-
-
-/* =========================
-   BAŞLAT
-========================= */
-
-initialize();
 
 </script>
 
