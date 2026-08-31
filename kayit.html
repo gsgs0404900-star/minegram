@@ -738,7 +738,6 @@ suggestUsername.addEventListener(
     }
 );
 
-
 /* =========================================
    İLERİ
 ========================================= */
@@ -752,54 +751,36 @@ nextButton.addEventListener(
                 usernameInput.value
             );
 
-
         if(
             !usernameAvailable ||
             !validUsername(username)
         ){
-
+            showMessage(
+                "Önce kullanılabilir bir kullanıcı adı seç.",
+                ""
+            );
             return;
-
         }
 
-
-        /*
-         * Kullanıcı adını kayıt sürecinin
-         * sonraki sayfasına taşıyoruz.
-         *
-         * Server'a henüz kayıt atmıyoruz.
-         *
-         * Çünkü server.js:
-         *
-         * username
-         * email
-         * password
-         *
-         * üçünü birlikte /api/register
-         * endpoint'inde istiyor.
-         */
-
+        /* Kullanıcı adını kaydet */
         sessionStorage.setItem(
             "minegram_register_username",
             username
         );
 
-
+        /* Butonu kilitle */
         nextButton.disabled = true;
 
         nextButton.textContent =
             "Devam ediliyor...";
 
-
-        window.location.href =
-            "kayit.html?username=" +
-            encodeURIComponent(
-                username
-            );
-
+        /* Şifre oluşturma sayfasına git */
+        window.location.assign(
+            "./kayit.html?username=" +
+            encodeURIComponent(username)
+        );
     }
 );
-
 
 /* =========================================
    SAYFA AÇILIŞI
