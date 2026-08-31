@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Ýletiþim bilgini ekle</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+body{overflow:hidden}
+
+.page{
+  width:100%;
+  height:100dvh;
+  min-height:100vh;
+  background:#000;
+  position:relative;
+}
+
+/* Üst baþlýk */
+.header{
+  height:82px;
+  display:flex;
+  align-items:center;
+  padding:0 48px;
+}
+
+.back{
+  color:#fff;
+  font-size:55px;
+  line-height:1;
+  font-weight:300;
+  margin-right:27px;
+  margin-top:-7px;
+  cursor:pointer;
+}
+
+.header-title{
+  font-size:29px;
+  font-weight:700;
+}
+
+/* Ýçerik */
+.content{
+  position:absolute;
+  left:7.2%;
+  right:7.2%;
+  top:16.9%;
+}
+
+.title{
+  text-align:center;
+  font-size:47px;
+  line-height:1.15;
+  font-weight:800;
+  margin:0 0 34px;
+}
+
+.description{
+  color:#b9b9b9;
+  font-size:31px;
+  line-height:1.55;
+  margin:0 0 69px;
+}
+
+/* E-posta / Telefon */
+.tabs{
+  display:flex;
+  gap:22px;
+  width:100%;
+  margin-bottom:58px;
+}
+
+.tab{
+  width:50%;
+  height:68px;
+  border-radius:17px;
+  font-size:29px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.tab.email{
+  border:2px solid #554f67;
+  background:#554f67;
+  color:#eee8fa;
+}
+
+.tab.phone{
+  border:2px solid #888;
+  background:#000;
+  color:#fff;
+}
+
+.input{
+  width:100%;
+  height:119px;
+  background:#111;
+  border:2px solid #666;
+  border-radius:10px;
+  color:#fff;
+  outline:none;
+  padding:0 32px;
+  font-size:31px;
+}
+
+.input::placeholder{
+  color:#b8b8b8;
+  opacity:1;
+}
+
+.note{
+  color:#ddd;
+  font-size:27px;
+  line-height:1.8;
+  margin:14px 0 0;
+}
+
+/* Alt butonlar */
+.bottom{
+  position:absolute;
+  left:7.2%;
+  right:7.2%;
+  bottom:6.1%;
+  display:flex;
+  gap:22px;
+}
+
+button.action{
+  height:88px;
+  border-radius:50px;
+  font-size:27px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.back-btn{
+  width:50%;
+  background:#000;
+  border:2px solid #888;
+  color:#62b0ed;
+}
+
+.send-btn{
+  width:50%;
+  background:#62b0ed;
+  border:2px solid #62b0ed;
+  color:#30207c;
+}
+
+.status{
+  position:fixed;
+  left:7.2%;
+  right:7.2%;
+  bottom:calc(6.1% + 100px);
+  text-align:center;
+  font-size:16px;
+  color:#ff8585;
+  display:none;
+}
+
+@media(max-width:600px){
+  .header{
+    height:72px;
+    padding:0 19px;
+  }
+
+  .back{
+    font-size:43px;
+    margin-right:17px;
+  }
+
+  .header-title{
+    font-size:23px;
+  }
+
+  .content{
+    left:7.2%;
+    right:7.2%;
+    top:16.2%;
+  }
+
+  .title{
+    font-size:34px;
+    margin-bottom:27px;
+  }
+
+  .description{
+    font-size:22px;
+    line-height:1.55;
+    margin-bottom:47px;
+  }
+
+  .tabs{
+    gap:20px;
+    margin-bottom:59px;
+  }
+
+  .tab{
+    height:68px;
+    font-size:21px;
+    border-radius:16px;
+  }
+
+  .input{
+    height:82px;
+    padding:0 22px;
+    font-size:24px;
+    border-radius:9px;
+  }
+
+  .note{
+    font-size:21px;
+    line-height:1.6;
+    margin-top:12px;
+  }
+
+  .bottom{
+    left:7.2%;
+    right:7.2%;
+    bottom:5.8%;
+    gap:20px;
+  }
+
+  button.action{
+    height:72px;
+    font-size:21px;
+  }
+
+  .status{
+    bottom:calc(5.8% + 83px);
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <header class="header">
+    <div class="back" onclick="history.back()">‹</div>
+    <div class="header-title">Kayýt ol</div>
+  </header>
+
+  <main class="content">
+    <h1 class="title">Ýletiþim bilgini ekle</h1>
+
+    <p class="description">
+      Hesabýný doðrulamak için e-posta adresi ya<br>
+      da telefon numarasý kullan.
+    </p>
+
+    <div class="tabs">
+      <button id="emailTab" class="tab email" type="button">E-posta</button>
+      <button id="phoneTab" class="tab phone" type="button">Telefon</button>
+    </div>
+
+    <input
+      id="contact"
+      class="input"
+      type="email"
+      autocomplete="email"
+      placeholder="E-posta adresi"
+    >
+
+    <div id="note" class="note">
+      Devam ettiðinde e-posta adresine 6 haneli doðrulama<br>
+      kodu gönderilir.
+    </div>
+  </main>
+
+  <div id="status" class="status"></div>
+
+  <div class="bottom">
+    <button class="action back-btn" type="button" onclick="history.back()">Geri</button>
+    <button id="sendBtn" class="action send-btn" type="button">Kod Gönder</button>
+  </div>
+
+</div>
+
+<script type="module">
+/*
+  Firebase baðlantýsý.
+  Bu ekranýn tasarýmýný deðiþtirmez.
+
+  ÖNEMLÝ:
+  Firebase Authentication'ýn web SDK'sý doðrudan "6 haneli e-posta OTP"
+  göndermez. Gerçek 6 haneli kod için güvenli bir backend / Cloud Function
+  ve e-posta saðlayýcýsý gerekir.
+
+  Aþaðýdaki Firebase baðlantýsý, projeni Firebase'e baðlamak içindir.
+*/
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+  authDomain: "mim-ea133.firebaseapp.com",
+  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mim-ea133",
+  storageBucket: "mim-ea133.firebasestorage.app",
+  messagingSenderId: "303525353436",
+  appId: "1:303525353436:web:082fc090b5025e19942119",
+  measurementId: "G-K962QE5P1R"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const emailTab = document.getElementById("emailTab");
+const phoneTab = document.getElementById("phoneTab");
+const contact = document.getElementById("contact");
+const note = document.getElementById("note");
+const sendBtn = document.getElementById("sendBtn");
+const status = document.getElementById("status");
+
+let mode = "email";
+
+function showError(text){
+  status.textContent = text;
+  status.style.display = "block";
+}
+
+emailTab.addEventListener("click", () => {
+  mode = "email";
+
+  emailTab.style.background = "#554f67";
+  emailTab.style.borderColor = "#554f67";
+  emailTab.style.color = "#eee8fa";
+
+  phoneTab.style.background = "#000";
+  phoneTab.style.borderColor = "#888";
+  phoneTab.style.color = "#fff";
+
+  contact.type = "email";
+  contact.autocomplete = "email";
+  contact.placeholder = "E-posta adresi";
+
+  note.innerHTML =
+    "Devam ettiðinde e-posta adresine 6 haneli doðrulama<br>kodu gönderilir.";
+
+  status.style.display = "none";
+});
+
+phoneTab.addEventListener("click", () => {
+  mode = "phone";
+
+  phoneTab.style.background = "#554f67";
+  phoneTab.style.borderColor = "#554f67";
+  phoneTab.style.color = "#eee8fa";
+
+  emailTab.style.background = "#000";
+  emailTab.style.borderColor = "#888";
+  emailTab.style.color = "#fff";
+
+  contact.type = "tel";
+  contact.autocomplete = "tel";
+  contact.placeholder = "Telefon numarasý";
+
+  note.innerHTML =
+    "Devam ettiðinde telefon numarana 6 haneli doðrulama<br>kodu gönderilir.";
+
+  status.style.display = "none";
+});
+
+sendBtn.addEventListener("click", async () => {
+  const value = contact.value.trim();
+
+  if (!value) {
+    showError(mode === "email"
+      ? "Lütfen e-posta adresini gir."
+      : "Lütfen telefon numaraný gir.");
+    return;
+  }
+
+  if (mode === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    showError("Geçerli bir e-posta adresi gir.");
+    return;
+  }
+
+  /*
+    Gerçek 6 haneli OTP isteði burada backend'e gönderilmelidir:
+
+    await fetch("/api/send-otp", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ email: value })
+    });
+
+    Baþarýlý olursa:
+      window.location.href = "verify.html";
+
+    OTP'yi frontend'de üretmek veya sabit bir kod kullanmak güvenli deðildir.
+  */
+
+  showError(
+    "Firebase baðlantýsý hazýr. Gerçek 6 haneli kod gönderimi için Cloud Function / backend baðlantýsýný eklemelisin."
+  );
+});
+
+onAuthStateChanged(auth, (user) => {
+  // Kullanýcý zaten giriþ yaptýysa burada ana sayfaya yönlendirebilirsin.
+  // if (user) window.location.href = "home.html";
+});
+</script>
+
+</body>
+</html>
