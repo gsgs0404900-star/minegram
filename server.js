@@ -1881,6 +1881,10 @@ function normalizeRecoveryPhone(
   return digits;
 }
 
+/* =========================================================
+   FORGOT PASSWORD - FIND ACCOUNT + SEND CODE
+========================================================= */
+
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
@@ -1921,6 +1925,120 @@ app.post(
       }
 
       let found = null;
+
+      /* TELEFON */
+      if (
+        recoveryMode === "phone" ||
+        recoveryMode === "tel" ||
+        recoveryMode === "telefon"
+      ) {
+        const authUser =
+          await findUserByPhone(identifier);
+
+        if (authUser?.email) {
+          const admin = adminClient();
+
+          const {
+            data: profileById,
+            error: profileError
+          } = await admin
+            .from("profiles")
+            .select(
+              "id,auth_user_id,username,email,display_name,avatar_url"
+            )
+            .or(
+              `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+            )
+            .limit(1)
+            .maybeSingle();
+
+          if (profileError) {
+            return res.status(500).json({
+              ok: false,
+              error: profileError.message
+            });
+          }
+
+          found = {
+            email: authUser.email,
+            profile: profileById || null,
+            authUser
+          };
+        }
+      }
+
+      /* E-POSTA / KULLANICI ADI */
+      if (!found) {
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+      }
+
+      /* HESAP BULUNAMADI */
+      if (!found?.email) {
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+        });
+      }
+
+      const profile =
+        found.profile || {};
+
+      /* BAŞARILI */
+      return res.json({
+        ok: true,
+
+        account: {
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
+
+          username:
+            profile.username || "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email:
+            found.email,
+
+          maskedEmail:
+            maskEmail(found.email),
+
+          avatar:
+            profile.avatar_url ||
+            null
+        },
+
+        identifier,
+        mode: recoveryMode
+      });
+
+    } catch (e) {
+      console.error(
+        "FIND ACCOUNT ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Hesap aranırken bir hata oluştu."
+      });
+    }
+  }
+);
 
       /* TELEFON */
       if (
