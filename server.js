@@ -32,6 +32,16 @@ if (!CONFIG_OK) {
 
 app.use(express.json({ limit: "2mb" }));
 
+// HTML dosyalarini tarayicinin eski surumden acmasini engelle.
+app.use((req, res, next) => {
+  if (req.path.endsWith(".html") || req.path === "/") {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+  next();
+});
+
 // Support both layouts: public/index.html and a root index.html.
 const publicDir = path.join(__dirname, "public");
 const rootIndex = path.join(__dirname, "index.html");
@@ -61,7 +71,25 @@ async function auth(req, res, next) {
     console.log("GET USER:", user?.id);
     console.log("ERROR:", error);
     if (error || !user) throw error || new Error("Oturum gerekli");
-    const { data: profile, error: pError } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    // Eski Minegram profillerinde profil.id ile Supabase auth user.id
+    // farkli olabilir. Login bunu zaten destekliyor; auth middleware de
+    // ayni sekilde hem auth_user_id hem id ile bulmali.
+    let { data: profile, error: pError } = await sb
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const fallback = await sb
+        .from("profiles")
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      profile = fallback.data || null;
+      pError = fallback.error || null;
+    }
+
     if (pError || !profile) throw pError || new Error("Profil bulunamadı");
     req.token = token;
     req.sb = sb;
