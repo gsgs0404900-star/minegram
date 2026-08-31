@@ -1,8 +1,10 @@
 <!doctype html>
+
 <html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Oluştur - Minegram</title>
 
 <style>
@@ -16,11 +18,11 @@ html,body{
   min-height:100%;
   background:#000;
   color:#eee;
-  font-family:Inter,Arial,sans-serif;
-  padding-bottom:80px;
+  font-family:Arial,Helvetica,sans-serif;
 }
 
 body{
+  padding-bottom:76px;
   overflow-x:hidden;
 }
 
@@ -30,21 +32,24 @@ body{
   background:#000;
 }
 
-/* ÜST BAR */
+/* =========================
+   ÜST BAR
+========================= */
+
 .top{
-  height:64px;
+  height:70px;
   display:flex;
   align-items:center;
-  border-bottom:1px solid #25222b;
-  padding:0 20px;
+  padding:0 22px;
+  border-bottom:1px solid #202020;
   position:sticky;
   top:0;
   background:#000;
-  z-index:10;
+  z-index:50;
 }
 
 .top b{
-  font-size:19px;
+  font-size:21px;
 }
 
 .back{
@@ -61,14 +66,20 @@ body{
   padding:0;
 }
 
-/* SAYFA */
+/* =========================
+   SAYFA
+========================= */
+
 .page{
   width:min(680px,100%);
   margin:0 auto;
-  padding:22px 20px 30px;
+  padding:22px 20px 40px;
 }
 
-/* DOSYA SEÇME */
+/* =========================
+   DOSYA SEÇME
+========================= */
+
 .picker{
   width:100%;
   height:300px;
@@ -103,7 +114,10 @@ body{
   color:#888;
 }
 
-/* ÖNİZLEME */
+/* =========================
+   ÖNİZLEME
+========================= */
+
 .preview{
   max-width:100%;
   max-height:290px;
@@ -111,18 +125,21 @@ body{
   object-fit:contain;
 }
 
-/* AÇIKLAMA */
+/* =========================
+   AÇIKLAMA
+========================= */
+
 .field{
   width:100%;
   min-height:90px;
   background:#080808;
-  border:1px solid #555;
+  border:1px solid #444;
   color:#eee;
-  border-radius:8px;
+  border-radius:10px;
   padding:12px 14px;
   outline:none;
   resize:vertical;
-  font-family:inherit;
+  font-family:Arial,Helvetica,sans-serif;
   font-size:14px;
   margin-top:12px;
 }
@@ -135,7 +152,10 @@ body{
   border-color:#4b99d2;
 }
 
-/* PAYLAŞ */
+/* =========================
+   PAYLAŞ
+========================= */
+
 .btn{
   width:100%;
   height:48px;
@@ -153,59 +173,80 @@ body{
   opacity:.92;
 }
 
-/* ALT MENÜ */
+/* =========================
+   ALT MENÜ
+   ARA.HTML İLE AYNI
+========================= */
+
 .nav{
   position:fixed;
   left:0;
   right:0;
   bottom:0;
+
+  width:100%;
   height:76px;
+
   background:#121018;
   border-top:1px solid #201d27;
+
   display:flex;
-  flex-direction:row;
-  align-items:center;
-  justify-content:space-around;
-  z-index:100;
-  padding:5px 8px env(safe-area-inset-bottom);
+  align-items:stretch;
+
+  z-index:9999;
+
+  padding:
+    5px
+    max(8px, calc((100% - 760px) / 2))
+    env(safe-area-inset-bottom);
 }
 
-/* MENÜ ELEMANLARI */
 .nav a{
-  flex:1;
-  height:100%;
-  color:#ddd;
-  text-decoration:none;
+  flex:1 1 0;
+
+  height:66px;
+
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
+
   gap:3px;
+
+  color:#ddd;
+  text-decoration:none;
+
   font-size:9px;
-  border:0;
-  background:transparent;
-  cursor:pointer;
+
+  min-width:0;
+
   -webkit-tap-highlight-color:transparent;
 }
 
-/* İKON ALANI */
 .nav-icon{
   width:45px;
   height:32px;
+
   border-radius:18px;
+
   display:grid;
   place-items:center;
+
+  flex:none;
 }
 
-/* AKTİF OLAN */
+/* AKTİF */
+
 .nav a.active .nav-icon{
   background:#3b3150;
 }
 
 /* SVG */
-.nav .svg{
+
+.svg{
   width:21px;
   height:21px;
+
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
@@ -213,214 +254,411 @@ body{
   stroke-linejoin:round;
 }
 
-/* MOBİL */
+/* =========================
+   MOBİL
+========================= */
+
 @media(max-width:699px){
 
-  .page{
-    padding:18px 16px 25px;
+  .top{
+    height:62px;
+    padding:0 14px;
   }
 
-  .top{
-    padding:0 16px;
+  .page{
+    width:100%;
+    padding:18px 14px 35px;
+  }
+
+  .nav{
+    height:76px;
+
+    padding:
+      5px
+      8px
+      env(safe-area-inset-bottom);
+  }
+
+  .nav a{
+    height:66px;
+  }
+
+  .nav-icon{
+    width:45px;
+    height:32px;
   }
 
   .picker{
     height:280px;
   }
-
-}
-
-/* MASAÜSTÜ */
-@media(min-width:700px){
-
-  .nav{
-    padding-left:calc((100% - 760px)/2);
-    padding-right:calc((100% - 760px)/2);
-  }
-
 }
 </style>
+
 </head>
 
 <body>
 
-<main class="app">
+<div class="app">
 
-  <!-- ÜST -->
-  <div class="top">
-    <button class="back" onclick="location.href='index.html'">‹</button>
-    <b>Yeni Gönderi</b>
+  <!-- =========================
+       ÜST BAR
+  ========================== -->
+
+  <header class="top">
+
+```
+<button
+  class="back"
+  type="button"
+  onclick="location.href='index.html'"
+>
+  ‹
+</button>
+
+<b>Yeni Gönderi</b>
+```
+
+  </header>
+
+  <!-- =========================
+       OLUŞTUR
+  ========================== -->
+
+  <main class="page">
+
+```
+<div
+  id="picker"
+  class="picker"
+  onclick="document.getElementById('file').click()"
+>
+
+  <div id="pickerContent">
+
+    <span>＋</span>
+
+    <br>
+
+    <b>Fotoğraf / Video seç</b>
+
+    <small>
+      Galeriyi açmak için dokun
+    </small>
+
   </div>
+
+</div>
+
+
+<input
+  id="file"
+  type="file"
+  accept="image/*,video/*"
+  hidden
+  onchange="previewFile()"
+>
+
+
+<textarea
+  id="cap"
+  class="field"
+  placeholder="Açıklama / etiket"
+></textarea>
+
+
+<button
+  id="postBtn"
+  class="btn"
+  type="button"
+  onclick="post()"
+>
+  Paylaş
+</button>
+```
+
+  </main>
+
+</div>
+
+<!-- =========================
+     ALT MENÜ
+========================= -->
+
+<nav class="nav">
+
+  <!-- ANA SAYFA -->
+
+  <a href="index.html">
+
+```
+<span class="nav-icon">
+
+  <svg
+    class="svg"
+    viewBox="0 0 24 24"
+  >
+
+    <path
+      d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"
+    />
+
+  </svg>
+
+</span>
+
+<span>Ana Sayfa</span>
+```
+
+  </a>
+
+  <!-- ARA -->
+
+  <a href="ara.html">
+
+```
+<span class="nav-icon">
+
+  <svg
+    class="svg"
+    viewBox="0 0 24 24"
+  >
+
+    <circle
+      cx="11"
+      cy="11"
+      r="6.5"
+    />
+
+    <path
+      d="m16 16 5 5"
+    />
+
+  </svg>
+
+</span>
+
+<span>Ara</span>
+```
+
+  </a>
 
   <!-- OLUŞTUR -->
-  <div class="page">
 
-    <div
-      id="picker"
-      class="picker"
-      onclick="document.getElementById('file').click()"
-    >
-      <div id="pickerContent">
-        <span>＋</span>
-        <br>
-        <b>Fotoğraf / Video seç</b>
-        <small>Galeriyi açmak için dokun</small>
-      </div>
-    </div>
+<a
+class="active"
+href="olustur.html"
 
-    <input
-      id="file"
-      type="file"
-      accept="image/*,video/*"
-      hidden
-      onchange="previewFile()"
-    >
+>
 
-    <textarea
-      id="cap"
-      class="field"
-      placeholder="Açıklama / etiket"
-    ></textarea>
+```
+<span class="nav-icon">
 
-    <button
-      class="btn"
-      onclick="post()"
-    >
-      Paylaş
-    </button>
+  <svg
+    class="svg"
+    viewBox="0 0 24 24"
+  >
 
-  </div>
+    <rect
+      x="4"
+      y="4"
+      width="16"
+      height="16"
+      rx="4"
+    />
 
-  <!-- ALT MENÜ -->
-  <nav class="nav">
+    <path
+      d="M12 8v8"
+    />
 
-    <!-- ANA SAYFA -->
-    <a href="index.html">
-      <span class="nav-icon">
-        <svg class="svg" viewBox="0 0 24 24">
-          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"></path>
-        </svg>
-      </span>
-      <span>Ana Sayfa</span>
-    </a>
+    <path
+      d="M8 12h8"
+    />
 
-    <!-- ARA -->
-    <a href="ara.html">
-      <span class="nav-icon">
-        <svg class="svg" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="6.5"></circle>
-          <path d="m16 16 5 5"></path>
-        </svg>
-      </span>
-      <span>Ara</span>
-    </a>
+  </svg>
 
-    <!-- OLUŞTUR -->
-    <a class="active" href="olustur.html">
-      <span class="nav-icon">
-        <svg class="svg" viewBox="0 0 24 24">
-          <rect x="4" y="4" width="16" height="16" rx="4"></rect>
-          <path d="M12 8v8"></path>
-          <path d="M8 12h8"></path>
-        </svg>
-      </span>
-      <span>Oluştur</span>
-    </a>
+</span>
 
-    <!-- REELS -->
-    <a href="reels.html">
-      <span class="nav-icon">
-        <svg class="svg" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-          <path d="M3 9h18"></path>
-          <path d="M8 4l3 5"></path>
-          <path d="M13 4l3 5"></path>
-        </svg>
-      </span>
-      <span>Reels</span>
-    </a>
+<span>Oluştur</span>
+```
 
-    <!-- PROFİL -->
-    <a href="profile.html">
-      <span class="nav-icon">
-        <svg class="svg" viewBox="0 0 24 24">
-          <circle cx="12" cy="8" r="3.5"></circle>
-          <path d="M5 20a7 7 0 0 1 14 0"></path>
-        </svg>
-      </span>
-      <span>Profil</span>
-    </a>
+  </a>
 
-  </nav>
+  <!-- REELS -->
 
-</main>
+  <a href="reels.html">
+
+```
+<span class="nav-icon">
+
+  <svg
+    class="svg"
+    viewBox="0 0 24 24"
+  >
+
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="16"
+      rx="2"
+    />
+
+    <path
+      d="M3 9h18"
+    />
+
+    <path
+      d="M8 4l3 5"
+    />
+
+    <path
+      d="M13 4l3 5"
+    />
+
+  </svg>
+
+</span>
+
+<span>Reels</span>
+```
+
+  </a>
+
+  <!-- PROFİL -->
+
+  <a href="profile.html">
+
+```
+<span class="nav-icon">
+
+  <svg
+    class="svg"
+    viewBox="0 0 24 24"
+  >
+
+    <circle
+      cx="12"
+      cy="8"
+      r="3.5"
+    />
+
+    <path
+      d="M5 20a7 7 0 0 1 14 0"
+    />
+
+  </svg>
+
+</span>
+
+<span>Profil</span>
+```
+
+  </a>
+
+</nav>
+
+<!-- =========================
+     TOAST
+========================= -->
 
 <div
   id="toast"
+  class="toast"
   style="
     position:fixed;
     left:50%;
-    bottom:95px;
+    bottom:92px;
     transform:translateX(-50%);
-    background:#252329;
-    color:#eee;
-    padding:10px 15px;
+    background:#25232a;
+    color:#fff;
+    padding:10px 16px;
     border-radius:20px;
+    font-size:12px;
     opacity:0;
     pointer-events:none;
     transition:.2s;
-    z-index:200;
-    font-size:12px;
+    z-index:10000;
   "
 ></div>
 
 <script>
 
+/* =========================
+   API
+========================= */
+
 const API="/api";
 
-let token=localStorage.getItem("minegram_token");
 
-/* TOAST */
+let token =
+  localStorage.getItem("minegram_token") ||
+  localStorage.getItem("minegram_supabase_token") ||
+  null;
+
+
+/* =========================
+   TOAST
+========================= */
+
 function toast(message){
 
-  const t=document.getElementById("toast");
+  const el=document.getElementById("toast");
 
-  if(!t)return;
+  if(!el)return;
 
-  t.textContent=message;
-  t.style.opacity="1";
+  el.textContent=message;
 
-  clearTimeout(window.toastTimer);
+  el.style.opacity="1";
 
-  window.toastTimer=setTimeout(()=>{
-    t.style.opacity="0";
+  clearTimeout(window.__toast);
+
+  window.__toast=setTimeout(()=>{
+
+    el.style.opacity="0";
+
   },2200);
+
 }
 
 
-/* DOSYA ÖNİZLEME */
+/* =========================
+   DOSYA ÖNİZLEME
+========================= */
+
 function previewFile(){
 
-  const fileInput=document.getElementById("file");
-  const picker=document.getElementById("picker");
+  const fileInput=
+    document.getElementById("file");
 
-  const f=fileInput.files[0];
+  const picker=
+    document.getElementById("picker");
+
+  const f=
+    fileInput.files[0];
 
   if(!f)return;
 
-  const old=document.getElementById("pickerPreview");
+
+  const old=
+    document.getElementById("pickerPreview");
 
   if(old){
+
     old.remove();
+
   }
 
-  const url=URL.createObjectURL(f);
+
+  const url=
+    URL.createObjectURL(f);
 
   let tag;
 
+
   if(/^video\//.test(f.type)){
 
-    tag=document.createElement("video");
+    tag=
+      document.createElement("video");
 
     tag.controls=true;
     tag.muted=true;
@@ -428,57 +666,96 @@ function previewFile(){
 
   }else{
 
-    tag=document.createElement("img");
+    tag=
+      document.createElement("img");
 
   }
 
+
   tag.id="pickerPreview";
+
   tag.className="preview";
+
   tag.src=url;
 
+
   picker.innerHTML="";
+
   picker.appendChild(tag);
 
 }
 
 
-/* API */
+/* =========================
+   API
+========================= */
+
 async function api(path,opt={}){
 
-  opt.headers={
-    ...(opt.headers||{}),
-    ...(token
-      ? {Authorization:"Bearer "+token}
-      : {})
+  const headers={
+    ...(opt.headers || {})
   };
 
-  const response=await fetch(API+path,opt);
 
-  const data=await response
-    .json()
-    .catch(()=>({}));
+  if(token){
+
+    headers.Authorization=
+      "Bearer "+token;
+
+  }
+
+
+  const response=
+    await fetch(API+path,{
+      ...opt,
+      headers
+    });
+
+
+  const data=
+    await response
+      .json()
+      .catch(()=>({}));
+
 
   if(!response.ok){
 
     throw new Error(
-      data.error || "İşlem başarısız"
+      data.error ||
+      data.message ||
+      "İşlem başarısız."
     );
 
   }
 
+
   return data;
+
 }
 
 
-/* GÖNDERİ PAYLAŞ */
+/* =========================
+   GÖNDERİ PAYLAŞ
+========================= */
+
 async function post(){
 
-  const fileInput=document.getElementById("file");
-  const caption=document.getElementById("cap");
+  const fileInput=
+    document.getElementById("file");
 
-  const f=fileInput.files[0];
+  const caption=
+    document.getElementById("cap");
 
-  const text=caption.value.trim();
+  const button=
+    document.getElementById("postBtn");
+
+
+  const f=
+    fileInput.files[0];
+
+  const text=
+    caption.value.trim();
+
 
   if(!f && !text){
 
@@ -487,49 +764,147 @@ async function post(){
     );
 
     return;
+
   }
 
-  const formData=new FormData();
+
+  const formData=
+    new FormData();
+
 
   if(f){
-    formData.append("media",f);
+
+    formData.append(
+      "media",
+      f
+    );
+
   }
+
 
   formData.append(
     "caption",
     caption.value
   );
 
+
+  button.disabled=true;
+
+  button.style.opacity=".6";
+
+
   try{
 
-    await api("/posts",{
-      method:"POST",
-      body:formData
-    });
+    await api(
+      "/posts",
+      {
+        method:"POST",
+        body:formData
+      }
+    );
+
 
     caption.value="";
+
     fileInput.value="";
 
-    document.getElementById("picker").innerHTML=`
+
+    document.getElementById(
+      "picker"
+    ).innerHTML=`
+
       <div id="pickerContent">
+
         <span>＋</span>
+
         <br>
+
         <b>Fotoğraf / Video seç</b>
-        <small>Galeriyi açmak için dokun</small>
+
+        <small>
+          Galeriyi açmak için dokun
+        </small>
+
       </div>
+
     `;
 
-    toast("Gönderi paylaşıldı");
+
+    toast(
+      "Gönderi paylaşıldı"
+    );
+
 
     setTimeout(()=>{
+
       location.href="index.html";
+
     },700);
 
+
   }catch(error){
+
+    console.error(
+      "[POST]",
+      error
+    );
+
 
     toast(
       error.message ||
       "Gönderi paylaşılırken hata oluştu"
+    );
+
+
+    button.disabled=false;
+
+    button.style.opacity="1";
+
+  }
+
+}
+
+
+/* =========================
+   GİRİŞ KONTROLÜ
+========================= */
+
+async function init(){
+
+  if(!token){
+
+    location.replace(
+      "giris.html"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    await api("/me");
+
+  }catch(error){
+
+    console.warn(
+      "[OLUŞTUR /me]",
+      error
+    );
+
+
+    localStorage.removeItem(
+      "minegram_token"
+    );
+
+    localStorage.removeItem(
+      "minegram_supabase_token"
+    );
+
+
+    location.replace(
+      "giris.html"
     );
 
   }
@@ -537,12 +912,7 @@ async function post(){
 }
 
 
-/* GİRİŞ KONTROLÜ */
-if(!token){
-
-  location.href="index.html";
-
-}
+init();
 
 </script>
 
