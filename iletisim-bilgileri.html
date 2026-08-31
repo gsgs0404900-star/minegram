@@ -459,6 +459,98 @@ nextBtn.addEventListener("click", function(){
 
     const value = contact.value.trim();
 
+    if(!value){
+        showStatus(
+            mode === "email"
+                ? "Lütfen e-posta adresini gir."
+                : "Lütfen telefon numaranı gir."
+        );
+        contact.focus();
+        return;
+    }
+
+    if(
+        mode === "email" &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    ){
+        showStatus("Geçerli bir e-posta adresi gir.");
+        contact.focus();
+        return;
+    }
+
+    if(mode === "phone"){
+
+        const cleanPhone =
+            value.replace(/[\s()+-]/g, "");
+
+        if(cleanPhone.length < 10){
+            showStatus("Geçerli bir telefon numarası gir.");
+            contact.focus();
+            return;
+        }
+
+        sessionStorage.setItem(
+            "minegram_register_phone",
+            value
+        );
+
+    }else{
+
+        sessionStorage.setItem(
+            "minegram_register_email",
+            value
+        );
+    }
+
+    if(username){
+
+        sessionStorage.setItem(
+            "minegram_register_username",
+            username
+        );
+    }
+
+    busy = true;
+
+    nextBtn.disabled = true;
+
+    nextBtn.textContent = "Devam ediliyor...";
+
+
+    /* =====================================
+       HESAP DOĞRULAMA SAYFASI
+    ===================================== */
+
+    let url =
+        "./hesap-dogrulama.html?username=" +
+        encodeURIComponent(username);
+
+
+    if(mode === "email"){
+
+        url +=
+            "&email=" +
+            encodeURIComponent(value);
+
+    }else{
+
+        url +=
+            "&phone=" +
+            encodeURIComponent(value);
+
+    }
+
+
+    console.log(
+        "[MINEGRAM] Gidilecek sayfa:",
+        url
+    );
+
+
+    window.location.assign(url);
+
+});
+
 
     /* BOŞ */
 
