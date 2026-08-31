@@ -2637,84 +2637,298 @@ const recoveryCodes =
 
 
 /* =========================================================
+   RESEND
+========================================================= */
+
+async function sendResendEmail(to, subject, html, text) {
+  const key = String(
+    process.env.RESEND_API_KEY || ""
+  ).trim();
+
+  if (!key) {
+    throw new Error("RESEND_API_KEY eksik.");
+  }
+
+  const from = String(
+    process.env.RESEND_FROM_EMAIL ||
+    "onboarding@resend.dev"
+  ).trim();
+
+  const response = await fetch(
+    "https://api.resend.com/emails",
+    {
+      method: "POST",
+
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+        text
+      })
+    }
+  );
+
+  const data = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    console.error(
+      "[RESEND ERROR]",
+      response.status,
+      data
+    );
+
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Resend hata verdi (${response.status}).`
+    );
+  }
+
+  return data;
+}
+
+
+/* =========================================================
+   RECOVERY CODES
+========================================================= */
+
+const recoveryCodes = new Map();
+
+
+/* =========================================================
    FORGOT START
 ========================================================= */
 
 app.post(
   "/api/forgot/start",
   async (req, res) => {
+
     try {
+
+      const identifier =
+        String(
+          req.body?.identifier || ""
+        ).trim();
+
+      const mode =
+        String(
+          req.body?.mode || "email"
+        ).trim();
+
+
+      console.log(
+        "[FORGOT START] identifier:",
+        identifier,
+        "mode:",
+        mode
+      );
+
+
+      if (!identifier) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "E-posta veya kullanıcı adı girilmedi."
+        });
+
+      }
+
+
+      /* -------------------------------------------------
+         HESABI BUL
+      ------------------------------------------------- */
+
       const found =
         await resolveRecoveryEmail(
-          req.body?.identifier,
-          req.body?.mode ||
-            "email"
+          identifier,
+          mode
         );
 
+
       if (!found) {
+
         return res.status(404).json({
+          ok: false,
           error:
             "Hesap bulunamadı."
         });
+
       }
+
+
+      if (!found.email) {
+
+        return res.status(500).json({
+          ok: false,
+          error:
+            "Hesabın e-posta adresi bulunamadı."
+        });
+
+      }
+
+
+      const email =
+        String(
+          found.email
+        ).trim().toLowerCase();
+
+
+      /* -------------------------------------------------
+         6 HANELİ KOD
+      ------------------------------------------------- */
 
       const code =
         String(
           Math.floor(
             100000 +
-            Math.random() *
-              900000
+            Math.random() * 900000
           )
         );
 
+
       recoveryCodes.set(
-        found.email.toLowerCase(),
+        email,
         {
           code,
+
           expires:
             Date.now() +
             10 * 60 * 1000,
+
           profile:
-            found.profile
+            found.profile || null
         }
       );
 
+
+      console.log(
+        "[FORGOT START] Kod oluşturuldu:",
+        email
+      );
+
+
+      /* -------------------------------------------------
+         RESEND
+      ------------------------------------------------- */
+
       await sendResendEmail(
-        found.email,
+
+        email,
+
         "Minegram doğrulama kodun",
 
-        `<div style="font-family:Arial,sans-serif">
-          <h2>Minegram</h2>
-          <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
-          <div style="font-size:32px;font-weight:700;letter-spacing:8px">
+        `
+        <div
+          style="
+            font-family:Arial,sans-serif;
+            max-width:500px;
+            margin:auto;
+            padding:30px;
+            background:#ffffff;
+            color:#111;
+            border-radius:12px;
+          "
+        >
+
+          <h2 style="margin-top:0;">
+            Minegram
+          </h2>
+
+          <p>
+            Şifre sıfırlama işlemin için
+            doğrulama kodun:
+          </p>
+
+          <div
+            style="
+              font-size:32px;
+              font-weight:700;
+              letter-spacing:8px;
+              margin:25px 0;
+            "
+          >
             ${code}
           </div>
-          <p>Bu kod 10 dakika geçerlidir.</p>
-        </div>`,
 
-        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+          <p>
+            Bu kod 10 dakika geçerlidir.
+          </p>
+
+          <p
+            style="
+              color:#777;
+              font-size:12px;
+            "
+          >
+            Bu işlemi sen yapmadıysan
+            bu e-postayı dikkate alma.
+          </p>
+
+        </div>
+        `,
+
+        `Minegram doğrulama kodun: ${code}
+
+Bu kod 10 dakika geçerlidir.`
       );
 
-      res.json({
+
+      /* -------------------------------------------------
+         BAŞARILI
+      ------------------------------------------------- */
+
+      console.log(
+        "[FORGOT START] E-posta gönderildi:",
+        email
+      );
+
+
+      return res.status(200).json({
+
         ok: true,
-        email:
-          found.email,
+
+        email: email,
+
         maskedEmail:
-          maskEmail(
-            found.email
-          )
+          typeof maskEmail === "function"
+            ? maskEmail(email)
+            : email.replace(
+                /^(.{2}).*(@.*)$/,
+                "$1***$2"
+              )
+
       });
-    } catch (e) {
+
+    }
+    catch (error) {
+
       console.error(
         "FORGOT START ERROR:",
-        e
+        error
       );
 
-      res.status(500).json({
+
+      return res.status(500).json({
+
+        ok: false,
+
         error:
-          e.message
+          error?.message ||
+          "Sunucu tarafında bir hata oluştu."
+
       });
+
     }
+
   }
 );
 
