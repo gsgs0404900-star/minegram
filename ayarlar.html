@@ -1,703 +1,307 @@
 <!doctype html>
+
 <html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#000">
 <title>Minegram • Ayarlar</title>
 
 <style>
-*{
-box-sizing:border-box;
--webkit-tap-highlight-color:transparent;
+*{box-sizing:border-box}
+html,body{
+margin:0;padding:0;min-height:100%;
+background:#000;color:#fff;font-family:Arial,sans-serif
+}
+body{overflow-x:hidden}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+
+.settings-app{min-height:100dvh;background:#000;color:#fff}
+
+.settings-header,.sub-header{
+height:58px;display:flex;align-items:center;
+padding:0 18px;border-bottom:1px solid #303038;
+background:#000;position:sticky;top:0;z-index:50
 }
 
-html{
-margin:0;
-padding:0;
-width:100%;
-min-height:100%;
-background:#000!important;
-color:#fff;
+.back-btn,.sub-back{
+width:36px;height:36px;border:0;background:#000!important;
+color:#fff!important;font-size:36px;line-height:1;padding:0;
+display:flex;align-items:center;justify-content:center;
+appearance:none;-webkit-appearance:none
 }
 
-body{
-margin:0;
-padding:0;
-width:100%;
-min-height:100dvh;
-background:#000!important;
-color:#fff!important;
-font-family:Arial,sans-serif;
-overflow-x:hidden;
-}
+.settings-title{margin-left:10px;font-size:23px;font-weight:700}
 
-button,
-input,
-textarea{
-font:inherit;
-}
-
-button{
-cursor:pointer;
-}
-
-button,
-input,
-textarea{
--webkit-appearance:none;
-appearance:none;
-}
-
-.settings-app{
-width:100%;
-min-height:100dvh;
-background:#000!important;
-color:#fff!important;
-}
-
-.settings-header,
-.sub-header{
-width:100%;
-height:58px;
-min-height:58px;
-display:flex;
-align-items:center;
-padding:0 16px;
-border-bottom:1px solid #303038;
-background:#000!important;
-color:#fff!important;
-position:sticky;
-top:0;
-z-index:50;
-}
-
-.back-btn,
-.sub-back{
-width:36px;
-height:36px;
-min-width:36px;
-border:0!important;
-outline:0!important;
-background:#000!important;
-color:#fff!important;
-font-size:36px;
-line-height:36px;
-padding:0!important;
-display:flex;
-align-items:center;
-justify-content:center;
-}
-
-.settings-title{
-margin-left:9px;
-font-size:22px;
-font-weight:700;
-color:#fff;
-}
-
-.settings-list{
-width:100%;
-padding:20px 18px 35px;
-background:#000!important;
-}
+.settings-list{width:100%;padding:28px 28px 35px}
 
 .setting-row{
-width:100%;
-height:60px;
-min-height:60px;
-display:flex;
-align-items:center;
-border:0;
-border-bottom:1px solid #303038;
-background:#000!important;
-color:#fff!important;
-padding:0;
-margin:0;
-text-align:left;
+width:100%;min-height:67px;height:67px;display:flex;
+align-items:center;border:0;border-bottom:1px solid #34343b;
+background:#000!important;color:#fff!important;
+padding:0;text-align:left;appearance:none;-webkit-appearance:none
 }
 
-.setting-row:hover,
-.setting-row:focus,
-.setting-row:active{
-background:#000!important;
-color:#fff!important;
-outline:none!important;
+.setting-row:hover,.setting-row:focus,.setting-row:active{
+background:#000!important;color:#fff!important
 }
 
-.setting-label{
-flex:1;
-min-width:0;
-font-size:17px;
-line-height:1.2;
-color:#fff!important;
-}
-
-.setting-arrow{
-width:28px;
-text-align:right;
-font-size:28px;
-line-height:1;
-color:#fff!important;
-}
+.setting-label{flex:1;min-width:0;font-size:18px;line-height:1.2}
+.setting-arrow{width:28px;text-align:right;font-size:30px;line-height:1}
 
 .switch{
-width:68px;
-height:40px;
-min-width:68px;
-border:0!important;
-border-radius:24px;
-background:#505057!important;
-position:relative;
-flex:none;
-padding:0!important;
-transition:.2s;
+width:82px;height:50px;border:0;border-radius:30px;
+background:#555!important;position:relative;flex:none;padding:0;
+transition:.2s;appearance:none;-webkit-appearance:none
 }
 
 .switch::after{
-content:"";
-position:absolute;
-width:32px;
-height:32px;
-top:4px;
-left:4px;
-border-radius:50%;
-background:#ddd;
-transition:.2s;
+content:"";position:absolute;width:40px;height:40px;
+top:5px;left:5px;border-radius:50%;background:#ddd;transition:.2s
 }
 
-.switch.on{
-background:#63b1ed!important;
-}
-
-.switch.on::after{
-left:32px;
-background:#3b197e;
-}
+.switch.on{background:#63b1ed!important}
+.switch.on::after{left:37px;background:#3b197e}
 
 .sub-screen{
-position:fixed;
-inset:0;
-width:100%;
-height:100dvh;
-background:#000!important;
-color:#fff!important;
-z-index:100;
-display:none;
-overflow-y:auto;
-overscroll-behavior:contain;
+position:fixed;inset:0;background:#000!important;color:#fff!important;
+z-index:100;display:none;overflow-y:auto
 }
 
-.sub-screen.open{
-display:block;
-}
+.sub-screen.open{display:block}
 
-.sub-title{
-margin-left:9px;
-font-size:21px;
-font-weight:700;
-color:#fff!important;
-}
+.sub-title{margin-left:10px;font-size:22px;font-weight:700;color:#fff}
 
-.sub-content{
-width:100%;
-padding:20px 18px 35px;
-background:#000!important;
-color:#fff!important;
-}
+.sub-content{padding:22px 28px 40px;background:#000}
 
-.sub-content h2{
-font-size:19px;
-margin:0 0 14px;
-color:#fff!important;
-}
+.sub-content h2{font-size:20px;margin:0 0 16px;color:#fff}
 
 .sub-content p{
-color:#aaa!important;
-font-size:14px;
-line-height:1.55;
-margin:0 0 20px;
+color:#aaa;font-size:14px;line-height:1.6;margin:0 0 25px
 }
 
 .sub-row{
-width:100%;
-min-height:56px;
-height:56px;
-display:flex;
-align-items:center;
-border:0;
-border-bottom:1px solid #303038;
-background:#000!important;
-color:#fff!important;
-font-size:16px;
-padding:0;
-margin:0;
+min-height:58px;display:flex;align-items:center;
+border-bottom:1px solid #333;font-size:17px;
+background:#000!important;color:#fff!important
 }
+
+.sub-row span:first-child{flex:1;color:#fff!important}
 
 button.sub-row{
-width:100%;
-height:56px;
-min-height:56px;
-padding:0!important;
-margin:0;
-border:0;
-border-bottom:1px solid #303038;
-background:#000!important;
-color:#fff!important;
-text-align:left;
-display:flex;
-align-items:center;
-box-shadow:none!important;
-outline:none!important;
+width:100%;height:58px;min-height:58px;padding:0;margin:0;
+border:0;border-bottom:1px solid #333;background:#000!important;
+color:#fff!important;text-align:left;display:flex;align-items:center;
+appearance:none;-webkit-appearance:none;box-shadow:none;outline:none
 }
 
-button.sub-row:hover,
-button.sub-row:focus,
-button.sub-row:active{
-background:#000!important;
-color:#fff!important;
+button.sub-row:hover,button.sub-row:focus,button.sub-row:active{
+background:#000!important;color:#fff!important
 }
 
-button.sub-row span{
-color:#fff!important;
+button.sub-row span{color:#fff!important}
+button.sub-row .sub-arrow{
+color:#fff!important;margin-left:auto;font-size:30px
 }
 
-.sub-row span:first-child{
-flex:1;
-color:#fff!important;
+.info-card,.device-card,.security-info-box,.center-info,.help-info{
+background:#171717;border:1px solid #303030;border-radius:14px;
+padding:16px;margin-bottom:18px
 }
 
-.sub-arrow{
-margin-left:auto;
-font-size:28px;
-color:#fff!important;
+.info-card-title,.security-info-title,.center-info-title,.help-info-title{
+font-size:17px;font-weight:700;margin-bottom:8px
 }
 
-.info-card,
-.device-card,
-.security-info-box,
-.center-info,
-.help-info{
-width:100%;
-background:#171717!important;
-border:1px solid #303030;
-border-radius:13px;
-padding:15px;
-margin-bottom:16px;
-}
-
-.info-card-title,
-.security-info-title,
-.center-info-title,
-.help-info-title{
-font-size:16px;
-font-weight:700;
-margin-bottom:7px;
-color:#fff;
-}
-
-.info-card-text,
-.security-info-text,
-.center-info-text,
-.help-info-text{
-font-size:14px;
-line-height:1.5;
-color:#999!important;
+.info-card-text,.security-info-text,.center-info-text,.help-info-text{
+font-size:14px;line-height:1.55;color:#999
 }
 
 .success-box{
-background:#102414!important;
-border:1px solid #28552e;
-color:#b9e8bf!important;
-border-radius:11px;
-padding:13px;
-font-size:14px;
-line-height:1.5;
-margin-bottom:16px;
+background:#102414;border:1px solid #28552e;color:#b9e8bf;
+border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
+margin-bottom:18px
 }
 
 .warning-box{
-background:#241b10!important;
-border:1px solid #59401e;
-color:#e8ca91!important;
-border-radius:11px;
-padding:13px;
-font-size:14px;
-line-height:1.5;
-margin-bottom:16px;
+background:#241b10;border:1px solid #59401e;color:#e8ca91;
+border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
+margin-bottom:18px
 }
 
 .danger-box{
-background:#241010!important;
-border:1px solid #542525;
-color:#efb0b0!important;
-border-radius:11px;
-padding:13px;
-font-size:14px;
-line-height:1.5;
-margin-bottom:16px;
+background:#241010;border:1px solid #542525;color:#efb0b0;
+border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
+margin-bottom:18px
 }
 
-.form-group{
-margin-bottom:16px;
-}
+.form-group{margin-bottom:18px}
 
 .form-label{
-display:block;
-font-size:14px;
-font-weight:600;
-margin-bottom:7px;
-color:#fff!important;
+display:block;font-size:15px;font-weight:600;
+margin-bottom:8px;color:#fff
 }
 
 .form-input{
-width:100%;
-height:48px;
-border:1px solid #3a3a3a!important;
-border-radius:10px;
-background:#171717!important;
-color:#fff!important;
-padding:0 13px;
-outline:none!important;
+width:100%;height:50px;border:1px solid #3a3a3a;
+border-radius:11px;background:#171717;color:#fff;
+padding:0 14px;outline:none
 }
 
-.form-input::placeholder,
-.report-textarea::placeholder{
-color:#777;
-}
-
-.form-input:focus{
-border-color:#63b1ed!important;
-}
+.form-input:focus{border-color:#63b1ed}
 
 .form-button{
-width:100%;
-height:48px;
-border:0!important;
-border-radius:10px;
-background:#63b1ed!important;
-color:#21104d!important;
-font-weight:700;
-margin-top:4px;
+width:100%;height:50px;border:0;border-radius:11px;
+background:#63b1ed;color:#21104d;font-weight:700;margin-top:5px
 }
 
 .danger-button{
-width:100%;
-height:48px;
-border:0;
-border-radius:10px;
-background:#b72c2c!important;
-color:#fff!important;
-font-weight:700;
-margin-top:10px;
+width:100%;height:50px;border:0;border-radius:11px;
+background:#b72c2c;color:#fff;font-weight:700;margin-top:12px
 }
 
-.device-top{
-display:flex;
-align-items:center;
-gap:11px;
-}
+.device-top{display:flex;align-items:center;gap:12px}
 
 .device-icon{
-width:40px;
-height:40px;
-border-radius:50%;
-background:#29272e!important;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:20px;
-flex:none;
+width:42px;height:42px;border-radius:50%;background:#29272e;
+display:flex;align-items:center;justify-content:center;
+font-size:21px;flex:none
 }
 
-.device-name{
-font-size:15px;
-font-weight:700;
-color:#fff;
-}
+.device-name{font-size:16px;font-weight:700;color:#fff}
 
-.device-info{
-color:#999!important;
-font-size:12px;
-margin-top:3px;
-line-height:1.45;
-}
+.device-info{color:#999;font-size:13px;margin-top:4px;line-height:1.5}
 
 .current-device{
-display:inline-block;
-margin-top:7px;
-font-size:10px;
-padding:4px 7px;
-border-radius:6px;
-background:#63b1ed!important;
-color:#21104d!important;
-font-weight:700;
+display:inline-block;margin-top:9px;font-size:11px;padding:5px 8px;
+border-radius:7px;background:#63b1ed;color:#21104d;font-weight:700
 }
 
-.code-input{
-letter-spacing:7px;
-text-align:center;
-font-size:19px;
-}
+.code-input{letter-spacing:8px;text-align:center;font-size:20px}
 
-.report-title{
-font-size:21px;
-font-weight:700;
-margin-bottom:7px;
-color:#fff;
-}
+.report-title{font-size:22px;font-weight:700;margin-bottom:8px}
 
 .report-info{
-color:#999!important;
-font-size:14px;
-line-height:1.5;
-margin-bottom:20px;
+color:#999;font-size:14px;line-height:1.5;margin-bottom:22px
 }
 
 .report-label{
-display:block;
-font-size:15px;
-font-weight:600;
-margin-bottom:8px;
-color:#fff;
+display:block;font-size:16px;font-weight:600;margin-bottom:9px
 }
 
 .report-textarea{
-width:100%;
-min-height:130px;
-resize:vertical;
-background:#171717!important;
-color:#fff!important;
-border:1px solid #3b3b3b!important;
-border-radius:11px;
-padding:13px;
-outline:none!important;
+width:100%;min-height:140px;resize:vertical;background:#171717;
+color:#fff;border:1px solid #3b3b3b;border-radius:12px;
+padding:14px;outline:none
 }
 
-.photo-section{
-margin-top:20px;
-}
+.photo-section{margin-top:22px}
 
 .photo-button{
-width:100%;
-min-height:50px;
-border:1px solid #444!important;
-border-radius:11px;
-background:#171717!important;
-color:#fff!important;
-padding:11px;
+width:100%;min-height:52px;border:1px solid #444;
+border-radius:12px;background:#171717!important;color:#fff!important;
+padding:12px
 }
 
-.photo-count{
-color:#999!important;
-font-size:12px;
-margin-top:7px;
-}
+.photo-count{color:#999;font-size:13px;margin-top:8px}
 
 .preview-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:9px;
-margin-top:12px;
+display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px
 }
 
 .preview-item{
-position:relative;
-aspect-ratio:1/1;
-border-radius:11px;
-overflow:hidden;
-background:#151515!important;
-border:1px solid #333;
+position:relative;aspect-ratio:1/1;border-radius:12px;
+overflow:hidden;background:#151515;border:1px solid #333
 }
 
-.preview-item img{
-width:100%;
-height:100%;
-object-fit:cover;
-}
+.preview-item img{width:100%;height:100%;object-fit:cover}
 
 .remove-photo{
-position:absolute;
-top:6px;
-right:6px;
-width:28px;
-height:28px;
-border:0!important;
-border-radius:50%;
-background:rgba(0,0,0,.78)!important;
-color:#fff!important;
-font-size:17px;
-display:flex;
-align-items:center;
-justify-content:center;
+position:absolute;top:7px;right:7px;width:30px;height:30px;
+border:0;border-radius:50%;background:rgba(0,0,0,.75)!important;
+color:#fff!important;font-size:18px;display:flex;
+align-items:center;justify-content:center
 }
 
 .send-report{
-width:100%;
-height:50px;
-margin-top:21px;
-border:0!important;
-border-radius:11px;
-background:#63b1ed!important;
-color:#21104d!important;
-font-weight:700;
+width:100%;height:52px;margin-top:24px;border:0;
+border-radius:12px;background:#63b1ed;color:#21104d;font-weight:700
 }
 
 .dialog-bg{
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.78)!important;
-display:none;
-align-items:center;
-justify-content:center;
-padding:20px;
-z-index:500;
+position:fixed;inset:0;background:rgba(0,0,0,.72);
+display:none;align-items:center;justify-content:center;
+padding:24px;z-index:500
 }
 
-.dialog-bg.open{
-display:flex;
-}
+.dialog-bg.open{display:flex}
 
 .dialog{
-width:min(430px,100%);
-background:#211f26!important;
-border-radius:16px;
-padding:21px;
-border:1px solid #444;
+width:min(430px,100%);background:#211f26;border-radius:17px;
+padding:24px;border:1px solid #444
 }
 
-.dialog h3{
-margin:0 0 13px;
-font-size:20px;
-color:#fff;
-}
+.dialog h3{margin:0 0 15px;font-size:22px}
 
-.dialog p{
-color:#bbb!important;
-font-size:14px;
-line-height:1.5;
-margin:0 0 18px;
-}
+.dialog p{color:#bbb;font-size:15px;line-height:1.5;margin:0 0 20px}
 
-.dialog-buttons{
-display:flex;
-justify-content:flex-end;
-gap:9px;
-}
+.dialog-buttons{display:flex;justify-content:flex-end;gap:10px}
 
 .dialog-buttons button{
-border:0!important;
-border-radius:9px;
-padding:10px 16px;
-background:#444!important;
-color:#fff!important;
+border:0;border-radius:10px;padding:11px 18px;
+background:#444;color:#fff
 }
 
 .dialog-buttons .primary{
-background:#63b1ed!important;
-color:#2d176c!important;
+background:#63b1ed;color:#2d176c
 }
 
 .toast{
-position:fixed;
-left:50%;
-bottom:25px;
-transform:translateX(-50%);
-max-width:calc(100% - 30px);
-background:#29272e!important;
-color:#fff!important;
-padding:11px 16px;
-border-radius:11px;
-font-size:13px;
-opacity:0;
-pointer-events:none;
-transition:.2s;
-z-index:1000;
-white-space:nowrap;
+position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+background:#29272e;color:#fff;padding:13px 19px;border-radius:12px;
+font-size:14px;opacity:0;pointer-events:none;transition:.2s;
+z-index:1000;white-space:nowrap;max-width:90%;text-align:center
 }
 
-.toast.show{
-opacity:1;
+.toast.show{opacity:1}
+
+/* TELEFON DOĞRULAMA */
+.recaptcha-area{
+min-height:1px;
+margin-top:10px;
+}
+
+.phone-status{
+font-size:13px;
+line-height:1.5;
+color:#999;
+margin-top:12px;
+}
+
+.phone-success{
+background:#102414;
+border:1px solid #28552e;
+color:#b9e8bf;
+border-radius:12px;
+padding:14px;
+font-size:14px;
+line-height:1.5;
+margin-top:18px;
+display:none;
 }
 
 @media(max-width:380px){
-
-.settings-header,
-.sub-header{
-height:54px;
-min-height:54px;
-padding:0 13px;
-}
-
-.settings-title{
-font-size:20px;
-}
-
-.sub-title{
-font-size:19px;
-}
-
-.settings-list{
-padding:14px 14px 30px;
-}
-
-.setting-row{
-height:56px;
-min-height:56px;
-}
-
-.setting-label{
-font-size:16px;
-}
-
-.switch{
-width:62px;
-min-width:62px;
-height:36px;
-}
-
-.switch::after{
-width:28px;
-height:28px;
-top:4px;
-left:4px;
-}
-
-.switch.on::after{
-left:30px;
-}
-
-.sub-content{
-padding:17px 14px 30px;
-}
-
-.sub-row,
-button.sub-row{
-height:53px;
-min-height:53px;
-}
-
-}
-
-@media(prefers-color-scheme:light){
-
-html,
-body,
-.settings-app,
-.settings-header,
-.sub-header,
-.settings-list,
-.setting-row,
-.sub-screen,
-.sub-content,
-.sub-row,
-button.sub-row{
-background:#000!important;
-color:#fff!important;
-}
-
+.settings-list{padding-left:18px;padding-right:18px}
+.setting-row{min-height:62px;height:62px}
+.setting-label{font-size:17px}
+.switch{width:76px;height:46px}
+.switch::after{width:36px;height:36px;top:5px;left:5px}
+.switch.on::after{left:35px}
+.sub-content{padding-left:18px;padding-right:18px}
 }
 </style>
+
 </head>
 
 <body>
@@ -760,25 +364,32 @@ color:#fff!important;
 </div>
 
 <!-- MAVİ TİK -->
+
 <div class="sub-screen" id="verifiedScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="verifiedScreen" type="button">‹</button>
 <div class="sub-title">Mavi tik</div>
 </header>
 
 <div class="sub-content">
+
 <h2>🔵 Minegram Doğrulama</h2>
+
 <p>Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.</p>
 
 <div class="sub-row">
 <span>Mavi tik üyeliği</span>
 <button class="switch" id="verifiedSwitch" type="button"></button>
 </div>
+
 </div>
 </div>
 
 <!-- ŞİFRE VE GÜVENLİK -->
+
 <div class="sub-screen" id="securityScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="securityScreen" type="button">‹</button>
 <div class="sub-title">Şifre ve güvenlik</div>
@@ -810,7 +421,9 @@ color:#fff!important;
 </div>
 
 <!-- ŞİFRE DEĞİŞTİR -->
+
 <div class="sub-screen" id="changePasswordScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="changePasswordScreen" type="button">‹</button>
 <div class="sub-title">Şifreyi değiştir</div>
@@ -844,7 +457,9 @@ color:#fff!important;
 </div>
 
 <!-- GİRİŞ YAPTIĞIN YERLER -->
+
 <div class="sub-screen" id="loginActivityScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="loginActivityScreen" type="button">‹</button>
 <div class="sub-title">Giriş yaptığın yerler</div>
@@ -858,7 +473,9 @@ color:#fff!important;
 </div>
 
 <!-- 2FA -->
+
 <div class="sub-screen" id="twoFactorScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="twoFactorScreen" type="button">‹</button>
 <div class="sub-title">İki faktörlü doğrulama</div>
@@ -878,43 +495,65 @@ color:#fff!important;
 <button class="switch" id="twoFactorSwitch" type="button"></button>
 </div>
 
-<div id="twoFactorSetup" style="display:none;margin-top:20px;">
+<div id="twoFactorSetup" style="display:none;margin-top:22px;">
 
 <div class="form-group">
+
 <label class="form-label">Telefon numarası</label>
-<input type="tel" class="form-input" id="twoFactorPhone"
-placeholder="+90 5XX XXX XX XX" autocomplete="tel">
+
+<input
+type="tel"
+class="form-input"
+id="twoFactorPhone"
+placeholder="+90 5XX XXX XX XX"
+autocomplete="tel">
+
 </div>
+
+<div class="phone-status" id="phoneStatus">
+Telefon numaranı +90 5XX XXX XX XX biçiminde gir.
+</div>
+
+<div id="recaptcha-container" class="recaptcha-area"></div>
 
 <button class="form-button" id="sendTwoFactorCode" type="button">
 Kod gönder
 </button>
 
-<div id="twoFactorCodeArea" style="display:none;margin-top:18px;">
+<div id="twoFactorCodeArea" style="display:none;margin-top:20px;">
 
 <label class="form-label">SMS doğrulama kodu</label>
 
-<input class="form-input code-input"
+<input
+class="form-input code-input"
 id="twoFactorCode"
 maxlength="6"
 inputmode="numeric"
+autocomplete="one-time-code"
 placeholder="000000">
 
-<button class="form-button"
+<button
+class="form-button"
 id="verifyTwoFactorButton"
 type="button"
-style="margin-top:14px;">
-Kodu doğrula
-</button>
+style="margin-top:15px;">
+Kodu doğrula </button>
 
 </div>
+
+<div id="phoneSuccess" class="phone-success">
+✓ Telefon numaran doğrulandı ve iki faktörlü doğrulama hesabına eklendi.
+</div>
+
 </div>
 
 </div>
 </div>
 
 <!-- GİZLİLİK -->
+
 <div class="sub-screen" id="privacyScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="privacyScreen" type="button">‹</button>
 <div class="sub-title">Gizlilik</div>
@@ -951,7 +590,9 @@ Kodu doğrula
 </div>
 
 <!-- HESAP MERKEZİ -->
+
 <div class="sub-screen" id="accountCenterScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="accountCenterScreen" type="button">‹</button>
 <div class="sub-title">Hesap Merkezi</div>
@@ -990,7 +631,9 @@ Hesap bilgilerini, kişisel bilgilerini, hesap sahipliğini ve hesap bağlantıl
 </div>
 
 <!-- HESAP BİLGİLERİ -->
+
 <div class="sub-screen" id="accountInfoScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="accountInfoScreen" type="button">‹</button>
 <div class="sub-title">Hesap bilgileri</div>
@@ -1029,7 +672,9 @@ Minegram hesabınla ilgili temel bilgileri buradan görebilirsin.
 </div>
 
 <!-- HESAP BİLGİLERİNİ DÜZENLE -->
+
 <div class="sub-screen" id="editAccountInfoScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="editAccountInfoScreen" type="button">‹</button>
 <div class="sub-title">Hesap bilgilerini düzenle</div>
@@ -1042,14 +687,12 @@ Minegram hesabınla ilgili temel bilgileri buradan görebilirsin.
 
 <div class="form-group">
 <label class="form-label">Kullanıcı adı</label>
-<input type="text" class="form-input" id="editUsername"
-placeholder="Kullanıcı adın" autocomplete="username">
+<input type="text" class="form-input" id="editUsername" placeholder="Kullanıcı adın" autocomplete="username">
 </div>
 
 <div class="form-group">
 <label class="form-label">E-posta</label>
-<input type="email" class="form-input" id="editEmail"
-placeholder="E-posta adresin" autocomplete="email">
+<input type="email" class="form-input" id="editEmail" placeholder="E-posta adresin" autocomplete="email">
 </div>
 
 <button class="form-button" id="saveAccountInfoButton" type="button">
@@ -1060,7 +703,9 @@ Değişiklikleri kaydet
 </div>
 
 <!-- KİŞİSEL BİLGİLER -->
+
 <div class="sub-screen" id="personalInfoScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="personalInfoScreen" type="button">‹</button>
 <div class="sub-title">Kişisel bilgiler</div>
@@ -1099,7 +744,9 @@ Adın, kullanıcı adın ve e-posta gibi bilgilerini buradan yönetebilirsin.
 </div>
 
 <!-- KİŞİSEL BİLGİLERİ DÜZENLE -->
+
 <div class="sub-screen" id="editPersonalInfoScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="editPersonalInfoScreen" type="button">‹</button>
 <div class="sub-title">Kişisel bilgileri düzenle</div>
@@ -1109,26 +756,21 @@ Adın, kullanıcı adın ve e-posta gibi bilgilerini buradan yönetebilirsin.
 
 <h2>Kişisel bilgileri düzenle</h2>
 
-<p>
-Adını, kullanıcı adını ve e-posta adresini buradan güncelleyebilirsin.
-</p>
+<p>Adını, kullanıcı adını ve e-posta adresini buradan güncelleyebilirsin.</p>
 
 <div class="form-group">
 <label class="form-label">Ad</label>
-<input type="text" class="form-input" id="editPersonalName"
-placeholder="Adın" autocomplete="name">
+<input type="text" class="form-input" id="editPersonalName" placeholder="Adın" autocomplete="name">
 </div>
 
 <div class="form-group">
 <label class="form-label">Kullanıcı adı</label>
-<input type="text" class="form-input" id="editPersonalUsername"
-placeholder="Kullanıcı adın" autocomplete="username">
+<input type="text" class="form-input" id="editPersonalUsername" placeholder="Kullanıcı adın" autocomplete="username">
 </div>
 
 <div class="form-group">
 <label class="form-label">E-posta</label>
-<input type="email" class="form-input" id="editPersonalEmail"
-placeholder="E-posta adresin" autocomplete="email">
+<input type="email" class="form-input" id="editPersonalEmail" placeholder="E-posta adresin" autocomplete="email">
 </div>
 
 <button class="form-button" id="savePersonalInfoButton" type="button">
@@ -1139,7 +781,9 @@ Değişiklikleri kaydet
 </div>
 
 <!-- HESAP SAHİPLİĞİ -->
+
 <div class="sub-screen" id="ownershipScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="ownershipScreen" type="button">‹</button>
 <div class="sub-title">Hesap sahipliği</div>
@@ -1165,7 +809,9 @@ Hesabını geçici olarak kapatabilir veya kalıcı olarak silme işlemini başl
 </div>
 
 <!-- HESAPLAR ARASI BAĞLANTILAR -->
+
 <div class="sub-screen" id="accountConnectionsScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="accountConnectionsScreen" type="button">‹</button>
 <div class="sub-title">Hesaplar arası bağlantılar</div>
@@ -1199,7 +845,9 @@ Minegram hesapların arasındaki bağlantıları ve hesap geçişlerini buradan 
 </div>
 
 <!-- YARDIM -->
+
 <div class="sub-screen" id="helpScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="helpScreen" type="button">‹</button>
 <div class="sub-title">Yardım</div>
@@ -1236,7 +884,9 @@ Minegram hesapların arasındaki bağlantıları ve hesap geçişlerini buradan 
 </div>
 
 <!-- HESAP SORUNLARI -->
+
 <div class="sub-screen" id="accountProblemsScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="accountProblemsScreen" type="button">‹</button>
 <div class="sub-title">Hesap sorunları</div>
@@ -1283,8 +933,10 @@ Hesabınla ilgili karşılaştığın sorunlar için aşağıdaki seçeneklerden
 </div>
 </div>
 
-<!-- KULLANICI ADI -->
+<!-- KULLANICI ADI SORUNU -->
+
 <div class="sub-screen" id="usernameProblemScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="usernameProblemScreen" type="button">‹</button>
 <div class="sub-title">Kullanıcı adı sorunu</div>
@@ -1303,21 +955,26 @@ Kullanıcı adın değişmiyorsa yeni kullanıcı adının başka bir hesap tara
 
 <div class="sub-row">
 <span>Başka kullanıcı adı dene</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <div class="sub-row">
 <span>Geçersiz karakterleri kaldır</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <div class="sub-row">
 <span>Tekrar giriş yap</span>
+<span class="sub-arrow">›</span>
 </div>
 
 </div>
 </div>
 
-<!-- E POSTA -->
+<!-- E POSTA SORUNU -->
+
 <div class="sub-screen" id="emailProblemScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="emailProblemScreen" type="button">‹</button>
 <div class="sub-title">E-posta sorunu</div>
@@ -1336,21 +993,26 @@ E-posta adresinin doğru olduğundan emin ol. Doğrulama e-postası gelmiyorsa s
 
 <div class="sub-row">
 <span>E-posta adresini kontrol et</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <div class="sub-row">
 <span>Spam klasörünü kontrol et</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <div class="sub-row">
 <span>Doğrulama e-postasını tekrar gönder</span>
+<span class="sub-arrow">›</span>
 </div>
 
 </div>
 </div>
 
 <!-- HESAP GÜVENLİĞİ -->
+
 <div class="sub-screen" id="securityProblemScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="securityProblemScreen" type="button">‹</button>
 <div class="sub-title">Hesap güvenliği</div>
@@ -1381,7 +1043,9 @@ Güçlü bir şifre kullan ve giriş bilgilerini başkalarıyla paylaşma. İki 
 </div>
 
 <!-- KİLİTLİ HESAP -->
+
 <div class="sub-screen" id="lockedAccountScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="lockedAccountScreen" type="button">‹</button>
 <div class="sub-title">Hesabım kilitlendi</div>
@@ -1415,8 +1079,10 @@ Hesabına erişemiyorsan önce giriş bilgilerini kontrol et.
 </div>
 </div>
 
-<!-- ÇALIŞMAYAN HESAP -->
+<!-- HESABIM ÇALIŞMIYOR -->
+
 <div class="sub-screen" id="accountNotWorkingScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="accountNotWorkingScreen" type="button">‹</button>
 <div class="sub-title">Hesabım düzgün çalışmıyor</div>
@@ -1435,10 +1101,12 @@ Uygulamayı kapatıp yeniden açmayı ve internet bağlantını kontrol etmeyi d
 
 <div class="sub-row">
 <span>İnternet bağlantısını kontrol et</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <div class="sub-row">
 <span>Uygulamayı yeniden aç</span>
+<span class="sub-arrow">›</span>
 </div>
 
 <button class="sub-row" id="notWorkingReportRow" type="button">
@@ -1450,7 +1118,9 @@ Uygulamayı kapatıp yeniden açmayı ve internet bağlantını kontrol etmeyi d
 </div>
 
 <!-- SIK SORULANLAR -->
+
 <div class="sub-screen" id="faqScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="faqScreen" type="button">‹</button>
 <div class="sub-title">Sık sorulan sorular</div>
@@ -1461,28 +1131,21 @@ Uygulamayı kapatıp yeniden açmayı ve internet bağlantını kontrol etmeyi d
 <h2>Sık sorulan sorular</h2>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Hesap oluşturma','Minegram hesabı oluşturmak için kayıt ekranından gerekli bilgileri girerek hesabını oluşturabilirsin.')">
-<span>Hesap nasıl oluşturulur?</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Hesap oluşturma','Minegram hesabı oluşturmak için kayıt ekranından gerekli bilgileri girerek hesabını oluşturabilirsin.')"> <span>Hesap nasıl oluşturulur?</span> <span class="sub-arrow">›</span> </button>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Şifre değiştirme','Ayarlar > Şifre ve güvenlik > Şifreyi değiştir bölümünden şifreni değiştirebilirsin.')">
-<span>Şifremi nasıl değiştiririm?</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Şifre değiştirme','Ayarlar > Şifre ve güvenlik > Şifreyi değiştir bölümünden şifreni değiştirebilirsin.')"> <span>Şifremi nasıl değiştiririm?</span> <span class="sub-arrow">›</span> </button>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Gizli hesap','Gizlilik bölümündeki Hesap gizliliği seçeneğini açarak hesabını gizli yapabilirsin.')">
-<span>Hesabımı nasıl gizli yaparım?</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Gizli hesap','Gizlilik bölümündeki Hesap gizliliği seçeneğini açarak hesabını gizli yapabilirsin.')"> <span>Hesabımı nasıl gizli yaparım?</span> <span class="sub-arrow">›</span> </button>
 
 </div>
 </div>
 
 <!-- GİRİŞ SORUNLARI -->
+
 <div class="sub-screen" id="loginProblemsScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="loginProblemsScreen" type="button">‹</button>
 <div class="sub-title">Giriş sorunları</div>
@@ -1493,28 +1156,21 @@ onclick="showDialog('Gizli hesap','Gizlilik bölümündeki Hesap gizliliği seç
 <h2>Giriş sorunları</h2>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Şifremi unuttum','Şifreni sıfırlamak için giriş ekranındaki Şifremi unuttum seçeneğini kullanabilirsin.')">
-<span>Şifremi unuttum</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Şifremi unuttum','Şifreni sıfırlamak için giriş ekranındaki Şifremi unuttum seçeneğini kullanabilirsin.')"> <span>Şifremi unuttum</span> <span class="sub-arrow">›</span> </button>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Doğrulama kodu','Kod gelmiyorsa e-posta adresini veya telefon numaranı kontrol et ve tekrar dene.')">
-<span>Doğrulama kodu gelmiyor</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Doğrulama kodu','Kod gelmiyorsa e-posta adresini veya telefon numaranı kontrol et ve tekrar dene.')"> <span>Doğrulama kodu gelmiyor</span> <span class="sub-arrow">›</span> </button>
 
 <button class="sub-row" type="button"
-onclick="showDialog('Giriş yapılamıyor','Kullanıcı adı ve şifreni kontrol et.')">
-<span>Hesabıma giriş yapamıyorum</span>
-<span class="sub-arrow">›</span>
-</button>
+onclick="showDialog('Giriş yapılamıyor','Kullanıcı adı ve şifreni kontrol et.')"> <span>Hesabıma giriş yapamıyorum</span> <span class="sub-arrow">›</span> </button>
 
 </div>
 </div>
 
 <!-- TOPLULUK -->
+
 <div class="sub-screen" id="communityRulesHelpScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="communityRulesHelpScreen" type="button">‹</button>
 <div class="sub-title">Topluluk kuralları</div>
@@ -1528,27 +1184,18 @@ onclick="showDialog('Giriş yapılamıyor','Kullanıcı adı ve şifreni kontrol
 Minegram'i güvenli, saygılı ve herkes için kullanılabilir bir ortam olarak tutmak için topluluk kurallarına uyulması gerekir.
 </p>
 
-<div class="sub-row">
-<span>Saygılı davranış</span>
-</div>
-
-<div class="sub-row">
-<span>Zararlı içerik</span>
-</div>
-
-<div class="sub-row">
-<span>Spam ve kötüye kullanım</span>
-</div>
-
-<div class="sub-row">
-<span>Gizlilik ve güvenlik</span>
-</div>
+<div class="sub-row"><span>Saygılı davranış</span></div>
+<div class="sub-row"><span>Zararlı içerik</span></div>
+<div class="sub-row"><span>Spam ve kötüye kullanım</span></div>
+<div class="sub-row"><span>Gizlilik ve güvenlik</span></div>
 
 </div>
 </div>
 
 <!-- SORUN BİLDİR -->
+
 <div class="sub-screen" id="reportScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="reportScreen" type="button">‹</button>
 <div class="sub-title">Sorun bildir</div>
@@ -1578,16 +1225,9 @@ placeholder="Sorunu ayrıntılı olarak yaz..."></textarea>
 📷 Fotoğraf seç
 </button>
 
-<input
-type="file"
-id="photoInput"
-accept="image/*"
-multiple
-hidden>
+<input type="file" id="photoInput" accept="image/*" multiple hidden>
 
-<div class="photo-count" id="photoCount">
-0 / 2 fotoğraf
-</div>
+<div class="photo-count" id="photoCount">0 / 2 fotoğraf</div>
 
 <div class="preview-grid" id="previewGrid"></div>
 
@@ -1601,7 +1241,9 @@ Gönder
 </div>
 
 <!-- HAKKINDA -->
+
 <div class="sub-screen" id="aboutScreen">
+
 <header class="sub-header">
 <button class="sub-back" data-close="aboutScreen" type="button">‹</button>
 <div class="sub-title">Hakkında</div>
@@ -1632,6 +1274,7 @@ Gönder
 </div>
 
 <!-- DİYALOG -->
+
 <div class="dialog-bg" id="dialogBg">
 
 <div class="dialog">
@@ -1642,13 +1285,9 @@ Gönder
 
 <div class="dialog-buttons">
 
-<button id="dialogCancel" type="button">
-Kapat
-</button>
+<button id="dialogCancel" type="button">Kapat</button>
 
-<button class="primary" id="dialogOk" type="button">
-Tamam
-</button>
+<button class="primary" id="dialogOk" type="button">Tamam</button>
 
 </div>
 
@@ -1659,7 +1298,11 @@ Tamam
 
 <script type="module">
 
-import {initializeApp}
+/* =====================================================
+   FIREBASE IMPORT
+===================================================== */
+
+import { initializeApp }
 from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
 import {
@@ -1669,7 +1312,11 @@ updatePassword,
 updateEmail,
 EmailAuthProvider,
 reauthenticateWithCredential,
-deleteUser
+deleteUser,
+RecaptchaVerifier,
+PhoneAuthProvider,
+PhoneMultiFactorGenerator,
+multiFactor
 }
 from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
@@ -1693,6 +1340,11 @@ getDownloadURL
 }
 from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
 
+
+/* =====================================================
+   FIREBASE CONFIG
+===================================================== */
+
 const firebaseConfig={
 apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
 authDomain:"mim-ea133.firebaseapp.com",
@@ -1704,17 +1356,41 @@ measurementId:"G-K962QE5P1R"
 };
 
 const app=initializeApp(firebaseConfig);
+
 const auth=getAuth(app);
 const db=getFirestore(app);
 const storage=getStorage(app);
 
 let currentUser=null;
 
-const $=id=>document.getElementById(id);
+
+/* =====================================================
+   GERÇEK TELEFON MFA DEĞİŞKENLERİ
+===================================================== */
+
+let recaptchaVerifier=null;
+let verificationId=null;
+let phoneMfaSession=null;
+let phoneVerificationInProgress=false;
+
+
+/* =====================================================
+   ELEMENT
+===================================================== */
+
+function $(id){
+return document.getElementById(id);
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
 
 function toast(message){
 
 const el=$("toast");
+
 if(!el)return;
 
 el.textContent=message;
@@ -1722,11 +1398,16 @@ el.classList.add("show");
 
 clearTimeout(window.__toastTimer);
 
-window.__toastTimer=setTimeout(()=>{
+window.__toastTimer=setTimeout(function(){
 el.classList.remove("show");
-},2200);
+},2500);
 
 }
+
+
+/* =====================================================
+   FIREBASE HATA
+===================================================== */
 
 function firebaseError(error){
 
@@ -1738,6 +1419,8 @@ return "Bir hata oluştu.";
 switch(error.code){
 
 case "auth/wrong-password":
+return "Mevcut şifre yanlış.";
+
 case "auth/invalid-credential":
 return "Mevcut şifre yanlış.";
 
@@ -1756,6 +1439,42 @@ return "Şifre en az 6 karakter olmalı.";
 case "auth/network-request-failed":
 return "İnternet bağlantısını kontrol et.";
 
+case "auth/invalid-phone-number":
+return "Telefon numarası geçersiz.";
+
+case "auth/missing-phone-number":
+return "Telefon numarası gir.";
+
+case "auth/quota-exceeded":
+return "SMS gönderme limiti aşıldı. Daha sonra tekrar dene.";
+
+case "auth/too-many-requests":
+return "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.";
+
+case "auth/captcha-check-failed":
+return "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar dene.";
+
+case "auth/invalid-verification-code":
+return "SMS doğrulama kodu yanlış.";
+
+case "auth/code-expired":
+return "SMS doğrulama kodunun süresi dolmuş. Yeni kod gönder.";
+
+case "auth/second-factor-already-in-use":
+return "Bu telefon numarası zaten hesabında kullanılıyor.";
+
+case "auth/multi-factor-auth-required":
+return "Ek kimlik doğrulaması gerekiyor.";
+
+case "auth/operation-not-allowed":
+return "Firebase Console'da Telefon Authentication açık değil.";
+
+case "auth/invalid-verification-id":
+return "Doğrulama oturumu geçersiz. Yeni kod gönder.";
+
+case "auth/missing-or-invalid-nonce":
+return "Telefon doğrulama oturumu geçersiz.";
+
 case "permission-denied":
 return "Firebase erişim izni reddedildi.";
 
@@ -1766,20 +1485,30 @@ return error.message||"İşlem başarısız.";
 
 }
 
+
+/* =====================================================
+   EKRAN
+===================================================== */
+
 function openScreen(id){
 
-document.querySelectorAll(".sub-screen").forEach(screen=>{
+document.querySelectorAll(".sub-screen").forEach(
+function(screen){
 screen.classList.remove("open");
-});
+}
+);
 
 const screen=$(id);
 
 if(screen){
+
 screen.classList.add("open");
 screen.scrollTop=0;
+
 }
 
 }
+
 
 function closeScreen(id){
 
@@ -1790,6 +1519,11 @@ screen.classList.remove("open");
 
 }
 
+
+/* =====================================================
+   DİYALOG
+===================================================== */
+
 window.showDialog=function(title,text){
 
 $("dialogTitle").textContent=title;
@@ -1798,18 +1532,30 @@ $("dialogBg").classList.add("open");
 
 };
 
+
 function closeDialog(){
 $("dialogBg").classList.remove("open");
 }
+
+
+/* =====================================================
+   SWITCH
+===================================================== */
 
 function setSwitch(id,value){
 
 const el=$(id);
 
-if(el)
+if(!el)return;
+
 el.classList.toggle("on",!!value);
 
 }
+
+
+/* =====================================================
+   AYARLAR
+===================================================== */
 
 let notifications=true;
 let privateAccount=false;
@@ -1822,6 +1568,11 @@ let messagePermission=true;
 let commentSettings=true;
 let tagSettings=true;
 
+
+/* =====================================================
+   USER REF
+===================================================== */
+
 function userRef(){
 
 if(!currentUser)
@@ -1831,10 +1582,14 @@ return doc(db,"users",currentUser.uid);
 
 }
 
+
+/* =====================================================
+   AYAR KAYDET
+===================================================== */
+
 async function saveFirebaseSetting(key,value){
 
-if(!currentUser)
-return;
+if(!currentUser)return;
 
 try{
 
@@ -1855,10 +1610,14 @@ console.error(error);
 
 }
 
+
+/* =====================================================
+   AYARLARI YÜKLE
+===================================================== */
+
 async function loadFirebaseSettings(){
 
-if(!currentUser)
-return;
+if(!currentUser)return;
 
 try{
 
@@ -1872,6 +1631,7 @@ userRef(),
 username:currentUser.displayName||"Minegram",
 email:currentUser.email||"",
 personalName:currentUser.displayName||"Minegram",
+
 notifications:true,
 privateAccount:false,
 darkTheme:true,
@@ -1882,29 +1642,14 @@ storyPrivacy:false,
 messagePermission:true,
 commentSettings:true,
 tagSettings:true,
+
 createDate:new Date().toLocaleDateString("tr-TR"),
 createdAt:serverTimestamp()
 },
 {merge:true}
 );
 
-setSwitch("notificationsSwitch",true);
-setSwitch("privateSwitch",false);
-setSwitch("darkSwitch",true);
-setSwitch("verifiedSwitch",false);
-setSwitch("savedLoginSwitch",true);
-setSwitch("privacyPrivateSwitch",false);
-setSwitch("twoFactorSwitch",false);
-setSwitch("storyPrivacySwitch",false);
-setSwitch("messagePermissionSwitch",true);
-setSwitch("commentSettingsSwitch",true);
-setSwitch("tagSettingsSwitch",true);
-
-await loadAccountData();
-
-return;
-
-}
+}else{
 
 const data=snap.data();
 
@@ -1918,6 +1663,8 @@ storyPrivacy=data.storyPrivacy??false;
 messagePermission=data.messagePermission??true;
 commentSettings=data.commentSettings??true;
 tagSettings=data.tagSettings??true;
+
+}
 
 setSwitch("notificationsSwitch",notifications);
 setSwitch("privateSwitch",privateAccount);
@@ -1944,9 +1691,12 @@ console.error(error);
 
 }
 
-/* BİLDİRİMLER */
 
-$("notificationsSwitch").addEventListener("click",async e=>{
+/* =====================================================
+   BİLDİRİMLER
+===================================================== */
+
+$("notificationsSwitch").addEventListener("click",async function(e){
 
 e.stopPropagation();
 
@@ -1964,12 +1714,14 @@ notifications
 
 });
 
-/* GİZLİ HESAP */
+
+/* =====================================================
+   GİZLİ HESAP
+===================================================== */
 
 async function togglePrivateAccount(e){
 
-if(e)
-e.stopPropagation();
+if(e)e.stopPropagation();
 
 privateAccount=!privateAccount;
 
@@ -1989,9 +1741,12 @@ privateAccount
 $("privateSwitch").addEventListener("click",togglePrivateAccount);
 $("privacyPrivateSwitch").addEventListener("click",togglePrivateAccount);
 
-/* SİYAH TEMA */
 
-$("darkSwitch").addEventListener("click",async e=>{
+/* =====================================================
+   SİYAH TEMA
+===================================================== */
+
+$("darkSwitch").addEventListener("click",async function(e){
 
 e.stopPropagation();
 
@@ -2009,9 +1764,12 @@ darkTheme
 
 });
 
-/* MAVİ TİK */
 
-$("verifiedSwitch").addEventListener("click",async e=>{
+/* =====================================================
+   MAVİ TİK
+===================================================== */
+
+$("verifiedSwitch").addEventListener("click",async function(e){
 
 e.stopPropagation();
 
@@ -2029,9 +1787,12 @@ verified
 
 });
 
-/* KAYITLI GİRİŞ */
 
-$("savedLoginSwitch").addEventListener("click",async e=>{
+/* =====================================================
+   KAYITLI GİRİŞ
+===================================================== */
+
+$("savedLoginSwitch").addEventListener("click",async function(e){
 
 e.stopPropagation();
 
@@ -2049,29 +1810,59 @@ savedLogin
 
 });
 
-/* ANA MENÜ */
 
-$("verifiedRow").onclick=()=>openScreen("verifiedScreen");
-$("securityRow").onclick=()=>openScreen("securityScreen");
-$("privacyRow").onclick=()=>openScreen("privacyScreen");
-$("accountCenterRow").onclick=()=>openScreen("accountCenterScreen");
-$("helpRow").onclick=()=>openScreen("helpScreen");
-$("aboutRow").onclick=()=>openScreen("aboutScreen");
+/* =====================================================
+   ANA MENÜ
+===================================================== */
 
-/* GÜVENLİK */
+$("verifiedRow").addEventListener("click",()=>openScreen("verifiedScreen"));
+$("securityRow").addEventListener("click",()=>openScreen("securityScreen"));
+$("privacyRow").addEventListener("click",()=>openScreen("privacyScreen"));
+$("accountCenterRow").addEventListener("click",()=>openScreen("accountCenterScreen"));
+$("helpRow").addEventListener("click",()=>openScreen("helpScreen"));
+$("aboutRow").addEventListener("click",()=>openScreen("aboutScreen"));
 
-$("changePasswordRow").onclick=()=>openScreen("changePasswordScreen");
 
-$("loginActivityRow").onclick=()=>{
+/* =====================================================
+   ŞİFRE GÜVENLİK
+===================================================== */
+
+$("changePasswordRow").addEventListener(
+"click",
+()=>openScreen("changePasswordScreen")
+);
+
+$("loginActivityRow").addEventListener(
+"click",
+function(){
 openScreen("loginActivityScreen");
 renderDevices();
-};
+}
+);
 
-$("twoFactorRow").onclick=()=>openScreen("twoFactorScreen");
+$("twoFactorRow").addEventListener(
+"click",
+async function(){
 
-/* ŞİFRE DEĞİŞTİR */
+openScreen("twoFactorScreen");
 
-$("changePasswordButton").onclick=async()=>{
+if(twoFactor){
+
+$("twoFactorSetup").style.display="block";
+
+}
+
+}
+);
+
+
+/* =====================================================
+   GERÇEK ŞİFRE DEĞİŞTİRME
+===================================================== */
+
+$("changePasswordButton").addEventListener(
+"click",
+async function(){
 
 if(!currentUser){
 toast("Önce hesabına giriş yapmalısın");
@@ -2109,15 +1900,9 @@ currentUser.email,
 oldPassword
 );
 
-await reauthenticateWithCredential(
-currentUser,
-credential
-);
+await reauthenticateWithCredential(currentUser,credential);
 
-await updatePassword(
-currentUser,
-newPassword
-);
+await updatePassword(currentUser,newPassword);
 
 $("oldPassword").value="";
 $("newPassword").value="";
@@ -2131,9 +1916,13 @@ toast(firebaseError(error));
 
 }
 
-};
+}
+);
 
-/* CİHAZ */
+
+/* =====================================================
+   CİHAZ
+===================================================== */
 
 function renderDevices(){
 
@@ -2196,77 +1985,549 @@ BU CİHAZ
 </div>
 
 </div>
+
 `;
 
 list.appendChild(card);
 
 }
 
-/* 2FA */
 
-$("twoFactorSwitch").onclick=async e=>{
+/* =====================================================
+   RECAPTCHA OLUŞTUR
+===================================================== */
 
-e.stopPropagation();
+function createRecaptcha(){
 
-twoFactor=!twoFactor;
+if(recaptchaVerifier)
+return;
 
-setSwitch("twoFactorSwitch",twoFactor);
+try{
 
-$("twoFactorSetup").style.display=
-twoFactor?"block":"none";
+recaptchaVerifier=new RecaptchaVerifier(
+auth,
+"recaptcha-container",
+{
+size:"invisible",
+callback:function(){
+console.log("reCAPTCHA doğrulandı");
+},
+"expired-callback":function(){
 
-await saveFirebaseSetting("twoFactor",twoFactor);
+console.log("reCAPTCHA süresi doldu");
 
-toast(
-twoFactor
-?"İki faktörlü doğrulama açıldı"
-:"İki faktörlü doğrulama kapatıldı"
+try{
+recaptchaVerifier.clear();
+}catch(e){}
+
+recaptchaVerifier=null;
+
+}
+}
 );
 
-};
+}catch(error){
 
-$("sendTwoFactorCode").onclick=()=>{
+console.error("reCAPTCHA oluşturulamadı:",error);
 
-const phone=$("twoFactorPhone").value.trim();
+recaptchaVerifier=null;
 
-if(!phone){
+}
+
+}
+
+
+/* =====================================================
+   TELEFON NUMARASI NORMALİZE
+===================================================== */
+
+function normalizePhone(phone){
+
+let value=String(phone||"").trim();
+
+if(!value)
+return "";
+
+value=value.replace(/[()\-\s]/g,"");
+
+if(value.startsWith("00")){
+value="+"+value.substring(2);
+}
+
+if(value.startsWith("05") && value.length===11){
+value="+90"+value.substring(1);
+}
+
+if(value.startsWith("5") && value.length===10){
+value="+90"+value;
+}
+
+if(value.startsWith("+90") && value.length===13){
+return value;
+}
+
+return value;
+
+}
+
+
+/* =====================================================
+   GERÇEK FIREBASE SMS KODU GÖNDER
+===================================================== */
+
+$("sendTwoFactorCode").addEventListener(
+"click",
+async function(){
+
+if(phoneVerificationInProgress){
+
+toast("SMS gönderiliyor, lütfen bekle");
+return;
+
+}
+
+if(!currentUser){
+
+toast("Önce hesabına giriş yapmalısın");
+return;
+
+}
+
+const rawPhone=$("twoFactorPhone").value.trim();
+
+if(!rawPhone){
+
 toast("Telefon numaranı gir");
 return;
+
 }
 
-const digits=phone.replace(/\D/g,"");
+const phoneNumber=normalizePhone(rawPhone);
 
-if(digits.length<10){
-toast("Geçerli bir telefon numarası gir");
+if(!/^\+90\d{10}$/.test(phoneNumber)){
+
+toast("Türkiye için geçerli numara gir. Örnek: +905551234567");
 return;
+
 }
+
+
+/*
+   Firebase MFA session
+*/
+
+try{
+
+phoneVerificationInProgress=true;
+
+$("sendTwoFactorCode").disabled=true;
+$("sendTwoFactorCode").textContent="SMS gönderiliyor...";
+
+$("phoneStatus").textContent=
+"Firebase güvenlik doğrulaması yapılıyor...";
+
+
+/*
+   Önceden doğrulanmış MFA numarası kontrolü
+*/
+
+const enrolledFactors=
+multiFactor(currentUser).enrolledFactors||[];
+
+const alreadyExists=
+enrolledFactors.some(
+factor=>factor.phoneNumber===phoneNumber
+);
+
+if(alreadyExists){
+
+toast("Bu telefon numarası zaten doğrulanmış.");
+
+$("phoneStatus").textContent=
+"Bu telefon numarası zaten iki faktörlü doğrulamada kayıtlı.";
+
+phoneVerificationInProgress=false;
+$("sendTwoFactorCode").disabled=false;
+$("sendTwoFactorCode").textContent="Kod gönder";
+
+return;
+
+}
+
+
+/*
+   reCAPTCHA
+*/
+
+createRecaptcha();
+
+if(!recaptchaVerifier){
+
+throw new Error(
+"reCAPTCHA başlatılamadı."
+);
+
+}
+
+
+/*
+   MFA SESSION
+*/
+
+phoneMfaSession=
+await multiFactor(currentUser).getSession();
+
+
+/*
+   PHONE PROVIDER
+*/
+
+const phoneProvider=
+new PhoneAuthProvider(auth);
+
+
+/*
+   GERÇEK SMS
+*/
+
+verificationId=
+await phoneProvider.verifyPhoneNumber(
+{
+phoneNumber:phoneNumber,
+session:phoneMfaSession
+},
+recaptchaVerifier
+);
+
+
+/*
+   Kod alanını aç
+*/
 
 $("twoFactorCodeArea").style.display="block";
 
-toast(
-"Telefon doğrulaması için Firebase Phone Authentication yapılandırılmalı"
+$("phoneStatus").textContent=
+"SMS gönderildi. Telefonuna gelen 6 haneli kodu gir.";
+
+$("twoFactorCode").focus();
+
+toast("SMS doğrulama kodu gönderildi.");
+
+}catch(error){
+
+console.error(
+"SMS gönderme hatası:",
+error
 );
 
-};
+toast(firebaseError(error));
 
-$("verifyTwoFactorButton").onclick=()=>{
+$("phoneStatus").textContent=
+"SMS gönderilemedi. Tekrar dene.";
 
-const code=$("twoFactorCode").value.trim();
+try{
 
-if(!/^\d{6}$/.test(code)){
-toast("6 haneli doğrulama kodunu gir");
-return;
+if(recaptchaVerifier){
+
+recaptchaVerifier.clear();
+
 }
 
-toast(
-"SMS doğrulaması Firebase Phone Authentication üzerinden yapılmalıdır"
+}catch(e){}
+
+recaptchaVerifier=null;
+
+}finally{
+
+phoneVerificationInProgress=false;
+
+$("sendTwoFactorCode").disabled=false;
+$("sendTwoFactorCode").textContent="Kod gönder";
+
+}
+
+}
 );
 
-};
 
-/* GİZLİLİK */
+/* =====================================================
+   GERÇEK SMS KODU DOĞRULA + MFA'YA EKLE
+===================================================== */
 
-async function privacyToggle(key,switchId,onText,offText){
+$("verifyTwoFactorButton").addEventListener(
+"click",
+async function(){
+
+if(!currentUser){
+
+toast("Önce hesabına giriş yapmalısın");
+return;
+
+}
+
+if(!verificationId){
+
+toast("Önce telefonuna kod gönder");
+return;
+
+}
+
+const code=
+$("twoFactorCode").value.trim();
+
+if(!/^\d{6}$/.test(code)){
+
+toast("6 haneli doğrulama kodunu gir");
+return;
+
+}
+
+try{
+
+$("verifyTwoFactorButton").disabled=true;
+$("verifyTwoFactorButton").textContent=
+"Doğrulanıyor...";
+
+
+/*
+   SMS credential
+*/
+
+const phoneCredential=
+PhoneAuthProvider.credential(
+verificationId,
+code
+);
+
+
+/*
+   MFA assertion
+*/
+
+const multiFactorAssertion=
+PhoneMultiFactorGenerator.assertion(
+phoneCredential
+);
+
+
+/*
+   HESABA TELEFON MFA EKLE
+*/
+
+await multiFactor(currentUser).enroll(
+multiFactorAssertion,
+"Minegram telefon numarası"
+);
+
+
+/*
+   Firebase token güncelle
+*/
+
+await currentUser.getIdToken(true);
+
+
+/*
+   Yerel ayarı kaydet
+*/
+
+twoFactor=true;
+
+setSwitch(
+"twoFactorSwitch",
+true
+);
+
+await saveFirebaseSetting(
+"twoFactor",
+true
+);
+
+
+/*
+   Başarı
+*/
+
+$("phoneSuccess").style.display="block";
+
+$("phoneStatus").textContent=
+"Telefon numaran başarıyla doğrulandı.";
+
+$("twoFactorCodeArea").style.display="none";
+
+$("twoFactorPhone").disabled=true;
+$("sendTwoFactorCode").disabled=true;
+
+toast(
+"Telefon doğrulandı. 2FA aktif."
+);
+
+verificationId=null;
+phoneMfaSession=null;
+
+}catch(error){
+
+console.error(
+"SMS doğrulama hatası:",
+error
+);
+
+toast(firebaseError(error));
+
+$("phoneStatus").textContent=
+"Doğrulama başarısız oldu. Kodu kontrol edip tekrar dene.";
+
+}finally{
+
+$("verifyTwoFactorButton").disabled=false;
+$("verifyTwoFactorButton").textContent=
+"Kodu doğrula";
+
+}
+
+}
+);
+
+
+/* =====================================================
+   2FA SWITCH
+===================================================== */
+
+$("twoFactorSwitch").addEventListener(
+"click",
+async function(e){
+
+e.stopPropagation();
+
+if(!currentUser){
+
+toast("Önce hesabına giriş yapmalısın");
+return;
+
+}
+
+
+/*
+   KAPATMA
+*/
+
+if(twoFactor){
+
+try{
+
+const factors=
+multiFactor(currentUser).enrolledFactors||[];
+
+if(factors.length===0){
+
+twoFactor=false;
+
+setSwitch(
+"twoFactorSwitch",
+false
+);
+
+$("twoFactorSetup").style.display="none";
+
+await saveFirebaseSetting(
+"twoFactor",
+false
+);
+
+toast("İki faktörlü doğrulama kapatıldı");
+
+return;
+
+}
+
+
+/*
+   Son kayıtlı telefon faktörünü kaldır
+*/
+
+for(const factor of factors){
+
+await multiFactor(currentUser).unenroll(
+factor.uid
+);
+
+}
+
+twoFactor=false;
+
+setSwitch(
+"twoFactorSwitch",
+false
+);
+
+$("twoFactorSetup").style.display="none";
+
+$("twoFactorPhone").disabled=false;
+$("sendTwoFactorCode").disabled=false;
+$("phoneSuccess").style.display="none";
+
+await saveFirebaseSetting(
+"twoFactor",
+false
+);
+
+toast(
+"İki faktörlü doğrulama kapatıldı"
+);
+
+}catch(error){
+
+console.error(error);
+
+toast(firebaseError(error));
+
+}
+
+return;
+
+}
+
+
+/*
+   AÇMA
+*/
+
+twoFactor=true;
+
+setSwitch(
+"twoFactorSwitch",
+true
+);
+
+$("twoFactorSetup").style.display="block";
+
+$("twoFactorPhone").disabled=false;
+$("sendTwoFactorCode").disabled=false;
+$("phoneSuccess").style.display="none";
+
+await saveFirebaseSetting(
+"twoFactor",
+true
+);
+
+toast(
+"Telefon numaranı girerek SMS doğrulamasını başlat."
+);
+
+}
+);
+
+
+/* =====================================================
+   GİZLİLİK
+===================================================== */
+
+async function privacyToggle(
+key,
+switchId,
+onText,
+offText
+){
 
 if(key==="storyPrivacy")
 storyPrivacy=!storyPrivacy;
@@ -2280,16 +2541,14 @@ commentSettings=!commentSettings;
 if(key==="tagSettings")
 tagSettings=!tagSettings;
 
-let value;
-
-if(key==="storyPrivacy")
-value=storyPrivacy;
-else if(key==="messagePermission")
-value=messagePermission;
-else if(key==="commentSettings")
-value=commentSettings;
-else
-value=tagSettings;
+const value=
+key==="storyPrivacy"
+?storyPrivacy
+:key==="messagePermission"
+?messagePermission
+:key==="commentSettings"
+?commentSettings
+:tagSettings;
 
 setSwitch(switchId,value);
 
@@ -2299,56 +2558,104 @@ toast(value?onText:offText);
 
 }
 
-$("storyPrivacySwitch").onclick=e=>{
+
+$("storyPrivacySwitch").addEventListener(
+"click",
+function(e){
+
 e.stopPropagation();
+
 privacyToggle(
 "storyPrivacy",
 "storyPrivacySwitch",
 "Hikaye gizliliği açıldı",
 "Hikaye gizliliği kapatıldı"
 );
-};
 
-$("messagePermissionSwitch").onclick=e=>{
+}
+);
+
+$("messagePermissionSwitch").addEventListener(
+"click",
+function(e){
+
 e.stopPropagation();
+
 privacyToggle(
 "messagePermission",
 "messagePermissionSwitch",
 "Mesaj izinleri açıldı",
 "Mesaj izinleri kapatıldı"
 );
-};
 
-$("commentSettingsSwitch").onclick=e=>{
+}
+);
+
+$("commentSettingsSwitch").addEventListener(
+"click",
+function(e){
+
 e.stopPropagation();
+
 privacyToggle(
 "commentSettings",
 "commentSettingsSwitch",
 "Yorum ayarları açıldı",
 "Yorum ayarları kapatıldı"
 );
-};
 
-$("tagSettingsSwitch").onclick=e=>{
+}
+);
+
+$("tagSettingsSwitch").addEventListener(
+"click",
+function(e){
+
 e.stopPropagation();
+
 privacyToggle(
 "tagSettings",
 "tagSettingsSwitch",
 "Etiketleme ayarları açıldı",
 "Etiketleme ayarları kapatıldı"
 );
-};
 
-/* HESAP MERKEZİ */
+}
+);
 
-$("accountInfoRow").onclick=()=>openScreen("accountInfoScreen");
-$("personalInfoRow").onclick=()=>openScreen("personalInfoScreen");
-$("ownershipRow").onclick=()=>openScreen("ownershipScreen");
-$("accountConnectionsRow").onclick=()=>openScreen("accountConnectionsScreen");
 
-/* HESAP BİLGİLERİ */
+/* =====================================================
+   HESAP MERKEZİ
+===================================================== */
 
-$("editAccountInfoRow").onclick=()=>{
+$("accountInfoRow").addEventListener(
+"click",
+()=>openScreen("accountInfoScreen")
+);
+
+$("personalInfoRow").addEventListener(
+"click",
+()=>openScreen("personalInfoScreen")
+);
+
+$("ownershipRow").addEventListener(
+"click",
+()=>openScreen("ownershipScreen")
+);
+
+$("accountConnectionsRow").addEventListener(
+"click",
+()=>openScreen("accountConnectionsScreen")
+);
+
+
+/* =====================================================
+   HESAP BİLGİLERİ
+===================================================== */
+
+$("editAccountInfoRow").addEventListener(
+"click",
+function(){
 
 $("editUsername").value=
 $("accountUsername").textContent==="Minegram"
@@ -2362,43 +2669,65 @@ $("accountEmail").textContent==="Hesap e-postası"
 
 openScreen("editAccountInfoScreen");
 
-};
+}
+);
 
-$("saveAccountInfoButton").onclick=async()=>{
+
+/* =====================================================
+   HESAP BİLGİLERİNİ KAYDET
+===================================================== */
+
+$("saveAccountInfoButton").addEventListener(
+"click",
+async function(){
 
 if(!currentUser){
+
 toast("Hesabına giriş yapmalısın");
 return;
+
 }
 
 const username=$("editUsername").value.trim();
 const email=$("editEmail").value.trim();
 
 if(!username){
+
 toast("Kullanıcı adını gir");
 return;
+
 }
 
 if(!email){
+
 toast("E-posta adresini gir");
 return;
+
 }
 
 if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
 toast("Geçerli bir e-posta gir");
 return;
+
 }
 
 try{
 
-if(currentUser.email!==email)
-await updateEmail(currentUser,email);
+if(currentUser.email!==email){
+
+await updateEmail(
+currentUser,
+email
+);
+
+}
 
 await setDoc(
 userRef(),
 {
-username,
-email,
+username:username,
+email:email,
 updatedAt:serverTimestamp()
 },
 {merge:true}
@@ -2406,6 +2735,7 @@ updatedAt:serverTimestamp()
 
 $("accountUsername").textContent=username;
 $("accountEmail").textContent=email;
+
 $("personalUsername").textContent=username;
 $("personalEmail").textContent=email;
 
@@ -2419,11 +2749,17 @@ toast(firebaseError(error));
 
 }
 
-};
+}
+);
 
-/* KİŞİSEL BİLGİLER */
 
-$("editPersonalInfoRow").onclick=()=>{
+/* =====================================================
+   KİŞİSEL BİLGİLER
+===================================================== */
+
+$("editPersonalInfoRow").addEventListener(
+"click",
+function(){
 
 $("editPersonalName").value=
 $("personalName").textContent==="Minegram"
@@ -2442,13 +2778,18 @@ $("personalEmail").textContent==="Hesap e-postası"
 
 openScreen("editPersonalInfoScreen");
 
-};
+}
+);
 
-$("savePersonalInfoButton").onclick=async()=>{
+$("savePersonalInfoButton").addEventListener(
+"click",
+async function(){
 
 if(!currentUser){
+
 toast("Hesabına giriş yapmalısın");
 return;
+
 }
 
 const name=$("editPersonalName").value.trim();
@@ -2456,36 +2797,50 @@ const username=$("editPersonalUsername").value.trim();
 const email=$("editPersonalEmail").value.trim();
 
 if(!name){
+
 toast("Adını gir");
 return;
+
 }
 
 if(!username){
+
 toast("Kullanıcı adını gir");
 return;
+
 }
 
 if(!email){
+
 toast("E-posta adresini gir");
 return;
+
 }
 
 if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
 toast("Geçerli bir e-posta gir");
 return;
+
 }
 
 try{
 
-if(currentUser.email!==email)
-await updateEmail(currentUser,email);
+if(currentUser.email!==email){
+
+await updateEmail(
+currentUser,
+email
+);
+
+}
 
 await setDoc(
 userRef(),
 {
 personalName:name,
-username,
-email,
+username:username,
+email:email,
 updatedAt:serverTimestamp()
 },
 {merge:true}
@@ -2508,43 +2863,59 @@ toast(firebaseError(error));
 
 }
 
-};
+}
+);
 
-/* HESAP SAHİPLİĞİ */
 
-$("deactivateAccountRow").onclick=()=>{
+/* =====================================================
+   HESAP SAHİPLİĞİ
+===================================================== */
+
+$("deactivateAccountRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Hesabı geçici olarak devre dışı bırak",
-"Hesabın geçici olarak devre dışı bırakılacak. İşlemi onaylamak için Firebase hesabında gerekli işlem yapılabilir."
+"Hesabın geçici olarak devre dışı bırakılacak. Bu işlem için hesap yönetimi yapılabilir."
 );
 
-};
+}
+);
 
-$("deleteAccountRow").onclick=async()=>{
+
+$("deleteAccountRow").addEventListener(
+"click",
+async function(){
 
 if(!currentUser){
+
 toast("Hesabına giriş yapmalısın");
 return;
+
 }
 
-const confirmed=confirm(
+const confirmed=
+confirm(
 "Hesabını kalıcı olarak silmek istediğine emin misin?"
 );
 
-if(!confirmed)
-return;
+if(!confirmed)return;
 
 try{
 
 await deleteDoc(userRef());
+
 await deleteUser(currentUser);
 
 toast("Hesabın silindi");
 
-setTimeout(()=>{
+setTimeout(
+function(){
 window.location.href="index.html";
-},1200);
+},
+1200
+);
 
 }catch(error){
 
@@ -2552,76 +2923,172 @@ toast(firebaseError(error));
 
 }
 
-};
+}
+);
 
-/* HESAP BAĞLANTILARI */
 
-$("linkedAccountsRow").onclick=()=>{
+/* =====================================================
+   HESAP BAĞLANTILARI
+===================================================== */
+
+$("linkedAccountsRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Bağlı hesaplar",
 "Şu anda bu Minegram hesabına bağlı başka bir hesap bulunmuyor."
 );
 
-};
+}
+);
 
-$("accountSwitchRow").onclick=()=>{
+$("accountSwitchRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Hesaplar arasında geçiş",
 "Bağlı hesap eklediğinde hesapların arasında hızlıca geçiş yapabilirsin."
 );
 
-};
+}
+);
 
-$("addAccountRow").onclick=()=>{
+$("addAccountRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Hesap ekle",
 "Yeni bir Minegram hesabı eklemek için giriş veya kayıt ekranına yönlendirilebilirsin."
 );
 
-};
+}
+);
 
-/* YARDIM */
 
-$("faqRow").onclick=()=>openScreen("faqScreen");
-$("loginProblemsRow").onclick=()=>openScreen("loginProblemsScreen");
-$("accountProblemsRow").onclick=()=>openScreen("accountProblemsScreen");
-$("communityRulesHelpRow").onclick=()=>openScreen("communityRulesHelpScreen");
-$("reportProblemRow").onclick=()=>openScreen("reportScreen");
+/* =====================================================
+   YARDIM
+===================================================== */
 
-/* HESAP SORUNLARI */
+$("faqRow").addEventListener(
+"click",
+()=>openScreen("faqScreen")
+);
 
-$("usernameProblemRow").onclick=()=>openScreen("usernameProblemScreen");
-$("emailProblemRow").onclick=()=>openScreen("emailProblemScreen");
-$("securityProblemRow").onclick=()=>openScreen("securityProblemScreen");
-$("lockedAccountRow").onclick=()=>openScreen("lockedAccountScreen");
-$("accountNotWorkingRow").onclick=()=>openScreen("accountNotWorkingScreen");
+$("loginProblemsRow").addEventListener(
+"click",
+()=>openScreen("loginProblemsScreen")
+);
 
-$("accountReportProblemRow").onclick=()=>{
+$("accountProblemsRow").addEventListener(
+"click",
+()=>openScreen("accountProblemsScreen")
+);
+
+$("communityRulesHelpRow").addEventListener(
+"click",
+()=>openScreen("communityRulesHelpScreen")
+);
+
+$("reportProblemRow").addEventListener(
+"click",
+()=>openScreen("reportScreen")
+);
+
+
+/* =====================================================
+   HESAP SORUNLARI
+===================================================== */
+
+$("usernameProblemRow").addEventListener(
+"click",
+()=>openScreen("usernameProblemScreen")
+);
+
+$("emailProblemRow").addEventListener(
+"click",
+()=>openScreen("emailProblemScreen")
+);
+
+$("securityProblemRow").addEventListener(
+"click",
+()=>openScreen("securityProblemScreen")
+);
+
+$("lockedAccountRow").addEventListener(
+"click",
+()=>openScreen("lockedAccountScreen")
+);
+
+$("accountNotWorkingRow").addEventListener(
+"click",
+()=>openScreen("accountNotWorkingScreen")
+);
+
+$("accountReportProblemRow").addEventListener(
+"click",
+function(){
 
 openScreen("reportScreen");
 
 $("reportText").value="Hesap sorunu: ";
 
-};
+}
+);
 
-$("securityChangePasswordRow").onclick=()=>openScreen("changePasswordScreen");
-$("securityTwoFactorRow").onclick=()=>openScreen("twoFactorScreen");
 
-$("lockedLoginRow").onclick=()=>openScreen("loginProblemsScreen");
-$("lockedReportRow").onclick=()=>openScreen("reportScreen");
+/* =====================================================
+   GÜVENLİK GEÇİŞLERİ
+===================================================== */
 
-$("notWorkingReportRow").onclick=()=>{
+$("securityChangePasswordRow").addEventListener(
+"click",
+()=>openScreen("changePasswordScreen")
+);
+
+$("securityTwoFactorRow").addEventListener(
+"click",
+()=>openScreen("twoFactorScreen")
+);
+
+
+/* =====================================================
+   KİLİTLİ HESAP
+===================================================== */
+
+$("lockedLoginRow").addEventListener(
+"click",
+()=>openScreen("loginProblemsScreen")
+);
+
+$("lockedReportRow").addEventListener(
+"click",
+()=>openScreen("reportScreen")
+);
+
+
+/* =====================================================
+   ÇALIŞMAYAN HESAP
+===================================================== */
+
+$("notWorkingReportRow").addEventListener(
+"click",
+function(){
 
 openScreen("reportScreen");
 
-$("reportText").value="Hesabım düzgün çalışmıyor: ";
+$("reportText").value=
+"Hesabım düzgün çalışmıyor: ";
 
-};
+}
+);
 
-/* FOTOĞRAF */
+
+/* =====================================================
+   SORUN BİLDİR + STORAGE
+===================================================== */
 
 const photoInput=$("photoInput");
 const photoButton=$("photoButton");
@@ -2630,11 +3097,16 @@ const photoCount=$("photoCount");
 
 let selectedPhotos=[];
 
-photoButton.onclick=()=>{
+photoButton.addEventListener(
+"click",
+function(){
 photoInput.click();
-};
+}
+);
 
-photoInput.onchange=event=>{
+photoInput.addEventListener(
+"change",
+function(event){
 
 const files=Array.from(event.target.files);
 
@@ -2659,9 +3131,12 @@ selectedPhotos.push(file);
 }
 
 photoInput.value="";
+
 renderPreviews();
 
-};
+}
+);
+
 
 function renderPreviews(){
 
@@ -2670,9 +3145,11 @@ previewGrid.innerHTML="";
 photoCount.textContent=
 selectedPhotos.length+" / 2 fotoğraf";
 
-selectedPhotos.forEach((file,index)=>{
+selectedPhotos.forEach(
+function(file,index){
 
 const item=document.createElement("div");
+
 item.className="preview-item";
 
 const img=document.createElement("img");
@@ -2687,32 +3164,44 @@ const url=URL.createObjectURL(file);
 
 img.src=url;
 
-img.onload=()=>{
+img.onload=function(){
 URL.revokeObjectURL(url);
 };
 
-remove.onclick=()=>{
+remove.addEventListener(
+"click",
+function(){
 
 selectedPhotos.splice(index,1);
+
 renderPreviews();
 
-};
+}
+);
 
 item.appendChild(img);
 item.appendChild(remove);
+
 previewGrid.appendChild(item);
 
-});
+}
+);
 
 }
 
-/* RAPOR */
 
-$("sendReport").onclick=async()=>{
+/* =====================================================
+   GERÇEK FIREBASE SORUN BİLDİR
+===================================================== */
+
+$("sendReport").addEventListener(
+"click",
+async function(){
 
 if(!currentUser){
 
 toast("Hesabına giriş yapmalısın");
+
 return;
 
 }
@@ -2722,6 +3211,7 @@ const text=$("reportText").value.trim();
 if(!text){
 
 toast("Lütfen sorunu açıklayın");
+
 return;
 
 }
@@ -2737,15 +3227,16 @@ const file=selectedPhotos[i];
 const fileName=
 "reports/"+
 currentUser.uid+"/"+
-Date.now()+"_"+
-i+"_"+
-file.name;
+Date.now()+
+"_"+i+
+"_"+file.name;
 
 const storageRef=ref(storage,fileName);
 
 await uploadBytes(storageRef,file);
 
-const url=await getDownloadURL(storageRef);
+const url=
+await getDownloadURL(storageRef);
 
 photoUrls.push(url);
 
@@ -2756,7 +3247,7 @@ collection(db,"reports"),
 {
 uid:currentUser.uid,
 email:currentUser.email||"",
-text,
+text:text,
 photos:photoUrls,
 createdAt:serverTimestamp(),
 status:"new"
@@ -2769,7 +3260,9 @@ showDialog(
 );
 
 $("reportText").value="";
+
 selectedPhotos=[];
+
 renderPreviews();
 
 }catch(error){
@@ -2780,45 +3273,74 @@ toast(firebaseError(error));
 
 }
 
-};
+}
+);
 
-/* HAKKINDA */
 
-$("privacyPolicyRow").onclick=()=>{
+/* =====================================================
+   HAKKINDA
+===================================================== */
+
+$("privacyPolicyRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Gizlilik politikası",
 "Minegram, kullanıcı hesapları ve uygulama kullanımına ilişkin bilgileri güvenli şekilde yönetmeyi amaçlar."
 );
 
-};
+}
+);
 
-$("serviceTermsRow").onclick=()=>{
+$("serviceTermsRow").addEventListener(
+"click",
+function(){
 
 showDialog(
 "Kullanım koşulları",
 "Minegram sosyal medya hizmetini kullanırken topluluk kurallarına, güvenlik kurallarına ve diğer kullanıcıların haklarına uyman gerekir."
 );
 
-};
+}
+);
 
-/* DİYALOG */
 
-$("dialogCancel").onclick=closeDialog;
-$("dialogOk").onclick=closeDialog;
+/* =====================================================
+   DİYALOG
+===================================================== */
 
-$("dialogBg").onclick=e=>{
+$("dialogCancel").addEventListener(
+"click",
+closeDialog
+);
+
+$("dialogOk").addEventListener(
+"click",
+closeDialog
+);
+
+$("dialogBg").addEventListener(
+"click",
+function(e){
 
 if(e.target===$("dialogBg"))
 closeDialog();
 
-};
+}
+);
 
-/* ALT SAYFA GERİ */
 
-document.querySelectorAll("[data-close]").forEach(button=>{
+/* =====================================================
+   ALT SAYFA GERİ
+===================================================== */
 
-button.onclick=e=>{
+document.querySelectorAll("[data-close]").forEach(
+function(button){
+
+button.addEventListener(
+"click",
+function(e){
 
 e.preventDefault();
 e.stopPropagation();
@@ -2827,39 +3349,60 @@ closeScreen(
 button.getAttribute("data-close")
 );
 
-};
+}
+);
 
-});
+}
+);
 
-/* ANA GERİ */
 
-$("backBtn").onclick=()=>{
+/* =====================================================
+   ANA GERİ
+===================================================== */
+
+$("backBtn").addEventListener(
+"click",
+function(){
+
 window.location.href="profile.html";
-};
 
-/* ESC */
+}
+);
 
-document.addEventListener("keydown",e=>{
+
+/* =====================================================
+   ESC
+===================================================== */
+
+document.addEventListener(
+"keydown",
+function(e){
 
 if(e.key==="Escape"){
 
-document.querySelectorAll(".sub-screen.open")
-.forEach(screen=>{
+document.querySelectorAll(
+".sub-screen.open"
+).forEach(
+function(screen){
 screen.classList.remove("open");
-});
+}
+);
 
 $("dialogBg").classList.remove("open");
 
 }
 
-});
+}
+);
 
-/* HESAP BİLGİLERİ */
+
+/* =====================================================
+   HESAP BİLGİLERİNİ YÜKLE
+===================================================== */
 
 async function loadAccountData(){
 
-if(!currentUser)
-return;
+if(!currentUser)return;
 
 try{
 
@@ -2886,8 +3429,10 @@ let createDate=data.createDate||"";
 
 $("accountUsername").textContent=username;
 $("personalUsername").textContent=username;
+
 $("accountEmail").textContent=email;
 $("personalEmail").textContent=email;
+
 $("personalName").textContent=name;
 
 if(!createDate){
@@ -2897,7 +3442,9 @@ new Date().toLocaleDateString("tr-TR");
 
 await setDoc(
 userRef(),
-{createDate},
+{
+createDate:createDate
+},
 {merge:true}
 );
 
@@ -2913,9 +3460,14 @@ console.error(error);
 
 }
 
-/* AUTH */
 
-onAuthStateChanged(auth,async user=>{
+/* =====================================================
+   AUTH
+===================================================== */
+
+onAuthStateChanged(
+auth,
+async function(user){
 
 currentUser=user;
 
@@ -2927,9 +3479,58 @@ return;
 }
 
 await loadFirebaseSettings();
+
 await loadAccountData();
 
-});
+
+/*
+   Kullanıcının Firebase MFA durumu
+   Firestore'daki değerden bağımsız gerçek kontrol.
+*/
+
+try{
+
+const factors=
+multiFactor(currentUser).enrolledFactors||[];
+
+if(factors.length>0){
+
+twoFactor=true;
+
+setSwitch(
+"twoFactorSwitch",
+true
+);
+
+$("twoFactorSetup").style.display="block";
+
+$("phoneSuccess").style.display="block";
+
+$("phoneStatus").textContent=
+"Bu hesapta telefon doğrulaması aktif.";
+
+}else{
+
+twoFactor=false;
+
+setSwitch(
+"twoFactorSwitch",
+false
+);
+
+}
+
+}catch(error){
+
+console.error(
+"MFA durumu okunamadı:",
+error
+);
+
+}
+
+}
+);
 
 </script>
 
