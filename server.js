@@ -1,4 +1,3 @@
-javascript
 async function findUserByPhone(phone) {
   if (!SUPABASE_URL) {
     console.error("SUPABASE_URL EKSİK");
