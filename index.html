@@ -228,22 +228,69 @@ async function getApiToken(){
     return token;
 }
 
+javascript
 async function api(path,opt={}){
-const apiToken=await getApiToken();
+    const apiToken=await getApiToken();
 
-if(!apiToken)throw new Error('Oturum bulunamadı.');
+    if(!apiToken){
+        throw new Error('Oturum bulunamadı.');
+    }
 
-const headers={
-...(opt.headers||{}),
-Authorization:'Bearer '+apiToken
-};
+    const headers={
+        ...(opt.headers||{}),
+        Authorization:'Bearer '+apiToken
+    };
 
-const r=await fetch(API+path,{...opt,headers});
-const j=await r.json().catch(()=>({}));
+    // API isteğinin sonsuza kadar yüklenmesini engelle
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>{
+        controller.abort();
+    },10000);
 
-if(!r.ok)throw new Error(j.error||j.message||'İşlem başarısız.');
+    try{
+        const r=await fetch(API+path,{
+            ...opt,
+            headers,
+            signal:controller.signal
+        });
 
-return j;
+        const j=await r.json().catch(()=>({}));
+
+        if(!r.ok){
+            if(r.status===401 || r.status===403){
+                // Token geçersizse oturumu kapat
+                localStorage.removeItem("minegram_token");
+                localStorage.removeItem("minegram_supabase_token");
+                localStorage.removeItem("minegram_user");
+                localStorage.removeItem("minegram_user_id");
+                localStorage.removeItem("minegram_username");
+
+                sessionStorage.clear();
+
+                window.location.replace("giris.html");
+                throw new Error("Oturum süresi doldu.");
+            }
+
+            throw new Error(
+                j.error ||
+                j.message ||
+                "Sunucu hatası: "+r.status
+            );
+        }
+
+        return j;
+
+    }catch(e){
+
+        if(e.name==='AbortError'){
+            throw new Error('Sunucu cevap vermiyor. Lütfen tekrar deneyin.');
+        }
+
+        throw e;
+
+    }finally{
+        clearTimeout(timeout);
+    }
 }
 
 function toast(t){
@@ -413,33 +460,56 @@ comments.length>3
 </article>`;
 }
 
+javascript
 async function loadFeed(){
-feedEl.innerHTML='<div class="empty">Yükleniyor...</div>';
+    feedEl.innerHTML='<div class="empty">Yükleniyor...</div>';
 
-try{
-const posts=await api('/feed');
+    try{
+        const posts=await api('/feed');
 
-const list=Array.isArray(posts)
-?posts
-:Array.isArray(posts.posts)
-?posts.posts
-:[];
+        const list=
+            Array.isArray(posts)
+            ?posts
+            :Array.isArray(posts.posts)
+            ?posts.posts
+            :[];
 
-feedEl.innerHTML=list.length
-?list.map(renderPost).join('')
-:`<div class="empty"><strong>Henüz gönderi yok</strong>İlk gönderini oluştur.</div>`;
+        feedEl.innerHTML=list.length
+            ?list.map(renderPost).join('')
+            :`
+            <div class="empty">
+                <strong>Henüz gönderi yok</strong>
+                İlk gönderini oluştur.
+            </div>`;
 
-}catch(e){
-console.error('[FEED]',e);
+    }catch(e){
 
-feedEl.innerHTML=`
-<div class="empty">
-<strong>Gönderiler yüklenemedi</strong>
-<small>${esc(e.message||'Sunucu bağlantısı kurulamadı.')}</small>
-</div>`;
+        console.error('[FEED]',e);
 
-toast(e.message||'Gönderiler yüklenemedi');
-}
+        // Yükleniyor ekranında bırakma
+        feedEl.innerHTML=`
+        <div class="empty">
+            <strong>Gönderiler yüklenemedi</strong>
+            <small>${esc(e.message||'Sunucu bağlantısı kurulamadı.')}</small>
+            <br><br>
+            <button
+                type="button"
+                onclick="loadFeed()"
+                style="
+                    background:#3f91cc;
+                    color:#fff;
+                    border:0;
+                    border-radius:10px;
+                    padding:10px 18px;
+                    cursor:pointer;
+                    font-weight:700;
+                ">
+                Tekrar Dene
+            </button>
+        </div>`;
+
+        toast(e.message||'Gönderiler yüklenemedi');
+    }
 }
 
 async function likePost(id){
