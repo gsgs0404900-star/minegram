@@ -522,7 +522,6 @@ const status =
 ===================================================== */
 
 let mode = "email";
-
 let busy = false;
 
 
@@ -547,10 +546,7 @@ const username =
    MESAJ
 ===================================================== */
 
-function showStatus(
-    text,
-    success = false
-){
+function showStatus(text, success = false){
 
     status.textContent =
         text || "";
@@ -559,12 +555,11 @@ function showStatus(
         success
             ? "status success"
             : "status";
-
 }
 
 
 /* =====================================================
-   E-POSTA
+   E-POSTA BUTONU
 ===================================================== */
 
 emailTab.addEventListener(
@@ -572,7 +567,6 @@ emailTab.addEventListener(
     function(){
 
         mode = "email";
-
 
         emailTab.style.background =
             "#554f67";
@@ -607,15 +601,13 @@ emailTab.addEventListener(
         note.textContent =
             "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
 
-
         showStatus("");
-
     }
 );
 
 
 /* =====================================================
-   TELEFON
+   TELEFON BUTONU
 ===================================================== */
 
 phoneTab.addEventListener(
@@ -623,7 +615,6 @@ phoneTab.addEventListener(
     function(){
 
         mode = "phone";
-
 
         phoneTab.style.background =
             "#554f67";
@@ -658,15 +649,13 @@ phoneTab.addEventListener(
         note.textContent =
             "Devam ettiğinde telefon numaran doğrulama için kullanılacaktır.";
 
-
         showStatus("");
-
     }
 );
 
 
 /* =====================================================
-   GERİ
+   GERİ BUTONU
 ===================================================== */
 
 function goBack(){
@@ -689,8 +678,9 @@ backBtn.addEventListener(
     goBack
 );
 
+
 /* =====================================================
-   İLERİ
+   İLERİ BUTONU
 ===================================================== */
 
 nextBtn.addEventListener(
@@ -701,11 +691,12 @@ nextBtn.addEventListener(
             return;
         }
 
+
         const value =
             contact.value.trim();
 
 
-        /* BOŞ KONTROLÜ */
+        /* BOŞ */
 
         if(!value){
 
@@ -721,7 +712,7 @@ nextBtn.addEventListener(
         }
 
 
-        /* E-POSTA KONTROLÜ */
+        /* E-POSTA */
 
         if(
             mode === "email" &&
@@ -738,125 +729,7 @@ nextBtn.addEventListener(
         }
 
 
-        /* TELEFON KONTROLÜ */
-
-        if(mode === "phone"){
-
-            const cleanPhone =
-                value.replace(/[\s()-]/g, "");
-
-            if(cleanPhone.length < 10){
-
-                showStatus(
-                    "Geçerli bir telefon numarası gir."
-                );
-
-                contact.focus();
-
-                return;
-            }
-        }
-
-
-        /* BİLGİYİ KAYDET */
-
-        if(mode === "email"){
-
-            sessionStorage.setItem(
-                "minegram_register_email",
-                value
-            );
-
-        }else{
-
-            sessionStorage.setItem(
-                "minegram_register_phone",
-                value
-            );
-
-        }
-
-
-        if(username){
-
-            sessionStorage.setItem(
-                "minegram_register_username",
-                username
-            );
-
-        }
-
-
-        /* BUTONU KİLİTLE */
-
-        busy = true;
-
-        nextBtn.disabled = true;
-
-        nextBtn.textContent =
-            "Devam ediliyor...";
-
-
-        /* =================================================
-           BURASI ÖNEMLİ:
-           İLERİ → HESAP DOĞRULAMA
-        ================================================= */
-
-        window.location.href =
-            "./hesap-dogrulama.html?username=" +
-            encodeURIComponent(username) +
-            "&" +
-            (
-                mode === "email"
-                    ? "email=" +
-                      encodeURIComponent(value)
-                    : "phone=" +
-                      encodeURIComponent(value)
-            );
-
-    }
-);
-
-        /* -----------------------------
-           BOŞ KONTROLÜ
-        ----------------------------- */
-
-        if(!value){
-
-            showStatus(
-                mode === "email"
-                    ? "Lütfen e-posta adresini gir."
-                    : "Lütfen telefon numaranı gir."
-            );
-
-            contact.focus();
-
-            return;
-        }
-
-
-        /* -----------------------------
-           E-POSTA KONTROLÜ
-        ----------------------------- */
-
-        if(
-            mode === "email" &&
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-        ){
-
-            showStatus(
-                "Geçerli bir e-posta adresi gir."
-            );
-
-            contact.focus();
-
-            return;
-        }
-
-
-        /* -----------------------------
-           TELEFON KONTROLÜ
-        ----------------------------- */
+        /* TELEFON */
 
         if(mode === "phone"){
 
@@ -877,13 +750,10 @@ nextBtn.addEventListener(
 
                 return;
             }
-
         }
 
 
-        /* -----------------------------
-           KAYDET
-        ----------------------------- */
+        /* BİLGİLERİ KAYDET */
 
         if(mode === "email"){
 
@@ -913,23 +783,22 @@ nextBtn.addEventListener(
         }
 
 
-        /* -----------------------------
-           BUTONU KİLİTLE
-        ----------------------------- */
+        /* BUTONU KİLİTLE */
 
         busy = true;
 
-        nextBtn.disabled = true;
+        nextBtn.disabled =
+            true;
 
         nextBtn.textContent =
             "Devam ediliyor...";
 
 
-        /* -----------------------------
-           HESAP DOĞRULAMA SAYFASINA GİT
-        ----------------------------- */
+        /* =================================================
+           İLERİ → HESAP DOĞRULAMA
+        ================================================= */
 
-        window.location.href =
+        const nextPage =
             "./hesap-dogrulama.html?username=" +
             encodeURIComponent(username) +
             "&" +
@@ -940,6 +809,10 @@ nextBtn.addEventListener(
                     : "phone=" +
                       encodeURIComponent(value)
             );
+
+
+        window.location.href =
+            nextPage;
 
     }
 );
@@ -966,7 +839,7 @@ contact.addEventListener(
 
 
 /* =====================================================
-   KAYITLI BİLGİLERİ GETİR
+   KAYITLI E-POSTA / TELEFON
 ===================================================== */
 
 const savedEmail =
@@ -999,11 +872,15 @@ else if(savedPhone){
 
 
 /* =====================================================
-   FIREBASE KONTROL
+   KONTROL
 ===================================================== */
 
 console.log(
-    "[MINEGRAM] Firebase hazır:",
+    "[MINEGRAM] İletişim sayfası hazır."
+);
+
+console.log(
+    "[MINEGRAM] Firebase:",
     !!auth
 );
 
