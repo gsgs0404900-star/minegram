@@ -298,9 +298,61 @@ a.push(c);
 localStorage.setItem(localCommentsKey(id),JSON.stringify(a.slice(-100)));
 }
 
+/* YANITLAR: Sunucudan dönmese bile anında görünmesi için yerelde tutulur. */
+function localRepliesKey(postId){
+return 'minegram_replies_'+String(postId);
+}
+
+function getLocalReplies(postId){
+try{
+const x=JSON.parse(localStorage.getItem(localRepliesKey(postId))||'{}');
+return x&&typeof x==='object'?x:{};
+}catch{
+return {};
+}
+}
+
+function saveLocalReply(postId,parentId,reply){
+const all=getLocalReplies(postId);
+const key=String(parentId);
+if(!Array.isArray(all[key]))all[key]=[];
+all[key].push(reply);
+all[key]=all[key].slice(-50);
+localStorage.setItem(localRepliesKey(postId),JSON.stringify(all));
+}
+
+function removeLocalReply(postId,parentId,replyId){
+const all=getLocalReplies(postId);
+const key=String(parentId);
+if(!Array.isArray(all[key]))return;
+all[key]=all[key].filter(x=>String(x.id||'')!==String(replyId||''));
+if(!all[key].length)delete all[key];
+localStorage.setItem(localRepliesKey(postId),JSON.stringify(all));
+}
+
+function mergeReplyLists(remoteReplies,localReplies){
+const all=Array.isArray(remoteReplies)?[...remoteReplies]:[];
+for(const r of (Array.isArray(localReplies)?localReplies:[])){
+const exists=all.some(x=>
+String(x.id||'')===String(r.id||'')||
+(
+(x.username||x.user?.username)===(r.username||r.user?.username) &&
+x.text===r.text &&
+Math.abs(
+new Date(x.createdAt||x.created_at||0)-
+new Date(r.createdAt||r.created_at||0)
+)<10000
+)
+);
+if(!exists)all.push(r);
+}
+return all;
+}
+
 function mergeComments(server,id){
 const remote=Array.isArray(server)?server:[];
 const local=getLocalComments(id);
+const localReplies=getLocalReplies(id);
 const all=[...remote];
 
 for(const c of local){
@@ -317,6 +369,15 @@ new Date(c.createdAt||c.created_at||0)
 );
 
 if(!exists)all.push(c);
+}
+
+/* Her ana yorumun yerel yanıtlarını sunucu yanıtlarıyla birleştir. */
+for(const c of all){
+const key=String(c.id||'');
+if(!key)continue;
+const remoteReplies=Array.isArray(c.replies)?c.replies:[];
+const merged=mergeReplyLists(remoteReplies,localReplies[key]);
+if(merged.length)c.replies=merged;
 }
 
 return all;
@@ -674,7 +735,7 @@ ${relativeTime(c.createdAt||c.created_at)}
 <button class="reply-link" type="button" onclick="startReply('${id}','${esc(u)}')">Yanıtla</button>
 
 ${replies.length?
-`&nbsp;<button class="reply-link" type="button" onclick="toggleReplies('${id}')">${replies.length} yanıt</button>`
+`&nbsp;<button class="reply-link" type="button" data-reply-count onclick="toggleReplies('${id}')">${replies.length} yanıt</button>`
 :''}
 </div>
 </div>
@@ -841,6 +902,9 @@ renderComment(item)
 );
 
 document.getElementById('commentList').scrollTop=999999;
+}else{
+/* Yanıtı hemen yerelde kaydet; API gecikse bile kullanıcı görür. */
+saveLocalReply(postId,replyId,item);
 }
 
 input.value='';
@@ -910,11 +974,23 @@ JSON.stringify(a.slice(-100))
 }
 
 await openComments(postId);
+
+/* Yanıt gönderildiyse ilgili yanıt kutusunu otomatik aç. */
+if(replyId){
+const repliesBox=document.getElementById('replies-'+CSS.escape(String(replyId)));
+if(repliesBox)repliesBox.classList.remove('hidden');
+const parent=document.querySelector('.comment-wrap[data-comment-id="'+CSS.escape(String(replyId))+'"]');
+const countBtn=parent?.querySelector('.reply-link[data-reply-count]');
+if(countBtn)countBtn.textContent=(getLocalReplies(postId)[String(replyId)]||[]).length+' yanıt';
+}
+
 await loadFeed();
 
 }catch(e){
 
-if(!replyId){
+if(replyId){
+removeLocalReply(postId,replyId,tempId);
+}else{
 const a=getLocalComments(postId).filter(x=>x.id!==tempId);
 localStorage.setItem(localCommentsKey(postId),JSON.stringify(a));
 }
