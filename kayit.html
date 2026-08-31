@@ -13,8 +13,7 @@
     -webkit-tap-highlight-color:transparent;
 }
 
-html,
-body{
+html,body{
     margin:0;
     padding:0;
     width:100%;
@@ -35,9 +34,9 @@ body{
     background:#000;
 }
 
-/* =========================================
-   ÜST BAŞLIK
-========================================= */
+/* =========================
+   ÜST
+========================= */
 
 .topbar{
     width:100%;
@@ -68,18 +67,14 @@ body{
     color:#fff;
 }
 
-/* =========================================
-   ANA İÇERİK
-========================================= */
+/* =========================
+   İÇERİK
+========================= */
 
 .content{
     width:317px;
     margin:115px auto 0;
 }
-
-/* =========================================
-   BAŞLIK
-========================================= */
 
 .title{
     text-align:center;
@@ -90,10 +85,6 @@ body{
     color:#fff;
 }
 
-/* =========================================
-   AÇIKLAMA
-========================================= */
-
 .description{
     font-size:18px;
     line-height:1.45;
@@ -101,9 +92,9 @@ body{
     margin:0 0 65px;
 }
 
-/* =========================================
-   KULLANICI ADI INPUT
-========================================= */
+/* =========================
+   INPUT
+========================= */
 
 .username-input{
     display:block;
@@ -133,9 +124,9 @@ body{
     border-color:#555;
 }
 
-/* =========================================
-   DURUM MESAJI
-========================================= */
+/* =========================
+   MESAJ
+========================= */
 
 .message{
     min-height:18px;
@@ -157,9 +148,9 @@ body{
     color:#aaa;
 }
 
-/* =========================================
-   OTOMATİK ÖNER
-========================================= */
+/* =========================
+   ÖNER
+========================= */
 
 .suggest{
     display:block;
@@ -178,8 +169,6 @@ body{
     font-size:12px;
     font-weight:400;
 
-    text-decoration:none;
-
     cursor:pointer;
 }
 
@@ -187,9 +176,9 @@ body{
     text-decoration:underline;
 }
 
-/* =========================================
-   İLERİ
-========================================= */
+/* =========================
+   İLERİ BUTONU
+========================= */
 
 .next-button{
     display:block;
@@ -210,6 +199,12 @@ body{
     font-weight:700;
 
     cursor:pointer;
+
+    transition:.15s;
+}
+
+.next-button:hover{
+    background:#3288c9;
 }
 
 .next-button:active{
@@ -221,9 +216,9 @@ body{
     cursor:not-allowed;
 }
 
-/* =========================================
+/* =========================
    MOBİL
-========================================= */
+========================= */
 
 @media(max-width:600px){
 
@@ -282,7 +277,7 @@ body{
     }
 
     .next-button{
-        width:calc(100% - 120px);
+        width:100%;
         max-width:714px;
 
         height:58px;
@@ -294,9 +289,9 @@ body{
     }
 }
 
-/* =========================================
+/* =========================
    KÜÇÜK TELEFON
-========================================= */
+========================= */
 
 @media(max-width:430px){
 
@@ -314,7 +309,7 @@ body{
     }
 
     .next-button{
-        width:calc(100% - 40px);
+        width:100%;
     }
 }
 </style>
@@ -325,9 +320,8 @@ body{
 
 <div class="page">
 
-<!-- =====================================
-     ÜST
-====================================== -->
+```
+<!-- ÜST -->
 
 <div class="topbar">
 
@@ -346,9 +340,7 @@ body{
 </div>
 
 
-<!-- =====================================
-     KULLANICI ADI
-====================================== -->
+<!-- İÇERİK -->
 
 <main class="content">
 
@@ -376,6 +368,9 @@ body{
         class="message"
     ></div>
 
+
+    <!-- OTOMATİK ÖNER -->
+
     <button
         type="button"
         id="suggestUsername"
@@ -383,17 +378,21 @@ body{
     >
         Otomatik kullanıcı adı öner
     </button>
-    
-<button
-    type="button"
-    id="nextButton"
-    class="next-button"
-    onclick="goToKayit()"
->
-    İleri
-</button>
+
+
+    <!-- İLERİ -->
+
+    <button
+        type="button"
+        id="nextButton"
+        class="next-button"
+        disabled
+    >
+        İleri
+    </button>
 
 </main>
+```
 
 </div>
 
@@ -402,9 +401,9 @@ body{
 "use strict";
 
 
-/* =========================================
+/* =========================
    ELEMENTLER
-========================================= */
+========================= */
 
 const usernameInput =
     document.getElementById("username");
@@ -423,27 +422,28 @@ let usernameAvailable = false;
 let checkTimer = null;
 
 
-/* =========================================
+/* =========================
    GERİ
-========================================= */
+========================= */
 
 function goBack(){
 
-    if(document.referrer){
+    if(history.length > 1){
 
         history.back();
 
-        return;
+    }else{
+
+        window.location.href = "giris.html";
+
     }
 
-    window.location.href =
-        "giris.html";
 }
 
 
-/* =========================================
-   KULLANICI ADI TEMİZLE
-========================================= */
+/* =========================
+   TEMİZLE
+========================= */
 
 function cleanUsername(value){
 
@@ -455,57 +455,55 @@ function cleanUsername(value){
 }
 
 
-/* =========================================
-   GEÇERLİ KULLANICI ADI
-========================================= */
+/* =========================
+   GEÇERLİ Mİ?
+========================= */
 
 function validUsername(username){
 
-    return /^[a-z0-9._]{3,30}$/.test(
-        username
-    );
+    return /^[a-z0-9._]{3,30}$/.test(username);
 
 }
 
 
-/* =========================================
+/* =========================
    MESAJ
-========================================= */
+========================= */
 
 function showMessage(text,type){
 
-    usernameMessage.textContent =
-        text || "";
+    usernameMessage.textContent = text || "";
 
-    usernameMessage.className =
-        "message";
+    usernameMessage.className = "message";
 
     if(type){
 
-        usernameMessage.classList.add(
-            type
-        );
+        usernameMessage.classList.add(type);
 
     }
 
 }
 
 
-/* =========================================
-   SERVER'A KULLANICI ADI KONTROLÜ
-========================================= */
+/* =========================
+   KULLANICI ADI KONTROL
+========================= */
 
 async function checkUsername(username){
 
     usernameAvailable = false;
+
     nextButton.disabled = true;
+
 
     if(!username){
 
         showMessage("", "");
 
         return;
+
     }
+
 
     if(!validUsername(username)){
 
@@ -515,42 +513,43 @@ async function checkUsername(username){
         );
 
         return;
+
     }
+
 
     showMessage(
         "Kullanıcı adı kontrol ediliyor...",
         "checking"
     );
 
+
     try{
 
-        const response =
-            await fetch(
-                "/api/check-username?username=" +
-                encodeURIComponent(username),
-                {
-                    method:"GET",
+        const response = await fetch(
+            "/api/check-username?username=" +
+            encodeURIComponent(username),
+            {
+                method:"GET",
+                headers:{
+                    "Accept":"application/json"
+                },
+                cache:"no-store"
+            }
+        );
 
-                    headers:{
-                        "Accept":
-                            "application/json"
-                    },
 
-                    cache:"no-store"
-                }
-            );
+        const data = await response
+            .json()
+            .catch(function(){
+                return {};
+            });
 
-        const data =
-            await response
-                .json()
-                .catch(function(){
-                    return {};
-                });
 
         console.log(
             "[MINEGRAM USERNAME CHECK]",
             data
         );
+
 
         if(!response.ok){
 
@@ -558,17 +557,9 @@ async function checkUsername(username){
                 data.error ||
                 "Kullanıcı adı kontrol edilemedi."
             );
+
         }
 
-        /*
-         * SERVER:
-         *
-         * available:true
-         *  = kullanıcı adı BOŞTA
-         *
-         * available:false
-         *  = kullanıcı adı ALINMIŞ
-         */
 
         if(data.available === true){
 
@@ -582,7 +573,9 @@ async function checkUsername(username){
             );
 
             return;
+
         }
+
 
         usernameAvailable = false;
 
@@ -610,21 +603,21 @@ async function checkUsername(username){
             "Kullanıcı adı kontrol edilemedi.",
             ""
         );
+
     }
+
 }
 
-/* =========================================
+
+/* =========================
    INPUT
-========================================= */
+========================= */
 
 usernameInput.addEventListener(
     "input",
     function(){
 
-        clearTimeout(
-            checkTimer
-        );
-
+        clearTimeout(checkTimer);
 
         const username =
             cleanUsername(
@@ -632,29 +625,29 @@ usernameInput.addEventListener(
             );
 
 
-        usernameInput.value =
-            username;
+        usernameInput.value = username;
+
+        usernameAvailable = false;
+
+        nextButton.disabled = true;
 
 
-        checkTimer =
-            setTimeout(
-                function(){
+        checkTimer = setTimeout(
+            function(){
 
-                    checkUsername(
-                        username
-                    );
+                checkUsername(username);
 
-                },
-                400
-            );
+            },
+            400
+        );
 
     }
 );
 
 
-/* =========================================
+/* =========================
    ENTER
-========================================= */
+========================= */
 
 usernameInput.addEventListener(
     "keydown",
@@ -662,12 +655,12 @@ usernameInput.addEventListener(
 
         if(
             event.key === "Enter" &&
-            usernameAvailable
+            !nextButton.disabled
         ){
 
             event.preventDefault();
 
-            nextButton.click();
+            goToKayit();
 
         }
 
@@ -675,9 +668,9 @@ usernameInput.addEventListener(
 );
 
 
-/* =========================================
-   OTOMATİK KULLANICI ADI
-========================================= */
+/* =========================
+   OTOMATİK ÖNER
+========================= */
 
 suggestUsername.addEventListener(
     "click",
@@ -697,9 +690,8 @@ suggestUsername.addEventListener(
         ];
 
 
-        /*
-         * Her seferinde bir öneri dene.
-         */
+        suggestUsername.disabled = true;
+
 
         for(
             let i = 0;
@@ -707,15 +699,8 @@ suggestUsername.addEventListener(
             i++
         ){
 
-            const randomIndex =
-                Math.floor(
-                    Math.random() *
-                    suggestions.length
-                );
-
-
             const username =
-                suggestions[randomIndex];
+                suggestions[i];
 
 
             usernameInput.value =
@@ -729,18 +714,29 @@ suggestUsername.addEventListener(
 
             if(usernameAvailable){
 
+                suggestUsername.disabled = false;
+
                 return;
 
             }
 
         }
 
+
+        suggestUsername.disabled = false;
+
+        showMessage(
+            "Uygun kullanıcı adı bulunamadı.",
+            ""
+        );
+
     }
 );
 
-/* =========================================
-   İLERİ
-========================================= */
+
+/* =========================
+   İLERİ → KAYIT.HTML
+========================= */
 
 function goToKayit(){
 
@@ -749,27 +745,57 @@ function goToKayit(){
             usernameInput.value
         );
 
+
     if(!validUsername(username)){
+
         showMessage(
             "Geçerli bir kullanıcı adı gir.",
             ""
         );
+
         return;
+
     }
+
+
+    /*
+     * Kullanıcı adını kaydet
+     */
 
     sessionStorage.setItem(
         "minegram_register_username",
         username
     );
 
+
+    /*
+     * KAYIT.HTML SAYFASINA GİT
+     */
+
     window.location.href =
-        "./kayit.html?username=" +
+        "kayit.html?username=" +
         encodeURIComponent(username);
+
 }
-    
-/* =========================================
+
+
+/* =========================
+   İLERİ BUTONU
+========================= */
+
+nextButton.addEventListener(
+    "click",
+    function(){
+
+        goToKayit();
+
+    }
+);
+
+
+/* =========================
    SAYFA AÇILIŞI
-========================================= */
+========================= */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -787,6 +813,7 @@ document.addEventListener(
                 cleanUsername(
                     savedUsername
                 );
+
 
             checkUsername(
                 usernameInput.value
