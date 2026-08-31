@@ -1882,27 +1882,24 @@ function normalizeRecoveryPhone(
 }
 
 /* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT + SEND CODE
+   FORGOT PASSWORD - FIND ACCOUNT
 ========================================================= */
 
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
     try {
+      const identifier = String(
+        req.body?.identifier ??
+        req.body?.email ??
+        req.body?.username ??
+        req.body?.phone ??
+        ""
+      ).trim();
 
-      const identifier =
-        String(
-          req.body?.identifier ??
-          req.body?.email ??
-          req.body?.username ??
-          req.body?.phone ??
-          ""
-        ).trim();
-
-      const mode =
-        String(
-          req.body?.mode ?? ""
-        ).trim().toLowerCase();
+      const mode = String(
+        req.body?.mode ?? ""
+      ).trim().toLowerCase();
 
       if (!identifier) {
         return res.status(400).json({
@@ -1929,6 +1926,7 @@ app.post(
 
       let found = null;
 
+      /* TELEFON */
       if (
         recoveryMode === "phone" ||
         recoveryMode === "tel" ||
@@ -1960,6 +1958,7 @@ app.post(
         }
       }
 
+      /* E-POSTA / KULLANICI ADI */
       if (!found) {
         found =
           await resolveRecoveryEmail(
@@ -1970,6 +1969,7 @@ app.post(
           );
       }
 
+      /* HESAP BULUNAMADI */
       if (!found?.email) {
         return res.status(404).json({
           ok: false,
@@ -1981,7 +1981,7 @@ app.post(
       const profile =
         found.profile || {};
 
-      return res.json({
+      return res.status(200).json({
         ok: true,
 
         account: {
@@ -1991,7 +1991,8 @@ app.post(
             null,
 
           username:
-            profile.username || "",
+            profile.username ||
+            "",
 
           displayName:
             profile.display_name ||
@@ -2003,7 +2004,9 @@ app.post(
             found.email,
 
           maskedEmail:
-            maskEmail(found.email),
+            typeof maskEmail === "function"
+              ? maskEmail(found.email)
+              : found.email,
 
           avatar:
             profile.avatar_url ||
@@ -2015,7 +2018,6 @@ app.post(
       });
 
     } catch (e) {
-
       console.error(
         "FIND ACCOUNT ERROR:",
         e
@@ -2030,7 +2032,6 @@ app.post(
     }
   }
 );
-
       /*
        * -----------------------------------------------------
        * 2) E-POSTA / KULLANICI ADI
