@@ -263,20 +263,33 @@ document.getElementById('home').classList.remove('hidden');
 document.getElementById('bottomNav').classList.remove('hidden');
 }
 
-async function logout(){
-    [
-        "minegram_token",
-        "minegram_supabase_token",
-        "minegram_user",
-        "minegram_profile",
-        "minegram_firebase_token",
-        "minegram_firebase_uid",
-        "minegram_firebase_email"
-    ].forEach(k => localStorage.removeItem(k));
+function logout() {
 
-    token = null;
-    currentUser = null;
-    showLogin();
+    // Tüm Minegram oturum bilgilerini temizle
+    localStorage.removeItem("minegram_token");
+    localStorage.removeItem("minegram_supabase_token");
+    localStorage.removeItem("minegram_user_id");
+    localStorage.removeItem("minegram_username");
+    localStorage.removeItem("minegram_email");
+    localStorage.removeItem("minegram_user");
+    localStorage.removeItem("minegram_profile");
+
+    // Eski Firebase kayıtları varsa onları da temizle
+    localStorage.removeItem("minegram_firebase_token");
+    localStorage.removeItem("minegram_firebase_uid");
+    localStorage.removeItem("minegram_firebase_email");
+
+    // SessionStorage da temizlensin
+    sessionStorage.removeItem("minegram_token");
+    sessionStorage.removeItem("minegram_supabase_token");
+    sessionStorage.removeItem("minegram_user_id");
+    sessionStorage.removeItem("minegram_username");
+    sessionStorage.removeItem("minegram_email");
+    sessionStorage.removeItem("minegram_user");
+    sessionStorage.removeItem("minegram_profile");
+
+    // Kesin olarak giriş sayfasına git
+    window.location.replace("/giris.html");
 }
 
 function localCommentsKey(id){
