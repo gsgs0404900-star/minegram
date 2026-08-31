@@ -195,8 +195,7 @@ const posts=await api('/feed');
 feedEl.innerHTML=posts.length?posts.map(renderPost).join(''):'<div class="empty"><strong>Henüz gönderi yok</strong>İlk gönderini oluştur.</div>';
 }catch(e){
 console.error('[FEED]',e);
-if(/token|auth|oturum/i.test(String(e.message)))await logout();
-else{feedEl.innerHTML='<div class="empty"><strong>Gönderiler yüklenemedi</strong><small>Sayfayı yenileyip tekrar dene.</small></div>';toast(e.message);}
+feedEl.innerHTML='<div class="empty"><strong>Gönderiler yüklenemedi</strong><small>Sayfayı yenileyip tekrar dene.</small></div>';toast(e.message||'Gönderiler yüklenemedi');
 }
 }
 
@@ -315,12 +314,10 @@ async function init(){
 
     // /api/me gerçekten yetkisizse giriş sayfasına dön.
     // Böylece normal Firebase restore gecikmesi yüzünden döngü oluşmaz.
-    if(/401|403|oturum|token|auth/i.test(String(e.message||''))){
-      await logout();
-    }else{
-      showHome();
-      feedEl.innerHTML='<div class="empty"><strong>Ana sayfa yüklenemedi</strong><small>Sayfayı yenileyip tekrar dene.</small></div>';
-    }
+    // Hata durumunda da index.html açık kalsın;
+    // kullanıcıyı otomatik olarak giris.html'ye geri gönderme.
+    showHome();
+    feedEl.innerHTML='<div class="empty"><strong>Ana sayfa yüklenemedi</strong><small>'+esc(e.message||'Sunucu bağlantısı kurulamadı.')+'</small></div>';
   }
 }
 
