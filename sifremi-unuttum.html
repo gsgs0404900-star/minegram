@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>Şifremi unuttum - Minegram</title>
+<title>Minegram - Şifremi unuttum</title>
 
 <style>
 *{
     box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
 html,
@@ -18,7 +19,7 @@ body{
     width:100%;
     min-height:100%;
     background:#000;
-    color:#f5f5f5;
+    color:#fff;
     font-family:Arial,Helvetica,sans-serif;
 }
 
@@ -28,258 +29,286 @@ body{
 }
 
 .page{
+    width:100%;
     min-height:100vh;
     background:#000;
 }
 
 /* ÜST BAŞLIK */
-.top{
-    height:70px;
+.topbar{
     width:100%;
+    height:72px;
     display:flex;
     align-items:center;
-    padding:0 38px;
+    padding-left:38px;
 }
 
 .back{
     width:42px;
     height:42px;
-    border:0;
-    background:transparent;
-    color:#fff;
     display:flex;
     align-items:center;
     justify-content:center;
+    color:#fff;
+    font-size:46px;
+    font-weight:300;
+    line-height:1;
     cursor:pointer;
-    padding:0;
-}
-
-.back svg{
-    width:30px;
-    height:30px;
-    fill:none;
-    stroke:currentColor;
-    stroke-width:2.4;
-    stroke-linecap:round;
-    stroke-linejoin:round;
+    user-select:none;
 }
 
 .top-title{
-    margin-left:8px;
-    font-size:25px;
+    margin-left:17px;
+    font-size:27px;
     font-weight:700;
     color:#fff;
 }
 
 /* ANA ALAN */
-.main{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    padding-top:105px;
-    padding-bottom:80px;
+.content{
+    width:365px;
+    margin:105px auto 0;
 }
 
-/* GİRİŞ SAYFASIYLA AYNI DAR ÖLÇÜ */
-.box{
-    width:100%;
-    max-width:380px;
-}
-
-/* BAŞLIK */
 .title{
-    margin:0;
     text-align:center;
-    font-size:28px;
-    line-height:1.2;
+    font-size:46px;
+    line-height:1.15;
     font-weight:700;
+    margin:0 0 36px;
     color:#fff;
 }
 
-/* AÇIKLAMA */
 .description{
-    margin:38px 0 0;
-    font-size:17px;
-    line-height:1.55;
+    font-size:24px;
+    line-height:1.45;
     color:#bdbdbd;
-    text-align:left;
+    margin:0 0 68px;
 }
 
-/* FORM */
-.form{
-    margin-top:36px;
-}
-
-/* INPUT */
-.input{
+.phone-input{
     width:100%;
-    height:56px;
-    border:1px solid #303030;
-    border-radius:6px;
-    background:#050505;
+    height:118px;
+    padding:0 34px;
+    border:2px solid #686868;
+    border-radius:10px;
+    background:#111;
     color:#fff;
     outline:none;
-    padding:0 14px;
-    font-size:14px;
+    font-size:25px;
+    font-family:Arial,Helvetica,sans-serif;
 }
 
-.input::placeholder{
-    color:#777;
+.phone-input::placeholder{
+    color:#bdbdbd;
+    opacity:1;
 }
 
-.input:focus{
-    border-color:#555;
+.phone-input:focus{
+    border-color:#8a8a8a;
 }
 
-/* DEVAM */
-.continue{
+.continue-btn{
     width:100%;
-    height:54px;
-    margin-top:13px;
+    height:84px;
+    margin-top:35px;
     border:0;
-    border-radius:28px;
-    background:#277ab8;
-    color:#000;
-    font-size:14px;
+    border-radius:44px;
+    background:#64b5ed;
+    color:#30206f;
+    font-size:27px;
     font-weight:700;
     cursor:pointer;
-    transition:.15s;
 }
 
-.continue:hover{
-    background:#328bd0;
-}
-
-.continue:active{
+.continue-btn:active{
     transform:scale(.99);
 }
 
-.continue:disabled{
-    opacity:.55;
+.continue-btn:disabled{
+    opacity:.6;
     cursor:not-allowed;
 }
 
-/* ALT LİNKLER */
-.link{
+.other-method{
     display:block;
     width:100%;
-    border:0;
-    background:transparent;
-    color:#168bdc;
+    margin-top:45px;
     text-align:center;
-    font-size:14px;
+    color:#55aaf0;
+    font-size:24px;
     font-weight:700;
     text-decoration:none;
     cursor:pointer;
 }
 
-.phone-link{
-    margin-top:27px;
-}
-
-.login-link{
-    margin-top:32px;
-}
-
-/* MESAJ */
 .message{
-    min-height:20px;
-    margin-top:17px;
+    min-height:30px;
+    margin-top:28px;
     text-align:center;
-    font-size:13px;
+    font-size:17px;
     line-height:1.4;
-    color:#aaa;
+    color:#ff5c5c;
 }
 
 .message.success{
-    color:#55c878;
+    color:#55b8ff;
 }
 
-.message.error{
-    color:#ff5d6c;
+/* DOĞRULAMA KODU ALANI */
+.code-box{
+    display:none;
+    margin-top:35px;
 }
 
-/* MOBİL */
-@media(max-width:699px){
+.code-title{
+    text-align:center;
+    font-size:25px;
+    font-weight:700;
+    margin-bottom:18px;
+}
 
-    .top{
-        height:70px;
-        padding:0 28px;
+.code-info{
+    text-align:center;
+    color:#aaa;
+    font-size:17px;
+    line-height:1.5;
+    margin-bottom:25px;
+}
+
+.code-input{
+    width:100%;
+    height:75px;
+    border:2px solid #686868;
+    border-radius:10px;
+    background:#111;
+    color:#fff;
+    text-align:center;
+    letter-spacing:8px;
+    font-size:27px;
+    outline:none;
+}
+
+.verify-btn{
+    width:100%;
+    height:70px;
+    margin-top:20px;
+    border:0;
+    border-radius:35px;
+    background:#64b5ed;
+    color:#30206f;
+    font-size:22px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+/* MASAÜSTÜNDE DAHA BÜYÜK GÖRÜNÜM */
+@media(min-width:900px){
+
+    .topbar{
+        height:72px;
+        padding-left:38px;
+    }
+
+    .content{
+        width:365px;
+        margin-top:105px;
+    }
+}
+
+/* TELEFON */
+@media(max-width:600px){
+
+    .topbar{
+        height:90px;
+        padding-left:38px;
+    }
+
+    .back{
+        width:45px;
+        height:45px;
+        font-size:48px;
     }
 
     .top-title{
-        font-size:24px;
+        margin-left:17px;
+        font-size:28px;
     }
 
-    .main{
-        padding:92px 24px 60px;
-    }
-
-    .box{
-        max-width:380px;
+    .content{
+        width:calc(100% - 120px);
+        max-width:none;
+        margin-top:105px;
     }
 
     .title{
-        font-size:30px;
+        font-size:58px;
+        margin-bottom:38px;
     }
 
     .description{
-        margin-top:38px;
-        font-size:18px;
+        font-size:27px;
         line-height:1.55;
+        margin-bottom:72px;
     }
 
-    .form{
-        margin-top:36px;
+    .phone-input{
+        height:118px;
+        padding:0 34px;
+        font-size:26px;
+        border-radius:10px;
     }
 
-    .input{
-        height:58px;
-        font-size:16px;
-        padding:0 15px;
+    .continue-btn{
+        height:84px;
+        margin-top:35px;
+        font-size:27px;
+        border-radius:45px;
     }
 
-    .continue{
-        height:56px;
-        font-size:16px;
+    .other-method{
+        margin-top:45px;
+        font-size:25px;
+        line-height:1.35;
     }
 
-    .link{
-        font-size:16px;
-    }
-
-    .phone-link{
-        margin-top:28px;
-    }
-
-    .login-link{
-        margin-top:34px;
+    .message{
+        font-size:18px;
     }
 }
 
 /* ÇOK DAR TELEFONLAR */
-@media(max-width:380px){
+@media(max-width:430px){
 
-    .top{
-        padding:0 18px;
+    .content{
+        width:calc(100% - 40px);
+        margin-top:65px;
     }
 
-    .top-title{
-        font-size:22px;
-    }
-
-    .main{
-        padding-left:18px;
-        padding-right:18px;
-        padding-top:75px;
+    .topbar{
+        padding-left:20px;
     }
 
     .title{
-        font-size:27px;
+        font-size:42px;
     }
 
     .description{
-        font-size:16px;
+        font-size:21px;
+    }
+
+    .phone-input{
+        height:68px;
+        font-size:18px;
+    }
+
+    .continue-btn{
+        height:58px;
+        font-size:20px;
+    }
+
+    .other-method{
+        font-size:19px;
     }
 }
 </style>
@@ -289,95 +318,71 @@ body{
 
 <div class="page">
 
-    <!-- ÜST -->
-    <header class="top">
+    <div class="topbar">
+        <div class="back" id="backBtn">‹</div>
+        <div class="top-title">Şifremi unuttum</div>
+    </div>
+
+    <main class="content">
+
+        <h1 class="title">Profilini bul</h1>
+
+        <p class="description">
+            Hesabını bulmak için cep telefonu numaranı gir.
+        </p>
+
+        <input
+            id="phone"
+            class="phone-input"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="Cep telefonu numarası"
+        >
 
         <button
-            class="back"
-            type="button"
-            onclick="goBack()"
-            aria-label="Geri">
-
-            <svg viewBox="0 0 24 24">
-                <path d="M19 12H5"></path>
-                <path d="M12 19 5 12l7-7"></path>
-            </svg>
-
+            id="continueBtn"
+            class="continue-btn"
+            type="button">
+            Devam
         </button>
 
-        <div class="top-title">
-            Şifremi unuttum
-        </div>
+        <a
+            href="sifremi-unuttum.html"
+            class="other-method">
+            E-posta adresi veya kullanıcı adıyla bul
+        </a>
 
-    </header>
+        <div id="message" class="message"></div>
 
+        <div id="codeBox" class="code-box">
 
-    <!-- ANA İÇERİK -->
-    <main class="main">
-
-        <section class="box">
-
-            <h1 class="title">
-                Profilini bul
-            </h1>
-
-            <p class="description">
-                Hesabını bulmak için e-posta adresini veya<br>
-                kullanıcı adını gir.
-            </p>
-
-
-            <form
-                id="forgotForm"
-                class="form"
-                onsubmit="sendReset(event)">
-
-                <input
-                    id="accountInput"
-                    class="input"
-                    type="text"
-                    autocomplete="username"
-                    placeholder="E-posta adresi veya kullanıcı adı"
-                    required>
-
-                <button
-                    id="continueButton"
-                    class="continue"
-                    type="submit">
-
-                    Devam
-
-                </button>
-
-            </form>
-
-
-            <button
-                type="button"
-                class="link phone-link"
-                onclick="findWithPhone()">
-
-                Cep telefonu numarasıyla bul
-
-            </button>
-
-
-            <button
-                type="button"
-                class="link login-link"
-                onclick="goLogin()">
-
-                Giriş ekranına dön
-
-            </button>
-
-
-            <div
-                id="message"
-                class="message">
+            <div class="code-title">
+                Doğrulama kodu
             </div>
 
-        </section>
+            <div id="codeInfo" class="code-info">
+                Doğrulama kodu e-posta adresine gönderildi.
+            </div>
+
+            <input
+                id="code"
+                class="code-input"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="••••••"
+            >
+
+            <button
+                id="verifyBtn"
+                class="verify-btn"
+                type="button">
+                Kodu doğrula
+            </button>
+
+        </div>
 
     </main>
 
@@ -385,179 +390,301 @@ body{
 
 
 <script>
-
-/* =========================================
-   MINEGRAM ŞİFRE SIFIRLAMA
-   ========================================= */
-
-const API = "/api";
-
-const input = document.getElementById("accountInput");
-const button = document.getElementById("continueButton");
+const phoneInput = document.getElementById("phone");
+const continueBtn = document.getElementById("continueBtn");
+const otherMethod = document.querySelector(".other-method");
 const message = document.getElementById("message");
 
+const codeBox = document.getElementById("codeBox");
+const codeInput = document.getElementById("code");
+const verifyBtn = document.getElementById("verifyBtn");
+const codeInfo = document.getElementById("codeInfo");
 
-/* MESAJ */
-function showMessage(text,type=""){
-    message.textContent = text;
-    message.className = "message " + type;
-}
-
-
-/* GİRİŞE DÖN */
-function goLogin(){
-    location.href = "giris.html";
-}
+let currentPhone = "";
 
 
 /* GERİ */
-function goBack(){
-
-    if(document.referrer){
-        history.back();
-    }else{
-        location.href = "giris.html";
-    }
-
-}
+document.getElementById("backBtn").addEventListener("click", function(){
+    window.location.href = "giris.html";
+});
 
 
-/* TELEFONLA BUL */
-function findWithPhone(){
+/* TELEFON NUMARASINI NORMALLEŞTİR */
+function normalizePhone(value){
+
+    let digits = String(value || "").replace(/\D/g, "");
 
     /*
-       Telefonla kurtarma ekranın henüz ayrı değilse
-       şimdilik kullanıcıya bilgi veriyoruz.
+       Türkiye numarası:
+       05xxxxxxxxx
+       5xxxxxxxxx
+       +905xxxxxxxxx
     */
 
-    input.focus();
+    if(digits.startsWith("0090")){
+        digits = digits.slice(4);
+    }
 
-    showMessage(
-        "Telefon numarasıyla hesap bulma yakında kullanılabilir.",
-        ""
-    );
+    if(digits.startsWith("90") && digits.length >= 12){
+        digits = digits.slice(2);
+    }
+
+    if(digits.startsWith("0") && digits.length === 11){
+        digits = digits.slice(1);
+    }
+
+    return digits;
 }
 
 
-/* ŞİFRE SIFIRLAMA */
-async function sendReset(event){
+/* MESAJ */
+function showMessage(text, success=false){
 
-    event.preventDefault();
+    message.textContent = text;
 
-    const account = input.value.trim();
-
-    if(!account){
-
-        showMessage(
-            "Lütfen e-posta adresinizi veya kullanıcı adınızı girin.",
-            "error"
-        );
-
-        input.focus();
-        return;
+    if(success){
+        message.classList.add("success");
+    }else{
+        message.classList.remove("success");
     }
+}
 
 
-    button.disabled = true;
-    button.textContent = "Gönderiliyor...";
+/* DEVAM */
+continueBtn.addEventListener("click", async function(){
+
+    const rawPhone = phoneInput.value.trim();
+    const phone = normalizePhone(rawPhone);
 
     showMessage("");
 
+    if(!phone){
+        showMessage("Lütfen cep telefonu numaranı gir.");
+        phoneInput.focus();
+        return;
+    }
+
+    if(phone.length !== 10){
+        showMessage("Geçerli bir cep telefonu numarası gir.");
+        phoneInput.focus();
+        return;
+    }
+
+    continueBtn.disabled = true;
+    continueBtn.textContent = "Kontrol ediliyor...";
 
     try{
 
         /*
-         * Minegram backend şifre sıfırlama endpoint'i.
-         *
-         * Backend'de /api/forgot-password varsa
-         * doğrudan çalışır.
-         */
+          Mevcut server.js içindeki:
+          POST /api/forgot/start
 
-        const response = await fetch(
-            API + "/forgot-password",
-            {
-                method:"POST",
+          endpoint'ine bağlanıyoruz.
+        */
 
-                headers:{
-                    "Content-Type":"application/json"
-                },
+        const response = await fetch("/api/forgot/start", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                identifier: phone,
+                mode:"phone"
+            })
+        });
 
-                body:JSON.stringify({
-                    email:account,
-                    username:account,
-                    account:account
-                })
-            }
-        );
-
-
-        const data =
-            await response
-                .json()
-                .catch(()=>({}));
-
+        const data = await response.json().catch(() => ({}));
 
         if(!response.ok){
 
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Hesap bulunamadı veya işlem gerçekleştirilemedi."
+            showMessage(
+                data.error || "Bu telefon numarasıyla eşleşen hesap bulunamadı."
             );
 
+            continueBtn.disabled = false;
+            continueBtn.textContent = "Devam";
+            return;
         }
 
+        currentPhone = phone;
+
+        /*
+          Sunucu e-postayı gizleyerek döndürüyor.
+        */
+
+        if(data.maskedEmail){
+
+            codeInfo.textContent =
+                data.maskedEmail +
+                " adresine doğrulama kodu gönderildi.";
+        }else{
+
+            codeInfo.textContent =
+                "Doğrulama kodu hesabının e-posta adresine gönderildi.";
+        }
 
         showMessage(
-            data.message ||
-            "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
-            "success"
+            "Doğrulama kodu gönderildi.",
+            true
         );
 
+        codeBox.style.display = "block";
+
+        phoneInput.disabled = true;
+        continueBtn.style.display = "none";
+        otherMethod.style.display = "none";
+
+        codeInput.focus();
 
     }catch(error){
 
-        console.error(
-            "[FORGOT PASSWORD]",
-            error
-        );
-
+        console.error(error);
 
         showMessage(
-            error.message ||
-            "Bir hata oluştu. Lütfen tekrar deneyin.",
-            "error"
+            "Sunucuya bağlanılamadı. Lütfen tekrar dene."
         );
 
-
-    }finally{
-
-        button.disabled = false;
-        button.textContent = "Devam";
-
+        continueBtn.disabled = false;
+        continueBtn.textContent = "Devam";
     }
 
-}
+});
 
 
-/* ENTER İLE GÖNDER */
-input.addEventListener(
-    "keydown",
-    function(event){
+/* SADECE RAKAM */
+codeInput.addEventListener("input", function(){
 
-        if(event.key === "Enter"){
+    this.value = this.value
+        .replace(/\D/g, "")
+        .slice(0,6);
 
-            event.preventDefault();
+});
 
-            document
-                .getElementById("forgotForm")
-                .requestSubmit();
 
+/* KOD DOĞRULAMA */
+verifyBtn.addEventListener("click", async function(){
+
+    const code = codeInput.value.trim();
+
+    showMessage("");
+
+    if(code.length !== 6){
+
+        showMessage("6 haneli doğrulama kodunu gir.");
+
+        codeInput.focus();
+
+        return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Kontrol ediliyor...";
+
+    try{
+
+        const response = await fetch("/api/forgot/verify", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                identifier: currentPhone,
+                mode:"phone",
+                code: code
+            })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if(!response.ok){
+
+            showMessage(
+                data.error || "Kod yanlış veya süresi dolmuş."
+            );
+
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = "Kodu doğrula";
+
+            return;
         }
 
-    }
-);
+        showMessage(
+            "Kod doğrulandı. Şifre sıfırlama bağlantısı hazırlanıyor...",
+            true
+        );
 
+        /*
+          Doğrulama başarılı olduktan sonra
+          server'a reset e-postası gönderiyoruz.
+        */
+
+        const resetResponse = await fetch("/api/forgot/send-reset", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                email:data.email
+            })
+        });
+
+        const resetData = await resetResponse.json().catch(() => ({}));
+
+        if(!resetResponse.ok){
+
+            showMessage(
+                resetData.error ||
+                "Şifre sıfırlama bağlantısı gönderilemedi."
+            );
+
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = "Kodu doğrula";
+
+            return;
+        }
+
+        showMessage(
+            "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.",
+            true
+        );
+
+        codeInput.disabled = true;
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "Gönderildi";
+
+    }catch(error){
+
+        console.error(error);
+
+        showMessage(
+            "Sunucuya bağlanılamadı. Lütfen tekrar dene."
+        );
+
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Kodu doğrula";
+    }
+
+});
+
+
+/* ENTER İLE DEVAM */
+phoneInput.addEventListener("keydown", function(e){
+
+    if(e.key === "Enter"){
+        continueBtn.click();
+    }
+
+});
+
+
+/* ENTER İLE KOD DOĞRULA */
+codeInput.addEventListener("keydown", function(e){
+
+    if(e.key === "Enter"){
+        verifyBtn.click();
+    }
+
+});
 </script>
 
 </body>
