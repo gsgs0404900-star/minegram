@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -8,621 +7,671 @@
 <title>Minegram • Ayarlar</title>
 
 <style>
-*{box-sizing:border-box}
-
-html,body{
-margin:0;
-padding:0;
-min-height:100%;
-background:#000;
-color:#fff;
-font-family:Arial,sans-serif;
+*{
+    box-sizing:border-box;
 }
 
-body{overflow-x:hidden}
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:Arial,sans-serif;
+}
 
-button,input,textarea{font:inherit}
-button{cursor:pointer}
+body{
+    overflow-x:hidden;
+}
+
+button,input,textarea{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+}
+
+/* ANA SAYFA */
 
 .settings-app{
-min-height:100dvh;
-background:#000;
-color:#fff;
+    width:100%;
+    min-height:100dvh;
+    background:#000;
+    color:#fff;
 }
 
 .settings-header,
 .sub-header{
-height:58px;
-display:flex;
-align-items:center;
-padding:0 18px;
-border-bottom:1px solid #303038;
-background:#000;
-position:sticky;
-top:0;
-z-index:50;
+    width:100%;
+    height:58px;
+    min-height:58px;
+    display:flex;
+    align-items:center;
+    padding:0 18px;
+    border-bottom:1px solid #303038;
+    background:#000;
+    position:sticky;
+    top:0;
+    z-index:50;
 }
 
 .back-btn,
 .sub-back{
-width:36px;
-height:36px;
-border:0;
-background:#000!important;
-color:#fff!important;
-font-size:36px;
-line-height:1;
-padding:0;
-display:flex;
-align-items:center;
-justify-content:center;
-appearance:none;
--webkit-appearance:none;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    border:0;
+    background:#000 !important;
+    color:#fff !important;
+    font-size:36px;
+    line-height:36px;
+    padding:0;
+    margin:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    appearance:none;
+    -webkit-appearance:none;
 }
 
 .settings-title{
-margin-left:10px;
-font-size:23px;
-font-weight:700;
+    margin-left:10px;
+    font-size:23px;
+    font-weight:700;
+    white-space:nowrap;
 }
 
 .settings-list{
-width:100%;
-padding:28px 28px 35px;
+    width:100%;
+    padding:22px 24px 35px;
 }
 
 .setting-row{
-width:100%;
-min-height:67px;
-height:67px;
-display:flex;
-align-items:center;
-border:0;
-border-bottom:1px solid #34343b;
-background:#000!important;
-color:#fff!important;
-padding:0;
-text-align:left;
-appearance:none;
--webkit-appearance:none;
-}
-
-.setting-row:hover,
-.setting-row:focus,
-.setting-row:active{
-background:#000!important;
-color:#fff!important;
+    width:100%;
+    min-height:64px;
+    height:64px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    border:0;
+    border-bottom:1px solid #34343b;
+    background:#000 !important;
+    color:#fff !important;
+    padding:0;
+    margin:0;
+    text-align:left;
+    appearance:none;
+    -webkit-appearance:none;
+    box-shadow:none;
+    outline:none;
 }
 
 .setting-label{
-flex:1;
-min-width:0;
-font-size:18px;
-line-height:1.2;
+    flex:1;
+    min-width:0;
+    font-size:17px;
+    line-height:1.25;
 }
 
 .setting-arrow{
-width:28px;
-text-align:right;
-font-size:30px;
-line-height:1;
+    width:28px;
+    flex:none;
+    text-align:right;
+    font-size:30px;
+    line-height:1;
+    color:#fff;
 }
 
+/* SWITCH */
+
 .switch{
-width:82px;
-height:50px;
-border:0;
-border-radius:30px;
-background:#555!important;
-position:relative;
-flex:none;
-padding:0;
-transition:.2s;
-appearance:none;
--webkit-appearance:none;
+    width:72px;
+    height:42px;
+    min-width:72px;
+    border:0;
+    border-radius:30px;
+    background:#555 !important;
+    position:relative;
+    flex:none;
+    padding:0;
+    margin:0;
+    transition:.2s;
+    appearance:none;
+    -webkit-appearance:none;
 }
 
 .switch::after{
-content:"";
-position:absolute;
-width:40px;
-height:40px;
-top:5px;
-left:5px;
-border-radius:50%;
-background:#ddd;
-transition:.2s;
+    content:"";
+    position:absolute;
+    width:34px;
+    height:34px;
+    top:4px;
+    left:4px;
+    border-radius:50%;
+    background:#ddd;
+    transition:.2s;
 }
 
 .switch.on{
-background:#63b1ed!important;
+    background:#63b1ed !important;
 }
 
 .switch.on::after{
-left:37px;
-background:#3b197e;
+    left:34px;
+    background:#3b197e;
 }
 
 /* ALT SAYFALAR */
 
 .sub-screen{
-position:fixed;
-inset:0;
-background:#000!important;
-color:#fff!important;
-z-index:100;
-display:none;
-overflow-y:auto;
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100dvh;
+    background:#000 !important;
+    color:#fff !important;
+    z-index:100;
+    display:none;
+    overflow-y:auto;
+    overflow-x:hidden;
 }
 
 .sub-screen.open{
-display:block;
+    display:block;
 }
 
 .sub-title{
-margin-left:10px;
-font-size:22px;
-font-weight:700;
-color:#fff;
+    margin-left:10px;
+    font-size:22px;
+    font-weight:700;
+    color:#fff;
+    white-space:nowrap;
 }
 
 .sub-content{
-padding:22px 28px 40px;
-background:#000;
+    width:100%;
+    padding:22px 24px 40px;
+    background:#000;
 }
 
 .sub-content h2{
-font-size:20px;
-margin:0 0 16px;
-color:#fff;
+    font-size:20px;
+    margin:0 0 16px;
+    color:#fff;
 }
 
 .sub-content p{
-color:#aaa;
-font-size:14px;
-line-height:1.6;
-margin:0 0 25px;
+    color:#aaa;
+    font-size:14px;
+    line-height:1.6;
+    margin:0 0 25px;
 }
 
+/* ALT SATIR */
+
 .sub-row{
-min-height:58px;
-display:flex;
-align-items:center;
-border-bottom:1px solid #333;
-font-size:17px;
-background:#000!important;
-color:#fff!important;
+    width:100%;
+    min-height:58px;
+    height:58px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid #333;
+    font-size:17px;
+    background:#000 !important;
+    color:#fff !important;
 }
 
 .sub-row span:first-child{
-flex:1;
-color:#fff!important;
+    flex:1;
+    min-width:0;
+    color:#fff !important;
 }
 
 button.sub-row{
-width:100%;
-height:58px;
-min-height:58px;
-padding:0;
-margin:0;
-border:0;
-border-bottom:1px solid #333;
-background:#000!important;
-color:#fff!important;
-text-align:left;
-display:flex;
-align-items:center;
-appearance:none;
--webkit-appearance:none;
-box-shadow:none;
-outline:none;
+    width:100%;
+    height:58px;
+    min-height:58px;
+    padding:0;
+    margin:0;
+    border:0;
+    border-bottom:1px solid #333;
+    background:#000 !important;
+    color:#fff !important;
+    text-align:left;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    appearance:none;
+    -webkit-appearance:none;
+    box-shadow:none;
+    outline:none;
 }
 
 button.sub-row:hover,
 button.sub-row:focus,
 button.sub-row:active{
-background:#000!important;
-color:#fff!important;
+    background:#000 !important;
+    color:#fff !important;
 }
 
 button.sub-row span{
-color:#fff!important;
+    color:#fff !important;
 }
 
-button.sub-row .sub-arrow{
-color:#fff!important;
-margin-left:auto;
-font-size:30px;
+.sub-arrow{
+    margin-left:auto;
+    flex:none;
+    color:#fff !important;
+    font-size:30px;
+    line-height:1;
 }
 
 /* FORM */
 
 .form-group{
-margin-bottom:18px;
+    width:100%;
+    margin-bottom:18px;
 }
 
 .form-label{
-display:block;
-font-size:15px;
-font-weight:600;
-margin-bottom:8px;
-color:#fff;
+    display:block;
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:8px;
+    color:#fff;
 }
 
 .form-input{
-width:100%;
-height:50px;
-border:1px solid #3a3a3a;
-border-radius:11px;
-background:#171717;
-color:#fff;
-padding:0 14px;
-outline:none;
+    width:100%;
+    height:50px;
+    border:1px solid #3a3a3a;
+    border-radius:11px;
+    background:#171717;
+    color:#fff;
+    padding:0 14px;
+    outline:none;
 }
 
 .form-input:focus{
-border-color:#63b1ed;
+    border-color:#63b1ed;
 }
 
 .form-button{
-width:100%;
-height:50px;
-border:0;
-border-radius:11px;
-background:#63b1ed;
-color:#21104d;
-font-weight:700;
-margin-top:5px;
+    width:100%;
+    height:50px;
+    border:0;
+    border-radius:11px;
+    background:#63b1ed;
+    color:#21104d;
+    font-weight:700;
+    margin-top:5px;
 }
 
-/* CİHAZLAR */
+/* CİHAZ */
 
 .device-card{
-background:#171717;
-border:1px solid #303030;
-border-radius:14px;
-padding:16px;
-margin-bottom:12px;
+    width:100%;
+    background:#171717;
+    border:1px solid #303030;
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:12px;
 }
 
 .device-top{
-display:flex;
-align-items:center;
-gap:12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
 }
 
 .device-icon{
-width:42px;
-height:42px;
-border-radius:50%;
-background:#29272e;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:21px;
-flex:none;
+    width:42px;
+    height:42px;
+    min-width:42px;
+    border-radius:50%;
+    background:#29272e;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:21px;
 }
 
 .device-name{
-font-size:16px;
-font-weight:700;
-color:#fff;
+    font-size:16px;
+    font-weight:700;
+    color:#fff;
 }
 
 .device-info{
-color:#999;
-font-size:13px;
-margin-top:4px;
-line-height:1.5;
+    color:#999;
+    font-size:13px;
+    margin-top:4px;
+    line-height:1.5;
 }
 
 .current-device{
-display:inline-block;
-margin-top:9px;
-font-size:11px;
-padding:5px 8px;
-border-radius:7px;
-background:#63b1ed;
-color:#21104d;
-font-weight:700;
+    display:inline-block;
+    margin-top:9px;
+    font-size:11px;
+    padding:5px 8px;
+    border-radius:7px;
+    background:#63b1ed;
+    color:#21104d;
+    font-weight:700;
 }
 
-/* 2FA */
+/* BİLGİ KUTULARI */
 
-.security-info-box{
-background:#171717;
-border:1px solid #303030;
-border-radius:14px;
-padding:16px;
-margin-bottom:18px;
+.security-info-box,
+.center-info,
+.help-info{
+    width:100%;
+    background:#171717;
+    border:1px solid #303030;
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:18px;
 }
 
-.security-info-title{
-font-size:17px;
-font-weight:700;
-margin-bottom:7px;
+.security-info-title,
+.center-info-title,
+.help-info-title{
+    font-size:17px;
+    font-weight:700;
+    margin-bottom:7px;
 }
 
-.security-info-text{
-font-size:13px;
-line-height:1.5;
-color:#999;
+.security-info-text,
+.center-info-text,
+.help-info-text{
+    color:#999;
+    font-size:13px;
+    line-height:1.5;
 }
+
+/* KOD */
 
 .code-input{
-letter-spacing:8px;
-text-align:center;
-font-size:20px;
-}
-
-/* HESAP MERKEZİ */
-
-.center-info{
-background:#171717;
-border:1px solid #303030;
-border-radius:14px;
-padding:16px;
-margin-bottom:18px;
-}
-
-.center-info-title{
-font-size:18px;
-font-weight:700;
-margin-bottom:7px;
-}
-
-.center-info-text{
-color:#999;
-font-size:14px;
-line-height:1.5;
-}
-
-/* YARDIM */
-
-.help-info{
-background:#171717;
-border:1px solid #303030;
-border-radius:14px;
-padding:16px;
-margin-bottom:18px;
-}
-
-.help-info-title{
-font-size:18px;
-font-weight:700;
-margin-bottom:8px;
-}
-
-.help-info-text{
-color:#aaa;
-font-size:14px;
-line-height:1.6;
+    letter-spacing:8px;
+    text-align:center;
+    font-size:20px;
 }
 
 /* SORUN BİLDİR */
 
 .report-title{
-font-size:22px;
-font-weight:700;
-margin-bottom:8px;
-color:#fff;
+    font-size:22px;
+    font-weight:700;
+    margin-bottom:8px;
+    color:#fff;
 }
 
 .report-info{
-color:#999;
-font-size:14px;
-line-height:1.5;
-margin-bottom:22px;
+    color:#999;
+    font-size:14px;
+    line-height:1.5;
+    margin-bottom:22px;
 }
 
 .report-label{
-display:block;
-font-size:16px;
-font-weight:600;
-margin-bottom:9px;
-color:#fff;
+    display:block;
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:9px;
+    color:#fff;
 }
 
 .report-textarea{
-width:100%;
-min-height:140px;
-resize:vertical;
-background:#171717;
-color:#fff;
-border:1px solid #3b3b3b;
-border-radius:12px;
-padding:14px;
-outline:none;
+    width:100%;
+    min-height:140px;
+    resize:vertical;
+    background:#171717;
+    color:#fff;
+    border:1px solid #3b3b3b;
+    border-radius:12px;
+    padding:14px;
+    outline:none;
 }
 
 .photo-section{
-margin-top:22px;
+    margin-top:22px;
 }
 
 .photo-button{
-width:100%;
-min-height:52px;
-border:1px solid #444;
-border-radius:12px;
-background:#171717!important;
-color:#fff!important;
-padding:12px;
+    width:100%;
+    min-height:52px;
+    border:1px solid #444;
+    border-radius:12px;
+    background:#171717 !important;
+    color:#fff !important;
+    padding:12px;
 }
 
 .photo-count{
-color:#999;
-font-size:13px;
-margin-top:8px;
+    color:#999;
+    font-size:13px;
+    margin-top:8px;
 }
 
 .preview-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:14px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:14px;
 }
 
 .preview-item{
-position:relative;
-aspect-ratio:1/1;
-border-radius:12px;
-overflow:hidden;
-background:#151515;
-border:1px solid #333;
+    position:relative;
+    aspect-ratio:1/1;
+    border-radius:12px;
+    overflow:hidden;
+    background:#151515;
+    border:1px solid #333;
 }
 
 .preview-item img{
-width:100%;
-height:100%;
-object-fit:cover;
+    width:100%;
+    height:100%;
+    object-fit:cover;
 }
 
 .remove-photo{
-position:absolute;
-top:7px;
-right:7px;
-width:30px;
-height:30px;
-border:0;
-border-radius:50%;
-background:rgba(0,0,0,.75)!important;
-color:#fff!important;
-font-size:18px;
-display:flex;
-align-items:center;
-justify-content:center;
+    position:absolute;
+    top:7px;
+    right:7px;
+    width:30px;
+    height:30px;
+    border:0;
+    border-radius:50%;
+    background:rgba(0,0,0,.75) !important;
+    color:#fff !important;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
 .send-report{
-width:100%;
-height:52px;
-margin-top:24px;
-border:0;
-border-radius:12px;
-background:#63b1ed;
-color:#21104d;
-font-weight:700;
+    width:100%;
+    height:52px;
+    margin-top:24px;
+    border:0;
+    border-radius:12px;
+    background:#63b1ed;
+    color:#21104d;
+    font-weight:700;
 }
 
 /* DİYALOG */
 
 .dialog-bg{
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.72);
-display:none;
-align-items:center;
-justify-content:center;
-padding:24px;
-z-index:500;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:500;
 }
 
 .dialog-bg.open{
-display:flex;
+    display:flex;
 }
 
 .dialog{
-width:min(430px,100%);
-background:#211f26;
-border-radius:17px;
-padding:24px;
-border:1px solid #444;
+    width:min(430px,100%);
+    background:#211f26;
+    border-radius:17px;
+    padding:24px;
+    border:1px solid #444;
 }
 
 .dialog h3{
-margin:0 0 15px;
-font-size:22px;
+    margin:0 0 15px;
+    font-size:22px;
 }
 
 .dialog p{
-color:#bbb;
-font-size:15px;
-line-height:1.5;
-margin:0 0 20px;
+    color:#bbb;
+    font-size:15px;
+    line-height:1.5;
+    margin:0 0 20px;
 }
 
 .dialog-buttons{
-display:flex;
-justify-content:flex-end;
-gap:10px;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
 }
 
 .dialog-buttons button{
-border:0;
-border-radius:10px;
-padding:11px 18px;
-background:#444;
-color:#fff;
+    border:0;
+    border-radius:10px;
+    padding:11px 18px;
+    background:#444;
+    color:#fff;
 }
 
 .dialog-buttons .primary{
-background:#63b1ed;
-color:#2d176c;
+    background:#63b1ed;
+    color:#2d176c;
 }
 
 /* TOAST */
 
 .toast{
-position:fixed;
-left:50%;
-bottom:30px;
-transform:translateX(-50%);
-background:#29272e;
-color:#fff;
-padding:13px 19px;
-border-radius:12px;
-font-size:14px;
-opacity:0;
-pointer-events:none;
-transition:.2s;
-z-index:1000;
-white-space:nowrap;
+    position:fixed;
+    left:50%;
+    bottom:30px;
+    transform:translateX(-50%);
+    background:#29272e;
+    color:#fff;
+    padding:13px 19px;
+    border-radius:12px;
+    font-size:14px;
+    opacity:0;
+    pointer-events:none;
+    transition:.2s;
+    z-index:1000;
+    white-space:nowrap;
+    max-width:90%;
 }
 
 .toast.show{
-opacity:1;
+    opacity:1;
+}
+
+/* MOBİL */
+
+@media(max-width:600px){
+
+    .settings-header,
+    .sub-header{
+        padding-left:14px;
+        padding-right:14px;
+    }
+
+    .settings-list{
+        padding:16px 18px 30px;
+    }
+
+    .setting-row{
+        min-height:62px;
+        height:62px;
+        gap:10px;
+    }
+
+    .setting-label{
+        font-size:16px;
+    }
+
+    .switch{
+        width:68px;
+        min-width:68px;
+        height:40px;
+    }
+
+    .switch::after{
+        width:32px;
+        height:32px;
+        top:4px;
+        left:4px;
+    }
+
+    .switch.on::after{
+        left:32px;
+    }
+
+    .sub-content{
+        padding:18px 18px 35px;
+    }
+
+    .sub-title{
+        font-size:20px;
+    }
+
+    .sub-row{
+        font-size:16px;
+    }
 }
 
 @media(max-width:380px){
 
-.settings-list{
-padding-left:18px;
-padding-right:18px;
-}
+    .settings-list{
+        padding-left:14px;
+        padding-right:14px;
+    }
 
-.setting-row{
-min-height:62px;
-height:62px;
-}
+    .sub-content{
+        padding-left:14px;
+        padding-right:14px;
+    }
 
-.setting-label{
-font-size:17px;
-}
+    .setting-label{
+        font-size:15px;
+    }
 
-.switch{
-width:76px;
-height:46px;
-}
+    .switch{
+        width:64px;
+        min-width:64px;
+        height:38px;
+    }
 
-.switch::after{
-width:36px;
-height:36px;
-top:5px;
-left:5px;
-}
+    .switch::after{
+        width:30px;
+        height:30px;
+    }
 
-.switch.on::after{
-left:35px;
-}
-
-.sub-content{
-padding-left:18px;
-padding-right:18px;
-}
-
+    .switch.on::after{
+        left:30px;
+    }
 }
 </style>
-
 </head>
 
 <body>
@@ -867,7 +916,8 @@ class="form-button"
 id="verifyTwoFactorButton"
 type="button"
 style="margin-top:15px;">
-Kodu doğrula </button>
+Kodu doğrula
+</button>
 
 </div>
 
@@ -980,7 +1030,7 @@ Gönderilerine kimlerin yorum yapabileceğini buradan yönetebilirsin.
 </div>
 </div>
 
-<!-- ENGELLENEN HESAPLAR -->
+<!-- ENGELLENEN -->
 
 <div class="sub-screen" id="blockedScreen">
 
@@ -1000,10 +1050,15 @@ Engellediğin hesaplar burada görüntülenir.
 <div id="blockedList">
 
 <div class="security-info-box">
-<div class="security-info-title">Engellenen hesap yok</div>
+
+<div class="security-info-title">
+Engellenen hesap yok
+</div>
+
 <div class="security-info-text">
 Şu anda engellediğin bir Minegram hesabı bulunmuyor.
 </div>
+
 </div>
 
 </div>
@@ -1134,7 +1189,7 @@ Hesabını devre dışı bırakma ve hesap kontrol seçeneklerini buradan yönet
 </div>
 </div>
 
-<!-- VERİLER VE İZİNLER -->
+<!-- VERİLER -->
 
 <div class="sub-screen" id="dataPermissionsScreen">
 
@@ -1174,7 +1229,7 @@ Minegram'in kullandığı hesap verilerini ve izinleri buradan yönetebilirsin.
 </div>
 </div>
 
-<!-- VERİLERİNİ İNDİR -->
+<!-- VERİ İNDİR -->
 
 <div class="sub-screen" id="downloadDataScreen">
 
@@ -1300,7 +1355,7 @@ Hesap, güvenlik, gizlilik, gönderiler, mesajlar ve diğer Minegram özellikler
 </div>
 </div>
 
-<!-- YARDIM ALT SAYFALARI -->
+<!-- YARDIM ALT -->
 
 <div class="sub-screen" id="helpAccountScreen">
 
@@ -1495,894 +1550,781 @@ Tamam
 
 <script>
 
-/* =====================================================
-   YARDIMCI
-===================================================== */
+/* YARDIMCI */
 
 function $(id){
-return document.getElementById(id);
+    return document.getElementById(id);
 }
 
-
-/* =====================================================
-   TOAST
-===================================================== */
+/* TOAST */
 
 function toast(message){
 
-const el=$('toast');
+    const el=$('toast');
 
-if(!el)return;
+    if(!el)return;
 
-el.textContent=message;
-el.classList.add('show');
+    el.textContent=message;
+    el.classList.add('show');
 
-clearTimeout(window.__toastTimer);
+    clearTimeout(window.__toastTimer);
 
-window.__toastTimer=setTimeout(function(){
-el.classList.remove('show');
-},2200);
-
+    window.__toastTimer=setTimeout(function(){
+        el.classList.remove('show');
+    },2200);
 }
 
-
-/* =====================================================
-   LOCAL STORAGE
-===================================================== */
+/* LOCAL STORAGE */
 
 function getSetting(key,defaultValue){
 
-const value=localStorage.getItem(key);
+    const value=localStorage.getItem(key);
 
-if(value===null)return defaultValue;
+    if(value===null)return defaultValue;
 
-return value==='true';
-
+    return value==='true';
 }
 
 function saveSetting(key,value){
 
-localStorage.setItem(
-key,
-value?'true':'false'
-);
-
+    localStorage.setItem(
+        key,
+        value?'true':'false'
+    );
 }
 
-
-/* =====================================================
-   SWITCH
-===================================================== */
+/* SWITCH */
 
 function setSwitch(id,value){
 
-const el=$(id);
+    const el=$(id);
 
-if(!el)return;
+    if(!el)return;
 
-el.classList.toggle('on',!!value);
-
+    el.classList.toggle('on',!!value);
 }
 
-
-/* =====================================================
-   AYARLAR
-===================================================== */
+/* AYARLAR */
 
 let notifications=getSetting(
-'minegram_notifications',
-true
+    'minegram_notifications',
+    true
 );
 
 let privateAccount=getSetting(
-'minegram_private_account',
-false
+    'minegram_private_account',
+    false
 );
 
 let darkTheme=getSetting(
-'minegram_dark_theme',
-true
+    'minegram_dark_theme',
+    true
 );
 
 let verified=getSetting(
-'minegram_verified',
-false
+    'minegram_verified',
+    false
 );
 
 let savedLogin=getSetting(
-'minegram_saved_login',
-true
+    'minegram_saved_login',
+    true
 );
 
 let twoFactor=getSetting(
-'minegram_two_factor',
-false
+    'minegram_two_factor',
+    false
 );
 
-
-/* =====================================================
-   BAŞLANGIÇ
-===================================================== */
+/* BAŞLANGIÇ */
 
 function initialize(){
 
-setSwitch('notificationsSwitch',notifications);
-setSwitch('privateSwitch',privateAccount);
-setSwitch('darkSwitch',darkTheme);
-setSwitch('verifiedSwitch',verified);
-setSwitch('savedLoginSwitch',savedLogin);
-setSwitch('privacyPrivateSwitch',privateAccount);
-setSwitch('twoFactorSwitch',twoFactor);
+    setSwitch('notificationsSwitch',notifications);
+    setSwitch('privateSwitch',privateAccount);
+    setSwitch('darkSwitch',darkTheme);
+    setSwitch('verifiedSwitch',verified);
+    setSwitch('savedLoginSwitch',savedLogin);
+    setSwitch('privacyPrivateSwitch',privateAccount);
+    setSwitch('twoFactorSwitch',twoFactor);
 
-const setup=$('twoFactorSetup');
+    const setup=$('twoFactorSetup');
 
-if(setup){
-setup.style.display=twoFactor?'block':'none';
+    if(setup){
+        setup.style.display=twoFactor?'block':'none';
+    }
 }
 
-}
-
-
-/* =====================================================
-   BİLDİRİMLER
-===================================================== */
+/* BİLDİRİMLER */
 
 $('notificationsSwitch').addEventListener(
-'click',
-function(e){
+    'click',
+    function(e){
 
-e.stopPropagation();
+        e.stopPropagation();
 
-notifications=!notifications;
+        notifications=!notifications;
 
-saveSetting(
-'minegram_notifications',
-notifications
+        saveSetting(
+            'minegram_notifications',
+            notifications
+        );
+
+        setSwitch(
+            'notificationsSwitch',
+            notifications
+        );
+
+        toast(
+            notifications
+            ?'Bildirimler açıldı'
+            :'Bildirimler kapatıldı'
+        );
+    }
 );
 
-setSwitch(
-'notificationsSwitch',
-notifications
-);
-
-toast(
-notifications
-?'Bildirimler açıldı'
-:'Bildirimler kapatıldı'
-);
-
-}
-);
-
-
-/* =====================================================
-   GİZLİ HESAP
-===================================================== */
+/* GİZLİ HESAP */
 
 function togglePrivateAccount(e){
 
-if(e)e.stopPropagation();
+    if(e)e.stopPropagation();
 
-privateAccount=!privateAccount;
+    privateAccount=!privateAccount;
 
-saveSetting(
-'minegram_private_account',
-privateAccount
-);
+    saveSetting(
+        'minegram_private_account',
+        privateAccount
+    );
 
-setSwitch(
-'privateSwitch',
-privateAccount
-);
+    setSwitch(
+        'privateSwitch',
+        privateAccount
+    );
 
-setSwitch(
-'privacyPrivateSwitch',
-privateAccount
-);
+    setSwitch(
+        'privacyPrivateSwitch',
+        privateAccount
+    );
 
-toast(
-privateAccount
-?'Gizli hesap açıldı'
-:'Gizli hesap kapatıldı'
-);
-
+    toast(
+        privateAccount
+        ?'Gizli hesap açıldı'
+        :'Gizli hesap kapatıldı'
+    );
 }
 
 $('privateSwitch').addEventListener(
-'click',
-togglePrivateAccount
+    'click',
+    togglePrivateAccount
 );
 
 $('privacyPrivateSwitch').addEventListener(
-'click',
-togglePrivateAccount
+    'click',
+    togglePrivateAccount
 );
 
-
-/* =====================================================
-   SİYAH TEMA
-===================================================== */
+/* SİYAH TEMA */
 
 $('darkSwitch').addEventListener(
-'click',
-function(e){
+    'click',
+    function(e){
 
-e.stopPropagation();
+        e.stopPropagation();
 
-darkTheme=!darkTheme;
+        darkTheme=!darkTheme;
 
-saveSetting(
-'minegram_dark_theme',
-darkTheme
+        saveSetting(
+            'minegram_dark_theme',
+            darkTheme
+        );
+
+        setSwitch(
+            'darkSwitch',
+            darkTheme
+        );
+
+        toast(
+            darkTheme
+            ?'Siyah tema açıldı'
+            :'Siyah tema kapatıldı'
+        );
+    }
 );
 
-setSwitch(
-'darkSwitch',
-darkTheme
-);
-
-toast(
-darkTheme
-?'Siyah tema açıldı'
-:'Siyah tema kapatıldı'
-);
-
-}
-);
-
-
-/* =====================================================
-   MAVİ TİK
-===================================================== */
+/* MAVİ TİK */
 
 $('verifiedSwitch').addEventListener(
-'click',
-function(e){
+    'click',
+    function(e){
 
-e.stopPropagation();
+        e.stopPropagation();
 
-verified=!verified;
+        verified=!verified;
 
-saveSetting(
-'minegram_verified',
-verified
+        saveSetting(
+            'minegram_verified',
+            verified
+        );
+
+        setSwitch(
+            'verifiedSwitch',
+            verified
+        );
+
+        toast(
+            verified
+            ?'Mavi tik etkinleştirildi'
+            :'Mavi tik kapatıldı'
+        );
+    }
 );
 
-setSwitch(
-'verifiedSwitch',
-verified
-);
-
-toast(
-verified
-?'Mavi tik etkinleştirildi'
-:'Mavi tik kapatıldı'
-);
-
-}
-);
-
-
-/* =====================================================
-   GİRİŞ BİLGİLERİ
-===================================================== */
+/* GİRİŞ BİLGİLERİ */
 
 $('savedLoginSwitch').addEventListener(
-'click',
-function(e){
+    'click',
+    function(e){
 
-e.stopPropagation();
+        e.stopPropagation();
 
-savedLogin=!savedLogin;
+        savedLogin=!savedLogin;
 
-saveSetting(
-'minegram_saved_login',
-savedLogin
+        saveSetting(
+            'minegram_saved_login',
+            savedLogin
+        );
+
+        setSwitch(
+            'savedLoginSwitch',
+            savedLogin
+        );
+
+        toast(
+            savedLogin
+            ?'Giriş bilgileri kaydedilecek'
+            :'Giriş bilgileri kaydedilmeyecek'
+        );
+    }
 );
 
-setSwitch(
-'savedLoginSwitch',
-savedLogin
-);
-
-toast(
-savedLogin
-?'Giriş bilgileri kaydedilecek'
-:'Giriş bilgileri kaydedilmeyecek'
-);
-
-}
-);
-
-
-/* =====================================================
-   EKRAN AÇ
-===================================================== */
+/* EKRAN AÇ */
 
 function openScreen(id){
 
-document.querySelectorAll('.sub-screen').forEach(
-function(screen){
-screen.classList.remove('open');
-}
-);
+    document.querySelectorAll('.sub-screen').forEach(
+        function(screen){
+            screen.classList.remove('open');
+        }
+    );
 
-const screen=$(id);
+    const screen=$(id);
 
-if(screen){
-
-screen.classList.add('open');
-screen.scrollTop=0;
-
-}
-
+    if(screen){
+        screen.classList.add('open');
+        screen.scrollTop=0;
+    }
 }
 
-
-/* =====================================================
-   EKRAN KAPAT
-===================================================== */
+/* EKRAN KAPAT */
 
 function closeScreen(id){
 
-const screen=$(id);
+    const screen=$(id);
 
-if(screen){
-screen.classList.remove('open');
+    if(screen){
+        screen.classList.remove('open');
+    }
 }
 
-}
-
-
-/* =====================================================
-   ANA AYARLAR BUTONLARI
-===================================================== */
+/* ANA BUTONLAR */
 
 $('verifiedRow').addEventListener(
-'click',
-function(){
-openScreen('verifiedScreen');
-}
+    'click',
+    function(){
+        openScreen('verifiedScreen');
+    }
 );
 
 $('securityRow').addEventListener(
-'click',
-function(){
-openScreen('securityScreen');
-}
+    'click',
+    function(){
+        openScreen('securityScreen');
+    }
 );
 
 $('privacyRow').addEventListener(
-'click',
-function(){
-openScreen('privacyScreen');
-}
+    'click',
+    function(){
+        openScreen('privacyScreen');
+    }
 );
 
 $('accountCenterRow').addEventListener(
-'click',
-function(){
-openScreen('accountCenterScreen');
-}
+    'click',
+    function(){
+        openScreen('accountCenterScreen');
+    }
 );
 
 $('helpRow').addEventListener(
-'click',
-function(){
-openScreen('helpScreen');
-}
+    'click',
+    function(){
+        openScreen('helpScreen');
+    }
 );
 
 $('aboutRow').addEventListener(
-'click',
-function(){
-openScreen('aboutScreen');
-}
+    'click',
+    function(){
+        openScreen('aboutScreen');
+    }
 );
 
-
-/* =====================================================
-   ŞİFRE
-===================================================== */
+/* ŞİFRE */
 
 $('changePasswordRow').addEventListener(
-'click',
-function(){
-openScreen('changePasswordScreen');
-}
+    'click',
+    function(){
+        openScreen('changePasswordScreen');
+    }
 );
 
 $('changePasswordButton').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-const oldPassword=$('oldPassword').value.trim();
-const newPassword=$('newPassword').value.trim();
-const again=$('newPasswordAgain').value.trim();
+        const oldPassword=$('oldPassword').value.trim();
+        const newPassword=$('newPassword').value.trim();
+        const again=$('newPasswordAgain').value.trim();
 
-if(!oldPassword){
-toast('Mevcut şifreni gir');
-return;
-}
+        if(!oldPassword){
+            toast('Mevcut şifreni gir');
+            return;
+        }
 
-if(newPassword.length<6){
-toast('Yeni şifre en az 6 karakter olmalı');
-return;
-}
+        if(newPassword.length<6){
+            toast('Yeni şifre en az 6 karakter olmalı');
+            return;
+        }
 
-if(newPassword!==again){
-toast('Yeni şifreler aynı değil');
-return;
-}
+        if(newPassword!==again){
+            toast('Yeni şifreler aynı değil');
+            return;
+        }
 
-toast('Şifre değiştirme formu hazır');
-
-}
+        toast('Şifre değiştirme formu hazır');
+    }
 );
 
-
-/* =====================================================
-   GİRİŞ YAPILAN YERLER
-===================================================== */
+/* GİRİŞ YERLERİ */
 
 $('loginActivityRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-openScreen('loginActivityScreen');
+        openScreen('loginActivityScreen');
 
-renderDevices();
-
-}
+        renderDevices();
+    }
 );
-
 
 function renderDevices(){
 
-const list=$('deviceList');
+    const list=$('deviceList');
 
-if(!list)return;
+    if(!list)return;
 
-list.innerHTML='';
+    list.innerHTML='';
 
-const ua=navigator.userAgent.toLowerCase();
+    const ua=navigator.userAgent.toLowerCase();
 
-let device='Bilgisayar';
-let icon='💻';
+    let device='Bilgisayar';
+    let icon='💻';
 
-if(ua.includes('android')){
-device='Android cihaz';
-icon='📱';
-}
-else if(ua.includes('iphone')){
-device='iPhone';
-icon='📱';
-}
-else if(ua.includes('ipad')){
-device='iPad';
-icon='📱';
-}
+    if(ua.includes('android')){
+        device='Android cihaz';
+        icon='📱';
+    }
+    else if(ua.includes('iphone')){
+        device='iPhone';
+        icon='📱';
+    }
+    else if(ua.includes('ipad')){
+        device='iPad';
+        icon='📱';
+    }
 
-let browser='Tarayıcı';
+    let browser='Tarayıcı';
 
-if(ua.includes('edg')){
-browser='Microsoft Edge';
-}
-else if(ua.includes('chrome')){
-browser='Google Chrome';
-}
-else if(ua.includes('firefox')){
-browser='Firefox';
-}
-else if(ua.includes('safari')){
-browser='Safari';
-}
+    if(ua.includes('edg')){
+        browser='Microsoft Edge';
+    }
+    else if(ua.includes('chrome')){
+        browser='Google Chrome';
+    }
+    else if(ua.includes('firefox')){
+        browser='Firefox';
+    }
+    else if(ua.includes('safari')){
+        browser='Safari';
+    }
 
-const card=document.createElement('div');
+    const card=document.createElement('div');
 
-card.className='device-card';
+    card.className='device-card';
 
-card.innerHTML=`
+    card.innerHTML=`
 
-<div class="device-top">
+        <div class="device-top">
 
-<div class="device-icon">
-${icon}
-</div>
+            <div class="device-icon">
+                ${icon}
+            </div>
 
-<div>
+            <div>
 
-<div class="device-name">
-${device}
-</div>
+                <div class="device-name">
+                    ${device}
+                </div>
 
-<div class="device-info">
-${browser}<br>
-Bu cihaz • Şu anda aktif
-</div>
+                <div class="device-info">
+                    ${browser}<br>
+                    Bu cihaz • Şu anda aktif
+                </div>
 
-<span class="current-device">
-BU CİHAZ
-</span>
+                <span class="current-device">
+                    BU CİHAZ
+                </span>
 
-</div>
+            </div>
 
-</div>
+        </div>
+    `;
 
-`;
-
-list.appendChild(card);
-
+    list.appendChild(card);
 }
 
-
-/* =====================================================
-   2FA
-===================================================== */
+/* 2FA */
 
 $('twoFactorRow').addEventListener(
-'click',
-function(){
-openScreen('twoFactorScreen');
-}
+    'click',
+    function(){
+        openScreen('twoFactorScreen');
+    }
 );
 
 $('twoFactorSwitch').addEventListener(
-'click',
-function(e){
+    'click',
+    function(e){
 
-e.stopPropagation();
+        e.stopPropagation();
 
-twoFactor=!twoFactor;
+        twoFactor=!twoFactor;
 
-saveSetting(
-'minegram_two_factor',
-twoFactor
+        saveSetting(
+            'minegram_two_factor',
+            twoFactor
+        );
+
+        setSwitch(
+            'twoFactorSwitch',
+            twoFactor
+        );
+
+        $('twoFactorSetup').style.display=
+            twoFactor?'block':'none';
+
+        toast(
+            twoFactor
+            ?'İki faktörlü doğrulama açıldı'
+            :'İki faktörlü doğrulama kapatıldı'
+        );
+    }
 );
-
-setSwitch(
-'twoFactorSwitch',
-twoFactor
-);
-
-$('twoFactorSetup').style.display=
-twoFactor?'block':'none';
-
-toast(
-twoFactor
-?'İki faktörlü doğrulama açıldı'
-:'İki faktörlü doğrulama kapatıldı'
-);
-
-}
-);
-
 
 $('sendTwoFactorCode').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-const phone=$('twoFactorPhone').value.trim();
+        const phone=$('twoFactorPhone').value.trim();
 
-if(!phone){
-toast('Telefon numaranı gir');
-return;
-}
+        if(!phone){
+            toast('Telefon numaranı gir');
+            return;
+        }
 
-if(phone.length<10){
-toast('Geçerli bir telefon numarası gir');
-return;
-}
+        if(phone.length<10){
+            toast('Geçerli bir telefon numarası gir');
+            return;
+        }
 
-$('twoFactorCodeArea').style.display='block';
+        $('twoFactorCodeArea').style.display='block';
 
-toast('Doğrulama kodu alanı açıldı');
-
-}
+        toast('Doğrulama kodu alanı açıldı');
+    }
 );
-
 
 $('verifyTwoFactorButton').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-const code=$('twoFactorCode').value.trim();
+        const code=$('twoFactorCode').value.trim();
 
-if(code.length!==6){
-toast('6 haneli doğrulama kodunu gir');
-return;
-}
+        if(code.length!==6){
+            toast('6 haneli doğrulama kodunu gir');
+            return;
+        }
 
-saveSetting(
-'minegram_two_factor',
-true
+        saveSetting(
+            'minegram_two_factor',
+            true
+        );
+
+        twoFactor=true;
+
+        setSwitch(
+            'twoFactorSwitch',
+            true
+        );
+
+        toast('İki faktörlü doğrulama etkinleştirildi');
+    }
 );
 
-twoFactor=true;
-
-setSwitch(
-'twoFactorSwitch',
-true
-);
-
-toast('İki faktörlü doğrulama etkinleştirildi');
-
-}
-);
-
-
-/* =====================================================
-   GİZLİLİK
-===================================================== */
+/* GİZLİLİK */
 
 $('mentionsRow').addEventListener(
-'click',
-function(){
-openScreen('mentionsScreen');
-}
+    'click',
+    function(){
+        openScreen('mentionsScreen');
+    }
 );
 
 $('commentsRow').addEventListener(
-'click',
-function(){
-openScreen('commentsScreen');
-}
+    'click',
+    function(){
+        openScreen('commentsScreen');
+    }
 );
 
 $('blockedRow').addEventListener(
-'click',
-function(){
-openScreen('blockedScreen');
-}
+    'click',
+    function(){
+        openScreen('blockedScreen');
+    }
 );
 
-
-/* =====================================================
-   BAHSETMELER
-===================================================== */
+/* BAHSETMELER */
 
 document.querySelectorAll('.mention-option').forEach(
-function(button){
+    function(button){
 
-button.addEventListener(
-'click',
-function(){
+        button.addEventListener(
+            'click',
+            function(){
 
-localStorage.setItem(
-'minegram_mentions',
-button.dataset.value
+                localStorage.setItem(
+                    'minegram_mentions',
+                    button.dataset.value
+                );
+
+                toast('Bahsetme ayarı kaydedildi');
+            }
+        );
+    }
 );
 
-toast('Bahsetme ayarı kaydedildi');
-
-}
-);
-
-}
-);
-
-
-/* =====================================================
-   YORUMLAR
-===================================================== */
+/* YORUMLAR */
 
 document.querySelectorAll('.comment-option').forEach(
-function(button){
+    function(button){
 
-button.addEventListener(
-'click',
-function(){
+        button.addEventListener(
+            'click',
+            function(){
 
-localStorage.setItem(
-'minegram_comments',
-button.dataset.value
+                localStorage.setItem(
+                    'minegram_comments',
+                    button.dataset.value
+                );
+
+                toast('Yorum ayarı kaydedildi');
+            }
+        );
+    }
 );
 
-toast('Yorum ayarı kaydedildi');
-
-}
-);
-
-}
-);
-
-
-/* =====================================================
-   HESAP MERKEZİ
-===================================================== */
+/* HESAP MERKEZİ */
 
 $('personalInfoRow').addEventListener(
-'click',
-function(){
-openScreen('personalInfoScreen');
-}
+    'click',
+    function(){
+        openScreen('personalInfoScreen');
+    }
 );
 
 $('centerSecurityRow').addEventListener(
-'click',
-function(){
-openScreen('securityScreen');
-}
+    'click',
+    function(){
+        openScreen('securityScreen');
+    }
 );
 
 $('ownershipRow').addEventListener(
-'click',
-function(){
-openScreen('ownershipScreen');
-}
+    'click',
+    function(){
+        openScreen('ownershipScreen');
+    }
 );
 
 $('dataPermissionsRow').addEventListener(
-'click',
-function(){
-openScreen('dataPermissionsScreen');
-}
+    'click',
+    function(){
+        openScreen('dataPermissionsScreen');
+    }
 );
 
 $('downloadDataRow').addEventListener(
-'click',
-function(){
-openScreen('downloadDataScreen');
-}
+    'click',
+    function(){
+        openScreen('downloadDataScreen');
+    }
 );
 
 $('appPermissionsRow').addEventListener(
-'click',
-function(){
-openScreen('appPermissionsScreen');
-}
+    'click',
+    function(){
+        openScreen('appPermissionsScreen');
+    }
 );
 
-
-/* =====================================================
-   HESAP SAHİPLİĞİ
-===================================================== */
+/* HESAP SAHİPLİĞİ */
 
 $('deactivateAccountRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Hesabı devre dışı bırak',
-'Hesabını geçici olarak devre dışı bırakma işlemi burada yapılabilir.'
-);
-
-}
+        showDialog(
+            'Hesabı devre dışı bırak',
+            'Hesabını geçici olarak devre dışı bırakma işlemi burada yapılabilir.'
+        );
+    }
 );
 
 $('deleteAccountRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Hesabı sil',
-'Hesap silme işlemi için backend bağlantısı gereklidir.'
+        showDialog(
+            'Hesabı sil',
+            'Hesap silme işlemi için backend bağlantısı gereklidir.'
+        );
+    }
 );
 
-}
-);
-
-
-/* =====================================================
-   VERİ İNDİR
-===================================================== */
+/* VERİ İNDİR */
 
 $('downloadDataButton').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-toast(
-'Veri indirme talebin hazırlandı'
+        toast(
+            'Veri indirme talebin hazırlandı'
+        );
+    }
 );
 
-}
-);
-
-
-/* =====================================================
-   UYGULAMA İZİNLERİ
-===================================================== */
+/* UYGULAMA İZİNLERİ */
 
 document.querySelectorAll(
-'#appPermissionsScreen .sub-row'
+    '#appPermissionsScreen .sub-row'
 ).forEach(
-function(row){
+    function(row){
 
-row.addEventListener(
-'click',
-function(){
+        row.addEventListener(
+            'click',
+            function(){
 
-toast(
-row.querySelector('span').textContent+
-' izinleri cihaz ayarlarından yönetilebilir'
+                toast(
+                    row.querySelector('span').textContent+
+                    ' izinleri cihaz ayarlarından yönetilebilir'
+                );
+            }
+        );
+    }
 );
 
-}
-);
-
-}
-);
-
-
-/* =====================================================
-   YARDIM
-===================================================== */
+/* YARDIM */
 
 $('helpAccountRow').addEventListener(
-'click',
-function(){
-openScreen('helpAccountScreen');
-}
+    'click',
+    function(){
+        openScreen('helpAccountScreen');
+    }
 );
 
 $('helpSecurityRow').addEventListener(
-'click',
-function(){
-openScreen('helpSecurityScreen');
-}
+    'click',
+    function(){
+        openScreen('helpSecurityScreen');
+    }
 );
 
 $('helpPrivacyRow').addEventListener(
-'click',
-function(){
-openScreen('helpPrivacyScreen');
-}
+    'click',
+    function(){
+        openScreen('helpPrivacyScreen');
+    }
 );
 
 $('helpMessagesRow').addEventListener(
-'click',
-function(){
-openScreen('helpMessagesScreen');
-}
+    'click',
+    function(){
+        openScreen('helpMessagesScreen');
+    }
 );
 
 $('helpCenterRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Yardım merkezi',
-'Minegram yardım merkezi burada açılacaktır.'
-);
-
-}
+        showDialog(
+            'Yardım merkezi',
+            'Minegram yardım merkezi burada açılacaktır.'
+        );
+    }
 );
 
 $('reportProblemRow').addEventListener(
-'click',
-function(){
-openScreen('reportScreen');
-}
+    'click',
+    function(){
+        openScreen('reportScreen');
+    }
 );
 
 $('termsRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Koşullar',
-'Minegram kullanım koşulları burada gösterilecektir.'
-);
-
-}
+        showDialog(
+            'Koşullar',
+            'Minegram kullanım koşulları burada gösterilecektir.'
+        );
+    }
 );
 
 $('privacyPolicyRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Gizlilik politikası',
-'Minegram gizlilik politikası burada gösterilecektir.'
+        showDialog(
+            'Gizlilik politikası',
+            'Minegram gizlilik politikası burada gösterilecektir.'
+        );
+    }
 );
 
-}
-);
-
-
-/* =====================================================
-   SORUN BİLDİR
-===================================================== */
+/* FOTOĞRAF */
 
 const photoInput=$('photoInput');
 const photoButton=$('photoButton');
@@ -2392,264 +2334,215 @@ const photoCount=$('photoCount');
 let selectedPhotos=[];
 
 photoButton.addEventListener(
-'click',
-function(){
-photoInput.click();
-}
+    'click',
+    function(){
+        photoInput.click();
+    }
 );
 
 photoInput.addEventListener(
-'change',
-function(event){
+    'change',
+    function(event){
 
-const files=Array.from(event.target.files);
+        const files=Array.from(event.target.files);
 
-for(const file of files){
+        for(const file of files){
 
-if(selectedPhotos.length>=2){
+            if(selectedPhotos.length>=2){
+                toast('En fazla 2 fotoğraf ekleyebilirsin');
+                break;
+            }
 
-toast('En fazla 2 fotoğraf ekleyebilirsin');
-break;
+            if(!file.type.startsWith('image/')){
+                toast('Sadece fotoğraf seçebilirsin');
+                continue;
+            }
 
-}
+            selectedPhotos.push(file);
+        }
 
-if(!file.type.startsWith('image/')){
+        photoInput.value='';
 
-toast('Sadece fotoğraf seçebilirsin');
-continue;
-
-}
-
-selectedPhotos.push(file);
-
-}
-
-photoInput.value='';
-
-renderPreviews();
-
-}
+        renderPreviews();
+    }
 );
-
 
 function renderPreviews(){
 
-previewGrid.innerHTML='';
+    previewGrid.innerHTML='';
 
-photoCount.textContent=
-selectedPhotos.length+' / 2 fotoğraf';
+    photoCount.textContent=
+        selectedPhotos.length+' / 2 fotoğraf';
 
-selectedPhotos.forEach(
-function(file,index){
+    selectedPhotos.forEach(
+        function(file,index){
 
-const item=document.createElement('div');
+            const item=document.createElement('div');
 
-item.className='preview-item';
+            item.className='preview-item';
 
-const img=document.createElement('img');
+            const img=document.createElement('img');
 
-const remove=document.createElement('button');
+            const remove=document.createElement('button');
 
-remove.className='remove-photo';
-remove.type='button';
-remove.textContent='×';
+            remove.className='remove-photo';
+            remove.type='button';
+            remove.textContent='×';
 
-const url=URL.createObjectURL(file);
+            const url=URL.createObjectURL(file);
 
-img.src=url;
+            img.src=url;
 
-img.onload=function(){
-URL.revokeObjectURL(url);
-};
+            img.onload=function(){
+                URL.revokeObjectURL(url);
+            };
 
-remove.addEventListener(
-'click',
-function(){
+            remove.addEventListener(
+                'click',
+                function(){
 
-selectedPhotos.splice(index,1);
+                    selectedPhotos.splice(index,1);
 
-renderPreviews();
+                    renderPreviews();
+                }
+            );
 
+            item.appendChild(img);
+            item.appendChild(remove);
+
+            previewGrid.appendChild(item);
+        }
+    );
 }
-);
-
-item.appendChild(img);
-item.appendChild(remove);
-
-previewGrid.appendChild(item);
-
-}
-);
-
-}
-
 
 $('sendReport').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-const text=$('reportText').value.trim();
+        const text=$('reportText').value.trim();
 
-if(!text){
+        if(!text){
+            toast('Lütfen sorunu açıklayın');
+            return;
+        }
 
-toast('Lütfen sorunu açıklayın');
+        toast(
+            'Sorun bildirimin alındı'
+        );
 
-return;
+        $('reportText').value='';
 
-}
+        selectedPhotos=[];
 
-toast(
-'Sorun bildirimin alındı'
+        renderPreviews();
+    }
 );
 
-$('reportText').value='';
-
-selectedPhotos=[];
-
-renderPreviews();
-
-}
-);
-
-
-/* =====================================================
-   HAKKINDA
-===================================================== */
+/* HAKKINDA */
 
 $('communityRulesRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Topluluk kuralları',
-'Minegram topluluk kuralları burada gösterilecektir.'
-);
-
-}
+        showDialog(
+            'Topluluk kuralları',
+            'Minegram topluluk kuralları burada gösterilecektir.'
+        );
+    }
 );
 
 $('serviceTermsRow').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-showDialog(
-'Hizmet koşulları',
-'Minegram hizmet koşulları burada gösterilecektir.'
+        showDialog(
+            'Hizmet koşulları',
+            'Minegram hizmet koşulları burada gösterilecektir.'
+        );
+    }
 );
 
-}
-);
-
-
-/* =====================================================
-   DİYALOG
-===================================================== */
+/* DİYALOG */
 
 function showDialog(title,text){
 
-$('dialogTitle').textContent=title;
-$('dialogText').textContent=text;
+    $('dialogTitle').textContent=title;
+    $('dialogText').textContent=text;
 
-$('dialogBg').classList.add('open');
-
+    $('dialogBg').classList.add('open');
 }
 
 function closeDialog(){
 
-$('dialogBg').classList.remove('open');
-
+    $('dialogBg').classList.remove('open');
 }
 
 $('dialogCancel').addEventListener(
-'click',
-closeDialog
+    'click',
+    closeDialog
 );
 
 $('dialogOk').addEventListener(
-'click',
-closeDialog
+    'click',
+    closeDialog
 );
 
-
-/* =====================================================
-   ALT SAYFA GERİ BUTONLARI
-===================================================== */
+/* ALT SAYFA GERİ */
 
 document.querySelectorAll(
-'[data-close]'
+    '[data-close]'
 ).forEach(
-function(button){
+    function(button){
 
-button.addEventListener(
-'click',
-function(e){
+        button.addEventListener(
+            'click',
+            function(e){
 
-e.preventDefault();
-e.stopPropagation();
+                e.preventDefault();
+                e.stopPropagation();
 
-const id=button.getAttribute(
-'data-close'
+                const id=button.getAttribute(
+                    'data-close'
+                );
+
+                closeScreen(id);
+            }
+        );
+    }
 );
 
-closeScreen(id);
-
-}
-);
-
-}
-);
-
-
-/* =====================================================
-   ANA GERİ
-===================================================== */
+/* ANA GERİ */
 
 $('backBtn').addEventListener(
-'click',
-function(){
+    'click',
+    function(){
 
-/*
-   Ana Ayarlar sayfasındayken
-   geçmişe history.back() yapmıyoruz.
-   Böylece yanlışlıkla ayarlara tekrar
-   veya başka bir sayfaya düşme sorunu olmaz.
-*/
-
-window.location.href='profile.html';
-
-}
+        window.location.href='profile.html';
+    }
 );
 
-
-/* =====================================================
-   ESC İLE ALT SAYFA KAPAT
-===================================================== */
+/* ESC */
 
 document.addEventListener(
-'keydown',
-function(e){
+    'keydown',
+    function(e){
 
-if(e.key==='Escape'){
+        if(e.key==='Escape'){
 
-document.querySelectorAll(
-'.sub-screen.open'
-).forEach(
-function(screen){
-screen.classList.remove('open');
-}
+            document.querySelectorAll(
+                '.sub-screen.open'
+            ).forEach(
+                function(screen){
+                    screen.classList.remove('open');
+                }
+            );
+
+            $('dialogBg').classList.remove('open');
+        }
+    }
 );
 
-$('dialogBg').classList.remove('open');
-
-}
-
-}
-);
-
-
-/* =====================================================
-   BAŞLAT
-===================================================== */
+/* BAŞLAT */
 
 initialize();
 
