@@ -1639,11 +1639,6 @@ function normalizeRecoveryPhone(
   return digits;
 }
 
-
-/* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT
-========================================================= */
-
 /* =========================================================
    FORGOT PASSWORD - FIND ACCOUNT + SEND CODE
 ========================================================= */
@@ -1651,7 +1646,6 @@ function normalizeRecoveryPhone(
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
-
     try {
 
       const identifier =
@@ -1666,48 +1660,134 @@ app.post(
       const mode =
         String(
           req.body?.mode ?? ""
-        )
-        .trim()
-        .toLowerCase();
-
+        ).trim().toLowerCase();
 
       if (!identifier) {
-
         return res.status(400).json({
           ok: false,
           error:
             "E-posta, kullanıcı adı veya telefon numarası gerekli."
         });
-
       }
-
 
       let recoveryMode = mode;
 
-
       if (!recoveryMode) {
-
         if (identifier.includes("@")) {
-
           recoveryMode = "email";
-
-        }
-        else if (
+        } else if (
           /[\d\s()+\-]/.test(identifier) &&
           normalizeRecoveryPhone(identifier).length >= 10
         ) {
-
           recoveryMode = "phone";
-
-        }
-        else {
-
+        } else {
           recoveryMode = "username";
-
         }
-
       }
 
+      let found = null;
+
+      if (
+        recoveryMode === "phone" ||
+        recoveryMode === "tel" ||
+        recoveryMode === "telefon"
+      ) {
+        const authUser =
+          await findUserByPhone(identifier);
+
+        if (authUser?.email) {
+          const admin = adminClient();
+
+          const { data: profileById } =
+            await admin
+              .from("profiles")
+              .select(
+                "id,auth_user_id,username,email,display_name,avatar_url"
+              )
+              .or(
+                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+              )
+              .limit(1)
+              .maybeSingle();
+
+          found = {
+            email: authUser.email,
+            profile: profileById || null,
+            authUser
+          };
+        }
+      }
+
+      if (!found) {
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+      }
+
+      if (!found?.email) {
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+        });
+      }
+
+      const profile =
+        found.profile || {};
+
+      return res.json({
+        ok: true,
+
+        account: {
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
+
+          username:
+            profile.username || "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email:
+            found.email,
+
+          maskedEmail:
+            maskEmail(found.email),
+
+          avatar:
+            profile.avatar_url ||
+            null
+        },
+
+        identifier,
+        mode: recoveryMode
+      });
+
+    } catch (e) {
+
+      console.error(
+        "FIND ACCOUNT ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Hesap aranırken bir hata oluştu."
+      });
+    }
+  }
+);
 
       /* =====================================================
          HESABI BUL
