@@ -2,400 +2,594 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
     <title>Şifremi unuttum - Minegram</title>
 
     <style>
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    min-height:100%;
-    background:#000;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
-}
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            background: #000;
+            color: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
 
-body{
-    min-height:100vh;
-    overflow-x:hidden;
-}
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-.page{
-    width:100%;
-    min-height:100vh;
-    background:#000;
-}
+        /* =========================
+           ÜST BAŞLIK
+        ========================= */
 
-/* ÜST BAŞLIK */
-.topbar{
-    width:100%;
-    height:60px;
-    display:flex;
-    align-items:center;
-    padding-left:38px;
-}
+        .topbar {
+            width: 100%;
+            height: 70px;
 
-.back{
-    width:25px;
-    height:35px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-size:34px;
-    font-weight:300;
-    line-height:1;
-    cursor:pointer;
-    user-select:none;
-}
+            display: flex;
+            align-items: center;
 
-.top-title{
-    margin-left:15px;
-    font-size:20px;
-    font-weight:700;
-    color:#fff;
-}
+            padding-left: 38px;
 
-/* ANA FORM */
-.content{
-    width:317px;
-    margin:115px auto 0;
-}
+            background: #000;
+        }
 
-.title{
-    text-align:center;
-    font-size:30px;
-    line-height:1.15;
-    font-weight:700;
-    margin:0 0 34px;
-    color:#fff;
-}
+        .back-button {
+            color: #fff;
+            text-decoration: none;
 
-.description{
-    font-size:18px;
-    line-height:1.45;
-    color:#bdbdbd;
-    margin:0 0 65px;
-}
+            font-size: 46px;
+            font-weight: 300;
 
-.phone-input{
-    display:block;
-    width:100%;
-    height:39px;
-    padding:0 10px;
-    border:1px solid #252525;
-    border-radius:6px;
-    background:#050505;
-    color:#fff;
-    outline:none;
-    font-size:12px;
-    font-family:Arial,Helvetica,sans-serif;
-}
+            line-height: 1;
 
-.phone-input::placeholder{
-    color:#777;
-    opacity:1;
-}
+            margin-right: 20px;
 
-.phone-input:focus{
-    border-color:#555;
-}
+            cursor: pointer;
+        }
 
-.continue-btn{
-    display:block;
-    width:100%;
-    height:37px;
-    margin-top:8px;
-    border:0;
-    border-radius:22px;
-    background:#2677b5;
-    color:#000;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-}
+        .top-title {
+            color: #fff;
 
-.continue-btn:active{
-    transform:scale(.99);
-}
+            font-size: 25px;
+            font-weight: 700;
+        }
 
-.continue-btn:disabled{
-    opacity:.6;
-    cursor:not-allowed;
-}
 
-.other-method{
-    display:block;
-    width:100%;
-    margin-top:12px;
-    text-align:center;
-    color:#008cff;
-    font-size:12px;
-    font-weight:400;
-    text-decoration:underline;
-    cursor:pointer;
-    line-height:1.4;
-}
+        /* =========================
+           ANA ALAN
+        ========================= */
 
-.message{
-    min-height:20px;
-    margin-top:12px;
-    text-align:center;
-    font-size:11px;
-    line-height:1.4;
-    color:#ff5c5c;
-}
+        .page {
+            width: 100%;
+            min-height: calc(100vh - 70px);
 
-.message.success{
-    color:#55b8ff;
-}
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
 
-/* DOĞRULAMA */
-.code-box{
-    display:none;
-    margin-top:20px;
-}
 
-.code-title{
-    text-align:center;
-    font-size:18px;
-    font-weight:700;
-    margin-bottom:10px;
-}
+        /* =========================
+           MASAÜSTÜ BOYUTU
+           GİRİŞ.HTML GİBİ
+        ========================= */
 
-.code-info{
-    text-align:center;
-    color:#aaa;
-    font-size:12px;
-    line-height:1.5;
-    margin-bottom:12px;
-}
+        .container {
+            width: 320px;
 
-.code-input{
-    display:block;
-    width:100%;
-    height:39px;
-    border:1px solid #252525;
-    border-radius:6px;
-    background:#050505;
-    color:#fff;
-    text-align:center;
-    letter-spacing:5px;
-    font-size:17px;
-    outline:none;
-}
+            margin-top: 105px;
 
-.verify-btn{
-    display:block;
-    width:100%;
-    height:37px;
-    margin-top:8px;
-    border:0;
-    border-radius:22px;
-    background:#2677b5;
-    color:#000;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-}
+            display: flex;
+            flex-direction: column;
+        }
 
-/* TELEFON */
-@media(max-width:600px){
 
-    .topbar{
-        height:70px;
-        padding-left:28px;
-    }
+        /* =========================
+           BAŞLIK
+        ========================= */
 
-    .back{
-        width:30px;
-        height:38px;
-        font-size:38px;
-    }
+        .main-title {
+            color: #fff;
 
-    .top-title{
-        margin-left:12px;
-        font-size:21px;
-    }
+            text-align: center;
 
-    .content{
-        width:calc(100% - 120px);
-        max-width:365px;
-        margin:105px auto 0;
-    }
+            font-size: 27px;
+            font-weight: 700;
 
-    .title{
-        font-size:42px;
-        margin-bottom:30px;
-    }
+            margin-bottom: 38px;
+        }
 
-    .description{
-        font-size:21px;
-        line-height:1.5;
-        margin-bottom:55px;
-    }
 
-    .phone-input{
-        height:68px;
-        padding:0 20px;
-        font-size:18px;
-        border:2px solid #686868;
-        border-radius:9px;
-    }
+        /* =========================
+           AÇIKLAMA
+        ========================= */
 
-    .continue-btn{
-        height:58px;
-        margin-top:18px;
-        font-size:20px;
-        border-radius:32px;
-    }
+        .description {
+            color: #bdbdbd;
 
-    .other-method{
-        margin-top:25px;
-        font-size:18px;
-    }
+            font-size: 16px;
+            line-height: 1.5;
 
-    .message{
-        font-size:14px;
-    }
+            margin-bottom: 65px;
+        }
 
-    .code-title{
-        font-size:22px;
-    }
 
-    .code-info{
-        font-size:15px;
-    }
+        /* =========================
+           INPUT
+        ========================= */
 
-    .code-input{
-        height:58px;
-        font-size:22px;
-    }
+        .input {
+            width: 100%;
+            height: 39px;
 
-    .verify-btn{
-        height:58px;
-        font-size:18px;
-    }
-}
+            background: #050505;
 
-/* KÜÇÜK TELEFON */
-@media(max-width:430px){
+            border: 1px solid #222;
+            border-radius: 7px;
 
-    .content{
-        width:calc(100% - 40px);
-        margin-top:65px;
-    }
+            color: #fff;
 
-    .title{
-        font-size:38px;
-    }
+            padding: 0 12px;
 
-    .description{
-        font-size:20px;
-    }
-}
+            font-size: 12px;
+
+            outline: none;
+        }
+
+        .input::placeholder {
+            color: #777;
+        }
+
+        .input:focus {
+            border-color: #444;
+        }
+
+
+        /* =========================
+           DEVAM BUTONU
+        ========================= */
+
+        .continue-button {
+            width: 100%;
+            height: 37px;
+
+            margin-top: 9px;
+
+            border: none;
+            border-radius: 22px;
+
+            background: #2478b7;
+
+            color: #000;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .continue-button:hover {
+            background: #2b83c5;
+        }
+
+        .continue-button:active {
+            transform: scale(0.99);
+        }
+
+
+        /* =========================
+           LİNKLER
+        ========================= */
+
+        .link {
+            display: block;
+
+            width: 100%;
+
+            text-align: center;
+
+            color: #1685d4;
+
+            text-decoration: none;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .phone-link {
+            margin-top: 20px;
+        }
+
+        .login-link {
+            margin-top: 28px;
+        }
+
+        .link:hover {
+            color: #42a5ee;
+        }
+
+
+        /* =========================
+           MESAJ
+        ========================= */
+
+        #message {
+            display: none;
+
+            width: 100%;
+
+            margin-top: 15px;
+
+            text-align: center;
+
+            color: #ff5757;
+
+            font-size: 12px;
+
+            line-height: 1.4;
+        }
+
+
+        /* ==================================================
+           TELEFON
+           GÖNDERDİĞİN 828x1792 GÖRSELDEKİ BOYUT
+        ================================================== */
+
+        @media (max-width: 700px) {
+
+            .topbar {
+                height: 72px;
+
+                padding-left: 48px;
+            }
+
+            .back-button {
+                font-size: 51px;
+
+                margin-right: 24px;
+            }
+
+            .top-title {
+                font-size: 30px;
+            }
+
+
+            .page {
+                min-height: calc(100vh - 72px);
+            }
+
+
+            .container {
+                width: calc(100% - 120px);
+
+                max-width: none;
+
+                margin-top: 160px;
+            }
+
+
+            .main-title {
+                font-size: 62px;
+
+                margin-bottom: 42px;
+            }
+
+
+            .description {
+                font-size: 36px;
+
+                line-height: 1.45;
+
+                margin-bottom: 72px;
+            }
+
+
+            .input {
+                width: 100%;
+
+                height: 118px;
+
+                border: 2px solid #666;
+
+                border-radius: 12px;
+
+                background: #111;
+
+                padding: 0 34px;
+
+                font-size: 31px;
+            }
+
+            .input::placeholder {
+                color: #c5c5c5;
+            }
+
+
+            .continue-button {
+                width: 100%;
+
+                height: 84px;
+
+                margin-top: 36px;
+
+                border-radius: 50px;
+
+                background: #61b0ed;
+
+                color: #25206d;
+
+                font-size: 31px;
+            }
+
+
+            .phone-link {
+                margin-top: 43px;
+            }
+
+            .login-link {
+                margin-top: 72px;
+            }
+
+
+            .link {
+                font-size: 29px;
+
+                line-height: 1.35;
+            }
+
+
+            #message {
+                font-size: 21px;
+            }
+        }
+
+
+        /* ==================================================
+           DAHA KÜÇÜK TELEFONLAR
+        ================================================== */
+
+        @media (max-width: 430px) {
+
+            .topbar {
+                height: 65px;
+
+                padding-left: 22px;
+            }
+
+            .back-button {
+                font-size: 42px;
+
+                margin-right: 16px;
+            }
+
+            .top-title {
+                font-size: 25px;
+            }
+
+
+            .container {
+                width: calc(100% - 60px);
+
+                margin-top: 95px;
+            }
+
+
+            .main-title {
+                font-size: 43px;
+
+                margin-bottom: 30px;
+            }
+
+
+            .description {
+                font-size: 25px;
+
+                line-height: 1.45;
+
+                margin-bottom: 48px;
+            }
+
+
+            .input {
+                height: 82px;
+
+                padding: 0 25px;
+
+                font-size: 23px;
+
+                border-width: 2px;
+            }
+
+
+            .continue-button {
+                height: 72px;
+
+                margin-top: 28px;
+
+                font-size: 23px;
+            }
+
+
+            .link {
+                font-size: 22px;
+            }
+
+
+            .phone-link {
+                margin-top: 34px;
+            }
+
+
+            .login-link {
+                margin-top: 55px;
+            }
+        }
     </style>
 </head>
 
 <body>
 
-    <!-- ÜST BAŞLIK -->
-    <div class="topbar">
-        <a href="giris.html" class="back" aria-label="Geri dön">‹</a>
-        <div class="top-title">Şifremi unuttum</div>
-    </div>
+    <!-- =========================
+         ÜST BAŞLIK
+    ========================== -->
 
-    <!-- SAYFA -->
+    <header class="topbar">
+
+        <a
+            href="giris.html"
+            class="back-button"
+            aria-label="Geri dön"
+        >
+            ‹
+        </a>
+
+        <div class="top-title">
+            Şifremi unuttum
+        </div>
+
+    </header>
+
+
+    <!-- =========================
+         ANA SAYFA
+    ========================== -->
+
     <main class="page">
 
-        <div class="container">
+        <section class="container">
 
-            <h1>Profilini bul</h1>
+            <h1 class="main-title">
+                Profilini bul
+            </h1>
+
 
             <p class="description">
-                Hesabını bulmak için e-posta adresini veya<br>
+                Hesabını bulmak için e-posta adresini veya
                 kullanıcı adını gir.
             </p>
+
 
             <input
                 id="emailUsername"
                 class="input"
                 type="text"
-                autocomplete="username"
                 placeholder="E-posta adresi veya kullanıcı adı"
+                autocomplete="username"
             >
 
+
             <button
-                id="continueBtn"
-                class="continue-btn"
-                type="button">
+                id="continueButton"
+                class="continue-button"
+                type="button"
+            >
                 Devam
             </button>
 
+
             <div id="message"></div>
 
+
             <!-- TELEFONLA BUL -->
+
             <a
                 href="sifremi-unuttum-telefon.html"
-                class="link phone-link">
+                class="link phone-link"
+            >
                 Cep telefonu numarasıyla bul
             </a>
 
+
             <!-- GİRİŞE DÖN -->
+
             <a
                 href="giris.html"
-                class="link login-link">
+                class="link login-link"
+            >
                 Giriş ekranına dön
             </a>
 
-        </div>
+        </section>
 
     </main>
 
-    <script>
-        const input = document.getElementById("emailUsername");
-        const continueBtn = document.getElementById("continueBtn");
-        const message = document.getElementById("message");
 
-        continueBtn.addEventListener("click", function () {
+    <script>
+
+        const input =
+            document.getElementById("emailUsername");
+
+        const continueButton =
+            document.getElementById("continueButton");
+
+        const message =
+            document.getElementById("message");
+
+
+        continueButton.addEventListener("click", function () {
 
             const value = input.value.trim();
+
 
             message.style.display = "none";
             message.textContent = "";
 
-            if (!value) {
-                message.textContent = "Lütfen e-posta adresinizi veya kullanıcı adınızı girin.";
+
+            if (value === "") {
+
+                message.textContent =
+                    "Lütfen e-posta adresinizi veya kullanıcı adınızı girin.";
+
                 message.style.display = "block";
+
                 input.focus();
+
                 return;
             }
 
+
             /*
-             * Firebase / server.js tarafındaki mevcut
-             * e-posta-kullanıcı adı şifre sıfırlama sistemin
-             * burada çalıştırılabilir.
-             *
-             * Şimdilik boş bırakıldı ki telefonla bulma
-             * ekranının akışını bozmasın.
+             * Firebase şifre sıfırlama işlemi
+             * mevcut sistemine burada bağlanabilir.
              */
 
-            console.log("Şifre sıfırlama araması:", value);
+            console.log(
+                "Şifre sıfırlama araması:",
+                value
+            );
+
         });
 
-        input.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                continueBtn.click();
+
+        input.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key === "Enter") {
+
+                    continueButton.click();
+
+                }
+
             }
-        });
+        );
+
     </script>
 
 </body>
