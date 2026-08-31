@@ -1144,14 +1144,156 @@ function profileUrl(username){
    TOKEN
 ========================= */
 
-function getApiToken(){
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseUser = null;
+let firebaseReady = null;
+let firebaseModules = null;
 
-    return (
-        localStorage.getItem('minegram_token') ||
-        localStorage.getItem('minegram_supabase_token') ||
-        localStorage.getItem('minegram_firebase_token') ||
-        null
-    );
+const firebaseConfig = {
+    apiKey: 'AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y',
+    authDomain: 'mim-ea133.firebaseapp.com',
+    databaseURL: 'https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app',
+    projectId: 'mim-ea133',
+    storageBucket: 'mim-ea133.firebasestorage.app',
+    messagingSenderId: '303525353436',
+    appId: '1:303525353436:web:082fc090b5025e19942119',
+    measurementId: 'G-K962QE5P1R'
+};
+
+async function initFirebase(){
+
+    if(firebaseReady){
+        return firebaseReady;
+    }
+
+    firebaseReady = (async()=>{
+
+        const appModule =
+            await import(
+                'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js'
+            );
+
+        const authModule =
+            await import(
+                'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js'
+            );
+
+        firebaseModules = authModule;
+
+        firebaseApp =
+            appModule.initializeApp(firebaseConfig);
+
+        firebaseAuth =
+            authModule.getAuth(firebaseApp);
+
+        firebaseUser =
+            await new Promise(resolve=>{
+
+                let finished = false;
+
+                const unsubscribe =
+                    authModule.onAuthStateChanged(
+                        firebaseAuth,
+                        user=>{
+
+                            if(finished)return;
+
+                            finished = true;
+
+                            firebaseUser =
+                                user || null;
+
+                            unsubscribe();
+
+                            resolve(firebaseUser);
+
+                        }
+                    );
+
+            });
+
+        return firebaseUser;
+
+    })();
+
+    try{
+
+        return await firebaseReady;
+
+    }catch(error){
+
+        firebaseReady = null;
+
+        throw error;
+
+    }
+
+}
+
+
+async function getApiToken(){
+
+    try{
+
+        await initFirebase();
+
+        if(firebaseUser){
+
+            const freshToken =
+                await firebaseUser.getIdToken(true);
+
+            if(freshToken){
+
+                token = freshToken;
+
+                localStorage.setItem(
+                    'minegram_token',
+                    freshToken
+                );
+
+                localStorage.setItem(
+                    'minegram_firebase_token',
+                    freshToken
+                );
+
+                localStorage.setItem(
+                    'minegram_firebase_uid',
+                    firebaseUser.uid || ''
+                );
+
+                localStorage.setItem(
+                    'minegram_firebase_email',
+                    firebaseUser.email || ''
+                );
+
+                return freshToken;
+
+            }
+
+        }
+
+        return (
+            token ||
+            localStorage.getItem(
+                'minegram_firebase_token'
+            ) ||
+            localStorage.getItem(
+                'minegram_token'
+            ) ||
+            null
+        );
+
+    }catch(error){
+
+        console.error(
+            '[FIREBASE TOKEN]',
+            error
+        );
+
+        return null;
+
+    }
 
 }
 
