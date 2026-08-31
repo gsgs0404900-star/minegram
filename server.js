@@ -2924,87 +2924,294 @@ const recoveryCodes = new Map();
 
 
 /* =========================================================
-   FORGOT START
+   RECOVERY HELPERS
+========================================================= */
+
+function publicOrigin(req) {
+  const proto =
+    req.headers["x-forwarded-proto"] ||
+    req.protocol ||
+    "http";
+
+  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
+}
+
+
+function maskEmail(email) {
+  const [u, d] =
+    String(email || "").split("@");
+
+  if (!u || !d) {
+    return email;
+  }
+
+  const shown =
+    u.length <= 2
+      ? u[0] + "*"
+      : u.slice(0, 2) +
+        "*".repeat(
+          Math.max(1, u.length - 2)
+        );
+
+  return `${shown}@${d}`;
+}
+
+
+function normalizeRecoveryPhone(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  const digits =
+    String(value).replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length >= 10) {
+    return digits.slice(-10);
+  }
+
+  return digits;
+}
+
+
+/* =========================================================
+   RESEND
+========================================================= */
+
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY || ""
+    ).trim();
+
+  if (!key) {
+    throw new Error(
+      "RESEND_API_KEY eksik."
+    );
+  }
+
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
+
+  const response =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${key}`,
+
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
+      }
+    );
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  if (!response.ok) {
+    console.error(
+      "[RESEND ERROR]",
+      response.status,
+      data
+    );
+
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Resend hata verdi (${response.status}).`
+    );
+  }
+
+  return data;
+}
+
+
+/* =========================================================
+   FORGOT PASSWORD - FIND ACCOUNT
 ========================================================= */
 
 app.post(
-  "/api/forgot/start",
+  "/api/forgot-password/find-account",
   async (req, res) => {
-
     try {
 
       const identifier =
         String(
-          req.body?.identifier || ""
+          req.body?.identifier ??
+          req.body?.email ??
+          req.body?.username ??
+          req.body?.phone ??
+          ""
         ).trim();
 
       const mode =
         String(
-          req.body?.mode || "email"
-        ).trim();
-
-
-      console.log(
-        "[FORGOT START] identifier:",
-        identifier,
-        "mode:",
-        mode
-      );
+          req.body?.mode ?? ""
+        )
+          .trim()
+          .toLowerCase();
 
 
       if (!identifier) {
-
         return res.status(400).json({
           ok: false,
           error:
-            "E-posta veya kullanıcı adı girilmedi."
+            "E-posta, kullanıcı adı veya telefon numarası gerekli."
         });
-
       }
 
 
-      /* -------------------------------------------------
-         HESABI BUL
-      ------------------------------------------------- */
+      let recoveryMode = mode;
 
-      const found =
-        await resolveRecoveryEmail(
-          identifier,
-          mode
-        );
 
+      if (!recoveryMode) {
+
+        if (
+          identifier.includes("@")
+        ) {
+          recoveryMode = "email";
+
+        } else if (
+          /[\d\s()+\-]/.test(identifier) &&
+          normalizeRecoveryPhone(
+            identifier
+          ).length >= 10
+        ) {
+          recoveryMode = "phone";
+
+        } else {
+          recoveryMode = "username";
+        }
+      }
+
+
+      let found = null;
+
+
+      /* -----------------------------------------------------
+         TELEFON
+      ----------------------------------------------------- */
+
+      if (
+        recoveryMode === "phone" ||
+        recoveryMode === "tel" ||
+        recoveryMode === "telefon"
+      ) {
+
+        const authUser =
+          await findUserByPhone(
+            identifier
+          );
+
+
+        if (authUser?.email) {
+
+          const admin =
+            adminClient();
+
+
+          const {
+            data: profileById
+          } =
+            await admin
+              .from("profiles")
+              .select(
+                "id,auth_user_id,username,email,display_name,avatar_url"
+              )
+              .or(
+                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+              )
+              .limit(1)
+              .maybeSingle();
+
+
+          found = {
+            email:
+              authUser.email,
+
+            profile:
+              profileById || null,
+
+            authUser
+          };
+        }
+      }
+
+
+      /* -----------------------------------------------------
+         E-POSTA / KULLANICI ADI
+      ----------------------------------------------------- */
 
       if (!found) {
+
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+      }
+
+
+      /* -----------------------------------------------------
+         HESAP YOK
+      ----------------------------------------------------- */
+
+      if (!found?.email) {
 
         return res.status(404).json({
           ok: false,
           error:
-            "Hesap bulunamadı."
+            "Bu bilgilerle eşleşen bir hesap bulunamadı."
         });
-
-      }
-
-
-      if (!found.email) {
-
-        return res.status(500).json({
-          ok: false,
-          error:
-            "Hesabın e-posta adresi bulunamadı."
-        });
-
       }
 
 
       const email =
         String(
           found.email
-        ).trim().toLowerCase();
+        )
+          .trim()
+          .toLowerCase();
 
 
-      /* -------------------------------------------------
+      const profile =
+        found.profile || {};
+
+
+      /* -----------------------------------------------------
          6 HANELİ KOD
-      ------------------------------------------------- */
+      ----------------------------------------------------- */
 
       const code =
         String(
@@ -3024,21 +3231,14 @@ app.post(
             Date.now() +
             10 * 60 * 1000,
 
-          profile:
-            found.profile || null
+          profile
         }
       );
 
 
-      console.log(
-        "[FORGOT START] Kod oluşturuldu:",
-        email
-      );
-
-
-      /* -------------------------------------------------
-         RESEND
-      ------------------------------------------------- */
+      /* -----------------------------------------------------
+         E-POSTA GÖNDER
+      ----------------------------------------------------- */
 
       await sendResendEmail(
 
@@ -3053,15 +3253,13 @@ app.post(
             max-width:500px;
             margin:auto;
             padding:30px;
-            background:#ffffff;
+            background:#fff;
             color:#111;
             border-radius:12px;
           "
         >
 
-          <h2 style="margin-top:0;">
-            Minegram
-          </h2>
+          <h2>Minegram</h2>
 
           <p>
             Şifre sıfırlama işlemin için
@@ -3102,38 +3300,52 @@ Bu kod 10 dakika geçerlidir.`
       );
 
 
-      /* -------------------------------------------------
+      /* -----------------------------------------------------
          BAŞARILI
-      ------------------------------------------------- */
-
-      console.log(
-        "[FORGOT START] E-posta gönderildi:",
-        email
-      );
-
+      ----------------------------------------------------- */
 
       return res.status(200).json({
 
         ok: true,
 
-        email: email,
+        account: {
 
-        maskedEmail:
-          typeof maskEmail === "function"
-            ? maskEmail(email)
-            : email.replace(
-                /^(.{2}).*(@.*)$/,
-                "$1***$2"
-              )
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
 
+          username:
+            profile.username || "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email,
+
+          maskedEmail:
+            maskEmail(email),
+
+          avatar:
+            profile.avatar_url ||
+            null
+        },
+
+        identifier,
+
+        mode:
+          recoveryMode
       });
 
-    }
-    catch (error) {
+
+    } catch (e) {
 
       console.error(
-        "FORGOT START ERROR:",
-        error
+        "FIND ACCOUNT ERROR:",
+        e
       );
 
 
@@ -3142,16 +3354,182 @@ Bu kod 10 dakika geçerlidir.`
         ok: false,
 
         error:
-          error?.message ||
-          "Sunucu tarafında bir hata oluştu."
-
+          e?.message ||
+          "Hesap aranırken bir hata oluştu."
       });
-
     }
-
   }
 );
 
+
+/* =========================================================
+   FORGOT PASSWORD - VERIFY CODE
+========================================================= */
+
+app.post(
+  "/api/forgot-password/verify",
+  async (req, res) => {
+
+    try {
+
+      const identifier =
+        String(
+          req.body?.identifier ||
+          req.body?.email ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      const code =
+        String(
+          req.body?.code ||
+          ""
+        ).trim();
+
+
+      if (!identifier || !code) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "E-posta ve doğrulama kodu gerekli."
+        });
+      }
+
+
+      let email = identifier;
+
+
+      if (!identifier.includes("@")) {
+
+        const found =
+          await resolveRecoveryEmail(
+            identifier,
+            "email"
+          );
+
+        if (!found?.email) {
+
+          return res.status(404).json({
+            ok: false,
+            error:
+              "Hesap bulunamadı."
+          });
+        }
+
+        email =
+          String(
+            found.email
+          )
+            .trim()
+            .toLowerCase();
+      }
+
+
+      const entry =
+        recoveryCodes.get(
+          email
+        );
+
+
+      if (!entry) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Doğrulama kodu bulunamadı veya süresi dolmuş."
+        });
+      }
+
+
+      if (
+        entry.expires <
+        Date.now()
+      ) {
+
+        recoveryCodes.delete(
+          email
+        );
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Doğrulama kodunun süresi dolmuş."
+        });
+      }
+
+
+      if (
+        entry.code !== code
+      ) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Doğrulama kodu yanlış."
+        });
+      }
+
+
+      const profile =
+        entry.profile || {};
+
+
+      recoveryCodes.delete(
+        email
+      );
+
+
+      return res.status(200).json({
+
+        ok: true,
+
+        verified: true,
+
+        account: {
+
+          id:
+            profile.id || null,
+
+          username:
+            profile.username || "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email,
+
+          avatar:
+            profile.avatar_url ||
+            null
+        }
+      });
+
+
+    } catch (e) {
+
+      console.error(
+        "VERIFY CODE ERROR:",
+        e
+      );
+
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          e?.message ||
+          "Kod doğrulanırken hata oluştu."
+      });
+    }
+  }
+);
 
 /* =========================================================
    FORGOT VERIFY
