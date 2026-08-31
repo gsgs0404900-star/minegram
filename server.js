@@ -14,22 +14,13 @@ app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT) || 3000;
 
-// =========================================================
-// ENV
-// =========================================================
-
 function env(name) {
 const value = process.env[name];
-
 if (value == null) return "";
-
-return String(value)
-.trim()
-.replace(/^(["'])|(["'])$/g, "");
+return String(value).trim().replace(/^(["'])|(["'])$/g, "");
 }
 
 const SUPABASE_URL = env("SUPABASE_URL");
-
 const SUPABASE_KEY =
 env("SUPABASE_PUBLISHABLE_KEY") ||
 env("SUPABASE_ANON_KEY");
@@ -40,8 +31,7 @@ env("SUPABASE_SERVICE_ROLE_KEY");
 const BUCKET = "media";
 
 const CONFIG_OK = Boolean(
-SUPABASE_URL &&
-SUPABASE_KEY
+SUPABASE_URL && SUPABASE_KEY
 );
 
 if (!CONFIG_OK) {
@@ -50,33 +40,20 @@ console.error(
 );
 }
 
-// =========================================================
-// EXPRESS
-// =========================================================
-
 app.use(express.json({ limit: "2mb" }));
 
-// HTML cache kapat
 app.use((req, res, next) => {
 if (req.path.endsWith(".html") || req.path === "/") {
 res.set(
 "Cache-Control",
 "no-store, no-cache, must-revalidate, proxy-revalidate"
 );
-
-```
 res.set("Pragma", "no-cache");
 res.set("Expires", "0");
-```
-
 }
 
 next();
 });
-
-// =========================================================
-// STATIC FILES
-// =========================================================
 
 const publicDir = path.join(__dirname, "public");
 const rootIndex = path.join(__dirname, "giris.html");
@@ -84,20 +61,12 @@ const rootIndex = path.join(__dirname, "giris.html");
 app.use(express.static(publicDir));
 app.use(express.static(__dirname));
 
-// =========================================================
-// MULTER
-// =========================================================
-
 const upload = multer({
 storage: multer.memoryStorage(),
 limits: {
 fileSize: 100 * 1024 * 1024
 }
 });
-
-// =========================================================
-// SUPABASE CLIENT
-// =========================================================
 
 function client(token = null) {
 if (!CONFIG_OK) {
@@ -130,10 +99,7 @@ options
 }
 
 function adminClient() {
-if (
-!SUPABASE_URL ||
-!SUPABASE_SERVICE_ROLE_KEY
-) {
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 throw new Error(
 "SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY eksik."
 );
@@ -151,10 +117,6 @@ detectSessionInUrl: false
 }
 );
 }
-
-// =========================================================
-// AUTH HELPERS
-// =========================================================
 
 function bearer(req) {
 const h = req.headers.authorization || "";
@@ -180,15 +142,10 @@ const {
   error
 } = await sb.auth.getUser(token);
 
-console.log("TOKEN:", token);
-console.log("GET USER:", user?.id);
-console.log("ERROR:", error);
-
 if (error || !user) {
   throw error || new Error("Oturum gerekli");
 }
 
-// Önce profile.id
 let {
   data: profile,
   error: pError
@@ -198,7 +155,6 @@ let {
   .eq("id", user.id)
   .maybeSingle();
 
-// Eski profiller için auth_user_id
 if (!profile) {
   const fallback = await sb
     .from("profiles")
@@ -234,11 +190,7 @@ res.status(401).json({
 }
 }
 
-// =========================================================
-// USER HELPERS
-// =========================================================
-
-function safeUser(u) {
+function safeUser(u = {}) {
 return {
 id: u.id,
 username: u.username,
@@ -280,10 +232,6 @@ if (error) throw error;
 return data;
 }
 
-// =========================================================
-// NOTIFICATIONS
-// =========================================================
-
 async function addNotification({
 userId,
 type,
@@ -292,7 +240,6 @@ postId = null,
 text
 }) {
 if (userId === fromUserId) return;
-
 if (!SUPABASE_SERVICE_ROLE_KEY) return;
 
 const admin = adminClient();
@@ -308,15 +255,7 @@ text
 });
 }
 
-// =========================================================
-// POSTS
-// =========================================================
-
-async function hydratePosts(
-sb,
-posts,
-userId
-) {
+async function hydratePosts(sb, posts, userId) {
 if (!posts.length) return [];
 
 const userIds = [
@@ -331,15 +270,14 @@ const [
 { data: comments },
 { data: saves }
 ] = await Promise.all([
+sb
+.from("profiles")
+.select(
+"id,username,display_name,bio,avatar_url,verified"
+)
+.in("id", userIds),
 
 ```
-sb
-  .from("profiles")
-  .select(
-    "id,username,display_name,bio,avatar_url,verified"
-  )
-  .in("id", userIds),
-
 sb
   .from("post_likes")
   .select("post_id,user_id")
@@ -365,10 +303,7 @@ sb
 ]);
 
 const pmap = new Map(
-(profiles || []).map(p => [
-p.id,
-p
-])
+(profiles || []).map(p => [p.id, p])
 );
 
 const likeMap = new Map();
@@ -444,214 +379,191 @@ user: safeUser(
 }));
 }
 
-// =========================================================
-// REGISTER
-// =========================================================
+/* =========================
+REGISTER
+========================= */
 
-app.post(
-"/api/register",
-async (req, res) => {
+app.post("/api/register", async (req, res) => {
 try {
 const username =
-normalizeUsername(
-req.body?.username
-);
+normalizeUsername(req.body?.username);
 
 ```
-  const email =
-    String(
-      req.body?.email || ""
-    )
-      .trim()
-      .toLowerCase();
+const email =
+  String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
 
-  const password =
-    String(
-      req.body?.password || ""
+const password =
+  String(req.body?.password || "");
+
+const displayName =
+  String(
+    req.body?.displayName || username
+  )
+    .trim()
+    .slice(0, 80);
+
+if (
+  !username ||
+  !email ||
+  password.length < 6
+) {
+  return res.status(400).json({
+    error:
+      "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli."
+  });
+}
+
+if (
+  !/^[a-z0-9._]{3,30}$/.test(username)
+) {
+  return res.status(400).json({
+    error:
+      "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan."
+  });
+}
+
+const anon = client();
+
+const {
+  data: existing
+} = await anon
+  .from("profiles")
+  .select("id")
+  .eq("username", username)
+  .maybeSingle();
+
+if (existing) {
+  return res.status(409).json({
+    error:
+      "Bu kullanıcı adı zaten alınmış."
+  });
+}
+
+const {
+  data,
+  error
+} = await anon.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      username,
+      display_name: displayName
+    }
+  }
+});
+
+if (error) {
+  return res.status(400).json({
+    error: error.message
+  });
+}
+
+if (!data.user) {
+  return res.status(400).json({
+    error: "Kullanıcı oluşturulamadı."
+  });
+}
+
+if (SUPABASE_SERVICE_ROLE_KEY) {
+  const admin = adminClient();
+
+  const {
+    error: profileError
+  } = await admin
+    .from("profiles")
+    .upsert(
+      {
+        id: data.user.id,
+        username,
+        display_name: displayName,
+        bio: "",
+        avatar_url: null,
+        verified: false,
+        settings: {}
+      },
+      {
+        onConflict: "id"
+      }
     );
 
-  const displayName =
-    String(
-      req.body?.displayName ||
+  if (profileError) {
+    return res.status(500).json({
+      error:
+        `Profil oluşturulamadı: ${profileError.message}`
+    });
+  }
+}
+
+if (!data.session) {
+  return res.json({
+    needsConfirmation: true,
+    message:
+      "Kayıt tamamlandı. E-posta adresini doğrula, ardından giriş yap.",
+    user: {
+      id: data.user.id,
+      email: data.user.email,
       username
-    )
-      .trim()
-      .slice(0, 80);
-
-  if (
-    !username ||
-    !email ||
-    password.length < 6
-  ) {
-    return res.status(400).json({
-      error:
-        "Kullanıcı adı, e-posta ve en az 6 karakterlik şifre gerekli."
-    });
-  }
-
-  if (
-    !/^[a-z0-9._]{3,30}$/.test(
-      username
-    )
-  ) {
-    return res.status(400).json({
-      error:
-        "Kullanıcı adı 3-30 karakter olmalı; harf, sayı, nokta ve alt çizgi kullan."
-    });
-  }
-
-  const anon = client();
-
-  const {
-    data: existing
-  } = await anon
-    .from("profiles")
-    .select("id")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (existing) {
-    return res.status(409).json({
-      error:
-        "Bu kullanıcı adı zaten alınmış."
-    });
-  }
-
-  const {
-    data,
-    error
-  } = await anon.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        username,
-        display_name:
-          displayName
-      }
     }
   });
+}
 
-  if (error) {
-    return res.status(400).json({
-      error: error.message
-    });
-  }
+const sb = client(
+  data.session.access_token
+);
 
-  if (!data.user) {
-    return res.status(400).json({
-      error:
-        "Kullanıcı oluşturulamadı."
-    });
-  }
+let {
+  data: profile,
+  error: pError
+} = await sb
+  .from("profiles")
+  .select("*")
+  .eq("id", data.user.id)
+  .single();
 
-  // Profil oluştur
-  if (SUPABASE_SERVICE_ROLE_KEY) {
-    const admin = adminClient();
+if (
+  (pError || !profile) &&
+  SUPABASE_SERVICE_ROLE_KEY
+) {
+  const admin = adminClient();
 
-    const {
-      error: profileError
-    } = await admin
-      .from("profiles")
-      .upsert(
-        {
-          id: data.user.id,
-          username,
-          display_name:
-            displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        },
-        {
-          onConflict: "id"
-        }
-      );
-
-    if (profileError) {
-      return res.status(500).json({
-        error:
-          `Profil oluşturulamadı: ${profileError.message}`
-      });
-    }
-  }
-
-  // E-posta doğrulama açıksa
-  if (!data.session) {
-    return res.json({
-      needsConfirmation: true,
-      message:
-        "Kayıt tamamlandı. E-posta adresini doğrula, ardından giriş yap.",
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        username
-      }
-    });
-  }
-
-  const sb = client(
-    data.session.access_token
-  );
-
-  let {
-    data: profile,
-    error: pError
-  } = await sb
+  const result = await admin
     .from("profiles")
     .select("*")
     .eq("id", data.user.id)
     .single();
 
-  if (
-    (pError || !profile) &&
-    SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    const admin = adminClient();
+  profile = result.data;
+  pError = result.error;
+}
 
-    const result = await admin
-      .from("profiles")
-      .select("*")
-      .eq("id", data.user.id)
-      .single();
-
-    profile = result.data;
-    pError = result.error;
-  }
-
-  if (pError || !profile) {
-    return res.status(500).json({
-      error:
-        "Profil oluşturulamadı."
-    });
-  }
-
-  res.json({
-    token:
-      data.session.access_token,
-    user: safeUser(profile)
-  });
-
-} catch (e) {
-  res.status(500).json({
-    error:
-      e.message ||
-      "Kayıt başarısız"
+if (pError || !profile) {
+  return res.status(500).json({
+    error: "Profil oluşturulamadı."
   });
 }
+
+res.json({
+  token: data.session.access_token,
+  user: safeUser(profile)
+});
 ```
 
+} catch (e) {
+res.status(500).json({
+error:
+e.message || "Kayıt başarısız"
+});
 }
-);
+});
 
-// =========================================================
-// LOGIN
-// =========================================================
+/* =========================
+LOGIN
+========================= */
 
-app.post(
-"/api/login",
-async (req, res) => {
+app.post("/api/login", async (req, res) => {
 try {
 const identifier =
 String(
@@ -661,212 +573,206 @@ req.body?.email ??
 ).trim();
 
 ```
-  const password =
-    String(
-      req.body?.password ?? ""
-    );
+const password =
+  String(req.body?.password ?? "");
 
-  if (!identifier || !password) {
-    return res.status(400).json({
-      error:
-        "Kullanıcı adı/e-posta ve şifre gerekli."
-    });
-  }
+if (!identifier || !password) {
+  return res.status(400).json({
+    error:
+      "Kullanıcı adı/e-posta ve şifre gerekli."
+  });
+}
 
-  if (!CONFIG_OK) {
-    return res.status(500).json({
-      error:
-        "Supabase ortam değişkenleri eksik."
-    });
-  }
+if (!CONFIG_OK) {
+  return res.status(500).json({
+    error:
+      "Supabase ortam değişkenleri eksik."
+  });
+}
 
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({
-      error:
-        "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
-    });
-  }
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  return res.status(500).json({
+    error:
+      "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
+  });
+}
 
-  const admin = adminClient();
+const admin = adminClient();
 
-  let email =
-    identifier.toLowerCase();
+let email =
+  identifier.toLowerCase();
 
-  if (!identifier.includes("@")) {
-    const username =
-      normalizeUsername(
-        identifier
-      );
-
-    const {
-      data: profile,
-      error: pe
-    } = await admin
-      .from("profiles")
-      .select("*")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (pe) {
-      return res.status(500).json({
-        error: pe.message
-      });
-    }
-
-    if (!profile) {
-      return res.status(401).json({
-        error:
-          "Kullanıcı adı veya şifre hatalı."
-      });
-    }
-
-    const authId =
-      profile.auth_user_id ||
-      profile.id;
-
-    const {
-      data: au,
-      error: ae
-    } = await admin.auth.admin
-      .getUserById(authId);
-
-    if (
-      ae ||
-      !au?.user?.email
-    ) {
-      return res.status(401).json({
-        error:
-          "Kullanıcı adı veya şifre hatalı."
-      });
-    }
-
-    email =
-      au.user.email.toLowerCase();
-  }
-
-  const anon = client();
+if (!identifier.includes("@")) {
+  const username =
+    normalizeUsername(identifier);
 
   const {
-    data: sd,
-    error: le
-  } = await anon.auth
-    .signInWithPassword({
-      email,
-      password
-    });
-
-  if (
-    le ||
-    !sd?.session ||
-    !sd?.user
-  ) {
-    return res.status(401).json({
-      error:
-        /invalid login credentials/i.test(
-          le?.message || ""
-        )
-          ? "Kullanıcı adı/e-posta veya şifre hatalı."
-          : (
-              le?.message ||
-              "Giriş başarısız."
-            )
-    });
-  }
-
-  const authId = sd.user.id;
-
-  const {
-    data: profiles,
-    error: pe2
+    data: profile,
+    error: pe
   } = await admin
     .from("profiles")
     .select("*")
-    .eq("auth_user_id", authId)
-    .order("created_at", {
-      ascending: true
-    });
+    .eq("username", username)
+    .maybeSingle();
 
-  if (pe2) {
+  if (pe) {
     return res.status(500).json({
-      error: pe2.message
+      error: pe.message
     });
   }
 
-  let list = profiles || [];
-
-  // Eski yapı
-  if (!list.length) {
-    const {
-      data: legacy
-    } = await admin
-      .from("profiles")
-      .select("*")
-      .eq("id", authId)
-      .maybeSingle();
-
-    if (legacy) {
-      list = [legacy];
-    }
-  }
-
-  if (!list.length) {
-    return res.status(404).json({
+  if (!profile) {
+    return res.status(401).json({
       error:
-        "Bu hesap için Minegram profili bulunamadı."
+        "Kullanıcı adı veya şifre hatalı."
     });
   }
 
-  const safe =
-    list.map(safeUser);
+  const authId =
+    profile.auth_user_id ||
+    profile.id;
 
-  const selected =
-    identifier.includes("@")
-      ? safe[0]
-      : (
-          safe.find(
-            x =>
-              x.username ===
-              normalizeUsername(
-                identifier
-              )
-          ) || safe[0]
-        );
-
-  return res.json({
-    ok: true,
-    multipleProfiles:
-      safe.length > 1,
-    profiles: safe,
-    profile: selected,
-    token:
-      sd.session.access_token,
-    user: selected
-  });
-
-} catch (e) {
-  console.error(
-    "LOGIN ERROR:",
-    e
+  const {
+    data: au,
+    error: ae
+  } = await admin.auth.admin.getUserById(
+    authId
   );
 
-  return res.status(500).json({
+  if (
+    ae ||
+    !au?.user?.email
+  ) {
+    return res.status(401).json({
+      error:
+        "Kullanıcı adı veya şifre hatalı."
+    });
+  }
+
+  email =
+    au.user.email.toLowerCase();
+}
+
+const anon = client();
+
+const {
+  data: sd,
+  error: le
+} = await anon.auth.signInWithPassword({
+  email,
+  password
+});
+
+if (
+  le ||
+  !sd?.session ||
+  !sd?.user
+) {
+  return res.status(401).json({
     error:
-      e?.message ||
-      "Giriş başarısız."
+      /invalid login credentials/i.test(
+        le?.message || ""
+      )
+        ? "Kullanıcı adı/e-posta veya şifre hatalı."
+        : (
+            le?.message ||
+            "Giriş başarısız."
+          )
   });
 }
+
+const authId = sd.user.id;
+
+const {
+  data: profiles,
+  error: pe2
+} = await admin
+  .from("profiles")
+  .select("*")
+  .eq("auth_user_id", authId)
+  .order("created_at", {
+    ascending: true
+  });
+
+if (pe2) {
+  return res.status(500).json({
+    error: pe2.message
+  });
+}
+
+let list = profiles || [];
+
+if (!list.length) {
+  const {
+    data: legacy
+  } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("id", authId)
+    .maybeSingle();
+
+  if (legacy) {
+    list = [legacy];
+  }
+}
+
+if (!list.length) {
+  return res.status(404).json({
+    error:
+      "Bu hesap için Minegram profili bulunamadı."
+  });
+}
+
+const safe =
+  list.map(safeUser);
+
+const selected =
+  identifier.includes("@")
+    ? safe[0]
+    : (
+        safe.find(
+          x =>
+            x.username ===
+            normalizeUsername(
+              identifier
+            )
+        ) || safe[0]
+      );
+
+return res.json({
+  ok: true,
+  multipleProfiles:
+    safe.length > 1,
+  profiles: safe,
+  profile: selected,
+  token:
+    sd.session.access_token,
+  user: selected
+});
+```
+
+} catch (e) {
+console.error(
+"LOGIN ERROR:",
+e
+);
+
+```
+return res.status(500).json({
+  error:
+    e?.message ||
+    "Giriş başarısız."
+});
 ```
 
 }
-);
+});
 
-// =========================================================
-// FORGOT - ESKİ
-// =========================================================
+/* =========================
+FORGOT PASSWORD
+========================= */
 
-app.post(
-"/api/forgot",
-async (req, res) => {
+app.post("/api/forgot", async (req, res) => {
 try {
 const identifier =
 String(
@@ -874,90 +780,85 @@ req.body?.identifier || ""
 ).trim();
 
 ```
-  const anon = client();
+const anon = client();
 
-  let email = identifier;
+let email = identifier;
 
-  if (!identifier.includes("@")) {
-    if (
-      !SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      return res.status(200).json({
-        ok: true
-      });
-    }
-
-    const admin = adminClient();
-
-    const profile =
-      await findProfile(
-        anon,
-        identifier
-      );
-
-    if (!profile) {
-      return res.status(200).json({
-        ok: true
-      });
-    }
-
-    const authId =
-      profile.auth_user_id ||
-      profile.id;
-
-    const {
-      data,
-      error
-    } = await admin.auth.admin
-      .getUserById(authId);
-
-    if (
-      error ||
-      !data?.user?.email
-    ) {
-      return res.status(200).json({
-        ok: true
-      });
-    }
-
-    email =
-      data.user.email;
-  }
-
-  const {
-    error
-  } = await anon.auth
-    .resetPasswordForEmail(
-      email,
-      {
-        redirectTo:
-          `${req.protocol}://${req.get("host")}/`
-      }
-    );
-
-  if (error) {
-    return res.status(400).json({
-      error: error.message
+if (!identifier.includes("@")) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(200).json({
+      ok: true
     });
   }
 
-  res.json({
-    ok: true
-  });
+  const profile =
+    await findProfile(
+      anon,
+      identifier
+    );
 
-} catch {
-  res.json({
-    ok: true
+  if (!profile) {
+    return res.status(200).json({
+      ok: true
+    });
+  }
+
+  const admin =
+    adminClient();
+
+  const {
+    data,
+    error
+  } =
+    await admin.auth.admin.getUserById(
+      profile.id
+    );
+
+  if (
+    error ||
+    !data?.user?.email
+  ) {
+    return res.status(200).json({
+      ok: true
+    });
+  }
+
+  email =
+    data.user.email;
+}
+
+const {
+  error
+} =
+  await anon.auth.resetPasswordForEmail(
+    email,
+    {
+      redirectTo:
+        `${req.protocol}://${req.get("host")}/`
+    }
+  );
+
+if (error) {
+  return res.status(400).json({
+    error: error.message
   });
 }
+
+res.json({
+  ok: true
+});
 ```
 
+} catch {
+res.json({
+ok: true
+});
 }
-);
+});
 
-// =========================================================
-// AUTH CONFIG
-// =========================================================
+/* =========================
+AUTH CONFIG
+========================= */
 
 app.get(
 "/api/auth-config",
@@ -979,28 +880,27 @@ res.json({
 }
 );
 
-// =========================================================
-// RECOVERY
-// =========================================================
+/* =========================
+RECOVERY HELPERS
+========================= */
 
 const recoveryCodes =
 new Map();
 
 function publicOrigin(req) {
 const proto =
-req.headers[
-"x-forwarded-proto"
-] ||
+req.headers["x-forwarded-proto"] ||
 req.protocol ||
 "http";
 
-return `${String(proto)
-    .split(",")[0]
-    .trim()}://${req.get("host")}`;
+return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
 }
 
 function maskEmail(email) {
-const [u, d] =
+const [
+u,
+d
+] =
 String(email).split("@");
 
 if (!u || !d) {
@@ -1020,10 +920,6 @@ u.length - 2
 
 return `${shown}@${d}`;
 }
-
-// =========================================================
-// TELEFON NUMARASI NORMALİZASYONU
-// =========================================================
 
 function normalizeRecoveryPhone(
 value
@@ -1045,17 +941,6 @@ if (!digits) {
 return "";
 }
 
-// Türkiye:
-//
-// 05551234567
-// +905551234567
-// 905551234567
-// 5551234567
-//
-// Hepsi:
-// 5551234567
-//
-
 if (digits.length >= 10) {
 return digits.slice(-10);
 }
@@ -1063,9 +948,10 @@ return digits.slice(-10);
 return digits;
 }
 
-// =========================================================
-// TELEFONDAN KULLANICI BUL
-// =========================================================
+/* =========================
+TELEFONLA KULLANICI BUL
+SADECE 1 FONKSİYON
+========================= */
 
 async function findUserByPhone(
 phone
@@ -1081,9 +967,7 @@ return null;
 
 }
 
-if (
-!SUPABASE_SERVICE_ROLE_KEY
-) {
+if (!SUPABASE_SERVICE_ROLE_KEY) {
 console.error(
 "SUPABASE_SERVICE_ROLE_KEY EKSİK"
 );
@@ -1102,21 +986,24 @@ normalizeRecoveryPhone(
 phone
 );
 
-console.log("");
 console.log(
 "======================================"
 );
+
 console.log(
 "MINEGRAM TELEFON HESAP ARAMA"
 );
+
 console.log(
 "Gelen telefon:",
 phone
 );
+
 console.log(
 "Normalize telefon:",
 wanted
 );
+
 console.log(
 "======================================"
 );
@@ -1136,9 +1023,7 @@ return null;
 
 }
 
-// =======================================================
-// 1) SUPABASE AUTH TELEFON ARAMA
-// =======================================================
+/* AUTH KULLANICILARI */
 
 try {
 for (
@@ -1147,16 +1032,16 @@ page <= 20;
 page++
 ) {
 const result =
-await admin.auth.admin
-.listUsers({
+await admin.auth.admin.listUsers(
+{
 page,
 perPage: 1000
-});
+}
+);
 
 ```
   const users =
-    result?.data?.users ||
-    [];
+    result?.data?.users || [];
 
   const error =
     result?.error;
@@ -1167,7 +1052,7 @@ perPage: 1000
       error
     );
 
-    throw error;
+    break;
   }
 
   console.log(
@@ -1184,48 +1069,21 @@ perPage: 1000
         user.phone
       );
 
-    console.log(
-      "AUTH TELEFON KONTROL:",
-      user.phone,
-      "=>",
-      normalizedUserPhone
-    );
-
     if (
       normalizedUserPhone ===
       wanted
     ) {
-      console.log("");
       console.log(
-        "######################################"
-      );
-      console.log(
-        "TELEFON AUTH'TA BULUNDU!"
-      );
-      console.log(
-        "AUTH ID:",
-        user.id
-      );
-      console.log(
-        "EMAIL:",
+        "TELEFON AUTH'TA BULUNDU:",
+        user.id,
         user.email
       );
-      console.log(
-        "PHONE:",
-        user.phone
-      );
-      console.log(
-        "######################################"
-      );
-      console.log("");
 
       return user;
     }
   }
 
-  if (
-    users.length < 1000
-  ) {
+  if (users.length < 1000) {
     break;
   }
 }
@@ -1234,14 +1092,11 @@ perPage: 1000
 } catch (error) {
 console.error(
 "AUTH TELEFON ARAMA HATASI:",
-error?.message ||
-error
+error?.message || error
 );
 }
 
-// =======================================================
-// 2) PROFILES TELEFON ARAMA
-// =======================================================
+/* PROFILES KOLONLARI */
 
 const possibleColumns = [
 "phone",
@@ -1260,7 +1115,10 @@ for (
 const column of possibleColumns
 ) {
 try {
-const result =
+const {
+data,
+error
+} =
 await admin
 .from("profiles")
 .select("*")
@@ -1271,12 +1129,6 @@ null
 );
 
 ```
-  const data =
-    result?.data || [];
-
-  const error =
-    result?.error;
-
   if (error) {
     console.log(
       `PROFILES KOLONU KULLANILAMIYOR: ${column}`
@@ -1285,26 +1137,13 @@ null
     continue;
   }
 
-  console.log(
-    `PROFILES ${column}: ${data.length} kayıt kontrol ediliyor`
-  );
-
-  for (const profile of data) {
+  for (
+    const profile of data || []
+  ) {
     const profilePhone =
       normalizeRecoveryPhone(
         profile?.[column]
       );
-
-    if (!profilePhone) {
-      continue;
-    }
-
-    console.log(
-      "PROFILE TELEFON:",
-      profile[column],
-      "=>",
-      profilePhone
-    );
 
     if (
       profilePhone !==
@@ -1313,37 +1152,12 @@ null
       continue;
     }
 
-    console.log("");
     console.log(
-      "######################################"
-    );
-    console.log(
-      "TELEFON PROFILES'TA BULUNDU!"
-    );
-    console.log(
-      "PROFILE ID:",
-      profile.id
-    );
-    console.log(
-      "AUTH USER ID:",
-      profile.auth_user_id
-    );
-    console.log(
-      "USERNAME:",
-      profile.username
-    );
-    console.log(
-      "PHONE COLUMN:",
+      "TELEFON PROFİLDE BULUNDU:",
+      profile.id,
+      profile.username,
       column
     );
-    console.log(
-      "PHONE:",
-      profile[column]
-    );
-    console.log(
-      "######################################"
-    );
-    console.log("");
 
     const possibleAuthIds = [
       profile.auth_user_id,
@@ -1358,10 +1172,9 @@ null
           data: authData,
           error: authError
         } =
-          await admin.auth.admin
-            .getUserById(
-              authId
-            );
+          await admin.auth.admin.getUserById(
+            authId
+          );
 
         if (
           !authError &&
@@ -1369,11 +1182,7 @@ null
         ) {
           console.log(
             "AUTH KULLANICISI BULUNDU:",
-            authData.user.id
-          );
-
-          console.log(
-            "AUTH EMAIL:",
+            authData.user.id,
             authData.user.email
           );
 
@@ -1383,8 +1192,7 @@ null
         console.log(
           "AUTH ID KONTROL HATASI:",
           authId,
-          error?.message ||
-            error
+          error?.message || error
         );
       }
     }
@@ -1392,44 +1200,20 @@ null
 } catch (error) {
   console.log(
     `PROFILE TELEFON ARAMA HATASI [${column}]:`,
-    error?.message ||
-      error
+    error?.message || error
   );
 }
 ```
 
 }
 
-// =======================================================
-// SONUÇ YOK
-// =======================================================
-
-console.log("");
 console.log(
-"======================================"
-);
-console.log(
-"TELEFONLA HESAP BULUNAMADI"
-);
-console.log(
-"Gelen:",
-phone
-);
-console.log(
-"Normalize:",
+"TELEFONLA HESAP BULUNAMADI:",
 wanted
 );
-console.log(
-"======================================"
-);
-console.log("");
 
 return null;
 }
-
-// =========================================================
-// RECOVERY EMAIL ÇÖZÜMLE
-// =========================================================
 
 async function resolveRecoveryEmail(
 identifier,
@@ -1438,39 +1222,34 @@ mode = "email"
 const anon = client();
 
 const raw =
-String(
-identifier || ""
-).trim();
+String(identifier || "")
+.trim();
 
 let email = raw;
 let profile = null;
-
-// -------------------------------------------------------
-// TELEFON
-// -------------------------------------------------------
+let authUser = null;
 
 if (mode === "phone") {
-const authUser =
+authUser =
 await findUserByPhone(
 raw
 );
 
 ```
-if (
-  !authUser?.email
-) {
+if (!authUser?.email) {
   return null;
 }
 
 email =
   authUser.email;
 
-// Önce id ile
-let result =
+const {
+  data
+} =
   await anon
     .from("profiles")
     .select(
-      "id,auth_user_id,username,email,display_name"
+      "id,username,email,display_name"
     )
     .eq(
       "id",
@@ -1479,15 +1258,16 @@ let result =
     .maybeSingle();
 
 profile =
-  result.data || null;
+  data || null;
 
-// Eski yapı için auth_user_id
 if (!profile) {
-  result =
+  const {
+    data: fallback
+  } =
     await anon
       .from("profiles")
       .select(
-        "id,auth_user_id,username,email,display_name"
+        "id,username,email,display_name"
       )
       .eq(
         "auth_user_id",
@@ -1496,7 +1276,7 @@ if (!profile) {
       .maybeSingle();
 
   profile =
-    result.data || null;
+    fallback || null;
 }
 
 return {
@@ -1508,13 +1288,7 @@ return {
 
 }
 
-// -------------------------------------------------------
-// KULLANICI ADI
-// -------------------------------------------------------
-
-if (
-!email.includes("@")
-) {
+if (!email.includes("@")) {
 profile =
 await findProfile(
 anon,
@@ -1526,27 +1300,21 @@ if (!profile) {
   return null;
 }
 
-if (
-  !SUPABASE_SERVICE_ROLE_KEY
-) {
+if (!SUPABASE_SERVICE_ROLE_KEY) {
   return null;
 }
 
 const admin =
   adminClient();
 
-const authId =
-  profile.auth_user_id ||
-  profile.id;
-
 const {
   data,
   error
 } =
-  await admin.auth.admin
-    .getUserById(
-      authId
-    );
+  await admin.auth.admin.getUserById(
+    profile.auth_user_id ||
+    profile.id
+  );
 
 if (
   error ||
@@ -1561,17 +1329,14 @@ email =
 
 }
 
-// -------------------------------------------------------
-// EMAIL İLE PROFİL
-// -------------------------------------------------------
-
 if (!profile) {
 const {
 data
-} = await anon
+} =
+await anon
 .from("profiles")
 .select(
-"id,auth_user_id,username,email,display_name"
+"id,username,email,display_name"
 )
 .eq(
 "email",
@@ -1592,9 +1357,9 @@ profile
 };
 }
 
-// =========================================================
-// RESEND
-// =========================================================
+/* =========================
+RESEND
+========================= */
 
 async function sendResendEmail(
 to,
@@ -1646,8 +1411,11 @@ method: "POST",
 ```
 
 const j =
-await r.json()
-.catch(() => ({}));
+await r
+.json()
+.catch(
+() => ({})
+);
 
 if (!r.ok) {
 throw new Error(
@@ -1659,9 +1427,9 @@ j.message ||
 return j;
 }
 
-// =========================================================
-// FORGOT START
-// =========================================================
+/* =========================
+RECOVERY START
+========================= */
 
 app.post(
 "/api/forgot/start",
@@ -1687,7 +1455,7 @@ req.body?.mode ||
       Math.floor(
         100000 +
         Math.random() *
-          900000
+        900000
       )
     );
 
@@ -1705,15 +1473,12 @@ req.body?.mode ||
 
   await sendResendEmail(
     found.email,
-
     "Minegram doğrulama kodun",
 
     `<div style="font-family:Arial,sans-serif">
       <h2>Minegram</h2>
       <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
-      <div style="font-size:32px;font-weight:700;letter-spacing:8px">
-        ${code}
-      </div>
+      <div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div>
       <p>Bu kod 10 dakika geçerlidir.</p>
     </div>`,
 
@@ -1728,7 +1493,6 @@ req.body?.mode ||
         found.email
       )
   });
-
 } catch (e) {
   console.error(
     "FORGOT START ERROR:",
@@ -1736,8 +1500,7 @@ req.body?.mode ||
   );
 
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -1745,9 +1508,9 @@ req.body?.mode ||
 }
 );
 
-// =========================================================
-// FORGOT VERIFY
-// =========================================================
+/* =========================
+RECOVERY VERIFY
+========================= */
 
 app.post(
 "/api/forgot/verify",
@@ -1773,7 +1536,8 @@ req.body?.mode ||
       Date.now() ||
     entry.code !==
       String(
-        req.body?.code || ""
+        req.body?.code ||
+        ""
       ).trim()
   ) {
     return res.status(400).json({
@@ -1809,11 +1573,9 @@ req.body?.mode ||
         ""
     }
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -1821,9 +1583,9 @@ req.body?.mode ||
 }
 );
 
-// =========================================================
-// FORGOT SEND RESET
-// =========================================================
+/* =========================
+SEND RESET
+========================= */
 
 app.post(
 "/api/forgot/send-reset",
@@ -1848,30 +1610,26 @@ req.body?.email ||
   const {
     error
   } =
-    await anon.auth
-      .resetPasswordForEmail(
-        email,
-        {
-          redirectTo:
-            `${publicOrigin(req)}/`
-        }
-      );
+    await anon.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo:
+          `${publicOrigin(req)}/`
+      }
+    );
 
   if (error) {
     return res.status(400).json({
-      error:
-        error.message
+      error: error.message
     });
   }
 
   res.json({
     ok: true
   });
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -1879,9 +1637,9 @@ req.body?.email ||
 }
 );
 
-// =========================================================
-// ME
-// =========================================================
+/* =========================
+ME
+========================= */
 
 app.get(
 "/api/me",
@@ -1893,9 +1651,9 @@ safeUser(req.user)
 }
 );
 
-// =========================================================
-// FEED
-// =========================================================
+/* =========================
+FEED
+========================= */
 
 app.get(
 "/api/feed",
@@ -1929,11 +1687,9 @@ ascending: false
       req.user.id
     )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -1941,9 +1697,9 @@ ascending: false
 }
 );
 
-// =========================================================
-// POSTS CREATE
-// =========================================================
+/* =========================
+POSTS
+========================= */
 
 app.post(
 "/api/posts",
@@ -2013,13 +1769,17 @@ let mediaType = null;
       .insert({
         user_id:
           req.user.id,
+
         caption:
           req.body?.caption ||
           "",
+
         media_url:
           mediaUrl,
+
         media_name:
           mediaName,
+
         media_type:
           mediaType
       })
@@ -2042,11 +1802,9 @@ let mediaType = null;
     createdAt:
       data.created_at
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2054,9 +1812,9 @@ let mediaType = null;
 }
 );
 
-// =========================================================
-// STORIES CREATE
-// =========================================================
+/* =========================
+STORIES CREATE
+========================= */
 
 app.post(
 "/api/stories",
@@ -2064,54 +1822,18 @@ auth,
 upload.single("story"),
 async (req, res) => {
 try {
-console.log(
-"================================="
-);
+if (!req.file) {
+return res.status(400).json({
+error:
+"Dosya seçilmedi"
+});
+}
 
 ```
-  console.log(
-    "REQ TOKEN:",
-    req.token
-  );
-
-  console.log(
-    "REQ AUTH USER:",
-    req.authUser.id
-  );
-
-  console.log(
-    "REQ PROFILE:",
-    req.user.id
-  );
-
-  const authNow =
-    await req.sb.auth.getUser();
-
-  console.log(
-    "AUTH NOW:",
-    authNow.data.user?.id
-  );
-
-  console.log(
-    "AUTH NOW ERROR:",
-    authNow.error
-  );
-
-  console.log(
-    "================================="
-  );
-
-  if (!req.file) {
-    return res.status(400).json({
-      error:
-        "Dosya seçilmedi"
-    });
-  }
-
   const ext =
     path.extname(
       req.file.originalname
-    );
+    ) || ".bin";
 
   const objectPath =
     `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
@@ -2134,7 +1856,9 @@ console.log(
     throw uploadError;
   }
 
-  const { data } =
+  const {
+    data
+  } =
     req.sb.storage
       .from(BUCKET)
       .getPublicUrl(
@@ -2147,22 +1871,15 @@ console.log(
       .insert({
         user_id:
           req.user.id,
+
         media_url:
           data.publicUrl,
+
         media_type:
           req.file.mimetype
       })
       .select()
       .single();
-
-  console.log(
-    "RESULT:",
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
 
   if (result.error) {
     return res.status(400).json(
@@ -2173,7 +1890,6 @@ console.log(
   res.json(
     result.data
   );
-
 } catch (e) {
   console.error(
     "STORY ERROR:",
@@ -2181,8 +1897,7 @@ console.log(
   );
 
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2190,9 +1905,9 @@ console.log(
 }
 );
 
-// =========================================================
-// LIKE
-// =========================================================
+/* =========================
+LIKE
+========================= */
 
 app.post(
 "/api/posts/:id/like",
@@ -2242,6 +1957,7 @@ req.user.id
       .insert({
         post_id:
           req.params.id,
+
         user_id:
           req.user.id
       });
@@ -2284,11 +2000,9 @@ req.user.id
   res.json({
     liked: true
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2296,14 +2010,15 @@ req.user.id
 }
 );
 
-// =========================================================
-// STORIES
-// =========================================================
+/* =========================
+STORIES GET
+========================= */
 
 app.get(
 "/api/stories",
 auth,
 async (req, res) => {
+try {
 const yesterday =
 new Date(
 Date.now() -
@@ -2311,45 +2026,50 @@ Date.now() -
 ).toISOString();
 
 ```
-const {
-  data,
-  error
-} =
-  await req.sb
-    .from("stories")
-    .select(`
-      *,
-      profiles(
-        username,
-        display_name,
-        avatar_url
-      )
-    `)
-    .gte(
-      "created_at",
-      yesterday
-    )
-    .order(
-      "created_at"
-    );
-
-if (error) {
-  return res.status(400).json(
+  const {
+    data,
     error
-  );
-}
+  } =
+    await req.sb
+      .from("stories")
+      .select(`
+        *,
+        profiles(
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .gte(
+        "created_at",
+        yesterday
+      )
+      .order(
+        "created_at"
+      );
 
-res.json(
-  data
-);
+  if (error) {
+    return res.status(400).json(
+      error
+    );
+  }
+
+  res.json(
+    data || []
+  );
+} catch (e) {
+  res.status(400).json({
+    error: e.message
+  });
+}
 ```
 
 }
 );
 
-// =========================================================
-// COMMENTS
-// =========================================================
+/* =========================
+COMMENTS
+========================= */
 
 app.post(
 "/api/posts/:id/comments",
@@ -2358,7 +2078,8 @@ async (req, res) => {
 try {
 const text =
 String(
-req.body?.text || ""
+req.body?.text ||
+""
 ).trim();
 
 ```
@@ -2378,8 +2099,10 @@ req.body?.text || ""
       .insert({
         post_id:
           req.params.id,
+
         user_id:
           req.user.id,
+
         text
       })
       .select("*")
@@ -2431,11 +2154,9 @@ req.body?.text || ""
     username:
       req.user.username
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2443,9 +2164,9 @@ req.body?.text || ""
 }
 );
 
-// =========================================================
-// SAVE
-// =========================================================
+/* =========================
+SAVE
+========================= */
 
 app.post(
 "/api/posts/:id/save",
@@ -2495,6 +2216,7 @@ req.user.id
       .insert({
         post_id:
           req.params.id,
+
         user_id:
           req.user.id
       });
@@ -2506,11 +2228,9 @@ req.user.id
   res.json({
     saved: true
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2518,9 +2238,9 @@ req.user.id
 }
 );
 
-// =========================================================
-// SAVED
-// =========================================================
+/* =========================
+SAVED
+========================= */
 
 app.get(
 "/api/saved",
@@ -2554,7 +2274,9 @@ ascending: false
 
   const ids =
     (saves || [])
-      .map(x => x.post_id);
+      .map(
+        x => x.post_id
+      );
 
   if (!ids.length) {
     return res.json([]);
@@ -2587,11 +2309,9 @@ ascending: false
         ids.indexOf(b.id)
     )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2599,9 +2319,9 @@ ascending: false
 }
 );
 
-// =========================================================
-// NOTIFICATIONS
-// =========================================================
+/* =========================
+NOTIFICATIONS
+========================= */
 
 app.get(
 "/api/notifications",
@@ -2633,20 +2353,20 @@ ascending: false
   }
 
   res.json(
-    (data || []).map(n => ({
-      id: n.id,
-      type: n.type,
-      text: n.text,
-      read: n.read,
-      createdAt:
-        n.created_at
-    }))
+    (data || []).map(
+      n => ({
+        id: n.id,
+        type: n.type,
+        text: n.text,
+        read: n.read,
+        createdAt:
+          n.created_at
+      })
+    )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2673,11 +2393,9 @@ req.user.id
   res.json({
     ok: true
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2685,9 +2403,9 @@ req.user.id
 }
 );
 
-// =========================================================
-// FOLLOW
-// =========================================================
+/* =========================
+FOLLOW
+========================= */
 
 app.post(
 "/api/users/:username/follow",
@@ -2762,6 +2480,7 @@ req.params.username
       .insert({
         follower_id:
           req.user.id,
+
         following_id:
           target.id
       });
@@ -2787,11 +2506,9 @@ req.params.username
   res.json({
     following: true
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2799,9 +2516,9 @@ req.params.username
 }
 );
 
-// =========================================================
-// USER POSTS
-// =========================================================
+/* =========================
+USER POSTS
+========================= */
 
 app.get(
 "/api/users/:username/posts",
@@ -2851,11 +2568,9 @@ req.params.username
       req.user.id
     )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2863,9 +2578,9 @@ req.params.username
 }
 );
 
-// =========================================================
-// USER PROFILE
-// =========================================================
+/* =========================
+USER PROFILE
+========================= */
 
 app.get(
 "/api/users/:username",
@@ -2893,7 +2608,6 @@ req.params.username
     { data: followingByMe }
   ] =
     await Promise.all([
-
       req.sb
         .from("posts")
         .select(
@@ -2957,20 +2671,22 @@ req.params.username
 
   res.json({
     ...safeUser(target),
+
     postCount:
       postCount || 0,
+
     followers:
       followers || 0,
+
     following:
       following || 0,
+
     followingByMe:
       !!followingByMe
   });
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -2978,9 +2694,9 @@ req.params.username
 }
 );
 
-// =========================================================
-// SEARCH
-// =========================================================
+/* =========================
+SEARCH
+========================= */
 
 app.get(
 "/api/search",
@@ -3022,11 +2738,9 @@ req.query.q || ""
       safeUser
     )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -3034,9 +2748,9 @@ req.query.q || ""
 }
 );
 
-// =========================================================
-// MESSAGES
-// =========================================================
+/* =========================
+MESSAGES
+========================= */
 
 app.get(
 "/api/messages",
@@ -3085,11 +2799,9 @@ ascending: true
       })
     )
   );
-
 } catch (e) {
   res.status(500).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -3138,8 +2850,10 @@ req.body?.to
       .insert({
         sender_id:
           req.user.id,
+
         recipient_id:
           target.id,
+
         text
       })
       .select("*")
@@ -3160,11 +2874,9 @@ req.body?.to
     createdAt:
       data.created_at
   });
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -3172,9 +2884,9 @@ req.body?.to
 }
 );
 
-// =========================================================
-// UPDATE PROFILE
-// =========================================================
+/* =========================
+EDIT PROFILE
+========================= */
 
 app.patch(
 "/api/me",
@@ -3243,11 +2955,9 @@ const patch = {};
   res.json(
     safeUser(data)
   );
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -3255,9 +2965,9 @@ const patch = {};
 }
 );
 
-// =========================================================
-// SETTINGS
-// =========================================================
+/* =========================
+SETTINGS
+========================= */
 
 app.patch(
 "/api/settings",
@@ -3288,11 +2998,9 @@ const next = {
   }
 
   res.json(next);
-
 } catch (e) {
   res.status(400).json({
-    error:
-      e.message
+    error: e.message
   });
 }
 ```
@@ -3300,43 +3008,54 @@ const next = {
 }
 );
 
-// =========================================================
-// MESAJ.HTML
-// =========================================================
+/* =========================
+MESAJ SAYFASI
+========================= */
 
 app.get(
 "/mesaj",
 (req, res) => {
-res.sendFile(
+const mesajPath =
 path.join(
-__dirname,
-"public",
+publicDir,
 "mesaj.html"
-)
 );
+
+```
+if (fs.existsSync(mesajPath)) {
+  return res.sendFile(
+    mesajPath
+  );
+}
+
+res.status(404).send(
+  "mesaj.html bulunamadı"
+);
+```
+
 }
 );
 
-// =========================================================
-// FALLBACK
-// =========================================================
+/* =========================
+FALLBACK
+========================= */
 
 app.use(
 (req, res) => {
-const indexPath =
-fs.existsSync(
+const publicLogin =
 path.join(
 publicDir,
 "giris.html"
-)
-)
-? path.join(
-publicDir,
-"giris.html"
-)
-: rootIndex;
+);
 
 ```
+const indexPath =
+  fs.existsSync(
+    publicLogin
+  )
+    ? publicLogin
+    : rootIndex;
+
 res.sendFile(
   indexPath
 );
@@ -3345,14 +3064,15 @@ res.sendFile(
 }
 );
 
-// =========================================================
-// START
-// =========================================================
+/* =========================
+SERVER
+========================= */
 
 app.listen(
 PORT,
-() =>
+() => {
 console.log(
-`Minegram: http://localhost:${PORT}`
-)
+`Minegram server çalışıyor: PORT ${PORT}`
+);
+}
 );
