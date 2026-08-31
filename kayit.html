@@ -388,6 +388,7 @@ body{
     type="button"
     id="nextButton"
     class="next-button"
+    onclick="goToKayit()"
 >
     İleri
 </button>
@@ -741,46 +742,31 @@ suggestUsername.addEventListener(
    İLERİ
 ========================================= */
 
-nextButton.addEventListener(
-    "click",
-    function(){
+function goToKayit(){
 
-        const username =
-            cleanUsername(
-                usernameInput.value
-            );
-
-        if(
-            !usernameAvailable ||
-            !validUsername(username)
-        ){
-            showMessage(
-                "Önce kullanılabilir bir kullanıcı adı seç.",
-                ""
-            );
-            return;
-        }
-
-        /* Kullanıcı adını kaydet */
-        sessionStorage.setItem(
-            "minegram_register_username",
-            username
+    const username =
+        cleanUsername(
+            usernameInput.value
         );
 
-        /* Butonu kilitle */
-        nextButton.disabled = true;
-
-        nextButton.textContent =
-            "Devam ediliyor...";
-
-        /* Şifre oluşturma sayfasına git */
-        window.location.assign(
-            "./kayit.html?username=" +
-            encodeURIComponent(username)
+    if(!validUsername(username)){
+        showMessage(
+            "Geçerli bir kullanıcı adı gir.",
+            ""
         );
+        return;
     }
-);
 
+    sessionStorage.setItem(
+        "minegram_register_username",
+        username
+    );
+
+    window.location.href =
+        "./kayit.html?username=" +
+        encodeURIComponent(username);
+}
+    
 /* =========================================
    SAYFA AÇILIŞI
 ========================================= */
