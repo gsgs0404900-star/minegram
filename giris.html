@@ -1,102 +1,749 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minegram - Giriş</title>
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-body{min-height:100vh}.login-page{width:100%;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}.login-box{width:365px;margin-top:145px;text-align:center}.logo{font-size:27px;font-weight:700;margin-bottom:29px}.field{width:100%;height:44px;margin-bottom:9px;padding:0 12px;border:1px solid #292929;border-radius:7px;background:#000;color:#fff;outline:none;font-size:12px}.field::placeholder{color:#777}.field:focus{border-color:#555}.login-btn{width:100%;height:42px;border:0;border-radius:22px;background:#2d80bd;color:#000;font-weight:700;cursor:pointer;font-size:12px}.login-btn:hover{background:#348dca}.login-btn:disabled{opacity:.6;cursor:not-allowed}.forgot,.register{display:block;margin-top:14px;color:#0095f6;font-size:13px;text-decoration:underline;cursor:pointer}.register{margin-top:28px;text-decoration:none}.message{min-height:20px;margin-top:14px;font-size:12px;color:#ff4d4d}@media(max-width:600px){.login-box{width:calc(100% - 40px);max-width:365px;margin-top:90px}}
-</style>
-</head>
-<body>
-<div class="login-page"><div class="login-box">
-<div class="logo">Minegram</div>
-<input id="email" class="field" type="email" autocomplete="email" placeholder="E-posta adresi">
-<input id="password" class="field" type="password" autocomplete="current-password" placeholder="Şifre">
-<button id="loginBtn" class="login-btn" type="button">Giriş Yap</button>
-<a id="forgotBtn" class="forgot" href="javascript:void(0)">Şifremi unuttum</a>
-<a href="kayit.html" class="register">Hesabın yok mu? Kayıt ol</a>
-<div id="message" class="message"></div>
-</div></div>
-<script>
-'use strict';
-const API='/api';
-const emailInput=document.getElementById('email');
-const passwordInput=document.getElementById('password');
-const loginBtn=document.getElementById('loginBtn');
-const forgotBtn=document.getElementById('forgotBtn');
-const message=document.getElementById('message');
 
-function showMessage(text,success=false){message.textContent=text||'';message.style.color=success?'#35c759':'#ff4d4d'}
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    min-height:100vh;
+}
+
+.login-page{
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+}
+
+.login-box{
+    width:365px;
+    margin-top:145px;
+    text-align:center;
+}
+
+.logo{
+    font-size:27px;
+    font-weight:700;
+    margin-bottom:29px;
+}
+
+.field{
+    width:100%;
+    height:44px;
+    margin-bottom:9px;
+    padding:0 12px;
+    border:1px solid #292929;
+    border-radius:7px;
+    background:#000;
+    color:#fff;
+    outline:none;
+    font-size:12px;
+}
+
+.field::placeholder{
+    color:#777;
+}
+
+.field:focus{
+    border-color:#555;
+}
+
+.login-btn{
+    width:100%;
+    height:42px;
+    border:0;
+    border-radius:22px;
+    background:#2d80bd;
+    color:#000;
+    font-weight:700;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.login-btn:hover{
+    background:#348dca;
+}
+
+.login-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+.forgot{
+    display:block;
+    margin-top:14px;
+    color:#0095f6;
+    font-size:13px;
+    text-decoration:underline;
+    cursor:pointer;
+}
+
+.register{
+    display:block;
+    margin-top:28px;
+    color:#0095f6;
+    font-size:13px;
+    text-decoration:none;
+}
+
+.message{
+    min-height:20px;
+    margin-top:14px;
+    font-size:12px;
+    color:#ff4d4d;
+}
+
+@media(max-width:600px){
+
+    .login-box{
+        width:calc(100% - 40px);
+        max-width:365px;
+        margin-top:90px;
+    }
+
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="login-page">
+
+```
+<div class="login-box">
+
+    <div class="logo">
+        Minegram
+    </div>
+
+    <input
+        id="email"
+        class="field"
+        type="text"
+        autocomplete="username"
+        placeholder="E-posta adresi"
+    >
+
+    <input
+        id="password"
+        class="field"
+        type="password"
+        autocomplete="current-password"
+        placeholder="Şifre"
+    >
+
+    <button
+        id="loginBtn"
+        class="login-btn"
+        type="button"
+    >
+        Giriş Yap
+    </button>
+
+    <a
+        id="forgotBtn"
+        class="forgot"
+        href="javascript:void(0)"
+    >
+        Şifremi unuttum
+    </a>
+
+    <a
+        href="kayit.html"
+        class="register"
+    >
+        Hesabın yok mu? Kayıt ol
+    </a>
+
+    <div
+        id="message"
+        class="message"
+    ></div>
+
+</div>
+```
+
+</div>
+
+<script>
+
+"use strict";
+
+
+/* =====================================================
+   MINEGRAM LOGIN
+===================================================== */
+
+const API = "/api";
+
+
+const emailInput =
+    document.getElementById("email");
+
+const passwordInput =
+    document.getElementById("password");
+
+const loginBtn =
+    document.getElementById("loginBtn");
+
+const forgotBtn =
+    document.getElementById("forgotBtn");
+
+const message =
+    document.getElementById("message");
+
+
+/* =====================================================
+   MESAJ
+===================================================== */
+
+function showMessage(text, success = false){
+
+    message.textContent = text || "";
+
+    message.style.color =
+        success
+            ? "#35c759"
+            : "#ff4d4d";
+}
+
+
+/* =====================================================
+   OTURUMU TEMİZLE
+===================================================== */
 
 function clearSession(){
-['minegram_token','minegram_supabase_token','minegram_user_id','minegram_username','minegram_email','minegram_user','minegram_profile','minegram_firebase_token','minegram_firebase_uid','minegram_firebase_email'].forEach(k=>localStorage.removeItem(k));
+
+    const keys = [
+
+        "minegram_token",
+
+        "minegram_supabase_token",
+
+        "minegram_user_id",
+
+        "minegram_username",
+
+        "minegram_email",
+
+        "minegram_user",
+
+        "minegram_profile",
+
+        "minegram_firebase_token",
+
+        "minegram_firebase_uid",
+
+        "minegram_firebase_email"
+
+    ];
+
+    keys.forEach(function(key){
+
+        localStorage.removeItem(key);
+
+    });
+
 }
+
+
+/* =====================================================
+   OTURUMU KAYDET
+===================================================== */
 
 function saveSession(data){
-if(!data||!data.token)throw new Error('Oturum tokenı alınamadı.');
-localStorage.setItem('minegram_token',String(data.token));
-localStorage.setItem('minegram_supabase_token',String(data.token));
-if(data.user){
-localStorage.setItem('minegram_user',JSON.stringify(data.user));
-if(data.user.id!=null)localStorage.setItem('minegram_user_id',String(data.user.id));
-if(data.user.username)localStorage.setItem('minegram_username',String(data.user.username));
-if(data.user.email)localStorage.setItem('minegram_email',String(data.user.email));
-}
+
+    if(!data){
+        throw new Error("Sunucudan cevap alınamadı.");
+    }
+
+    if(!data.token){
+
+        throw new Error(
+            "Giriş yapıldı fakat oturum tokenı alınamadı."
+        );
+
+    }
+
+
+    /*
+     * Eski oturumu tamamen temizle.
+     */
+
+    clearSession();
+
+
+    /*
+     * ANA TOKEN
+     */
+
+    localStorage.setItem(
+        "minegram_token",
+        String(data.token)
+    );
+
+
+    /*
+     * GERİYE DÖNÜK UYUMLULUK
+     */
+
+    localStorage.setItem(
+        "minegram_supabase_token",
+        String(data.token)
+    );
+
+
+    /*
+     * Kullanıcı bilgisi
+     */
+
+    const user =
+        data.user ||
+        data.profile ||
+        null;
+
+
+    if(user){
+
+        localStorage.setItem(
+            "minegram_user",
+            JSON.stringify(user)
+        );
+
+
+        if(user.id !== undefined &&
+           user.id !== null){
+
+            localStorage.setItem(
+                "minegram_user_id",
+                String(user.id)
+            );
+
+        }
+
+
+        if(user.username){
+
+            localStorage.setItem(
+                "minegram_username",
+                String(user.username)
+            );
+
+        }
+
+
+        if(user.email){
+
+            localStorage.setItem(
+                "minegram_email",
+                String(user.email)
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Son kontrol:
+     * Token gerçekten yazılmış mı?
+     */
+
+    const saved =
+        localStorage.getItem(
+            "minegram_token"
+        );
+
+
+    if(!saved){
+
+        throw new Error(
+            "Oturum tarayıcıya kaydedilemedi."
+        );
+
+    }
+
 }
 
-async function checkExistingSession(){
-const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token');
-if(!token)return;
-try{
-const r=await fetch(API+'/me',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-if(r.ok){window.location.replace('index.html');return;}
-if(r.status===401||r.status===403)clearSession();
-}catch(e){console.warn('[SESSION CHECK]',e)}
+
+/* =====================================================
+   ANA SAYFAYA GİT
+===================================================== */
+
+function goHome(){
+
+    /*
+     * Relative yerine absolute path kullanıyoruz.
+     * Böylece /giris.html gibi yanlış adrese
+     * dönme problemi olmaz.
+     */
+
+    window.location.href = "/index.html";
+
 }
+
+
+/* =====================================================
+   GİRİŞ
+===================================================== */
 
 async function login(){
-const email=emailInput.value.trim();
-const password=passwordInput.value;
-showMessage('');
-if(!email){showMessage('E-posta adresini gir.');emailInput.focus();return}
-if(!password){showMessage('Şifreni gir.');passwordInput.focus();return}
-loginBtn.disabled=true;loginBtn.textContent='Giriş yapılıyor...';
-try{
-const response=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password}),cache:'no-store'});
-const data=await response.json().catch(()=>({}));
-if(!response.ok)throw new Error(data.error||data.message||'E-posta veya şifre hatalı.');
-saveSession(data);
-showMessage('Giriş başarılı. Ana sayfaya yönlendiriliyorsun...',true);
-/* Token yazıldıktan sonra index.html. */
-setTimeout(()=>window.location.replace('index.html'),80);
-}catch(error){
-console.error('[MINEGRAM LOGIN]',error);
-const t=String(error.message||'');
-showMessage(/invalid|credential|password|şifre/i.test(t)?'E-posta veya şifre hatalı.':t||'Giriş yapılamadı.');
-loginBtn.disabled=false;loginBtn.textContent='Giriş Yap';
+
+    const identifier =
+        emailInput.value.trim();
+
+    const password =
+        passwordInput.value;
+
+
+    showMessage("");
+
+
+    if(!identifier){
+
+        showMessage(
+            "E-posta adresini veya kullanıcı adını gir."
+        );
+
+        emailInput.focus();
+
+        return;
+
+    }
+
+
+    if(!password){
+
+        showMessage(
+            "Şifreni gir."
+        );
+
+        passwordInput.focus();
+
+        return;
+
+    }
+
+
+    loginBtn.disabled = true;
+
+    loginBtn.textContent =
+        "Giriş yapılıyor...";
+
+
+    try{
+
+        const response =
+            await fetch(
+                API + "/login",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        email:identifier,
+
+                        password:password
+
+                    }),
+
+                    cache:"no-store"
+                }
+            );
+
+
+        const data =
+            await response
+                .json()
+                .catch(function(){
+
+                    return {};
+
+                });
+
+
+        console.log(
+            "[MINEGRAM LOGIN RESPONSE]",
+            data
+        );
+
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "E-posta/kullanıcı adı veya şifre hatalı."
+            );
+
+        }
+
+
+        /*
+         * Token + kullanıcıyı kaydet
+         */
+
+        saveSession(data);
+
+
+        /*
+         * Başarılı
+         */
+
+        showMessage(
+            "Giriş başarılı. Ana sayfaya yönlendiriliyorsun...",
+            true
+        );
+
+
+        /*
+         * Çok kısa bekleme.
+         * Token localStorage'a yazılmış olur.
+         */
+
+        setTimeout(function(){
+
+            goHome();
+
+        }, 200);
+
+
+    }
+    catch(error){
+
+        console.error(
+            "[MINEGRAM LOGIN ERROR]",
+            error
+        );
+
+
+        showMessage(
+            error.message ||
+            "Giriş yapılamadı."
+        );
+
+
+        loginBtn.disabled = false;
+
+        loginBtn.textContent =
+            "Giriş Yap";
+
+    }
+
 }
-}
+
+
+/* =====================================================
+   ŞİFREMİ UNUTTUM
+===================================================== */
 
 async function forgotPassword(){
-const email=emailInput.value.trim();
-if(!email){showMessage('Şifre sıfırlamak için önce e-posta adresini gir.');emailInput.focus();return}
-try{
-const cr=await fetch(API+'/auth-config',{cache:'no-store'});const config=await cr.json().catch(()=>({}));
-if(!cr.ok||!config.url||!config.key)throw new Error('Şifre sıfırlama sistemi kullanılamıyor.');
-const rr=await fetch(config.url+'/auth/v1/recover',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.key},body:JSON.stringify({email})});
-if(!rr.ok){const d=await rr.json().catch(()=>({}));throw new Error(d.msg||d.message||'Şifre sıfırlama bağlantısı gönderilemedi.')}
-showMessage('Şifre sıfırlama bağlantısı e-posta adresine gönderildi.',true);
-}catch(e){console.error('[FORGOT]',e);showMessage(e.message||'Şifre sıfırlama bağlantısı gönderilemedi.')}
+
+    const email =
+        emailInput.value.trim();
+
+
+    if(!email){
+
+        showMessage(
+            "Şifre sıfırlamak için önce e-posta adresini gir."
+        );
+
+        emailInput.focus();
+
+        return;
+
+    }
+
+
+    try{
+
+        showMessage(
+            "Şifre sıfırlama bağlantısı gönderiliyor..."
+        );
+
+
+        const response =
+            await fetch(
+                API + "/forgot",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        identifier:email
+
+                    }),
+
+                    cache:"no-store"
+                }
+            );
+
+
+        const data =
+            await response
+                .json()
+                .catch(function(){
+
+                    return {};
+
+                });
+
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                "Şifre sıfırlama işlemi başarısız."
+            );
+
+        }
+
+
+        showMessage(
+            "Şifre sıfırlama bağlantısı gönderildi.",
+            true
+        );
+
+
+    }
+    catch(error){
+
+        console.error(
+            "[MINEGRAM FORGOT]",
+            error
+        );
+
+
+        showMessage(
+            error.message ||
+            "Şifre sıfırlama bağlantısı gönderilemedi."
+        );
+
+    }
+
 }
 
-loginBtn.addEventListener('click',login);
-forgotBtn.addEventListener('click',forgotPassword);
-passwordInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login()}});
-emailInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();passwordInput.focus()}});
-checkExistingSession();
+
+/* =====================================================
+   BUTONLAR
+===================================================== */
+
+loginBtn.addEventListener(
+    "click",
+    login
+);
+
+
+forgotBtn.addEventListener(
+    "click",
+    forgotPassword
+);
+
+
+/* =====================================================
+   ENTER
+===================================================== */
+
+passwordInput.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            login();
+
+        }
+
+    }
+);
+
+
+emailInput.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            passwordInput.focus();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   SAYFA AÇILDI
+===================================================== */
+
+/*
+ * ÖNEMLİ:
+ *
+ * Burada /api/me kontrolü yapmıyoruz.
+ *
+ * Çünkü daha önceki problemde:
+ *
+ * giris.html
+ *      ↓
+ * /api/me
+ *      ↓
+ * 401
+ *      ↓
+ * token sil
+ *      ↓
+ * giriş sayfası
+ *
+ * döngüsü oluşuyordu.
+ *
+ * Artık kullanıcı giriş sayfasını açtığında
+ * otomatik olarak index'e gönderilmeyecek.
+ *
+ * Kullanıcı Giriş Yap'a basacak.
+ */
+
+console.log(
+    "[MINEGRAM] Giriş sayfası hazır."
+);
+
 </script>
+
 </body>
 </html>
