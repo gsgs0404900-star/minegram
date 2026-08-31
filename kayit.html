@@ -498,20 +498,14 @@ function showMessage(text,type){
 async function checkUsername(username){
 
     usernameAvailable = false;
-
     nextButton.disabled = true;
-
 
     if(!username){
 
-        showMessage(
-            "",
-            ""
-        );
+        showMessage("", "");
 
         return;
     }
-
 
     if(!validUsername(username)){
 
@@ -523,27 +517,12 @@ async function checkUsername(username){
         return;
     }
 
-
     showMessage(
         "Kullanıcı adı kontrol ediliyor...",
         "checking"
     );
 
-
     try{
-
-        /*
-         * Kullanıcı adı kontrolünü
-         * doğrudan Supabase REST üzerinden
-         * değil, kendi server.js API'miz
-         * üzerinden yapıyoruz.
-         *
-         * Bunun için:
-         *
-         * GET /api/check-username?username=...
-         *
-         * endpoint'i kullanılır.
-         */
 
         const response =
             await fetch(
@@ -551,14 +530,15 @@ async function checkUsername(username){
                 encodeURIComponent(username),
                 {
                     method:"GET",
+
                     headers:{
                         "Accept":
                             "application/json"
                     },
+
                     cache:"no-store"
                 }
             );
-
 
         const data =
             await response
@@ -567,12 +547,10 @@ async function checkUsername(username){
                     return {};
                 });
 
-
         console.log(
             "[MINEGRAM USERNAME CHECK]",
             data
         );
-
 
         if(!response.ok){
 
@@ -580,9 +558,17 @@ async function checkUsername(username){
                 data.error ||
                 "Kullanıcı adı kontrol edilemedi."
             );
-
         }
 
+        /*
+         * SERVER:
+         *
+         * available:true
+         *  = kullanıcı adı BOŞTA
+         *
+         * available:false
+         *  = kullanıcı adı ALINMIŞ
+         */
 
         if(data.available === true){
 
@@ -598,7 +584,6 @@ async function checkUsername(username){
             return;
         }
 
-
         usernameAvailable = false;
 
         nextButton.disabled = true;
@@ -607,7 +592,6 @@ async function checkUsername(username){
             "Bu kullanıcı adı zaten alınmış.",
             ""
         );
-
 
     }
     catch(error){
@@ -626,11 +610,8 @@ async function checkUsername(username){
             "Kullanıcı adı kontrol edilemedi.",
             ""
         );
-
     }
-
 }
-
 
 /* =========================================
    INPUT
