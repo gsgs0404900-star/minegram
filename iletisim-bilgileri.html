@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Ýletiþim bilgini ekle</title>
+<title>Ä°letiÅŸim bilgini ekle - Minegram</title>
 
 <style>
 *{
@@ -21,7 +21,9 @@ html,body{
   font-family:Arial,Helvetica,sans-serif;
 }
 
-body{overflow:hidden}
+body{
+  overflow:hidden;
+}
 
 .page{
   width:100%;
@@ -31,7 +33,10 @@ body{overflow:hidden}
   position:relative;
 }
 
-/* Üst baþlýk */
+/* =========================
+   ÃœST
+========================= */
+
 .header{
   height:82px;
   display:flex;
@@ -47,6 +52,7 @@ body{overflow:hidden}
   margin-right:27px;
   margin-top:-7px;
   cursor:pointer;
+  user-select:none;
 }
 
 .header-title{
@@ -54,7 +60,10 @@ body{overflow:hidden}
   font-weight:700;
 }
 
-/* Ýçerik */
+/* =========================
+   Ä°Ã‡ERÄ°K
+========================= */
+
 .content{
   position:absolute;
   left:7.2%;
@@ -77,7 +86,10 @@ body{overflow:hidden}
   margin:0 0 69px;
 }
 
-/* E-posta / Telefon */
+/* =========================
+   SEKME
+========================= */
+
 .tabs{
   display:flex;
   gap:22px;
@@ -106,6 +118,10 @@ body{overflow:hidden}
   color:#fff;
 }
 
+/* =========================
+   INPUT
+========================= */
+
 .input{
   width:100%;
   height:119px;
@@ -118,10 +134,18 @@ body{overflow:hidden}
   font-size:31px;
 }
 
+.input:focus{
+  border-color:#888;
+}
+
 .input::placeholder{
   color:#b8b8b8;
   opacity:1;
 }
+
+/* =========================
+   AÃ‡IKLAMA
+========================= */
 
 .note{
   color:#ddd;
@@ -130,7 +154,10 @@ body{overflow:hidden}
   margin:14px 0 0;
 }
 
-/* Alt butonlar */
+/* =========================
+   ALT BUTONLAR
+========================= */
+
 .bottom{
   position:absolute;
   left:7.2%;
@@ -155,12 +182,21 @@ button.action{
   color:#62b0ed;
 }
 
-.send-btn{
+.next-btn{
   width:50%;
   background:#62b0ed;
   border:2px solid #62b0ed;
   color:#30207c;
 }
+
+.next-btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* =========================
+   DURUM
+========================= */
 
 .status{
   position:fixed;
@@ -173,7 +209,16 @@ button.action{
   display:none;
 }
 
+.status.success{
+  color:#55b8ff;
+}
+
+/* =========================
+   MOBÄ°L
+========================= */
+
 @media(max-width:600px){
+
   .header{
     height:72px;
     padding:0 19px;
@@ -243,31 +288,77 @@ button.action{
 
   .status{
     bottom:calc(5.8% + 83px);
+    font-size:14px;
   }
 }
 </style>
 </head>
 
 <body>
+
 <div class="page">
 
+  <!-- =========================
+       ÃœST
+  ========================== -->
+
   <header class="header">
-    <div class="back" onclick="history.back()">‹</div>
-    <div class="header-title">Kayýt ol</div>
+
+    <div
+      class="back"
+      id="topBack"
+      aria-label="Geri"
+    >
+      â€¹
+    </div>
+
+    <div class="header-title">
+      KayÄ±t ol
+    </div>
+
   </header>
 
+
+  <!-- =========================
+       Ä°Ã‡ERÄ°K
+  ========================== -->
+
   <main class="content">
-    <h1 class="title">Ýletiþim bilgini ekle</h1>
+
+    <h1 class="title">
+      Ä°letiÅŸim bilgini ekle
+    </h1>
 
     <p class="description">
-      Hesabýný doðrulamak için e-posta adresi ya<br>
-      da telefon numarasý kullan.
+      HesabÄ±nÄ± doÄŸrulamak iÃ§in e-posta adresi ya<br>
+      da telefon numarasÄ± kullan.
     </p>
 
+
+    <!-- E-POSTA / TELEFON -->
+
     <div class="tabs">
-      <button id="emailTab" class="tab email" type="button">E-posta</button>
-      <button id="phoneTab" class="tab phone" type="button">Telefon</button>
+
+      <button
+        id="emailTab"
+        class="tab email"
+        type="button"
+      >
+        E-posta
+      </button>
+
+      <button
+        id="phoneTab"
+        class="tab phone"
+        type="button"
+      >
+        Telefon
+      </button>
+
     </div>
+
+
+    <!-- Ä°LETÄ°ÅžÄ°M -->
 
     <input
       id="contact"
@@ -277,149 +368,622 @@ button.action{
       placeholder="E-posta adresi"
     >
 
-    <div id="note" class="note">
-      Devam ettiðinde e-posta adresine 6 haneli doðrulama<br>
-      kodu gönderilir.
+
+    <div
+      id="note"
+      class="note"
+    >
+      Devam ettiÄŸinde e-posta adresine doÄŸrulama
+      kodu gÃ¶nderilir.
     </div>
+
   </main>
 
-  <div id="status" class="status"></div>
+
+  <!-- DURUM -->
+
+  <div
+    id="status"
+    class="status"
+  ></div>
+
+
+  <!-- =========================
+       ALT BUTONLAR
+  ========================== -->
 
   <div class="bottom">
-    <button class="action back-btn" type="button" onclick="history.back()">Geri</button>
-    <button id="sendBtn" class="action send-btn" type="button">Kod Gönder</button>
+
+    <button
+      id="backBtn"
+      class="action back-btn"
+      type="button"
+    >
+      Geri
+    </button>
+
+    <button
+      id="nextBtn"
+      class="action next-btn"
+      type="button"
+    >
+      Ä°leri
+    </button>
+
   </div>
 
 </div>
 
+
+<!-- =========================================================
+     FIREBASE
+========================================================= -->
+
 <script type="module">
-/*
-  Firebase baðlantýsý.
-  Bu ekranýn tasarýmýný deðiþtirmez.
 
-  ÖNEMLÝ:
-  Firebase Authentication'ýn web SDK'sý doðrudan "6 haneli e-posta OTP"
-  göndermez. Gerçek 6 haneli kod için güvenli bir backend / Cloud Function
-  ve e-posta saðlayýcýsý gerekir.
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
-  Aþaðýdaki Firebase baðlantýsý, projeni Firebase'e baðlamak içindir.
-*/
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
   getAuth,
-  onAuthStateChanged
+  createUserWithEmailAndPassword,
+  sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
+
+/* =========================================================
+   FIREBASE AYARLARI
+========================================================= */
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-  authDomain: "mim-ea133.firebaseapp.com",
-  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mim-ea133",
-  storageBucket: "mim-ea133.firebasestorage.app",
-  messagingSenderId: "303525353436",
-  appId: "1:303525353436:web:082fc090b5025e19942119",
-  measurementId: "G-K962QE5P1R"
+
+  apiKey:
+    "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+  authDomain:
+    "mim-ea133.firebaseapp.com",
+
+  databaseURL:
+    "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+
+  projectId:
+    "mim-ea133",
+
+  storageBucket:
+    "mim-ea133.firebasestorage.app",
+
+  messagingSenderId:
+    "303525353436",
+
+  appId:
+    "1:303525353436:web:082fc090b5025e19942119",
+
+  measurementId:
+    "G-K962QE5P1R"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 
-const emailTab = document.getElementById("emailTab");
-const phoneTab = document.getElementById("phoneTab");
-const contact = document.getElementById("contact");
-const note = document.getElementById("note");
-const sendBtn = document.getElementById("sendBtn");
-const status = document.getElementById("status");
+/* Firebase baÅŸlat */
+
+const app =
+  initializeApp(firebaseConfig);
+
+const auth =
+  getAuth(app);
+
+
+/* =========================================================
+   ELEMENTLER
+========================================================= */
+
+const emailTab =
+  document.getElementById("emailTab");
+
+const phoneTab =
+  document.getElementById("phoneTab");
+
+const contact =
+  document.getElementById("contact");
+
+const note =
+  document.getElementById("note");
+
+const nextBtn =
+  document.getElementById("nextBtn");
+
+const backBtn =
+  document.getElementById("backBtn");
+
+const topBack =
+  document.getElementById("topBack");
+
+const status =
+  document.getElementById("status");
+
+
+/* =========================================================
+   DEÄžÄ°ÅžKENLER
+========================================================= */
 
 let mode = "email";
 
-function showError(text){
-  status.textContent = text;
-  status.style.display = "block";
+let busy = false;
+
+
+/* =========================================================
+   KULLANICI ADINI AL
+========================================================= */
+
+const params =
+  new URLSearchParams(
+    window.location.search
+  );
+
+const usernameFromUrl =
+  params.get("username");
+
+
+const savedUsername =
+  sessionStorage.getItem(
+    "minegram_register_username"
+  );
+
+
+const username =
+  usernameFromUrl ||
+  savedUsername ||
+  "";
+
+
+/* =========================================================
+   MESAJ
+========================================================= */
+
+function showStatus(
+  text,
+  success = false
+){
+
+  status.textContent =
+    text;
+
+  status.className =
+    "status";
+
+  if(success){
+
+    status.classList.add(
+      "success"
+    );
+
+  }
+
+  status.style.display =
+    "block";
 }
 
-emailTab.addEventListener("click", () => {
-  mode = "email";
 
-  emailTab.style.background = "#554f67";
-  emailTab.style.borderColor = "#554f67";
-  emailTab.style.color = "#eee8fa";
+/* =========================================================
+   EMAIL SEKMESÄ°
+========================================================= */
 
-  phoneTab.style.background = "#000";
-  phoneTab.style.borderColor = "#888";
-  phoneTab.style.color = "#fff";
+emailTab.addEventListener(
+  "click",
+  function(){
 
-  contact.type = "email";
-  contact.autocomplete = "email";
-  contact.placeholder = "E-posta adresi";
+    mode = "email";
 
-  note.innerHTML =
-    "Devam ettiðinde e-posta adresine 6 haneli doðrulama<br>kodu gönderilir.";
+    emailTab.style.background =
+      "#554f67";
 
-  status.style.display = "none";
-});
+    emailTab.style.borderColor =
+      "#554f67";
 
-phoneTab.addEventListener("click", () => {
-  mode = "phone";
+    emailTab.style.color =
+      "#eee8fa";
 
-  phoneTab.style.background = "#554f67";
-  phoneTab.style.borderColor = "#554f67";
-  phoneTab.style.color = "#eee8fa";
 
-  emailTab.style.background = "#000";
-  emailTab.style.borderColor = "#888";
-  emailTab.style.color = "#fff";
+    phoneTab.style.background =
+      "#000";
 
-  contact.type = "tel";
-  contact.autocomplete = "tel";
-  contact.placeholder = "Telefon numarasý";
+    phoneTab.style.borderColor =
+      "#888";
 
-  note.innerHTML =
-    "Devam ettiðinde telefon numarana 6 haneli doðrulama<br>kodu gönderilir.";
+    phoneTab.style.color =
+      "#fff";
 
-  status.style.display = "none";
-});
 
-sendBtn.addEventListener("click", async () => {
-  const value = contact.value.trim();
+    contact.type =
+      "email";
 
-  if (!value) {
-    showError(mode === "email"
-      ? "Lütfen e-posta adresini gir."
-      : "Lütfen telefon numaraný gir.");
+    contact.autocomplete =
+      "email";
+
+    contact.placeholder =
+      "E-posta adresi";
+
+
+    note.textContent =
+      "Devam ettiÄŸinde e-posta adresine doÄŸrulama kodu gÃ¶nderilir.";
+
+
+    status.style.display =
+      "none";
+
+  }
+);
+
+
+/* =========================================================
+   TELEFON SEKMESÄ°
+========================================================= */
+
+phoneTab.addEventListener(
+  "click",
+  function(){
+
+    mode = "phone";
+
+    phoneTab.style.background =
+      "#554f67";
+
+    phoneTab.style.borderColor =
+      "#554f67";
+
+    phoneTab.style.color =
+      "#eee8fa";
+
+
+    emailTab.style.background =
+      "#000";
+
+    emailTab.style.borderColor =
+      "#888";
+
+    emailTab.style.color =
+      "#fff";
+
+
+    contact.type =
+      "tel";
+
+    contact.autocomplete =
+      "tel";
+
+    contact.placeholder =
+      "Telefon numarasÄ±";
+
+
+    note.textContent =
+      "Devam ettiÄŸinde telefon numaran doÄŸrulama iÃ§in kullanÄ±lacaktÄ±r.";
+
+
+    status.style.display =
+      "none";
+
+  }
+);
+
+
+/* =========================================================
+   GERÄ°
+========================================================= */
+
+function goBack(){
+
+  if(
+    document.referrer &&
+    document.referrer !==
+    window.location.href
+  ){
+
+    history.back();
+
     return;
   }
 
-  if (mode === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    showError("Geçerli bir e-posta adresi gir.");
+
+  window.location.href =
+    "./kayit.html";
+}
+
+
+topBack.addEventListener(
+  "click",
+  goBack
+);
+
+
+backBtn.addEventListener(
+  "click",
+  goBack
+);
+
+
+/* =========================================================
+   EMAIL Ä°LE FIREBASE KAYDI
+========================================================= */
+
+async function registerEmail(){
+
+  const email =
+    contact.value.trim();
+
+
+  if(!email){
+
+    showStatus(
+      "LÃ¼tfen e-posta adresini gir."
+    );
+
     return;
   }
+
+
+  if(
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      .test(email)
+  ){
+
+    showStatus(
+      "GeÃ§erli bir e-posta adresi gir."
+    );
+
+    return;
+  }
+
 
   /*
-    Gerçek 6 haneli OTP isteði burada backend'e gönderilmelidir:
+   * Åžifre daha sonraki kayit.html
+   * ekranÄ±ndan alÄ±nacak.
+   *
+   * Burada kullanÄ±cÄ±yÄ± Firebase'e
+   * hemen oluÅŸturmuyoruz.
+   *
+   * E-posta adresini kayÄ±t sÃ¼recinde
+   * saklÄ±yoruz.
+   */
 
-    await fetch("/api/send-otp", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ email: value })
-    });
-
-    Baþarýlý olursa:
-      window.location.href = "verify.html";
-
-    OTP'yi frontend'de üretmek veya sabit bir kod kullanmak güvenli deðildir.
-  */
-
-  showError(
-    "Firebase baðlantýsý hazýr. Gerçek 6 haneli kod gönderimi için Cloud Function / backend baðlantýsýný eklemelisin."
+  sessionStorage.setItem(
+    "minegram_register_email",
+    email
   );
-});
 
-onAuthStateChanged(auth, (user) => {
-  // Kullanýcý zaten giriþ yaptýysa burada ana sayfaya yönlendirebilirsin.
-  // if (user) window.location.href = "home.html";
-});
+
+  if(username){
+
+    sessionStorage.setItem(
+      "minegram_register_username",
+      username
+    );
+
+  }
+
+
+  showStatus(
+    "E-posta kaydedildi. Åžifre oluÅŸturma ekranÄ±na geÃ§iliyor.",
+    true
+  );
+
+
+  nextBtn.disabled =
+    true;
+
+  nextBtn.textContent =
+    "Devam ediliyor...";
+
+
+  setTimeout(
+    function(){
+
+      window.location.href =
+        "./kayit.html?username=" +
+        encodeURIComponent(username) +
+        "&email=" +
+        encodeURIComponent(email);
+
+    },
+    400
+  );
+
+}
+
+
+/* =========================================================
+   TELEFON
+========================================================= */
+
+async function registerPhone(){
+
+  const phone =
+    contact.value.trim();
+
+
+  if(!phone){
+
+    showStatus(
+      "LÃ¼tfen telefon numaranÄ± gir."
+    );
+
+    return;
+  }
+
+
+  /*
+   * Firebase Phone Authentication
+   * iÃ§in reCAPTCHA gerekir.
+   *
+   * Bu aÅŸamada telefon numarasÄ±nÄ±
+   * kayÄ±t sÃ¼recinde saklÄ±yoruz.
+   */
+
+  sessionStorage.setItem(
+    "minegram_register_phone",
+    phone
+  );
+
+
+  if(username){
+
+    sessionStorage.setItem(
+      "minegram_register_username",
+      username
+    );
+
+  }
+
+
+  showStatus(
+    "Telefon numarasÄ± kaydedildi. Åžifre oluÅŸturma ekranÄ±na geÃ§iliyor.",
+    true
+  );
+
+
+  nextBtn.disabled =
+    true;
+
+  nextBtn.textContent =
+    "Devam ediliyor...";
+
+
+  setTimeout(
+    function(){
+
+      window.location.href =
+        "./kayit.html?username=" +
+        encodeURIComponent(username) +
+        "&phone=" +
+        encodeURIComponent(phone);
+
+    },
+    400
+  );
+
+}
+
+
+/* =========================================================
+   Ä°LERÄ°
+========================================================= */
+
+nextBtn.addEventListener(
+  "click",
+  async function(){
+
+    if(busy){
+
+      return;
+    }
+
+
+    busy = true;
+
+
+    try{
+
+      if(mode === "email"){
+
+        await registerEmail();
+
+      }
+      else{
+
+        await registerPhone();
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "Firebase hata:",
+        error
+      );
+
+
+      showStatus(
+        error.message ||
+        "Ä°ÅŸlem sÄ±rasÄ±nda bir hata oluÅŸtu."
+      );
+
+
+      busy = false;
+
+      nextBtn.disabled =
+        false;
+
+      nextBtn.textContent =
+        "Ä°leri";
+    }
+
+  }
+);
+
+
+/* =========================================================
+   ENTER
+========================================================= */
+
+contact.addEventListener(
+  "keydown",
+  function(event){
+
+    if(
+      event.key === "Enter"
+    ){
+
+      event.preventDefault();
+
+      nextBtn.click();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   SAYFA AÃ‡ILIÅžI
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function(){
+
+    const savedEmail =
+      sessionStorage.getItem(
+        "minegram_register_email"
+      );
+
+    const savedPhone =
+      sessionStorage.getItem(
+        "minegram_register_phone"
+      );
+
+
+    if(savedEmail){
+
+      mode = "email";
+
+      contact.value =
+        savedEmail;
+
+    }
+    else if(savedPhone){
+
+      mode = "phone";
+
+      contact.value =
+        savedPhone;
+
+      phoneTab.click();
+
+    }
+
+  }
+);
+
 </script>
 
 </body>
