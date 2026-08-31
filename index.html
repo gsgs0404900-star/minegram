@@ -117,18 +117,24 @@ return firebaseReady;
 }
 
 async function getApiToken(){
-await initFirebase();
-if(firebaseUser){
-try{
-const fresh=await firebaseUser.getIdToken();
-if(fresh){
-token=fresh;
-localStorage.setItem('minegram_firebase_token',fresh);
-localStorage.setItem('minegram_token',fresh);
-localStorage.setItem('minegram_firebase_uid',firebaseUser.uid||'');
-localStorage.setItem('minegram_firebase_email',firebaseUser.email||'');
-return fresh;
+    await initFirebase();
+
+    if(firebaseUser){
+        const fresh = await firebaseUser.getIdToken(true);
+
+        token = fresh;
+
+        localStorage.setItem("minegram_firebase_token", fresh);
+        localStorage.setItem("minegram_token", fresh);
+        localStorage.setItem("minegram_firebase_uid", firebaseUser.uid || "");
+        localStorage.setItem("minegram_firebase_email", firebaseUser.email || "");
+
+        return fresh;
+    }
+
+    return null;
 }
+
 }catch(e){console.error('[FIREBASE TOKEN]',e);}
 }
 return token||localStorage.getItem('minegram_firebase_token')||localStorage.getItem('minegram_token')||null;
@@ -276,52 +282,104 @@ document.getElementById('storyInput').addEventListener('change',uploadStory);
 document.querySelector('.story .plus').addEventListener('click',e=>{e.stopPropagation();document.getElementById('storyInput').click();});
 
 async function init(){
-  try{
-    // Önce giris.html'nin kaydettiği tokenı kullan.
-    // Firebase SDK oturumu henüz restore edilmemiş olsa bile
-    // geçerli ID token ile ana sayfanın açılmasına izin veriyoruz.
-    const storedToken =
-      localStorage.getItem('minegram_firebase_token') ||
-      localStorage.getItem('minegram_token');
 
-    if(storedToken){
-      token = storedToken;
-    }
-
-    // Firebase oturumunu başlat; fakat burada kullanıcı yok diye
-    // hemen giris.html'ye yönlendirme yapma.
     try{
-      await initFirebase();
-    }catch(firebaseError){
-      console.warn('[FIREBASE INIT]',firebaseError);
+
+        // Firebase'i başlat ve gerçek oturumu bekle
+        const user = await initFirebase();
+
+        if(!user){
+
+            console.warn("[AUTH] Firebase kullanıcısı bulunamadı.");
+
+            // Eski/geçersiz tokenları temizle
+            localStorage.removeItem("minegram_token");
+            localStorage.removeItem("minegram_firebase_token");
+            localStorage.removeItem("minegram_firebase_uid");
+            localStorage.removeItem("minegram_firebase_email");
+
+            showLogin();
+            return;
+        }
+
+        firebaseUser = user;
+
+        // Firebase'den yeni ve geçerli token al
+        const apiToken = await firebaseUser.getIdToken(true);
+
+        if(!apiToken){
+
+            showLogin();
+            return;
+        }
+
+        token = apiToken;
+
+        // Tokenı kaydet
+        localStorage.setItem(
+            "minegram_firebase_token",
+            apiToken
+        );
+
+        localStorage.setItem(
+            "minegram_token",
+            apiToken
+        );
+
+        localStorage.setItem(
+            "minegram_firebase_uid",
+            firebaseUser.uid || ""
+        );
+
+        localStorage.setItem(
+            "minegram_firebase_email",
+            firebaseUser.email || ""
+        );
+
+        console.log(
+            "[AUTH] Firebase giriş başarılı:",
+            firebaseUser.email
+        );
+
+        // Backend kullanıcı kontrolü
+        currentUser = await api("/me");
+
+        console.log(
+            "[AUTH] Backend kullanıcı:",
+            currentUser
+        );
+
+        // Ana sayfayı göster
+        showHome();
+
+        // Gönderileri yükle
+        await loadFeed();
+
+    }catch(e){
+
+        console.error("[INDEX AUTH ERROR]", e);
+
+        // Firebase gerçekten oturumsuzsa girişe gönder
+        if(!firebaseUser){
+
+            showLogin();
+            return;
+        }
+
+        // Firebase oturumu var ama backend hata veriyorsa
+        // index'i aç ve hatayı göster
+        showHome();
+
+        feedEl.innerHTML = `
+            <div class="empty">
+                <strong>Oturum doğrulanamadı</strong>
+                <small>${esc(
+                    e.message || "Sunucu bağlantısı kurulamadı."
+                )}</small>
+            </div>
+        `;
     }
-
-    const apiToken = await getApiToken();
-
-    if(!apiToken){
-      showLogin();
-      return;
-    }
-
-    // Gerçek oturum kontrolü backend tarafından yapılır.
-    currentUser = await api('/me');
-
-    showHome();
-    await loadFeed();
-
-  }catch(e){
-    console.error('[INDEX INIT]',e);
-
-    // /api/me gerçekten yetkisizse giriş sayfasına dön.
-    // Böylece normal Firebase restore gecikmesi yüzünden döngü oluşmaz.
-    // Hata durumunda da index.html açık kalsın;
-    // kullanıcıyı otomatik olarak giris.html'ye geri gönderme.
-    showHome();
-    feedEl.innerHTML='<div class="empty"><strong>Ana sayfa yüklenemedi</strong><small>'+esc(e.message||'Sunucu bağlantısı kurulamadı.')+'</small></div>';
-  }
 }
-
-init();
 </script>
 </body>
 </html>
