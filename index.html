@@ -1267,13 +1267,19 @@ async function uploadStory(e) {
     const fd = new FormData();
     fd.append("story", file);
 
-    const token = localStorage.getItem("minegram_token");
-    console.log("TOKEN:", token);
+    const storyToken = await getApiToken();
+    console.log("FIREBASE TOKEN:", storyToken);
+
+    if (!storyToken) {
+        alert("Oturum gerekli. Lütfen tekrar giriş yap.");
+        showLogin();
+        return;
+    }
 
     const res = await fetch("/api/stories", {
         method: "POST",
         headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${storyToken}`
         },
         body: fd
     });
@@ -1291,16 +1297,93 @@ alert("Hikaye paylaşıldı.");
 
 const API='/api';
 
-let token=
-localStorage.getItem(
-'minegram_token'
-);
+/* =====================================================
+   FIREBASE AUTH
+   Firebase oturumu giris.html tarafından açılır.
+   Bu sayfa Firebase ID token'ını /api isteklerinde kullanır.
+===================================================== */
 
+let token = localStorage.getItem('minegram_token') || null;
 let currentUser=null;
 let currentCommentPost=null;
 let currentMenuPost=null;
 let currentCommentSort='forYou';
 let replyingTo=null;
+
+let firebaseApp=null;
+let firebaseAuth=null;
+let firebaseUser=null;
+let firebaseReady=null;
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y',
+  authDomain: 'mim-ea133.firebaseapp.com',
+  databaseURL: 'https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'mim-ea133',
+  storageBucket: 'mim-ea133.firebasestorage.app',
+  messagingSenderId: '303525353436',
+  appId: '1:303525353436:web:082fc090b5025e19942119',
+  measurementId: 'G-K962QE5P1R'
+};
+
+async function initFirebase(){
+  if(firebaseReady) return firebaseReady;
+
+  firebaseReady = (async()=>{
+    const [{initializeApp}, authModule] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js')
+    ]);
+
+    firebaseApp = initializeApp(firebaseConfig);
+    firebaseAuth = authModule.getAuth(firebaseApp);
+
+    /* İsteğe bağlı Analytics; giriş/feed için gerekli değil. */
+    try {
+      const analyticsModule = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js');
+      analyticsModule.getAnalytics(firebaseApp);
+    } catch(e) {
+      console.warn('[FIREBASE ANALYTICS]', e);
+    }
+
+    await new Promise(resolve=>{
+      let done=false;
+      const finish=user=>{
+        if(done) return;
+        done=true;
+        firebaseUser=user||null;
+        resolve();
+      };
+      authModule.onAuthStateChanged(firebaseAuth, finish);
+    });
+
+    return firebaseUser;
+  })();
+
+  return firebaseReady;
+}
+
+async function getApiToken(){
+  await initFirebase();
+
+  if(firebaseUser){
+    try{
+      const freshToken=await firebaseUser.getIdToken();
+      if(freshToken){
+        token=freshToken;
+        localStorage.setItem('minegram_token',freshToken);
+        localStorage.setItem('minegram_firebase_token',freshToken);
+        localStorage.setItem('minegram_firebase_uid',firebaseUser.uid||'');
+        localStorage.setItem('minegram_firebase_email',firebaseUser.email||'');
+        return freshToken;
+      }
+    }catch(e){
+      console.error('[FIREBASE TOKEN]',e);
+    }
+  }
+
+  return token || localStorage.getItem('minegram_token') || null;
+}
 
 const feedEl=
 document.getElementById(
@@ -1337,35 +1420,27 @@ path,
 opt={}
 ){
 
-opt.headers={
-...(opt.headers||{}),
-...(token
-?{Authorization:'Bearer '+token}
-:{})
+const apiToken=await getApiToken();
+const headers={
+...(opt.headers||{})
 };
 
-const r=
-await fetch(
+if(apiToken){
+  headers.Authorization='Bearer '+apiToken;
+}
+
+const r=await fetch(
 API+path,
-opt
+{...opt,headers}
 );
 
-const j=
-await r.json().catch(
-()=>({})
-);
+const j=await r.json().catch(()=>({}));
 
 if(!r.ok){
-
-throw Error(
-j.error||
-'İşlem başarısız'
-);
-
+  throw Error(j.error||'İşlem başarısız');
 }
 
 return j;
-
 }
 
 
@@ -1403,17 +1478,7 @@ setTimeout(
 
 function showLogin(){
 
-document
-.getElementById('login')
-.classList.remove('hidden');
-
-document
-.getElementById('home')
-.classList.add('hidden');
-
-document
-.getElementById('bottomNav')
-.classList.add('hidden');
+location.replace('giris.html');
 
 }
 
@@ -1435,14 +1500,25 @@ document
 }
 
 
-function logout(){
+async function logout(){
 
-localStorage.removeItem(
-'minegram_token'
-);
+try{
+  await initFirebase();
+  if(firebaseAuth){
+    const {signOut}=await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js');
+    await signOut(firebaseAuth);
+  }
+}catch(e){
+  console.error('[FIREBASE LOGOUT]',e);
+}
+
+localStorage.removeItem('minegram_token');
+localStorage.removeItem('minegram_firebase_token');
+localStorage.removeItem('minegram_firebase_uid');
+localStorage.removeItem('minegram_firebase_email');
 
 token=null;
-
+firebaseUser=null;
 currentUser=null;
 
 showLogin();
@@ -1452,86 +1528,16 @@ showLogin();
 
 async function login(){
 
-try{
-
-const j=
-await api(
-'/login',
-{
-method:'POST',
-headers:{
-'Content-Type':
-'application/json'
-},
-body:JSON.stringify({
-username:lu.value,
-password:lp.value
-})
-}
-);
-
-if(!j.token){
-
-return toast(
-'E-posta adresini doğrula, sonra giriş yap.'
-);
-
-}
-
-token=j.token;
-
-localStorage.setItem(
-'minegram_token',
-token
-);
-
-showHome();
-
-loadFeed();
-
-}catch(e){
-
-toast(e.message);
-
-}
+/* index.html'deki eski giriş formu korunuyor fakat
+   gerçek Firebase girişi giris.html üzerinden yapılır. */
+location.href='giris.html';
 
 }
 
 
 async function forgot(){
 
-const x=
-prompt(
-'E-posta adresini veya kullanıcı adını gir:'
-);
-
-if(!x)return;
-
-try{
-
-await api(
-'/forgot',
-{
-method:'POST',
-headers:{
-'Content-Type':
-'application/json'
-},
-body:JSON.stringify({
-identifier:x
-})
-}
-);
-
-toast(
-'Kurtarma bağlantısı gönderildi.'
-);
-
-}catch(e){
-
-toast(e.message);
-
-}
+location.href='giris.html';
 
 }
 
@@ -3865,27 +3871,33 @@ btn.dataset.loading='0';
 
 async function init(){
 
-if(!token){
-
-showLogin();
-
-return;
-
-}
-
-
 try{
 
-currentUser=
-await api('/me');
+await initFirebase();
+
+if(!firebaseUser){
+  showLogin();
+  return;
+}
+
+token=await getApiToken();
+
+if(!token){
+  showLogin();
+  return;
+}
+
+currentUser=await api('/me');
 
 showHome();
 
-loadFeed();
+await loadFeed();
 
 }catch(e){
 
-logout();
+console.error('[INDEX INIT]',e);
+
+await logout();
 
 }
 
