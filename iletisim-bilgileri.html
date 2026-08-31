@@ -45,7 +45,7 @@ body{
 
 
 /* =========================
-   ÜST BAŞLIK
+   ÜST
 ========================= */
 
 .header{
@@ -58,7 +58,6 @@ body{
 .back{
     width:28px;
     height:28px;
-
     display:flex;
     align-items:center;
     justify-content:center;
@@ -88,7 +87,6 @@ body{
     font-size:22px;
     line-height:1.25;
     font-weight:700;
-
     margin:0 0 12px;
 }
 
@@ -96,7 +94,6 @@ body{
     color:#777;
     font-size:13px;
     line-height:1.45;
-
     margin:0 0 22px;
 }
 
@@ -109,14 +106,12 @@ body{
     display:flex;
     gap:9px;
     width:100%;
-
     margin-bottom:9px;
 }
 
 .tab{
     width:50%;
     height:44px;
-
     border-radius:7px;
 
     font-size:12px;
@@ -156,7 +151,6 @@ body{
     color:#fff;
 
     outline:none;
-
     font-size:12px;
 }
 
@@ -175,7 +169,6 @@ body{
 
 .note{
     min-height:20px;
-
     margin:8px 0 0;
 
     color:#777;
@@ -191,11 +184,9 @@ body{
 
 .status{
     min-height:20px;
-
     margin-top:10px;
 
     font-size:12px;
-
     color:#ff4d4d;
 }
 
@@ -205,7 +196,7 @@ body{
 
 
 /* =========================
-   ALT BUTONLAR
+   BUTONLAR
 ========================= */
 
 .bottom{
@@ -231,17 +222,13 @@ body{
 
 .back-btn{
     background:#000;
-
     border:1px solid #555;
-
     color:#0095f6;
 }
 
 .next-btn{
     background:#2d80bd;
-
     border:0;
-
     color:#000;
 }
 
@@ -305,7 +292,6 @@ body{
 }
 
 </style>
-
 </head>
 
 <body>
@@ -430,7 +416,6 @@ body{
 
 </div>
 
-
 </div>
 </div>
 
@@ -481,40 +466,22 @@ const firebaseConfig = {
 };
 
 
-const app =
-    initializeApp(firebaseConfig);
-
-const auth =
-    getAuth(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 
 /* =====================================================
    ELEMENTLER
 ===================================================== */
 
-const emailTab =
-    document.getElementById("emailTab");
-
-const phoneTab =
-    document.getElementById("phoneTab");
-
-const contact =
-    document.getElementById("contact");
-
-const note =
-    document.getElementById("note");
-
-const nextBtn =
-    document.getElementById("nextBtn");
-
-const backBtn =
-    document.getElementById("backBtn");
-
-const topBack =
-    document.getElementById("topBack");
-
-const status =
-    document.getElementById("status");
+const emailTab = document.getElementById("emailTab");
+const phoneTab = document.getElementById("phoneTab");
+const contact = document.getElementById("contact");
+const note = document.getElementById("note");
+const nextBtn = document.getElementById("nextBtn");
+const backBtn = document.getElementById("backBtn");
+const topBack = document.getElementById("topBack");
+const status = document.getElementById("status");
 
 
 /* =====================================================
@@ -529,10 +496,9 @@ let busy = false;
    USERNAME
 ===================================================== */
 
-const params =
-    new URLSearchParams(
-        window.location.search
-    );
+const params = new URLSearchParams(
+    window.location.search
+);
 
 const username =
     params.get("username") ||
@@ -548,8 +514,7 @@ const username =
 
 function showStatus(text, success = false){
 
-    status.textContent =
-        text || "";
+    status.textContent = text || "";
 
     status.className =
         success
@@ -559,103 +524,61 @@ function showStatus(text, success = false){
 
 
 /* =====================================================
-   E-POSTA BUTONU
+   E-POSTA
 ===================================================== */
 
-emailTab.addEventListener(
-    "click",
-    function(){
+emailTab.addEventListener("click", function(){
 
-        mode = "email";
+    mode = "email";
 
-        emailTab.style.background =
-            "#554f67";
+    emailTab.style.background = "#554f67";
+    emailTab.style.borderColor = "#554f67";
+    emailTab.style.color = "#eee8fa";
 
-        emailTab.style.borderColor =
-            "#554f67";
+    phoneTab.style.background = "#000";
+    phoneTab.style.borderColor = "#292929";
+    phoneTab.style.color = "#fff";
 
-        emailTab.style.color =
-            "#eee8fa";
+    contact.type = "email";
+    contact.autocomplete = "email";
+    contact.placeholder = "E-posta adresi";
 
+    note.textContent =
+        "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
 
-        phoneTab.style.background =
-            "#000";
-
-        phoneTab.style.borderColor =
-            "#292929";
-
-        phoneTab.style.color =
-            "#fff";
-
-
-        contact.type =
-            "email";
-
-        contact.autocomplete =
-            "email";
-
-        contact.placeholder =
-            "E-posta adresi";
-
-
-        note.textContent =
-            "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
-
-        showStatus("");
-    }
-);
+    showStatus("");
+});
 
 
 /* =====================================================
-   TELEFON BUTONU
+   TELEFON
 ===================================================== */
 
-phoneTab.addEventListener(
-    "click",
-    function(){
+phoneTab.addEventListener("click", function(){
 
-        mode = "phone";
+    mode = "phone";
 
-        phoneTab.style.background =
-            "#554f67";
+    phoneTab.style.background = "#554f67";
+    phoneTab.style.borderColor = "#554f67";
+    phoneTab.style.color = "#eee8fa";
 
-        phoneTab.style.borderColor =
-            "#554f67";
+    emailTab.style.background = "#000";
+    emailTab.style.borderColor = "#292929";
+    emailTab.style.color = "#fff";
 
-        phoneTab.style.color =
-            "#eee8fa";
+    contact.type = "tel";
+    contact.autocomplete = "tel";
+    contact.placeholder = "Telefon numarası";
 
+    note.textContent =
+        "Devam ettiğinde telefon numaran doğrulama için kullanılacaktır.";
 
-        emailTab.style.background =
-            "#000";
-
-        emailTab.style.borderColor =
-            "#292929";
-
-        emailTab.style.color =
-            "#fff";
-
-
-        contact.type =
-            "tel";
-
-        contact.autocomplete =
-            "tel";
-
-        contact.placeholder =
-            "Telefon numarası";
-
-
-        note.textContent =
-            "Devam ettiğinde telefon numaran doğrulama için kullanılacaktır.";
-
-        showStatus("");
-    }
-);
+    showStatus("");
+});
 
 
 /* =====================================================
-   GERİ BUTONU
+   GERİ
 ===================================================== */
 
 function goBack(){
@@ -663,183 +586,165 @@ function goBack(){
     window.location.href =
         "./sifre-olustur.html?username=" +
         encodeURIComponent(username);
-
 }
 
-
-topBack.addEventListener(
-    "click",
-    goBack
-);
-
-
-backBtn.addEventListener(
-    "click",
-    goBack
-);
+topBack.addEventListener("click", goBack);
+backBtn.addEventListener("click", goBack);
 
 
 /* =====================================================
-   İLERİ BUTONU
+   İLERİ
 ===================================================== */
 
-nextBtn.addEventListener(
-    "click",
-    function(){
+nextBtn.addEventListener("click", function(){
 
-        if(busy){
-            return;
-        }
-
-
-        const value =
-            contact.value.trim();
-
-
-        /* BOŞ */
-
-        if(!value){
-
-            showStatus(
-                mode === "email"
-                    ? "Lütfen e-posta adresini gir."
-                    : "Lütfen telefon numaranı gir."
-            );
-
-            contact.focus();
-
-            return;
-        }
-
-
-        /* E-POSTA */
-
-        if(
-            mode === "email" &&
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-        ){
-
-            showStatus(
-                "Geçerli bir e-posta adresi gir."
-            );
-
-            contact.focus();
-
-            return;
-        }
-
-
-        /* TELEFON */
-
-        if(mode === "phone"){
-
-            const cleanPhone =
-                value.replace(
-                    /[\s()-]/g,
-                    ""
-                );
-
-
-            if(cleanPhone.length < 10){
-
-                showStatus(
-                    "Geçerli bir telefon numarası gir."
-                );
-
-                contact.focus();
-
-                return;
-            }
-        }
-
-
-        /* BİLGİLERİ KAYDET */
-
-        if(mode === "email"){
-
-            sessionStorage.setItem(
-                "minegram_register_email",
-                value
-            );
-
-        }
-        else{
-
-            sessionStorage.setItem(
-                "minegram_register_phone",
-                value
-            );
-
-        }
-
-
-        if(username){
-
-            sessionStorage.setItem(
-                "minegram_register_username",
-                username
-            );
-
-        }
-
-
-        /* BUTONU KİLİTLE */
-
-        busy = true;
-
-        nextBtn.disabled =
-            true;
-
-        nextBtn.textContent =
-            "Devam ediliyor...";
-
-
-        /* =================================================
-           İLERİ → HESAP DOĞRULAMA
-        ================================================= */
-
-        const nextPage =
-            "./hesap-dogrulama.html?username=" +
-            encodeURIComponent(username) +
-            "&" +
-            (
-                mode === "email"
-                    ? "email=" +
-                      encodeURIComponent(value)
-                    : "phone=" +
-                      encodeURIComponent(value)
-            );
-
-
-        window.location.href =
-            nextPage;
-
+    if(busy){
+        return;
     }
-);
+
+    const value = contact.value.trim();
+
+
+    /* BOŞ KONTROL */
+
+    if(!value){
+
+        showStatus(
+            mode === "email"
+                ? "Lütfen e-posta adresini gir."
+                : "Lütfen telefon numaranı gir."
+        );
+
+        contact.focus();
+
+        return;
+    }
+
+
+    /* E-POSTA KONTROL */
+
+    if(
+        mode === "email" &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    ){
+
+        showStatus(
+            "Geçerli bir e-posta adresi gir."
+        );
+
+        contact.focus();
+
+        return;
+    }
+
+
+    /* TELEFON KONTROL */
+
+    if(mode === "phone"){
+
+        const cleanPhone =
+            value.replace(/[\s()-]/g, "");
+
+        if(cleanPhone.length < 10){
+
+            showStatus(
+                "Geçerli bir telefon numarası gir."
+            );
+
+            contact.focus();
+
+            return;
+        }
+    }
+
+
+    /* KAYDET */
+
+    if(mode === "email"){
+
+        sessionStorage.setItem(
+            "minegram_register_email",
+            value
+        );
+
+    }else{
+
+        sessionStorage.setItem(
+            "minegram_register_phone",
+            value
+        );
+    }
+
+
+    if(username){
+
+        sessionStorage.setItem(
+            "minegram_register_username",
+            username
+        );
+    }
+
+
+    /* BUTONU KİLİTLE */
+
+    busy = true;
+
+    nextBtn.disabled = true;
+
+    nextBtn.textContent =
+        "Devam ediliyor...";
+
+
+    /* =================================================
+       BURASI İLERİ BUTONUNUN ASIL YÖNLENDİRMESİ
+       
+       İLETİŞİM BİLGİLERİ
+                ↓
+       HESAP DOĞRULAMA
+    ================================================= */
+
+    let url =
+        "./hesap-dogrulama.html?username=" +
+        encodeURIComponent(username);
+
+
+    if(mode === "email"){
+
+        url +=
+            "&email=" +
+            encodeURIComponent(value);
+
+    }else{
+
+        url +=
+            "&phone=" +
+            encodeURIComponent(value);
+    }
+
+
+    window.location.href = url;
+
+});
 
 
 /* =====================================================
    ENTER
 ===================================================== */
 
-contact.addEventListener(
-    "keydown",
-    function(event){
+contact.addEventListener("keydown", function(event){
 
-        if(event.key === "Enter"){
+    if(event.key === "Enter"){
 
-            event.preventDefault();
+        event.preventDefault();
 
-            nextBtn.click();
-
-        }
-
+        nextBtn.click();
     }
-);
+
+});
 
 
 /* =====================================================
-   KAYITLI E-POSTA / TELEFON
+   KAYITLI BİLGİLER
 ===================================================== */
 
 const savedEmail =
@@ -857,26 +762,23 @@ if(savedEmail){
 
     mode = "email";
 
-    contact.value =
-        savedEmail;
+    contact.value = savedEmail;
 
 }
 else if(savedPhone){
 
     phoneTab.click();
 
-    contact.value =
-        savedPhone;
-
+    contact.value = savedPhone;
 }
 
 
 /* =====================================================
-   KONTROL
+   FIREBASE KONTROL
 ===================================================== */
 
 console.log(
-    "[MINEGRAM] İletişim sayfası hazır."
+    "[MINEGRAM] İletişim bilgileri hazır."
 );
 
 console.log(
