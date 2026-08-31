@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Şifremi unuttum - Telefon</title>
+<title>Şifremi unuttum - Minegram</title>
 
 <style>
 *{
@@ -75,8 +76,6 @@ body{
     margin:115px auto 0;
 }
 
-/* BAŞLIK */
-
 .title{
     text-align:center;
     font-size:30px;
@@ -85,8 +84,6 @@ body{
     margin:0 0 34px;
     color:#fff;
 }
-
-/* AÇIKLAMA */
 
 .description{
     font-size:18px;
@@ -99,7 +96,7 @@ body{
    INPUT
 ========================= */
 
-.phone-input{
+.input{
     display:block;
     width:100%;
     height:39px;
@@ -117,12 +114,12 @@ body{
     font-family:Arial,Helvetica,sans-serif;
 }
 
-.phone-input::placeholder{
+.input::placeholder{
     color:#777;
     opacity:1;
 }
 
-.phone-input:focus{
+.input:focus{
     border-color:#555;
 }
 
@@ -159,7 +156,7 @@ body{
 }
 
 /* =========================
-   DİĞER YÖNTEM
+   ALT LİNKLER
 ========================= */
 
 .other-method{
@@ -175,11 +172,19 @@ body{
     font-size:12px;
     font-weight:400;
 
-    text-decoration:underline;
+    text-decoration:none;
 
     cursor:pointer;
 
     line-height:1.4;
+}
+
+.other-method:hover{
+    text-decoration:underline;
+}
+
+.login-link{
+    margin-top:25px;
 }
 
 /* =========================
@@ -200,77 +205,6 @@ body{
 
 .message.success{
     color:#55b8ff;
-}
-
-/* =========================
-   DOĞRULAMA
-========================= */
-
-.code-box{
-    display:none;
-    margin-top:20px;
-}
-
-.code-title{
-    text-align:center;
-    font-size:18px;
-    font-weight:700;
-    margin-bottom:10px;
-}
-
-.code-info{
-    text-align:center;
-    color:#aaa;
-    font-size:12px;
-    line-height:1.5;
-    margin-bottom:12px;
-}
-
-.code-input{
-    display:block;
-    width:100%;
-    height:39px;
-
-    border:1px solid #252525;
-    border-radius:6px;
-
-    background:#050505;
-    color:#fff;
-
-    text-align:center;
-    letter-spacing:5px;
-
-    font-size:17px;
-
-    outline:none;
-}
-
-.code-input:focus{
-    border-color:#555;
-}
-
-.verify-btn{
-    display:block;
-    width:100%;
-    height:37px;
-
-    margin-top:8px;
-
-    border:0;
-    border-radius:22px;
-
-    background:#2677b5;
-    color:#000;
-
-    font-size:12px;
-    font-weight:700;
-
-    cursor:pointer;
-}
-
-.verify-btn:disabled{
-    opacity:.6;
-    cursor:not-allowed;
 }
 
 /* =========================
@@ -312,10 +246,12 @@ body{
         margin-bottom:55px;
     }
 
-    .phone-input{
+    .input{
         height:68px;
         padding:0 20px;
+
         font-size:18px;
+
         border:2px solid #686868;
         border-radius:9px;
     }
@@ -323,6 +259,7 @@ body{
     .continue-btn{
         height:58px;
         margin-top:18px;
+
         font-size:20px;
         border-radius:32px;
     }
@@ -331,28 +268,15 @@ body{
         margin-top:25px;
         font-size:18px;
         font-weight:700;
+        color:#62b5f5;
+    }
+
+    .login-link{
+        margin-top:25px;
     }
 
     .message{
         font-size:14px;
-    }
-
-    .code-title{
-        font-size:22px;
-    }
-
-    .code-info{
-        font-size:15px;
-    }
-
-    .code-input{
-        height:58px;
-        font-size:22px;
-    }
-
-    .verify-btn{
-        height:58px;
-        font-size:18px;
     }
 }
 
@@ -377,125 +301,113 @@ body{
     }
 }
 </style>
+
 </head>
 
 <body>
 
 <div class="page">
 
-    <!-- ÜST BAR -->
-    <div class="topbar">
+```
+<!-- =========================
+     ÜST BAR
+========================= -->
 
-        <div
-            class="back"
-            onclick="history.back()"
-        >
-            ‹
-        </div>
+<div class="topbar">
 
-        <div class="top-title">
-            Şifremi unuttum
-        </div>
-
+    <div
+        class="back"
+        onclick="goBack()"
+        aria-label="Geri"
+    >
+        ‹
     </div>
 
-
-    <!-- ANA FORM -->
-    <main class="content">
-
-        <h1 class="title">
-            Profilini bul
-        </h1>
-
-        <p class="description">
-            Hesabını bulmak için cep telefonu numaranı
-            gir.
-        </p>
-
-
-        <!-- TELEFON -->
-        <input
-            id="phone"
-            class="phone-input"
-            type="tel"
-            inputmode="tel"
-            autocomplete="tel"
-            placeholder="Cep telefonu numarası"
-        >
-
-
-        <!-- DEVAM -->
-        <button
-            id="continueBtn"
-            class="continue-btn"
-            type="button"
-        >
-            Devam
-        </button>
-
-
-        <!-- DİĞER YÖNTEM -->
-        <a
-            class="other-method"
-            href="sifremi-unuttum.html"
-        >
-            E-posta adresi veya kullanıcı adıyla bul
-        </a>
-
-
-        <!-- MESAJ -->
-        <div
-            id="message"
-            class="message"
-        ></div>
-
-
-        <!-- KOD -->
-        <div
-            id="codeBox"
-            class="code-box"
-        >
-
-            <div class="code-title">
-                Doğrulama kodu
-            </div>
-
-            <div
-                id="codeInfo"
-                class="code-info"
-            >
-                Doğrulama kodu e-posta adresinize gönderildi.
-            </div>
-
-            <input
-                id="code"
-                class="code-input"
-                type="text"
-                inputmode="numeric"
-                maxlength="6"
-                autocomplete="one-time-code"
-                placeholder="••••••"
-            >
-
-            <button
-                id="verifyBtn"
-                class="verify-btn"
-                type="button"
-            >
-                Doğrula
-            </button>
-
-        </div>
-
-    </main>
+    <div class="top-title">
+        Şifremi unuttum
+    </div>
 
 </div>
 
 
+<!-- =========================
+     ANA FORM
+========================= -->
+
+<main class="content">
+
+    <h1 class="title">
+        Profilini bul
+    </h1>
+
+    <p class="description">
+        Hesabını bulmak için e-posta adresini veya kullanıcı adını gir.
+    </p>
+
+
+    <input
+        id="emailUsername"
+        class="input"
+        type="text"
+        placeholder="E-posta adresi veya kullanıcı adı"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+    >
+
+
+    <button
+        id="continueBtn"
+        class="continue-btn"
+        type="button"
+    >
+        Devam
+    </button>
+
+
+    <!-- TELEFON SAYFASINA GİT -->
+
+    <a
+        href="sifremi-unuttum-telefon.html"
+        class="other-method"
+    >
+        Cep telefonu numarasıyla bul
+    </a>
+
+
+    <!-- GİRİŞE DÖN -->
+
+    <a
+        href="giris.html"
+        class="other-method login-link"
+    >
+        Giriş ekranına dön
+    </a>
+
+
+    <!-- MESAJ -->
+
+    <div
+        id="message"
+        class="message"
+    ></div>
+
+</main>
+```
+
+</div>
+
 <script>
 
-const phoneInput =
-    document.getElementById("phone");
+"use strict";
+
+
+/* =========================
+   ELEMENTLER
+========================= */
+
+const emailUsername =
+    document.getElementById("emailUsername");
 
 const continueBtn =
     document.getElementById("continueBtn");
@@ -503,26 +415,14 @@ const continueBtn =
 const message =
     document.getElementById("message");
 
-const codeBox =
-    document.getElementById("codeBox");
-
-const codeInput =
-    document.getElementById("code");
-
-const verifyBtn =
-    document.getElementById("verifyBtn");
-
-const codeInfo =
-    document.getElementById("codeInfo");
-
 
 /* =========================
-   MESAJ GÖSTER
+   MESAJ
 ========================= */
 
 function showMessage(text, success = false){
 
-    message.textContent = text;
+    message.textContent = text || "";
 
     message.className =
         success
@@ -532,334 +432,247 @@ function showMessage(text, success = false){
 
 
 /* =========================
-   DEVAM
+   GERİ
 ========================= */
 
-continueBtn.addEventListener("click", async function(){
+function goBack(){
 
-    const phone =
-        phoneInput.value.trim();
+    /*
+     * Önceki sayfa varsa oraya dön.
+     *
+     * Yoksa giriş ekranına git.
+     */
 
-    if(!phone){
+    if(history.length > 1){
+
+        history.back();
+
+    }else{
+
+        window.location.href = "giris.html";
+
+    }
+
+}
+
+
+/* =========================
+   HESAP BUL
+========================= */
+
+async function continueEmail(){
+
+    const value =
+        emailUsername.value.trim();
+
+
+    showMessage("");
+
+
+    /* BOŞ KONTROL */
+
+    if(!value){
 
         showMessage(
-            "Lütfen cep telefonu numaranızı gir."
+            "Lütfen e-posta adresini veya kullanıcı adını gir."
         );
 
-        phoneInput.focus();
+        emailUsername.focus();
 
         return;
     }
 
 
-    /*
-       Kullanıcıya işlem yapıldığını göster.
-    */
-
-    showMessage(
-        "Telefon numarası kontrol ediliyor...",
-        true
-    );
+    /* BUTONU KİLİTLE */
 
     continueBtn.disabled = true;
 
+    continueBtn.textContent =
+        "Kontrol ediliyor...";
+
 
     try{
 
+        /*
+         * Backend:
+         *
+         * POST /api/forgot-password/find-account
+         *
+         * Gönderilen:
+         *
+         * {
+         *   emailOrUsername: value
+         * }
+         */
+
         const response =
-            await fetch("/api/forgot/start", {
+            await fetch(
+                "/api/forgot-password/find-account",
+                {
+                    method:"POST",
 
-                method:"POST",
+                    headers:{
+                        "Content-Type":
+                            "application/json",
 
-                headers:{
-                    "Content-Type":"application/json"
-                },
+                        "Accept":
+                            "application/json"
+                    },
 
-                body:JSON.stringify({
+                    body:JSON.stringify({
+                        emailOrUsername:value
+                    }),
 
-                    identifier:phone,
-
-                    mode:"phone"
-
-                })
-
-            });
+                    cache:"no-store"
+                }
+            );
 
 
         const data =
-            await response.json().catch(
-                () => ({})
-            );
+            await response
+                .json()
+                .catch(function(){
 
+                    return {};
+
+                });
+
+
+        console.log(
+            "[MINEGRAM FORGOT ACCOUNT]",
+            data
+        );
+
+
+        /* SUNUCU HATASI */
 
         if(!response.ok){
 
             throw new Error(
+                data.message ||
                 data.error ||
-                "Hesap bulunamadı."
+                "Bu bilgilerle eşleşen hesap bulunamadı."
             );
 
         }
 
 
-        /*
-           Sunucu doğrulama kodunu
-           hesabın e-posta adresine gönderdi.
-        */
+        /* HESAP BULUNDU */
 
-        showMessage(
-            "Doğrulama kodu e-posta adresinize gönderildi.",
-            true
-        );
+        if(data.success){
 
-
-        /*
-           Telefon alanını kapat.
-        */
-
-        phoneInput.disabled = true;
-
-        continueBtn.style.display = "none";
+            showMessage(
+                "Hesap bulundu. Yönlendiriliyorsun...",
+                true
+            );
 
 
-        /*
-           Kod alanını göster.
-        */
+            /*
+             * Backend gerçek e-posta adresini
+             * döndürüyorsa onu kullan.
+             *
+             * Döndürmüyorsa kullanıcının
+             * girdiği değeri gönder.
+             */
 
-        codeBox.style.display = "block";
+            const email =
+                data.email ||
+                data.account?.email ||
+                value;
 
 
-        if(data.maskedEmail){
+            /*
+             * Doğrulama sayfasına geç.
+             */
 
-            codeInfo.textContent =
-                data.maskedEmail +
-                " adresine gönderilen doğrulama kodunu girin.";
+            setTimeout(function(){
 
-        }else{
+                window.location.href =
+                    "sifremi-unuttum-dogrulama.html?email=" +
+                    encodeURIComponent(email);
 
-            codeInfo.textContent =
-                "E-posta adresinize gönderilen doğrulama kodunu girin.";
+            },500);
 
+
+            return;
         }
 
 
-        codeInput.focus();
+        /* HESAP BULUNAMADI */
+
+        showMessage(
+            data.message ||
+            "Bu bilgilerle eşleşen hesap bulunamadı."
+        );
 
 
     }catch(error){
 
         console.error(
-            "Şifre sıfırlama hatası:",
+            "[MINEGRAM ŞİFRE SIFIRLAMA]",
             error
         );
 
+
         showMessage(
             error.message ||
-            "İşlem sırasında bir hata oluştu."
+            "Bir hata oluştu. Lütfen tekrar dene."
         );
+
+
+    }finally{
 
         continueBtn.disabled = false;
 
+        continueBtn.textContent =
+            "Devam";
+
     }
 
-});
+}
 
 
 /* =========================
-   KOD SADECE RAKAM
+   DEVAM BUTONU
 ========================= */
 
-codeInput.addEventListener(
-    "input",
+continueBtn.addEventListener(
+    "click",
+    continueEmail
+);
+
+
+/* =========================
+   ENTER
+========================= */
+
+emailUsername.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            continueEmail();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   SAYFA AÇILDI
+========================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
     function(){
 
-        this.value =
-            this.value
-            .replace(/\D/g,"")
-            .slice(0,6);
-
-    }
-);
-
-
-/* =========================
-   KODU DOĞRULA
-========================= */
-
-verifyBtn.addEventListener("click", async function(){
-
-    const phone =
-        phoneInput.value.trim();
-
-    const code =
-        codeInput.value.trim();
-
-
-    if(!code){
-
-        showMessage(
-            "Lütfen doğrulama kodunu gir."
+        console.log(
+            "[MINEGRAM] Şifre sıfırlama sayfası hazır."
         );
-
-        codeInput.focus();
-
-        return;
-    }
-
-
-    if(code.length !== 6){
-
-        showMessage(
-            "Doğrulama kodu 6 haneli olmalıdır."
-        );
-
-        codeInput.focus();
-
-        return;
-    }
-
-
-    showMessage(
-        "Kod kontrol ediliyor...",
-        true
-    );
-
-    verifyBtn.disabled = true;
-
-
-    try{
-
-        const response =
-            await fetch("/api/forgot/verify", {
-
-                method:"POST",
-
-                headers:{
-                    "Content-Type":"application/json"
-                },
-
-                body:JSON.stringify({
-
-                    identifier:phone,
-
-                    mode:"phone",
-
-                    code:code
-
-                })
-
-            });
-
-
-        const data =
-            await response.json().catch(
-                () => ({})
-            );
-
-
-        if(!response.ok){
-
-            throw new Error(
-                data.error ||
-                "Doğrulama kodu yanlış."
-            );
-
-        }
-
-
-        /*
-           Kod doğru.
-        */
-
-        showMessage(
-            "Doğrulama başarılı.",
-            true
-        );
-
-
-        /*
-           Hesap bilgilerini sakla.
-           Sonraki şifre değiştirme ekranında
-           kullanılabilir.
-        */
-
-        sessionStorage.setItem(
-            "minegram_recovery_email",
-            data.email || ""
-        );
-
-        sessionStorage.setItem(
-            "minegram_recovery_username",
-            data.account?.username || ""
-        );
-
-
-        /*
-           Eğer ileride şifre değiştirme ekranın varsa
-           buradan ona yönlendirebilirsin.
-           
-           Şimdilik kullanıcıya başarılı olduğunu gösteriyoruz.
-        */
-
-        setTimeout(function(){
-
-            alert(
-                "Hesap doğrulandı. Şifre yenileme adımına geçebilirsiniz."
-            );
-
-        },300);
-
-
-    }catch(error){
-
-        console.error(
-            "Kod doğrulama hatası:",
-            error
-        );
-
-        showMessage(
-            error.message ||
-            "Doğrulama başarısız."
-        );
-
-        verifyBtn.disabled = false;
-
-    }
-
-});
-
-
-/* =========================
-   ENTER DESTEĞİ
-========================= */
-
-phoneInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Enter"){
-
-            event.preventDefault();
-
-            continueBtn.click();
-
-        }
-
-    }
-);
-
-
-codeInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Enter"){
-
-            event.preventDefault();
-
-            verifyBtn.click();
-
-        }
 
     }
 );
