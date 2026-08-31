@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 
 <title>Minegram - İletişim Bilgileri</title>
@@ -240,7 +239,6 @@ body{
     }
 }
 </style>
-
 </head>
 
 <body>
@@ -257,9 +255,7 @@ body{
     aria-label="Geri"
     role="button"
     tabindex="0"
->
-    ‹
-</div>
+>‹</div>
 
 <div class="header-title">
     Kayıt ol
@@ -272,8 +268,8 @@ body{
 </h1>
 
 <p class="description">
-    Hesabını doğrulamak için e-posta adresi ya<br>
-    da telefon numarası kullan.
+    Hesabını doğrulamak için e-posta adresini<br>
+    kullan.
 </p>
 
 <div class="tabs">
@@ -336,23 +332,9 @@ body{
 
 <script type="module">
 
-"use strict";
-
-
-/* =====================================================
-   FIREBASE
-===================================================== */
-
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    setPersistence,
-    browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 import {
     getFunctions,
@@ -361,7 +343,7 @@ import {
 
 
 /* =====================================================
-   FIREBASE CONFIG
+   FIREBASE
 ===================================================== */
 
 const firebaseConfig = {
@@ -399,32 +381,19 @@ const firebaseConfig = {
 const app =
     initializeApp(firebaseConfig);
 
-const auth =
-    getAuth(app);
+
+/*
+ * Cloud Function bölgesi.
+ *
+ * Eğer Function'ı europe-west1'e
+ * deploy edersen burası doğru.
+ */
 
 const functions =
-    getFunctions(app);
-
-
-/* =====================================================
-   PERSISTENCE
-===================================================== */
-
-try{
-
-    await setPersistence(
-        auth,
-        browserLocalPersistence
+    getFunctions(
+        app,
+        "europe-west1"
     );
-
-}catch(error){
-
-    console.error(
-        "[MINEGRAM] Persistence:",
-        error
-    );
-
-}
 
 
 /* =====================================================
@@ -457,7 +426,6 @@ const status =
 
 
 let mode = "email";
-
 let busy = false;
 
 
@@ -499,35 +467,21 @@ if(username){
 
 function showStatus(
     text,
-    success = false,
-    loading = false
+    success = false
 ){
 
     status.textContent =
         text || "";
 
     status.className =
-        "status";
-
-    if(success){
-
-        status.classList.add(
-            "success"
-        );
-    }
-
-    if(loading){
-
-        status.classList.add(
-            "loading"
-        );
-    }
-
+        success
+            ? "status success"
+            : "status";
 }
 
 
 /* =====================================================
-   E-POSTA TAB
+   E-POSTA SEÇ
 ===================================================== */
 
 emailTab.addEventListener(
@@ -577,7 +531,7 @@ emailTab.addEventListener(
 
 
 /* =====================================================
-   TELEFON TAB
+   TELEFON
 ===================================================== */
 
 phoneTab.addEventListener(
@@ -618,7 +572,7 @@ phoneTab.addEventListener(
 
 
         note.textContent =
-            "Telefon doğrulaması bu akışta kullanılmıyor. E-posta ile devam et.";
+            "Telefon doğrulaması için SMS sistemi ayrıca yapılandırılmalıdır.";
 
 
         showStatus("");
@@ -635,9 +589,7 @@ function goBack(){
 
     window.location.href =
         "./sifre-olustur.html?username=" +
-        encodeURIComponent(
-            username
-        );
+        encodeURIComponent(username);
 
 }
 
@@ -652,27 +604,162 @@ backBtn.addEventListener(
     goBack
 );
 
+topBack.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Enter" ||
+            event.key === " "
+        ){
+
+            event.preventDefault();
+
+            goBack();
+
+        }
+
+    }
+);
+
 
 /* =====================================================
    6 HANELİ KOD GÖNDER
 ===================================================== */
 
-async function sendCode(){
+async function sendOtpEmail(
+    email
+){
+
+    try{
+
+        console.log(
+            "[MINEGRAM] OTP gönderiliyor:",
+            email
+        );
+
+
+        /*
+         * Firebase Cloud Function:
+         *
+         * sendEmailOtp
+         */
+
+        const sendEmailOtp =
+            httpsCallable(
+                functions,
+                "sendEmailOtp"
+            );
+
+
+        const result =
+            await sendEmailOtp({
+
+                email: email,
+
+                username: username
+
+            });
+
+
+        console.log(
+            "[MINEGRAM] OTP sonucu:",
+            result.data
+        );
+
+
+        return true;
+
+
+    }catch(error){
+
+        console.error(
+            "[MINEGRAM] OTP gönderme hatası:",
+            error
+        );
+
+
+        let message =
+            "Doğrulama kodu gönderilemedi.";
+
+
+        if(
+            error.code ===
+            "functions/not-found"
+        ){
+
+            message =
+                "sendEmailOtp Cloud Function bulunamadı. Firebase Functions'ı deploy et.";
+
+        }
+        else if(
+            error.code ===
+            "functions/unauthenticated"
+        ){
+
+            message =
+                "Firebase bağlantısı doğrulanamadı.";
+
+        }
+        else if(
+            error.code ===
+            "functions/resource-exhausted"
+        ){
+
+            message =
+                "Çok fazla kod istendi. Biraz sonra tekrar dene.";
+
+        }
+        else if(
+            error.message
+        ){
+
+            message =
+                error.message;
+
+        }
+
+
+        showStatus(message);
+
+        return false;
+    }
+}
+
+
+/* =====================================================
+   İLERİ
+===================================================== */
+
+async function goNext(){
+
+    if(busy){
+
+        return;
+    }
+
 
     const value =
         contact.value.trim();
 
 
-    if(mode !== "email"){
+    /* ===============================================
+       TELEFON
+    =============================================== */
+
+    if(mode === "phone"){
 
         showStatus(
-            "Şimdilik e-posta ile doğrulama kullanılabilir."
+            "Şu anda e-posta doğrulaması kullanılabilir. Telefon için SMS servisi kurulmalıdır."
         );
 
         return;
-
     }
 
+
+    /* ===============================================
+       BOŞ
+    =============================================== */
 
     if(!value){
 
@@ -683,14 +770,18 @@ async function sendCode(){
         contact.focus();
 
         return;
-
     }
 
 
-    if(
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            .test(value)
-    ){
+    /* ===============================================
+       E-POSTA KONTROL
+    =============================================== */
+
+    const validEmail =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+    if(!validEmail.test(value)){
 
         showStatus(
             "Geçerli bir e-posta adresi gir."
@@ -699,37 +790,32 @@ async function sendCode(){
         contact.focus();
 
         return;
+    }
+
+
+    /* ===============================================
+       KAYDET
+    =============================================== */
+
+    sessionStorage.setItem(
+        "minegram_register_email",
+        value
+    );
+
+
+    if(username){
+
+        sessionStorage.setItem(
+            "minegram_register_username",
+            username
+        );
 
     }
 
 
-    const password =
-        sessionStorage.getItem(
-            "minegram_register_password"
-        );
-
-
-    if(!password){
-
-        showStatus(
-            "Şifre bilgisi bulunamadı. Kayıt işlemini tekrar başlat."
-        );
-
-        return;
-
-    }
-
-
-    if(password.length < 6){
-
-        showStatus(
-            "Şifre en az 6 karakter olmalı."
-        );
-
-        return;
-
-    }
-
+    /* ===============================================
+       BUTON
+    =============================================== */
 
     busy = true;
 
@@ -737,244 +823,24 @@ async function sendCode(){
         true;
 
     nextBtn.textContent =
-        "Gönderiliyor...";
+        "Kod gönderiliyor...";
 
 
     showStatus(
-        "Hesap hazırlanıyor...",
-        false,
+        "6 haneli doğrulama kodu gönderiliyor...",
         true
     );
 
 
-    try{
+    /* ===============================================
+       FIREBASE FUNCTION
+    =============================================== */
 
-        /* =========================================
-           FIREBASE HESABI OLUŞTUR
-        ========================================= */
+    const success =
+        await sendOtpEmail(value);
 
-        let userCredential;
 
-        try{
-
-            userCredential =
-                await createUserWithEmailAndPassword(
-                    auth,
-                    value,
-                    password
-                );
-
-        }catch(error){
-
-            /*
-             * Kullanıcı zaten kayıtlıysa
-             * burada dur.
-             */
-
-            if(
-                error.code ===
-                "auth/email-already-in-use"
-            ){
-
-                showStatus(
-                    "Bu e-posta adresi zaten kayıtlı. Başka bir e-posta adresi kullan."
-                );
-
-                busy = false;
-
-                nextBtn.disabled =
-                    false;
-
-                nextBtn.textContent =
-                    "İleri";
-
-                return;
-
-            }
-
-            throw error;
-        }
-
-
-        const user =
-            userCredential.user;
-
-
-        /* =========================================
-           SESSION
-        ========================================= */
-
-        sessionStorage.setItem(
-            "minegram_uid",
-            user.uid
-        );
-
-        sessionStorage.setItem(
-            "minegram_register_email",
-            value
-        );
-
-        sessionStorage.setItem(
-            "minegram_verification_email",
-            value
-        );
-
-        sessionStorage.setItem(
-            "minegram_verification_uid",
-            user.uid
-        );
-
-
-        if(username){
-
-            sessionStorage.setItem(
-                "minegram_register_username",
-                username
-            );
-
-        }
-
-
-        /* =========================================
-           CLOUD FUNCTION
-           
-           GERÇEK 6 HANELİ KOD BURADA
-           ÜRETİLİP E-POSTA İLE GÖNDERİLİR.
-        ========================================= */
-
-        showStatus(
-            "6 haneli doğrulama kodu gönderiliyor...",
-            false,
-            true
-        );
-
-
-        const sendVerificationCode =
-            httpsCallable(
-                functions,
-                "sendVerificationCode"
-            );
-
-
-        await sendVerificationCode({
-
-            email:
-                value,
-
-            uid:
-                user.uid,
-
-            username:
-                username || ""
-
-        });
-
-
-        /* =========================================
-           DOĞRULAMA SAYFASINA GİT
-        ========================================= */
-
-        showStatus(
-            "Kod gönderildi. E-postanı kontrol et.",
-            true
-        );
-
-
-        let url =
-            "./hesap-doğrulama.html" +
-            "?username=" +
-            encodeURIComponent(
-                username
-            ) +
-            "&email=" +
-            encodeURIComponent(
-                value
-            );
-
-
-        setTimeout(
-            function(){
-
-                window.location.href =
-                    url;
-
-            },
-            500
-        );
-
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM] Kayıt / kod gönderme hatası:",
-            error
-        );
-
-
-        let text =
-            "Doğrulama kodu gönderilemedi.";
-
-
-        if(
-            error.code ===
-            "functions/not-found"
-        ){
-
-            text =
-                "sendVerificationCode Cloud Function bulunamadı. Firebase Functions'ı deploy et.";
-
-        }
-        else if(
-            error.code ===
-            "functions/unauthenticated"
-        ){
-
-            text =
-                "Firebase oturumu oluşturulamadı.";
-
-        }
-        else if(
-            error.code ===
-            "functions/resource-exhausted"
-        ){
-
-            text =
-                "Çok fazla kod istendi. Biraz sonra tekrar dene.";
-
-        }
-        else if(
-            error.code ===
-            "auth/invalid-credential"
-        ){
-
-            text =
-                "Firebase hesap bilgileri geçersiz.";
-
-        }
-        else if(
-            error.code ===
-            "auth/weak-password"
-        ){
-
-            text =
-                "Şifre en az 6 karakter olmalı.";
-
-        }
-        else if(
-            error.message
-        ){
-
-            console.error(
-                "[MINEGRAM] Ayrıntı:",
-                error.message
-            );
-        }
-
-
-        showStatus(
-            text
-        );
-
+    if(!success){
 
         busy = false;
 
@@ -984,18 +850,73 @@ async function sendCode(){
         nextBtn.textContent =
             "İleri";
 
+        return;
     }
+
+
+    /* ===============================================
+       BAŞARILI
+    =============================================== */
+
+    sessionStorage.setItem(
+        "minegram_otp_email",
+        value
+    );
+
+
+    sessionStorage.setItem(
+        "minegram_otp_pending",
+        "true"
+    );
+
+
+    showStatus(
+        "Kod gönderildi. E-postanı kontrol et.",
+        true
+    );
+
+
+    nextBtn.textContent =
+        "Kod gönderildi";
+
+
+    /* ===============================================
+       DOĞRULAMA SAYFASI
+    =============================================== */
+
+    let url =
+        "./hesap-doğrulama.html?username=" +
+        encodeURIComponent(username) +
+        "&email=" +
+        encodeURIComponent(value);
+
+
+    console.log(
+        "[MINEGRAM] Doğrulama sayfası:",
+        url
+    );
+
+
+    setTimeout(
+        function(){
+
+            window.location.href =
+                url;
+
+        },
+        500
+    );
 
 }
 
 
 /* =====================================================
-   İLERİ
+   İLERİ BUTONU
 ===================================================== */
 
 nextBtn.addEventListener(
     "click",
-    sendCode
+    goNext
 );
 
 
@@ -1011,30 +932,7 @@ contact.addEventListener(
 
             event.preventDefault();
 
-            sendCode();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   ÜST GERİ
-===================================================== */
-
-topBack.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" ||
-            event.key === " "
-        ){
-
-            event.preventDefault();
-
-            goBack();
+            goNext();
 
         }
 
@@ -1063,11 +961,11 @@ if(savedEmail){
 
 
 /* =====================================================
-   BAŞLANGIÇ
+   HAZIR
 ===================================================== */
 
 console.log(
-    "[MINEGRAM] İletişim bilgileri hazır."
+    "[MINEGRAM] İletişim sayfası hazır."
 );
 
 console.log(
