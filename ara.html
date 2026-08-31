@@ -1,107 +1,641 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ara - Minegram</title><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:#000;color:#eee;font-family:Inter,Arial,sans-serif;padding-bottom:76px}
-body{padding-bottom:78px}.app{width:100%;min-height:100vh;background:#000}.head{height:72px;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid #222;position:sticky;top:0;background:#000;z-index:3}.head h1{font-size:21px;margin:0}.spacer{margin-left:auto}.icon{background:none;border:0;color:#eee;width:40px;height:40px;display:grid;place-items:center;cursor:pointer}.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.storybar{display:flex;padding:14px 18px 18px;border-bottom:1px solid #222}.story{text-align:center;font-size:10px;color:#aaa}.avatar{width:54px;height:54px;border-radius:50%;background:#4b99d2;display:grid;place-items:center;font-size:20px;position:relative}.plus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;background:#ddd;color:#111;border-radius:50%;display:grid;place-items:center}
-.feed{width:min(680px,100%);margin:0 auto}.card{margin:15px auto;border-bottom:1px solid #222;padding-bottom:16px;width:100%;max-width:680px}.posthead{display:flex;align-items:center;gap:10px;padding:0 14px}.posthead b{cursor:pointer}.postmedia{display:block;width:100%;max-height:680px;object-fit:cover;background:#111;margin-top:12px}.actions{display:flex;gap:18px;margin-top:9px;padding:0 14px}.actions button{background:none;border:0;color:#eee;font-size:15px;cursor:pointer}.caption{font-size:14px;margin-top:8px;padding:0 14px}
-.nav{position:fixed;bottom:0;left:0;right:0;height:78px;background:#18161e;display:flex;padding:8px 5px;z-index:20}.nav a{flex:1;color:#ddd;text-decoration:none;font-size:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.nav i{display:grid;place-items:center;height:29px;width:46px;font-style:normal}.nav a.active i{background:#3c3450;border-radius:20px}.nav .ico{width:22px;height:22px}
-.page{max-width:760px;margin:0 auto;padding:22px 20px}.top{height:62px;display:flex;align-items:center;border-bottom:1px solid #25222b;padding:0 20px;position:sticky;top:0;background:#000;z-index:3}.top b{font-size:19px}.back{background:none;border:0;color:#eee;font-size:30px;cursor:pointer}.field{width:100%;height:50px;background:#080808;border:1px solid #555;color:#eee;border-radius:8px;padding:0 14px;outline:none}.field:focus{border-color:#4b99d2}.btn{width:100%;height:48px;border:0;border-radius:24px;background:#4b99d2;color:#101820;font-weight:700;cursor:pointer}.picker{height:300px;border-radius:15px;background:#080808;border:1px solid #222;display:grid;place-items:center;text-align:center;color:#aaa;cursor:pointer}.picker span{font-size:48px;color:#4b99d2}.preview{max-width:100%;max-height:290px;border-radius:12px}.empty{text-align:center;padding:100px 20px;color:#999}.empty strong{display:block;color:#ddd;margin-top:14px}.empty small{display:block;margin-top:5px}.userrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #222;cursor:pointer}.userrow div:last-child{margin-left:auto;color:#4b99d2}
-.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#252329;padding:10px 15px;border-radius:20px;opacity:0;pointer-events:none;transition:.2s;z-index:30;font-size:12px}.toast.show{opacity:1}
-@media(max-width:699px){.feed{width:100%}.card{max-width:100%;margin:0 auto 16px}.postmedia{max-height:520px}.head{padding:0 16px}.page{padding:18px 16px}}
-.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;z-index:100;padding:5px 8px env(safe-area-inset-bottom)}.nav a,.nav button{flex:1;color:#ddd;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;border:0;background:transparent;cursor:pointer}.nav-icon,.nav i{width:45px;height:32px;border-radius:18px;display:grid;place-items:center;font-style:normal}.nav a.active .nav-icon,.nav button.active .nav-icon,.nav.active .nav-icon{background:#3b3150}.nav .ico,.nav .svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-</style></head><body><main class="app"><section><div class="top"><b>Ara</b></div><div class="page"><input id="sq" class="field" placeholder="#etiket veya kullanıcı adı ara" oninput="searchUsers()"><div id="results" style="margin-top:12px"></div></div></section><div id="toast" class="toast"></div></main><script>const API="/api";
-const PREVIEW=new URLSearchParams(location.search).get("preview")==="1";
-let token=localStorage.getItem("minegram_token"),me=null;
-function navHTML(active){return `<div class="nav"><button class="${active==="home"?"on":""}" onclick="go('home')"><i><svg class="ico" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></i>Ana Sayfa</button><button class="${active==="search"?"on":""}" onclick="go('search')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></i>Ara</button><button onclick="go('create')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></i>Oluştur</button><button class="${active==="reels"?"on":""}" onclick="go('reels')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></i>Reels</button><button class="${active==="profile"?"on":""}" onclick="go('profile')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Profil</button></div>`}
-document.querySelectorAll("section#home,section#search,section#profile").forEach(s=>s.insertAdjacentHTML("beforeend",navHTML(s.id)));
-async function api(path,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:"Bearer "+token}:{})};let r=await fetch(API+path,opt);let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"İşlem başarısız");return j}
-function go(id){
-document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
-let el=document.getElementById(id);if(!el)return;el.classList.add("active");
-if(PREVIEW){previewRender(id);return}
-if(id==="home")feed();if(id==="profile")profile();if(id==="messages")messages();if(id==="search")searchUsers();if(id==="saved")saved();if(id==="notifications")notifications();if(id==="settings")loadSettings()
-}
-function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
-function previewRender(id){
-  if(id==="home") previewHome();
-  if(id==="search") previewSearch();
-  if(id==="create") previewCreate();
-  if(id==="reels") previewReels();
-  if(id==="profile") previewProfile();
-  if(id==="messages") previewMessages();
-  if(id==="saved") previewSaved();
-  if(id==="notifications") previewNotifications();
-  if(id==="settings") previewSettings();
-}
-const previewPosts=[
- {id:"p1",user:{username:"minegram"},likes:12,comments:[{username:"ali",text:"Harika!"}],caption:"Minegram'a hoş geldiniz.",media:"",likedByMe:false,savedByMe:false},
- {id:"p2",user:{username:"demo_user"},likes:7,comments:[],caption:"İlk gönderini sen de paylaş.",media:"",likedByMe:false,savedByMe:false}
-];
-function previewHome(){
-  const el=document.getElementById("feed");
-  el.className="";
-  el.innerHTML=previewPosts.map(p=>`<article class="card"><div class="posthead"><div class="avatar" style="width:38px;height:38px;font-size:14px">${p.user.username[0].toUpperCase()}</div><b>@${p.user.username}</b><button class="icon spacer" onclick="toast('Gönderi seçenekleri')">⋯</button></div><div class="caption"><b>@${p.user.username}</b> ${escapeHtml(p.caption)}</div><div class="actions"><button onclick="previewLike('${p.id}')">${p.likedByMe?'♥':'♡'} ${p.likes}</button><button onclick="toast('Yorumlar')">○ ${p.comments.length}</button><button onclick="previewSave('${p.id}')">${p.savedByMe?'🔖':'♧'}</button></div></article>`).join("");
-}
-function previewLike(id){const p=previewPosts.find(x=>x.id===id);if(!p)return;p.likedByMe=!p.likedByMe;p.likes+=p.likedByMe?1:-1;previewHome();toast(p.likedByMe?"Beğenildi":"Beğeni kaldırıldı")}
-function previewSave(id){const p=previewPosts.find(x=>x.id===id);if(!p)return;p.savedByMe=!p.savedByMe;toast(p.savedByMe?"Kaydedildi":"Kayıttan kaldırıldı")}
-function previewSearch(){results.innerHTML=`<div class="userrow"><div class="avatar">M</div><b>@minegram</b><div onclick="go('profile')">Profil ›</div></div><div class="userrow"><div class="avatar">D</div><b>@demo_user</b><div onclick="go('profile')">Profil ›</div></div>`}
-function previewCreate(){toast("Önizleme: gönderi oluşturma ekranı")}
-function previewReels(){toast("Önizleme: Reels sistemi")}
-function previewProfile(){pname.textContent="minegram";pa.textContent="M";pc.textContent=previewPosts.length}
-function previewMessages(){messagesList.innerHTML=`<div class="bubble">Minegram'a hoş geldin 👋</div><div class="bubble mine">Teşekkürler!</div>`}
-function previewSaved(){savedList.className="";savedList.innerHTML=`<article class="card"><div class="caption"><b>@minegram</b> Kaydedilmiş örnek gönderi</div></article>`}
-function previewNotifications(){notificationsList.innerHTML=`<div class="userrow"><div class="avatar">♥</div><div><b>@demo_user</b> gönderini beğendi.</div></div><div class="userrow"><div class="avatar">•</div><div><b>@ali</b> seni takip etti.</div></div>`}
-function previewSettings(){document.getElementById("notifToggle").style.color="#4b99d2";document.getElementById("privateToggle").style.color="#777"}
-function previewHomeEntry(){go("home");toast("Önizleme modu — gerçek giriş sistemi aktif")}
-async function login(){try{let j=await api("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:lu.value,password:lp.value})});token=j.token;if(!token){return toast("E-posta adresini doğrula, sonra giriş yap.")}localStorage.setItem("minegram_token",token);localStorage.setItem("minegram_supabase_token",token);localStorage.setItem("token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
-async function register(){try{let j=await api("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:ru.value,email:re.value,password:rp.value,displayName:ru.value})});if(j.needsConfirmation){toast("E-posta adresine gelen doğrulama bağlantısını aç.");return}token=j.token;localStorage.setItem("minegram_token",token);localStorage.setItem("minegram_supabase_token",token);localStorage.setItem("token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
-async function forgotPassword(){try{await api("/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier:forgotId.value})});toast("Eğer hesap varsa kurtarma bağlantısı e-postana gönderildi.")}catch(e){toast(e.message)}}
-function logout(){localStorage.removeItem("minegram_token");localStorage.removeItem("minegram_supabase_token");localStorage.removeItem("token");token=null;me=null;go("login")}
-function toast(x){const t=document.getElementById("toast");if(!t)return;t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
-function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+<!doctype html>
 
-async function searchUsers(){let q=sq.value.trim();if(!q){results.innerHTML="";return}try{let u=await api("/search?q="+encodeURIComponent(q));results.innerHTML=u.map(x=>`<div class="userrow" onclick="location.href='profile.html?user=${encodeURIComponent(x.username)}'"><div class="avatar">${(x.username[0]||"M").toUpperCase()}</div><b>@${escapeHtml(x.username)}</b><div>Profil ›</div></div>`).join("")||"<p style='color:#999'>Sonuç bulunamadı.</p>"}catch(e){toast(e.message)}}
-if(!token){location.href="giris.html"}else{api("/me").then(u=>me=u).catch(()=>{})}
-</script>
-<style id="uniform-bottom-nav">
-.bottom-nav, .nav {
-  position: fixed !important;
-  left: 0 !important; right: 0 !important; bottom: 0 !important;
-  width: 100% !important; height: 78px !important;
-  display: flex !important; flex-direction: row !important;
-  align-items: stretch !important; justify-content: space-evenly !important;
-  padding: 8px 5px !important; margin: 0 !important;
-  background: #18161e !important; z-index: 99999 !important;
-}
-.bottom-nav a, .nav a {
-  flex: 1 1 0 !important; width: 20% !important; max-width: none !important;
-  min-width: 0 !important; display: flex !important;
-  flex-direction: column !important; align-items: center !important;
-  justify-content: center !important; gap: 3px !important;
-  text-align: center !important; text-decoration: none !important;
-  color: #ddd !important; box-sizing: border-box !important;
-}
-.bottom-nav a i, .nav a i {
-  display: grid !important; place-items: center !important;
-  width: 46px !important; height: 29px !important;
-  font-style: normal !important;
-}
-.bottom-nav a.active i, .nav a.active i {
-  background: #3c3450 !important; border-radius: 20px !important;
-}
-.bottom-nav svg, .nav svg { width: 22px !important; height: 22px !important; }
-body { padding-bottom: 88px !important; }
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ara - Minegram</title>
 
-<style id="uniform-bottom-nav">
-.bottom-nav,.nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:78px!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;justify-content:space-evenly!important;padding:8px 5px!important;margin:0!important;background:#18161e!important;z-index:99999!important}
-.bottom-nav a,.nav a{flex:1 1 0!important;width:20%!important;max-width:none!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;text-align:center!important;text-decoration:none!important;color:#ddd!important;box-sizing:border-box!important}
-.bottom-nav a i,.nav a i{display:grid!important;place-items:center!important;width:46px!important;height:29px!important;font-style:normal!important}
-.bottom-nav a.active i,.nav a.active i{background:#3c3450!important;border-radius:20px!important}
-.bottom-nav svg,.nav svg{width:22px!important;height:22px!important}body{padding-bottom:88px!important}
-</style><nav class="bottom-nav">
-<a class="" href="index.html"><i>⌂</i><span>Ana Sayfa</span></a>
-<a class="active" href="ara.html"><i>⌕</i><span>Ara</span></a>
-<a class="" href="olustur.html"><i>＋</i><span>Oluştur</span></a>
-<a class="" href="reels.html"><i>▣</i><span>Reels</span></a>
-<a class="" href="profile.html"><i>♙</i><span>Profil</span></a>
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#eee;
+    font-family:Arial,Helvetica,sans-serif;
+    padding-bottom:76px;
+}
+
+body{
+    overflow-x:hidden;
+}
+
+.app{
+    width:100%;
+    min-height:100vh;
+    background:#000;
+}
+
+/* ÜST BAR */
+.topbar{
+    height:70px;
+    border-bottom:1px solid #202020;
+    display:flex;
+    align-items:center;
+    padding:0 22px;
+    position:sticky;
+    top:0;
+    background:#000;
+    z-index:50;
+}
+
+.logo{
+    font-size:22px;
+    font-weight:700;
+}
+
+.top-actions{
+    margin-left:auto;
+    display:flex;
+    gap:6px;
+}
+
+.icon-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    background:transparent;
+    color:#eee;
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+}
+
+.svg{
+    width:23px;
+    height:23px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+/* ARAMA */
+.page{
+    width:min(680px,100%);
+    margin:0 auto;
+    padding:22px 20px;
+}
+
+.field{
+    width:100%;
+    height:50px;
+    background:#080808;
+    border:1px solid #3b3b3b;
+    color:#eee;
+    border-radius:10px;
+    padding:0 15px;
+    outline:none;
+    font-size:15px;
+}
+
+.field:focus{
+    border-color:#4b99d2;
+}
+
+.results{
+    margin-top:12px;
+}
+
+.userrow{
+    width:100%;
+    min-height:68px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 4px;
+    border-bottom:1px solid #222;
+    cursor:pointer;
+}
+
+.userrow:hover{
+    background:#080808;
+}
+
+.avatar{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    background:#3f91cc;
+    display:grid;
+    place-items:center;
+    font-size:18px;
+    color:#eee;
+    flex:none;
+}
+
+.user-name{
+    font-size:14px;
+    font-weight:700;
+}
+
+.user-action{
+    margin-left:auto;
+    color:#4b99d2;
+    font-size:13px;
+    font-weight:700;
+}
+
+.empty{
+    padding:100px 20px;
+    text-align:center;
+    color:#999;
+}
+
+.toast{
+    position:fixed;
+    left:50%;
+    bottom:92px;
+    transform:translateX(-50%);
+    background:#25232a;
+    color:#fff;
+    padding:10px 16px;
+    border-radius:20px;
+    font-size:12px;
+    opacity:0;
+    pointer-events:none;
+    transition:.2s;
+    z-index:300;
+}
+
+.toast.show{
+    opacity:1;
+}
+
+/* =====================================================
+   INDEX.HTML İLE AYNI ALT MENÜ
+   ===================================================== */
+
+.nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    width:100%;
+    height:76px;
+
+    background:#121018;
+    border-top:1px solid #201d27;
+
+    display:flex;
+    align-items:stretch;
+    justify-content:space-evenly;
+
+    z-index:100;
+
+    padding:5px 8px env(safe-area-inset-bottom);
+}
+
+.nav a{
+    flex:1 1 0;
+    width:20%;
+    min-width:0;
+
+    color:#ddd;
+    text-decoration:none;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    gap:3px;
+
+    font-size:9px;
+}
+
+.nav-icon{
+    width:45px;
+    height:32px;
+
+    border-radius:18px;
+
+    display:grid;
+    place-items:center;
+}
+
+.nav a.active .nav-icon{
+    background:#3b3150;
+}
+
+.nav .svg{
+    width:21px;
+    height:21px;
+}
+
+/* MOBİL */
+@media(max-width:699px){
+
+    .topbar{
+        height:62px;
+        padding:0 14px;
+    }
+
+    .page{
+        width:100%;
+        padding:18px 14px;
+    }
+
+    .nav{
+        height:76px;
+        padding:5px 8px env(safe-area-inset-bottom);
+    }
+
+    .nav a{
+        width:20%;
+        font-size:9px;
+    }
+
+    .nav-icon{
+        width:45px;
+        height:32px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+```
+<!-- ÜST -->
+<header class="topbar">
+    <div class="logo">Ara</div>
+
+    <div class="top-actions">
+
+        <button
+            class="icon-btn"
+            onclick="location.href='bildirimler.html'"
+            aria-label="Bildirimler">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+                <path d="M10 21h4"/>
+            </svg>
+
+        </button>
+
+        <button
+            class="icon-btn"
+            onclick="location.href='sohbet.html'"
+            aria-label="Mesajlar">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <path d="M22 2 11 13"/>
+                <path d="m22 2-7 20-4-9-9-4Z"/>
+            </svg>
+
+        </button>
+
+    </div>
+</header>
+
+
+<!-- ARAMA -->
+<main class="page">
+
+    <input
+        id="sq"
+        class="field"
+        type="text"
+        autocomplete="off"
+        placeholder="#etiket veya kullanıcı adı ara"
+        oninput="searchUsers()"
+    >
+
+    <div id="results" class="results"></div>
+
+</main>
+
+
+<!-- INDEX.HTML İLE AYNI ALT NAV -->
+<nav class="nav">
+
+    <!-- ANA SAYFA -->
+    <a href="index.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+            </svg>
+
+        </span>
+
+        Ana Sayfa
+
+    </a>
+
+
+    <!-- ARA - AKTİF -->
+    <a class="active" href="ara.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="6.5"/>
+                <path d="m16 16 5 5"/>
+            </svg>
+
+        </span>
+
+        Ara
+
+    </a>
+
+
+    <!-- OLUŞTUR -->
+    <a href="olustur.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="4"/>
+                <path d="M12 8v8M8 12h8"/>
+            </svg>
+
+        </span>
+
+        Oluştur
+
+    </a>
+
+
+    <!-- REELS -->
+    <a href="reels.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                <path d="M3 9h18M8 4l3 5M13 4l3 5"/>
+            </svg>
+
+        </span>
+
+        Reels
+
+    </a>
+
+
+    <!-- PROFİL -->
+    <a href="profile.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="3.5"/>
+                <path d="M5 20a7 7 0 0 1 14 0"/>
+            </svg>
+
+        </span>
+
+        Profil
+
+    </a>
+
 </nav>
-</body></html>
+```
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+
+const API="/api";
+
+let token =
+    localStorage.getItem("minegram_token") ||
+    localStorage.getItem("minegram_supabase_token") ||
+    null;
+
+
+/* API */
+async function api(path,opt={}){
+
+    const headers={
+        ...(opt.headers||{})
+    };
+
+    if(token){
+        headers.Authorization="Bearer "+token;
+    }
+
+    const r=await fetch(API+path,{
+        ...opt,
+        headers
+    });
+
+    const j=await r.json().catch(()=>({}));
+
+    if(!r.ok){
+        throw new Error(
+            j.error ||
+            j.message ||
+            "İşlem başarısız"
+        );
+    }
+
+    return j;
+}
+
+
+/* TOAST */
+function toast(text){
+
+    const t=document.getElementById("toast");
+
+    if(!t)return;
+
+    t.textContent=text;
+
+    t.classList.add("show");
+
+    clearTimeout(window.__toastTimer);
+
+    window.__toastTimer=setTimeout(()=>{
+        t.classList.remove("show");
+    },2200);
+}
+
+
+/* HTML GÜVENLİ */
+function escapeHtml(s=""){
+
+    return String(s).replace(
+        /[&<>"']/g,
+        m=>({
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#039;"
+        }[m])
+    );
+
+}
+
+
+/* ARAMA */
+let searchTimer=null;
+
+async function searchUsers(){
+
+    const input=document.getElementById("sq");
+    const results=document.getElementById("results");
+
+    const q=input.value.trim();
+
+    clearTimeout(searchTimer);
+
+    if(!q){
+
+        results.innerHTML="";
+
+        return;
+    }
+
+
+    searchTimer=setTimeout(async()=>{
+
+        try{
+
+            const response=await api(
+                "/search?q="+encodeURIComponent(q)
+            );
+
+            const users=
+                Array.isArray(response)
+                    ?response
+                    :Array.isArray(response.users)
+                        ?response.users
+                        :Array.isArray(response.results)
+                            ?response.results
+                            :[];
+
+
+            if(!users.length){
+
+                results.innerHTML=
+                    `<div class="empty">Sonuç bulunamadı.</div>`;
+
+                return;
+            }
+
+
+            results.innerHTML=users.map(user=>{
+
+                const username=
+                    user.username ||
+                    user.name ||
+                    "minegram";
+
+                const initial=
+                    username
+                        .charAt(0)
+                        .toUpperCase();
+
+
+                return `
+
+                <div
+                    class="userrow"
+                    onclick="openProfile('${escapeHtml(username)}')"
+                >
+
+                    <div class="avatar">
+                        ${escapeHtml(initial)}
+                    </div>
+
+                    <div class="user-name">
+                        @${escapeHtml(username)}
+                    </div>
+
+                    <div class="user-action">
+                        Profil ›
+                    </div>
+
+                </div>
+
+                `;
+
+            }).join("");
+
+
+        }catch(error){
+
+            console.error("[SEARCH]",error);
+
+            toast(
+                error.message ||
+                "Arama başarısız."
+            );
+
+        }
+
+    },250);
+
+}
+
+
+/* PROFİLE GİT */
+function openProfile(username){
+
+    location.href=
+        "profile.html?user="+
+        encodeURIComponent(username);
+
+}
+
+
+/* OTURUM KONTROL */
+async function init(){
+
+    token=
+        localStorage.getItem("minegram_token") ||
+        localStorage.getItem("minegram_supabase_token") ||
+        null;
+
+
+    if(!token){
+
+        location.replace("giris.html");
+
+        return;
+    }
+
+
+    try{
+
+        await api("/me");
+
+    }catch(error){
+
+        console.warn(
+            "[ARA /me]",
+            error
+        );
+
+        /*
+         * /me başarısız olsa bile
+         * token varsa sayfayı bozma.
+         */
+
+    }
+
+}
+
+init();
+
+</script>
+
+</body>
+</html>
