@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 
 // Support both layouts: public/index.html and a root index.html.
 const publicDir = path.join(__dirname, "public");
-const rootIndex = path.join(__dirname, "index.html");
+const rootIndex = path.join(__dirname, "giris.html");
 app.use(express.static(publicDir));
 app.use(express.static(__dirname));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
