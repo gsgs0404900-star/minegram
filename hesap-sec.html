@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şifremi unuttum</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 35px 25px;
+        }
+
+        .back {
+            color: white;
+            text-decoration: none;
+            font-size: 38px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            margin: 120px auto 0;
+        }
+
+        h1 {
+            font-size: 38px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #aaa;
+            font-size: 17px;
+            line-height: 1.5;
+        }
+
+        input {
+            width: 100%;
+            margin-top: 35px;
+            padding: 17px;
+            background: #050505;
+            border: 1px solid #222;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 17px;
+            border: 0;
+            border-radius: 30px;
+            background: #1877c9;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <a href="javascript:history.back()" class="back">←</a>
+
+    <div class="container">
+
+        <h1>Şifremi unuttum</h1>
+
+        <p>
+            Şifreni sıfırlamak için kayıtlı e-posta adresini gir.
+        </p>
+
+        <input
+            type="email"
+            id="email"
+            placeholder="E-posta adresi"
+            autocomplete="email"
+        >
+
+        <button id="resetBtn">
+            Şifre sıfırlama bağlantısı gönder
+        </button>
+
+        <div id="message"></div>
+
+    </div>
+
+</div>
+
+
+<script type="module">
+
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+    import {
+        getAuth,
+        sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+
+    // Firebase ayarların
+    const firebaseConfig = {
+        apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+        authDomain: "mim-ea133.firebaseapp.com",
+        databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "mim-ea133",
+        storageBucket: "mim-ea133.firebasestorage.app",
+        messagingSenderId: "303525353436",
+        appId: "1:303525353436:web:082fc090b5025e19942119",
+        measurementId: "G-K962QE5P1R"
+    };
+
+
+    // Firebase'i başlat
+    const app = initializeApp(firebaseConfig);
+
+    // Firebase Authentication
+    const auth = getAuth(app);
+
+
+    const emailInput = document.getElementById("email");
+    const resetBtn = document.getElementById("resetBtn");
+    const message = document.getElementById("message");
+
+
+    resetBtn.addEventListener("click", async () => {
+
+        const email = emailInput.value.trim();
+
+        if (!email) {
+            message.textContent = "Lütfen e-posta adresini gir.";
+            return;
+        }
+
+        resetBtn.disabled = true;
+        resetBtn.textContent = "Gönderiliyor...";
+
+        try {
+
+            await sendPasswordResetEmail(auth, email);
+
+            message.textContent =
+                "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.";
+
+        } catch (error) {
+
+            console.error(error);
+
+            // Hesap var/yok bilgisini gereksiz yere açığa çıkarmamak
+            // için kullanıcıya genel mesaj gösteriyoruz.
+            message.textContent =
+                "İşlem tamamlanamadı. E-posta adresini kontrol edip tekrar dene.";
+
+        } finally {
+
+            resetBtn.disabled = false;
+            resetBtn.textContent =
+                "Şifre sıfırlama bağlantısı gönder";
+
+        }
+
+    });
+
+</script>
+
+</body>
+</html>
