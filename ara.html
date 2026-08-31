@@ -4,10 +4,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
 <title>Ara - Minegram</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+    box-sizing:border-box;
+}
 
 html,body{
     margin:0;
@@ -16,7 +19,7 @@ html,body{
     background:#000;
     color:#eee;
     font-family:Arial,Helvetica,sans-serif;
-    padding-bottom:76px;
+    padding-bottom:90px;
 }
 
 body{
@@ -29,15 +32,22 @@ body{
     background:#000;
 }
 
-/* ÜST BAR */
+/* =========================
+   ÜST BAR
+========================= */
+
 .topbar{
     height:70px;
     border-bottom:1px solid #202020;
+
     display:flex;
     align-items:center;
+
     padding:0 22px;
+
     position:sticky;
     top:0;
+
     background:#000;
     z-index:50;
 }
@@ -56,17 +66,22 @@ body{
 .icon-btn{
     width:42px;
     height:42px;
+
     border:0;
     background:transparent;
+
     color:#eee;
+
     display:grid;
     place-items:center;
+
     cursor:pointer;
 }
 
 .svg{
     width:23px;
     height:23px;
+
     fill:none;
     stroke:currentColor;
     stroke-width:1.8;
@@ -74,23 +89,38 @@ body{
     stroke-linejoin:round;
 }
 
-/* ARAMA */
+
+/* =========================
+   ARAMA ALANI
+========================= */
+
 .page{
     width:min(680px,100%);
     margin:0 auto;
+
     padding:22px 20px;
 }
 
 .field{
     width:100%;
     height:50px;
+
     background:#080808;
+
     border:1px solid #3b3b3b;
-    color:#eee;
     border-radius:10px;
+
+    color:#eee;
+
     padding:0 15px;
+
     outline:none;
+
     font-size:15px;
+}
+
+.field::placeholder{
+    color:#777;
 }
 
 .field:focus{
@@ -98,17 +128,28 @@ body{
 }
 
 .results{
+    width:100%;
     margin-top:12px;
 }
+
+
+/* =========================
+   KULLANICI SONUÇLARI
+========================= */
 
 .userrow{
     width:100%;
     min-height:68px;
+
     display:flex;
     align-items:center;
+
     gap:12px;
+
     padding:10px 4px;
+
     border-bottom:1px solid #222;
+
     cursor:pointer;
 }
 
@@ -119,13 +160,18 @@ body{
 .avatar{
     width:48px;
     height:48px;
+
+    flex:none;
+
     border-radius:50%;
+
     background:#3f91cc;
+
     display:grid;
     place-items:center;
+
     font-size:18px;
     color:#eee;
-    flex:none;
 }
 
 .user-name{
@@ -135,30 +181,53 @@ body{
 
 .user-action{
     margin-left:auto;
+
     color:#4b99d2;
+
     font-size:13px;
     font-weight:700;
 }
 
+
+/* =========================
+   BOŞ
+========================= */
+
 .empty{
     padding:100px 20px;
+
     text-align:center;
+
     color:#999;
 }
 
+
+/* =========================
+   TOAST
+========================= */
+
 .toast{
     position:fixed;
+
     left:50%;
-    bottom:92px;
+    bottom:95px;
+
     transform:translateX(-50%);
+
     background:#25232a;
     color:#fff;
+
     padding:10px 16px;
+
     border-radius:20px;
+
     font-size:12px;
+
     opacity:0;
     pointer-events:none;
+
     transition:.2s;
+
     z-index:300;
 }
 
@@ -166,46 +235,65 @@ body{
     opacity:1;
 }
 
+
 /* =====================================================
-   INDEX.HTML İLE AYNI ALT MENÜ
-   ===================================================== */
+   ALT MENÜ
+   INDEX.HTML İLE AYNI
+   MASAÜSTÜNDE ORTADA VE KISA
+===================================================== */
 
 .nav{
     position:fixed;
-    left:0;
-    right:0;
+
+    left:50%;
     bottom:0;
-    width:100%;
+
+    transform:translateX(-50%);
+
+    width:680px;
+    max-width:calc(100% - 30px);
+
     height:76px;
 
     background:#121018;
-    border-top:1px solid #201d27;
+
+    border:1px solid #201d27;
+    border-bottom:0;
+
+    border-radius:18px 18px 0 0;
 
     display:flex;
-    align-items:stretch;
-    justify-content:space-evenly;
 
-    z-index:100;
+    align-items:stretch;
+    justify-content:center;
 
     padding:5px 8px env(safe-area-inset-bottom);
+
+    z-index:100;
 }
 
 .nav a{
     flex:1 1 0;
+
     width:20%;
     min-width:0;
 
     color:#ddd;
+
     text-decoration:none;
 
     display:flex;
+
     flex-direction:column;
+
     align-items:center;
     justify-content:center;
 
     gap:3px;
 
     font-size:9px;
+
+    text-align:center;
 }
 
 .nav-icon{
@@ -227,7 +315,11 @@ body{
     height:21px;
 }
 
-/* MOBİL */
+
+/* =========================
+   MOBİL
+========================= */
+
 @media(max-width:699px){
 
     .topbar{
@@ -241,7 +333,14 @@ body{
     }
 
     .nav{
-        height:76px;
+        width:100%;
+        max-width:none;
+
+        border-left:0;
+        border-right:0;
+
+        border-radius:18px 18px 0 0;
+
         padding:5px 8px env(safe-area-inset-bottom);
     }
 
@@ -264,41 +363,62 @@ body{
 <div class="app">
 
 ```
-<!-- ÜST -->
+<!-- =========================
+     ÜST BAR
+========================== -->
+
 <header class="topbar">
-    <div class="logo">Ara</div>
+
+    <div class="logo">
+        Ara
+    </div>
 
     <div class="top-actions">
 
         <button
             class="icon-btn"
+            type="button"
             onclick="location.href='bildirimler.html'"
             aria-label="Bildirimler">
 
-            <svg class="svg" viewBox="0 0 24 24">
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
                 <path d="M10 21h4"/>
+
             </svg>
 
         </button>
 
+
         <button
             class="icon-btn"
+            type="button"
             onclick="location.href='sohbet.html'"
             aria-label="Mesajlar">
 
-            <svg class="svg" viewBox="0 0 24 24">
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
                 <path d="M22 2 11 13"/>
                 <path d="m22 2-7 20-4-9-9-4Z"/>
+
             </svg>
 
         </button>
 
     </div>
+
 </header>
 
 
-<!-- ARAMA -->
+<!-- =========================
+     ARAMA
+========================== -->
+
 <main class="page">
 
     <input
@@ -310,21 +430,32 @@ body{
         oninput="searchUsers()"
     >
 
-    <div id="results" class="results"></div>
+    <div
+        id="results"
+        class="results">
+    </div>
 
 </main>
 
 
-<!-- INDEX.HTML İLE AYNI ALT NAV -->
+<!-- =========================
+     ALT MENÜ
+========================== -->
+
 <nav class="nav">
 
     <!-- ANA SAYFA -->
+
     <a href="index.html">
 
         <span class="nav-icon">
 
-            <svg class="svg" viewBox="0 0 24 24">
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
                 <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+
             </svg>
 
         </span>
@@ -334,14 +465,25 @@ body{
     </a>
 
 
-    <!-- ARA - AKTİF -->
-    <a class="active" href="ara.html">
+    <!-- ARA -->
+
+    <a
+        href="ara.html"
+        class="active">
 
         <span class="nav-icon">
 
-            <svg class="svg" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="6.5"/>
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
+                <circle
+                    cx="11"
+                    cy="11"
+                    r="6.5"/>
+
                 <path d="m16 16 5 5"/>
+
             </svg>
 
         </span>
@@ -352,13 +494,24 @@ body{
 
 
     <!-- OLUŞTUR -->
+
     <a href="olustur.html">
 
         <span class="nav-icon">
 
-            <svg class="svg" viewBox="0 0 24 24">
-                <rect x="4" y="4" width="16" height="16" rx="4"/>
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
+                <rect
+                    x="4"
+                    y="4"
+                    width="16"
+                    height="16"
+                    rx="4"/>
+
                 <path d="M12 8v8M8 12h8"/>
+
             </svg>
 
         </span>
@@ -369,13 +522,24 @@ body{
 
 
     <!-- REELS -->
+
     <a href="reels.html">
 
         <span class="nav-icon">
 
-            <svg class="svg" viewBox="0 0 24 24">
-                <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
+                <rect
+                    x="3"
+                    y="4"
+                    width="18"
+                    height="16"
+                    rx="2"/>
+
                 <path d="M3 9h18M8 4l3 5M13 4l3 5"/>
+
             </svg>
 
         </span>
@@ -386,13 +550,22 @@ body{
 
 
     <!-- PROFİL -->
+
     <a href="profile.html">
 
         <span class="nav-icon">
 
-            <svg class="svg" viewBox="0 0 24 24">
-                <circle cx="12" cy="8" r="3.5"/>
+            <svg
+                class="svg"
+                viewBox="0 0 24 24">
+
+                <circle
+                    cx="12"
+                    cy="8"
+                    r="3.5"/>
+
                 <path d="M5 20a7 7 0 0 1 14 0"/>
+
             </svg>
 
         </span>
@@ -418,7 +591,10 @@ let token =
     null;
 
 
-/* API */
+/* =========================
+   API
+========================= */
+
 async function api(path,opt={}){
 
     const headers={
@@ -429,29 +605,62 @@ async function api(path,opt={}){
         headers.Authorization="Bearer "+token;
     }
 
-    const r=await fetch(API+path,{
-        ...opt,
-        headers
-    });
+    const r=await fetch(
+        API+path,
+        {
+            ...opt,
+            headers
+        }
+    );
 
-    const j=await r.json().catch(()=>({}));
+    const j=await r
+        .json()
+        .catch(()=>({}));
 
     if(!r.ok){
+
         throw new Error(
             j.error ||
             j.message ||
             "İşlem başarısız"
         );
+
     }
 
     return j;
 }
 
 
-/* TOAST */
+/* =========================
+   HTML GÜVENLİ
+========================= */
+
+function escapeHtml(s=""){
+
+    return String(s).replace(
+        /[&<>"']/g,
+        m=>({
+
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#039;"
+
+        }[m])
+    );
+
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
 function toast(text){
 
-    const t=document.getElementById("toast");
+    const t=
+        document.getElementById("toast");
 
     if(!t)return;
 
@@ -459,42 +668,40 @@ function toast(text){
 
     t.classList.add("show");
 
-    clearTimeout(window.__toastTimer);
-
-    window.__toastTimer=setTimeout(()=>{
-        t.classList.remove("show");
-    },2200);
-}
-
-
-/* HTML GÜVENLİ */
-function escapeHtml(s=""){
-
-    return String(s).replace(
-        /[&<>"']/g,
-        m=>({
-            "&":"&amp;",
-            "<":"&lt;",
-            ">":"&gt;",
-            '"':"&quot;",
-            "'":"&#039;"
-        }[m])
+    clearTimeout(
+        window.__toastTimer
     );
 
+    window.__toastTimer=
+        setTimeout(
+            ()=>{
+                t.classList.remove("show");
+            },
+            2200
+        );
 }
 
 
-/* ARAMA */
+/* =========================
+   ARAMA
+========================= */
+
 let searchTimer=null;
 
 async function searchUsers(){
 
-    const input=document.getElementById("sq");
-    const results=document.getElementById("results");
+    const input=
+        document.getElementById("sq");
 
-    const q=input.value.trim();
+    const results=
+        document.getElementById("results");
+
+    const q=
+        input.value.trim();
+
 
     clearTimeout(searchTimer);
+
 
     if(!q){
 
@@ -504,89 +711,109 @@ async function searchUsers(){
     }
 
 
-    searchTimer=setTimeout(async()=>{
+    searchTimer=
+        setTimeout(
+            async()=>{
 
-        try{
+                try{
 
-            const response=await api(
-                "/search?q="+encodeURIComponent(q)
-            );
-
-            const users=
-                Array.isArray(response)
-                    ?response
-                    :Array.isArray(response.users)
-                        ?response.users
-                        :Array.isArray(response.results)
-                            ?response.results
-                            :[];
+                    const response=
+                        await api(
+                            "/search?q="+
+                            encodeURIComponent(q)
+                        );
 
 
-            if(!users.length){
+                    const users=
+                        Array.isArray(response)
+                            ? response
 
-                results.innerHTML=
-                    `<div class="empty">Sonuç bulunamadı.</div>`;
+                            : Array.isArray(response.users)
+                                ? response.users
 
-                return;
-            }
+                                : Array.isArray(response.results)
+                                    ? response.results
 
-
-            results.innerHTML=users.map(user=>{
-
-                const username=
-                    user.username ||
-                    user.name ||
-                    "minegram";
-
-                const initial=
-                    username
-                        .charAt(0)
-                        .toUpperCase();
+                                    : [];
 
 
-                return `
+                    if(!users.length){
 
-                <div
-                    class="userrow"
-                    onclick="openProfile('${escapeHtml(username)}')"
-                >
+                        results.innerHTML=
+                            `<div class="empty">
+                                Sonuç bulunamadı.
+                            </div>`;
 
-                    <div class="avatar">
-                        ${escapeHtml(initial)}
-                    </div>
-
-                    <div class="user-name">
-                        @${escapeHtml(username)}
-                    </div>
-
-                    <div class="user-action">
-                        Profil ›
-                    </div>
-
-                </div>
-
-                `;
-
-            }).join("");
+                        return;
+                    }
 
 
-        }catch(error){
+                    results.innerHTML=
+                        users.map(
+                            user=>{
 
-            console.error("[SEARCH]",error);
+                                const username=
+                                    user.username ||
+                                    user.name ||
+                                    "minegram";
 
-            toast(
-                error.message ||
-                "Arama başarısız."
-            );
 
-        }
+                                const initial=
+                                    username
+                                        .charAt(0)
+                                        .toUpperCase();
 
-    },250);
 
+                                return `
+
+                                <div
+                                    class="userrow"
+                                    onclick="openProfile('${escapeHtml(username)}')">
+
+                                    <div class="avatar">
+                                        ${escapeHtml(initial)}
+                                    </div>
+
+                                    <div class="user-name">
+                                        @${escapeHtml(username)}
+                                    </div>
+
+                                    <div class="user-action">
+                                        Profil ›
+                                    </div>
+
+                                </div>
+
+                                `;
+
+                            }
+                        ).join("");
+
+
+                }catch(error){
+
+                    console.error(
+                        "[SEARCH]",
+                        error
+                    );
+
+                    toast(
+                        error.message ||
+                        "Arama başarısız."
+                    );
+
+                }
+
+            },
+            250
+        );
 }
 
 
-/* PROFİLE GİT */
+/* =========================
+   PROFİL
+========================= */
+
 function openProfile(username){
 
     location.href=
@@ -596,10 +823,13 @@ function openProfile(username){
 }
 
 
-/* OTURUM KONTROL */
+/* =========================
+   OTURUM KONTROLÜ
+========================= */
+
 async function init(){
 
-    token=
+    token =
         localStorage.getItem("minegram_token") ||
         localStorage.getItem("minegram_supabase_token") ||
         null;
@@ -625,13 +855,15 @@ async function init(){
         );
 
         /*
-         * /me başarısız olsa bile
-         * token varsa sayfayı bozma.
+         * Token mevcutsa ara sayfasında kal.
+         * /me hatası yüzünden kullanıcıyı
+         * gereksiz yere giriş ekranına gönderme.
          */
 
     }
 
 }
+
 
 init();
 
