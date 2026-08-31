@@ -1881,10 +1881,6 @@ function normalizeRecoveryPhone(
   return digits;
 }
 
-/* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT
-========================================================= */
-
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
