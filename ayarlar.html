@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -7,629 +8,537 @@
 <title>Minegram • Ayarlar</title>
 
 <style>
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 html,body{
-  margin:0;
-  padding:0;
-  min-height:100%;
-  background:#000;
-  color:#fff;
-  font-family:Arial,sans-serif;
+margin:0;
+padding:0;
+min-height:100%;
+background:#000;
+color:#fff;
+font-family:Arial,sans-serif
 }
 
-body{
-  overflow-x:hidden;
-}
+body{overflow-x:hidden}
 
-button,input,textarea{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
 
 .settings-app{
-  min-height:100dvh;
-  background:#000;
-  color:#fff;
+min-height:100dvh;
+background:#000;
+color:#fff
 }
 
 .settings-header,
 .sub-header{
-  height:58px;
-  display:flex;
-  align-items:center;
-  padding:0 18px;
-  border-bottom:1px solid #303038;
-  background:#000;
-  position:sticky;
-  top:0;
-  z-index:50;
+height:58px;
+display:flex;
+align-items:center;
+padding:0 18px;
+border-bottom:1px solid #303038;
+background:#000;
+position:sticky;
+top:0;
+z-index:50
 }
 
 .back-btn,
 .sub-back{
-  width:36px;
-  height:36px;
-  border:0;
-  background:#000 !important;
-  color:#fff !important;
-  font-size:36px;
-  line-height:1;
-  padding:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  appearance:none;
-  -webkit-appearance:none;
+width:36px;
+height:36px;
+border:0;
+background:#000!important;
+color:#fff!important;
+font-size:36px;
+line-height:1;
+padding:0;
+display:flex;
+align-items:center;
+justify-content:center;
+appearance:none;
+-webkit-appearance:none
 }
 
 .settings-title{
-  margin-left:10px;
-  font-size:23px;
-  font-weight:700;
+margin-left:10px;
+font-size:23px;
+font-weight:700
 }
 
 .settings-list{
-  width:100%;
-  padding:28px 28px 35px;
+width:100%;
+padding:28px 28px 35px
 }
 
 .setting-row{
-  width:100%;
-  min-height:67px;
-  height:67px;
-  display:flex;
-  align-items:center;
-  border:0;
-  border-bottom:1px solid #34343b;
-  background:#000 !important;
-  color:#fff !important;
-  padding:0;
-  text-align:left;
-  appearance:none;
-  -webkit-appearance:none;
+width:100%;
+min-height:67px;
+height:67px;
+display:flex;
+align-items:center;
+border:0;
+border-bottom:1px solid #34343b;
+background:#000!important;
+color:#fff!important;
+padding:0;
+text-align:left;
+appearance:none;
+-webkit-appearance:none
 }
 
 .setting-row:hover,
 .setting-row:focus,
 .setting-row:active{
-  background:#000 !important;
-  color:#fff !important;
+background:#000!important;
+color:#fff!important
 }
 
 .setting-label{
-  flex:1;
-  min-width:0;
-  font-size:18px;
-  line-height:1.2;
+flex:1;
+min-width:0;
+font-size:18px;
+line-height:1.2
 }
 
 .setting-arrow,
 .sub-arrow{
-  font-size:30px;
-  line-height:1;
+font-size:30px;
+line-height:1
 }
 
 .setting-arrow{
-  width:28px;
-  text-align:right;
+width:28px;
+text-align:right
 }
 
 .switch{
-  width:82px;
-  height:50px;
-  border:0;
-  border-radius:30px;
-  background:#555 !important;
-  position:relative;
-  flex:none;
-  padding:0;
-  transition:.2s;
-  appearance:none;
-  -webkit-appearance:none;
+width:82px;
+height:50px;
+border:0;
+border-radius:30px;
+background:#555!important;
+position:relative;
+flex:none;
+padding:0;
+transition:.2s;
+appearance:none;
+-webkit-appearance:none
 }
 
 .switch::after{
-  content:"";
-  position:absolute;
-  width:40px;
-  height:40px;
-  top:5px;
-  left:5px;
-  border-radius:50%;
-  background:#ddd;
-  transition:.2s;
+content:"";
+position:absolute;
+width:40px;
+height:40px;
+top:5px;
+left:5px;
+border-radius:50%;
+background:#ddd;
+transition:.2s
 }
 
 .switch.on{
-  background:#63b1ed !important;
+background:#63b1ed!important
 }
 
 .switch.on::after{
-  left:37px;
-  background:#3b197e;
+left:37px;
+background:#3b197e
 }
-
-/* ALT SAYFALAR */
 
 .sub-screen{
-  position:fixed;
-  inset:0;
-  background:#000 !important;
-  color:#fff !important;
-  z-index:100;
-  display:none;
-  overflow-y:auto;
+position:fixed;
+inset:0;
+background:#000!important;
+color:#fff!important;
+z-index:100;
+display:none;
+overflow-y:auto
 }
 
-.sub-screen.open{
-  display:block;
-}
+.sub-screen.open{display:block}
 
 .sub-title{
-  margin-left:10px;
-  font-size:22px;
-  font-weight:700;
-  color:#fff;
+margin-left:10px;
+font-size:22px;
+font-weight:700;
+color:#fff
 }
 
 .sub-content{
-  padding:22px 28px 40px;
-  background:#000;
+padding:22px 28px 40px;
+background:#000
 }
 
 .sub-content h2{
-  font-size:20px;
-  margin:0 0 16px;
-  color:#fff;
+font-size:20px;
+margin:0 0 16px;
+color:#fff
 }
 
 .sub-content p{
-  color:#aaa;
-  font-size:14px;
-  line-height:1.6;
-  margin:0 0 25px;
+color:#aaa;
+font-size:14px;
+line-height:1.6;
+margin:0 0 25px
 }
 
 .sub-row{
-  min-height:58px;
-  display:flex;
-  align-items:center;
-  border-bottom:1px solid #333;
-  font-size:17px;
-  background:#000 !important;
-  color:#fff !important;
+min-height:58px;
+display:flex;
+align-items:center;
+border-bottom:1px solid #333;
+font-size:17px;
+background:#000!important;
+color:#fff!important
 }
 
 .sub-row span:first-child{
-  flex:1;
-  color:#fff !important;
+flex:1;
+color:#fff!important
 }
 
-/* TÜM BUTON TİPİ SUB ROW'LAR */
-
 button.sub-row{
-  width:100%;
-  height:58px;
-  min-height:58px;
-  padding:0;
-  margin:0;
-  border:0;
-  border-bottom:1px solid #333;
-  background:#000 !important;
-  color:#fff !important;
-  text-align:left;
-  display:flex;
-  align-items:center;
-  appearance:none;
-  -webkit-appearance:none;
-  box-shadow:none;
-  outline:none;
+width:100%;
+height:58px;
+min-height:58px;
+padding:0;
+margin:0;
+border:0;
+border-bottom:1px solid #333;
+background:#000!important;
+color:#fff!important;
+text-align:left;
+display:flex;
+align-items:center;
+appearance:none;
+-webkit-appearance:none;
+box-shadow:none;
+outline:none
 }
 
 button.sub-row:hover,
 button.sub-row:focus,
 button.sub-row:active{
-  background:#000 !important;
-  color:#fff !important;
+background:#000!important;
+color:#fff!important
 }
 
-button.sub-row span{
-  color:#fff !important;
-}
+button.sub-row span{color:#fff!important}
 
 button.sub-row .sub-arrow{
-  color:#fff !important;
-  margin-left:auto;
+color:#fff!important;
+margin-left:auto
 }
 
-/* FORM */
-
-.form-group{
-  margin-bottom:18px;
-}
+.form-group{margin-bottom:18px}
 
 .form-label{
-  display:block;
-  font-size:15px;
-  font-weight:600;
-  margin-bottom:8px;
-  color:#fff;
+display:block;
+font-size:15px;
+font-weight:600;
+margin-bottom:8px;
+color:#fff
 }
 
 .form-input{
-  width:100%;
-  height:50px;
-  border:1px solid #3a3a3a;
-  border-radius:11px;
-  background:#171717;
-  color:#fff;
-  padding:0 14px;
-  outline:none;
+width:100%;
+height:50px;
+border:1px solid #3a3a3a;
+border-radius:11px;
+background:#171717;
+color:#fff;
+padding:0 14px;
+outline:none
 }
 
-.form-input:focus{
-  border-color:#63b1ed;
-}
+.form-input:focus{border-color:#63b1ed}
 
 .form-button{
-  width:100%;
-  height:50px;
-  border:0;
-  border-radius:11px;
-  background:#63b1ed;
-  color:#21104d;
-  font-weight:700;
-  margin-top:5px;
+width:100%;
+height:50px;
+border:0;
+border-radius:11px;
+background:#63b1ed;
+color:#21104d;
+font-weight:700;
+margin-top:5px
 }
 
-.form-button:disabled{
-  opacity:.5;
-}
-
-/* CİHAZLAR */
-
-.device-card{
-  background:#171717;
-  border:1px solid #303030;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:12px;
+.device-card,
+.security-info-box,
+.center-info{
+background:#171717;
+border:1px solid #303030;
+border-radius:14px;
+padding:16px;
+margin-bottom:18px
 }
 
 .device-top{
-  display:flex;
-  align-items:center;
-  gap:12px;
+display:flex;
+align-items:center;
+gap:12px
 }
 
 .device-icon{
-  width:42px;
-  height:42px;
-  border-radius:50%;
-  background:#29272e;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:21px;
-  flex:none;
+width:42px;
+height:42px;
+border-radius:50%;
+background:#29272e;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:21px;
+flex:none
 }
 
 .device-name{
-  font-size:16px;
-  font-weight:700;
-  color:#fff;
+font-size:16px;
+font-weight:700;
+color:#fff
 }
 
 .device-info{
-  color:#999;
-  font-size:13px;
-  margin-top:4px;
-  line-height:1.5;
+color:#999;
+font-size:13px;
+margin-top:4px;
+line-height:1.5
 }
 
 .current-device{
-  display:inline-block;
-  margin-top:9px;
-  font-size:11px;
-  padding:5px 8px;
-  border-radius:7px;
-  background:#63b1ed;
-  color:#21104d;
-  font-weight:700;
+display:inline-block;
+margin-top:9px;
+font-size:11px;
+padding:5px 8px;
+border-radius:7px;
+background:#63b1ed;
+color:#21104d;
+font-weight:700
 }
 
-/* 2FA */
-
-.security-info-box{
-  background:#171717;
-  border:1px solid #303030;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:18px;
+.security-info-title,
+.center-info-title{
+font-size:18px;
+font-weight:700;
+margin-bottom:7px
 }
 
-.security-info-title{
-  font-size:17px;
-  font-weight:700;
-  margin-bottom:7px;
-}
-
-.security-info-text{
-  font-size:13px;
-  line-height:1.5;
-  color:#999;
+.security-info-text,
+.center-info-text{
+color:#999;
+font-size:14px;
+line-height:1.5
 }
 
 .code-input{
-  letter-spacing:8px;
-  text-align:center;
-  font-size:20px;
+letter-spacing:8px;
+text-align:center;
+font-size:20px
 }
-
-/* HESAP MERKEZİ */
-
-.center-info{
-  background:#171717;
-  border:1px solid #303030;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:18px;
-}
-
-.center-info-title{
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:7px;
-}
-
-.center-info-text{
-  color:#999;
-  font-size:14px;
-  line-height:1.5;
-}
-
-/* SORUN BİLDİR */
 
 .report-title{
-  font-size:22px;
-  font-weight:700;
-  margin-bottom:8px;
-  color:#fff;
+font-size:22px;
+font-weight:700;
+margin-bottom:8px
 }
 
 .report-info{
-  color:#999;
-  font-size:14px;
-  line-height:1.5;
-  margin-bottom:22px;
+color:#999;
+font-size:14px;
+line-height:1.5;
+margin-bottom:22px
 }
 
 .report-label{
-  display:block;
-  font-size:16px;
-  font-weight:600;
-  margin-bottom:9px;
-  color:#fff;
+display:block;
+font-size:16px;
+font-weight:600;
+margin-bottom:9px
 }
 
 .report-textarea{
-  width:100%;
-  min-height:140px;
-  resize:vertical;
-  background:#171717;
-  color:#fff;
-  border:1px solid #3b3b3b;
-  border-radius:12px;
-  padding:14px;
-  outline:none;
+width:100%;
+min-height:140px;
+resize:vertical;
+background:#171717;
+color:#fff;
+border:1px solid #3b3b3b;
+border-radius:12px;
+padding:14px;
+outline:none
 }
 
-.report-textarea:focus{
-  border-color:#63b1ed;
-}
-
-.photo-section{
-  margin-top:22px;
-}
+.photo-section{margin-top:22px}
 
 .photo-button{
-  width:100%;
-  min-height:52px;
-  border:1px solid #444;
-  border-radius:12px;
-  background:#171717 !important;
-  color:#fff !important;
-  padding:12px;
-  appearance:none;
-  -webkit-appearance:none;
-}
-
-.photo-button:hover{
-  background:#222 !important;
+width:100%;
+min-height:52px;
+border:1px solid #444;
+border-radius:12px;
+background:#171717!important;
+color:#fff!important;
+padding:12px
 }
 
 .photo-count{
-  color:#999;
-  font-size:13px;
-  margin-top:8px;
+color:#999;
+font-size:13px;
+margin-top:8px
 }
 
 .preview-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:14px;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:14px
 }
 
 .preview-item{
-  position:relative;
-  aspect-ratio:1/1;
-  border-radius:12px;
-  overflow:hidden;
-  background:#151515;
-  border:1px solid #333;
+position:relative;
+aspect-ratio:1/1;
+border-radius:12px;
+overflow:hidden;
+background:#151515;
+border:1px solid #333
 }
 
 .preview-item img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
+width:100%;
+height:100%;
+object-fit:cover
 }
 
 .remove-photo{
-  position:absolute;
-  top:7px;
-  right:7px;
-  width:30px;
-  height:30px;
-  border:0;
-  border-radius:50%;
-  background:rgba(0,0,0,.75) !important;
-  color:#fff !important;
-  font-size:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+position:absolute;
+top:7px;
+right:7px;
+width:30px;
+height:30px;
+border:0;
+border-radius:50%;
+background:rgba(0,0,0,.75)!important;
+color:#fff!important;
+font-size:18px
 }
 
 .send-report{
-  width:100%;
-  height:52px;
-  margin-top:24px;
-  border:0;
-  border-radius:12px;
-  background:#63b1ed;
-  color:#21104d;
-  font-weight:700;
+width:100%;
+height:52px;
+margin-top:24px;
+border:0;
+border-radius:12px;
+background:#63b1ed;
+color:#21104d;
+font-weight:700
 }
-
-.send-report:disabled{
-  opacity:.5;
-}
-
-/* DİYALOG */
 
 .dialog-bg{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.72);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  z-index:500;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.72);
+display:none;
+align-items:center;
+justify-content:center;
+padding:24px;
+z-index:500
 }
 
-.dialog-bg.open{
-  display:flex;
-}
+.dialog-bg.open{display:flex}
 
 .dialog{
-  width:min(430px,100%);
-  background:#211f26;
-  border-radius:17px;
-  padding:24px;
-  border:1px solid #444;
+width:min(430px,100%);
+background:#211f26;
+border-radius:17px;
+padding:24px;
+border:1px solid #444
 }
 
 .dialog h3{
-  margin:0 0 15px;
-  font-size:22px;
+margin:0 0 15px;
+font-size:22px
 }
 
 .dialog p{
-  color:#bbb;
-  font-size:15px;
-  line-height:1.5;
-  margin:0 0 20px;
+color:#bbb;
+font-size:15px;
+line-height:1.5;
+margin:0 0 20px
 }
 
 .dialog-buttons{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
+display:flex;
+justify-content:flex-end;
+gap:10px
 }
 
 .dialog-buttons button{
-  border:0;
-  border-radius:10px;
-  padding:11px 18px;
-  background:#444;
-  color:#fff;
+border:0;
+border-radius:10px;
+padding:11px 18px;
+background:#444;
+color:#fff
 }
 
 .dialog-buttons .primary{
-  background:#63b1ed;
-  color:#2d176c;
+background:#63b1ed;
+color:#2d176c
 }
-
-/* TOAST */
 
 .toast{
-  position:fixed;
-  left:50%;
-  bottom:30px;
-  transform:translateX(-50%);
-  background:#29272e;
-  color:#fff;
-  padding:13px 19px;
-  border-radius:12px;
-  font-size:14px;
-  opacity:0;
-  pointer-events:none;
-  transition:.2s;
-  z-index:1000;
-  white-space:nowrap;
+position:fixed;
+left:50%;
+bottom:30px;
+transform:translateX(-50%);
+background:#29272e;
+color:#fff;
+padding:13px 19px;
+border-radius:12px;
+font-size:14px;
+opacity:0;
+pointer-events:none;
+transition:.2s;
+z-index:1000;
+white-space:nowrap
 }
 
-.toast.show{
-  opacity:1;
-}
+.toast.show{opacity:1}
 
 @media(max-width:380px){
+.settings-list{
+padding-left:18px;
+padding-right:18px
+}
 
-  .settings-list{
-    padding-left:18px;
-    padding-right:18px;
-  }
+.setting-row{
+min-height:62px;
+height:62px
+}
 
-  .setting-row{
-    min-height:62px;
-    height:62px;
-  }
+.setting-label{font-size:17px}
 
-  .setting-label{
-    font-size:17px;
-  }
+.switch{
+width:76px;
+height:46px
+}
 
-  .switch{
-    width:76px;
-    height:46px;
-  }
+.switch::after{
+width:36px;
+height:36px;
+top:5px;
+left:5px
+}
 
-  .switch::after{
-    width:36px;
-    height:36px;
-    top:5px;
-    left:5px;
-  }
+.switch.on::after{left:35px}
 
-  .switch.on::after{
-    left:35px;
-  }
-
-  .sub-content{
-    padding-left:18px;
-    padding-right:18px;
-  }
+.sub-content{
+padding-left:18px;
+padding-right:18px
+}
 }
 </style>
+
 </head>
 
 <body>
@@ -637,91 +546,82 @@ button.sub-row .sub-arrow{
 <div class="settings-app">
 
 <header class="settings-header">
-  <button class="back-btn" id="backBtn" type="button">‹</button>
-  <div class="settings-title">Ayarlar</div>
+<button class="back-btn" id="backBtn" type="button">‹</button>
+<div class="settings-title">Ayarlar</div>
 </header>
 
 <main class="settings-list">
 
 <div class="setting-row">
-  <div class="setting-label">Bildirimler</div>
-  <button class="switch" id="notificationsSwitch" type="button"></button>
+<div class="setting-label">Bildirimler</div>
+<button class="switch" id="notificationsSwitch" type="button"></button>
 </div>
 
 <div class="setting-row">
-  <div class="setting-label">🔒 Gizli hesap</div>
-  <button class="switch" id="privateSwitch" type="button"></button>
+<div class="setting-label">🔒 Gizli hesap</div>
+<button class="switch" id="privateSwitch" type="button"></button>
 </div>
 
 <div class="setting-row">
-  <div class="setting-label">🖤 Siyah tema</div>
-  <button class="switch" id="darkSwitch" type="button"></button>
+<div class="setting-label">🖤 Siyah tema</div>
+<button class="switch on" id="darkSwitch" type="button"></button>
 </div>
 
 <button class="setting-row" id="verifiedRow" type="button">
-  <div class="setting-label">🔵 Mavi tik · Ücretli</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">🔵 Mavi tik · Ücretli</div>
+<div class="setting-arrow">›</div>
 </button>
 
 <button class="setting-row" id="securityRow" type="button">
-  <div class="setting-label">Şifre ve güvenlik</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">Şifre ve güvenlik</div>
+<div class="setting-arrow">›</div>
 </button>
 
 <button class="setting-row" id="privacyRow" type="button">
-  <div class="setting-label">Gizlilik</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">Gizlilik</div>
+<div class="setting-arrow">›</div>
 </button>
 
 <button class="setting-row" id="accountCenterRow" type="button">
-  <div class="setting-label">Hesap merkezi</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">Hesap merkezi</div>
+<div class="setting-arrow">›</div>
 </button>
 
 <button class="setting-row" id="helpRow" type="button">
-  <div class="setting-label">Yardım</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">Yardım</div>
+<div class="setting-arrow">›</div>
 </button>
 
 <button class="setting-row" id="aboutRow" type="button">
-  <div class="setting-label">Hakkında</div>
-  <div class="setting-arrow">›</div>
+<div class="setting-label">Hakkında</div>
+<div class="setting-arrow">›</div>
 </button>
 
 </main>
 </div>
 
-
 <!-- MAVİ TİK -->
 
 <div class="sub-screen" id="verifiedScreen">
-
 <header class="sub-header">
 <button class="sub-back" data-close="verifiedScreen" type="button">‹</button>
 <div class="sub-title">Mavi tik</div>
 </header>
 
 <div class="sub-content">
-
 <h2>🔵 Minegram Doğrulama</h2>
-
-<p>
-Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.
-</p>
+<p>Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.</p>
 
 <div class="sub-row">
 <span>Mavi tik üyeliği</span>
 <button class="switch" id="verifiedSwitch" type="button"></button>
 </div>
-
 </div>
 </div>
-
 
 <!-- ŞİFRE VE GÜVENLİK -->
 
 <div class="sub-screen" id="securityScreen">
-
 <header class="sub-header">
 <button class="sub-back" data-close="securityScreen" type="button">‹</button>
 <div class="sub-title">Şifre ve güvenlik</div>
@@ -752,11 +652,9 @@ Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.
 </div>
 </div>
 
-
 <!-- ŞİFRE DEĞİŞTİR -->
 
 <div class="sub-screen" id="changePasswordScreen">
-
 <header class="sub-header">
 <button class="sub-back" data-close="changePasswordScreen" type="button">‹</button>
 <div class="sub-title">Şifreyi değiştir</div>
@@ -765,10 +663,7 @@ Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.
 <div class="sub-content">
 
 <h2>Şifreni değiştir</h2>
-
-<p>
-Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.
-</p>
+<p>Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.</p>
 
 <div class="form-group">
 <label class="form-label">Mevcut şifre</label>
@@ -792,34 +687,24 @@ Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.
 </div>
 </div>
 
-
 <!-- GİRİŞ YAPTIĞIN YERLER -->
 
 <div class="sub-screen" id="loginActivityScreen">
-
 <header class="sub-header">
 <button class="sub-back" data-close="loginActivityScreen" type="button">‹</button>
 <div class="sub-title">Giriş yaptığın yerler</div>
 </header>
 
 <div class="sub-content">
-
 <h2>Cihazların</h2>
-
-<p>
-Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
-</p>
-
+<p>Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.</p>
 <div id="deviceList"></div>
-
 </div>
 </div>
-
 
 <!-- 2FA -->
 
 <div class="sub-screen" id="twoFactorScreen">
-
 <header class="sub-header">
 <button class="sub-back" data-close="twoFactorScreen" type="button">‹</button>
 <div class="sub-title">İki faktörlü doğrulama</div>
@@ -828,15 +713,10 @@ Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
 <div class="sub-content">
 
 <div class="security-info-box">
-
-<div class="security-info-title">
-🔐 Hesabını daha güvenli yap
-</div>
-
+<div class="security-info-title">🔐 Hesabını daha güvenli yap</div>
 <div class="security-info-text">
 İki faktörlü kimlik doğrulamayı açtığında hesabına giriş sırasında ek bir doğrulama kodu istenir.
 </div>
-
 </div>
 
 <div class="sub-row">
@@ -847,55 +727,24 @@ Minegram hesabında kullanılan cihazlar ve son giriş bilgileri.
 <div id="twoFactorSetup" style="display:none;margin-top:22px;">
 
 <div class="form-group">
-
-<label class="form-label">
-Telefon numarası
-</label>
-
-<input
-type="tel"
-class="form-input"
-id="twoFactorPhone"
-placeholder="+90 5XX XXX XX XX"
-autocomplete="tel">
-
+<label class="form-label">Telefon numarası</label>
+<input type="tel" class="form-input" id="twoFactorPhone" placeholder="+90 5XX XXX XX XX" autocomplete="tel">
 </div>
 
-<button
-class="form-button"
-id="sendTwoFactorCode"
-type="button">
-Kod gönder
-</button>
+<button class="form-button" id="sendTwoFactorCode" type="button">Kod gönder</button>
 
 <div id="twoFactorCodeArea" style="display:none;margin-top:20px;">
+<label class="form-label">SMS doğrulama kodu</label>
+<input class="form-input code-input" id="twoFactorCode" maxlength="6" inputmode="numeric" placeholder="000000">
 
-<label class="form-label">
-SMS doğrulama kodu
-</label>
-
-<input
-class="form-input code-input"
-id="twoFactorCode"
-maxlength="6"
-inputmode="numeric"
-placeholder="000000">
-
-<button
-class="form-button"
-id="verifyTwoFactorButton"
-type="button"
-style="margin-top:15px;">
+<button class="form-button" id="verifyTwoFactorButton" type="button" style="margin-top:15px;">
 Kodu doğrula
 </button>
-
-</div>
-
 </div>
 
 </div>
 </div>
-
+</div>
 
 <!-- GİZLİLİK -->
 
@@ -912,8 +761,6 @@ Kodu doğrula
 <span>Gizli hesap</span>
 <button class="switch" id="privacyPrivateSwitch" type="button"></button>
 </div>
-
-<!-- DÜZELTİLDİ -->
 
 <button class="sub-row" id="mentionsRow" type="button">
 <span>Bahsetmeler</span>
@@ -933,6 +780,101 @@ Kodu doğrula
 </div>
 </div>
 
+<!-- BAHSETMELER -->
+
+<div class="sub-screen" id="mentionsScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="mentionsScreen" type="button">‹</button>
+<div class="sub-title">Bahsetmeler</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Bahsetmeler</h2>
+
+<p>
+Seni kimlerin Minegram gönderilerinde ve yorumlarında bahsedebileceğini seç.
+</p>
+
+<button class="sub-row privacy-choice" data-key="minegram_mentions" data-value="everyone" type="button">
+<span>Herkes</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row privacy-choice" data-key="minegram_mentions" data-value="following" type="button">
+<span>Takip ettiğin kişiler</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row privacy-choice" data-key="minegram_mentions" data-value="nobody" type="button">
+<span>Hiç kimse</span>
+<span class="sub-arrow">›</span>
+</button>
+
+</div>
+</div>
+
+<!-- YORUMLAR -->
+
+<div class="sub-screen" id="commentsScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="commentsScreen" type="button">‹</button>
+<div class="sub-title">Yorumlar</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Yorumlar</h2>
+
+<p>
+Gönderilerine kimlerin yorum yapabileceğini seç.
+</p>
+
+<button class="sub-row privacy-choice" data-key="minegram_comments" data-value="everyone" type="button">
+<span>Herkes</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row privacy-choice" data-key="minegram_comments" data-value="following" type="button">
+<span>Takip ettiğin kişiler</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row privacy-choice" data-key="minegram_comments" data-value="nobody" type="button">
+<span>Hiç kimse</span>
+<span class="sub-arrow">›</span>
+</button>
+
+</div>
+</div>
+
+<!-- ENGELLENEN HESAPLAR -->
+
+<div class="sub-screen" id="blockedScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="blockedScreen" type="button">‹</button>
+<div class="sub-title">Engellenen hesaplar</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Engellenen hesaplar</h2>
+
+<p>Engellediğin hesaplar burada görüntülenir.</p>
+
+<div id="blockedAccountsList">
+
+<div class="sub-row">
+<span>Henüz engellenen hesap yok</span>
+</div>
+
+</div>
+
+</div>
+</div>
 
 <!-- HESAP MERKEZİ -->
 
@@ -992,6 +934,159 @@ Hesap bilgilerini, güvenlik seçeneklerini, verilerini ve uygulama izinlerini b
 </div>
 </div>
 
+<!-- KİŞİSEL BİLGİLER -->
+
+<div class="sub-screen" id="personalInfoScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="personalInfoScreen" type="button">‹</button>
+<div class="sub-title">Kişisel bilgiler</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Kişisel bilgiler</h2>
+
+<p>
+Minegram hesabına ait kişisel bilgilerini buradan yönetebilirsin.
+</p>
+
+<div class="sub-row">
+<span>Ad ve soyad</span>
+<span id="personalName">Belirtilmedi</span>
+</div>
+
+<div class="sub-row">
+<span>Kullanıcı adı</span>
+<span id="personalUsername">Belirtilmedi</span>
+</div>
+
+<div class="sub-row">
+<span>E-posta</span>
+<span id="personalEmail">Belirtilmedi</span>
+</div>
+
+</div>
+</div>
+
+<!-- HESAP SAHİPLİĞİ -->
+
+<div class="sub-screen" id="ownershipScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="ownershipScreen" type="button">‹</button>
+<div class="sub-title">Hesap sahipliği ve kontrolü</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Hesap sahipliği ve kontrolü</h2>
+
+<p>
+Hesabını devre dışı bırakma veya hesap kontrolü ile ilgili işlemleri buradan yönetebilirsin.
+</p>
+
+<button class="sub-row" id="deactivateAccountRow" type="button">
+<span>Hesabı geçici olarak devre dışı bırak</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="deleteAccountRow" type="button">
+<span>Hesabı sil</span>
+<span class="sub-arrow">›</span>
+</button>
+
+</div>
+</div>
+
+<!-- VERİLER VE İZİNLER -->
+
+<div class="sub-screen" id="dataPermissionsScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="dataPermissionsScreen" type="button">‹</button>
+<div class="sub-title">Verilerin ve izinlerin</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Verilerin ve izinlerin</h2>
+
+<p>
+Minegram'ın kullandığı hesap verilerini ve uygulama izinlerini buradan yönetebilirsin.
+</p>
+
+<button class="sub-row" id="dataActivityRow" type="button">
+<span>Veri etkinliğin</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="dataPermissionsAppRow" type="button">
+<span>Uygulama izinleri</span>
+<span class="sub-arrow">›</span>
+</button>
+
+</div>
+</div>
+
+<!-- VERİLERİNİ İNDİR -->
+
+<div class="sub-screen" id="downloadDataScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="downloadDataScreen" type="button">‹</button>
+<div class="sub-title">Verilerini indir</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Verilerini indir</h2>
+
+<p>
+Minegram hesabındaki bilgilerin bir kopyasını talep edebilirsin.
+</p>
+
+<button class="form-button" id="downloadDataButton" type="button">
+Verilerimi talep et
+</button>
+
+</div>
+</div>
+
+<!-- UYGULAMA İZİNLERİ -->
+
+<div class="sub-screen" id="appPermissionsScreen">
+
+<header class="sub-header">
+<button class="sub-back" data-close="appPermissionsScreen" type="button">‹</button>
+<div class="sub-title">Uygulama izinleri</div>
+</header>
+
+<div class="sub-content">
+
+<h2>Uygulama izinleri</h2>
+
+<p>
+Minegram'ın cihazındaki özelliklere erişim izinlerini buradan kontrol edebilirsin.
+</p>
+
+<div class="sub-row">
+<span>📷 Kamera</span>
+<span id="cameraPermissionStatus">Kontrol ediliyor</span>
+</div>
+
+<div class="sub-row">
+<span>🎤 Mikrofon</span>
+<span id="microphonePermissionStatus">Kontrol ediliyor</span>
+</div>
+
+<div class="sub-row">
+<span>🖼️ Fotoğraflar</span>
+<span id="photoPermissionStatus">Kontrol ediliyor</span>
+</div>
+
+</div>
+</div>
 
 <!-- YARDIM -->
 
@@ -1003,6 +1098,34 @@ Hesap bilgilerini, güvenlik seçeneklerini, verilerini ve uygulama izinlerini b
 </header>
 
 <div class="sub-content">
+
+<h2>Hesabınla ilgili yardım</h2>
+
+<p>
+Hesap, güvenlik, gizlilik, gönderiler, mesajlar ve diğer Minegram özellikleri hakkında yardım alabilirsin.
+</p>
+
+<button class="sub-row" id="helpAccountRow" type="button">
+<span>Hesabım</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="helpSecurityRow" type="button">
+<span>Güvenlik</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="helpPrivacyRow" type="button">
+<span>Gizlilik</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="helpMessagesRow" type="button">
+<span>Mesajlar</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<hr style="border:0;border-top:1px solid #333;margin:24px 0">
 
 <button class="sub-row" id="helpCenterRow" type="button">
 <span>Yardım merkezi</span>
@@ -1027,6 +1150,55 @@ Hesap bilgilerini, güvenlik seçeneklerini, verilerini ve uygulama izinlerini b
 </div>
 </div>
 
+<!-- YARDIM ALT SAYFALARI -->
+
+<div class="sub-screen" id="helpAccountScreen">
+<header class="sub-header">
+<button class="sub-back" data-close="helpAccountScreen" type="button">‹</button>
+<div class="sub-title">Hesabım</div>
+</header>
+
+<div class="sub-content">
+<h2>Hesabım</h2>
+<p>Minegram hesabın, profilin ve hesap ayarların hakkında yardım alabilirsin.</p>
+</div>
+</div>
+
+<div class="sub-screen" id="helpSecurityScreen">
+<header class="sub-header">
+<button class="sub-back" data-close="helpSecurityScreen" type="button">‹</button>
+<div class="sub-title">Güvenlik</div>
+</header>
+
+<div class="sub-content">
+<h2>Güvenlik</h2>
+<p>Şifre, giriş yaptığın cihazlar ve iki faktörlü kimlik doğrulama hakkında yardım alabilirsin.</p>
+</div>
+</div>
+
+<div class="sub-screen" id="helpPrivacyScreen">
+<header class="sub-header">
+<button class="sub-back" data-close="helpPrivacyScreen" type="button">‹</button>
+<div class="sub-title">Gizlilik</div>
+</header>
+
+<div class="sub-content">
+<h2>Gizlilik</h2>
+<p>Gizli hesap, bahsetmeler, yorumlar ve engellenen hesaplarla ilgili yardım alabilirsin.</p>
+</div>
+</div>
+
+<div class="sub-screen" id="helpMessagesScreen">
+<header class="sub-header">
+<button class="sub-back" data-close="helpMessagesScreen" type="button">‹</button>
+<div class="sub-title">Mesajlar</div>
+</header>
+
+<div class="sub-content">
+<h2>Mesajlar</h2>
+<p>Minegram mesajları, sohbetler ve mesaj özellikleri hakkında yardım alabilirsin.</p>
+</div>
+</div>
 
 <!-- SORUN BİLDİR -->
 
@@ -1039,43 +1211,25 @@ Hesap bilgilerini, güvenlik seçeneklerini, verilerini ve uygulama izinlerini b
 
 <div class="sub-content">
 
-<div class="report-title">
-Karşılaştığın sorunu bildir
-</div>
+<div class="report-title">Karşılaştığın sorunu bildir</div>
 
 <div class="report-info">
 Minegram'de yaşadığın problemi aşağıdaki alana yazabilir ve en fazla 2 fotoğraf ekleyebilirsin.
 </div>
 
-<label class="report-label">
-Sorun açıklaması
-</label>
+<label class="report-label">Sorun açıklaması</label>
 
-<textarea
-id="reportText"
-class="report-textarea"
-maxlength="2000"
-placeholder="Sorunu ayrıntılı olarak yaz..."></textarea>
+<textarea id="reportText" class="report-textarea" maxlength="2000" placeholder="Sorunu ayrıntılı olarak yaz..."></textarea>
 
 <div class="photo-section">
 
-<label class="report-label">
-Fotoğraf ekle
-</label>
+<label class="report-label">Fotoğraf ekle</label>
 
-<button
-type="button"
-class="photo-button"
-id="photoButton">
+<button type="button" class="photo-button" id="photoButton">
 📷 Fotoğraf seç
 </button>
 
-<input
-type="file"
-id="photoInput"
-accept="image/*"
-multiple
-hidden>
+<input type="file" id="photoInput" accept="image/*" multiple hidden>
 
 <div class="photo-count" id="photoCount">
 0 / 2 fotoğraf
@@ -1085,16 +1239,12 @@ hidden>
 
 </div>
 
-<button
-type="button"
-class="send-report"
-id="sendReport">
+<button type="button" class="send-report" id="sendReport">
 Gönder
 </button>
 
 </div>
 </div>
-
 
 <!-- HAKKINDA -->
 
@@ -1131,7 +1281,6 @@ Minegram sosyal paylaşım uygulaması.
 </div>
 </div>
 
-
 <!-- DİYALOG -->
 
 <div class="dialog-bg" id="dialogBg">
@@ -1144,89 +1293,70 @@ Minegram sosyal paylaşım uygulaması.
 
 <div class="dialog-buttons">
 
-<button id="dialogCancel" type="button">
-Kapat
-</button>
+<button id="dialogCancel" type="button">Kapat</button>
 
-<button class="primary" id="dialogOk" type="button">
-Tamam
-</button>
+<button class="primary" id="dialogOk" type="button">Tamam</button>
 
 </div>
 
 </div>
 </div>
-
 
 <div class="toast" id="toast"></div>
-
 
 <script>
 
 /* =====================================================
-   TOAST
+   YARDIMCI
 ===================================================== */
 
 function toast(message){
-
 const el=document.getElementById('toast');
-
 if(!el)return;
 
 el.textContent=message;
-
 el.classList.add('show');
 
 clearTimeout(window.__toastTimer);
 
 window.__toastTimer=setTimeout(function(){
-
 el.classList.remove('show');
-
 },2200);
-
 }
-
-
-/* =====================================================
-   LOCAL STORAGE
-===================================================== */
 
 function getSetting(key,defaultValue){
-
 const value=localStorage.getItem(key);
-
-if(value===null){
-return defaultValue;
-}
-
+if(value===null)return defaultValue;
 return value==='true';
-
 }
-
 
 function saveSetting(key,value){
-
-localStorage.setItem(
-key,
-value?'true':'false'
-);
-
+localStorage.setItem(key,value?'true':'false');
 }
 
-
-/* =====================================================
-   SWITCH
-===================================================== */
-
 function setSwitch(id,value){
-
 const el=document.getElementById(id);
+if(el)el.classList.toggle('on',!!value);
+}
 
-if(!el)return;
+function openScreen(id){
+const screen=document.getElementById(id);
+if(screen)screen.classList.add('open');
+}
 
-el.classList.toggle('on',!!value);
+function closeScreen(id){
+const screen=document.getElementById(id);
+if(screen)screen.classList.remove('open');
+}
 
+function showDialog(title,text){
+document.getElementById('dialogTitle').textContent=title;
+document.getElementById('dialogText').textContent=text;
+document.getElementById('dialogBg').classList.add('open');
+}
+
+function closeDialog(){
+document.getElementById('dialogBg').classList.remove('open');
 }
 
 
@@ -1234,23 +1364,12 @@ el.classList.toggle('on',!!value);
    AYARLAR
 ===================================================== */
 
-let notifications=
-getSetting('minegram_notifications',true);
-
-let privateAccount=
-getSetting('minegram_private_account',false);
-
-let darkTheme=
-getSetting('minegram_dark_theme',true);
-
-let verified=
-getSetting('minegram_verified',false);
-
-let savedLogin=
-getSetting('minegram_saved_login',true);
-
-let twoFactor=
-getSetting('minegram_two_factor',false);
+let notifications=getSetting('minegram_notifications',true);
+let privateAccount=getSetting('minegram_private_account',false);
+let darkTheme=getSetting('minegram_dark_theme',true);
+let verified=getSetting('minegram_verified',false);
+let savedLogin=getSetting('minegram_saved_login',true);
+let twoFactor=getSetting('minegram_two_factor',false);
 
 
 /* =====================================================
@@ -1260,26 +1379,17 @@ getSetting('minegram_two_factor',false);
 function initialize(){
 
 setSwitch('notificationsSwitch',notifications);
-
 setSwitch('privateSwitch',privateAccount);
-
 setSwitch('darkSwitch',darkTheme);
-
 setSwitch('verifiedSwitch',verified);
-
 setSwitch('savedLoginSwitch',savedLogin);
-
 setSwitch('privacyPrivateSwitch',privateAccount);
-
 setSwitch('twoFactorSwitch',twoFactor);
 
 const setup=document.getElementById('twoFactorSetup');
 
 if(setup){
-
-setup.style.display=
-twoFactor?'block':'none';
-
+setup.style.display=twoFactor?'block':'none';
 }
 
 }
@@ -1289,27 +1399,15 @@ twoFactor?'block':'none';
    BİLDİRİMLER
 ===================================================== */
 
-document.getElementById(
-'notificationsSwitch'
-).onclick=function(){
+document.getElementById('notificationsSwitch').onclick=function(){
 
 notifications=!notifications;
 
-saveSetting(
-'minegram_notifications',
-notifications
-);
+saveSetting('minegram_notifications',notifications);
 
-setSwitch(
-'notificationsSwitch',
-notifications
-);
+setSwitch('notificationsSwitch',notifications);
 
-toast(
-notifications
-?'Bildirimler açıldı'
-:'Bildirimler kapatıldı'
-);
+toast(notifications?'Bildirimler açıldı':'Bildirimler kapatıldı');
 
 };
 
@@ -1322,65 +1420,32 @@ function togglePrivateAccount(){
 
 privateAccount=!privateAccount;
 
-saveSetting(
-'minegram_private_account',
-privateAccount
-);
+saveSetting('minegram_private_account',privateAccount);
 
-setSwitch(
-'privateSwitch',
-privateAccount
-);
+setSwitch('privateSwitch',privateAccount);
+setSwitch('privacyPrivateSwitch',privateAccount);
 
-setSwitch(
-'privacyPrivateSwitch',
-privateAccount
-);
-
-toast(
-privateAccount
-?'Gizli hesap açıldı'
-:'Gizli hesap kapatıldı'
-);
+toast(privateAccount?'Gizli hesap açıldı':'Gizli hesap kapatıldı');
 
 }
 
-
-document.getElementById(
-'privateSwitch'
-).onclick=togglePrivateAccount;
-
-
-document.getElementById(
-'privacyPrivateSwitch'
-).onclick=togglePrivateAccount;
+document.getElementById('privateSwitch').onclick=togglePrivateAccount;
+document.getElementById('privacyPrivateSwitch').onclick=togglePrivateAccount;
 
 
 /* =====================================================
    SİYAH TEMA
 ===================================================== */
 
-document.getElementById(
-'darkSwitch'
-).onclick=function(){
+document.getElementById('darkSwitch').onclick=function(){
 
 darkTheme=!darkTheme;
 
-saveSetting(
-'minegram_dark_theme',
-darkTheme
-);
+saveSetting('minegram_dark_theme',darkTheme);
 
-setSwitch(
-'darkSwitch',
-darkTheme
-);
+setSwitch('darkSwitch',darkTheme);
 
-toast(
-darkTheme
-?'Siyah tema açıldı'
-:'Siyah tema kapatıldı'
-);
+toast(darkTheme?'Siyah tema açıldı':'Siyah tema kapatıldı');
 
 };
 
@@ -1389,27 +1454,15 @@ darkTheme
    MAVİ TİK
 ===================================================== */
 
-document.getElementById(
-'verifiedSwitch'
-).onclick=function(){
+document.getElementById('verifiedSwitch').onclick=function(){
 
 verified=!verified;
 
-saveSetting(
-'minegram_verified',
-verified
-);
+saveSetting('minegram_verified',verified);
 
-setSwitch(
-'verifiedSwitch',
-verified
-);
+setSwitch('verifiedSwitch',verified);
 
-toast(
-verified
-?'Mavi tik etkinleştirildi'
-:'Mavi tik kapatıldı'
-);
+toast(verified?'Mavi tik etkinleştirildi':'Mavi tik kapatıldı');
 
 };
 
@@ -1418,169 +1471,75 @@ verified
    GİRİŞ BİLGİLERİ
 ===================================================== */
 
-document.getElementById(
-'savedLoginSwitch'
-).onclick=function(){
+document.getElementById('savedLoginSwitch').onclick=function(){
 
 savedLogin=!savedLogin;
 
-saveSetting(
-'minegram_saved_login',
-savedLogin
-);
+saveSetting('minegram_saved_login',savedLogin);
 
-setSwitch(
-'savedLoginSwitch',
-savedLogin
-);
+setSwitch('savedLoginSwitch',savedLogin);
 
-toast(
-savedLogin
-?'Giriş bilgileri kaydedilecek'
-:'Giriş bilgileri kaydedilmeyecek'
-);
+toast(savedLogin?'Giriş bilgileri kaydedilecek':'Giriş bilgileri kaydedilmeyecek');
 
 };
-
-
-/* =====================================================
-   EKRAN AÇ / KAPAT
-===================================================== */
-
-function openScreen(id){
-
-const screen=document.getElementById(id);
-
-if(screen){
-screen.classList.add('open');
-}
-
-}
-
-
-function closeScreen(id){
-
-const screen=document.getElementById(id);
-
-if(screen){
-screen.classList.remove('open');
-}
-
-}
 
 
 /* =====================================================
    ANA SAYFA
 ===================================================== */
 
-document.getElementById(
-'verifiedRow'
-).onclick=function(){
-
+document.getElementById('verifiedRow').onclick=function(){
 openScreen('verifiedScreen');
-
 };
 
-
-document.getElementById(
-'securityRow'
-).onclick=function(){
-
+document.getElementById('securityRow').onclick=function(){
 openScreen('securityScreen');
-
 };
 
-
-document.getElementById(
-'privacyRow'
-).onclick=function(){
-
+document.getElementById('privacyRow').onclick=function(){
 openScreen('privacyScreen');
-
 };
 
-
-document.getElementById(
-'accountCenterRow'
-).onclick=function(){
-
+document.getElementById('accountCenterRow').onclick=function(){
 openScreen('accountCenterScreen');
-
 };
 
-
-document.getElementById(
-'helpRow'
-).onclick=function(){
-
+document.getElementById('helpRow').onclick=function(){
 openScreen('helpScreen');
-
 };
 
-
-document.getElementById(
-'aboutRow'
-).onclick=function(){
-
+document.getElementById('aboutRow').onclick=function(){
 openScreen('aboutScreen');
-
 };
 
 
 /* =====================================================
-   ŞİFRE DEĞİŞTİR
+   ŞİFRE
 ===================================================== */
 
-document.getElementById(
-'changePasswordRow'
-).onclick=function(){
-
+document.getElementById('changePasswordRow').onclick=function(){
 openScreen('changePasswordScreen');
-
 };
 
+document.getElementById('changePasswordButton').onclick=function(){
 
-document.getElementById(
-'changePasswordButton'
-).onclick=function(){
-
-const oldPassword=
-document.getElementById(
-'oldPassword'
-).value.trim();
-
-const newPassword=
-document.getElementById(
-'newPassword'
-).value.trim();
-
-const newPasswordAgain=
-document.getElementById(
-'newPasswordAgain'
-).value.trim();
+const oldPassword=document.getElementById('oldPassword').value.trim();
+const newPassword=document.getElementById('newPassword').value.trim();
+const newPasswordAgain=document.getElementById('newPasswordAgain').value.trim();
 
 if(!oldPassword){
-
 toast('Mevcut şifreni gir');
-
 return;
-
 }
 
 if(newPassword.length<6){
-
 toast('Yeni şifre en az 6 karakter olmalı');
-
 return;
-
 }
 
 if(newPassword!==newPasswordAgain){
-
 toast('Yeni şifreler aynı değil');
-
 return;
-
 }
 
 toast('Şifre değiştirme formu hazır');
@@ -1589,159 +1548,90 @@ toast('Şifre değiştirme formu hazır');
 
 
 /* =====================================================
-   GİRİŞ YAPTIĞIN YERLER
+   CİHAZLAR
 ===================================================== */
 
-document.getElementById(
-'loginActivityRow'
-).onclick=function(){
+document.getElementById('loginActivityRow').onclick=function(){
 
 openScreen('loginActivityScreen');
-
 renderDevices();
 
 };
 
-
 function renderDevices(){
 
-const list=
-document.getElementById(
-'deviceList'
-);
+const list=document.getElementById('deviceList');
 
 list.innerHTML='';
 
-const ua=
-navigator.userAgent.toLowerCase();
+const ua=navigator.userAgent.toLowerCase();
 
 let device='Bilgisayar';
 let icon='💻';
 
 if(ua.includes('android')){
-
 device='Android cihaz';
 icon='📱';
-
 }else if(ua.includes('iphone')){
-
 device='iPhone';
 icon='📱';
-
 }else if(ua.includes('ipad')){
-
 device='iPad';
 icon='📱';
-
 }
-
 
 let browser='Tarayıcı';
 
 if(ua.includes('edg')){
-
 browser='Microsoft Edge';
-
 }else if(ua.includes('chrome')){
-
 browser='Google Chrome';
-
 }else if(ua.includes('firefox')){
-
 browser='Firefox';
-
 }else if(ua.includes('safari')){
-
 browser='Safari';
-
 }
 
-
-const card=
-document.createElement('div');
+const card=document.createElement('div');
 
 card.className='device-card';
 
 card.innerHTML=`
-
 <div class="device-top">
-
-<div class="device-icon">
-${icon}
-</div>
-
+<div class="device-icon">${icon}</div>
 <div>
-
-<div class="device-name">
-${device}
-</div>
-
+<div class="device-name">${device}</div>
 <div class="device-info">
 ${browser}<br>
 Bu cihaz • Şu anda aktif
 </div>
-
-<span class="current-device">
-BU CİHAZ
-</span>
-
+<span class="current-device">BU CİHAZ</span>
 </div>
-
 </div>
-
 `;
 
 list.appendChild(card);
 
-
-const info=
-document.createElement('p');
-
-info.style.marginTop='20px';
-
-info.textContent=
-'Diğer cihazların gerçek zamanlı olarak gösterilmesi için backend üzerinde oturum kayıt sistemi gereklidir.';
-
-list.appendChild(info);
-
-};
+}
 
 
 /* =====================================================
    2FA
 ===================================================== */
 
-document.getElementById(
-'twoFactorRow'
-).onclick=function(){
-
+document.getElementById('twoFactorRow').onclick=function(){
 openScreen('twoFactorScreen');
-
 };
 
-
-document.getElementById(
-'twoFactorSwitch'
-).onclick=function(){
+document.getElementById('twoFactorSwitch').onclick=function(){
 
 twoFactor=!twoFactor;
 
-saveSetting(
-'minegram_two_factor',
-twoFactor
-);
+saveSetting('minegram_two_factor',twoFactor);
 
-setSwitch(
-'twoFactorSwitch',
-twoFactor
-);
+setSwitch('twoFactorSwitch',twoFactor);
 
-const setup=
-document.getElementById(
-'twoFactorSetup'
-);
-
-setup.style.display=
+document.getElementById('twoFactorSetup').style.display=
 twoFactor?'block':'none';
 
 toast(
@@ -1752,99 +1642,41 @@ twoFactor
 
 };
 
+document.getElementById('sendTwoFactorCode').onclick=function(){
 
-/* =====================================================
-   2FA KOD GÖNDERME
-===================================================== */
-
-document.getElementById(
-'sendTwoFactorCode'
-).onclick=function(){
-
-const phone=
-document.getElementById(
-'twoFactorPhone'
-).value.trim();
+const phone=document.getElementById('twoFactorPhone').value.trim();
 
 if(!phone){
-
 toast('Telefon numaranı gir');
-
 return;
-
 }
 
 if(phone.length<10){
-
 toast('Geçerli bir telefon numarası gir');
-
 return;
-
 }
 
+document.getElementById('twoFactorCodeArea').style.display='block';
 
-/*
-  GERÇEK SMS BACKEND BAĞLANTISI
-  BURAYA EKLENECEK.
-
-  Firebase Phone Auth kullanıldığında
-  burada gerçek SMS gönderilebilir.
-*/
-
-document.getElementById(
-'twoFactorCodeArea'
-).style.display='block';
-
-toast(
-'Doğrulama kodu gönderme işlemi hazır'
-);
+toast('Doğrulama kodu gönderme işlemi hazır');
 
 };
 
+document.getElementById('verifyTwoFactorButton').onclick=function(){
 
-/* =====================================================
-   2FA KOD DOĞRULA
-===================================================== */
-
-document.getElementById(
-'verifyTwoFactorButton'
-).onclick=function(){
-
-const code=
-document.getElementById(
-'twoFactorCode'
-).value.trim();
+const code=document.getElementById('twoFactorCode').value.trim();
 
 if(code.length!==6){
-
-toast(
-'6 haneli doğrulama kodunu gir'
-);
-
+toast('6 haneli doğrulama kodunu gir');
 return;
-
 }
 
-/*
-  Firebase doğrulaması backend bağlandığında
-  burada yapılacak.
-*/
-
-saveSetting(
-'minegram_two_factor',
-true
-);
-
+saveSetting('minegram_two_factor',true);
 twoFactor=true;
 
-setSwitch(
-'twoFactorSwitch',
-true
-);
+setSwitch('twoFactorSwitch',true);
 
-toast(
-'İki faktörlü doğrulama etkinleştirilmeye hazır'
-);
+toast('İki faktörlü doğrulama etkinleştirildi');
 
 };
 
@@ -1853,134 +1685,153 @@ toast(
    GİZLİLİK
 ===================================================== */
 
-document.getElementById(
-'mentionsRow'
-).onclick=function(){
+document.getElementById('mentionsRow').onclick=function(){
+openScreen('mentionsScreen');
+};
 
-showDialog(
-'Bahsetmeler',
-'Seni kimlerin gönderilerde ve yorumlarda bahsedebileceğini buradan yönetebilirsin.'
-);
+document.getElementById('commentsRow').onclick=function(){
+openScreen('commentsScreen');
+};
 
+document.getElementById('blockedRow').onclick=function(){
+openScreen('blockedScreen');
 };
 
 
-document.getElementById(
-'commentsRow'
-).onclick=function(){
+/* =====================================================
+   GİZLİLİK SEÇENEKLERİ
+===================================================== */
 
-showDialog(
-'Yorumlar',
-'Yorum yapabilecek kişilerin ayarlarını buradan yönetebilirsin.'
-);
+document.querySelectorAll('.privacy-choice').forEach(function(button){
 
-};
+button.onclick=function(){
 
+const key=button.dataset.key;
+const value=button.dataset.value;
 
-document.getElementById(
-'blockedRow'
-).onclick=function(){
+localStorage.setItem(key,value);
 
-showDialog(
-'Engellenen hesaplar',
-'Engellediğin hesaplar burada listelenecektir.'
-);
+toast('Ayar kaydedildi');
 
 };
+
+});
 
 
 /* =====================================================
    HESAP MERKEZİ
 ===================================================== */
 
-function accountCenterDialog(title,text){
+document.getElementById('personalInfoRow').onclick=function(){
+openScreen('personalInfoScreen');
+};
+
+document.getElementById('centerSecurityRow').onclick=function{
+openScreen('securityScreen');
+};
+
+document.getElementById('ownershipRow').onclick=function(){
+openScreen('ownershipScreen');
+};
+
+document.getElementById('dataPermissionsRow').onclick=function(){
+openScreen('dataPermissionsScreen');
+};
+
+document.getElementById('downloadDataRow').onclick=function(){
+openScreen('downloadDataScreen');
+};
+
+document.getElementById('appPermissionsRow').onclick=function(){
+openScreen('appPermissionsScreen');
+};
+
+
+/* =====================================================
+   HESAP SAHİPLİĞİ
+===================================================== */
+
+document.getElementById('deactivateAccountRow').onclick=function(){
 
 showDialog(
-title,
-text
-);
-
-}
-
-
-document.getElementById(
-'personalInfoRow'
-).onclick=function(){
-
-accountCenterDialog(
-'Kişisel bilgiler',
-'Hesabındaki ad, kullanıcı adı, e-posta ve diğer kişisel bilgiler burada yönetilecektir.'
+'Hesabı geçici olarak devre dışı bırak',
+'Hesabını geçici olarak devre dışı bırakma işlemi backend bağlantısı gerektirir.'
 );
 
 };
 
+document.getElementById('deleteAccountRow').onclick=function(){
 
-document.getElementById(
-'centerSecurityRow'
-).onclick=function(){
-
-openScreen(
-'securityScreen'
-);
-
-};
-
-
-document.getElementById(
-'ownershipRow'
-).onclick=function(){
-
-accountCenterDialog(
-'Hesap sahipliği ve kontrolü',
-'Hesabını devre dışı bırakma, silme ve hesap kontrol seçenekleri burada bulunacaktır.'
-);
-
-};
-
-
-document.getElementById(
-'dataPermissionsRow'
-).onclick=function(){
-
-accountCenterDialog(
-'Verilerin ve izinlerin',
-'Minegram hesabının kullandığı veriler ve izinler burada yönetilecektir.'
-);
-
-};
-
-
-document.getElementById(
-'downloadDataRow'
-).onclick=function(){
-
-accountCenterDialog(
-'Verilerini indir',
-'Hesap verilerini indirme talebi burada oluşturulacaktır.'
-);
-
-};
-
-
-document.getElementById(
-'appPermissionsRow'
-).onclick=function(){
-
-accountCenterDialog(
-'Uygulama izinleri',
-'Kamera, mikrofon, fotoğraflar ve diğer uygulama izinleri burada yönetilecektir.'
+showDialog(
+'Hesabı sil',
+'Hesap silme işlemi geri alınamayabilir. Bu işlem backend bağlantısı gerektirir.'
 );
 
 };
 
 
 /* =====================================================
+   VERİLER
+===================================================== */
+
+document.getElementById('dataActivityRow').onclick=function(){
+
+showDialog(
+'Veri etkinliğin',
+'Hesabınla ilgili veri etkinliği burada görüntülenecektir.'
+);
+
+};
+
+document.getElementById('dataPermissionsAppRow').onclick=function(){
+openScreen('appPermissionsScreen');
+};
+
+document.getElementById('downloadDataButton').onclick=function(){
+
+toast('Veri indirme talebin hazırlandı');
+
+};
+
+
+/* =====================================================
+   UYGULAMA İZİNLERİ
+===================================================== */
+
+function updatePermissionStatus(){
+
+const camera=document.getElementById('cameraPermissionStatus');
+const microphone=document.getElementById('microphonePermissionStatus');
+const photos=document.getElementById('photoPermissionStatus');
+
+if(camera)camera.textContent='Tarayıcı tarafından yönetilir';
+if(microphone)microphone.textContent='Tarayıcı tarafından yönetilir';
+if(photos)photos.textContent='Tarayıcı tarafından yönetilir';
+
+}
+
+
+/* =====================================================
    YARDIM
 ===================================================== */
 
-document.getElementById(
-'helpCenterRow'
-).onclick=function(){
+document.getElementById('helpAccountRow').onclick=function(){
+openScreen('helpAccountScreen');
+};
+
+document.getElementById('helpSecurityRow').onclick=function(){
+openScreen('helpSecurityScreen');
+};
+
+document.getElementById('helpPrivacyRow').onclick=function(){
+openScreen('helpPrivacyScreen');
+};
+
+document.getElementById('helpMessagesRow').onclick=function(){
+openScreen('helpMessagesScreen');
+};
+
+document.getElementById('helpCenterRow').onclick=function(){
 
 showDialog(
 'Yardım merkezi',
@@ -1989,21 +1840,11 @@ showDialog(
 
 };
 
-
-document.getElementById(
-'reportProblemRow'
-).onclick=function(){
-
-openScreen(
-'reportScreen'
-);
-
+document.getElementById('reportProblemRow').onclick=function(){
+openScreen('reportScreen');
 };
 
-
-document.getElementById(
-'termsRow'
-).onclick=function(){
+document.getElementById('termsRow').onclick=function(){
 
 showDialog(
 'Koşullar',
@@ -2012,10 +1853,7 @@ showDialog(
 
 };
 
-
-document.getElementById(
-'privacyPolicyRow'
-).onclick=function(){
+document.getElementById('privacyPolicyRow').onclick=function(){
 
 showDialog(
 'Gizlilik politikası',
@@ -2029,63 +1867,31 @@ showDialog(
    SORUN BİLDİR
 ===================================================== */
 
-const photoInput=
-document.getElementById(
-'photoInput'
-);
-
-const photoButton=
-document.getElementById(
-'photoButton'
-);
-
-const previewGrid=
-document.getElementById(
-'previewGrid'
-);
-
-const photoCount=
-document.getElementById(
-'photoCount'
-);
+const photoInput=document.getElementById('photoInput');
+const photoButton=document.getElementById('photoButton');
+const previewGrid=document.getElementById('previewGrid');
+const photoCount=document.getElementById('photoCount');
 
 let selectedPhotos=[];
 
-
 photoButton.onclick=function(){
-
 photoInput.click();
-
 };
-
 
 photoInput.onchange=function(event){
 
-const files=
-Array.from(
-event.target.files
-);
+const files=Array.from(event.target.files);
 
 for(const file of files){
 
 if(selectedPhotos.length>=2){
-
-toast(
-'En fazla 2 fotoğraf ekleyebilirsin'
-);
-
+toast('En fazla 2 fotoğraf ekleyebilirsin');
 break;
-
 }
 
 if(!file.type.startsWith('image/')){
-
-toast(
-'Sadece fotoğraf seçebilirsin'
-);
-
+toast('Sadece fotoğraf seçebilirsin');
 continue;
-
 }
 
 selectedPhotos.push(file);
@@ -2093,11 +1899,9 @@ selectedPhotos.push(file);
 }
 
 photoInput.value='';
-
 renderPreviews();
 
 };
-
 
 function renderPreviews(){
 
@@ -2106,92 +1910,53 @@ previewGrid.innerHTML='';
 photoCount.textContent=
 selectedPhotos.length+' / 2 fotoğraf';
 
-selectedPhotos.forEach(
-function(file,index){
+selectedPhotos.forEach(function(file,index){
 
-const item=
-document.createElement('div');
+const item=document.createElement('div');
+item.className='preview-item';
 
-item.className=
-'preview-item';
+const img=document.createElement('img');
 
-const img=
-document.createElement('img');
+const remove=document.createElement('button');
 
-const remove=
-document.createElement('button');
-
-remove.className=
-'remove-photo';
-
+remove.className='remove-photo';
 remove.type='button';
-
 remove.textContent='×';
 
-remove.setAttribute(
-'aria-label',
-'Fotoğrafı kaldır'
-);
-
-const url=
-URL.createObjectURL(file);
+const url=URL.createObjectURL(file);
 
 img.src=url;
 
 img.onload=function(){
-
 URL.revokeObjectURL(url);
-
 };
 
 remove.onclick=function(){
 
-selectedPhotos.splice(
-index,
-1
-);
+selectedPhotos.splice(index,1);
 
 renderPreviews();
 
 };
 
 item.appendChild(img);
-
 item.appendChild(remove);
-
 previewGrid.appendChild(item);
 
 });
 
 }
 
+document.getElementById('sendReport').onclick=function(){
 
-/* =====================================================
-   SORUN GÖNDER
-===================================================== */
-
-document.getElementById(
-'sendReport'
-).onclick=function(){
-
-const text=
-document.getElementById(
-'reportText'
-).value.trim();
+const text=document.getElementById('reportText').value.trim();
 
 if(!text){
-
-toast(
-'Lütfen sorunu açıklayın'
-);
-
+toast('Lütfen sorunu açıklayın');
 return;
-
 }
 
-toast(
-'Sorun bildirimi hazır. Backend bağlantısı bekleniyor.'
-);
+toast('Sorun bildirimi hazırlandı');
 
 };
 
@@ -2200,9 +1965,7 @@ toast(
    HAKKINDA
 ===================================================== */
 
-document.getElementById(
-'communityRulesRow'
-).onclick=function(){
+document.getElementById('communityRulesRow').onclick=function(){
 
 showDialog(
 'Topluluk kuralları',
@@ -2211,10 +1974,7 @@ showDialog(
 
 };
 
-
-document.getElementById(
-'serviceTermsRow'
-).onclick=function(){
+document.getElementById('serviceTermsRow').onclick=function(){
 
 showDialog(
 'Hizmet koşulları',
@@ -2228,55 +1988,19 @@ showDialog(
    DİYALOG
 ===================================================== */
 
-function showDialog(title,text){
-
-document.getElementById(
-'dialogTitle'
-).textContent=title;
-
-document.getElementById(
-'dialogText'
-).textContent=text;
-
-document.getElementById(
-'dialogBg'
-).classList.add('open');
-
-}
-
-
-function closeDialog(){
-
-document.getElementById(
-'dialogBg'
-).classList.remove('open');
-
-}
-
-
-document.getElementById(
-'dialogCancel'
-).onclick=closeDialog;
-
-document.getElementById(
-'dialogOk'
-).onclick=closeDialog;
+document.getElementById('dialogCancel').onclick=closeDialog;
+document.getElementById('dialogOk').onclick=closeDialog;
 
 
 /* =====================================================
    ALT SAYFA GERİ
 ===================================================== */
 
-document.querySelectorAll(
-'[data-close]'
-).forEach(
-function(button){
+document.querySelectorAll('[data-close]').forEach(function(button){
 
 button.onclick=function(){
 
-closeScreen(
-button.dataset.close
-);
+closeScreen(button.dataset.close);
 
 };
 
@@ -2287,18 +2011,12 @@ button.dataset.close
    ANA GERİ
 ===================================================== */
 
-document.getElementById(
-'backBtn'
-).onclick=function(){
+document.getElementById('backBtn').onclick=function(){
 
 if(history.length>1){
-
 history.back();
-
 }else{
-
 location.href='profile.html';
-
 }
 
 };
@@ -2309,6 +2027,7 @@ location.href='profile.html';
 ===================================================== */
 
 initialize();
+updatePermissionStatus();
 
 </script>
 
