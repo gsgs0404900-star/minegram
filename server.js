@@ -2382,16 +2382,6 @@ app.get(
 const registerVerificationCodes = new Map();
 
 
-function createVerificationCode() {
-  return String(
-    Math.floor(
-      100000 +
-      Math.random() * 900000
-    )
-  );
-}
-
-
 /* =========================================================
    REGISTER OTP SEND
 ========================================================= */
