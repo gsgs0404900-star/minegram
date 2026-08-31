@@ -7,66 +7,8 @@ body{padding-bottom:78px}.app{width:100%;min-height:100vh;background:#000}.head{
 .page{max-width:760px;margin:0 auto;padding:22px 20px}.top{height:62px;display:flex;align-items:center;border-bottom:1px solid #25222b;padding:0 20px;position:sticky;top:0;background:#000;z-index:3}.top b{font-size:19px}.back{background:none;border:0;color:#eee;font-size:30px;cursor:pointer}.field{width:100%;height:50px;background:#080808;border:1px solid #555;color:#eee;border-radius:8px;padding:0 14px;outline:none}.field:focus{border-color:#4b99d2}.btn{width:100%;height:48px;border:0;border-radius:24px;background:#4b99d2;color:#101820;font-weight:700;cursor:pointer}.picker{height:300px;border-radius:15px;background:#080808;border:1px solid #222;display:grid;place-items:center;text-align:center;color:#aaa;cursor:pointer}.picker span{font-size:48px;color:#4b99d2}.preview{max-width:100%;max-height:290px;border-radius:12px}.empty{text-align:center;padding:100px 20px;color:#999}.empty strong{display:block;color:#ddd;margin-top:14px}.empty small{display:block;margin-top:5px}.userrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #222;cursor:pointer}.userrow div:last-child{margin-left:auto;color:#4b99d2}
 .toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#252329;padding:10px 15px;border-radius:20px;opacity:0;pointer-events:none;transition:.2s;z-index:30;font-size:12px}.toast.show{opacity:1}
 @media(max-width:699px){.feed{width:100%}.card{max-width:100%;margin:0 auto 16px}.postmedia{max-height:520px}.head{padding:0 16px}.page{padding:18px 16px}}
-.nav{
-position:fixed;
-left:0;
-right:0;
-bottom:0;
-height:76px;
-background:#121018;
-border-top:1px solid #201d27;
-display:flex;
-flex-direction:row;
-align-items:center;
-justify-content:space-around;
-z-index:100;
-padding:5px 8px env(safe-area-inset-bottom);
-}
-.nav a{
-flex:1;
-height:100%;
-color:#ddd;
-text-decoration:none;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-gap:3px;
-font-size:9px;
-border:0;
-background:transparent;
-cursor:pointer;
-}
-.nav-icon{
-width:45px;
-height:32px;
-border-radius:18px;
-display:grid;
-place-items:center;
-}
-.nav a.active .nav-icon{background:#3b3150}
-.nav .ico,.nav .svg{
-width:21px;
-height:21px;
-fill:none;
-stroke:currentColor;
-stroke-width:1.8;
-stroke-linecap:round;
-stroke-linejoin:round;
-}
-@media(min-width:700px){
-.nav{
-padding-left:calc((100% - 760px)/2);
-padding-right:calc((100% - 760px)/2);
-}
-}
-</style></head><body><main class="app"><section><div class="top"><b>Ara</b></div><div class="page"><input id="sq" class="field" placeholder="#etiket veya kullanıcı adı ara" oninput="searchUsers()"><div id="results" style="margin-top:12px"></div></div></section><nav class="nav">
-<a class="" id="homeNav" href="index.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>Ana Sayfa</a>
-<a class="active" id="searchNav" href="ara.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></span>Ara</a>
-<a class="" id="createNav" href="olustur.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>Oluştur</a>
-<a class="" id="reelsNav" href="reels.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></span>Reels</a>
-<a class="" id="profileNav" href="profile.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>Profil</a>
-</nav><div id="toast" class="toast"></div></main><script>const API="/api";
+.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;z-index:100;padding:5px 8px env(safe-area-inset-bottom)}.nav a,.nav button{flex:1;color:#ddd;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;border:0;background:transparent;cursor:pointer}.nav-icon,.nav i{width:45px;height:32px;border-radius:18px;display:grid;place-items:center;font-style:normal}.nav a.active .nav-icon,.nav button.active .nav-icon,.nav.active .nav-icon{background:#3b3150}.nav .ico,.nav .svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+</style></head><body><main class="app"><section><div class="top"><b>Ara</b></div><div class="page"><input id="sq" class="field" placeholder="#etiket veya kullanıcı adı ara" oninput="searchUsers()"><div id="results" style="margin-top:12px"></div></div></section><div id="toast" class="toast"></div></main><script>const API="/api";
 const PREVIEW=new URLSearchParams(location.search).get("preview")==="1";
 let token=localStorage.getItem("minegram_token"),me=null;
 function navHTML(active){return `<div class="nav"><button class="${active==="home"?"on":""}" onclick="go('home')"><i><svg class="ico" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></i>Ana Sayfa</button><button class="${active==="search"?"on":""}" onclick="go('search')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></i>Ara</button><button onclick="go('create')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></i>Oluştur</button><button class="${active==="reels"?"on":""}" onclick="go('reels')"><i><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></i>Reels</button><button class="${active==="profile"?"on":""}" onclick="go('profile')"><i><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Profil</button></div>`}
@@ -110,13 +52,56 @@ function previewSaved(){savedList.className="";savedList.innerHTML=`<article cla
 function previewNotifications(){notificationsList.innerHTML=`<div class="userrow"><div class="avatar">♥</div><div><b>@demo_user</b> gönderini beğendi.</div></div><div class="userrow"><div class="avatar">•</div><div><b>@ali</b> seni takip etti.</div></div>`}
 function previewSettings(){document.getElementById("notifToggle").style.color="#4b99d2";document.getElementById("privateToggle").style.color="#777"}
 function previewHomeEntry(){go("home");toast("Önizleme modu — gerçek giriş sistemi aktif")}
-async function login(){try{let j=await api("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:lu.value,password:lp.value})});token=j.token;if(!token){return toast("E-posta adresini doğrula, sonra giriş yap.")}localStorage.setItem("minegram_token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
-async function register(){try{let j=await api("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:ru.value,email:re.value,password:rp.value,displayName:ru.value})});if(j.needsConfirmation){toast("E-posta adresine gelen doğrulama bağlantısını aç.");return}token=j.token;localStorage.setItem("minegram_token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
+async function login(){try{let j=await api("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:lu.value,password:lp.value})});token=j.token;if(!token){return toast("E-posta adresini doğrula, sonra giriş yap.")}localStorage.setItem("minegram_token",token);localStorage.setItem("minegram_supabase_token",token);localStorage.setItem("token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
+async function register(){try{let j=await api("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:ru.value,email:re.value,password:rp.value,displayName:ru.value})});if(j.needsConfirmation){toast("E-posta adresine gelen doğrulama bağlantısını aç.");return}token=j.token;localStorage.setItem("minegram_token",token);localStorage.setItem("minegram_supabase_token",token);localStorage.setItem("token",token);me=j.user;go("home")}catch(e){toast(e.message)}}
 async function forgotPassword(){try{await api("/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier:forgotId.value})});toast("Eğer hesap varsa kurtarma bağlantısı e-postana gönderildi.")}catch(e){toast(e.message)}}
-function logout(){localStorage.removeItem("minegram_token");token=null;me=null;go("login")}
+function logout(){localStorage.removeItem("minegram_token");localStorage.removeItem("minegram_supabase_token");localStorage.removeItem("token");token=null;me=null;go("login")}
 function toast(x){const t=document.getElementById("toast");if(!t)return;t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 
 async function searchUsers(){let q=sq.value.trim();if(!q){results.innerHTML="";return}try{let u=await api("/search?q="+encodeURIComponent(q));results.innerHTML=u.map(x=>`<div class="userrow" onclick="location.href='profile.html?user=${encodeURIComponent(x.username)}'"><div class="avatar">${(x.username[0]||"M").toUpperCase()}</div><b>@${escapeHtml(x.username)}</b><div>Profil ›</div></div>`).join("")||"<p style='color:#999'>Sonuç bulunamadı.</p>"}catch(e){toast(e.message)}}
-if(!token){location.href="index.html"}else{api("/me").then(u=>me=u).catch(()=>location.href="index.html")}
-</script></body></html>
+if(!token){location.href="giris.html"}else{api("/me").then(u=>me=u).catch(()=>{})}
+</script>
+<style id="uniform-bottom-nav">
+.bottom-nav, .nav {
+  position: fixed !important;
+  left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important; height: 78px !important;
+  display: flex !important; flex-direction: row !important;
+  align-items: stretch !important; justify-content: space-evenly !important;
+  padding: 8px 5px !important; margin: 0 !important;
+  background: #18161e !important; z-index: 99999 !important;
+}
+.bottom-nav a, .nav a {
+  flex: 1 1 0 !important; width: 20% !important; max-width: none !important;
+  min-width: 0 !important; display: flex !important;
+  flex-direction: column !important; align-items: center !important;
+  justify-content: center !important; gap: 3px !important;
+  text-align: center !important; text-decoration: none !important;
+  color: #ddd !important; box-sizing: border-box !important;
+}
+.bottom-nav a i, .nav a i {
+  display: grid !important; place-items: center !important;
+  width: 46px !important; height: 29px !important;
+  font-style: normal !important;
+}
+.bottom-nav a.active i, .nav a.active i {
+  background: #3c3450 !important; border-radius: 20px !important;
+}
+.bottom-nav svg, .nav svg { width: 22px !important; height: 22px !important; }
+body { padding-bottom: 88px !important; }
+
+<style id="uniform-bottom-nav">
+.bottom-nav,.nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:78px!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;justify-content:space-evenly!important;padding:8px 5px!important;margin:0!important;background:#18161e!important;z-index:99999!important}
+.bottom-nav a,.nav a{flex:1 1 0!important;width:20%!important;max-width:none!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;text-align:center!important;text-decoration:none!important;color:#ddd!important;box-sizing:border-box!important}
+.bottom-nav a i,.nav a i{display:grid!important;place-items:center!important;width:46px!important;height:29px!important;font-style:normal!important}
+.bottom-nav a.active i,.nav a.active i{background:#3c3450!important;border-radius:20px!important}
+.bottom-nav svg,.nav svg{width:22px!important;height:22px!important}body{padding-bottom:88px!important}
+</style><nav class="bottom-nav">
+<a class="" href="index.html"><i>⌂</i><span>Ana Sayfa</span></a>
+<a class="active" href="ara.html"><i>⌕</i><span>Ara</span></a>
+<a class="" href="olustur.html"><i>＋</i><span>Oluştur</span></a>
+<a class="" href="reels.html"><i>▣</i><span>Reels</span></a>
+<a class="" href="profile.html"><i>♙</i><span>Profil</span></a>
+</nav>
+</body></html>
