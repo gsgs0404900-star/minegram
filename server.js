@@ -690,7 +690,7 @@ app.get("/mesaj", (req, res) => {
 app.use((req, res) => {
   // Prefer public/index.html when it exists; otherwise serve root index.html.
   const indexPath = fs.existsSync(path.join(publicDir, "index.html"))
-    ? path.join(publicDir, "index.html")
+    ? path.join(publicDir, "giris.html")
     : rootIndex;
   res.sendFile(indexPath);
 });
