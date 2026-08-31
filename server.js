@@ -3053,11 +3053,6 @@ async function sendResendEmail(
   return data;
 }
 
-
-/* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT
-========================================================= */
-
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
