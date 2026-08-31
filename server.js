@@ -1644,10 +1644,16 @@ function normalizeRecoveryPhone(
    FORGOT PASSWORD - FIND ACCOUNT
 ========================================================= */
 
+/* =========================================================
+   FORGOT PASSWORD - FIND ACCOUNT + SEND CODE
+========================================================= */
+
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
+
     try {
+
       const identifier =
         String(
           req.body?.identifier ??
@@ -1659,61 +1665,74 @@ app.post(
 
       const mode =
         String(
-          req.body?.mode ??
-          ""
+          req.body?.mode ?? ""
         )
-          .trim()
-          .toLowerCase();
+        .trim()
+        .toLowerCase();
+
 
       if (!identifier) {
+
         return res.status(400).json({
           ok: false,
-          error: "E-posta, kullanıcı adı veya telefon numarası gerekli."
+          error:
+            "E-posta, kullanıcı adı veya telefon numarası gerekli."
         });
+
       }
 
-      /*
-       * Frontend mode gönderiyorsa onu kullanıyoruz.
-       * Göndermiyorsa identifier'a göre otomatik belirliyoruz.
-       */
+
       let recoveryMode = mode;
 
+
       if (!recoveryMode) {
+
         if (identifier.includes("@")) {
+
           recoveryMode = "email";
-        } else if (
+
+        }
+        else if (
           /[\d\s()+\-]/.test(identifier) &&
           normalizeRecoveryPhone(identifier).length >= 10
         ) {
+
           recoveryMode = "phone";
-        } else {
-          recoveryMode = "username";
+
         }
+        else {
+
+          recoveryMode = "username";
+
+        }
+
       }
+
+
+      /* =====================================================
+         HESABI BUL
+      ===================================================== */
 
       let found = null;
 
-      /*
-       * -----------------------------------------------------
-       * 1) TELEFON
-       * -----------------------------------------------------
-       */
 
       if (
         recoveryMode === "phone" ||
         recoveryMode === "tel" ||
         recoveryMode === "telefon"
       ) {
+
         const authUser =
           await findUserByPhone(
             identifier
           );
 
+
         if (authUser?.email) {
+
           const admin =
             adminClient();
 
-          let profile = null;
 
           const {
             data: profileById
@@ -1729,17 +1748,235 @@ app.post(
               .limit(1)
               .maybeSingle();
 
-          profile =
-            profileById || null;
 
           found = {
+
             email:
               authUser.email,
-            profile,
+
+            profile:
+              profileById || null,
+
             authUser
+
           };
+
         }
+
       }
+
+
+      if (!found) {
+
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+
+      }
+
+
+      if (!found?.email) {
+
+        return res.status(404).json({
+
+          ok: false,
+
+          error:
+            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+
+        });
+
+      }
+
+
+      const email =
+        String(
+          found.email
+        )
+        .trim()
+        .toLowerCase();
+
+
+      /* =====================================================
+         6 HANELİ KOD
+      ===================================================== */
+
+      const code =
+        String(
+          Math.floor(
+            100000 +
+            Math.random() * 900000
+          )
+        );
+
+
+      recoveryCodes.set(
+        email,
+        {
+
+          code,
+
+          expires:
+            Date.now() +
+            10 * 60 * 1000,
+
+          profile:
+            found.profile || null
+
+        }
+      );
+
+
+      console.log(
+        "[RECOVERY] Kod oluşturuldu:",
+        email
+      );
+
+
+      /* =====================================================
+         RESEND İLE KOD GÖNDER
+      ===================================================== */
+
+      await sendResendEmail(
+
+        email,
+
+        "Minegram doğrulama kodun",
+
+        `
+        <div style="
+          font-family:Arial,sans-serif;
+          max-width:500px;
+          margin:auto;
+          padding:30px;
+          background:#fff;
+          color:#111;
+          border-radius:12px;
+        ">
+
+          <h2>Minegram</h2>
+
+          <p>
+            Şifre sıfırlama işlemin için
+            doğrulama kodun:
+          </p>
+
+          <div style="
+            font-size:32px;
+            font-weight:700;
+            letter-spacing:8px;
+            margin:25px 0;
+          ">
+            ${code}
+          </div>
+
+          <p>
+            Bu kod 10 dakika geçerlidir.
+          </p>
+
+          <p style="
+            color:#777;
+            font-size:12px;
+          ">
+            Bu işlemi sen yapmadıysan
+            bu e-postayı dikkate alma.
+          </p>
+
+        </div>
+        `,
+
+        `Minegram doğrulama kodun: ${code}
+
+Bu kod 10 dakika geçerlidir.`
+      );
+
+
+      /* =====================================================
+         HESAP BİLGİLERİ
+      ===================================================== */
+
+      const profile =
+        found.profile || {};
+
+
+      return res.status(200).json({
+
+        ok: true,
+
+        email,
+
+        maskedEmail:
+          maskEmail(email),
+
+        account: {
+
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
+
+          username:
+            profile.username ||
+            "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email,
+
+          maskedEmail:
+            maskEmail(email),
+
+          avatar:
+            profile.avatar_url ||
+            null
+
+        },
+
+        identifier,
+
+        mode:
+          recoveryMode,
+
+        /*
+         * Frontend bu değeri kullanarak
+         * kod sayfasına geçebilir.
+         */
+        next:
+          "/kod.html"
+
+      });
+
+    }
+    catch (error) {
+
+      console.error(
+        "[FIND ACCOUNT + SEND CODE ERROR]",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          error?.message ||
+          "Doğrulama kodu gönderilemedi."
+
+      });
+
+    }
+
+  }
+);
 
       /*
        * -----------------------------------------------------
@@ -2563,77 +2800,6 @@ app.post(
     }
   }
 );
-
-/* =========================================================
-   RESEND
-========================================================= */
-
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(
-      process.env.RESEND_FROM_EMAIL ||
-      "onboarding@resend.dev"
-    ).trim();
-
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
-
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
-  }
-
-  return j;
-}
-
-const recoveryCodes =
-  new Map();
 
 
 /* =========================================================
