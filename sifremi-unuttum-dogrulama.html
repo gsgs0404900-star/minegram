@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-posta Kontrol Et - Minegram</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    overflow-x:hidden;
+}
+
+.page{
+    width:100%;
+    min-height:100vh;
+    background:#000;
+}
+
+/* ÜST BAŞLIK */
+.topbar{
+    width:100%;
+    height:60px;
+    display:flex;
+    align-items:center;
+    padding-left:38px;
+}
+
+.back{
+    width:25px;
+    height:35px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:34px;
+    font-weight:300;
+    line-height:1;
+    cursor:pointer;
+    user-select:none;
+}
+
+.top-title{
+    margin-left:15px;
+    font-size:20px;
+    font-weight:700;
+    color:#fff;
+}
+
+/* ANA FORM */
+.content{
+    width:317px;
+    margin:115px auto 0;
+}
+
+/* BAŞLIK */
+.title{
+    text-align:center;
+    font-size:30px;
+    line-height:1.15;
+    font-weight:700;
+    margin:0 0 34px;
+    color:#fff;
+}
+
+/* AÇIKLAMA */
+.description{
+    font-size:18px;
+    line-height:1.45;
+    color:#bdbdbd;
+    margin:0 0 65px;
+}
+
+/* KOD INPUT */
+.code-input{
+    display:block;
+    width:100%;
+    height:39px;
+    padding:0 10px;
+    border:1px solid #252525;
+    border-radius:6px;
+    background:#050505;
+    color:#fff;
+    outline:none;
+    font-size:12px;
+    font-family:Arial,Helvetica,sans-serif;
+    letter-spacing:3px;
+}
+
+.code-input::placeholder{
+    color:#777;
+    opacity:1;
+    letter-spacing:0;
+}
+
+.code-input:focus{
+    border-color:#555;
+}
+
+/* DOĞRULA */
+.verify-btn{
+    display:block;
+    width:100%;
+    height:37px;
+    margin-top:8px;
+    border:0;
+    border-radius:22px;
+    background:#2677b5;
+    color:#000;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.verify-btn:active{
+    transform:scale(.99);
+}
+
+.verify-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+/* TEKRAR GÖNDER */
+.resend-btn{
+    display:block;
+    width:100%;
+    margin-top:12px;
+    padding:0;
+    border:0;
+    background:transparent;
+    text-align:center;
+    color:#008cff;
+    font-size:12px;
+    font-weight:400;
+    cursor:pointer;
+    line-height:1.4;
+}
+
+.resend-btn:hover{
+    text-decoration:underline;
+}
+
+/* MESAJ */
+.message{
+    min-height:18px;
+    margin-top:12px;
+    text-align:center;
+    font-size:11px;
+    line-height:1.4;
+    color:#ff5c5c;
+}
+
+.message.success{
+    color:#55b8ff;
+}
+
+/* MOBİL */
+@media(max-width:600px){
+
+    .topbar{
+        height:70px;
+        padding-left:28px;
+    }
+
+    .back{
+        width:30px;
+        height:38px;
+        font-size:38px;
+    }
+
+    .top-title{
+        margin-left:12px;
+        font-size:21px;
+    }
+
+    .content{
+        width:calc(100% - 120px);
+        max-width:714px;
+        margin:105px auto 0;
+    }
+
+    .title{
+        font-size:42px;
+        margin-bottom:30px;
+    }
+
+    .description{
+        font-size:21px;
+        line-height:1.5;
+        margin-bottom:55px;
+    }
+
+    .code-input{
+        height:68px;
+        padding:0 20px;
+        font-size:18px;
+        border:2px solid #686868;
+        border-radius:9px;
+    }
+
+    .verify-btn{
+        height:58px;
+        margin-top:18px;
+        font-size:20px;
+        border-radius:32px;
+    }
+
+    .resend-btn{
+        margin-top:25px;
+        font-size:18px;
+        font-weight:700;
+        color:#62b5f5;
+    }
+
+    .message{
+        font-size:14px;
+    }
+}
+
+/* KÜÇÜK TELEFON */
+@media(max-width:430px){
+
+    .content{
+        width:calc(100% - 40px);
+        margin-top:65px;
+    }
+
+    .title{
+        font-size:38px;
+    }
+
+    .description{
+        font-size:20px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+<!-- ÜST -->
+<div class="topbar">
+
+    <div
+        class="back"
+        onclick="goBack()"
+        aria-label="Geri"
+    >
+        ‹
+    </div>
+
+    <div class="top-title">
+        Şifremi unuttum
+    </div>
+
+</div>
+
+
+<!-- ========================================= -->
+<!-- E-POSTA DOĞRULAMA -->
+<!-- ========================================= -->
+
+<main class="content">
+
+    <h1 class="title">
+        E-postanı kontrol et
+    </h1>
+
+    <p class="description">
+        Hesabını onaylamak için e-posta adresine
+        gönderilen 6 haneli kodu aşağıya gir.
+    </p>
+
+    <input
+        type="text"
+        id="code"
+        class="code-input"
+        placeholder="Kod"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        oninput="onlyNumbers(this)"
+        onkeydown="if(event.key==='Enter') verifyCode()"
+    >
+
+    <div
+        id="codeMessage"
+        class="message success"
+    >
+        Kod e-posta adresine gönderildi.
+    </div>
+
+    <button
+        type="button"
+        id="verifyButton"
+        class="verify-btn"
+        onclick="verifyCode()"
+    >
+        Kodu doğrula
+    </button>
+
+    <button
+        type="button"
+        id="resendButton"
+        class="resend-btn"
+        onclick="resendCode()"
+    >
+        Kodu tekrar gönder
+    </button>
+
+</main>
+
+</div>
+
+<script>
+
+"use strict";
+
+/* =========================================
+   GERİ
+========================================= */
+
+function goBack(){
+
+    if(document.referrer){
+        history.back();
+        return;
+    }
+
+    window.location.href = "sifremi-unuttum.html";
+}
+
+
+/* =========================================
+   SADECE RAKAM
+========================================= */
+
+function onlyNumbers(input){
+
+    input.value =
+        input.value
+            .replace(/\D/g,"")
+            .slice(0,6);
+}
+
+
+/* =========================================
+   MESAJ
+========================================= */
+
+function showMessage(text,type){
+
+    const message =
+        document.getElementById("codeMessage");
+
+    if(!message){
+        return;
+    }
+
+    message.textContent = text;
+
+    message.className =
+        "message" +
+        (
+            type === "success"
+                ? " success"
+                : ""
+        );
+}
+
+
+/* =========================================
+   KOD DOĞRULAMA
+========================================= */
+
+async function verifyCode(){
+
+    const input =
+        document.getElementById("code");
+
+    const button =
+        document.getElementById("verifyButton");
+
+    const code =
+        input.value.trim();
+
+    if(code.length !== 6){
+
+        showMessage(
+            "Lütfen 6 haneli doğrulama kodunu gir.",
+            "error"
+        );
+
+        input.focus();
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Doğrulanıyor...";
+
+    /*
+     * URL'deki e-posta / telefon bilgisi alınır.
+     */
+
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const email =
+        params.get("email");
+
+    const phone =
+        params.get("phone");
+
+    try{
+
+        /*
+         * GERÇEK SERVER ENDPOINT'İ:
+         *
+         * POST /api/forgot/verify
+         *
+         * Server.js tarafındaki endpoint'in
+         * mevcut olması gerekir.
+         */
+
+        const body = {
+            code: code
+        };
+
+        if(email){
+            body.email = email;
+        }
+
+        if(phone){
+            body.phone = phone;
+        }
+
+        const response =
+            await fetch(
+                "/api/forgot/verify",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify(body),
+
+                    cache:"no-store"
+                }
+            );
+
+        const data =
+            await response
+                .json()
+                .catch(function(){
+                    return {};
+                });
+
+        console.log(
+            "[MINEGRAM FORGOT VERIFY]",
+            data
+        );
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                "Doğrulama kodu hatalı veya süresi dolmuş."
+            );
+        }
+
+        if(data.ok){
+
+            showMessage(
+                "Kod doğrulandı. Yeni şifreni oluşturabilirsin.",
+                "success"
+            );
+
+            /*
+             * Server bir resetToken döndürüyorsa
+             * yeni şifre sayfasına taşınır.
+             */
+
+            const token =
+                data.resetToken || "";
+
+            setTimeout(function(){
+
+                window.location.href =
+                    "yeni-sifre.html?token=" +
+                    encodeURIComponent(token);
+
+            },700);
+
+            return;
+        }
+
+        throw new Error(
+            data.error ||
+            "Doğrulama kodu hatalı."
+        );
+
+    }
+    catch(error){
+
+        console.error(
+            "[MINEGRAM FORGOT VERIFY ERROR]",
+            error
+        );
+
+        showMessage(
+            error.message ||
+            "Bir hata oluştu. Lütfen tekrar dene.",
+            "error"
+        );
+
+    }
+    finally{
+
+        button.disabled = false;
+        button.textContent = "Kodu doğrula";
+
+    }
+}
+
+
+/* =========================================
+   KODU TEKRAR GÖNDER
+========================================= */
+
+async function resendCode(){
+
+    const button =
+        document.getElementById("resendButton");
+
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const email =
+        params.get("email");
+
+    const phone =
+        params.get("phone");
+
+    button.disabled = true;
+    button.textContent = "Gönderiliyor...";
+
+    try{
+
+        const body = {
+            mode: phone ? "phone" : "email"
+        };
+
+        if(email){
+            body.identifier = email;
+        }
+
+        if(phone){
+            body.identifier = phone;
+        }
+
+        const response =
+            await fetch(
+                "/api/forgot/start",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify(body),
+
+                    cache:"no-store"
+                }
+            );
+
+        const data =
+            await response
+                .json()
+                .catch(function(){
+                    return {};
+                });
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                "Kod tekrar gönderilemedi."
+            );
+        }
+
+        showMessage(
+            "Yeni doğrulama kodu e-posta adresine gönderildi.",
+            "success"
+        );
+
+    }
+    catch(error){
+
+        showMessage(
+            error.message ||
+            "Kod gönderilemedi. Lütfen tekrar dene.",
+            "error"
+        );
+
+    }
+    finally{
+
+        button.disabled = false;
+        button.textContent = "Kodu tekrar gönder";
+
+    }
+}
+
+
+/* =========================================
+   BAŞLANGIÇ
+========================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        const input =
+            document.getElementById("code");
+
+        if(input){
+
+            setTimeout(function(){
+                input.focus();
+            },100);
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>
