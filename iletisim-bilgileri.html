@@ -335,8 +335,6 @@ button.action{
     </p>
 
 
-    <!-- E-POSTA / TELEFON -->
-
     <div class="tabs">
 
       <button
@@ -358,8 +356,6 @@ button.action{
     </div>
 
 
-    <!-- İLETİŞİM -->
-
     <input
       id="contact"
       class="input"
@@ -379,8 +375,6 @@ button.action{
 
   </main>
 
-
-  <!-- DURUM -->
 
   <div
     id="status"
@@ -426,9 +420,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  sendEmailVerification
+  getAuth
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 
@@ -503,11 +495,10 @@ const status =
 
 
 /* =========================================================
-   DEĞİŞKENLER
+   DEĞİŞKEN
 ========================================================= */
 
 let mode = "email";
-
 let busy = false;
 
 
@@ -523,12 +514,10 @@ const params =
 const usernameFromUrl =
   params.get("username");
 
-
 const savedUsername =
   sessionStorage.getItem(
     "minegram_register_username"
   );
-
 
 const username =
   usernameFromUrl ||
@@ -565,7 +554,7 @@ function showStatus(
 
 
 /* =========================================================
-   EMAIL SEKMESİ
+   E-POSTA
 ========================================================= */
 
 emailTab.addEventListener(
@@ -583,7 +572,6 @@ emailTab.addEventListener(
     emailTab.style.color =
       "#eee8fa";
 
-
     phoneTab.style.background =
       "#000";
 
@@ -592,7 +580,6 @@ emailTab.addEventListener(
 
     phoneTab.style.color =
       "#fff";
-
 
     contact.type =
       "email";
@@ -603,20 +590,17 @@ emailTab.addEventListener(
     contact.placeholder =
       "E-posta adresi";
 
-
     note.textContent =
       "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
 
-
     status.style.display =
       "none";
-
   }
 );
 
 
 /* =========================================================
-   TELEFON SEKMESİ
+   TELEFON
 ========================================================= */
 
 phoneTab.addEventListener(
@@ -634,7 +618,6 @@ phoneTab.addEventListener(
     phoneTab.style.color =
       "#eee8fa";
 
-
     emailTab.style.background =
       "#000";
 
@@ -643,7 +626,6 @@ phoneTab.addEventListener(
 
     emailTab.style.color =
       "#fff";
-
 
     contact.type =
       "tel";
@@ -654,14 +636,11 @@ phoneTab.addEventListener(
     contact.placeholder =
       "Telefon numarası";
 
-
     note.textContent =
       "Devam ettiğinde telefon numaran doğrulama için kullanılacaktır.";
 
-
     status.style.display =
       "none";
-
   }
 );
 
@@ -672,20 +651,15 @@ phoneTab.addEventListener(
 
 function goBack(){
 
-  if(
-    document.referrer &&
-    document.referrer !==
-    window.location.href
-  ){
-
-    history.back();
-
-    return;
-  }
-
+  /*
+   * İletişim ekranından bir önceki ekran:
+   *
+   * sifre-olustur.html
+   */
 
   window.location.href =
-    "./kayit.html";
+    "./sifre-olustur.html?username=" +
+    encodeURIComponent(username);
 }
 
 
@@ -694,7 +668,6 @@ topBack.addEventListener(
   goBack
 );
 
-
 backBtn.addEventListener(
   "click",
   goBack
@@ -702,7 +675,7 @@ backBtn.addEventListener(
 
 
 /* =========================================================
-   EMAIL İLE FIREBASE KAYDI
+   E-POSTA KAYDET
 ========================================================= */
 
 async function registerEmail(){
@@ -717,7 +690,7 @@ async function registerEmail(){
       "Lütfen e-posta adresini gir."
     );
 
-    return;
+    return false;
   }
 
 
@@ -730,20 +703,9 @@ async function registerEmail(){
       "Geçerli bir e-posta adresi gir."
     );
 
-    return;
+    return false;
   }
 
-
-  /*
-   * Şifre daha sonraki kayit.html
-   * ekranından alınacak.
-   *
-   * Burada kullanıcıyı Firebase'e
-   * hemen oluşturmuyoruz.
-   *
-   * E-posta adresini kayıt sürecinde
-   * saklıyoruz.
-   */
 
   sessionStorage.setItem(
     "minegram_register_email",
@@ -761,37 +723,12 @@ async function registerEmail(){
   }
 
 
-  showStatus(
-    "E-posta kaydedildi. Şifre oluşturma ekranına geçiliyor.",
-    true
-  );
-
-
-  nextBtn.disabled =
-    true;
-
-  nextBtn.textContent =
-    "Devam ediliyor...";
-
-
-  setTimeout(
-    function(){
-
-      window.location.href =
-        "./kayit.html?username=" +
-        encodeURIComponent(username) +
-        "&email=" +
-        encodeURIComponent(email);
-
-    },
-    400
-  );
-
+  return true;
 }
 
 
 /* =========================================================
-   TELEFON
+   TELEFON KAYDET
 ========================================================= */
 
 async function registerPhone(){
@@ -806,17 +743,28 @@ async function registerPhone(){
       "Lütfen telefon numaranı gir."
     );
 
-    return;
+    return false;
   }
 
 
-  /*
-   * Firebase Phone Authentication
-   * için reCAPTCHA gerekir.
-   *
-   * Bu aşamada telefon numarasını
-   * kayıt sürecinde saklıyoruz.
-   */
+  const cleanPhone =
+    phone.replace(
+      /[\s()-]/g,
+      ""
+    );
+
+
+  if(
+    cleanPhone.length < 10
+  ){
+
+    showStatus(
+      "Geçerli bir telefon numarası gir."
+    );
+
+    return false;
+  }
+
 
   sessionStorage.setItem(
     "minegram_register_phone",
@@ -834,32 +782,7 @@ async function registerPhone(){
   }
 
 
-  showStatus(
-    "Telefon numarası kaydedildi. Şifre oluşturma ekranına geçiliyor.",
-    true
-  );
-
-
-  nextBtn.disabled =
-    true;
-
-  nextBtn.textContent =
-    "Devam ediliyor...";
-
-
-  setTimeout(
-    function(){
-
-      window.location.href =
-        "./kayit.html?username=" +
-        encodeURIComponent(username) +
-        "&phone=" +
-        encodeURIComponent(phone);
-
-    },
-    400
-  );
-
+  return true;
 }
 
 
@@ -872,26 +795,82 @@ nextBtn.addEventListener(
   async function(){
 
     if(busy){
-
       return;
     }
 
-
     busy = true;
 
+    let valid = false;
 
     try{
 
       if(mode === "email"){
 
-        await registerEmail();
+        valid =
+          await registerEmail();
 
       }
       else{
 
-        await registerPhone();
+        valid =
+          await registerPhone();
 
       }
+
+
+      if(!valid){
+
+        busy = false;
+
+        return;
+      }
+
+
+      /*
+       * BURASI ÖNEMLİ
+       *
+       * İletişim bilgilerinden sonraki
+       * sayfa artık kayit.html DEĞİL.
+       *
+       * Kayıt işleminin tamamlanacağı
+       * sonraki sayfaya geçiyoruz.
+       *
+       * Şimdilik kayıt tamamlanması
+       * için kayit-tamamla.html kullanılıyor.
+       */
+
+      showStatus(
+        "Bilgilerin kaydedildi. Devam ediliyor...",
+        true
+      );
+
+      nextBtn.disabled =
+        true;
+
+      nextBtn.textContent =
+        "Devam ediliyor...";
+
+
+      setTimeout(
+        function(){
+
+          window.location.href =
+            "./kayit-tamamla.html?username=" +
+            encodeURIComponent(username) +
+            "&" +
+            (
+              mode === "email"
+                ? "email=" + encodeURIComponent(
+                    contact.value.trim()
+                  )
+                : "phone=" + encodeURIComponent(
+                    contact.value.trim()
+                  )
+            );
+
+        },
+        400
+      );
 
     }
     catch(error){
@@ -901,12 +880,10 @@ nextBtn.addEventListener(
         error
       );
 
-
       showStatus(
         error.message ||
         "İşlem sırasında bir hata oluştu."
       );
-
 
       busy = false;
 
@@ -947,42 +924,35 @@ contact.addEventListener(
    SAYFA AÇILIŞI
 ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
+const savedEmail =
+  sessionStorage.getItem(
+    "minegram_register_email"
+  );
 
-    const savedEmail =
-      sessionStorage.getItem(
-        "minegram_register_email"
-      );
-
-    const savedPhone =
-      sessionStorage.getItem(
-        "minegram_register_phone"
-      );
+const savedPhone =
+  sessionStorage.getItem(
+    "minegram_register_phone"
+  );
 
 
-    if(savedEmail){
+if(savedEmail){
 
-      mode = "email";
+  mode = "email";
 
-      contact.value =
-        savedEmail;
+  contact.value =
+    savedEmail;
 
-    }
-    else if(savedPhone){
+}
+else if(savedPhone){
 
-      mode = "phone";
+  mode = "phone";
 
-      contact.value =
-        savedPhone;
+  contact.value =
+    savedPhone;
 
-      phoneTab.click();
+  phoneTab.click();
 
-    }
-
-  }
-);
+}
 
 </script>
 
