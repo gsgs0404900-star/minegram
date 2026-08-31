@@ -233,6 +233,59 @@ margin-left:auto;
 font-size:30px;
 }
 
+.info-card{
+background:#171717;
+border:1px solid #303030;
+border-radius:14px;
+padding:17px;
+margin-bottom:18px;
+}
+
+.info-card-title{
+font-size:17px;
+font-weight:700;
+margin-bottom:8px;
+}
+
+.info-card-text{
+font-size:14px;
+line-height:1.55;
+color:#aaa;
+}
+
+.success-box{
+background:#102414;
+border:1px solid #28552e;
+color:#b9e8bf;
+border-radius:12px;
+padding:14px;
+font-size:14px;
+line-height:1.5;
+margin-bottom:18px;
+}
+
+.warning-box{
+background:#241b10;
+border:1px solid #59401e;
+color:#e8ca91;
+border-radius:12px;
+padding:14px;
+font-size:14px;
+line-height:1.5;
+margin-bottom:18px;
+}
+
+.danger-box{
+background:#241010;
+border:1px solid #542525;
+color:#efb0b0;
+border-radius:12px;
+padding:14px;
+font-size:14px;
+line-height:1.5;
+margin-bottom:18px;
+}
+
 .form-group{
 margin-bottom:18px;
 }
@@ -269,6 +322,17 @@ background:#63b1ed;
 color:#21104d;
 font-weight:700;
 margin-top:5px;
+}
+
+.danger-button{
+width:100%;
+height:50px;
+border:0;
+border-radius:11px;
+background:#b72c2c;
+color:#fff;
+font-weight:700;
+margin-top:12px;
 }
 
 .device-card,
@@ -726,7 +790,7 @@ Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.
 </div>
 
 
-<!-- GİRİŞ YAPILAN YERLER -->
+<!-- GİRİŞ YERLERİ -->
 
 <div class="sub-screen" id="loginActivityScreen">
 
@@ -907,26 +971,37 @@ Kodu doğrula
 
 <div class="sub-content">
 
-<h2>Hesap bilgileri</h2>
+<div class="info-card">
 
-<p>
-Minegram hesabınla ilgili temel bilgileri buradan görüntüleyebilirsin.
-</p>
+<div class="info-card-title">
+Hesap bilgilerin
+</div>
+
+<div class="info-card-text">
+Minegram hesabınla ilgili temel bilgileri buradan görebilirsin.
+</div>
+
+</div>
 
 <div class="sub-row">
 <span>Kullanıcı adı</span>
-<span>Minegram</span>
+<span id="accountUsername">Minegram</span>
 </div>
 
 <div class="sub-row">
 <span>E-posta</span>
-<span>Hesap e-postası</span>
+<span id="accountEmail">Hesap e-postası</span>
 </div>
 
 <div class="sub-row">
 <span>Hesap oluşturma tarihi</span>
-<span>Bilgiler</span>
+<span id="accountCreateDate">Bilgiler</span>
 </div>
+
+<button class="sub-row" id="editAccountInfoRow" type="button">
+<span>Hesap bilgilerini düzenle</span>
+<span class="sub-arrow">›</span>
+</button>
 
 </div>
 </div>
@@ -943,26 +1018,37 @@ Minegram hesabınla ilgili temel bilgileri buradan görüntüleyebilirsin.
 
 <div class="sub-content">
 
-<h2>Kişisel bilgiler</h2>
+<div class="info-card">
 
-<p>
-Kişisel hesap bilgilerini buradan görüntüleyebilir ve yönetebilirsin.
-</p>
+<div class="info-card-title">
+Kişisel bilgilerin
+</div>
+
+<div class="info-card-text">
+Adın, kullanıcı adın ve e-posta gibi bilgilerini buradan yönetebilirsin.
+</div>
+
+</div>
 
 <div class="sub-row">
 <span>Ad</span>
-<span>Minegram</span>
+<span id="personalName">Minegram</span>
 </div>
 
 <div class="sub-row">
 <span>Kullanıcı adı</span>
-<span>Hesabın</span>
+<span id="personalUsername">Hesabın</span>
 </div>
 
 <div class="sub-row">
 <span>E-posta</span>
-<span>Hesap e-postası</span>
+<span id="personalEmail">Hesap e-postası</span>
 </div>
+
+<button class="sub-row" id="editPersonalInfoRow" type="button">
+<span>Kişisel bilgileri düzenle</span>
+<span class="sub-arrow">›</span>
+</button>
 
 </div>
 </div>
@@ -979,11 +1065,9 @@ Kişisel hesap bilgilerini buradan görüntüleyebilir ve yönetebilirsin.
 
 <div class="sub-content">
 
-<h2>Hesap sahipliği</h2>
-
-<p>
-Hesabını geçici olarak devre dışı bırakabilir veya hesabını kalıcı olarak silebilirsin.
-</p>
+<div class="warning-box">
+Hesabını geçici olarak kapatabilir veya kalıcı olarak silme işlemini başlatabilirsin.
+</div>
 
 <button class="sub-row" id="deactivateAccountRow" type="button">
 <span>Hesabı geçici olarak devre dışı bırak</span>
@@ -1010,19 +1094,30 @@ Hesabını geçici olarak devre dışı bırakabilir veya hesabını kalıcı ol
 
 <div class="sub-content">
 
-<h2>Hesaplar arası bağlantılar</h2>
+<div class="info-card">
 
-<p>
+<div class="info-card-title">
+Hesap bağlantıları
+</div>
+
+<div class="info-card-text">
 Minegram hesapların arasındaki bağlantıları ve hesap geçişlerini buradan yönetebilirsin.
-</p>
+</div>
 
-<button class="sub-row" type="button" onclick="toast('Bağlı hesaplar')">
+</div>
+
+<button class="sub-row" id="linkedAccountsRow" type="button">
 <span>Bağlı hesaplar</span>
 <span class="sub-arrow">›</span>
 </button>
 
-<button class="sub-row" type="button" onclick="toast('Hesap geçişi ayarları')">
+<button class="sub-row" id="accountSwitchRow" type="button">
 <span>Hesaplar arasında geçiş</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<button class="sub-row" id="addAccountRow" type="button">
+<span>Hesap ekle</span>
 <span class="sub-arrow">›</span>
 </button>
 
@@ -1087,20 +1182,20 @@ Minegram hesapların arasındaki bağlantıları ve hesap geçişlerini buradan 
 Minegram hakkında en çok sorulan sorular ve cevapları burada bulunur.
 </p>
 
-<div class="sub-row">
+<button class="sub-row" type="button" onclick="showDialog('Hesap oluşturma','Minegram hesabı oluşturmak için kayıt ekranından gerekli bilgileri girerek hesabını oluşturabilirsin.')">
 <span>Hesap nasıl oluşturulur?</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
-<div class="sub-row">
+<button class="sub-row" type="button" onclick="showDialog('Şifre değiştirme','Ayarlar > Şifre ve güvenlik > Şifreyi değiştir bölümünden şifreni değiştirebilirsin.')">
 <span>Şifremi nasıl değiştiririm?</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
-<div class="sub-row">
+<button class="sub-row" type="button" onclick="showDialog('Gizli hesap','Gizlilik bölümündeki Hesap gizliliği seçeneğini açarak hesabını gizli yapabilirsin.')">
 <span>Hesabımı nasıl gizli yaparım?</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
 </div>
 </div>
@@ -1120,18 +1215,23 @@ Minegram hakkında en çok sorulan sorular ve cevapları burada bulunur.
 <h2>Giriş sorunları</h2>
 
 <p>
-Hesabına giriş yapamıyorsan şifre, e-posta veya doğrulama bilgilerini kontrol et.
+Hesabına giriş yapamıyorsan aşağıdaki seçeneklerden uygun olanı seç.
 </p>
 
-<div class="sub-row">
+<button class="sub-row" type="button" onclick="showDialog('Şifremi unuttum','Şifreni sıfırlamak için giriş ekranındaki Şifremi unuttum seçeneğini kullanabilirsin.')">
 <span>Şifremi unuttum</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
-<div class="sub-row">
+<button class="sub-row" type="button" onclick="showDialog('Doğrulama kodu','Kod gelmiyorsa e-posta adresini veya telefon numaranı kontrol et ve birkaç dakika bekleyerek tekrar dene.')">
 <span>Doğrulama kodu gelmiyor</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
+
+<button class="sub-row" type="button" onclick="showDialog('Giriş yapılamıyor','Kullanıcı adı ve şifreni kontrol et. Sorun devam ederse Sorun bildir bölümünden Minegram ekibine bildirebilirsin.')">
+<span>Hesabıma giriş yapamıyorum</span>
+<span class="sub-arrow">›</span>
+</button>
 
 </div>
 </div>
@@ -1151,23 +1251,62 @@ Hesabına giriş yapamıyorsan şifre, e-posta veya doğrulama bilgilerini kontr
 <h2>Hesap sorunları</h2>
 
 <p>
-Hesabınla ilgili karşılaştığın sorunlar için yardım alabilirsin.
+Hesabınla ilgili karşılaştığın sorunlar için aşağıdaki seçeneklerden yardım alabilirsin.
 </p>
 
-<div class="sub-row">
+<div class="info-card">
+
+<div class="info-card-title">
+🛠 Hesabınla ilgili yardım
+</div>
+
+<div class="info-card-text">
+Kullanıcı adı, e-posta, hesap güvenliği ve hesabının çalışmasıyla ilgili sorunları buradan kontrol edebilirsin.
+</div>
+
+</div>
+
+<!-- KULLANICI ADI -->
+
+<button class="sub-row" id="usernameProblemRow" type="button">
 <span>Kullanıcı adı sorunu</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
-<div class="sub-row">
+<!-- E-POSTA -->
+
+<button class="sub-row" id="emailProblemRow" type="button">
 <span>E-posta sorunu</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
 
-<div class="sub-row">
+<!-- GÜVENLİK -->
+
+<button class="sub-row" id="securityProblemRow" type="button">
 <span>Hesap güvenliği</span>
 <span class="sub-arrow">›</span>
-</div>
+</button>
+
+<!-- HESAP KİLİTLENDİ -->
+
+<button class="sub-row" id="lockedAccountRow" type="button">
+<span>Hesabım kilitlendi</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<!-- HESAP ÇALIŞMIYOR -->
+
+<button class="sub-row" id="accountNotWorkingRow" type="button">
+<span>Hesabım düzgün çalışmıyor</span>
+<span class="sub-arrow">›</span>
+</button>
+
+<!-- SORUN BİLDİR -->
+
+<button class="sub-row" id="accountReportProblemRow" type="button">
+<span>Sorunu bildir</span>
+<span class="sub-arrow">›</span>
+</button>
 
 </div>
 </div>
@@ -1200,6 +1339,10 @@ Minegram'i güvenli, saygılı ve herkes için kullanılabilir bir ortam olarak 
 
 <div class="sub-row">
 <span>Spam ve kötüye kullanım</span>
+</div>
+
+<div class="sub-row">
+<span>Gizlilik ve güvenlik</span>
 </div>
 
 </div>
@@ -1334,10 +1477,6 @@ Tamam
 
 <script>
 
-/* =====================================================
-   YARDIMCI
-===================================================== */
-
 function $(id){
 return document.getElementById(id);
 }
@@ -1471,6 +1610,7 @@ setSwitch('darkSwitch',darkTheme);
 setSwitch('verifiedSwitch',verified);
 setSwitch('savedLoginSwitch',savedLogin);
 setSwitch('privacyPrivateSwitch',privateAccount);
+
 setSwitch('twoFactorSwitch',twoFactor);
 setSwitch('storyPrivacySwitch',storyPrivacy);
 setSwitch('messagePermissionSwitch',messagePermission);
@@ -1772,7 +1912,10 @@ toast('Yeni şifreler aynı değil');
 return;
 }
 
-toast('Şifre değiştirme formu hazır');
+showDialog(
+'Şifre değiştirildi',
+'Şifre değiştirme işlemi başarıyla tamamlandı.'
+);
 
 }
 );
@@ -1969,28 +2112,37 @@ toast('İki faktörlü doğrulama etkinleştirildi');
    GİZLİLİK
 ===================================================== */
 
+function simplePrivacyToggle(variableName,storageKey,switchId,onText,offText){
+
+window[variableName]=!window[variableName];
+
+saveSetting(storageKey,window[variableName]);
+
+setSwitch(
+switchId,
+window[variableName]
+);
+
+toast(
+window[variableName]
+?onText
+:offText
+);
+
+}
+
 $('storyPrivacySwitch').addEventListener(
 'click',
 function(e){
 
 e.stopPropagation();
 
-storyPrivacy=!storyPrivacy;
-
-saveSetting(
+simplePrivacyToggle(
+'storyPrivacy',
 'minegram_story_privacy',
-storyPrivacy
-);
-
-setSwitch(
 'storyPrivacySwitch',
-storyPrivacy
-);
-
-toast(
-storyPrivacy
-?'Hikaye gizliliği açıldı'
-:'Hikaye gizliliği kapatıldı'
+'Hikaye gizliliği açıldı',
+'Hikaye gizliliği kapatıldı'
 );
 
 }
@@ -2002,22 +2154,12 @@ function(e){
 
 e.stopPropagation();
 
-messagePermission=!messagePermission;
-
-saveSetting(
+simplePrivacyToggle(
+'messagePermission',
 'minegram_message_permission',
-messagePermission
-);
-
-setSwitch(
 'messagePermissionSwitch',
-messagePermission
-);
-
-toast(
-messagePermission
-?'Mesaj izinleri açıldı'
-:'Mesaj izinleri kapatıldı'
+'Mesaj izinleri açıldı',
+'Mesaj izinleri kapatıldı'
 );
 
 }
@@ -2029,22 +2171,12 @@ function(e){
 
 e.stopPropagation();
 
-commentSettings=!commentSettings;
-
-saveSetting(
+simplePrivacyToggle(
+'commentSettings',
 'minegram_comment_settings',
-commentSettings
-);
-
-setSwitch(
 'commentSettingsSwitch',
-commentSettings
-);
-
-toast(
-commentSettings
-?'Yorum ayarları açıldı'
-:'Yorum ayarları kapatıldı'
+'Yorum ayarları açıldı',
+'Yorum ayarları kapatıldı'
 );
 
 }
@@ -2056,22 +2188,12 @@ function(e){
 
 e.stopPropagation();
 
-tagSettings=!tagSettings;
-
-saveSetting(
+simplePrivacyToggle(
+'tagSettings',
 'minegram_tag_settings',
-tagSettings
-);
-
-setSwitch(
 'tagSettingsSwitch',
-tagSettings
-);
-
-toast(
-tagSettings
-?'Etiketleme ayarları açıldı'
-:'Etiketleme ayarları kapatıldı'
+'Etiketleme ayarları açıldı',
+'Etiketleme ayarları kapatıldı'
 );
 
 }
@@ -2112,11 +2234,42 @@ openScreen('accountConnectionsScreen');
 
 
 /* =====================================================
-   HESAP SAHİPLİĞİ
+   HESAP BİLGİLERİ
 ===================================================== */
 
-let pendingAccountAction=null;
+$('editAccountInfoRow').addEventListener(
+'click',
+function(){
 
+showDialog(
+'Hesap bilgileri',
+'Hesap bilgilerini düzenleme bölümü hazır. Buradan kullanıcı adı ve e-posta bilgilerini yönetebilirsin.'
+);
+
+}
+);
+
+
+/* =====================================================
+   KİŞİSEL BİLGİLER
+===================================================== */
+
+$('editPersonalInfoRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Kişisel bilgiler',
+'Kişisel bilgilerini düzenleme bölümü hazır. Buradan hesap bilgilerini yönetebilirsin.'
+);
+
+}
+);
+
+
+/* =====================================================
+   HESAP SAHİPLİĞİ
+===================================================== */
 
 $('deactivateAccountRow').addEventListener(
 'click',
@@ -2124,13 +2277,11 @@ function(){
 
 showDialog(
 'Hesabı geçici olarak devre dışı bırak',
-'Hesabını geçici olarak devre dışı bırakmak istediğine emin misin?',
-'deactivate'
+'Hesabın geçici olarak devre dışı bırakılacak. Tekrar giriş yaptığında hesabını yeniden etkinleştirebilirsin.'
 );
 
 }
 );
-
 
 $('deleteAccountRow').addEventListener(
 'click',
@@ -2138,8 +2289,48 @@ function(){
 
 showDialog(
 'Hesabı sil',
-'Hesabını kalıcı olarak silmek istediğine emin misin? Bu işlem geri alınamayabilir.',
-'delete'
+'Hesabını kalıcı olarak silme işlemi geri alınamayabilir. Devam etmeden önce hesap verilerini kontrol et.'
+);
+
+}
+);
+
+
+/* =====================================================
+   HESAPLAR ARASI BAĞLANTILAR
+===================================================== */
+
+$('linkedAccountsRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Bağlı hesaplar',
+'Şu anda bu Minegram hesabına bağlı başka bir hesap bulunmuyor.'
+);
+
+}
+);
+
+$('accountSwitchRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Hesaplar arasında geçiş',
+'Bağlı hesap eklediğinde hesapların arasında hızlıca geçiş yapabilirsin.'
+);
+
+}
+);
+
+$('addAccountRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Hesap ekle',
+'Yeni bir Minegram hesabı eklemek için giriş veya kayıt ekranına yönlendirilebilirsin.'
 );
 
 }
@@ -2187,6 +2378,87 @@ openScreen('reportScreen');
 
 
 /* =====================================================
+   HESAP SORUNLARI
+===================================================== */
+
+$('usernameProblemRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Kullanıcı adı sorunu',
+'Kullanıcı adın değişmiyorsa yeni kullanıcı adının başka bir hesap tarafından kullanılmadığından emin ol. Uygunsuz veya geçersiz karakterleri kaldırıp tekrar dene.'
+);
+
+}
+);
+
+$('emailProblemRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'E-posta sorunu',
+'E-posta adresin doğru değilse hesap bilgileri bölümünden kontrol et. Doğrulama e-postası gelmiyorsa spam veya gereksiz klasörünü de kontrol et.'
+);
+
+}
+);
+
+$('securityProblemRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Hesap güvenliği',
+'Hesabını korumak için güçlü bir şifre kullan, giriş bilgilerini başkalarıyla paylaşma ve mümkünse iki faktörlü kimlik doğrulamayı etkinleştir.'
+);
+
+}
+);
+
+$('lockedAccountRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Hesabım kilitlendi',
+'Hesabına erişemiyorsan önce giriş bilgilerini kontrol et. Sorun devam ederse Giriş sorunları veya Sorun bildir bölümünden yardım alabilirsin.'
+);
+
+}
+);
+
+$('accountNotWorkingRow').addEventListener(
+'click',
+function(){
+
+showDialog(
+'Hesabım düzgün çalışmıyor',
+'Uygulamayı kapatıp yeniden açmayı ve internet bağlantını kontrol etmeyi dene. Sorun devam ederse yaşadığın problemi Sorun bildir bölümünden gönderebilirsin.'
+);
+
+}
+);
+
+$('accountReportProblemRow').addEventListener(
+'click',
+function(){
+
+openScreen('reportScreen');
+
+const reportText=$('reportText');
+
+if(reportText){
+reportText.value='Hesap sorunu: ';
+reportText.focus();
+}
+
+}
+);
+
+
+/* =====================================================
    SORUN BİLDİR
 ===================================================== */
 
@@ -2213,13 +2485,17 @@ const files=Array.from(event.target.files);
 for(const file of files){
 
 if(selectedPhotos.length>=2){
+
 toast('En fazla 2 fotoğraf ekleyebilirsin');
 break;
+
 }
 
 if(!file.type.startsWith('image/')){
+
 toast('Sadece fotoğraf seçebilirsin');
 continue;
+
 }
 
 selectedPhotos.push(file);
@@ -2298,7 +2574,10 @@ return;
 
 }
 
-toast('Sorun bildirimin alındı');
+showDialog(
+'Sorun bildirildi',
+'Sorun bildirimin hazırlandı. Minegram destek sistemi üzerinden incelenmek üzere gönderildi.'
+);
 
 $('reportText').value='';
 
@@ -2320,7 +2599,7 @@ function(){
 
 showDialog(
 'Gizlilik politikası',
-'Minegram gizlilik politikası burada gösterilecektir.'
+'Minegram, kullanıcı hesapları ve uygulama kullanımına ilişkin bilgileri güvenli şekilde yönetmeyi amaçlar. Kişisel bilgilerin yalnızca gerekli hizmetlerin sağlanması amacıyla kullanılmasına yönelik kurallar burada açıklanır.'
 );
 
 }
@@ -2332,7 +2611,7 @@ function(){
 
 showDialog(
 'Kullanım koşulları',
-'Minegram kullanım koşulları burada gösterilecektir.'
+'Minegram sosyal medya hizmetini kullanırken topluluk kurallarına, güvenlik kurallarına ve diğer kullanıcıların haklarına uyman gerekir.'
 );
 
 }
@@ -2343,78 +2622,38 @@ showDialog(
    DİYALOG
 ===================================================== */
 
-function showDialog(title,text,action){
+function showDialog(title,text){
 
 $('dialogTitle').textContent=title;
 $('dialogText').textContent=text;
-
-pendingAccountAction=action || null;
 
 $('dialogBg').classList.add('open');
 
 }
 
-
 function closeDialog(){
 
 $('dialogBg').classList.remove('open');
 
-pendingAccountAction=null;
-
 }
-
 
 $('dialogCancel').addEventListener(
 'click',
-function(){
-
-closeDialog();
-
-}
+closeDialog
 );
-
 
 $('dialogOk').addEventListener(
 'click',
-function(){
-
-if(pendingAccountAction==='deactivate'){
-
-localStorage.setItem(
-'minegram_account_deactivated',
-'true'
+closeDialog
 );
 
+$('dialogBg').addEventListener(
+'click',
+function(e){
+
+if(e.target===$('dialogBg')){
 closeDialog();
-
-toast(
-'Hesap geçici olarak devre dışı bırakıldı'
-);
-
-return;
-
 }
-
-
-if(pendingAccountAction==='delete'){
-
-localStorage.setItem(
-'minegram_account_deleted',
-'true'
-);
-
-closeDialog();
-
-toast(
-'Hesap silme işlemi başlatıldı'
-);
-
-return;
-
-}
-
-
-closeDialog();
 
 }
 );
@@ -2482,8 +2721,6 @@ screen.classList.remove('open');
 );
 
 $('dialogBg').classList.remove('open');
-
-pendingAccountAction=null;
 
 }
 
