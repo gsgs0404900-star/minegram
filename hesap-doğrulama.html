@@ -1,17 +1,20 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 
 <meta charset="UTF-8">
 
 <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+
 >
 
 <meta
-    name="theme-color"
-    content="#000000"
+name="theme-color"
+content="#000000"
+
 >
 
 <title>Hesabını doğrula - Minegram</title>
@@ -103,6 +106,32 @@ body{
     color:#fff;
     font-size:12px;
     word-break:break-all;
+}
+
+.code-box{
+    width:100%;
+    height:50px;
+    margin-top:12px;
+    padding:0 14px;
+    border:1px solid #292929;
+    border-radius:7px;
+    outline:none;
+    background:#050505;
+    color:#fff;
+    text-align:center;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:8px;
+}
+
+.code-box:focus{
+    border-color:#0095f6;
+}
+
+.code-box::placeholder{
+    color:#555;
+    letter-spacing:2px;
+    font-size:13px;
 }
 
 .status{
@@ -203,6 +232,11 @@ body{
         font-size:12px;
     }
 
+    .code-box{
+        height:48px;
+        font-size:20px;
+    }
+
     .action{
         height:42px;
         font-size:12px;
@@ -241,17 +275,14 @@ body{
 
 </header>
 
-
 <h1 class="title">
     Hesabını doğrula
 </h1>
 
-
 <p class="description">
-    E-posta adresine gönderilen doğrulama<br>
-    bağlantısına tıkla.
+    E-posta adresine gönderilen 6 haneli<br>
+    doğrulama kodunu aşağıya yaz.
 </p>
-
 
 <div
     id="emailBox"
@@ -260,124 +291,76 @@ body{
     E-posta yükleniyor...
 </div>
 
+<input
+id="codeInput"
+class="code-box"
+type="text"
+inputmode="numeric"
+autocomplete="one-time-code"
+maxlength="6"
+placeholder="6 haneli kod"
+
+>
 
 <div
     id="status"
     class="status loading"
 >
-    Firebase hazırlanıyor...
+    Doğrulama hazırlanıyor...
 </div>
-
 
 <div class="bottom">
 
 <button
-    id="changeButton"
-    class="action back-btn"
-    type="button"
->
-    İletişim bilgini değiştir
-</button>
+id="changeButton"
+class="action back-btn"
+type="button"
 
+>
+
+```
+İletişim bilgini değiştir
+```
+
+</button>
 
 <button
-    id="verifyButton"
-    class="action verify"
-    type="button"
-    disabled
+id="verifyButton"
+class="action verify"
+type="button"
+disabled
+
 >
-    Kontrol et
+
+```
+Kontrol et
+```
+
 </button>
 
 </div>
-
 
 <button
-    id="resendButton"
-    class="resend"
-    type="button"
-    disabled
+id="resendButton"
+class="resend"
+type="button"
+disabled
+
 >
-    Doğrulama e-postasını tekrar gönder
+
+```
+Doğrulama kodunu tekrar gönder
+```
+
 </button>
 
-
 </div>
 
 </div>
 
-
-<script type="module">
+<script>
 
 "use strict";
-
-
-/* =====================================================
-   FIREBASE IMPORT
-===================================================== */
-
-import {
-    initializeApp
-}
-from
-"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-
-import {
-    getAuth,
-    setPersistence,
-    browserLocalPersistence,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    onAuthStateChanged,
-    sendEmailVerification,
-    reload
-}
-from
-"https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-
-/* =====================================================
-   FIREBASE CONFIG
-===================================================== */
-
-const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-
-    authDomain:
-        "mim-ea133.firebaseapp.com",
-
-    databaseURL:
-        "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-
-    projectId:
-        "mim-ea133",
-
-    storageBucket:
-        "mim-ea133.firebasestorage.app",
-
-    messagingSenderId:
-        "303525353436",
-
-    appId:
-        "1:303525353436:web:082fc090b5025e19942119",
-
-    measurementId:
-        "G-K962QE5P1R"
-};
-
-
-/* =====================================================
-   FIREBASE BAŞLAT
-===================================================== */
-
-const app =
-    initializeApp(firebaseConfig);
-
-const auth =
-    getAuth(app);
 
 
 /* =====================================================
@@ -385,22 +368,39 @@ const auth =
 ===================================================== */
 
 const emailBox =
-    document.getElementById("emailBox");
+    document.getElementById(
+        "emailBox"
+    );
+
+const codeInput =
+    document.getElementById(
+        "codeInput"
+    );
 
 const status =
-    document.getElementById("status");
+    document.getElementById(
+        "status"
+    );
 
 const verifyButton =
-    document.getElementById("verifyButton");
+    document.getElementById(
+        "verifyButton"
+    );
 
 const resendButton =
-    document.getElementById("resendButton");
+    document.getElementById(
+        "resendButton"
+    );
 
 const changeButton =
-    document.getElementById("changeButton");
+    document.getElementById(
+        "changeButton"
+    );
 
 const backButton =
-    document.getElementById("backButton");
+    document.getElementById(
+        "backButton"
+    );
 
 
 /* =====================================================
@@ -438,17 +438,12 @@ const email =
         ) ||
         ""
     )
-    .trim();
-
-
-const password =
-    sessionStorage.getItem(
-        "minegram_register_password"
-    ) || "";
+    .trim()
+    .toLowerCase();
 
 
 /* =====================================================
-   EMAIL GÖSTER
+   EMAIL
 ===================================================== */
 
 if(email){
@@ -466,7 +461,7 @@ else{
 
 
 /* =====================================================
-   DURUM MESAJI
+   STATUS
 ===================================================== */
 
 function showStatus(
@@ -482,7 +477,9 @@ function showStatus(
 
     if(type){
 
-        status.classList.add(type);
+        status.classList.add(
+            type
+        );
 
     }
 
@@ -502,7 +499,9 @@ function goBack(){
 
         url +=
             "?username=" +
-            encodeURIComponent(username);
+            encodeURIComponent(
+                username
+            );
 
     }
 
@@ -544,10 +543,74 @@ backButton.addEventListener(
 
 
 /* =====================================================
-   FIREBASE HESABI HAZIRLA
+   KOD INPUT
 ===================================================== */
 
-async function prepareFirebaseUser(){
+codeInput.addEventListener(
+    "input",
+    function(){
+
+        this.value =
+            this.value
+                .replace(/\D/g,"")
+                .slice(0,6);
+
+        verifyButton.disabled =
+            this.value.length !== 6;
+
+    }
+);
+
+
+/* =====================================================
+   API YARDIMCI
+===================================================== */
+
+async function api(
+    url,
+    options = {}
+){
+
+    const response =
+        await fetch(
+            url,
+            {
+                ...options,
+                headers:{
+                    "Content-Type":
+                        "application/json",
+
+                    ...(options.headers || {})
+                }
+            }
+        );
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+    if(!response.ok){
+
+        throw new Error(
+            data.error ||
+            "Sunucu hatası."
+        );
+
+    }
+
+    return data;
+
+}
+
+
+/* =====================================================
+   KOD GÖNDER
+===================================================== */
+
+async function sendCode(){
 
     if(!email){
 
@@ -555,281 +618,51 @@ async function prepareFirebaseUser(){
             "E-posta adresi bulunamadı."
         );
 
-        return null;
-
-    }
-
-
-    if(!password){
-
-        showStatus(
-            "Kayıt şifresi bulunamadı. Kayıt işlemini tekrar başlat."
-        );
-
-        return null;
-
-    }
-
-
-    showStatus(
-        "Firebase hesabı hazırlanıyor...",
-        "loading"
-    );
-
-
-    try{
-
-        /*
-         * Önce mevcut oturumu kontrol et.
-         */
-
-        if(auth.currentUser){
-
-            console.log(
-                "[MINEGRAM] Mevcut Firebase oturumu bulundu:",
-                auth.currentUser.uid
-            );
-
-            return auth.currentUser;
-
-        }
-
-
-        /*
-         * Önce Firebase'de yeni kullanıcı oluşturmayı dene.
-         */
-
-        console.log(
-            "[MINEGRAM] Firebase hesabı oluşturuluyor..."
-        );
-
-
-        const result =
-            await createUserWithEmailAndPassword(
-                auth,
-                email,
-                password
-            );
-
-
-        console.log(
-            "[MINEGRAM] Firebase hesabı oluşturuldu:",
-            result.user.uid
-        );
-
-
-        sessionStorage.setItem(
-            "minegram_uid",
-            result.user.uid
-        );
-
-
-        return result.user;
-
-    }
-    catch(error){
-
-        console.error(
-            "[MINEGRAM] Hesap oluşturma hatası:",
-            error
-        );
-
-
-        /*
-         * Hesap zaten varsa giriş yap.
-         */
-
-        if(
-            error.code ===
-            "auth/email-already-in-use"
-        ){
-
-            try{
-
-                showStatus(
-                    "Mevcut hesapla giriş yapılıyor...",
-                    "loading"
-                );
-
-
-                const result =
-                    await signInWithEmailAndPassword(
-                        auth,
-                        email,
-                        password
-                    );
-
-
-                console.log(
-                    "[MINEGRAM] Firebase giriş başarılı:",
-                    result.user.uid
-                );
-
-
-                sessionStorage.setItem(
-                    "minegram_uid",
-                    result.user.uid
-                );
-
-
-                return result.user;
-
-            }
-            catch(loginError){
-
-                console.error(
-                    "[MINEGRAM] Giriş hatası:",
-                    loginError
-                );
-
-
-                if(
-                    loginError.code ===
-                    "auth/invalid-credential"
-                ){
-
-                    showStatus(
-                        "Bu e-posta için kayıtlı şifre farklı. Kayıt işlemini yeniden başlat."
-                    );
-
-                }
-                else if(
-                    loginError.code ===
-                    "auth/wrong-password"
-                ){
-
-                    showStatus(
-                        "Şifre yanlış."
-                    );
-
-                }
-                else{
-
-                    showStatus(
-                        "Firebase giriş hatası: " +
-                        (
-                            loginError.message ||
-                            loginError.code ||
-                            "Bilinmeyen hata"
-                        )
-                    );
-
-                }
-
-
-                return null;
-
-            }
-
-        }
-
-
-        if(
-            error.code ===
-            "auth/invalid-email"
-        ){
-
-            showStatus(
-                "Geçersiz e-posta adresi."
-            );
-
-        }
-        else if(
-            error.code ===
-            "auth/weak-password"
-        ){
-
-            showStatus(
-                "Şifre çok zayıf. En az 6 karakter kullan."
-            );
-
-        }
-        else{
-
-            showStatus(
-                "Firebase hesabı oluşturulamadı: " +
-                (
-                    error.message ||
-                    error.code ||
-                    "Bilinmeyen hata"
-                )
-            );
-
-        }
-
-
-        return null;
-
-    }
-
-}
-
-
-/* =====================================================
-   DOĞRULAMA MAILİ GÖNDER
-===================================================== */
-
-async function sendVerificationEmail(user){
-
-    if(!user){
-
         return false;
 
     }
 
 
-    /*
-     * Zaten doğrulanmışsa mail göndermeye gerek yok.
-     */
-
-    if(user.emailVerified){
-
-        showStatus(
-            "Hesabın zaten doğrulanmış.",
-            "success"
-        );
-
-        verifyButton.disabled =
-            false;
-
-        resendButton.disabled =
-            false;
-
-        return true;
-
-    }
-
-
     try{
 
+        resendButton.disabled =
+            true;
+
+        resendButton.textContent =
+            "Gönderiliyor...";
+
+
         showStatus(
-            "Doğrulama e-postası gönderiliyor...",
+            "Doğrulama kodu gönderiliyor...",
             "loading"
         );
 
 
-        await sendEmailVerification(
-            user
+        await api(
+            "/api/register/send-code",
+            {
+                method:
+                    "POST",
+
+                body:
+                    JSON.stringify({
+                        email
+                    })
+            }
         );
 
 
         showStatus(
-            "Doğrulama e-postası gönderildi. E-postanı kontrol et ve bağlantıya tıkla.",
+            "6 haneli doğrulama kodu e-posta adresine gönderildi.",
             "success"
         );
 
 
         verifyButton.disabled =
-            false;
+            codeInput.value.length !== 6;
 
 
-        resendButton.disabled =
-            false;
-
-
-        console.log(
-            "[MINEGRAM] Doğrulama maili gönderildi."
-        );
+        startResendTimer();
 
 
         return true;
@@ -838,43 +671,22 @@ async function sendVerificationEmail(user){
     catch(error){
 
         console.error(
-            "[MINEGRAM] Mail gönderme hatası:",
+            "OTP gönderme hatası:",
             error
         );
 
 
-        if(
-            error.code ===
-            "auth/too-many-requests"
-        ){
+        showStatus(
+            error.message ||
+            "Doğrulama kodu gönderilemedi."
+        );
 
-            showStatus(
-                "Çok fazla istek gönderildi. Biraz sonra tekrar dene."
-            );
 
-        }
-        else if(
-            error.code ===
-            "auth/network-request-failed"
-        ){
+        resendButton.disabled =
+            false;
 
-            showStatus(
-                "İnternet bağlantısı nedeniyle e-posta gönderilemedi."
-            );
-
-        }
-        else{
-
-            showStatus(
-                "Doğrulama e-postası gönderilemedi: " +
-                (
-                    error.message ||
-                    error.code ||
-                    "Bilinmeyen hata"
-                )
-            );
-
-        }
+        resendButton.textContent =
+            "Doğrulama kodunu tekrar gönder";
 
 
         return false;
@@ -885,193 +697,95 @@ async function sendVerificationEmail(user){
 
 
 /* =====================================================
-   FIREBASE BAŞLANGIÇ
+   TEKRAR GÖNDER SAYACI
 ===================================================== */
 
-async function start(){
-
-    try{
-
-        /*
-         * Oturumu tarayıcıda kalıcı yap.
-         */
-
-        await setPersistence(
-            auth,
-            browserLocalPersistence
-        );
+let resendTimer = null;
 
 
-        console.log(
-            "[MINEGRAM] Firebase persistence hazır."
-        );
+function startResendTimer(){
 
+    if(resendTimer){
 
-        /*
-         * Firebase hesabını oluştur veya giriş yap.
-         */
-
-        const user =
-            await prepareFirebaseUser();
-
-
-        if(!user){
-
-            return;
-
-        }
-
-
-        /*
-         * Bilgileri sakla.
-         */
-
-        sessionStorage.setItem(
-            "minegram_uid",
-            user.uid
-        );
-
-
-        if(user.email){
-
-            sessionStorage.setItem(
-                "minegram_register_email",
-                user.email
-            );
-
-        }
-
-
-        if(username){
-
-            sessionStorage.setItem(
-                "minegram_register_username",
-                username
-            );
-
-        }
-
-
-        emailBox.textContent =
-            user.email || email;
-
-
-        /*
-         * Kullanıcı zaten doğrulanmış mı?
-         */
-
-        if(user.emailVerified){
-
-            showStatus(
-                "Hesabın zaten doğrulanmış. Minegram'a giriyorsun...",
-                "success"
-            );
-
-
-            verifyButton.disabled =
-                false;
-
-
-            verifyButton.textContent =
-                "Doğrulandı";
-
-
-            resendButton.disabled =
-                true;
-
-
-            setTimeout(
-                function(){
-
-                    window.location.href =
-                        "./index.html";
-
-                },
-                800
-            );
-
-
-            return;
-
-        }
-
-
-        /*
-         * Mail gönder.
-         */
-
-        await sendVerificationEmail(
-            user
+        clearInterval(
+            resendTimer
         );
 
     }
-    catch(error){
 
-        console.error(
-            "[MINEGRAM] Başlangıç hatası:",
-            error
+
+    let seconds =
+        30;
+
+
+    resendButton.disabled =
+        true;
+
+
+    resendButton.textContent =
+        "Tekrar gönder (" +
+        seconds +
+        ")";
+
+
+    resendTimer =
+        setInterval(
+            function(){
+
+                seconds--;
+
+
+                resendButton.textContent =
+                    "Tekrar gönder (" +
+                    seconds +
+                    ")";
+
+
+                if(seconds <= 0){
+
+                    clearInterval(
+                        resendTimer
+                    );
+
+                    resendTimer =
+                        null;
+
+
+                    resendButton.disabled =
+                        false;
+
+
+                    resendButton.textContent =
+                        "Doğrulama kodunu tekrar gönder";
+
+                }
+
+            },
+            1000
         );
-
-
-        showStatus(
-            "Firebase başlatılamadı: " +
-            (
-                error.message ||
-                error.code ||
-                "Bilinmeyen hata"
-            )
-        );
-
-    }
 
 }
 
 
 /* =====================================================
-   AUTH STATE
-===================================================== */
-
-onAuthStateChanged(
-    auth,
-    function(user){
-
-        console.log(
-            "[MINEGRAM] Auth durumu:",
-            user
-                ? user.uid
-                : "OTURUM YOK"
-        );
-
-
-        if(user){
-
-            sessionStorage.setItem(
-                "minegram_uid",
-                user.uid
-            );
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   KONTROL ET
+   KOD DOĞRULA
 ===================================================== */
 
 verifyButton.addEventListener(
     "click",
     async function(){
 
-        const user =
-            auth.currentUser;
+        const code =
+            codeInput.value.trim();
 
 
-        if(!user){
+        if(
+            !email ||
+            code.length !== 6
+        ){
 
             showStatus(
-                "Firebase oturumu bulunamadı. Lütfen sayfayı yenile veya kayıt işlemini tekrar başlat."
+                "6 haneli doğrulama kodunu gir."
             );
 
             return;
@@ -1082,45 +796,63 @@ verifyButton.addEventListener(
         verifyButton.disabled =
             true;
 
+        resendButton.disabled =
+            true;
+
 
         verifyButton.textContent =
             "Kontrol ediliyor...";
 
 
+        showStatus(
+            "Doğrulama kodu kontrol ediliyor...",
+            "loading"
+        );
+
+
         try{
 
-            /*
-             * Firebase kullanıcı bilgisini yenile.
-             */
+            const result =
+                await api(
+                    "/api/register/verify-code",
+                    {
+                        method:
+                            "POST",
 
-            await reload(
-                user
-            );
-
-
-            const updatedUser =
-                auth.currentUser;
+                        body:
+                            JSON.stringify({
+                                email,
+                                code
+                            })
+                    }
+                );
 
 
             if(
-                updatedUser &&
-                updatedUser.emailVerified
+                result.ok &&
+                result.verified
             ){
 
+                sessionStorage.setItem(
+                    "minegram_email_verified",
+                    "true"
+                );
+
+
+                sessionStorage.setItem(
+                    "minegram_register_verified_email",
+                    email
+                );
+
+
                 showStatus(
-                    "Hesabın doğrulandı. Minegram'a giriyorsun...",
+                    "E-posta adresin doğrulandı. Minegram'a giriyorsun...",
                     "success"
                 );
 
 
                 verifyButton.textContent =
                     "Doğrulandı";
-
-
-                sessionStorage.setItem(
-                    "minegram_email_verified",
-                    "true"
-                );
 
 
                 setTimeout(
@@ -1136,17 +868,9 @@ verifyButton.addEventListener(
             }
             else{
 
-                showStatus(
-                    "E-posta henüz doğrulanmamış. E-postandaki doğrulama bağlantısına tıkla."
+                throw new Error(
+                    "Doğrulama başarısız."
                 );
-
-
-                verifyButton.disabled =
-                    false;
-
-
-                verifyButton.textContent =
-                    "Kontrol et";
 
             }
 
@@ -1154,17 +878,22 @@ verifyButton.addEventListener(
         catch(error){
 
             console.error(
-                "[MINEGRAM] Kontrol hatası:",
+                "OTP doğrulama hatası:",
                 error
             );
 
 
             showStatus(
-                "Doğrulama kontrol edilemedi. İnternet bağlantını kontrol et."
+                error.message ||
+                "Doğrulama kodu yanlış."
             );
 
 
             verifyButton.disabled =
+                false;
+
+
+            resendButton.disabled =
                 false;
 
 
@@ -1185,91 +914,7 @@ resendButton.addEventListener(
     "click",
     async function(){
 
-        const user =
-            auth.currentUser;
-
-
-        if(!user){
-
-            showStatus(
-                "Firebase oturumu bulunamadı."
-            );
-
-            return;
-
-        }
-
-
-        resendButton.disabled =
-            true;
-
-
-        resendButton.textContent =
-            "Gönderiliyor...";
-
-
-        const success =
-            await sendVerificationEmail(
-                user
-            );
-
-
-        if(!success){
-
-            resendButton.disabled =
-                false;
-
-
-            resendButton.textContent =
-                "Doğrulama e-postasını tekrar gönder";
-
-            return;
-
-        }
-
-
-        let seconds =
-            30;
-
-
-        resendButton.textContent =
-            "Tekrar gönder (" +
-            seconds +
-            ")";
-
-
-        const timer =
-            setInterval(
-                function(){
-
-                    seconds--;
-
-
-                    resendButton.textContent =
-                        "Tekrar gönder (" +
-                        seconds +
-                        ")";
-
-
-                    if(seconds <= 0){
-
-                        clearInterval(
-                            timer
-                        );
-
-
-                        resendButton.disabled =
-                            false;
-
-
-                        resendButton.textContent =
-                            "Doğrulama e-postasını tekrar gönder";
-
-                    }
-
-                },
-                1000
-            );
+        await sendCode();
 
     }
 );
@@ -1279,31 +924,50 @@ resendButton.addEventListener(
    SAYFA BAŞLAT
 ===================================================== */
 
-console.log(
-    "[MINEGRAM] hesap-doğrulama.html başladı."
-);
+async function start(){
 
-console.log(
-    "[MINEGRAM] Username:",
-    username
-);
-
-console.log(
-    "[MINEGRAM] Email:",
-    email
-);
-
-console.log(
-    "[MINEGRAM] Password mevcut:",
-    password
-        ? "EVET"
-        : "HAYIR"
-);
+    console.log(
+        "[MINEGRAM] hesap-doğrulama.html başladı."
+    );
 
 
-/*
- * Firebase işlemini başlat.
- */
+    console.log(
+        "[MINEGRAM] Username:",
+        username
+    );
+
+
+    console.log(
+        "[MINEGRAM] Email:",
+        email
+    );
+
+
+    if(!email){
+
+        showStatus(
+            "E-posta adresi bulunamadı."
+        );
+
+        verifyButton.disabled =
+            true;
+
+        resendButton.disabled =
+            true;
+
+        return;
+
+    }
+
+
+    /*
+     * İlk doğrulama kodunu gönder.
+     */
+
+    await sendCode();
+
+}
+
 
 start();
 
