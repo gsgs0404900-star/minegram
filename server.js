@@ -324,17 +324,136 @@ function normalizeRecoveryPhone(value) {
 
 async function findUserByPhone(phone) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return null;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  const admin = createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    }
+  );
+
   const wanted = normalizeRecoveryPhone(phone);
-  if (!wanted || wanted.length < 10) return null;
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const users = data?.users || [];
-    const found = users.find(u => normalizeRecoveryPhone(u.phone) === wanted);
-    if (found) return found;
-    if (users.length < 1000) break;
+
+  if (!wanted || wanted.length < 10) {
+    return null;
   }
+
+  // Önce Supabase Auth kullanıcılarını kontrol et
+  for (let page = 1; page <= 20; page++) {
+
+    const { data, error } =
+      await admin.auth.admin.listUsers({
+        page,
+        perPage: 1000
+      });
+
+    if (error) {
+      console.error("AUTH TELEFON ARAMA HATASI:", error);
+      throw error;
+    }
+
+    const users = data?.users || [];
+
+    const found = users.find(user => {
+
+      const userPhone =
+        normalizeRecoveryPhone(user.phone);
+
+      return userPhone === wanted;
+    });
+
+    if (found) {
+      console.log(
+        "TELEFON AUTH'TA BULUNDU:",
+        found.id,
+        found.email
+      );
+
+      return found;
+    }
+
+    if (users.length < 1000) {
+      break;
+    }
+  }
+
+  // Auth'ta bulunamazsa profiles tablosundaki telefon alanlarını kontrol et
+  const possibleColumns = [
+    "phone",
+    "phone_number",
+    "phoneNumber",
+    "telefon",
+    "telefon_numarasi",
+    "telefon_numarası"
+  ];
+
+  for (const column of possibleColumns) {
+
+    try {
+
+      const { data, error } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .not(column, "is", null);
+
+      if (error) {
+        continue;
+      }
+
+      const profile =
+        (data || []).find(p => {
+
+          return normalizeRecoveryPhone(
+            p[column]
+          ) === wanted;
+
+        });
+
+      if (profile) {
+
+        console.log(
+          "TELEFON PROFİLDE BULUNDU:",
+          profile.id,
+          profile.username,
+          column
+        );
+
+        const authId =
+          profile.auth_user_id || profile.id;
+
+        const {
+          data: authData
+        } =
+          await admin.auth.admin.getUserById(
+            authId
+          );
+
+        if (authData?.user) {
+          return authData.user;
+        }
+      }
+
+    } catch (err) {
+
+      console.log(
+        "PROFİL TELEFON KONTROLÜ:",
+        column,
+        err.message
+      );
+
+    }
+  }
+
+  console.log(
+    "TELEFONLA HESAP BULUNAMADI:",
+    wanted
+  );
+
   return null;
 }
 
