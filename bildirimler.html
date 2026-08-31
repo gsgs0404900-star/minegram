@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<title>Minegram - Bildirimler</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,
+body{
+    margin:0;
+    min-height:100%;
+    background:#000;
+    color:#f5f5f5;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    overflow-x:hidden;
+    padding-bottom:76px;
+}
+
+.app{
+    min-height:100vh;
+    background:#000;
+}
+
+/* =========================
+   ÜST BAR
+========================= */
+
+.topbar{
+    height:70px;
+    border-bottom:1px solid #202020;
+    display:flex;
+    align-items:center;
+    padding:0 22px;
+    position:sticky;
+    top:0;
+    background:#000;
+    z-index:50;
+}
+
+.back-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    background:transparent;
+    color:#eee;
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+    padding:0;
+}
+
+.back-btn svg{
+    width:25px;
+    height:25px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.logo{
+    font-size:22px;
+    font-weight:700;
+    margin-left:8px;
+}
+
+.top-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:4px;
+}
+
+.icon-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    background:transparent;
+    color:#eee;
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+}
+
+.svg{
+    width:23px;
+    height:23px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+/* =========================
+   ANA ALAN
+========================= */
+
+.notifications{
+    width:min(680px,100%);
+    margin:0 auto;
+}
+
+.notifications-head{
+    min-height:64px;
+    display:flex;
+    align-items:center;
+    padding:0 18px;
+    border-bottom:1px solid #202020;
+}
+
+.notifications-title{
+    font-size:19px;
+    font-weight:700;
+}
+
+.mark-all{
+    margin-left:auto;
+    border:0;
+    background:transparent;
+    color:#4fa3ff;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.mark-all:hover{
+    opacity:.8;
+}
+
+/* =========================
+   BİLDİRİM
+========================= */
+
+.notification-list{
+    width:100%;
+}
+
+.notification{
+    width:100%;
+    min-height:78px;
+    padding:12px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid #171717;
+    cursor:pointer;
+    transition:background .15s;
+}
+
+.notification:hover{
+    background:#090909;
+}
+
+.notification.unread{
+    background:#0d1115;
+}
+
+.notification.unread:hover{
+    background:#11161b;
+}
+
+.avatar{
+    width:48px;
+    height:48px;
+    min-width:48px;
+    border-radius:50%;
+    background:#3f91cc;
+    display:grid;
+    place-items:center;
+    color:#eee;
+    font-size:18px;
+    font-weight:500;
+    overflow:hidden;
+}
+
+.avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+.notification-content{
+    min-width:0;
+    flex:1;
+}
+
+.notification-text{
+    font-size:14px;
+    line-height:20px;
+    color:#ddd;
+    overflow-wrap:anywhere;
+}
+
+.notification-text b{
+    color:#fff;
+    font-weight:700;
+}
+
+.notification-time{
+    margin-top:4px;
+    color:#777d84;
+    font-size:12px;
+}
+
+.notification-icon{
+    width:38px;
+    height:38px;
+    min-width:38px;
+    display:grid;
+    place-items:center;
+    font-size:21px;
+}
+
+.notification-thumb{
+    width:48px;
+    height:48px;
+    min-width:48px;
+    border-radius:4px;
+    background:#222;
+    overflow:hidden;
+}
+
+.notification-thumb img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.follow-btn{
+    min-width:82px;
+    height:34px;
+    padding:0 12px;
+    border:1px solid #3f91cc;
+    border-radius:8px;
+    background:#3f91cc;
+    color:#fff;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.follow-btn.following{
+    background:#222;
+    border-color:#3a3a3a;
+    color:#eee;
+}
+
+.unread-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#3f91cc;
+    min-width:8px;
+}
+
+/* =========================
+   BOŞ DURUM
+========================= */
+
+.empty{
+    padding:110px 20px;
+    text-align:center;
+    color:#777;
+}
+
+.empty-icon{
+    width:70px;
+    height:70px;
+    margin:0 auto 18px;
+    border:1px solid #303030;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    font-size:30px;
+}
+
+.empty strong{
+    display:block;
+    color:#eee;
+    font-size:16px;
+    margin-bottom:7px;
+}
+
+.empty span{
+    font-size:13px;
+}
+
+/* =========================
+   YÜKLENİYOR
+========================= */
+
+.loading{
+    padding:70px 20px;
+    text-align:center;
+    color:#888;
+    font-size:14px;
+}
+
+/* =========================
+   TOAST
+========================= */
+
+.toast{
+    position:fixed;
+    left:50%;
+    bottom:92px;
+    transform:translateX(-50%);
+    background:#25232a;
+    color:#fff;
+    padding:10px 16px;
+    border-radius:20px;
+    font-size:12px;
+    opacity:0;
+    pointer-events:none;
+    transition:.2s;
+    z-index:300;
+    white-space:nowrap;
+}
+
+.toast.show{
+    opacity:1;
+}
+
+/* =========================
+   ALT MENÜ
+========================= */
+
+.nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:76px;
+    background:#121018;
+    border-top:1px solid #201d27;
+    display:flex;
+    z-index:100;
+    padding:5px 8px env(safe-area-inset-bottom);
+}
+
+.nav a{
+    flex:1;
+    color:#ddd;
+    text-decoration:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    font-size:9px;
+}
+
+.nav-icon{
+    width:45px;
+    height:32px;
+    border-radius:18px;
+    display:grid;
+    place-items:center;
+}
+
+.nav a.active .nav-icon{
+    background:#3b3150;
+}
+
+.nav .svg{
+    width:21px;
+    height:21px;
+}
+
+/* =========================
+   MOBİL
+========================= */
+
+@media(max-width:699px){
+
+    .topbar{
+        height:62px;
+        padding:0 10px;
+    }
+
+    .logo{
+        font-size:20px;
+    }
+
+    .notifications-head{
+        min-height:58px;
+        padding:0 14px;
+    }
+
+    .notification{
+        min-height:74px;
+        padding:11px 12px;
+        gap:10px;
+    }
+
+    .avatar{
+        width:44px;
+        height:44px;
+        min-width:44px;
+        font-size:16px;
+    }
+
+    .notification-text{
+        font-size:13px;
+        line-height:19px;
+    }
+
+    .notification-time{
+        font-size:11px;
+    }
+
+    .notification-thumb{
+        width:44px;
+        height:44px;
+        min-width:44px;
+    }
+
+    .notification-icon{
+        width:32px;
+        min-width:32px;
+        font-size:19px;
+    }
+
+    .follow-btn{
+        min-width:72px;
+        height:32px;
+        font-size:11px;
+        padding:0 9px;
+    }
+
+    .mark-all{
+        font-size:12px;
+    }
+}
+
+@media(min-width:700px){
+
+    .nav{
+        padding-left:calc((100% - 760px)/2);
+        padding-right:calc((100% - 760px)/2);
+    }
+}
+
+.hidden{
+    display:none!important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- =========================
+     ÜST BAR
+========================= -->
+
+<header class="topbar">
+
+    <button
+        class="back-btn"
+        type="button"
+        onclick="location.href='index.html'"
+        aria-label="Geri">
+
+        <svg viewBox="0 0 24 24">
+            <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+    </button>
+
+    <div class="logo">
+        Minegram
+    </div>
+
+    <div class="top-actions">
+
+        <button
+            class="icon-btn"
+            type="button"
+            onclick="location.href='index.html'"
+            aria-label="Ana sayfa">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"></path>
+            </svg>
+
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     BİLDİRİMLER
+========================= -->
+
+<main class="notifications">
+
+    <div class="notifications-head">
+
+        <div class="notifications-title">
+            Bildirimler
+        </div>
+
+        <button
+            id="markAllBtn"
+            class="mark-all"
+            type="button"
+            onclick="markAllRead()">
+
+            Tümünü okundu yap
+
+        </button>
+
+    </div>
+
+
+    <div id="notificationList" class="notification-list">
+
+        <div class="loading">
+            Bildirimler yükleniyor...
+        </div>
+
+    </div>
+
+</main>
+
+
+<!-- =========================
+     ALT MENÜ
+========================= -->
+
+<nav class="nav">
+
+    <a href="index.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"></path>
+            </svg>
+
+        </span>
+
+        Ana Sayfa
+
+    </a>
+
+
+    <a href="ara.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="m16 16 5 5"></path>
+            </svg>
+
+        </span>
+
+        Ara
+
+    </a>
+
+
+    <a href="olustur.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+                <path d="M12 8v8M8 12h8"></path>
+            </svg>
+
+        </span>
+
+        Oluştur
+
+    </a>
+
+
+    <a href="reels.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <path d="M3 9h18M8 4l3 5M13 4l3 5"></path>
+            </svg>
+
+        </span>
+
+        Reels
+
+    </a>
+
+
+    <a href="profile.html">
+
+        <span class="nav-icon">
+
+            <svg class="svg" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="3.5"></circle>
+                <path d="M5 20a7 7 0 0 1 14 0"></path>
+            </svg>
+
+        </span>
+
+        Profil
+
+    </a>
+
+</nav>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div id="toast" class="toast"></div>
+
+
+<script>
+
+/* =====================================================
+   MINEGRAM BİLDİRİMLER
+===================================================== */
+
+const API = '/api';
+
+let token =
+    localStorage.getItem('minegram_token') ||
+    localStorage.getItem('minegram_supabase_token') ||
+    null;
+
+let currentUser = null;
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+function esc(s=''){
+    return String(s).replace(/[&<>"']/g,m=>({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#039;'
+    }[m]));
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+function toast(text){
+
+    const el = document.getElementById('toast');
+
+    el.textContent = text;
+
+    el.classList.add('show');
+
+    clearTimeout(window.__toast);
+
+    window.__toast = setTimeout(()=>{
+        el.classList.remove('show');
+    },2200);
+}
+
+
+/* =====================================================
+   TOKEN
+===================================================== */
+
+function getToken(){
+
+    token =
+        localStorage.getItem('minegram_token') ||
+        localStorage.getItem('minegram_supabase_token') ||
+        null;
+
+    return token;
+}
+
+
+/* =====================================================
+   API
+===================================================== */
+
+async function api(path,opt={}){
+
+    const apiToken = getToken();
+
+    if(!apiToken){
+        throw new Error('Oturum bulunamadı.');
+    }
+
+    const headers = {
+        ...(opt.headers || {}),
+        Authorization:'Bearer '+apiToken
+    };
+
+    const response = await fetch(
+        API + path,
+        {
+            ...opt,
+            headers
+        }
+    );
+
+    const data =
+        await response
+            .json()
+            .catch(()=>({}));
+
+    if(!response.ok){
+
+        throw new Error(
+            data.error ||
+            data.message ||
+            'İşlem başarısız.'
+        );
+
+    }
+
+    return data;
+}
+
+
+/* =====================================================
+   PROFİL
+===================================================== */
+
+function profileUrl(username){
+
+    return 'profile.html?user=' +
+        encodeURIComponent(username || '');
+
+}
+
+
+/* =====================================================
+   ZAMAN
+===================================================== */
+
+function relativeTime(value){
+
+    if(!value){
+        return '';
+    }
+
+    const date = new Date(value);
+
+    if(isNaN(date.getTime())){
+        return '';
+    }
+
+    const seconds = Math.max(
+        0,
+        Math.floor(
+            (Date.now()-date.getTime())/1000
+        )
+    );
+
+    if(seconds < 60){
+        return seconds + ' saniye önce';
+    }
+
+    const minutes = Math.floor(seconds/60);
+
+    if(minutes < 60){
+        return minutes + ' dakika önce';
+    }
+
+    const hours = Math.floor(minutes/60);
+
+    if(hours < 24){
+        return hours + ' saat önce';
+    }
+
+    const days = Math.floor(hours/24);
+
+    if(days < 7){
+        return days + ' gün önce';
+    }
+
+    if(days < 30){
+        return Math.floor(days/7) + ' hafta önce';
+    }
+
+    if(days < 365){
+        return Math.floor(days/30) + ' ay önce';
+    }
+
+    return date.toLocaleDateString('tr-TR');
+
+}
+
+
+/* =====================================================
+   BİLDİRİM TİPİ
+===================================================== */
+
+function notificationType(n){
+
+    const type =
+        String(
+            n.type ||
+            n.notificationType ||
+            n.kind ||
+            ''
+        ).toLowerCase();
+
+    if(
+        type.includes('like') ||
+        type.includes('beğeni') ||
+        type.includes('begeni')
+    ){
+        return 'like';
+    }
+
+    if(
+        type.includes('comment') ||
+        type.includes('yorum')
+    ){
+        return 'comment';
+    }
+
+    if(
+        type.includes('follow') ||
+        type.includes('takip')
+    ){
+        return 'follow';
+    }
+
+    if(
+        type.includes('reply') ||
+        type.includes('yanıt') ||
+        type.includes('yanit')
+    ){
+        return 'reply';
+    }
+
+    return 'default';
+}
+
+
+/* =====================================================
+   BİLDİRİM KULLANICI
+===================================================== */
+
+function notificationUsername(n){
+
+    return (
+        n.username ||
+        n.actor?.username ||
+        n.fromUser?.username ||
+        n.user?.username ||
+        n.sender?.username ||
+        'minegram'
+    );
+
+}
+
+
+/* =====================================================
+   BİLDİRİM ID
+===================================================== */
+
+function notificationId(n){
+
+    return String(
+        n.id ||
+        n.notificationId ||
+        ('local-'+Date.now()+'-'+Math.random())
+    );
+
+}
+
+
+/* =====================================================
+   POST ID
+===================================================== */
+
+function notificationPostId(n){
+
+    return (
+        n.postId ||
+        n.post_id ||
+        n.post?.id ||
+        n.data?.postId ||
+        ''
+    );
+
+}
+
+
+/* =====================================================
+   MESAJ
+===================================================== */
+
+function notificationMessage(n){
+
+    const type = notificationType(n);
+
+    if(n.message){
+        return esc(n.message);
+    }
+
+    if(n.text){
+        return esc(n.text);
+    }
+
+    if(type === 'like'){
+        return 'gönderini beğendi.';
+    }
+
+    if(type === 'comment'){
+        return 'gönderine yorum yaptı.';
+    }
+
+    if(type === 'reply'){
+        return 'yorumuna yanıt verdi.';
+    }
+
+    if(type === 'follow'){
+        return 'seni takip etmeye başladı.';
+    }
+
+    return 'seninle etkileşime geçti.';
+
+}
+
+
+/* =====================================================
+   İKON
+===================================================== */
+
+function notificationIcon(n){
+
+    const type = notificationType(n);
+
+    if(type === 'like'){
+        return '♥';
+    }
+
+    if(type === 'comment'){
+        return '💬';
+    }
+
+    if(type === 'reply'){
+        return '↩';
+    }
+
+    if(type === 'follow'){
+        return '👤';
+    }
+
+    return '🔔';
+
+}
+
+
+/* =====================================================
+   AVATAR
+===================================================== */
+
+function avatarHTML(n){
+
+    const username =
+        notificationUsername(n);
+
+    const avatar =
+        n.avatar ||
+        n.avatarUrl ||
+        n.profileImage ||
+        n.user?.avatar ||
+        n.actor?.avatar ||
+        '';
+
+    if(avatar){
+
+        return `
+        <div class="avatar">
+            <img
+                src="${esc(avatar)}"
+                alt=""
+                loading="lazy"
+            >
+        </div>
+        `;
+
+    }
+
+    return `
+    <div class="avatar">
+        ${esc(
+            username
+                .charAt(0)
+                .toUpperCase() || 'M'
+        )}
+    </div>
+    `;
+
+}
+
+
+/* =====================================================
+   GÖNDERİ THUMBNAIL
+===================================================== */
+
+function postThumbnailHTML(n){
+
+    const media =
+        n.post?.media ||
+        n.post?.image ||
+        n.media ||
+        n.image ||
+        '';
+
+    if(!media){
+        return '';
+    }
+
+    return `
+    <div class="notification-thumb">
+        <img
+            src="${esc(media)}"
+            alt="Gönderi"
+            loading="lazy"
+        >
+    </div>
+    `;
+
+}
+
+
+/* =====================================================
+   BİLDİRİM RENDER
+===================================================== */
+
+function renderNotification(n){
+
+    const id = notificationId(n);
+
+    const username =
+        notificationUsername(n);
+
+    const type =
+        notificationType(n);
+
+    const read =
+        !!(
+            n.read ||
+            n.isRead ||
+            n.seen
+        );
+
+    const postId =
+        notificationPostId(n);
+
+    const time =
+        n.createdAt ||
+        n.created_at ||
+        n.date ||
+        n.timestamp ||
+        '';
+
+    const followState =
+        !!(
+            n.following ||
+            n.isFollowing
+        );
+
+    let action = '';
+
+    if(type === 'follow'){
+
+        action = `
+        <button
+            class="follow-btn ${followState?'following':''}"
+            type="button"
+            onclick="followAction(event,'${esc(username)}',${followState})">
+
+            ${followState?'Takiptesin':'Takip Et'}
+
+        </button>
+        `;
+
+    }else{
+
+        action =
+            postThumbnailHTML(n) ||
+            `<div class="notification-icon">
+                ${notificationIcon(n)}
+            </div>`;
+
+    }
+
+    return `
+    <div
+        class="notification ${read?'':'unread'}"
+        data-id="${esc(id)}"
+        data-notification-id="${esc(id)}"
+        data-username="${esc(username)}"
+        data-post-id="${esc(postId)}"
+        onclick="openNotification(event,this)"
+    >
+
+        ${avatarHTML(n)}
+
+        <div class="notification-content">
+
+            <div class="notification-text">
+
+                <b>@${esc(username)}</b>
+
+                ${notificationMessage(n)}
+
+            </div>
+
+            <div class="notification-time">
+
+                ${esc(relativeTime(time))}
+
+            </div>
+
+        </div>
+
+        ${action}
+
+        ${read?'':'<span class="unread-dot"></span>'}
+
+    </div>
+    `;
+
+}
+
+
+/* =====================================================
+   NORMALİZE
+===================================================== */
+
+function normalizeNotifications(result){
+
+    if(Array.isArray(result)){
+        return result;
+    }
+
+    if(Array.isArray(result.notifications)){
+        return result.notifications;
+    }
+
+    if(Array.isArray(result.data)){
+        return result.data;
+    }
+
+    if(Array.isArray(result.items)){
+        return result.items;
+    }
+
+    return [];
+
+}
+
+
+/* =====================================================
+   BİLDİRİMLERİ YÜKLE
+===================================================== */
+
+async function loadNotifications(){
+
+    const list =
+        document.getElementById(
+            'notificationList'
+        );
+
+    list.innerHTML = `
+        <div class="loading">
+            Bildirimler yükleniyor...
+        </div>
+    `;
+
+    try{
+
+        let result;
+
+        /*
+         * Ana endpoint:
+         * /api/notifications
+         */
+
+        try{
+
+            result =
+                await api('/notifications');
+
+        }catch(firstError){
+
+            /*
+             * Bazı backend sürümlerinde
+             * /api/notifications/me olabilir.
+             */
+
+            result =
+                await api('/notifications/me');
+
+        }
+
+        const notifications =
+            normalizeNotifications(result);
+
+        if(!notifications.length){
+
+            list.innerHTML = `
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        ♡
+                    </div>
+
+                    <strong>
+                        Henüz bildirimin yok
+                    </strong>
+
+                    <span>
+                        Etkileşimler burada görünecek.
+                    </span>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        notifications.sort((a,b)=>{
+
+            const da =
+                new Date(
+                    a.createdAt ||
+                    a.created_at ||
+                    a.date ||
+                    0
+                ).getTime();
+
+            const db =
+                new Date(
+                    b.createdAt ||
+                    b.created_at ||
+                    b.date ||
+                    0
+                ).getTime();
+
+            return db-da;
+
+        });
+
+        list.innerHTML =
+            notifications
+                .map(renderNotification)
+                .join('');
+
+    }catch(error){
+
+        console.error(
+            '[NOTIFICATIONS]',
+            error
+        );
+
+        list.innerHTML = `
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔔
+                </div>
+
+                <strong>
+                    Bildirimler yüklenemedi
+                </strong>
+
+                <span>
+                    ${esc(
+                        error.message ||
+                        'Sunucu bağlantısı kurulamadı.'
+                    )}
+                </span>
+
+            </div>
+        `;
+
+        toast(
+            error.message ||
+            'Bildirimler yüklenemedi'
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   BİLDİRİME TIKLAMA
+===================================================== */
+
+async function openNotification(event,element){
+
+    /*
+     * Takip butonuna basıldıysa
+     * bildirimin kendisini açma.
+     */
+
+    if(
+        event.target.closest('.follow-btn')
+    ){
+        return;
+    }
+
+    const id =
+        element.dataset.notificationId;
+
+    const username =
+        element.dataset.username;
+
+    const postId =
+        element.dataset.postId;
+
+    /*
+     * Önce ekranda okundu yap.
+     */
+
+    element.classList.remove('unread');
+
+    element
+        .querySelector('.unread-dot')
+        ?.remove();
+
+    /*
+     * Backend'e okundu bildir.
+     */
+
+    if(id && !id.startsWith('local-')){
+
+        try{
+
+            await api(
+                '/notifications/' +
+                encodeURIComponent(id) +
+                '/read',
+                {
+                    method:'POST'
+                }
+            );
+
+        }catch(error){
+
+            console.warn(
+                '[NOTIFICATION READ]',
+                error
+            );
+
+            /*
+             * Bazı backendlerde PATCH kullanılabilir.
+             */
+
+            try{
+
+                await api(
+                    '/notifications/' +
+                    encodeURIComponent(id),
+                    {
+                        method:'PATCH',
+                        headers:{
+                            'Content-Type':
+                                'application/json'
+                        },
+                        body:JSON.stringify({
+                            read:true
+                        })
+                    }
+                );
+
+            }catch{}
+
+        }
+
+    }
+
+
+    /*
+     * Eğer gönderi varsa gönderiye git.
+     */
+
+    if(postId){
+
+        location.href =
+            'post.html?id=' +
+            encodeURIComponent(postId);
+
+        return;
+
+    }
+
+
+    /*
+     * Gönderi yoksa profile git.
+     */
+
+    if(username){
+
+        location.href =
+            profileUrl(username);
+
+    }
+
+}
+
+
+/* =====================================================
+   TÜMÜNÜ OKUNDU YAP
+===================================================== */
+
+async function markAllRead(){
+
+    const btn =
+        document.getElementById(
+            'markAllBtn'
+        );
+
+    btn.disabled = true;
+
+    const unread =
+        document.querySelectorAll(
+            '.notification.unread'
+        );
+
+    if(!unread.length){
+
+        toast(
+            'Tüm bildirimler zaten okundu.'
+        );
+
+        btn.disabled = false;
+
+        return;
+
+    }
+
+    /*
+     * Önce arayüzü hemen güncelle.
+     */
+
+    unread.forEach(item=>{
+
+        item.classList.remove('unread');
+
+        item
+            .querySelector('.unread-dot')
+            ?.remove();
+
+    });
+
+    try{
+
+        /*
+         * Öncelikli endpoint.
+         */
+
+        try{
+
+            await api(
+                '/notifications/read-all',
+                {
+                    method:'POST'
+                }
+            );
+
+        }catch{
+
+            /*
+             * Alternatif backend endpointi.
+             */
+
+            await api(
+                '/notifications/mark-all-read',
+                {
+                    method:'POST'
+                }
+            );
+
+        }
+
+        toast(
+            'Tüm bildirimler okundu.'
+        );
+
+    }catch(error){
+
+        console.error(
+            '[MARK ALL READ]',
+            error
+        );
+
+        toast(
+            error.message ||
+            'Bildirimler güncellenemedi.'
+        );
+
+    }finally{
+
+        btn.disabled = false;
+
+    }
+
+}
+
+
+/* =====================================================
+   TAKİP BUTONU
+===================================================== */
+
+async function followAction(
+    event,
+    username,
+    currentlyFollowing
+){
+
+    event.stopPropagation();
+
+    if(!username){
+        return;
+    }
+
+    const button =
+        event.currentTarget;
+
+    if(button.dataset.loading === '1'){
+        return;
+    }
+
+    button.dataset.loading = '1';
+
+    const next =
+        !currentlyFollowing;
+
+    button.textContent =
+        next
+            ? 'Takiptesin'
+            : 'Takip Et';
+
+    button.classList.toggle(
+        'following',
+        next
+    );
+
+    try{
+
+        /*
+         * Kullanıcı adına göre takip endpointi.
+         */
+
+        const result =
+            await api(
+                '/users/' +
+                encodeURIComponent(username) +
+                '/follow',
+                {
+                    method:'POST'
+                }
+            );
+
+        if(
+            typeof result.following ===
+            'boolean'
+        ){
+
+            button.classList.toggle(
+                'following',
+                result.following
+            );
+
+            button.textContent =
+                result.following
+                    ? 'Takiptesin'
+                    : 'Takip Et';
+
+        }
+
+        toast(
+            next
+                ? '@'+username+' takip edildi.'
+                : '@'+username+' takipten çıkarıldı.'
+        );
+
+    }catch(error){
+
+        /*
+         * Alternatif kullanıcı endpointi.
+         */
+
+        try{
+
+            const result =
+                await api(
+                    '/follow/' +
+                    encodeURIComponent(username),
+                    {
+                        method:'POST'
+                    }
+                );
+
+            if(
+                typeof result.following ===
+                'boolean'
+            ){
+
+                button.classList.toggle(
+                    'following',
+                    result.following
+                );
+
+                button.textContent =
+                    result.following
+                        ? 'Takiptesin'
+                        : 'Takip Et';
+
+            }
+
+        }catch{
+
+            button.classList.toggle(
+                'following',
+                currentlyFollowing
+            );
+
+            button.textContent =
+                currentlyFollowing
+                    ? 'Takiptesin'
+                    : 'Takip Et';
+
+            toast(
+                error.message ||
+                'Takip işlemi başarısız.'
+            );
+
+        }
+
+    }finally{
+
+        button.dataset.loading = '0';
+
+    }
+
+}
+
+
+/* =====================================================
+   SAYFA BAŞLANGICI
+===================================================== */
+
+async function init(){
+
+    getToken();
+
+    if(!token){
+
+        location.replace(
+            'giris.html'
+        );
+
+        return;
+
+    }
+
+    try{
+
+        /*
+         * index.html ile aynı şekilde
+         * /me üzerinden oturum kontrolü.
+         */
+
+        currentUser =
+            await api('/me');
+
+        localStorage.setItem(
+            'minegram_user',
+            JSON.stringify(currentUser)
+        );
+
+        await loadNotifications();
+
+    }catch(error){
+
+        console.error(
+            '[NOTIFICATION AUTH]',
+            error
+        );
+
+        [
+            'minegram_token',
+            'minegram_supabase_token',
+            'minegram_user',
+            'minegram_profile'
+        ].forEach(
+            key =>
+                localStorage.removeItem(key)
+        );
+
+        token = null;
+        currentUser = null;
+
+        location.replace(
+            'giris.html'
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   BAŞLAT
+===================================================== */
+
+init();
+
+</script>
+
+</body>
+</html>
