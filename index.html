@@ -994,22 +994,70 @@ async function init(){
         await loadFeed();
 
     }catch(e){
-        console.error("[INDEX AUTH ERROR]", e);
+        async function init(){
+    try{
+        token =
+            localStorage.getItem("minegram_token") ||
+            localStorage.getItem("minegram_supabase_token") ||
+            null;
 
-        // Eski/geçersiz tokenı temizle.
-        [
-            "minegram_token",
-            "minegram_supabase_token",
-            "minegram_user",
-            "minegram_profile"
-        ].forEach(k => localStorage.removeItem(k));
+        if(!token){
+            showLogin();
+            return;
+        }
 
-        token = null;
-        currentUser = null;
+        // Önce kayıtlı kullanıcı bilgisini kullan
+        try{
+            const savedUser = localStorage.getItem("minegram_user");
 
-        showLogin();
+            if(savedUser){
+                currentUser = JSON.parse(savedUser);
+            }
+        }catch{
+            currentUser = null;
+        }
+
+        // Sunucudan kullanıcıyı kontrol et
+        try{
+            const me = await api("/me");
+
+            if(me){
+                currentUser = me;
+
+                localStorage.setItem(
+                    "minegram_user",
+                    JSON.stringify(currentUser)
+                );
+            }
+        }catch(e){
+            console.warn("[ME] Kullanıcı bilgisi alınamadı:", e);
+
+            // BURADA TOKEN'I SİLME!
+            // Token başka sayfalarda kullanılmaya devam edebilir.
+        }
+
+        showHome();
+        await loadFeed();
+
+    }catch(e){
+        console.error("[INDEX ERROR]", e);
+
+        // Sadece gerçekten token yoksa girişe gönder
+        token =
+            localStorage.getItem("minegram_token") ||
+            localStorage.getItem("minegram_supabase_token") ||
+            null;
+
+        if(!token){
+            showLogin();
+            return;
+        }
+
+        showHome();
+        await loadFeed();
     }
 }
+
 init();
 </script>
 
