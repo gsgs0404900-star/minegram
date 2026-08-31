@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Hesabýný doðrula</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  margin:0;width:100%;height:100%;
+  background:#000;color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+body{overflow:hidden}
+.page{
+  width:100%;height:100dvh;min-height:100vh;
+  background:#000;position:relative;
+}
+.header{
+  height:82px;display:flex;align-items:center;
+  padding:0 48px;
+}
+.back{
+  color:#fff;font-size:55px;line-height:1;
+  font-weight:300;margin-right:27px;margin-top:-7px;
+  cursor:pointer;
+}
+.header-title{font-size:29px;font-weight:700}
+
+.content{
+  position:absolute;left:7.2%;right:7.2%;top:17.2%;
+}
+.title{
+  text-align:center;font-size:47px;line-height:1.15;
+  font-weight:800;margin:0 0 34px;
+}
+.description{
+  color:#b9b9b9;font-size:31px;line-height:1.55;
+  margin:0 0 69px;
+}
+.code{
+  width:100%;height:119px;
+  background:#111;border:2px solid #666;border-radius:10px;
+  color:#fff;outline:none;padding:0 32px;font-size:31px;
+  letter-spacing:5px;
+}
+.code::placeholder{
+  color:#b8b8b8;opacity:1;letter-spacing:0;
+}
+
+.bottom{
+  position:absolute;left:7.2%;right:7.2%;
+  bottom:6.1%;text-align:center;
+}
+.verify{
+  width:100%;height:88px;border:0;border-radius:50px;
+  background:#62b0ed;color:#30207c;
+  font-size:27px;font-weight:800;cursor:pointer;
+}
+.change{
+  border:0;background:transparent;color:#62b0ed;
+  font-size:27px;font-weight:700;margin-top:45px;
+  cursor:pointer;
+}
+
+@media(max-width:600px){
+  .header{height:72px;padding:0 19px}
+  .back{font-size:43px;margin-right:17px}
+  .header-title{font-size:23px}
+  .content{left:7.2%;right:7.2%;top:16.5%}
+  .title{font-size:34px;margin-bottom:27px}
+  .description{
+    font-size:22px;line-height:1.55;margin-bottom:47px;
+  }
+  .code{
+    height:82px;padding:0 22px;font-size:24px;
+    border-radius:9px;
+  }
+  .bottom{
+    left:7.2%;right:7.2%;bottom:5.8%;
+  }
+  .verify{height:72px;font-size:21px}
+  .change{font-size:21px;margin-top:34px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <div class="back" onclick="history.back()">‹</div>
+    <div class="header-title">Kayýt ol</div>
+  </header>
+
+  <main class="content">
+    <h1 class="title">Hesabýný doðrula</h1>
+
+    <p class="description">
+      E-posta adresine gönderilen doðrulama<br>
+      kodunu gir.
+    </p>
+
+    <input
+      id="code"
+      class="code"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      maxlength="6"
+      placeholder="Doðrulama kodu"
+      aria-label="Doðrulama kodu"
+    >
+  </main>
+
+  <div class="bottom">
+    <button class="verify" type="button">
+      Kodu doðrula ve Minegram'a gir
+    </button>
+
+    <button class="change" type="button" onclick="history.back()">
+      Ýletiþim bilgini deðiþtir
+    </button>
+  </div>
+
+</div>
+
+<script>
+const code = document.getElementById("code");
+
+code.addEventListener("input", () => {
+  code.value = code.value.replace(/\D/g, "").slice(0, 6);
+});
+</script>
+</body>
+</html>
