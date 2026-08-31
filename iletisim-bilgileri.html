@@ -1,20 +1,31 @@
 <!DOCTYPE html>
-
 <html lang="tr">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#000000">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<meta
+    name="theme-color"
+    content="#000000"
+>
 
 <title>Minegram - İletişim Bilgileri</title>
 
 <style>
+
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
 }
 
-html,body{
+html,
+body{
     margin:0;
     padding:0;
     width:100%;
@@ -231,6 +242,7 @@ body{
         font-size:12px;
     }
 }
+
 </style>
 
 </head>
@@ -259,14 +271,17 @@ body{
 
 </div>
 
+
 <h1 class="title">
     İletişim bilgini ekle
 </h1>
+
 
 <p class="description">
     Hesabını doğrulamak için e-posta adresi ya<br>
     da telefon numarası kullan.
 </p>
+
 
 <div class="tabs">
 
@@ -288,20 +303,23 @@ body{
 
 </div>
 
-<input
-id="contact"
-class="input"
-type="email"
-autocomplete="email"
-placeholder="E-posta adresi"
 
+<input
+    id="contact"
+    class="input"
+    type="email"
+    autocomplete="email"
+    placeholder="E-posta adresi"
 >
+
 
 <div id="note" class="note">
     Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.
 </div>
 
+
 <div id="status" class="status"></div>
+
 
 <div class="bottom">
 
@@ -326,50 +344,158 @@ placeholder="E-posta adresi"
 </div>
 </div>
 
-<script>
 
-"use strict";
+<!-- =====================================================
+     FIREBASE
+===================================================== -->
+
+<script type="module">
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    sendEmailVerification
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+import {
+    getDatabase,
+    ref,
+    set
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+
+/* =====================================================
+   FIREBASE CONFIG
+===================================================== */
+
+const firebaseConfig = {
+
+    apiKey:
+        "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+    authDomain:
+        "mim-ea133.firebaseapp.com",
+
+    databaseURL:
+        "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+
+    projectId:
+        "mim-ea133",
+
+    storageBucket:
+        "mim-ea133.firebasestorage.app",
+
+    messagingSenderId:
+        "303525353436",
+
+    appId:
+        "1:303525353436:web:082fc090b5025e19942119",
+
+    measurementId:
+        "G-K962QE5P1R"
+};
+
+
+/* =====================================================
+   FIREBASE BAŞLAT
+===================================================== */
+
+const app =
+    initializeApp(firebaseConfig);
+
+const auth =
+    getAuth(app);
+
+const database =
+    getDatabase(app);
 
 
 /* =====================================================
    ELEMENTLER
 ===================================================== */
 
-const emailTab = document.getElementById("emailTab");
-const phoneTab = document.getElementById("phoneTab");
-const contact = document.getElementById("contact");
-const note = document.getElementById("note");
-const nextBtn = document.getElementById("nextBtn");
-const backBtn = document.getElementById("backBtn");
-const topBack = document.getElementById("topBack");
-const status = document.getElementById("status");
+const emailTab =
+    document.getElementById("emailTab");
+
+const phoneTab =
+    document.getElementById("phoneTab");
+
+const contact =
+    document.getElementById("contact");
+
+const note =
+    document.getElementById("note");
+
+const nextBtn =
+    document.getElementById("nextBtn");
+
+const backBtn =
+    document.getElementById("backBtn");
+
+const topBack =
+    document.getElementById("topBack");
+
+const status =
+    document.getElementById("status");
 
 
 let mode = "email";
+
 let busy = false;
 
 
 /* =====================================================
-   USERNAME
+   PARAMETRELER
 ===================================================== */
 
-const params = new URLSearchParams(
-    window.location.search
-);
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
 
 const username =
-    params.get("username") ||
-    sessionStorage.getItem("minegram_register_username") ||
-    "";
+    (
+        params.get("username") ||
+        sessionStorage.getItem(
+            "minegram_register_username"
+        ) ||
+        ""
+    )
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+
+
+/* =====================================================
+   USERNAME KAYDET
+===================================================== */
+
+if(username){
+
+    sessionStorage.setItem(
+        "minegram_register_username",
+        username
+    );
+
+}
 
 
 /* =====================================================
    MESAJ
 ===================================================== */
 
-function showStatus(text, success = false){
+function showStatus(
+    text,
+    success = false
+){
 
-    status.textContent = text || "";
+    status.textContent =
+        text || "";
 
     status.className =
         success
@@ -380,59 +506,104 @@ function showStatus(text, success = false){
 
 
 /* =====================================================
-   E-POSTA
+   EMAIL TAB
 ===================================================== */
 
-emailTab.addEventListener("click", function(){
+emailTab.addEventListener(
+    "click",
+    function(){
 
-    mode = "email";
+        mode = "email";
 
-    emailTab.style.background = "#554f67";
-    emailTab.style.borderColor = "#554f67";
-    emailTab.style.color = "#eee8fa";
+        emailTab.style.background =
+            "#554f67";
 
-    phoneTab.style.background = "#000";
-    phoneTab.style.borderColor = "#292929";
-    phoneTab.style.color = "#fff";
+        emailTab.style.borderColor =
+            "#554f67";
 
-    contact.type = "email";
-    contact.autocomplete = "email";
-    contact.placeholder = "E-posta adresi";
+        emailTab.style.color =
+            "#eee8fa";
 
-    note.textContent =
-        "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
 
-    showStatus("");
+        phoneTab.style.background =
+            "#000";
 
-});
+        phoneTab.style.borderColor =
+            "#292929";
+
+        phoneTab.style.color =
+            "#fff";
+
+
+        contact.type =
+            "email";
+
+        contact.autocomplete =
+            "email";
+
+        contact.placeholder =
+            "E-posta adresi";
+
+
+        note.textContent =
+            "Devam ettiğinde e-posta adresine doğrulama kodu gönderilir.";
+
+
+        showStatus("");
+
+    }
+);
 
 
 /* =====================================================
-   TELEFON
+   PHONE TAB
 ===================================================== */
 
-phoneTab.addEventListener("click", function(){
+phoneTab.addEventListener(
+    "click",
+    function(){
 
-    mode = "phone";
+        mode = "phone";
 
-    phoneTab.style.background = "#554f67";
-    phoneTab.style.borderColor = "#554f67";
-    phoneTab.style.color = "#eee8fa";
 
-    emailTab.style.background = "#000";
-    emailTab.style.borderColor = "#292929";
-    emailTab.style.color = "#fff";
+        phoneTab.style.background =
+            "#554f67";
 
-    contact.type = "tel";
-    contact.autocomplete = "tel";
-    contact.placeholder = "Telefon numarası";
+        phoneTab.style.borderColor =
+            "#554f67";
 
-    note.textContent =
-        "Devam ettiğinde telefon numaran doğrulama için kullanılacaktır.";
+        phoneTab.style.color =
+            "#eee8fa";
 
-    showStatus("");
 
-});
+        emailTab.style.background =
+            "#000";
+
+        emailTab.style.borderColor =
+            "#292929";
+
+        emailTab.style.color =
+            "#fff";
+
+
+        contact.type =
+            "tel";
+
+        contact.autocomplete =
+            "tel";
+
+        contact.placeholder =
+            "Telefon numarası";
+
+
+        note.textContent =
+            "Telefon doğrulaması için Firebase Phone Auth kurulumu gerekir.";
+
+
+        showStatus("");
+
+    }
+);
 
 
 /* =====================================================
@@ -448,24 +619,195 @@ function goBack(){
 }
 
 
-topBack.addEventListener("click", goBack);
+topBack.addEventListener(
+    "click",
+    goBack
+);
 
-backBtn.addEventListener("click", goBack);
+
+backBtn.addEventListener(
+    "click",
+    goBack
+);
+
+
+/* =====================================================
+   FIREBASE HATA
+===================================================== */
+
+function firebaseError(error){
+
+    console.error(
+        "[MINEGRAM FIREBASE]",
+        error
+    );
+
+
+    const code =
+        error?.code || "";
+
+
+    switch(code){
+
+        case "auth/email-already-in-use":
+
+            return "Bu e-posta adresi zaten kullanılıyor.";
+
+        case "auth/invalid-email":
+
+            return "Geçerli bir e-posta adresi gir.";
+
+        case "auth/weak-password":
+
+            return "Şifre en az 6 karakter olmalı.";
+
+        case "auth/network-request-failed":
+
+            return "İnternet bağlantısını kontrol et.";
+
+        case "auth/operation-not-allowed":
+
+            return "Firebase'de E-posta/Şifre girişi açık değil.";
+
+        case "auth/too-many-requests":
+
+            return "Çok fazla istek gönderildi. Daha sonra tekrar dene.";
+
+        default:
+
+            return (
+                error?.message ||
+                "Firebase hesabı oluşturulamadı."
+            );
+    }
+
+}
+
+
+/* =====================================================
+   E-POSTA KAYDI
+===================================================== */
+
+async function createFirebaseAccount(email){
+
+    const password =
+        sessionStorage.getItem(
+            "minegram_register_password"
+        );
+
+
+    if(!password){
+
+        throw new Error(
+            "Kayıt şifresi bulunamadı."
+        );
+
+    }
+
+
+    /*
+     * Firebase hesabını burada oluşturuyoruz.
+     *
+     * Böylece hesap-doğrulama.html
+     * açıldığında auth.currentUser mevcut olacak.
+     */
+
+    const credential =
+        await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+
+    const user =
+        credential.user;
+
+
+    /*
+     * Kullanıcı bilgilerini Database'e yaz.
+     */
+
+    await set(
+        ref(
+            database,
+            "users/" + user.uid
+        ),
+        {
+
+            uid:
+                user.uid,
+
+            username:
+                username,
+
+            email:
+                email,
+
+            createdAt:
+                Date.now()
+
+        }
+    );
+
+
+    /*
+     * Firebase doğrulama e-postası.
+     */
+
+    await sendEmailVerification(
+        user
+    );
+
+
+    /*
+     * Oturum bilgilerini sakla.
+     */
+
+    sessionStorage.setItem(
+        "minegram_register_email",
+        email
+    );
+
+    sessionStorage.setItem(
+        "minegram_uid",
+        user.uid
+    );
+
+
+    return user;
+
+}
 
 
 /* =====================================================
    İLERİ
 ===================================================== */
 
-function goNext(){
+async function goNext(){
 
     if(busy){
+
         return;
+
     }
 
 
     const value =
         contact.value.trim();
+
+
+    /* USERNAME */
+
+    if(!username){
+
+        showStatus(
+            "Kullanıcı adı bulunamadı. Kayıt işlemini baştan başlat."
+        );
+
+        return;
+
+    }
 
 
     /* BOŞ */
@@ -481,32 +823,142 @@ function goNext(){
         contact.focus();
 
         return;
+
     }
 
 
-    /* E-POSTA */
+    /* =================================================
+       EMAIL
+    ================================================= */
 
-    if(
-        mode === "email" &&
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-    ){
+    if(mode === "email"){
+
+        if(
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                value
+            )
+        ){
+
+            showStatus(
+                "Geçerli bir e-posta adresi gir."
+            );
+
+            contact.focus();
+
+            return;
+
+        }
+
+
+        const password =
+            sessionStorage.getItem(
+                "minegram_register_password"
+            );
+
+
+        if(!password){
+
+            showStatus(
+                "Şifre bulunamadı. Lütfen şifre oluşturma adımına geri dön."
+            );
+
+            return;
+
+        }
+
+
+        busy = true;
+
+        nextBtn.disabled = true;
+
+        nextBtn.textContent =
+            "Hesap oluşturuluyor...";
+
 
         showStatus(
-            "Geçerli bir e-posta adresi gir."
+            "Hesabın oluşturuluyor...",
+            true
         );
 
-        contact.focus();
+
+        try{
+
+            const user =
+                await createFirebaseAccount(
+                    value
+                );
+
+
+            console.log(
+                "[MINEGRAM] Firebase UID:",
+                user.uid
+            );
+
+
+            showStatus(
+                "Doğrulama kodu e-posta adresine gönderildi.",
+                true
+            );
+
+
+            nextBtn.textContent =
+                "Doğrulamaya geç";
+
+
+            /*
+             * Artık Firebase oturumu var.
+             */
+
+            setTimeout(
+                function(){
+
+                    window.location.href =
+                        "./hesap-doğrulama.html?username=" +
+                        encodeURIComponent(username) +
+                        "&email=" +
+                        encodeURIComponent(value);
+
+                },
+                500
+            );
+
+
+        }
+        catch(error){
+
+            showStatus(
+                firebaseError(error)
+            );
+
+
+            busy = false;
+
+            nextBtn.disabled =
+                false;
+
+            nextBtn.textContent =
+                "İleri";
+
+        }
+
 
         return;
+
     }
 
 
-    /* TELEFON */
+    /* =================================================
+       PHONE
+    ================================================= */
 
     if(mode === "phone"){
 
         const cleanPhone =
-            value.replace(/[\s()+-]/g,"");
+            value.replace(
+                /[\s()+-]/g,
+                ""
+            );
+
 
         if(cleanPhone.length < 10){
 
@@ -517,101 +969,26 @@ function goNext(){
             contact.focus();
 
             return;
+
         }
 
-    }
 
+        /*
+         * Telefon Firebase Phone Auth
+         * ayrıca reCAPTCHA kurulumu gerektirir.
+         */
 
-    /* =================================================
-       BİLGİLERİ SAKLA
-    ================================================= */
-
-    if(mode === "email"){
-
-        sessionStorage.setItem(
-            "minegram_register_email",
-            value
+        showStatus(
+            "Telefon doğrulaması henüz bu kayıt akışına eklenmedi. E-posta ile devam edebilirsin."
         );
 
     }
-    else{
-
-        sessionStorage.setItem(
-            "minegram_register_phone",
-            value
-        );
-
-    }
-
-
-    if(username){
-
-        sessionStorage.setItem(
-            "minegram_register_username",
-            username
-        );
-
-    }
-
-
-    /* =================================================
-       BUTON
-    ================================================= */
-
-    busy = true;
-
-    nextBtn.disabled = true;
-
-    nextBtn.textContent =
-        "Devam ediliyor...";
-
-
-    /* =================================================
-       HESAP DOĞRULAMA URL
-       
-       ÖNEMLİ:
-       ./ kullanıyoruz.
-       / kullanmıyoruz.
-    ================================================= */
-
-    let url =
-        "./hesap-doğrulama.html?username=" +
-        encodeURIComponent(username);
-
-
-    if(mode === "email"){
-
-        url +=
-            "&email=" +
-            encodeURIComponent(value);
-
-    }
-    else{
-
-        url +=
-            "&phone=" +
-            encodeURIComponent(value);
-
-    }
-
-
-    console.log(
-        "[MINEGRAM] Sonraki sayfa:",
-        url
-    );
-
-
-    /* =================================================
-       SAYFAYA GİT
-    ================================================= */
-
-    window.location.assign(url);
 
 }
 
 
 /* =====================================================
-   İLERİ BUTONU
+   BUTON
 ===================================================== */
 
 nextBtn.addEventListener(
@@ -641,36 +1018,14 @@ contact.addEventListener(
 
 
 /* =====================================================
-   ÜST GERİ ENTER
-===================================================== */
-
-topBack.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" ||
-            event.key === " "
-        ){
-
-            event.preventDefault();
-
-            goBack();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   KAYITLI E-POSTA / TELEFON
+   KAYITLI EMAIL
 ===================================================== */
 
 const savedEmail =
     sessionStorage.getItem(
         "minegram_register_email"
     );
+
 
 const savedPhone =
     sessionStorage.getItem(
@@ -707,6 +1062,10 @@ console.log(
 console.log(
     "[MINEGRAM] Username:",
     username
+);
+
+console.log(
+    "[MINEGRAM] Firebase Auth hazır."
 );
 
 </script>
