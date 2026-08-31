@@ -1,596 +1,409 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
-
-    <title>Şifremi unuttum - Minegram</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html,
-        body {
-            width: 100%;
-            min-height: 100%;
-            background: #000;
-            color: #fff;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* =========================
-           ÜST BAŞLIK
-        ========================= */
-
-        .topbar {
-            width: 100%;
-            height: 70px;
-
-            display: flex;
-            align-items: center;
-
-            padding-left: 38px;
-
-            background: #000;
-        }
-
-        .back-button {
-            color: #fff;
-            text-decoration: none;
-
-            font-size: 46px;
-            font-weight: 300;
-
-            line-height: 1;
-
-            margin-right: 20px;
-
-            cursor: pointer;
-        }
-
-        .top-title {
-            color: #fff;
-
-            font-size: 25px;
-            font-weight: 700;
-        }
-
-
-        /* =========================
-           ANA ALAN
-        ========================= */
-
-        .page {
-            width: 100%;
-            min-height: calc(100vh - 70px);
-
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
-
-
-        /* =========================
-           MASAÜSTÜ BOYUTU
-           GİRİŞ.HTML GİBİ
-        ========================= */
-
-        .container {
-            width: 320px;
-
-            margin-top: 105px;
-
-            display: flex;
-            flex-direction: column;
-        }
-
-
-        /* =========================
-           BAŞLIK
-        ========================= */
-
-        .main-title {
-            color: #fff;
-
-            text-align: center;
-
-            font-size: 27px;
-            font-weight: 700;
-
-            margin-bottom: 38px;
-        }
-
-
-        /* =========================
-           AÇIKLAMA
-        ========================= */
-
-        .description {
-            color: #bdbdbd;
-
-            font-size: 16px;
-            line-height: 1.5;
-
-            margin-bottom: 65px;
-        }
-
-
-        /* =========================
-           INPUT
-        ========================= */
-
-        .input {
-            width: 100%;
-            height: 39px;
-
-            background: #050505;
-
-            border: 1px solid #222;
-            border-radius: 7px;
-
-            color: #fff;
-
-            padding: 0 12px;
-
-            font-size: 12px;
-
-            outline: none;
-        }
-
-        .input::placeholder {
-            color: #777;
-        }
-
-        .input:focus {
-            border-color: #444;
-        }
-
-
-        /* =========================
-           DEVAM BUTONU
-        ========================= */
-
-        .continue-button {
-            width: 100%;
-            height: 37px;
-
-            margin-top: 9px;
-
-            border: none;
-            border-radius: 22px;
-
-            background: #2478b7;
-
-            color: #000;
-
-            font-size: 12px;
-            font-weight: 700;
-
-            cursor: pointer;
-        }
-
-        .continue-button:hover {
-            background: #2b83c5;
-        }
-
-        .continue-button:active {
-            transform: scale(0.99);
-        }
-
-
-        /* =========================
-           LİNKLER
-        ========================= */
-
-        .link {
-            display: block;
-
-            width: 100%;
-
-            text-align: center;
-
-            color: #1685d4;
-
-            text-decoration: none;
-
-            font-size: 13px;
-            font-weight: 700;
-
-            cursor: pointer;
-        }
-
-        .phone-link {
-            margin-top: 20px;
-        }
-
-        .login-link {
-            margin-top: 28px;
-        }
-
-        .link:hover {
-            color: #42a5ee;
-        }
-
-
-        /* =========================
-           MESAJ
-        ========================= */
-
-        #message {
-            display: none;
-
-            width: 100%;
-
-            margin-top: 15px;
-
-            text-align: center;
-
-            color: #ff5757;
-
-            font-size: 12px;
-
-            line-height: 1.4;
-        }
-
-
-        /* ==================================================
-           TELEFON
-           GÖNDERDİĞİN 828x1792 GÖRSELDEKİ BOYUT
-        ================================================== */
-
-        @media (max-width: 700px) {
-
-            .topbar {
-                height: 72px;
-
-                padding-left: 48px;
-            }
-
-            .back-button {
-                font-size: 51px;
-
-                margin-right: 24px;
-            }
-
-            .top-title {
-                font-size: 30px;
-            }
-
-
-            .page {
-                min-height: calc(100vh - 72px);
-            }
-
-
-            .container {
-                width: calc(100% - 120px);
-
-                max-width: none;
-
-                margin-top: 160px;
-            }
-
-
-            .main-title {
-                font-size: 62px;
-
-                margin-bottom: 42px;
-            }
-
-
-            .description {
-                font-size: 36px;
-
-                line-height: 1.45;
-
-                margin-bottom: 72px;
-            }
-
-
-            .input {
-                width: 100%;
-
-                height: 118px;
-
-                border: 2px solid #666;
-
-                border-radius: 12px;
-
-                background: #111;
-
-                padding: 0 34px;
-
-                font-size: 31px;
-            }
-
-            .input::placeholder {
-                color: #c5c5c5;
-            }
-
-
-            .continue-button {
-                width: 100%;
-
-                height: 84px;
-
-                margin-top: 36px;
-
-                border-radius: 50px;
-
-                background: #61b0ed;
-
-                color: #25206d;
-
-                font-size: 31px;
-            }
-
-
-            .phone-link {
-                margin-top: 43px;
-            }
-
-            .login-link {
-                margin-top: 72px;
-            }
-
-
-            .link {
-                font-size: 29px;
-
-                line-height: 1.35;
-            }
-
-
-            #message {
-                font-size: 21px;
-            }
-        }
-
-
-        /* ==================================================
-           DAHA KÜÇÜK TELEFONLAR
-        ================================================== */
-
-        @media (max-width: 430px) {
-
-            .topbar {
-                height: 65px;
-
-                padding-left: 22px;
-            }
-
-            .back-button {
-                font-size: 42px;
-
-                margin-right: 16px;
-            }
-
-            .top-title {
-                font-size: 25px;
-            }
-
-
-            .container {
-                width: calc(100% - 60px);
-
-                margin-top: 95px;
-            }
-
-
-            .main-title {
-                font-size: 43px;
-
-                margin-bottom: 30px;
-            }
-
-
-            .description {
-                font-size: 25px;
-
-                line-height: 1.45;
-
-                margin-bottom: 48px;
-            }
-
-
-            .input {
-                height: 82px;
-
-                padding: 0 25px;
-
-                font-size: 23px;
-
-                border-width: 2px;
-            }
-
-
-            .continue-button {
-                height: 72px;
-
-                margin-top: 28px;
-
-                font-size: 23px;
-            }
-
-
-            .link {
-                font-size: 22px;
-            }
-
-
-            .phone-link {
-                margin-top: 34px;
-            }
-
-
-            .login-link {
-                margin-top: 55px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>Şifremi unuttum - Minegram</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: #000;
+    }
+
+    /* ÜST BAŞLIK */
+    .top-bar {
+      width: 100%;
+      height: 92px;
+      display: flex;
+      align-items: center;
+      padding: 0 42px;
+      background: #000;
+    }
+
+    .back-button {
+      border: none;
+      background: transparent;
+      color: #fff;
+      font-size: 62px;
+      line-height: 1;
+      padding: 0;
+      margin: 0 25px 0 0;
+      cursor: pointer;
+      font-weight: 300;
+      width: 65px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-title {
+      font-size: 38px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+    }
+
+    /* ANA ALAN */
+    .page {
+      width: 100%;
+      min-height: calc(100vh - 92px);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #000;
+    }
+
+    .container {
+      width: min(100% - 120px, 1100px);
+      margin-top: 245px;
+    }
+
+    /* BAŞLIK */
+    .main-title {
+      text-align: center;
+      font-size: 64px;
+      line-height: 1.15;
+      font-weight: 700;
+      margin: 0 0 52px 0;
+      color: #fff;
+    }
+
+    /* AÇIKLAMA */
+    .description {
+      width: 100%;
+      font-size: 34px;
+      line-height: 1.45;
+      font-weight: 400;
+      color: #c8c8c8;
+      margin: 0 0 78px 0;
+    }
+
+    /* TELEFON INPUT */
+    .phone-input {
+      width: 100%;
+      height: 150px;
+      border: 3px solid #777;
+      border-radius: 14px;
+      background: #111;
+      color: #fff;
+      font-size: 34px;
+      padding: 0 34px;
+      outline: none;
+      display: block;
+    }
+
+    .phone-input::placeholder {
+      color: #c6c6c6;
+      opacity: 1;
+    }
+
+    .phone-input:focus {
+      border-color: #aaa;
+    }
+
+    /* DEVAM */
+    .continue-button {
+      width: 100%;
+      height: 118px;
+      margin-top: 38px;
+      border: none;
+      border-radius: 70px;
+      background: #63b0ee;
+      color: #25257c;
+      font-size: 34px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .continue-button:active {
+      transform: scale(0.99);
+      opacity: 0.9;
+    }
+
+    /* E-POSTA LİNKİ */
+    .email-link {
+      display: block;
+      text-align: center;
+      margin-top: 45px;
+      color: #55aaf0;
+      font-size: 31px;
+      line-height: 1.3;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .email-link:active {
+      opacity: 0.7;
+    }
+
+    /* MESAJ */
+    .message {
+      display: none;
+      width: 100%;
+      margin-top: 28px;
+      padding: 22px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 23px;
+      line-height: 1.4;
+      color: #fff;
+      background: #151515;
+      border: 1px solid #444;
+    }
+
+    /* MOBİL */
+    @media (max-width: 700px) {
+
+      .top-bar {
+        height: 82px;
+        padding: 0 30px;
+      }
+
+      .back-button {
+        font-size: 48px;
+        width: 52px;
+        height: 58px;
+        margin-right: 17px;
+      }
+
+      .page-title {
+        font-size: 27px;
+      }
+
+      .page {
+        min-height: calc(100vh - 82px);
+      }
+
+      .container {
+        width: calc(100% - 120px);
+        margin-top: 145px;
+      }
+
+      .main-title {
+        font-size: 52px;
+        margin-bottom: 42px;
+      }
+
+      .description {
+        font-size: 29px;
+        line-height: 1.55;
+        margin-bottom: 68px;
+      }
+
+      .phone-input {
+        height: 118px;
+        font-size: 29px;
+        padding: 0 32px;
+        border-width: 2px;
+        border-radius: 13px;
+      }
+
+      .continue-button {
+        height: 84px;
+        margin-top: 35px;
+        font-size: 29px;
+      }
+
+      .email-link {
+        font-size: 27px;
+        margin-top: 43px;
+      }
+    }
+
+    /* TELEFONDA GÖRSELDEKİ ÖLÇÜ */
+    @media (max-width: 500px) {
+
+      .top-bar {
+        height: 75px;
+        padding: 0 28px;
+      }
+
+      .back-button {
+        font-size: 45px;
+        width: 50px;
+        margin-right: 14px;
+      }
+
+      .page-title {
+        font-size: 25px;
+      }
+
+      .container {
+        width: calc(100% - 120px);
+        margin-top: 135px;
+      }
+
+      .main-title {
+        font-size: 47px;
+        margin-bottom: 38px;
+      }
+
+      .description {
+        font-size: 27px;
+        line-height: 1.6;
+        margin-bottom: 68px;
+      }
+
+      .phone-input {
+        height: 116px;
+        font-size: 27px;
+        padding: 0 32px;
+      }
+
+      .continue-button {
+        height: 84px;
+        font-size: 28px;
+        margin-top: 35px;
+      }
+
+      .email-link {
+        font-size: 25px;
+        margin-top: 42px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-    <!-- =========================
-         ÜST BAŞLIK
-    ========================== -->
+  <!-- ÜST BAŞLIK -->
+  <div class="top-bar">
 
-    <header class="topbar">
+    <button
+      class="back-button"
+      type="button"
+      onclick="window.location.href='sifremi-unuttum.html';">
+      ‹
+    </button>
 
-        <a
-            href="giris.html"
-            class="back-button"
-            aria-label="Geri dön"
-        >
-            ‹
-        </a>
+    <h1 class="page-title">Şifremi unuttum</h1>
 
-        <div class="top-title">
-            Şifremi unuttum
-        </div>
-
-    </header>
+  </div>
 
 
-    <!-- =========================
-         ANA SAYFA
-    ========================== -->
+  <!-- ANA SAYFA -->
+  <main class="page">
 
-    <main class="page">
+    <div class="container">
 
-        <section class="container">
+      <h2 class="main-title">
+        Profilini bul
+      </h2>
 
-            <h1 class="main-title">
-                Profilini bul
-            </h1>
-
-
-            <p class="description">
-                Hesabını bulmak için e-posta adresini veya
-                kullanıcı adını gir.
-            </p>
+      <p class="description">
+        Hesabını bulmak için cep telefonu numaranı gir.
+      </p>
 
 
-            <input
-                id="emailUsername"
-                class="input"
-                type="text"
-                placeholder="E-posta adresi veya kullanıcı adı"
-                autocomplete="username"
-            >
+      <input
+        id="phone"
+        class="phone-input"
+        type="tel"
+        inputmode="tel"
+        autocomplete="tel"
+        placeholder="Cep telefonu numarası"
+      >
 
 
-            <button
-                id="continueButton"
-                class="continue-button"
-                type="button"
-            >
-                Devam
-            </button>
+      <button
+        id="continueButton"
+        class="continue-button"
+        type="button">
+        Devam
+      </button>
 
 
-            <div id="message"></div>
+      <a
+        class="email-link"
+        href="sifremi-unuttum.html">
+        E-posta adresi veya kullanıcı adıyla bul
+      </a>
 
 
-            <!-- TELEFONLA BUL -->
+      <div
+        id="message"
+        class="message">
+      </div>
 
-            <a
-                href="sifremi-unuttum-telefon.html"
-                class="link phone-link"
-            >
-                Cep telefonu numarasıyla bul
-            </a>
+    </div>
 
-
-            <!-- GİRİŞE DÖN -->
-
-            <a
-                href="giris.html"
-                class="link login-link"
-            >
-                Giriş ekranına dön
-            </a>
-
-        </section>
-
-    </main>
+  </main>
 
 
-    <script>
+  <script>
+    const phoneInput = document.getElementById("phone");
+    const continueButton = document.getElementById("continueButton");
+    const message = document.getElementById("message");
 
-        const input =
-            document.getElementById("emailUsername");
+    continueButton.addEventListener("click", function () {
 
-        const continueButton =
-            document.getElementById("continueButton");
+      const phone = phoneInput.value.trim();
 
-        const message =
-            document.getElementById("message");
+      if (!phone) {
+        showMessage("Lütfen cep telefonu numaranı gir.");
+        phoneInput.focus();
+        return;
+      }
 
+      if (phone.length < 10) {
+        showMessage("Lütfen geçerli bir telefon numarası gir.");
+        phoneInput.focus();
+        return;
+      }
 
-        continueButton.addEventListener("click", function () {
+      /*
+       * Firebase telefon doğrulama / hesap bulma işlemini
+       * mevcut server.js ve Firebase yapına bağlayabiliriz.
+       *
+       * Şimdilik numara girildiğinde kullanıcıya bilgi gösteriyoruz.
+       */
 
-            const value = input.value.trim();
+      showMessage(
+        "Telefon numaran kontrol ediliyor..."
+      );
 
-
-            message.style.display = "none";
-            message.textContent = "";
-
-
-            if (value === "") {
-
-                message.textContent =
-                    "Lütfen e-posta adresinizi veya kullanıcı adınızı girin.";
-
-                message.style.display = "block";
-
-                input.focus();
-
-                return;
-            }
-
-
-            /*
-             * Firebase şifre sıfırlama işlemi
-             * mevcut sistemine burada bağlanabilir.
-             */
-
-            console.log(
-                "Şifre sıfırlama araması:",
-                value
-            );
-
-        });
+      /*
+       * Firebase bağlantısı hazır olduğunda buraya
+       * gerçek API isteğini ekleyeceğiz.
+       */
+    });
 
 
-        input.addEventListener(
-            "keydown",
-            function (event) {
+    function showMessage(text) {
+      message.textContent = text;
+      message.style.display = "block";
+    }
 
-                if (event.key === "Enter") {
 
-                    continueButton.click();
-
-                }
-
-            }
-        );
-
-    </script>
+    /* ENTER ile DEVAM */
+    phoneInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        continueButton.click();
+      }
+    });
+  </script>
 
 </body>
 </html>
