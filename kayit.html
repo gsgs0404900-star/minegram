@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Kayıt ol - Minegram</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #000;
+            color: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 25px 30px 125px;
+            position: relative;
+        }
+
+        /* Üst bölüm */
+
+        .top {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .back {
+            color: #fff;
+            text-decoration: none;
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .top-title {
+            font-size: 31px;
+            font-weight: 700;
+        }
+
+        /* Ana içerik */
+
+        .content {
+            width: 100%;
+            max-width: 900px;
+            margin: 135px auto 0;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 46px;
+            margin: 0 0 30px;
+            font-weight: 700;
+        }
+
+        .description {
+            color: #bdbdbd;
+            font-size: 29px;
+            line-height: 1.5;
+            margin-bottom: 65px;
+        }
+
+        /* Kullanıcı adı */
+
+        .username-input {
+            width: 100%;
+            height: 120px;
+
+            padding: 0 32px;
+
+            background: #151515;
+
+            border: 2px solid #777;
+            border-radius: 12px;
+
+            color: #fff;
+
+            font-size: 29px;
+
+            outline: none;
+        }
+
+        .username-input::placeholder {
+            color: #bdbdbd;
+        }
+
+        .username-input:focus {
+            border-color: #aaa;
+        }
+
+        /* Öner */
+
+        .suggest {
+            display: block;
+
+            width: fit-content;
+
+            margin: 48px auto 0;
+
+            color: #55a9ed;
+
+            font-size: 28px;
+            font-weight: 600;
+
+            text-decoration: none;
+
+            cursor: pointer;
+        }
+
+        .suggest:hover {
+            text-decoration: underline;
+        }
+
+        /* Durum */
+
+        #status {
+            text-align: center;
+
+            margin-top: 18px;
+
+            font-size: 17px;
+
+            min-height: 24px;
+        }
+
+        .checking {
+            color: #aaa;
+        }
+
+        .available {
+            color: #35c759;
+        }
+
+        .taken {
+            color: #ff453a;
+        }
+
+        .error {
+            color: #ff453a;
+        }
+
+        /* İleri */
+
+        .next-button {
+            position: fixed;
+
+            left: 30px;
+            right: 30px;
+            bottom: 30px;
+
+            width: calc(100% - 60px);
+
+            height: 86px;
+
+            border: none;
+
+            border-radius: 50px;
+
+            background: #61b0ed;
+
+            color: #24206e;
+
+            font-size: 29px;
+            font-weight: 600;
+
+            cursor: pointer;
+        }
+
+        .next-button:disabled {
+            opacity: .5;
+            cursor: default;
+        }
+
+        /* Telefon */
+
+        @media (max-width: 600px) {
+
+            .page {
+                padding: 25px 30px 125px;
+            }
+
+            .back {
+                font-size: 44px;
+            }
+
+            .top-title {
+                font-size: 31px;
+            }
+
+            .content {
+                margin-top: 135px;
+            }
+
+            h1 {
+                font-size: 42px;
+            }
+
+            .description {
+                font-size: 28px;
+            }
+
+            .username-input {
+                height: 120px;
+                font-size: 29px;
+            }
+
+            .suggest {
+                font-size: 28px;
+            }
+
+            .next-button {
+                height: 86px;
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="page">
+
+    <!-- Üst başlık -->
+
+    <div class="top">
+
+        <a href="giris.html" class="back">
+            ←
+        </a>
+
+        <div class="top-title">
+            Kayıt ol
+        </div>
+
+    </div>
+
+
+    <!-- İçerik -->
+
+    <main class="content">
+
+        <h1>
+            Kullanıcı adı oluştur
+        </h1>
+
+        <div class="description">
+            Önce Minegram hesabın için bir kullanıcı adı oluştur.
+        </div>
+
+
+        <input
+            type="text"
+            id="username"
+            class="username-input"
+            placeholder="Kullanıcı adı"
+            autocomplete="username"
+            maxlength="30"
+        >
+
+
+        <div id="status"></div>
+
+
+        <a
+            href="#"
+            id="suggestUsername"
+            class="suggest"
+        >
+            Otomatik kullanıcı adı öner
+        </a>
+
+    </main>
+
+
+    <!-- İleri -->
+
+    <button
+        id="nextButton"
+        class="next-button"
+        disabled
+    >
+        İleri
+    </button>
+
+</div>
+
+
+<!-- ================================================== -->
+<!-- FIREBASE -->
+<!-- ================================================== -->
+
+<script type="module">
+
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+    import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc
+    }
+    from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+
+    /* ---------------------------------------------
+       FIREBASE CONFIG
+    --------------------------------------------- */
+
+    const firebaseConfig = {
+
+        apiKey:
+            "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+        authDomain:
+            "mim-ea133.firebaseapp.com",
+
+        databaseURL:
+            "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+
+        projectId:
+            "mim-ea133",
+
+        storageBucket:
+            "mim-ea133.firebasestorage.app",
+
+        messagingSenderId:
+            "303525353436",
+
+        appId:
+            "1:303525353436:web:082fc090b5025e19942119",
+
+        measurementId:
+            "G-K962QE5P1R"
+    };
+
+
+    /* ---------------------------------------------
+       FIREBASE BAŞLAT
+    --------------------------------------------- */
+
+    const app = initializeApp(firebaseConfig);
+
+    const db = getFirestore(app);
+
+
+    console.log("Firebase bağlantısı başarılı");
+
+
+    /* ---------------------------------------------
+       ELEMENTLER
+    --------------------------------------------- */
+
+    const usernameInput =
+        document.getElementById("username");
+
+    const nextButton =
+        document.getElementById("nextButton");
+
+    const suggestUsername =
+        document.getElementById("suggestUsername");
+
+    const status =
+        document.getElementById("status");
+
+
+    let usernameAvailable = false;
+
+
+    /* ---------------------------------------------
+       KULLANICI ADI TEMİZLE
+    --------------------------------------------- */
+
+    function cleanUsername(username) {
+
+        return username
+            .toLowerCase()
+            .trim()
+            .replace(/^@/, "");
+
+    }
+
+
+    /* ---------------------------------------------
+       KULLANICI ADI GEÇERLİ Mİ?
+    --------------------------------------------- */
+
+    function validUsername(username) {
+
+        /*
+            Sadece:
+
+            a-z
+            0-9
+            _
+            .
+
+            kullanılabilir.
+        */
+
+        const regex =
+            /^[a-zA-Z0-9_.]{3,30}$/;
+
+        return regex.test(username);
+
+    }
+
+
+    /* ---------------------------------------------
+       FIRESTORE'DA KONTROL
+    --------------------------------------------- */
+
+    async function checkUsername(username) {
+
+        usernameAvailable = false;
+
+        nextButton.disabled = true;
+
+
+        if (!username) {
+
+            status.textContent = "";
+            status.className = "";
+
+            return;
+        }
+
+
+        if (!validUsername(username)) {
+
+            status.textContent =
+                "3-30 karakter kullan. Harf, sayı, _ veya . kullanabilirsin.";
+
+            status.className = "taken";
+
+            return;
+        }
+
+
+        status.textContent =
+            "Kullanıcı adı kontrol ediliyor...";
+
+        status.className = "checking";
+
+
+        try {
+
+            /*
+                Firestore:
+
+                usernames
+                    └── kullanıcıadı
+            */
+
+            const usernameRef =
+                doc(db, "usernames", username);
+
+            const usernameSnap =
+                await getDoc(usernameRef);
+
+
+            if (usernameSnap.exists()) {
+
+                usernameAvailable = false;
+
+                nextButton.disabled = true;
+
+                status.textContent =
+                    "Bu kullanıcı adı zaten alınmış.";
+
+                status.className = "taken";
+
+            } else {
+
+                usernameAvailable = true;
+
+                nextButton.disabled = false;
+
+                status.textContent =
+                    "Kullanıcı adı kullanılabilir.";
+
+                status.className = "available";
+
+            }
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            usernameAvailable = false;
+
+            nextButton.disabled = true;
+
+            status.textContent =
+                "Firebase bağlantısında bir hata oluştu.";
+
+            status.className = "error";
+
+        }
+
+    }
+
+
+    /* ---------------------------------------------
+       INPUT
+    --------------------------------------------- */
+
+    let timer;
+
+    usernameInput.addEventListener("input", () => {
+
+        clearTimeout(timer);
+
+
+        let username =
+            cleanUsername(usernameInput.value);
+
+
+        usernameInput.value = username;
+
+
+        timer = setTimeout(() => {
+
+            checkUsername(username);
+
+        }, 500);
+
+    });
+
+
+    /* ---------------------------------------------
+       OTOMATİK KULLANICI ADI
+    --------------------------------------------- */
+
+    suggestUsername.addEventListener(
+        "click",
+        async (event) => {
+
+            event.preventDefault();
+
+
+            const suggestions = [
+
+                "minegram_user",
+
+                "minegram2026",
+
+                "minegram01",
+
+                "minegram_user1",
+
+                "my_minegram",
+
+                "minegram_official"
+
+            ];
+
+
+            const random =
+                suggestions[
+                    Math.floor(
+                        Math.random() *
+                        suggestions.length
+                    )
+                ];
+
+
+            usernameInput.value = random;
+
+
+            await checkUsername(random);
+
+        }
+    );
+
+
+    /* ---------------------------------------------
+       İLERİ
+    --------------------------------------------- */
+
+    nextButton.addEventListener(
+        "click",
+        async () => {
+
+            const username =
+                cleanUsername(usernameInput.value);
+
+
+            if (!usernameAvailable) {
+
+                return;
+
+            }
+
+
+            nextButton.disabled = true;
+
+            nextButton.textContent =
+                "Kaydediliyor...";
+
+
+            try {
+
+                /*
+                    Kullanıcı adını Firestore'a kaydet.
+
+                    Daha sonraki kayıt aşamasında
+                    bu kayıt gerçek Firebase Auth
+                    kullanıcısına bağlanabilir.
+                */
+
+                await setDoc(
+                    doc(db, "usernames", username),
+                    {
+                        username: username,
+                        createdAt: new Date()
+                    }
+                );
+
+
+                /*
+                    Sonraki kayıt sayfasına gönder.
+                */
+
+                window.location.href =
+                    "kayit-email.html?username=" +
+                    encodeURIComponent(username);
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                status.textContent =
+                    "Kullanıcı adı kaydedilemedi.";
+
+                status.className = "error";
+
+
+                nextButton.disabled = false;
+
+                nextButton.textContent =
+                    "İleri";
+
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+</html>
