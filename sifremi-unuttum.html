@@ -2,12 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width,
-      initial-scale=1.0,
-      maximum-scale=1.0,
-      user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minegram - Şifremi Unuttum</title>
 
 <style>
@@ -28,281 +23,243 @@ body{
 
 body{
     min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
     overflow-x:hidden;
 }
 
 .page{
     width:100%;
     min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
     background:#000;
 }
 
-/* =========================
-   ÜST BAR
-========================= */
-
-.topbar{
-    width:100%;
-    height:70px;
-    display:flex;
-    align-items:center;
-    padding:0 22px;
+.container{
+    width:min(430px,calc(100% - 40px));
+    margin-top:70px;
+    text-align:center;
 }
 
-.back{
-    width:42px;
-    height:42px;
-    padding:0;
-    border:0;
-    background:transparent;
-    color:#fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
+/* LOGO */
+.logo{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-.3px;
+    margin-bottom:42px;
 }
 
-.back svg{
-    width:32px;
-    height:32px;
-    fill:none;
-    stroke:#fff;
-    stroke-width:2.4;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-}
-
-.page-title{
-    margin-left:12px;
-    font-size:23px;
+/* BAŞLIK */
+.heading{
+    margin:0;
+    font-size:30px;
+    line-height:1.15;
     font-weight:700;
 }
 
-/* =========================
-   ANA ALAN
-========================= */
-
-.content{
-    width: min(430px, calc(100% - 40px));
-    margin: 70px auto 0;
-}
-
-.heading{
-    font-size: 30px;
-}
-
+/* AÇIKLAMA */
 .description{
-    margin: 18px 0 30px;
-    font-size: 16px;
-    line-height: 1.45;
+    margin:18px 0 30px;
+    color:#aaa;
+    font-size:16px;
+    line-height:1.45;
+}
+
+/* FORM */
+.form{
+    width:100%;
 }
 
 .input{
-    height: 52px;
-    padding: 0 15px;
-    font-size: 15px;
-}
-
-.continue-btn{
-    height: 48px;
-    margin-top: 18px;
-    font-size: 17px;
-}
-
-.phone-link{
-    margin-top: 24px;
-    font-size: 16px;
-}
-
-.login-link{
-    margin-top: 30px;
-    font-size: 16px;
-}
-
-/* =========================
-   MESAJ
-========================= */
-
-.message{
-    min-height:22px;
-    margin-top:18px;
-    text-align:center;
-    padding:0 8px;
+    width:100%;
+    height:52px;
+    padding:0 15px;
+    border:1px solid #333;
+    border-radius:8px;
+    outline:none;
+    background:#111;
+    color:#fff;
     font-size:15px;
+    transition:border-color .15s,background .15s;
+}
+
+.input::placeholder{
+    color:#777;
+}
+
+.input:focus{
+    border-color:#777;
+    background:#121212;
+}
+
+/* DEVAM ET */
+.continue-btn{
+    width:100%;
+    height:48px;
+    margin-top:18px;
+    border:0;
+    border-radius:8px;
+    background:#3797f0;
+    color:#fff;
+    font-size:17px;
+    font-weight:700;
+    cursor:pointer;
+    transition:opacity .15s,transform .1s;
+}
+
+.continue-btn:hover{
+    opacity:.9;
+}
+
+.continue-btn:active{
+    transform:scale(.985);
+}
+
+.continue-btn:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+/* TELEFONLA */
+.phone-link{
+    display:inline-block;
+    margin-top:24px;
+    color:#3797f0;
+    text-decoration:none;
+    font-size:16px;
+    font-weight:600;
+}
+
+.phone-link:hover{
+    text-decoration:underline;
+}
+
+/* AYRAÇ */
+.divider{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:30px 0;
+    color:#777;
+    font-size:13px;
+    font-weight:700;
+}
+
+.divider::before,
+.divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:#262626;
+}
+
+/* GİRİŞE DÖN */
+.login-link{
+    display:inline-block;
+    margin-top:0;
+    color:#fff;
+    text-decoration:none;
+    font-size:16px;
+    font-weight:600;
+}
+
+.login-link:hover{
+    text-decoration:underline;
+}
+
+/* MESAJ */
+.message{
+    min-height:20px;
+    margin-top:16px;
+    padding:0 5px;
+    font-size:14px;
     line-height:1.4;
 }
 
 .message.success{
-    color:#42d66d;
+    color:#35d07f;
 }
 
 .message.error{
-    color:#ff5252;
+    color:#ff5c6c;
 }
 
-/* =========================
-   TELEFON
-========================= */
+/* ALT BİLGİ */
+.footer{
+    margin-top:60px;
+    padding-bottom:30px;
+    color:#666;
+    font-size:12px;
+}
 
-@media(max-width:700px){
+/* MOBİL */
+@media(max-width:600px){
 
-    .topbar{
-        height:68px;
-        padding:0 18px;
+    .container{
+        width:calc(100% - 32px);
+        margin-top:55px;
     }
 
-    .back{
-        width:40px;
-        height:40px;
-    }
-
-    .back svg{
-        width:31px;
-        height:31px;
-    }
-
-    .page-title{
-        margin-left:10px;
-        font-size:22px;
-    }
-
-    .content{
-        width:calc(100% - 48px);
-        margin-top:105px;
+    .logo{
+        font-size:21px;
+        margin-bottom:38px;
     }
 
     .heading{
-        font-size:43px;
+        font-size:28px;
     }
 
     .description{
-        margin-top:27px;
-        margin-bottom:52px;
-        font-size:22px;
-        line-height:1.48;
+        margin-top:16px;
+        margin-bottom:27px;
+        font-size:15px;
     }
 
     .input{
-        height:72px;
-        padding:0 20px;
-        font-size:21px;
+        height:50px;
+        font-size:15px;
     }
 
     .continue-btn{
-        height:62px;
-        margin-top:28px;
-        font-size:22px;
+        height:47px;
+        font-size:16px;
     }
 
     .phone-link{
-        margin-top:32px;
-        font-size:21px;
+        font-size:15px;
+        margin-top:22px;
     }
 
     .login-link{
-        margin-top:52px;
-        font-size:21px;
+        font-size:15px;
+    }
+
+    .footer{
+        margin-top:50px;
     }
 }
 
-/* =========================
-   KÜÇÜK TELEFON
-========================= */
-
-@media(max-width:480px){
-
-    .topbar{
-        height:64px;
-        padding:0 14px;
-    }
-
-    .back{
-        width:38px;
-        height:38px;
-    }
-
-    .back svg{
-        width:29px;
-        height:29px;
-    }
-
-    .page-title{
-        font-size:21px;
-    }
-
-    .content{
-        width:calc(100% - 40px);
-        margin-top:96px;
-    }
-
-    .heading{
-        font-size:38px;
-    }
-
-    .description{
-        margin-top:25px;
-        margin-bottom:43px;
-        font-size:19px;
-        line-height:1.5;
-    }
-
-    .input{
-        height:68px;
-        padding:0 18px;
-        font-size:18px;
-    }
-
-    .continue-btn{
-        height:60px;
-        margin-top:25px;
-        font-size:21px;
-    }
-
-    .phone-link{
-        margin-top:31px;
-        font-size:19px;
-    }
-
-    .login-link{
-        margin-top:48px;
-        font-size:19px;
-    }
-
-    .message{
-        font-size:14px;
-    }
-}
-
-/* =========================
-   ÇOK KÜÇÜK EKRAN
-========================= */
-
+/* ÇOK KÜÇÜK EKRAN */
 @media(max-width:360px){
 
-    .content{
-        width:calc(100% - 32px);
-        margin-top:85px;
+    .container{
+        width:calc(100% - 28px);
+        margin-top:40px;
+    }
+
+    .logo{
+        margin-bottom:32px;
     }
 
     .heading{
-        font-size:34px;
+        font-size:26px;
     }
 
     .description{
-        font-size:18px;
-    }
-
-    .input{
-        font-size:17px;
-    }
-
-    .continue-btn{
-        font-size:20px;
-    }
-
-    .phone-link,
-    .login-link{
-        font-size:18px;
+        font-size:14px;
     }
 }
 </style>
@@ -312,261 +269,191 @@ body{
 
 <div class="page">
 
-    <!-- =====================
-         ÜST BAR
-    ====================== -->
+    <main class="container">
 
-    <header class="topbar">
+        <div class="logo">Minegram</div>
 
-        <button
-            class="back"
-            type="button"
-            onclick="goBack()"
-            aria-label="Geri">
-
-            <svg viewBox="0 0 24 24">
-                <path d="M19 12H5"></path>
-                <path d="M11 18L5 12L11 6"></path>
-            </svg>
-
-        </button>
-
-        <div class="page-title">
-            Şifremi unuttum
-        </div>
-
-    </header>
-
-
-    <!-- =====================
-         İÇERİK
-    ====================== -->
-
-    <main class="content">
-
-        <h1 class="heading">
-            Profilini bul
-        </h1>
+        <h1 class="heading">Şifreni mi unuttun?</h1>
 
         <p class="description">
-            Hesabını bulmak için e-posta adresini veya
-            kullanıcı adını gir.
+            Hesabına kayıtlı e-posta adresini gir.
+            Sana şifreni sıfırlaman için bir bağlantı göndereceğiz.
         </p>
 
+        <form id="resetForm" class="form">
 
-        <input
-            id="accountInput"
-            class="input"
-            type="text"
-            autocomplete="email"
-            placeholder="E-posta adresi veya kullanıcı adı"
+            <input
+                id="email"
+                class="input"
+                type="email"
+                autocomplete="email"
+                placeholder="E-posta adresi"
+                required
+            >
+
+            <button
+                id="continueBtn"
+                class="continue-btn"
+                type="submit"
+            >
+                Şifre sıfırlama bağlantısı gönder
+            </button>
+
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <a
+            class="phone-link"
+            href="giris.html"
         >
+            Giriş yap
+        </a>
 
-
-        <button
-            id="continueBtn"
-            class="continue-btn"
-            type="button">
-
-            Devam
-
-        </button>
-
-
-        <div
-            id="message"
-            class="message">
+        <div class="divider">
+            VEYA
         </div>
 
-
         <a
-            href="#"
-            id="phoneLink"
-            class="phone-link">
-
-            Cep telefonu numarasıyla bul
-
+            class="login-link"
+            href="kayit.html"
+        >
+            Yeni hesap oluştur
         </a>
 
-
-        <a
-            href="giris.html"
-            class="login-link">
-
-            Giriş ekranına dön
-
-        </a>
+        <div class="footer">
+            © 2026 Minegram
+        </div>
 
     </main>
 
 </div>
 
 
+<!-- Firebase -->
 <script type="module">
 
-/* =========================================
-   FIREBASE
-   MINEGRAM MEVCUT FIREBASE PROJESİ
-========================================= */
-
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 
 import {
     getAuth,
     sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+}
+from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
+
+/*
+====================================================
+MINEGRAM FIREBASE AYARLARI
+====================================================
+
+BURADAKİ firebaseConfig BÖLÜMÜNÜ
+GİRİŞ YAPTIĞIN firebaseConfig İLE AYNI YAP.
+
+ÖRNEK:
+
+const firebaseConfig = {
+    apiKey: "....",
+    authDomain: "....firebaseapp.com",
+    projectId: "....",
+    storageBucket: "....",
+    messagingSenderId: "....",
+    appId: "...."
+};
+
+====================================================
+*/
 
 const firebaseConfig = {
 
-    apiKey:
-        "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+    apiKey: "BURAYA_API_KEY",
 
-    authDomain:
-        "mim-ea133.firebaseapp.com",
+    authDomain: "BURAYA_AUTH_DOMAIN",
 
-    databaseURL:
-        "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "BURAYA_PROJECT_ID",
 
-    projectId:
-        "mim-ea133",
+    storageBucket: "BURAYA_STORAGE_BUCKET",
 
-    storageBucket:
-        "mim-ea133.firebasestorage.app",
+    messagingSenderId: "BURAYA_MESSAGING_SENDER_ID",
 
-    messagingSenderId:
-        "303525353436",
+    appId: "BURAYA_APP_ID"
 
-    appId:
-        "1:303525353436:web:082fc090b5025e19942119",
-
-    measurementId:
-        "G-K962QE5P1R"
 };
 
 
-/* FIREBASE BAŞLAT */
+let app;
 
-const app =
-    initializeApp(firebaseConfig);
+try{
 
-const auth =
-    getAuth(app);
+    app = initializeApp(firebaseConfig);
 
+}catch(error){
 
-/* ELEMENTLER */
-
-const accountInput =
-    document.getElementById("accountInput");
-
-const continueBtn =
-    document.getElementById("continueBtn");
-
-const message =
-    document.getElementById("message");
-
-const phoneLink =
-    document.getElementById("phoneLink");
-
-
-/* =========================================
-   MESAJ
-========================================= */
-
-function showMessage(text,type="error"){
-
-    message.textContent = text;
-
-    message.className =
-        "message " + type;
+    console.error("Firebase başlatılamadı:",error);
 
 }
 
 
-/* =========================================
-   GERİ
-========================================= */
+const auth = app ? getAuth(app) : null;
 
-window.goBack = function(){
-
-    if(
-        document.referrer &&
-        document.referrer.includes(
-            location.hostname
-        )
-    ){
-
-        history.back();
-
-    }else{
-
-        location.href =
-            "giris.html";
-
-    }
-
-};
+const form = document.getElementById("resetForm");
+const emailInput = document.getElementById("email");
+const button = document.getElementById("continueBtn");
+const message = document.getElementById("message");
 
 
-/* =========================================
-   ŞİFRE SIFIRLAMA
-========================================= */
+function showMessage(text,type){
 
-async function resetPassword(){
+    message.textContent = text;
 
-    const value =
-        accountInput.value.trim();
+    message.className = "message " + type;
 
-
-    showMessage("");
+}
 
 
-    if(!value){
+form.addEventListener("submit",async function(event){
+
+    event.preventDefault();
+
+    const email = emailInput.value.trim();
+
+    if(!email){
 
         showMessage(
-            "E-posta adresini veya kullanıcı adını gir."
+            "Lütfen e-posta adresini gir.",
+            "error"
         );
 
-        accountInput.focus();
+        emailInput.focus();
 
         return;
     }
 
 
-    /*
-       Firebase şifre sıfırlama
-       e-posta adresiyle çalışır.
-
-       Kullanıcı adı girilmişse mevcut
-       Firebase Authentication doğrudan
-       kullanıcı adını kabul etmez.
-    */
-
-    if(!value.includes("@")){
+    if(!auth){
 
         showMessage(
-            "Şifre sıfırlamak için kayıtlı e-posta adresini gir."
+            "Firebase bağlantısı kurulamadı. Firebase ayarlarını kontrol et.",
+            "error"
         );
-
-        accountInput.focus();
 
         return;
     }
 
 
-    continueBtn.disabled = true;
+    button.disabled = true;
 
-    continueBtn.textContent =
-        "Gönderiliyor...";
+    button.textContent = "Gönderiliyor...";
+
+    showMessage("","");
 
 
     try{
 
         await sendPasswordResetEmail(
             auth,
-            value
+            email
         );
 
 
@@ -576,36 +463,48 @@ async function resetPassword(){
         );
 
 
-        continueBtn.textContent =
-            "Gönderildi";
+        emailInput.value = "";
+
+
+        button.textContent = "Bağlantı gönderildi";
+
+
+        setTimeout(()=>{
+
+            button.disabled = false;
+
+            button.textContent =
+                "Şifre sıfırlama bağlantısı gönder";
+
+        },4000);
 
 
     }catch(error){
 
         console.error(
-            "[MINEGRAM PASSWORD RESET]",
+            "Şifre sıfırlama hatası:",
             error
         );
 
 
         let text =
-            "Şifre sıfırlama bağlantısı gönderilemedi.";
+            "Şifre sıfırlama işlemi başarısız oldu.";
 
 
         switch(error.code){
+
+            case "auth/user-not-found":
+
+                text =
+                    "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.";
+
+                break;
+
 
             case "auth/invalid-email":
 
                 text =
                     "Geçerli bir e-posta adresi gir.";
-
-                break;
-
-
-            case "auth/user-not-found":
-
-                text =
-                    "Bu e-posta ile kayıtlı hesap bulunamadı.";
 
                 break;
 
@@ -629,79 +528,27 @@ async function resetPassword(){
             case "auth/operation-not-allowed":
 
                 text =
-                    "E-posta ile şifre sıfırlama Firebase'de aktif değil.";
-
-                break;
-
-
-            default:
-
-                text =
-                    error.message ||
-                    "Bir hata oluştu.";
+                    "Firebase'de e-posta/şifre girişi etkin değil.";
 
                 break;
 
         }
 
-
-        showMessage(text);
-
-
-        continueBtn.disabled = false;
-
-        continueBtn.textContent =
-            "Devam";
-
-    }
-
-}
-
-
-/* =========================================
-   DEVAM BUTONU
-========================================= */
-
-continueBtn.addEventListener(
-    "click",
-    resetPassword
-);
-
-
-/* =========================================
-   ENTER
-========================================= */
-
-accountInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Enter"){
-
-            resetPassword();
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   TELEFON NUMARASI
-========================================= */
-
-phoneLink.addEventListener(
-    "click",
-    function(event){
-
-        event.preventDefault();
 
         showMessage(
-            "Telefon numarasıyla hesap bulma özelliği yakında aktif olacak."
+            text,
+            "error"
         );
 
+
+        button.disabled = false;
+
+        button.textContent =
+            "Şifre sıfırlama bağlantısı gönder";
+
     }
-);
+
+});
 
 </script>
 
