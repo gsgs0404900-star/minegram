@@ -1,85 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Minegram - Giriş</title>
 
 <style>
+
 *{
     box-sizing:border-box;
 }
 
-html,body{
+html,
+body{
     margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
+    min-height:100%;
     background:#000;
-    color:#fff;
+    color:#f5f5f5;
     font-family:Arial,Helvetica,sans-serif;
 }
 
 body{
-    min-height:100vh;
-}
-
-.login-page{
-    width:100%;
     min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:flex-start;
 }
 
-.login-box{
-    width:365px;
-    margin-top:145px;
-    text-align:center;
+.login{
+    width:min(420px,calc(100% - 32px));
+    margin-top:85px;
 }
 
-.logo{
-    font-size:27px;
-    font-weight:700;
-    margin-bottom:29px;
+.login h1{
+    text-align:center;
+    font-size:30px;
+    margin:0 0 34px;
 }
 
 .field{
     width:100%;
-    height:44px;
-    margin-bottom:9px;
-    padding:0 12px;
-    border:1px solid #292929;
-    border-radius:7px;
-    background:#000;
-    color:#fff;
-    outline:none;
-    font-size:12px;
-}
+    height:50px;
+    margin-bottom:10px;
 
-.field::placeholder{
-    color:#777;
+    border:1px solid #444;
+    border-radius:8px;
+
+    background:#050505;
+    color:#fff;
+
+    padding:0 14px;
+
+    outline:none;
 }
 
 .field:focus{
-    border-color:#555;
+    border-color:#3f91cc;
 }
 
 .login-btn{
     width:100%;
-    height:42px;
-    margin-top:0;
+    height:48px;
+
     border:0;
-    border-radius:22px;
-    background:#2d80bd;
-    color:#000;
+    border-radius:24px;
+
+    background:#3f91cc;
+    color:#06111a;
+
     font-weight:700;
     cursor:pointer;
-    font-size:12px;
-}
-
-.login-btn:hover{
-    background:#348dca;
 }
 
 .login-btn:disabled{
@@ -88,271 +79,440 @@ body{
 }
 
 .forgot{
-    display:block;
-    margin-top:14px;
-    color:#0095f6;
-    font-size:13px;
-    text-decoration:underline;
-    cursor:pointer;
+    text-align:center;
+    margin-top:16px;
 }
 
-.register{
-    display:block;
-    margin-top:28px;
-    color:#0095f6;
-    font-size:13px;
-    text-decoration:none;
+.forgot a{
+    color:#2ba9ed;
 }
 
 .message{
-    min-height:20px;
-    margin-top:14px;
-    font-size:12px;
-    color:#ff4d4d;
+    text-align:center;
+    margin-top:16px;
+    font-size:13px;
+    color:#aaa;
 }
 
-@media(max-width:600px){
-    .login-box{
-        width:calc(100% - 40px);
-        max-width:365px;
-        margin-top:90px;
-    }
-}
 </style>
 </head>
 
 <body>
 
-<div class="login-page">
+<section class="login">
 
-    <div class="login-box">
+<h1>Minegram</h1>
 
-        <div class="logo">Minegram</div>
+<input
+    id="username"
+    class="field"
+    placeholder="E-posta adresi"
+    type="email"
+    autocomplete="username"
+>
 
-        <input
-            id="email"
-            class="field"
-            type="email"
-            autocomplete="email"
-            placeholder="E-posta adresi"
-        >
+<input
+    id="password"
+    class="field"
+    type="password"
+    placeholder="Şifre"
+    autocomplete="current-password"
+>
 
-        <input
-            id="password"
-            class="field"
-            type="password"
-            autocomplete="current-password"
-            placeholder="Şifre"
-        >
+<button
+    id="loginBtn"
+    class="login-btn"
+    type="button"
+>
+Giriş Yap
+</button>
 
-        <button id="loginBtn" class="login-btn">
-            Giriş Yap
-        </button>
+<div class="forgot">
 
-        <a id="forgotBtn" class="forgot">
-            Şifremi unuttum
-        </a>
-
-        <a href="kayit.html" class="register">
-            Hesabın yok mu? Kayıt ol
-        </a>
-
-        <div id="message" class="message"></div>
-
-    </div>
+<a
+    href="#"
+    id="forgotBtn"
+>
+Şifremi unuttum
+</a>
 
 </div>
+
+<div
+    id="message"
+    class="message"
+></div>
+
+</section>
 
 
 <script type="module">
 
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+    initializeApp
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
 import {
     getAuth,
     signInWithEmailAndPassword,
-    sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    sendPasswordResetEmail,
+    onAuthStateChanged
+}
+from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
+
+/* =====================================================
+   FIREBASE
+===================================================== */
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-    authDomain: "mim-ea133.firebaseapp.com",
-    databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "mim-ea133",
-    storageBucket: "mim-ea133.firebasestorage.app",
-    messagingSenderId: "303525353436",
-    appId: "1:303525353436:web:082fc090b5025e19942119",
-    measurementId: "G-K962QE5P1R"
+
+    apiKey:
+    "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+    authDomain:
+    "mim-ea133.firebaseapp.com",
+
+    databaseURL:
+    "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+
+    projectId:
+    "mim-ea133",
+
+    storageBucket:
+    "mim-ea133.firebasestorage.app",
+
+    messagingSenderId:
+    "303525353436",
+
+    appId:
+    "1:303525353436:web:082fc090b5025e19942119",
+
+    measurementId:
+    "G-K962QE5P1R"
 };
 
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const app =
+initializeApp(firebaseConfig);
 
 
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const forgotBtn = document.getElementById("forgotBtn");
-const message = document.getElementById("message");
+const auth =
+getAuth(app);
 
 
-function showMessage(text, success = false){
+/* =====================================================
+   ELEMENTLER
+===================================================== */
+
+const username =
+document.getElementById("username");
+
+const password =
+document.getElementById("password");
+
+const loginBtn =
+document.getElementById("loginBtn");
+
+const forgotBtn =
+document.getElementById("forgotBtn");
+
+const message =
+document.getElementById("message");
+
+
+/* =====================================================
+   MESAJ
+===================================================== */
+
+function showMessage(text){
+
     message.textContent = text;
-    message.style.color = success ? "#35c759" : "#ff4d4d";
+
 }
 
 
-async function login(){
+/* =====================================================
+   ZATEN GİRİŞ YAPILDIYSA
+===================================================== */
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+onAuthStateChanged(auth, async (user) => {
 
-    showMessage("");
+    if(!user){
 
-    if(!email){
-        showMessage("E-posta adresini gir.");
-        emailInput.focus();
         return;
-    }
 
-    if(!password){
-        showMessage("Şifreni gir.");
-        passwordInput.focus();
-        return;
     }
-
-    loginBtn.disabled = true;
-    loginBtn.textContent = "Giriş yapılıyor...";
 
     try{
 
-        const result = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-        );
-
-        const user = result.user;
+        const firebaseToken =
+        await user.getIdToken(true);
 
         localStorage.setItem(
-            "minegram_firebase_uid",
-            user.uid
+            "minegram_firebase_token",
+            firebaseToken
         );
 
         localStorage.setItem(
-            "minegram_firebase_email",
+            "minegram_user_email",
             user.email || ""
         );
 
-        showMessage("Giriş başarılı.", true);
-
-        setTimeout(() => {
-            window.location.href = "index.html";
-        }, 500);
+        location.replace("index.html");
 
     }catch(error){
 
         console.error(error);
 
-        let text = "Giriş yapılamadı.";
-
-        switch(error.code){
-
-            case "auth/invalid-credential":
-                text = "E-posta veya şifre hatalı.";
-                break;
-
-            case "auth/user-not-found":
-                text = "Bu hesap bulunamadı.";
-                break;
-
-            case "auth/wrong-password":
-                text = "Şifre hatalı.";
-                break;
-
-            case "auth/invalid-email":
-                text = "Geçerli bir e-posta adresi gir.";
-                break;
-
-            case "auth/too-many-requests":
-                text = "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
-                break;
-
-            case "auth/network-request-failed":
-                text = "İnternet bağlantısını kontrol et.";
-                break;
-        }
-
-        showMessage(text);
-
-    }finally{
-
-        loginBtn.disabled = false;
-        loginBtn.textContent = "Giriş Yap";
     }
-}
+
+});
 
 
-async function forgotPassword(){
+/* =====================================================
+   GİRİŞ
+===================================================== */
 
-    const email = emailInput.value.trim();
+async function login(){
+
+    const email =
+    username.value.trim();
+
+    const pass =
+    password.value;
 
     if(!email){
-        showMessage("Şifre sıfırlamak için önce e-posta adresini gir.");
-        emailInput.focus();
+
+        showMessage(
+            "E-posta adresini gir."
+        );
+
         return;
+
     }
+
+    if(!pass){
+
+        showMessage(
+            "Şifreni gir."
+        );
+
+        return;
+
+    }
+
+
+    loginBtn.disabled=true;
+
+    loginBtn.textContent=
+    "Giriş yapılıyor...";
+
 
     try{
 
-        await sendPasswordResetEmail(auth, email);
-
-        showMessage(
-            "Şifre sıfırlama bağlantısı e-posta adresine gönderildi.",
-            true
+        const result =
+        await signInWithEmailAndPassword(
+            auth,
+            email,
+            pass
         );
+
+
+        const user =
+        result.user;
+
+
+        const firebaseToken =
+        await user.getIdToken(true);
+
+
+        /*
+          Firebase ID TOKEN
+          index.html tarafından kullanılacak.
+        */
+
+        localStorage.setItem(
+            "minegram_firebase_token",
+            firebaseToken
+        );
+
+
+        localStorage.setItem(
+            "minegram_user_email",
+            user.email || ""
+        );
+
+
+        /*
+          index.html
+        */
+
+        location.replace(
+            "index.html"
+        );
+
 
     }catch(error){
 
-        console.error(error);
+        console.error(
+            "Firebase Login:",
+            error
+        );
 
-        if(error.code === "auth/user-not-found"){
-            showMessage("Bu e-posta ile kayıtlı hesap bulunamadı.");
+
+        let text =
+        "Giriş yapılamadı.";
+
+
+        if(
+            error.code ===
+            "auth/invalid-credential"
+        ){
+
+            text =
+            "E-posta veya şifre yanlış.";
+
         }
-        else if(error.code === "auth/invalid-email"){
-            showMessage("Geçerli bir e-posta adresi gir.");
+
+        else if(
+            error.code ===
+            "auth/user-not-found"
+        ){
+
+            text =
+            "Bu kullanıcı bulunamadı.";
+
         }
-        else{
-            showMessage("Şifre sıfırlama bağlantısı gönderilemedi.");
+
+        else if(
+            error.code ===
+            "auth/wrong-password"
+        ){
+
+            text =
+            "Şifre yanlış.";
+
         }
+
+        else if(
+            error.code ===
+            "auth/invalid-email"
+        ){
+
+            text =
+            "Geçerli bir e-posta adresi gir.";
+
+        }
+
+        else if(
+            error.code ===
+            "auth/too-many-requests"
+        ){
+
+            text =
+            "Çok fazla deneme yapıldı. Biraz bekle.";
+
+        }
+
+
+        showMessage(text);
+
     }
+
+
+    loginBtn.disabled=false;
+
+    loginBtn.textContent=
+    "Giriş Yap";
+
 }
 
 
-loginBtn.addEventListener("click", login);
+/* =====================================================
+   BUTON
+===================================================== */
 
-forgotBtn.addEventListener("click", forgotPassword);
+loginBtn.addEventListener(
+    "click",
+    login
+);
 
 
-passwordInput.addEventListener("keydown", event => {
+/* =====================================================
+   ENTER
+===================================================== */
 
-    if(event.key === "Enter"){
-        login();
+password.addEventListener(
+    "keydown",
+    (e) => {
+
+        if(e.key === "Enter"){
+
+            login();
+
+        }
+
     }
+);
 
-});
+
+/* =====================================================
+   ŞİFRE SIFIRLAMA
+===================================================== */
+
+forgotBtn.addEventListener(
+    "click",
+    async (e) => {
+
+        e.preventDefault();
 
 
-emailInput.addEventListener("keydown", event => {
+        const email =
+        username.value.trim();
 
-    if(event.key === "Enter"){
-        passwordInput.focus();
+
+        if(!email){
+
+            showMessage(
+                "Önce e-posta adresini yaz."
+            );
+
+            username.focus();
+
+            return;
+
+        }
+
+
+        try{
+
+            await sendPasswordResetEmail(
+                auth,
+                email
+            );
+
+
+            showMessage(
+                "Şifre yenileme bağlantısı e-posta adresine gönderildi."
+            );
+
+
+        }catch(error){
+
+            console.error(error);
+
+            showMessage(
+                "Şifre yenileme bağlantısı gönderilemedi."
+            );
+
+        }
+
     }
-
-});
+);
 
 </script>
 
