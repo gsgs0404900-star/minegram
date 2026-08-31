@@ -4037,97 +4037,63 @@ document.addEventListener(
 
 async function init(){
 
-    console.log(
-        '[INDEX] Başlatılıyor...'
-    );
-
-
-    token=
-        getApiToken();
-
-
-    console.log(
-        '[INDEX] Token:',
-        token?'VAR':'YOK'
-    );
-
-
-   if(!token){
-
-    console.warn('[INDEX] Oturum tokenı bulunamadı.');
-
-    location.href='giris.html';
-
-    return;
-
-}
-
-
-    /* LOCAL USER */
+    console.log('[INDEX] Başlatılıyor...');
 
     try{
 
-        const saved=
-            localStorage.getItem(
-                'minegram_user'
-            );
+        /* Önce Firebase oturumunun okunmasını bekle */
+        const firebaseUser = await initFirebase();
 
+        console.log(
+            '[INDEX] Firebase kullanıcı:',
+            firebaseUser ? firebaseUser.uid : 'YOK'
+        );
 
-        if(saved){
+        /* Firebase kullanıcısı varsa taze token al */
+        if(firebaseUser){
 
-            currentUser=
-                JSON.parse(saved);
-
-        }
-
-    }catch{
-
-        currentUser=null;
-
-    }
-
-
-    /* ME KONTROLÜ */
-
-    try{
-
-        const me=
-            await api('/me');
-
-
-        if(me){
-
-            currentUser=
-                me;
-
+            token =
+                await firebaseUser.getIdToken(true);
 
             localStorage.setItem(
-                'minegram_user',
-                JSON.stringify(
-                    me
-                )
+                'minegram_token',
+                token
+            );
+
+            localStorage.setItem(
+                'minegram_firebase_token',
+                token
             );
 
         }
 
+        /*
+         * Firebase kullanıcısı yoksa
+         * eski kayıtlı tokenı kontrol et.
+         */
+        if(!token){
 
-    }catch(error){
+            token =
+                localStorage.getItem(
+                    'minegram_token'
+                ) ||
+                localStorage.getItem(
+                    'minegram_firebase_token'
+                ) ||
+                null;
 
-        console.warn(
-            '[INDEX] /me:',
-            error
-        );
+        }
 
 
         /*
-         * 401/403 gerçekten geçersiz
-         * oturum demektir.
+         * Hem Firebase hem de local token yoksa
+         * gerçekten giriş yapılmamış demektir.
          */
+        if(!token){
 
-        if(
-            error.status===401||
-            error.status===403
-        ){
+            console.warn(
+                '[INDEX] Oturum bulunamadı.'
+            );
 
             showLogin();
 
@@ -4135,18 +4101,138 @@ async function init(){
 
         }
 
+
+        console.log(
+            '[INDEX] Token hazır.'
+        );
+
+
+        /* =========================
+           LOCAL USER
+        ========================= */
+
+        try{
+
+            const saved =
+                localStorage.getItem(
+                    'minegram_user'
+                );
+
+            if(saved){
+
+                currentUser =
+                    JSON.parse(saved);
+
+            }
+
+        }catch{
+
+            currentUser = null;
+
+        }
+
+
+        /* =========================
+           ME KONTROLÜ
+        ========================= */
+
+        try{
+
+            const me =
+                await api('/me');
+
+            if(me){
+
+                currentUser = me;
+
+                localStorage.setItem(
+                    'minegram_user',
+                    JSON.stringify(me)
+                );
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                '[INDEX] /me:',
+                error
+            );
+
+            /*
+             * SADECE gerçek 401/403 durumunda
+             * giriş sayfasına gönder.
+             */
+            if(
+                error.status === 401 ||
+                error.status === 403
+            ){
+
+                showLogin();
+
+                return;
+
+            }
+
+            /*
+             * Sunucu geçici hata verdiyse
+             * kullanıcıyı girişten atma.
+             */
+
+        }
+
+
+        /* =========================
+           ANA SAYFAYI GÖSTER
+        ========================= */
+
+        showHome();
+
+
+        /* =========================
+           GÖNDERİLERİ YÜKLE
+        ========================= */
+
+        await loadFeed();
+
+
+    }catch(error){
+
+        console.error(
+            '[INDEX] Başlatma hatası:',
+            error
+        );
+
         /*
-         * Sunucu geçici olarak cevap vermiyorsa
-         * kullanıcıyı gereksiz yere çıkartma.
+         * Firebase yüklenemedi diye
+         * kullanıcıyı otomatik olarak
+         * giriş ekranına atma.
          */
 
+        token =
+            localStorage.getItem(
+                'minegram_token'
+            ) ||
+            localStorage.getItem(
+                'minegram_firebase_token'
+            ) ||
+            null;
+
+
+        if(!token){
+
+            showLogin();
+
+            return;
+
+        }
+
+
+        showHome();
+
+        await loadFeed();
+
     }
-
-
-    showHome();
-
-
-    await loadFeed();
 
 }
 
