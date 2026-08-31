@@ -2376,6 +2376,205 @@ app.get(
 
 
 /* =========================================================
+   REGISTER VERIFICATION OTP
+========================================================= */
+
+const registerVerificationCodes = new Map();
+
+
+function createVerificationCode() {
+  return String(
+    Math.floor(
+      100000 +
+      Math.random() * 900000
+    )
+  );
+}
+
+
+/* =========================================================
+   REGISTER OTP SEND
+========================================================= */
+
+app.post(
+  "/api/register/send-code",
+  async (req, res) => {
+    try {
+      const email =
+        String(
+          req.body?.email || ""
+        ).trim().toLowerCase();
+
+      if (!email) {
+        return res.status(400).json({
+          error: "E-posta gerekli."
+        });
+      }
+
+      const code =
+        createVerificationCode();
+
+      registerVerificationCodes.set(
+        email,
+        {
+          code,
+          expires:
+            Date.now() +
+            10 * 60 * 1000
+        }
+      );
+
+      await sendResendEmail(
+        email,
+        "Minegram hesap doğrulama kodun",
+
+        `
+        <div style="font-family:Arial,sans-serif;background:#fff;padding:30px">
+          <h2 style="margin:0 0 20px">
+            Minegram
+          </h2>
+
+          <p>
+            Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:
+          </p>
+
+          <div style="
+            font-size:36px;
+            font-weight:700;
+            letter-spacing:10px;
+            margin:25px 0;
+          ">
+            ${code}
+          </div>
+
+          <p>
+            Bu kod 10 dakika geçerlidir.
+          </p>
+
+          <p style="color:#777">
+            Bu kodu sen istemediysen bu e-postayı dikkate alma.
+          </p>
+        </div>
+        `,
+
+        `Minegram hesap doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      );
+
+      console.log(
+        "REGISTER OTP GÖNDERİLDİ:",
+        email
+      );
+
+      res.json({
+        ok: true
+      });
+
+    } catch (e) {
+
+      console.error(
+        "REGISTER OTP SEND ERROR:",
+        e
+      );
+
+      res.status(500).json({
+        error:
+          e.message ||
+          "Doğrulama kodu gönderilemedi."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   REGISTER OTP VERIFY
+========================================================= */
+
+app.post(
+  "/api/register/verify-code",
+  async (req, res) => {
+    try {
+
+      const email =
+        String(
+          req.body?.email || ""
+        ).trim().toLowerCase();
+
+      const code =
+        String(
+          req.body?.code || ""
+        ).trim();
+
+      if (!email || !code) {
+        return res.status(400).json({
+          error:
+            "E-posta ve doğrulama kodu gerekli."
+        });
+      }
+
+      const entry =
+        registerVerificationCodes.get(
+          email
+        );
+
+      if (!entry) {
+        return res.status(400).json({
+          error:
+            "Doğrulama kodu bulunamadı. Yeni kod gönder."
+        });
+      }
+
+      if (
+        entry.expires <
+        Date.now()
+      ) {
+
+        registerVerificationCodes.delete(
+          email
+        );
+
+        return res.status(400).json({
+          error:
+            "Doğrulama kodunun süresi dolmuş."
+        });
+      }
+
+      if (
+        entry.code !== code
+      ) {
+
+        return res.status(400).json({
+          error:
+            "Doğrulama kodu yanlış."
+        });
+      }
+
+      registerVerificationCodes.delete(
+        email
+      );
+
+      res.json({
+        ok: true,
+        verified: true
+      });
+
+    } catch (e) {
+
+      console.error(
+        "REGISTER OTP VERIFY ERROR:",
+        e
+      );
+
+      res.status(500).json({
+        error:
+          e.message ||
+          "Kod doğrulanamadı."
+      });
+    }
+  }
+);
+
+/* =========================================================
    RESEND
 ========================================================= */
 
