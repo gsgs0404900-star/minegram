@@ -1102,9 +1102,6 @@ app.post(
         });
       }
 
-      const key =
-        registrationKey(email);
-
       let entry =
   registrationCodes.get(key);
 
