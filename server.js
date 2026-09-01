@@ -34,6 +34,53 @@ function generateOtp() {
     return crypto.randomInt(100000, 1000000).toString();
 }
 
+async function sendResendEmail(to, subject, html, text) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM || "Minegram <onboarding@resend.dev>";
+
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY Render ortamında tanımlı değil.");
+  }
+
+  if (!from) {
+    throw new Error("RESEND_FROM Render ortamında tanımlı değil.");
+  }
+
+  console.log("[RESEND] API Key mevcut:", !!apiKey);
+  console.log("[RESEND] From:", from);
+  console.log("[RESEND] To:", to);
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      text
+    })
+  });
+
+  const data = await response.json();
+
+  console.log("[RESEND] HTTP:", response.status);
+  console.log("[RESEND] Sonuç:", data);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Resend HTTP ${response.status}`
+    );
+  }
+
+  return data;
+}
+
 app.post("/api/send-email-otp", async (req, res) => {
     try {
         const email = String(
