@@ -1047,7 +1047,7 @@ app.post(
         normalizeEmail(req.body?.email);
 
       const code =
-        String(req.body?.code || "")
+        String(req.body?.code || req.body?.otp || "")
           .replace(/\D/g, "")
           .slice(0, 6);
 
@@ -1157,7 +1157,10 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            req.body?.password ||
+            req.body?.newPassword ||
+            req.body?.registerPassword ||
+            ""
           )
         });
 
@@ -1188,6 +1191,7 @@ app.post(
       return res.json({
         ok: true,
         verified: true,
+        login: true,
         token:
           loginData.session.access_token,
         user: {
@@ -2515,6 +2519,15 @@ function cleanupRecoveryCodes() {
 
 setInterval(cleanupRecoveryCodes, 60 * 1000).unref();
 
+function cleanupRegistrationCodes() {
+  const now = Date.now();
+  for (const [key, entry] of registrationCodes.entries()) {
+    if (!entry || entry.expires < now) registrationCodes.delete(key);
+  }
+}
+
+setInterval(cleanupRegistrationCodes, 60 * 1000).unref();
+
 // 6 haneli kurtarma kodu doğrulandıktan sonra
 // yeni şifre belirlemek için kısa ömürlü tek kullanımlık anahtarlar.
 const passwordResetTokens = new Map();
@@ -2539,6 +2552,20 @@ const emailOtpRate = new Map();
 
 function createEmailOtp() {
   return crypto.randomInt(100000, 1000000).toString();
+}
+
+function normalizeOtpCode(value) {
+  return String(value ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
+}
+
+function isValidOtpCode(value) {
+  return /^\d{6}$/.test(normalizeOtpCode(value));
+}
+
+function otpKey(email) {
+  return normalizeEmail(email);
 }
 
 app.post("/api/send-email-otp", async (req, res) => {
@@ -2580,7 +2607,10 @@ app.post("/api/send-email-otp", async (req, res) => {
       });
     }
 
-    const code = createEmailOtp();
+    const suppliedCode = normalizeOtpCode(req.body?.code);
+    const code = isValidOtpCode(suppliedCode)
+      ? suppliedCode
+      : createEmailOtp();
 
     const html = `
 <!DOCTYPE html>
@@ -2607,13 +2637,15 @@ app.post("/api/send-email-otp", async (req, res) => {
       text
     );
 
-    emailOtpStore.set(email, {
+    emailOtpStore.set(otpKey(email), {
       code,
       username,
+      email,
+      sentAt: Date.now(),
       expires: Date.now() + 10 * 60 * 1000,
       attempts: 0
     });
-    emailOtpRate.set(email, Date.now());
+    emailOtpRate.set(otpKey(email), Date.now());
 
     return res.json({
       ok: true,
@@ -2631,6 +2663,84 @@ app.post("/api/send-email-otp", async (req, res) => {
 });
 
 /* =========================================================
+   E-POSTA OTP VERIFY
+   POST /api/verify-email-otp
+
+   Kayıt ekranı için gönderilen kodu sunucu tarafında da doğrular.
+   Böylece uygulamanın kendi ürettiği kod ile e-postaya gönderilen
+   kod farklı olsa bile doğrulama yapılmaz; tek kaynak sunucudur.
+========================================================= */
+
+app.post("/api/verify-email-otp", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const code = normalizeOtpCode(req.body?.code);
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        code: "EMAIL_REQUIRED",
+        error: "E-posta gerekli."
+      });
+    }
+
+    if (!isValidOtpCode(code)) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_CODE",
+        error: "6 haneli doğrulama kodunu gir."
+      });
+    }
+
+    const key = otpKey(email);
+    const entry = emailOtpStore.get(key);
+
+    if (!entry || entry.expires < Date.now()) {
+      emailOtpStore.delete(key);
+      return res.status(400).json({
+        ok: false,
+        code: "CODE_EXPIRED",
+        error: "Kod yanlış veya süresi dolmuş. Yeni kod iste."
+      });
+    }
+
+    if ((entry.attempts || 0) >= 5) {
+      emailOtpStore.delete(key);
+      return res.status(429).json({
+        ok: false,
+        code: "TOO_MANY_ATTEMPTS",
+        error: "Çok fazla yanlış kod girildi. Yeni kod iste."
+      });
+    }
+
+    if (entry.code !== code) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_CODE",
+        error: "Doğrulama kodu yanlış."
+      });
+    }
+
+    emailOtpStore.delete(key);
+
+    return res.json({
+      ok: true,
+      verified: true,
+      email,
+      username: entry.username || ""
+    });
+  } catch (e) {
+    console.error("VERIFY EMAIL OTP ERROR:", e);
+    return res.status(500).json({
+      ok: false,
+      code: "OTP_VERIFY_ERROR",
+      error: e?.message || "Kod doğrulanamadı."
+    });
+  }
+});
+
+/* =========================================================
    FORGOT START
 ========================================================= */
 
@@ -2640,6 +2750,9 @@ app.post(
     try {
       cleanupRecoveryCodes();
       cleanupPasswordResetTokens();
+      for (const [key, entry] of emailOtpStore.entries()) {
+        if (!entry || entry.expires < Date.now()) emailOtpStore.delete(key);
+      }
       const found =
         await resolveRecoveryEmail(
           req.body?.identifier,
