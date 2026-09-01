@@ -12,36 +12,6 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-/* =========================================================
-   EXPRESS 5 / RENDER UYUMLU CORS
-   NOT: app.options("*") KULLANMA. Express 5 + path-to-regexp
-   wildcard route tanımında "Missing parameter name" hatası verir.
-========================================================= */
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PATCH,PUT,DELETE,OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
-  );
-  res.setHeader("Access-Control-Max-Age", "86400");
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
-  next();
-});
-
 const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
@@ -2412,7 +2382,7 @@ app.get(
 function resendEnv(name, fallback = "") {
   return String(process.env[name] ?? fallback)
     .trim()
-    .replace(/^(["'])|(["'])$/g, "");
+    .replace(/^(\"')|(\"')$/g, "");
 }
 
 async function sendResendEmail(to, subject, html, text = "") {
@@ -2444,8 +2414,6 @@ async function sendResendEmail(to, subject, html, text = "") {
     );
   }
 
-  // RESEND_FROM_EMAIL yanlışlıkla "Minegram <mail@site.com>" şeklinde verilirse
-  // doğrudan kullanabilmek için formatı koru; yalnızca düz adreslerde isim ekle.
   const from = /<[^>]+>/.test(fromEmail)
     ? fromEmail
     : `${fromName} <${fromEmail}>`;
@@ -2504,7 +2472,6 @@ async function sendResendEmail(to, subject, html, text = "") {
         to: recipient
       });
 
-      // 400/401/403/422 tekrar denenirse aynı sonucu verir.
       if ([400, 401, 403, 422].includes(response.status)) break;
     } catch (e) {
       lastError =
@@ -2523,6 +2490,11 @@ async function sendResendEmail(to, subject, html, text = "") {
   console.error("[RESEND] GÖNDERME HATASI:", lastError?.message || lastError);
   throw lastError || new Error("E-posta gönderilemedi.");
 }
+
+const recoveryCodes =
+  new Map();
+
+
 
 /* =========================================================
    MINEGRAM - E-POSTA OTP API
@@ -2611,7 +2583,6 @@ app.post("/api/send-email-otp", async (req, res) => {
 
     const text = `Minegram e-posta doğrulama kodun\n\nKodun: ${code}\n\nBu kod 10 dakika geçerlidir.\nBu kodu kimseyle paylaşma.`;
 
-    // Önce gönder, başarılı olmadan kodu geçerli olarak kaydetme.
     await sendResendEmail(email, "Minegram doğrulama kodun", html, text);
 
     emailOtpStore.set(key, {
@@ -2691,9 +2662,106 @@ app.post("/api/verify-email-otp", async (req, res) => {
   }
 });
 
-const recoveryCodes =
-  new Map();
+/* =========================================================
+   REGISTER CODE COMPATIBILITY ENDPOINTS
+   Hem eski /api/register/* hem yeni OTP ekranı desteklenir.
+========================================================= */
+app.post("/api/register/send-code", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const username = normalizeUsername(req.body?.username || "");
 
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ ok: false, code: "INVALID_EMAIL", error: "Geçerli bir e-posta adresi gir." });
+    }
+
+    const key = registrationKey(email);
+    let entry = registrationCodes.get(key);
+
+    if (entry) {
+      if (!registrationAllowed(email)) {
+        return res.status(429).json({ ok: false, code: "RATE_LIMIT", error: "Yeni kod göndermek için 60 saniye bekle." });
+      }
+      const code = createVerificationCode();
+      entry.code = code;
+      entry.expires = Date.now() + 10 * 60 * 1000;
+      entry.attempts = 0;
+      registrationRate.set(key, Date.now());
+      await sendRegistrationCode(email, code);
+      return res.json({ ok: true, email, maskedEmail: maskEmail(email) });
+    }
+
+    // Kullanıcı henüz /api/register ile oluşturulmadıysa bu endpoint bağımsız OTP olarak çalışır.
+    if (emailOtpRate.get(key) && Date.now() - emailOtpRate.get(key) < 60 * 1000) {
+      const remaining = Math.ceil((60 * 1000 - (Date.now() - emailOtpRate.get(key))) / 1000);
+      return res.status(429).json({ ok: false, code: "RATE_LIMIT", error: `${remaining} saniye sonra tekrar deneyin.` });
+    }
+
+    const code = createEmailOtp();
+    await sendResendEmail(
+      email,
+      "Minegram e-posta doğrulama kodun",
+      `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px"><h2>Minegram</h2><p>Hesabını doğrulamak için 6 haneli kodun:</p><div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
+      `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+    );
+    emailOtpStore.set(key, { code, username, email, sentAt: Date.now(), expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
+    emailOtpRate.set(key, Date.now());
+    return res.json({ ok: true, email, maskedEmail: maskEmail(email) });
+  } catch (e) {
+    console.error("REGISTER SEND CODE ERROR:", e?.message || e);
+    return res.status(500).json({ ok: false, error: e?.message || "Doğrulama kodu gönderilemedi." });
+  }
+});
+
+app.post("/api/register/verify-code", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const code = normalizeOtpCode(req.body?.code);
+    if (!email || !isValidOtpCode(code)) {
+      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "6 haneli doğrulama kodunu gir." });
+    }
+
+    const key = registrationKey(email);
+    let entry = registrationCodes.get(key);
+    let source = "registration";
+
+    if (!entry) {
+      entry = emailOtpStore.get(key);
+      source = "otp";
+    }
+
+    if (!entry || entry.expires < Date.now()) {
+      registrationCodes.delete(key);
+      emailOtpStore.delete(key);
+      return res.status(400).json({ ok: false, code: "CODE_EXPIRED", error: "Kod yanlış veya süresi dolmuş. Yeni kod iste." });
+    }
+
+    if ((entry.attempts || 0) >= 5) {
+      registrationCodes.delete(key);
+      emailOtpStore.delete(key);
+      return res.status(429).json({ ok: false, code: "TOO_MANY_ATTEMPTS", error: "Çok fazla yanlış kod girildi. Yeni kod iste." });
+    }
+
+    if (entry.code !== code) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "Kod yanlış. Lütfen tekrar kontrol et." });
+    }
+
+    if (source === "registration" && entry.userId) {
+      const admin = adminClient();
+      const { data: updated, error } = await admin.auth.admin.updateUserById(entry.userId, { email_confirm: true });
+      if (error) throw error;
+      registrationCodes.delete(key);
+      return res.json({ ok: true, verified: true, user: { id: updated?.user?.id || entry.userId, email, username: entry.username || username || "", displayName: entry.displayName || "" } });
+    }
+
+    emailOtpStore.delete(key);
+    return res.json({ ok: true, verified: true, email, username: entry.username || normalizeUsername(req.body?.username || "") });
+  } catch (e) {
+    console.error("REGISTER VERIFY CODE ERROR:", e?.message || e);
+    return res.status(500).json({ ok: false, error: e?.message || "Doğrulama başarısız." });
+  }
+});
 
 /* =========================================================
    FORGOT START
