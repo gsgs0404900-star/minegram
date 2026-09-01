@@ -1183,13 +1183,7 @@ if (!entry) {
   }
 
 }
-
-/*
- * Hem RAM'de hem Supabase'de bulunamadıysa
- * gerçekten kayıt yoktur.
- */
-let entry = registrationCodes.get(key);
-
+      
 /*
  * Render yeniden başladıysa RAM'deki OTP silinmiş olabilir.
  * Önce Supabase Auth metadata'dan OTP'yi geri yükle.
