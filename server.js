@@ -487,6 +487,701 @@ async function hydratePosts(
 }
 
 /* =========================================================
+   RESEND + OTP SİSTEMİ
+========================================================= */
+
+const RESEND_API_KEY = env("RESEND_API_KEY");
+
+const RESEND_FROM_EMAIL =
+  env("RESEND_FROM_EMAIL");
+
+const OTP_EXPIRE_MS =
+  10 * 60 * 1000;
+
+const OTP_MAX_ATTEMPTS = 5;
+
+/*
+  Geçici OTP deposu.
+  Render yeniden başlatılırsa OTP'ler silinir.
+*/
+const verificationCodes = new Map();
+
+
+function createOTP() {
+  return String(
+    crypto.randomInt(
+      100000,
+      1000000
+    )
+  );
+}
+
+
+function normalizeEmail(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+
+
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  if (!RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY eksik. Render > Environment Variables bölümüne ekle."
+    );
+  }
+
+  if (!RESEND_FROM_EMAIL) {
+    throw new Error(
+      "RESEND_FROM_EMAIL eksik. Örneğin: Minegram <onboarding@resend.dev>"
+    );
+  }
+
+  const response = await fetch(
+    "https://api.resend.com/emails",
+    {
+      method: "POST",
+
+      headers: {
+        "Authorization":
+          `Bearer ${RESEND_API_KEY}`,
+
+        "Content-Type":
+          "application/json"
+      },
+
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+
+        to: [
+          normalizeEmail(to)
+        ],
+
+        subject,
+
+        html,
+
+        text
+      })
+    }
+  );
+
+  const raw =
+    await response.text();
+
+  let data = {};
+
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    data = {
+      message: raw
+    };
+  }
+
+  if (!response.ok) {
+
+    console.error(
+      "RESEND API HATASI:",
+      response.status,
+      data
+    );
+
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Resend HTTP ${response.status}`
+    );
+  }
+
+  console.log(
+    "RESEND EMAIL OK:",
+    data
+  );
+
+  return data;
+}
+
+
+/* =========================================================
+   OTP GÖNDER
+========================================================= */
+
+app.post(
+  "/api/register/send-code",
+  async (req, res) => {
+
+    try {
+
+      const email =
+        normalizeEmail(
+          req.body?.email
+        );
+
+      if (!email) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "E-posta adresi gerekli."
+        });
+
+      }
+
+      /*
+        Basit e-posta kontrolü
+      */
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          .test(email)
+      ) {
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Geçerli bir e-posta adresi gir."
+        });
+
+      }
+
+      const existing =
+        verificationCodes.get(
+          email
+        );
+
+      /*
+        Çok sık kod istemeyi engelle
+      */
+      if (
+        existing &&
+        existing.lastSent &&
+        Date.now() -
+          existing.lastSent <
+          60 * 1000
+      ) {
+
+        const remaining =
+          Math.ceil(
+            (
+              60 * 1000 -
+              (
+                Date.now() -
+                existing.lastSent
+              )
+            ) / 1000
+          );
+
+        return res.status(429).json({
+          ok: false,
+          error:
+            `Yeni kod istemeden önce ${remaining} saniye bekle.`
+        });
+
+      }
+
+      const code =
+        createOTP();
+
+      verificationCodes.set(
+        email,
+        {
+          code,
+
+          expires:
+            Date.now() +
+            OTP_EXPIRE_MS,
+
+          attempts: 0,
+
+          lastSent:
+            Date.now()
+        }
+      );
+
+
+      const html = `
+<!doctype html>
+
+<html lang="tr">
+
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>Minegram doğrulama</title>
+
+</head>
+
+<body style="
+margin:0;
+padding:0;
+background:#f5f5f5;
+font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+max-width:520px;
+margin:40px auto;
+padding:20px;
+">
+
+<div style="
+background:#ffffff;
+border-radius:20px;
+padding:35px 25px;
+text-align:center;
+box-shadow:0 5px 25px rgba(0,0,0,.08);
+">
+
+<h1 style="
+margin:0 0 15px;
+font-size:30px;
+">
+Minegram
+</h1>
+
+<p style="
+font-size:16px;
+color:#444;
+">
+Hesabını doğrulamak için
+aşağıdaki 6 haneli kodu kullan.
+</p>
+
+<div style="
+margin:30px 0;
+padding:20px;
+background:#f2f2f2;
+border-radius:15px;
+font-size:38px;
+font-weight:bold;
+letter-spacing:10px;
+">
+${code}
+</div>
+
+<p style="
+color:#555;
+">
+Bu kod <b>10 dakika</b> boyunca geçerlidir.
+</p>
+
+<p style="
+font-size:13px;
+color:#999;
+margin-top:30px;
+">
+Bu işlemi sen başlatmadıysan
+bu e-postayı dikkate alma.
+</p>
+
+</div>
+
+</div>
+
+</body>
+
+</html>
+`;
+
+
+      const text = `
+Minegram hesap doğrulama
+
+Doğrulama kodun:
+
+${code}
+
+Bu kod 10 dakika geçerlidir.
+
+Bu işlemi sen başlatmadıysan
+bu e-postayı dikkate alma.
+`;
+
+
+      await sendResendEmail(
+        email,
+
+        "Minegram doğrulama kodun",
+
+        html,
+
+        text
+      );
+
+
+      console.log(
+        "OTP GÖNDERİLDİ:",
+        email
+      );
+
+
+      return res.json({
+
+        ok: true,
+
+        sent: true,
+
+        message:
+          "Doğrulama kodu e-posta adresine gönderildi.",
+
+        expiresIn:
+          OTP_EXPIRE_MS / 1000
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "SEND OTP ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          error?.message ||
+          "E-posta gönderilemedi."
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   OTP DOĞRULA
+========================================================= */
+
+app.post(
+  "/api/register/verify-code",
+  async (req, res) => {
+
+    try {
+
+      const email =
+        normalizeEmail(
+          req.body?.email
+        );
+
+      const code =
+        String(
+          req.body?.code || ""
+        ).trim();
+
+
+      if (!email || !code) {
+
+        return res.status(400).json({
+
+          ok: false,
+
+          error:
+            "E-posta ve doğrulama kodu gerekli."
+
+        });
+
+      }
+
+
+      if (!/^\d{6}$/.test(code)) {
+
+        return res.status(400).json({
+
+          ok: false,
+
+          error:
+            "Doğrulama kodu 6 haneli olmalı."
+
+        });
+
+      }
+
+
+      const entry =
+        verificationCodes.get(
+          email
+        );
+
+
+      if (!entry) {
+
+        return res.status(400).json({
+
+          ok: false,
+
+          verified: false,
+
+          error:
+            "Doğrulama kodu bulunamadı. Yeni kod iste."
+
+        });
+
+      }
+
+
+      if (
+        Date.now() >
+        entry.expires
+      ) {
+
+        verificationCodes.delete(
+          email
+        );
+
+        return res.status(400).json({
+
+          ok: false,
+
+          verified: false,
+
+          error:
+            "Doğrulama kodunun süresi dolmuş. Yeni kod iste."
+
+        });
+
+      }
+
+
+      if (
+        entry.attempts >=
+        OTP_MAX_ATTEMPTS
+      ) {
+
+        verificationCodes.delete(
+          email
+        );
+
+        return res.status(429).json({
+
+          ok: false,
+
+          verified: false,
+
+          error:
+            "Çok fazla yanlış deneme yapıldı. Yeni kod iste."
+
+        });
+
+      }
+
+
+      if (
+        entry.code !==
+        code
+      ) {
+
+        entry.attempts++;
+
+        verificationCodes.set(
+          email,
+          entry
+        );
+
+        return res.status(400).json({
+
+          ok: false,
+
+          verified: false,
+
+          error:
+            `Doğrulama kodu yanlış. Kalan deneme: ${
+              OTP_MAX_ATTEMPTS -
+              entry.attempts
+            }`
+
+        });
+
+      }
+
+
+      /*
+        OTP başarılı
+      */
+
+      verificationCodes.delete(
+        email
+      );
+
+
+      return res.json({
+
+        ok: true,
+
+        verified: true,
+
+        email,
+
+        message:
+          "E-posta başarıyla doğrulandı."
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "VERIFY OTP ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        ok: false,
+
+        verified: false,
+
+        error:
+          error?.message ||
+          "Kod doğrulanamadı."
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   TEST EMAIL
+========================================================= */
+
+app.post(
+  "/api/test-email",
+  async (req, res) => {
+
+    try {
+
+      const email =
+        normalizeEmail(
+          req.body?.email
+        );
+
+
+      if (!email) {
+
+        return res.status(400).json({
+
+          ok: false,
+
+          error:
+            "Test e-posta adresi gerekli."
+
+        });
+
+      }
+
+
+      const result =
+        await sendResendEmail(
+
+          email,
+
+          "Minegram test e-postası",
+
+          `
+          <div style="
+          font-family:Arial;
+          padding:30px;
+          ">
+
+          <h2>Minegram</h2>
+
+          <p>
+          Resend bağlantısı başarıyla çalışıyor.
+          </p>
+
+          </div>
+          `,
+
+          "Minegram Resend test e-postası."
+
+        );
+
+
+      return res.json({
+
+        ok: true,
+
+        message:
+          "Test e-postası gönderildi.",
+
+        id:
+          result?.id || null
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "TEST EMAIL ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          error?.message ||
+          "Test e-postası gönderilemedi."
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   RESEND DURUMU
+========================================================= */
+
+app.get(
+  "/api/email-status",
+  (req, res) => {
+
+    res.json({
+
+      ok: true,
+
+      resend:
+        Boolean(
+          RESEND_API_KEY
+        ),
+
+      from:
+        Boolean(
+          RESEND_FROM_EMAIL
+        ),
+
+      message:
+        RESEND_API_KEY &&
+        RESEND_FROM_EMAIL
+          ? "Resend hazır."
+          : "Resend Environment Variables eksik."
+
+    });
+
+  }
+);
+
+/* =========================================================
    USERNAME CHECK
 ========================================================= */
 
