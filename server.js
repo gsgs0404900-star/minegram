@@ -36,19 +36,19 @@ function generateOtp() {
 
 async function sendResendEmail(to, subject, html, text) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM || "Minegram <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM;
+
+  console.log("[RESEND] API key var mı:", !!apiKey);
+  console.log("[RESEND] FROM:", from);
+  console.log("[RESEND] TO:", to);
 
   if (!apiKey) {
-    throw new Error("RESEND_API_KEY Render ortamında tanımlı değil.");
+    throw new Error("RESEND_API_KEY Render Environment Variables içinde yok.");
   }
 
   if (!from) {
-    throw new Error("RESEND_FROM Render ortamında tanımlı değil.");
+    throw new Error("RESEND_FROM Render Environment Variables içinde yok.");
   }
-
-  console.log("[RESEND] API Key mevcut:", !!apiKey);
-  console.log("[RESEND] From:", from);
-  console.log("[RESEND] To:", to);
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -57,18 +57,18 @@ async function sendResendEmail(to, subject, html, text) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from,
+      from: from,
       to: [to],
-      subject,
-      html,
-      text
+      subject: subject,
+      html: html,
+      text: text
     })
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   console.log("[RESEND] HTTP:", response.status);
-  console.log("[RESEND] Sonuç:", data);
+  console.log("[RESEND] RESPONSE:", data);
 
   if (!response.ok) {
     throw new Error(
