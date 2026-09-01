@@ -733,8 +733,6 @@ app.post(
         });
       }
 
-      const admin = adminClient();
-
       /* Kullanıcı adı kontrolü */
       const {
         data: existingProfile,
@@ -1073,12 +1071,495 @@ console.log(
 
 /* =========================================================
    REGISTER VERIFY
-   ========================================================= */
+========================================================= */
 
 app.post(
   "/api/register/verify",
   async (req, res) => {
     try {
+      const email = normalizeEmail(
+        req.body?.email
+      );
+
+      const code = String(
+        req.body?.code ||
+        req.body?.otp ||
+        ""
+      )
+        .replace(/\D/g, "")
+        .slice(0, 6);
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          code: "EMAIL_REQUIRED",
+          error: "E-posta gerekli."
+        });
+      }
+
+      if (!/^\d{6}$/.test(code)) {
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_CODE_FORMAT",
+          error:
+            "6 haneli doğrulama kodunu gir."
+        });
+      }
+
+      /*
+       * Önce RAM'den kontrol et.
+       */
+
+      /*
+       * Render yeniden başladıysa RAM silinir.
+       * Bu nedenle Supabase Auth metadata'dan
+       * OTP'yi geri yüklemeyi deniyoruz.
+       */
+      if (!entry) {
+        const verifyAdmin =
+          adminClient();
+
+        let authUser = null;
+        let page = 1;
+
+        while (
+          !authUser &&
+          page <= 20
+        ) {
+          const {
+            data,
+            error
+          } =
+            await verifyAdmin.auth.admin.listUsers({
+              page,
+              perPage: 1000
+            });
+
+          if (error) {
+            console.error(
+              "[MINEGRAM OTP] Kullanıcı arama hatası:",
+              error
+            );
+            break;
+          }
+
+          const users =
+            data?.users || [];
+
+          authUser =
+            users.find(
+              user =>
+                normalizeEmail(
+                  user.email
+                ) === email
+            ) || null;
+
+          if (
+            users.length < 1000
+          ) {
+            break;
+          }
+
+          page++;
+        }
+
+        /*
+         * Kullanıcı bulunduysa OTP metadata'dan al.
+         */
+        if (authUser) {
+          const verification =
+            authUser.user_metadata
+              ?.minegram_verification;
+
+          if (
+            verification &&
+            verification.code
+          ) {
+            entry = {
+              code: String(
+                verification.code
+              ),
+
+              userId:
+                authUser.id,
+
+              email:
+                normalizeEmail(
+                  authUser.email
+                ),
+
+              expires:
+                Number(
+                  verification.expires || 0
+                ),
+
+              attempts:
+                Number(
+                  verification.attempts || 0
+                ),
+
+              username:
+                verification.username ||
+                authUser.user_metadata
+                  ?.username ||
+                "",
+
+              displayName:
+                verification.displayName ||
+                authUser.user_metadata
+                  ?.display_name ||
+                authUser.user_metadata
+                  ?.displayName ||
+                ""
+            };
+
+            registrationCodes.set(
+              key,
+              entry
+            );
+
+            console.log(
+              "[MINEGRAM OTP] OTP Supabase metadata'dan geri yüklendi."
+            );
+          }
+        }
+      }
+
+      /*
+       * OTP bulunamadı.
+       */
+      if (!entry) {
+        return res.status(400).json({
+          ok: false,
+          code: "OTP_NOT_FOUND",
+          error:
+            "Doğrulama kaydı bulunamadı. Lütfen yeni kod iste."
+        });
+      }
+
+      /*
+       * Süre kontrolü.
+       */
+      if (
+        !entry.expires ||
+        Number(entry.expires) <
+          Date.now()
+      ) {
+        registrationCodes.delete(
+          key
+        );
+
+        return res.status(400).json({
+          ok: false,
+          code: "CODE_EXPIRED",
+          error:
+            "Kodun süresi dolmuş. Yeni kod iste."
+        });
+      }
+
+      /*
+       * 5 yanlış deneme limiti.
+       */
+      if (
+        Number(entry.attempts || 0) >= 5
+      ) {
+        registrationCodes.delete(
+          key
+        );
+
+        return res.status(429).json({
+          ok: false,
+          code: "TOO_MANY_ATTEMPTS",
+          error:
+            "Çok fazla yanlış kod girildi. Yeni kod iste."
+        });
+      }
+
+      /*
+       * =====================================================
+       * KOD KARŞILAŞTIRMA
+       * =====================================================
+       */
+
+      const savedCode =
+        String(entry.code || "")
+          .replace(/\D/g, "")
+          .slice(0, 6);
+
+      const enteredCode =
+        String(code || "")
+          .replace(/\D/g, "")
+          .slice(0, 6);
+
+      console.log(
+        "[MINEGRAM OTP] E-posta:",
+        email
+      );
+
+      console.log(
+        "[MINEGRAM OTP] Kayıtlı kod:",
+        savedCode
+      );
+
+      console.log(
+        "[MINEGRAM OTP] Girilen kod:",
+        enteredCode
+      );
+
+      /*
+       * Kod yanlış.
+       */
+      if (
+        savedCode !== enteredCode
+      ) {
+        entry.attempts =
+          Number(
+            entry.attempts || 0
+          ) + 1;
+
+        registrationCodes.set(
+          key,
+          entry
+        );
+
+        /*
+         * Deneme sayısını Supabase metadata'ya da kaydet.
+         */
+        try {
+          const attemptAdmin =
+            adminClient();
+
+          await attemptAdmin.auth.admin.updateUserById(
+            entry.userId,
+            {
+              user_metadata: {
+                minegram_verification: {
+                  code: String(
+                    entry.code
+                  ),
+                  expires:
+                    Number(
+                      entry.expires
+                    ),
+                  attempts:
+                    entry.attempts,
+                  username:
+                    entry.username ||
+                    "",
+                  displayName:
+                    entry.displayName ||
+                    ""
+                }
+              }
+            }
+          );
+        } catch (attemptError) {
+          console.error(
+            "[MINEGRAM OTP] Deneme sayısı kaydedilemedi:",
+            attemptError
+          );
+        }
+
+        console.log(
+          "[MINEGRAM OTP] KOD YANLIŞ"
+        );
+
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_CODE",
+          error:
+            "Kod yanlış. Lütfen tekrar kontrol et."
+        });
+      }
+
+      /*
+       * =====================================================
+       * KOD DOĞRU
+       * =====================================================
+       */
+
+      console.log(
+        "[MINEGRAM OTP] KOD DOĞRU"
+      );
+
+      const confirmAdmin =
+        adminClient();
+
+      /*
+       * Supabase Auth e-postasını doğrula.
+       */
+      const {
+        data: updated,
+        error: updateError
+      } =
+        await confirmAdmin.auth.admin.updateUserById(
+          entry.userId,
+          {
+            email_confirm: true
+          }
+        );
+
+      if (updateError) {
+        console.error(
+          "[MINEGRAM OTP] EMAIL CONFIRM ERROR:",
+          updateError
+        );
+
+        return res.status(500).json({
+          ok: false,
+          code: "EMAIL_CONFIRM_ERROR",
+          error:
+            "E-posta doğrulanamadı. Lütfen tekrar deneyin."
+        });
+      }
+
+      /*
+       * OTP artık kullanılmasın.
+       */
+      registrationCodes.delete(
+        key
+      );
+
+      /*
+       * Supabase metadata'daki OTP'yi temizle.
+       */
+      try {
+        const cleanAdmin =
+          adminClient();
+
+        await cleanAdmin.auth.admin.updateUserById(
+          entry.userId,
+          {
+            user_metadata: {
+              ...(updated?.user
+                ?.user_metadata || {}),
+              minegram_verification:
+                null
+            }
+          }
+        );
+      } catch (cleanError) {
+        console.error(
+          "[MINEGRAM OTP] OTP metadata temizleme hatası:",
+          cleanError
+        );
+      }
+
+      /*
+       * =====================================================
+       * OTOMATİK GİRİŞ
+       * =====================================================
+       *
+       * Frontend password gönderiyorsa otomatik giriş yapılır.
+       */
+      const password = String(
+        req.body?.password ||
+        req.body?.newPassword ||
+        req.body?.registerPassword ||
+        ""
+      );
+
+      if (password) {
+        try {
+          const anon =
+            client();
+
+          const {
+            data: loginData,
+            error: loginError
+          } =
+            await anon.auth.signInWithPassword({
+              email:
+                entry.email,
+              password
+            });
+
+          if (
+            !loginError &&
+            loginData?.session
+          ) {
+            return res.json({
+              ok: true,
+              verified: true,
+              login: true,
+
+              token:
+                loginData.session
+                  .access_token,
+
+              user: {
+                id:
+                  updated?.user?.id ||
+                  entry.userId,
+
+                email:
+                  entry.email,
+
+                username:
+                  entry.username,
+
+                displayName:
+                  entry.displayName
+              }
+            });
+          }
+
+          console.log(
+            "[MINEGRAM OTP] Otomatik giriş yapılamadı:",
+            loginError?.message
+          );
+        } catch (loginError) {
+          console.error(
+            "[MINEGRAM OTP] LOGIN ERROR:",
+            loginError
+          );
+        }
+      }
+
+      /*
+       * Şifre gönderilmemişse doğrulama başarılı.
+       */
+      return res.json({
+        ok: true,
+        verified: true,
+        needsLogin: true,
+
+        message:
+          "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
+
+        user: {
+          id:
+            updated?.user?.id ||
+            entry.userId,
+
+          email:
+            entry.email,
+
+          username:
+            entry.username,
+
+          displayName:
+            entry.displayName
+        }
+      });
+
+    } catch (e) {
+      console.error(
+        "REGISTER VERIFY ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        code: "REGISTER_VERIFY_ERROR",
+        error:
+          e?.message ||
+          "Doğrulama başarısız."
+      });
+    }
+  }
+);
+
       const email =
         normalizeEmail(req.body?.email);
 
@@ -1108,9 +1589,7 @@ app.post(
 /*
  * RAM'de OTP yoksa Supabase Auth'tan kullanıcıyı bul.
  */
-if (!entry) {
-
-  const admin = adminClient();
+if (!entry) 
 
   const {
     data: usersData,
@@ -1353,8 +1832,6 @@ console.log(
   "[MINEGRAM OTP] KOD DOĞRU"
 );
 
-      const admin = adminClient();
-
       /*
        * Kod doğru:
        * Supabase Auth kullanıcısının e-postasını doğrula.
@@ -1477,10 +1954,10 @@ app.post(
       }
 
       const key =
-        registrationKey(email);
+  registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+let entry =
+  registrationCodes.get(key);
 
       if (!entry) {
         return res.status(404).json({
