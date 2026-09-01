@@ -49,7 +49,7 @@ const feedEl=document.getElementById('feed');
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 async function api(path,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};let r=await fetch(API+path,opt);let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'İşlem başarısız');return j}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.classList.remove('show'),2200)}
-function showLogin(){location.replace('giris.html')}
+function showLogin(){location.replace('index.html')}
 function showHome(){document.getElementById('home').classList.remove('hidden');document.getElementById('bottomNav').classList.remove('hidden')}
 function logout(){localStorage.removeItem('minegram_token');localStorage.removeItem('minegram_supabase_token');token=null;currentUser=null;showLogin()}
 async function login(){try{const j=await api('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:lu.value,password:lp.value})});if(!j.token)return toast('E-posta adresini doğrula, sonra giriş yap.');token=j.token;localStorage.setItem('minegram_token',token);showHome();loadFeed()}catch(e){toast(e.message)}}
