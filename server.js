@@ -1,11 +1,3 @@
-/**
- * =========================================================
- * MINEGRAM
- * Firebase Cloud Functions
- * Resend + OTP + Supabase
- * =========================================================
- */
-
 import "dotenv/config";
 
 import express from "express";
