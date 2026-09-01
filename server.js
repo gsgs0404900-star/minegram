@@ -1102,16 +1102,45 @@ app.post(
         });
       }
 
-      if (entry.code !== code) {
-        entry.attempts += 1;
+      const savedCode =
+  String(entry.code || "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
 
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_CODE",
-          error:
-            "Kod yanlış. Lütfen tekrar kontrol et."
-        });
-      }
+const enteredCode =
+  String(code || "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
+
+console.log(
+  "[MINEGRAM OTP] Kayıtlı kod:",
+  savedCode
+);
+
+console.log(
+  "[MINEGRAM OTP] Girilen kod:",
+  enteredCode
+);
+
+if (savedCode !== enteredCode) {
+
+  entry.attempts += 1;
+
+  console.log(
+    "[MINEGRAM OTP] KOD YANLIŞ"
+  );
+
+  return res.status(400).json({
+    ok: false,
+    code: "INVALID_CODE",
+    error:
+      "Kod yanlış. Lütfen tekrar kontrol et."
+  });
+}
+
+console.log(
+  "[MINEGRAM OTP] KOD DOĞRU"
+);
 
       const admin = adminClient();
 
@@ -2714,13 +2743,15 @@ app.post("/api/verify-email-otp", async (req, res) => {
     }
 
     if (entry.code !== code) {
-      entry.attempts = (entry.attempts || 0) + 1;
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_CODE",
-        error: "Doğrulama kodu yanlış."
-      });
-    }
+  entry.attempts += 1;
+
+  return res.status(400).json({
+    ok: false,
+    code: "INVALID_CODE",
+    error:
+      "Kod yanlış. Lütfen tekrar kontrol et."
+  });
+}
 
     emailOtpStore.delete(key);
 
