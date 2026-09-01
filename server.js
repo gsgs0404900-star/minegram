@@ -1,3 +1,4 @@
+try { require("dotenv").config(); } catch (_) {}
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
@@ -613,58 +614,6 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
-async function persistRegistrationCode(admin, entry) {
-  try {
-    await admin.auth.admin.updateUserById(entry.userId, {
-      user_metadata: {
-        username: entry.username,
-        display_name: entry.displayName,
-        minegram_registration_pending: true,
-        minegram_registration_code: entry.code,
-        minegram_registration_expires: entry.expires
-      }
-    });
-  } catch (e) {
-    console.error('REGISTRATION CODE PERSIST ERROR:', e);
-  }
-}
-
-function registrationEntryFromAuthUser(user) {
-  const meta = user?.user_metadata || {};
-  const code = String(meta.minegram_registration_code || '').trim();
-  const expires = Number(meta.minegram_registration_expires || 0);
-  if (!meta.minegram_registration_pending || !/^\d{6}$/.test(code) || !expires) return null;
-  return {
-    code,
-    userId: user.id,
-    email: normalizeEmail(user.email),
-    expires,
-    attempts: 0,
-    username: normalizeUsername(meta.username),
-    displayName: String(meta.display_name || meta.username || '').trim()
-  };
-}
-
-async function findPendingRegistration(admin, email) {
-  const wanted = normalizeEmail(email);
-  for (let page = 1; page <= 20; page++) {
-    const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (result?.error) throw result.error;
-    const users = result?.data?.users || [];
-    const user = users.find(u => normalizeEmail(u?.email) === wanted);
-    if (user) {
-      const entry = registrationEntryFromAuthUser(user);
-      if (entry) {
-        registrationCodes.set(registrationKey(wanted), entry);
-        return entry;
-      }
-      return null;
-    }
-    if (users.length < 1000) break;
-  }
-  return null;
-}
-
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -999,7 +948,21 @@ app.post(
         }
       );
 
-      await persistRegistrationCode(admin, registrationCodes.get(registrationKey(email)));
+      try {
+        await admin.auth.admin.updateUserById(authUser.id, {
+          user_metadata: {
+            ...(authUser.user_metadata || {}),
+            minegram_verification: {
+              code,
+              expires: Date.now() + 10 * 60 * 1000,
+              username,
+              displayName
+            }
+          }
+        });
+      } catch (metaError) {
+        console.error("INITIAL OTP METADATA SAVE ERROR:", metaError);
+      }
 
       registrationRate.set(
         registrationKey(email),
@@ -1123,14 +1086,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry = registrationCodes.get(key);
-
-      // Sunucu yeniden başladıysa Map sıfırlanır. Kodu Supabase Auth metadata
-      // içinden geri yükleyerek doğrulamayı bozmadan devam ettir.
-      if (!entry) {
-        const admin = adminClient();
-        entry = await findPendingRegistration(admin, email);
-      }
+      const entry =
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(400).json({
@@ -1204,18 +1161,6 @@ app.post(
       }
 
       registrationCodes.delete(key);
-
-      try {
-        await admin.auth.admin.updateUserById(entry.userId, {
-          user_metadata: {
-            minegram_registration_pending: false,
-            minegram_registration_code: null,
-            minegram_registration_expires: null
-          }
-        });
-      } catch (metadataError) {
-        console.error('REGISTRATION METADATA CLEANUP ERROR:', metadataError);
-      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1309,18 +1254,36 @@ app.post(
 
       let entry = registrationCodes.get(key);
 
-      // Render/Node yeniden başladıysa RAM'deki kayıt kaybolabilir.
-      // Supabase Auth metadata içinden bekleyen kaydı geri yükle.
+      // Sunucu yeniden başladıysa OTP'yi Auth metadata'dan geri yükle.
       if (!entry) {
         const admin = adminClient();
-        entry = await findPendingRegistration(admin, email);
+        const { data: usersData, error: usersError } =
+          await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        if (!usersError) {
+          const u = (usersData?.users || []).find(
+            x => normalizeEmail(x.email) === email
+          );
+          const otp = u?.user_metadata?.minegram_verification;
+          if (u && otp?.code) {
+            entry = {
+              code: String(otp.code),
+              userId: u.id,
+              email,
+              expires: Number(otp.expires || 0),
+              attempts: 0,
+              username: otp.username || u.user_metadata?.username || "",
+              displayName: otp.displayName || u.user_metadata?.displayName || ""
+            };
+            registrationCodes.set(key, entry);
+          }
+        }
       }
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
           error:
-            "Bekleyen bir kayıt bulunamadı. Bu e-posta ile yeniden kayıt başlat."
+            "Bekleyen bir kayıt bulunamadı. Lütfen kayıt işlemini yeniden başlat."
         });
       }
 
@@ -1376,7 +1339,20 @@ app.post(
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
 
-      await persistRegistrationCode(admin, entry);
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            minegram_verification: {
+              code,
+              expires: entry.expires,
+              username: entry.username || "",
+              displayName: entry.displayName || ""
+            }
+          }
+        });
+      } catch (metaError) {
+        console.error("RESEND OTP METADATA SAVE ERROR:", metaError);
+      }
 
       registrationRate.set(
         key,
