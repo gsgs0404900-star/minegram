@@ -613,106 +613,6 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
-/*
- * OTP'yi yalnızca RAM Map'te tutmak Render gibi ortamlarda güvenilir değildir.
- * Sunucu yeniden başlarsa Map silinir ve kullanıcı doğru kodu girse bile
- * "Doğrulama kodu bulunamadı" hatası oluşur.
- * Bu nedenle kodu Supabase Auth user_metadata içine de kalıcı olarak yazıyoruz.
- */
-async function findAuthUserByEmail(email) {
-  const wanted = normalizeEmail(email);
-  if (!wanted) return null;
-
-  const admin = adminClient();
-
-  for (let page = 1; page <= 20; page++) {
-    const result = await admin.auth.admin.listUsers({
-      page,
-      perPage: 1000
-    });
-
-    if (result?.error) throw result.error;
-
-    const users = result?.data?.users || [];
-    const found = users.find(
-      u => normalizeEmail(u?.email) === wanted
-    );
-
-    if (found) return found;
-    if (users.length < 1000) break;
-  }
-
-  return null;
-}
-
-async function saveRegistrationOtp(userId, entry) {
-  const admin = adminClient();
-  const result = await admin.auth.admin.getUserById(userId);
-
-  if (result?.error || !result?.data?.user) {
-    throw result?.error || new Error("Kayıt kullanıcısı bulunamadı.");
-  }
-
-  const oldMeta = result.data.user.user_metadata || {};
-  const nextMeta = {
-    ...oldMeta,
-    minegram_verification_code: String(entry.code),
-    minegram_verification_expires: Number(entry.expires),
-    minegram_verification_attempts: Number(entry.attempts || 0),
-    minegram_verification_username: entry.username || "",
-    minegram_verification_display_name: entry.displayName || ""
-  };
-
-  const updated = await admin.auth.admin.updateUserById(userId, {
-    user_metadata: nextMeta
-  });
-
-  if (updated?.error) throw updated.error;
-}
-
-async function loadRegistrationEntry(email) {
-  const user = await findAuthUserByEmail(email);
-  if (!user) return { user: null, entry: null };
-
-  const meta = user.user_metadata || {};
-  const code = normalizeOtpCode(meta.minegram_verification_code);
-  const expires = Number(meta.minegram_verification_expires || 0);
-
-  if (!code || !expires) {
-    return { user, entry: null };
-  }
-
-  return {
-    user,
-    entry: {
-      code,
-      userId: user.id,
-      email: normalizeEmail(user.email),
-      expires,
-      attempts: Number(meta.minegram_verification_attempts || 0),
-      username: String(meta.minegram_verification_username || user.user_metadata?.username || ""),
-      displayName: String(meta.minegram_verification_display_name || user.user_metadata?.display_name || "")
-    }
-  };
-}
-
-async function clearRegistrationOtp(userId) {
-  const admin = adminClient();
-  const result = await admin.auth.admin.getUserById(userId);
-  if (result?.error || !result?.data?.user) return;
-
-  const meta = { ...(result.data.user.user_metadata || {}) };
-  delete meta.minegram_verification_code;
-  delete meta.minegram_verification_expires;
-  delete meta.minegram_verification_attempts;
-  delete meta.minegram_verification_username;
-  delete meta.minegram_verification_display_name;
-
-  await admin.auth.admin.updateUserById(userId, {
-    user_metadata: meta
-  });
-}
-
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -789,7 +689,7 @@ app.post(
         });
       }
 
-      if (password.length < 6) {
+      if (password.length < 6 || !password.trim()) {
         return res.status(400).json({
           ok: false,
           code: "PASSWORD_TOO_SHORT",
@@ -1034,25 +934,17 @@ app.post(
        */
       const code = createVerificationCode();
 
-      const registrationEntry = {
-        code,
-        userId: authUser.id,
-        email,
-        expires: Date.now() + 10 * 60 * 1000,
-        attempts: 0,
-        username,
-        displayName
-      };
-
       registrationCodes.set(
         registrationKey(email),
-        registrationEntry
-      );
-
-      // Kodu Supabase'e de kaydet: Render restart/instance değişiminde kaybolmasın.
-      await saveRegistrationOtp(
-        authUser.id,
-        registrationEntry
+        {
+          code,
+          userId: authUser.id,
+          email,
+          expires: Date.now() + 10 * 60 * 1000,
+          attempts: 0,
+          username,
+          displayName
+        }
       );
 
       registrationRate.set(
@@ -1177,42 +1069,12 @@ app.post(
       const key =
         registrationKey(email);
 
-      // Önce kayıt OTP'si, sonra Supabase metadata, en son yeni OTP sistemi.
-      // Böylece /api/send-email-otp ile gönderilen kod /api/register/verify
-      // tarafından da kabul edilir. Eski ve yeni kayıt ekranları birlikte çalışır.
-      let entry = registrationCodes.get(key);
-      let entrySource = "registration";
-
-      if (!entry) {
-        try {
-          const loaded = await loadRegistrationEntry(email);
-          entry = loaded.entry;
-
-          if (entry) {
-            registrationCodes.set(key, entry);
-          }
-        } catch (loadError) {
-          console.error("REGISTER VERIFY METADATA LOAD ERROR:", loadError?.message || loadError);
-        }
-      }
-
-      // Yeni OTP endpointinin gönderdiği kodu da burada ara.
-      if (!entry) {
-        const otpEntry = emailOtpStore.get(key);
-        if (otpEntry) {
-          entry = {
-            ...otpEntry,
-            userId: otpEntry.userId || null,
-            attempts: Number(otpEntry.attempts || 0)
-          };
-          entrySource = "otp";
-        }
-      }
+      const entry =
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
-          code: "CODE_NOT_FOUND",
           error:
             "Doğrulama kodu bulunamadı. Yeni kod iste."
         });
@@ -1243,45 +1105,11 @@ app.post(
       if (entry.code !== code) {
         entry.attempts += 1;
 
-        try {
-          await saveRegistrationOtp(entry.userId, entry);
-        } catch (persistError) {
-          console.error("OTP ATTEMPT SAVE ERROR:", persistError?.message || persistError);
-        }
-
         return res.status(400).json({
           ok: false,
           code: "INVALID_CODE",
           error:
             "Kod yanlış. Lütfen tekrar kontrol et."
-        });
-      }
-
-      // /api/send-email-otp ile gelen bağımsız OTP ise burada doğrulama tamamlanır.
-      // Eğer aynı e-posta için Supabase Auth kullanıcısı zaten varsa onu da onayla.
-      if (entrySource === "otp" && !entry.userId) {
-        try {
-          const existingUser = await findAuthUserByEmail(email);
-          if (existingUser?.id) {
-            const admin = adminClient();
-            const { error: confirmError } = await admin.auth.admin.updateUserById(
-              existingUser.id,
-              { email_confirm: true }
-            );
-            if (confirmError) throw confirmError;
-          }
-        } catch (confirmError) {
-          console.error("OTP AUTH CONFIRM ERROR:", confirmError?.message || confirmError);
-        }
-
-        emailOtpStore.delete(key);
-        registrationCodes.delete(key);
-
-        return res.json({
-          ok: true,
-          verified: true,
-          email,
-          username: entry.username || normalizeUsername(req.body?.username || "")
         });
       }
 
@@ -1316,11 +1144,6 @@ app.post(
       }
 
       registrationCodes.delete(key);
-      try {
-        await clearRegistrationOtp(entry.userId);
-      } catch (clearError) {
-        console.error("OTP METADATA TEMİZLEME HATASI:", clearError?.message || clearError);
-      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1334,7 +1157,10 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            req.body?.password ??
+            req.body?.sifre ??
+            req.body?.pass ??
+            ""
           )
         });
 
@@ -1412,14 +1238,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry = registrationCodes.get(key);
-
-      // Restart sonrası resend de Supabase metadata'daki kaydı kullanır.
-      if (!entry) {
-        const loaded = await loadRegistrationEntry(email);
-        entry = loaded.entry;
-        if (entry) registrationCodes.set(key, entry);
-      }
+      const entry =
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(404).json({
@@ -1481,8 +1301,6 @@ app.post(
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
 
-      await saveRegistrationOtp(entry.userId, entry);
-
       registrationRate.set(
         key,
         Date.now()
@@ -1535,6 +1353,8 @@ app.post(
       const password =
         String(
           req.body?.password ??
+          req.body?.sifre ??
+          req.body?.pass ??
           ""
         );
 
@@ -1646,6 +1466,11 @@ app.post(
         !sd?.session ||
         !sd?.user
       ) {
+        console.error("LOGIN AUTH FAILED:", {
+          identifier,
+          email,
+          message: le?.message || "No session"
+        });
         return res.status(401).json({
           error:
             /invalid login credentials/i.test(
@@ -2564,430 +2389,73 @@ app.get(
    RESEND
 ========================================================= */
 
-function resendEnv(name, fallback = "") {
-  return String(process.env[name] ?? fallback)
-    .trim()
-    .replace(/^(\"')|(\"')$/g, "");
-}
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY ||
+      ""
+    ).trim();
 
-async function sendResendEmail(to, subject, html, text = "") {
-  const recipient = resendEnv("RESEND_RECIPIENT", to).toLowerCase();
-  const apiKey =
-    resendEnv("RESEND_API_KEY") ||
-    resendEnv("RESEND_KEY");
-
-  const fromEmail =
-    resendEnv("RESEND_FROM_EMAIL") ||
-    resendEnv("RESEND_FROM") ||
-    "onboarding@resend.dev";
-
-  const fromName = resendEnv("RESEND_FROM_NAME", "Minegram");
-
-  if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-    throw new Error("Geçersiz e-posta alıcısı: " + recipient);
-  }
-
-  if (!apiKey) {
+  if (!key) {
     throw new Error(
-      "RESEND_API_KEY eksik. Render > Environment içine RESEND_API_KEY ekle."
+      "RESEND_API_KEY eksik."
     );
   }
 
-  if (!fromEmail.includes("@")) {
-    throw new Error(
-      "RESEND_FROM_EMAIL geçersiz. Örn: onboarding@resend.dev veya doğrulanmış alan adındaki bir adres."
-    );
-  }
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
 
-  const from = /<[^>]+>/.test(fromEmail)
-    ? fromEmail
-    : `${fromName} <${fromEmail}>`;
-
-  const payload = {
-    from,
-    to: [recipient],
-    subject: String(subject || "Minegram"),
-    html: String(html || ""),
-    text: String(text || "")
-  };
-
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-
-    try {
-      const response = await fetch("https://api.resend.com/emails", {
+  const r =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
         method: "POST",
+
         headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "User-Agent": "Minegram/1.0"
+          Authorization:
+            `Bearer ${key}`,
+          "Content-Type":
+            "application/json"
         },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
 
-      const raw = await response.text();
-      let body = {};
-      try {
-        body = raw ? JSON.parse(raw) : {};
-      } catch {
-        body = { message: raw };
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
       }
+    );
 
-      if (response.ok) {
-        console.log(`[RESEND] OK -> ${recipient} (${body.id || "id-yok"})`);
-        return body;
-      }
+  const j =
+    await r
+      .json()
+      .catch(
+        () => ({})
+      );
 
-      const message =
-        body?.message ||
-        body?.error ||
-        `Resend HTTP ${response.status}`;
-
-      lastError = new Error(`Resend HTTP ${response.status}: ${message}`);
-
-      console.error("[RESEND] API HATASI:", {
-        status: response.status,
-        message,
-        from,
-        to: recipient
-      });
-
-      if ([400, 401, 403, 422].includes(response.status)) break;
-    } catch (e) {
-      lastError =
-        e?.name === "AbortError"
-          ? new Error("Resend bağlantısı zaman aşımına uğradı.")
-          : e;
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (attempt < 2) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-    }
+  if (!r.ok) {
+    throw new Error(
+      j.message ||
+      "E-posta gönderilemedi."
+    );
   }
 
-  console.error("[RESEND] GÖNDERME HATASI:", lastError?.message || lastError);
-  throw lastError || new Error("E-posta gönderilemedi.");
+  return j;
 }
 
 const recoveryCodes =
   new Map();
 
-
-
-/* =========================================================
-   MINEGRAM - E-POSTA OTP API
-   /api/send-email-otp
-   /api/verify-email-otp
-
-   Kayıt ekranı doğrudan bu endpointleri kullanıyorsa 404 oluşmasını
-   engeller. Kod sunucuda tutulur; istemciden gelen kod kabul edilmez.
-========================================================= */
-const emailOtpStore = new Map();
-const emailOtpRate = new Map();
-
-function createEmailOtp() {
-  return crypto.randomInt(100000, 1000000).toString();
-}
-
-function normalizeOtpCode(value) {
-  return String(value ?? "").replace(/\D/g, "").slice(0, 6);
-}
-
-function isValidOtpCode(value) {
-  return /^\d{6}$/.test(normalizeOtpCode(value));
-}
-
-function otpKey(email) {
-  return normalizeEmail(email);
-}
-
-function cleanupEmailOtpStore() {
-  const now = Date.now();
-  for (const [key, entry] of emailOtpStore.entries()) {
-    if (!entry || entry.expires < now) emailOtpStore.delete(key);
-  }
-}
-
-setInterval(cleanupEmailOtpStore, 60 * 1000).unref();
-
-app.post("/api/send-email-otp", async (req, res) => {
-  try {
-    cleanupEmailOtpStore();
-
-    const email = normalizeEmail(req.body?.email);
-    const username = normalizeUsername(req.body?.username || "");
-
-    if (!email) {
-      return res.status(400).json({
-        ok: false,
-        code: "EMAIL_REQUIRED",
-        error: "E-posta adresi gerekli."
-      });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_EMAIL",
-        error: "Geçerli bir e-posta adresi gir."
-      });
-    }
-
-    const key = otpKey(email);
-    const lastSent = emailOtpRate.get(key) || 0;
-    const elapsed = Date.now() - lastSent;
-
-    if (elapsed < 60 * 1000) {
-      const remaining = Math.ceil((60 * 1000 - elapsed) / 1000);
-      return res.status(429).json({
-        ok: false,
-        code: "RATE_LIMIT",
-        error: `${remaining} saniye sonra tekrar deneyin.`
-      });
-    }
-
-    const code = createEmailOtp();
-
-    const html = `<!DOCTYPE html>
-<html lang="tr"><head><meta charset="UTF-8"><title>Minegram doğrulama kodu</title></head>
-<body style="margin:0;padding:0;background:#000;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:520px;margin:40px auto;padding:35px 25px;background:#111;border-radius:14px;text-align:center;color:#fff">
-<h1 style="margin:0 0 20px;font-size:28px">Minegram</h1>
-<p style="font-size:16px;color:#ddd">Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:</p>
-<div style="margin:30px 0;padding:20px;background:#222;border-radius:12px;font-size:38px;font-weight:bold;letter-spacing:10px;color:#fff">${code}</div>
-<p style="color:#999;font-size:13px">Bu kod 10 dakika geçerlidir.</p>
-<p style="color:#999;font-size:13px">Bu kodu kimseyle paylaşma.</p>
-</div></body></html>`;
-
-    const text = `Minegram e-posta doğrulama kodun\n\nKodun: ${code}\n\nBu kod 10 dakika geçerlidir.\nBu kodu kimseyle paylaşma.`;
-
-    await sendResendEmail(email, "Minegram doğrulama kodun", html, text);
-
-    emailOtpStore.set(key, {
-      code,
-      username,
-      email,
-      sentAt: Date.now(),
-      expires: Date.now() + 10 * 60 * 1000,
-      attempts: 0
-    });
-    emailOtpRate.set(key, Date.now());
-
-    return res.json({
-      ok: true,
-      message: "Doğrulama kodu gönderildi.",
-      email,
-      maskedEmail: maskEmail(email)
-    });
-  } catch (e) {
-    console.error("[OTP] E-POSTA GÖNDERME HATASI:", e?.message || e);
-    return res.status(500).json({
-      ok: false,
-      code: "EMAIL_SEND_FAILED",
-      error: e?.message || "Sunucu e-posta gönderirken hata verdi."
-    });
-  }
-});
-
-app.post("/api/verify-email-otp", async (req, res) => {
-  try {
-    cleanupEmailOtpStore();
-
-    const email = normalizeEmail(req.body?.email);
-    const code = normalizeOtpCode(req.body?.code);
-
-    if (!email) {
-      return res.status(400).json({ ok: false, code: "EMAIL_REQUIRED", error: "E-posta gerekli." });
-    }
-
-    if (!isValidOtpCode(code)) {
-      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "6 haneli doğrulama kodunu gir." });
-    }
-
-    const key = otpKey(email);
-    const entry = emailOtpStore.get(key);
-
-    if (!entry || entry.expires < Date.now()) {
-      emailOtpStore.delete(key);
-      return res.status(400).json({ ok: false, code: "CODE_EXPIRED", error: "Kod yanlış veya süresi dolmuş. Yeni kod iste." });
-    }
-
-    if ((entry.attempts || 0) >= 5) {
-      emailOtpStore.delete(key);
-      return res.status(429).json({ ok: false, code: "TOO_MANY_ATTEMPTS", error: "Çok fazla yanlış kod girildi. Yeni kod iste." });
-    }
-
-    if (entry.code !== code) {
-      entry.attempts = (entry.attempts || 0) + 1;
-      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "Kod yanlış. Lütfen tekrar kontrol et." });
-    }
-
-    emailOtpStore.delete(key);
-
-    return res.json({
-      ok: true,
-      verified: true,
-      email,
-      username: entry.username || ""
-    });
-  } catch (e) {
-    console.error("[OTP] DOĞRULAMA HATASI:", e?.message || e);
-    return res.status(500).json({
-      ok: false,
-      code: "OTP_VERIFY_ERROR",
-      error: e?.message || "Kod doğrulanamadı."
-    });
-  }
-});
-
-/* =========================================================
-   REGISTER CODE COMPATIBILITY ENDPOINTS
-   Hem eski /api/register/* hem yeni OTP ekranı desteklenir.
-========================================================= */
-app.post("/api/register/send-code", async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    const username = normalizeUsername(req.body?.username || "");
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ ok: false, code: "INVALID_EMAIL", error: "Geçerli bir e-posta adresi gir." });
-    }
-
-    const key = registrationKey(email);
-    let entry = registrationCodes.get(key);
-
-    // Restart sonrası resend/send-code de Supabase metadata'daki kaydı kullanır.
-    if (!entry) {
-      try {
-        const loaded = await loadRegistrationEntry(email);
-        if (loaded?.entry) {
-          entry = loaded.entry;
-          registrationCodes.set(key, entry);
-        }
-      } catch (loadError) {
-        console.error("REGISTER SEND CODE PERSISTENT LOAD ERROR:", loadError?.message || loadError);
-      }
-    }
-
-    if (entry) {
-      if (!registrationAllowed(email)) {
-        return res.status(429).json({ ok: false, code: "RATE_LIMIT", error: "Yeni kod göndermek için 60 saniye bekle." });
-      }
-      const code = createVerificationCode();
-      entry.code = code;
-      entry.expires = Date.now() + 10 * 60 * 1000;
-      entry.attempts = 0;
-      registrationRate.set(key, Date.now());
-
-      // Yeni kodu e-posta göndermeden önce kalıcı kayda yazmıyoruz;
-      // mail başarısız olursa eski/yanlış kod aktif kalmasın.
-      await sendRegistrationCode(email, code);
-
-      if (entry.userId) {
-        await saveRegistrationOtp(entry.userId, entry);
-      }
-
-      return res.json({ ok: true, email, maskedEmail: maskEmail(email) });
-    }
-
-    // Kullanıcı henüz /api/register ile oluşturulmadıysa bu endpoint bağımsız OTP olarak çalışır.
-    if (emailOtpRate.get(key) && Date.now() - emailOtpRate.get(key) < 60 * 1000) {
-      const remaining = Math.ceil((60 * 1000 - (Date.now() - emailOtpRate.get(key))) / 1000);
-      return res.status(429).json({ ok: false, code: "RATE_LIMIT", error: `${remaining} saniye sonra tekrar deneyin.` });
-    }
-
-    const code = createEmailOtp();
-    await sendResendEmail(
-      email,
-      "Minegram e-posta doğrulama kodun",
-      `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px"><h2>Minegram</h2><p>Hesabını doğrulamak için 6 haneli kodun:</p><div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
-      `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-    );
-    emailOtpStore.set(key, { code, username, email, sentAt: Date.now(), expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-    emailOtpRate.set(key, Date.now());
-    return res.json({ ok: true, email, maskedEmail: maskEmail(email) });
-  } catch (e) {
-    console.error("REGISTER SEND CODE ERROR:", e?.message || e);
-    return res.status(500).json({ ok: false, error: e?.message || "Doğrulama kodu gönderilemedi." });
-  }
-});
-
-app.post("/api/register/verify-code", async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    const code = normalizeOtpCode(req.body?.code);
-    if (!email || !isValidOtpCode(code)) {
-      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "6 haneli doğrulama kodunu gir." });
-    }
-
-    const key = registrationKey(email);
-    let entry = registrationCodes.get(key);
-    let source = "registration";
-
-    // Render yeniden başladıysa RAM Map boşalır.
-    // Önce Supabase Auth metadata'dan kalıcı kayıt kodunu geri yükle.
-    if (!entry) {
-      try {
-        const loaded = await loadRegistrationEntry(email);
-        if (loaded?.entry) {
-          entry = loaded.entry;
-          registrationCodes.set(key, entry);
-        }
-      } catch (loadError) {
-        console.error("REGISTER VERIFY CODE PERSISTENT LOAD ERROR:", loadError?.message || loadError);
-      }
-    }
-
-    if (!entry) {
-      entry = emailOtpStore.get(key);
-      source = "otp";
-    }
-
-    if (!entry || entry.expires < Date.now()) {
-      registrationCodes.delete(key);
-      emailOtpStore.delete(key);
-      return res.status(400).json({ ok: false, code: "CODE_EXPIRED", error: "Kod yanlış veya süresi dolmuş. Yeni kod iste." });
-    }
-
-    if ((entry.attempts || 0) >= 5) {
-      registrationCodes.delete(key);
-      emailOtpStore.delete(key);
-      return res.status(429).json({ ok: false, code: "TOO_MANY_ATTEMPTS", error: "Çok fazla yanlış kod girildi. Yeni kod iste." });
-    }
-
-    if (entry.code !== code) {
-      entry.attempts = (entry.attempts || 0) + 1;
-      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "Kod yanlış. Lütfen tekrar kontrol et." });
-    }
-
-    if (source === "registration" && entry.userId) {
-      const admin = adminClient();
-      const { data: updated, error } = await admin.auth.admin.updateUserById(entry.userId, { email_confirm: true });
-      if (error) throw error;
-      registrationCodes.delete(key);
-      try {
-        await clearRegistrationOtp(entry.userId);
-      } catch (clearError) {
-        console.error("REGISTER VERIFY CODE OTP TEMİZLEME HATASI:", clearError?.message || clearError);
-      }
-
-      return res.json({ ok: true, verified: true, user: { id: updated?.user?.id || entry.userId, email, username: entry.username || normalizeUsername(req.body?.username || ""), displayName: entry.displayName || "" } });
-    }
-
-    emailOtpStore.delete(key);
-    return res.json({ ok: true, verified: true, email, username: entry.username || normalizeUsername(req.body?.username || "") });
-  } catch (e) {
-    console.error("REGISTER VERIFY CODE ERROR:", e?.message || e);
-    return res.status(500).json({ ok: false, error: e?.message || "Doğrulama başarısız." });
-  }
-});
 
 /* =========================================================
    FORGOT START
