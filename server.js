@@ -5,7 +5,6 @@ import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
-import crypto from "crypto";
 import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -149,8 +148,6 @@ app.post("/api/send-email-otp", async (req, res) => {
         });
     }
 });
-
-const otpStore = new Map();
 
 const mailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
