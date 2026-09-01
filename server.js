@@ -1296,10 +1296,6 @@ app.get(
 const registrationCodes = new Map();
 const registrationRate = new Map();
 
-function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
 function createVerificationCode() {
   return crypto.randomInt(100000, 1000000).toString();
 }
