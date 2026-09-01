@@ -426,7 +426,6 @@ async function hydratePosts(
     );
 
   const likeMap =
-    new Map();
 
   for (const l of likes) {
     likeMap.set(
