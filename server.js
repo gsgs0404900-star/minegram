@@ -523,13 +523,6 @@ function normalizeEmail(email) {
     .toLowerCase();
 }
 
-
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
   if (!RESEND_API_KEY) {
     throw new Error(
       "RESEND_API_KEY eksik. Render > Environment Variables bölümüne ekle."
