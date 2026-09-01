@@ -456,8 +456,7 @@ app.post(
 
     }
 );
-```
-```js
+
 /* =========================================================
    MINEGRAM - EMAIL OTP
    POST /api/send-email-otp
