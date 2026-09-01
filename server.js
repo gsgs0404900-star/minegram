@@ -1,10 +1,4 @@
-/* =========================================================
-   MINEGRAM - FULL SERVER.JS
-   Express + Supabase + Resend
-========================================================= */
-
 import "dotenv/config";
-
 import express from "express";
 import cors from "cors";
 import multer from "multer";
