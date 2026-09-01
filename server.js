@@ -425,14 +425,14 @@ async function hydratePosts(
       )
     );
 
-  const likeMap =
+  const likeMap = new Map();
 
-  for (const l of likes) {
-    likeMap.set(
-      l.post_id,
-      (likeMap.get(l.post_id) || 0) + 1
-    );
-  }
+for (const l of likes) {
+  likeMap.set(
+    l.post_id,
+    (likeMap.get(l.post_id) || 0) + 1
+  );
+}
 
   const liked =
     new Set(
