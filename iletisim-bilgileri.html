@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -239,12 +240,12 @@ body{
     }
 }
 </style>
+
 </head>
 
 <body>
 
 <div class="page">
-
 <div class="box">
 
 <div class="header">
@@ -275,29 +276,40 @@ body{
 <div class="tabs">
 
 <button
-    id="emailTab"
-    class="tab email"
-    type="button"
+id="emailTab"
+class="tab email"
+type="button"
+
 >
-    E-posta
+
+```
+E-posta
+```
+
 </button>
 
 <button
-    id="phoneTab"
-    class="tab phone"
-    type="button"
+id="phoneTab"
+class="tab phone"
+type="button"
+
 >
-    Telefon
+
+```
+Telefon
+```
+
 </button>
 
 </div>
 
 <input
-    id="contact"
-    class="input"
-    type="email"
-    autocomplete="email"
-    placeholder="E-posta adresi"
+id="contact"
+class="input"
+type="email"
+autocomplete="email"
+placeholder="E-posta adresi"
+
 >
 
 <div id="note" class="note">
@@ -309,19 +321,29 @@ body{
 <div class="bottom">
 
 <button
-    id="backBtn"
-    class="action back-btn"
-    type="button"
+id="backBtn"
+class="action back-btn"
+type="button"
+
 >
-    Geri
+
+```
+Geri
+```
+
 </button>
 
 <button
-    id="nextBtn"
-    class="action next-btn"
-    type="button"
+id="nextBtn"
+class="action next-btn"
+type="button"
+
 >
-    İleri
+
+```
+İleri
+```
+
 </button>
 
 </div>
@@ -329,8 +351,24 @@ body{
 </div>
 </div>
 
+<!-- =====================================================
+     FIREBASE MODULAR SDK
+===================================================== -->
+
+<script type="module">
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getFunctions,
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
+
 /* =====================================================
-   FIREBASE
+   FIREBASE CONFIG
 ===================================================== */
 
 const firebaseConfig = {
@@ -365,22 +403,12 @@ const firebaseConfig = {
    FIREBASE BAŞLAT
 ===================================================== */
 
-const app =
-    initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
-
-/*
- * Cloud Function bölgesi.
- *
- * Eğer Function'ı europe-west1'e
- * deploy edersen burası doğru.
- */
-
-const functions =
-    getFunctions(
-        app,
-        "europe-west1"
-    );
+const functions = getFunctions(
+    app,
+    "europe-west1"
+);
 
 
 /* =====================================================
@@ -417,7 +445,7 @@ let busy = false;
 
 
 /* =====================================================
-   USERNAME
+   URL / USERNAME
 ===================================================== */
 
 const params =
@@ -425,7 +453,7 @@ const params =
         window.location.search
     );
 
-const username =
+let username =
     (
         params.get("username") ||
         sessionStorage.getItem(
@@ -449,16 +477,25 @@ if(username){
 
 
 /* =====================================================
-   MESAJ
+   DURUM MESAJI
 ===================================================== */
 
 function showStatus(
     text,
-    success = false
+    success = false,
+    loading = false
 ){
 
     status.textContent =
         text || "";
+
+    if(loading){
+
+        status.className =
+            "status loading";
+
+        return;
+    }
 
     status.className =
         success
@@ -468,7 +505,7 @@ function showStatus(
 
 
 /* =====================================================
-   E-POSTA SEÇ
+   E-POSTA TAB
 ===================================================== */
 
 emailTab.addEventListener(
@@ -510,7 +547,6 @@ emailTab.addEventListener(
         note.textContent =
             "Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.";
 
-
         showStatus("");
 
     }
@@ -518,7 +554,7 @@ emailTab.addEventListener(
 
 
 /* =====================================================
-   TELEFON
+   TELEFON TAB
 ===================================================== */
 
 phoneTab.addEventListener(
@@ -561,7 +597,6 @@ phoneTab.addEventListener(
         note.textContent =
             "Telefon doğrulaması için SMS sistemi ayrıca yapılandırılmalıdır.";
 
-
         showStatus("");
 
     }
@@ -574,10 +609,12 @@ phoneTab.addEventListener(
 
 function goBack(){
 
-    window.location.href =
+    const url =
         "./sifre-olustur.html?username=" +
         encodeURIComponent(username);
 
+    window.location.href =
+        url;
 }
 
 
@@ -590,6 +627,7 @@ backBtn.addEventListener(
     "click",
     goBack
 );
+
 
 topBack.addEventListener(
     "keydown",
@@ -611,12 +649,10 @@ topBack.addEventListener(
 
 
 /* =====================================================
-   6 HANELİ KOD GÖNDER
+   E-POSTA OTP GÖNDER
 ===================================================== */
 
-async function sendOtpEmail(
-    email
-){
+async function sendOtpEmail(email){
 
     try{
 
@@ -625,12 +661,6 @@ async function sendOtpEmail(
             email
         );
 
-
-        /*
-         * Firebase Cloud Function:
-         *
-         * sendEmailOtp
-         */
 
         const sendEmailOtp =
             httpsCallable(
@@ -650,7 +680,7 @@ async function sendOtpEmail(
 
 
         console.log(
-            "[MINEGRAM] OTP sonucu:",
+            "[MINEGRAM] Cloud Function sonucu:",
             result.data
         );
 
@@ -661,7 +691,7 @@ async function sendOtpEmail(
     }catch(error){
 
         console.error(
-            "[MINEGRAM] OTP gönderme hatası:",
+            "[MINEGRAM] OTP HATASI:",
             error
         );
 
@@ -670,40 +700,76 @@ async function sendOtpEmail(
             "Doğrulama kodu gönderilemedi.";
 
 
-        if(
-            error.code ===
-            "functions/not-found"
-        ){
+        if(error.code){
 
-            message =
-                "sendEmailOtp Cloud Function bulunamadı. Firebase Functions'ı deploy et.";
-
-        }
-        else if(
-            error.code ===
-            "functions/unauthenticated"
-        ){
-
-            message =
-                "Firebase bağlantısı doğrulanamadı.";
+            console.error(
+                "[MINEGRAM] Firebase hata kodu:",
+                error.code
+            );
 
         }
-        else if(
-            error.code ===
-            "functions/resource-exhausted"
-        ){
 
-            message =
-                "Çok fazla kod istendi. Biraz sonra tekrar dene.";
 
-        }
-        else if(
-            error.message
-        ){
+        switch(error.code){
 
-            message =
-                error.message;
+            case "functions/not-found":
 
+                message =
+                    "sendEmailOtp Cloud Function bulunamadı.";
+
+                break;
+
+
+            case "functions/unauthenticated":
+
+                message =
+                    "Firebase doğrulaması başarısız.";
+
+                break;
+
+
+            case "functions/permission-denied":
+
+                message =
+                    "Bu işlem için yetki yok.";
+
+                break;
+
+
+            case "functions/resource-exhausted":
+
+                message =
+                    "Çok fazla kod istendi. Lütfen biraz bekle.";
+
+                break;
+
+
+            case "functions/internal":
+
+                message =
+                    "Sunucu tarafında hata oluştu. Firebase Cloud Function içindeki e-posta gönderme sistemini kontrol et.";
+
+                break;
+
+
+            case "functions/unavailable":
+
+                message =
+                    "Firebase sunucusuna şu anda ulaşılamıyor.";
+
+                break;
+
+
+            default:
+
+                if(error.message){
+
+                    message =
+                        error.message;
+
+                }
+
+                break;
         }
 
 
@@ -730,23 +796,23 @@ async function goNext(){
         contact.value.trim();
 
 
-    /* ===============================================
+    /* =================================================
        TELEFON
-    =============================================== */
+    ================================================= */
 
     if(mode === "phone"){
 
         showStatus(
-            "Şu anda e-posta doğrulaması kullanılabilir. Telefon için SMS servisi kurulmalıdır."
+            "Telefon doğrulaması henüz aktif değil. E-posta seçeneğini kullan."
         );
 
         return;
     }
 
 
-    /* ===============================================
+    /* =================================================
        BOŞ
-    =============================================== */
+    ================================================= */
 
     if(!value){
 
@@ -760,9 +826,9 @@ async function goNext(){
     }
 
 
-    /* ===============================================
+    /* =================================================
        E-POSTA KONTROL
-    =============================================== */
+    ================================================= */
 
     const validEmail =
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -780,13 +846,25 @@ async function goNext(){
     }
 
 
-    /* ===============================================
+    /* =================================================
        KAYDET
-    =============================================== */
+    ================================================= */
 
     sessionStorage.setItem(
         "minegram_register_email",
         value
+    );
+
+
+    sessionStorage.setItem(
+        "minegram_otp_email",
+        value
+    );
+
+
+    sessionStorage.setItem(
+        "minegram_otp_pending",
+        "true"
     );
 
 
@@ -800,9 +878,9 @@ async function goNext(){
     }
 
 
-    /* ===============================================
-       BUTON
-    =============================================== */
+    /* =================================================
+       BUTONU KİLİTLE
+    ================================================= */
 
     busy = true;
 
@@ -815,13 +893,14 @@ async function goNext(){
 
     showStatus(
         "6 haneli doğrulama kodu gönderiliyor...",
+        false,
         true
     );
 
 
-    /* ===============================================
-       FIREBASE FUNCTION
-    =============================================== */
+    /* =================================================
+       FIREBASE
+    ================================================= */
 
     const success =
         await sendOtpEmail(value);
@@ -841,21 +920,9 @@ async function goNext(){
     }
 
 
-    /* ===============================================
+    /* =================================================
        BAŞARILI
-    =============================================== */
-
-    sessionStorage.setItem(
-        "minegram_otp_email",
-        value
-    );
-
-
-    sessionStorage.setItem(
-        "minegram_otp_pending",
-        "true"
-    );
-
+    ================================================= */
 
     showStatus(
         "Kod gönderildi. E-postanı kontrol et.",
@@ -867,11 +934,11 @@ async function goNext(){
         "Kod gönderildi";
 
 
-    /* ===============================================
+    /* =================================================
        DOĞRULAMA SAYFASI
-    =============================================== */
+    ================================================= */
 
-    let url =
+    const url =
         "./hesap-doğrulama.html?username=" +
         encodeURIComponent(username) +
         "&email=" +
@@ -891,9 +958,8 @@ async function goNext(){
                 url;
 
         },
-        500
+        700
     );
-
 }
 
 
@@ -948,7 +1014,7 @@ if(savedEmail){
 
 
 /* =====================================================
-   HAZIR
+   SAYFA HAZIR
 ===================================================== */
 
 console.log(
@@ -958,6 +1024,10 @@ console.log(
 console.log(
     "[MINEGRAM] Username:",
     username
+);
+
+console.log(
+    "[MINEGRAM] Firebase Functions bölgesi: europe-west1"
 );
 
 </script>
