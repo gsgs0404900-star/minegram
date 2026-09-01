@@ -143,6 +143,21 @@ function client(token = null) {
   );
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
+}
+
+async function getAuthUserByIdSafe(admin, userId) {
+  const id = String(userId || "").trim();
+
+  if (!isUuid(id)) {
+    console.warn("AUTH USER ID UUID DEĞİL, ATLANDI:", id);
+    return { data: null, error: new Error("Auth kullanıcı ID değeri geçerli bir UUID değil.") };
+  }
+
+  return admin.auth.admin.getUserById(id);
+}
+
 function adminClient() {
   if (
     !SUPABASE_URL ||
@@ -653,14 +668,8 @@ function registrationAllowed(email) {
 }
 
 async function sendRegistrationCode(email, code) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) throw new Error("E-posta adresi boş.");
-  if (!/^\S+@\S+\.\S+$/.test(normalized)) {
-    throw new Error("Geçerli bir e-posta adresi gir.");
-  }
-
   await sendResendEmail(
-    normalized,
+    email,
     "Minegram e-posta doğrulama kodun",
     `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
@@ -983,15 +992,15 @@ app.post(
         }
       );
 
+      registrationRate.set(
+        registrationKey(email),
+        Date.now()
+      );
+
       try {
         await sendRegistrationCode(
           email,
           code
-        );
-
-        registrationRate.set(
-          registrationKey(email),
-          Date.now()
         );
       } catch (mailError) {
         console.error(
@@ -1070,119 +1079,6 @@ app.post(
     }
   }
 );
-
-/* =========================================================
-   GENERIC EMAIL OTP
-   POST /api/send-email-otp
-   Android/web istemcilerinin doğrudan kullanabilmesi için.
-   Bu endpoint Resend üzerinden kod gönderir ve aynı sunucu
-   tarafı registrationCodes deposunda saklar.
-========================================================= */
-
-app.post("/api/send-email-otp", async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    const username = normalizeUsername(req.body?.username || "");
-
-    if (!email) {
-      return res.status(400).json({
-        ok: false,
-        code: "EMAIL_REQUIRED",
-        error: "E-posta adresi gerekli."
-      });
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_EMAIL",
-        error: "Geçerli bir e-posta adresi gir."
-      });
-    }
-
-    if (!registrationAllowed(email)) {
-      const last = registrationRate.get(registrationKey(email)) || 0;
-      const remaining = Math.max(1, Math.ceil((60000 - (Date.now() - last)) / 1000));
-      return res.status(429).json({
-        ok: false,
-        code: "RATE_LIMIT",
-        error: `${remaining} saniye sonra tekrar deneyin.`
-      });
-    }
-
-    const code = createVerificationCode();
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:30px auto;padding:30px;background:#111;color:#fff;border-radius:16px;text-align:center">
-        <h1 style="margin:0 0 18px">Minegram</h1>
-        <p style="color:#ddd;font-size:16px">E-posta adresini doğrulamak için 6 haneli kodun:</p>
-        <div style="margin:25px 0;padding:20px;background:#222;border-radius:12px;font-size:38px;font-weight:700;letter-spacing:10px">${code}</div>
-        <p style="color:#999;font-size:13px">Bu kod 10 dakika geçerlidir.</p>
-        <p style="color:#999;font-size:13px">Bu kodu kimseyle paylaşma.</p>
-      </div>`;
-
-    await sendResendEmail(
-      email,
-      "Minegram e-posta doğrulama kodun",
-      html,
-      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-    );
-
-    registrationCodes.set(registrationKey(email), {
-      code,
-      userId: null,
-      email,
-      expires: Date.now() + 10 * 60 * 1000,
-      attempts: 0,
-      username,
-      displayName: username
-    });
-    registrationRate.set(registrationKey(email), Date.now());
-
-    return res.json({
-      ok: true,
-      message: "Doğrulama kodu gönderildi.",
-      email,
-      maskedEmail: maskEmail(email)
-    });
-  } catch (e) {
-    console.error("SEND EMAIL OTP ERROR:", e);
-    return res.status(500).json({
-      ok: false,
-      code: "EMAIL_SEND_ERROR",
-      error: e?.message || "Doğrulama kodu gönderilemedi."
-    });
-  }
-});
-
-
-app.post("/api/verify-email-otp", async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    const code = String(req.body?.code || "").replace(/\D/g, "").slice(0, 6);
-    if (!email) return res.status(400).json({ ok:false, code:"EMAIL_REQUIRED", error:"E-posta gerekli." });
-    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"6 haneli doğrulama kodunu gir." });
-
-    const key = registrationKey(email);
-    const entry = registrationCodes.get(key);
-    if (!entry || entry.expires < Date.now()) {
-      registrationCodes.delete(key);
-      return res.status(400).json({ ok:false, code:"CODE_EXPIRED", error:"Doğrulama kodu bulunamadı veya süresi doldu. Yeni kod iste." });
-    }
-    if ((entry.attempts || 0) >= 5) {
-      registrationCodes.delete(key);
-      return res.status(429).json({ ok:false, code:"TOO_MANY_ATTEMPTS", error:"Çok fazla yanlış kod girildi. Yeni kod iste." });
-    }
-    if (entry.code !== code) {
-      entry.attempts = (entry.attempts || 0) + 1;
-      return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"Kod yanlış. Lütfen tekrar kontrol et." });
-    }
-    registrationCodes.delete(key);
-    return res.json({ ok:true, verified:true, email, username:entry.username || "" });
-  } catch (e) {
-    console.error("VERIFY EMAIL OTP ERROR:", e);
-    return res.status(500).json({ ok:false, code:"OTP_VERIFY_ERROR", error:e?.message || "Kod doğrulanamadı." });
-  }
-});
 
 /* =========================================================
    REGISTER VERIFY
@@ -1409,9 +1305,7 @@ app.post(
         data: authData,
         error: authError
       } =
-        await admin.auth.admin.getUserById(
-          entry.userId
-        );
+        await getAuthUserByIdSafe(admin, entry.userId);
 
       if (
         authError ||
@@ -1575,9 +1469,7 @@ app.post(
           data: au,
           error: ae
         } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
+          await getAuthUserByIdSafe(admin, authId);
 
         if (
           ae ||
@@ -2220,9 +2112,7 @@ async function findUserByPhone(
               data: authData,
               error: authError
             } =
-              await admin.auth.admin.getUserById(
-                authId
-              );
+              await getAuthUserByIdSafe(admin, authId);
 
             if (
               !authError &&
@@ -2308,9 +2198,7 @@ async function resolveRecoveryEmail(
         .select(
           "id,auth_user_id,username,email,display_name"
         )
-        .or(
-          `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
-        )
+        .eq("auth_user_id", authUser.id)
         .limit(1)
         .maybeSingle();
 
@@ -2354,9 +2242,7 @@ async function resolveRecoveryEmail(
       data,
       error
     } =
-      await admin.auth.admin.getUserById(
-        authId
-      );
+      await getAuthUserByIdSafe(admin, authId);
 
     if (
       error ||
@@ -2453,9 +2339,7 @@ app.post(
           data,
           error
         } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
+          await getAuthUserByIdSafe(admin, authId);
 
         if (
           error ||
