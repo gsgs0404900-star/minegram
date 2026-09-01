@@ -613,6 +613,106 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
+/*
+ * OTP'yi yalnızca RAM Map'te tutmak Render gibi ortamlarda güvenilir değildir.
+ * Sunucu yeniden başlarsa Map silinir ve kullanıcı doğru kodu girse bile
+ * "Doğrulama kodu bulunamadı" hatası oluşur.
+ * Bu nedenle kodu Supabase Auth user_metadata içine de kalıcı olarak yazıyoruz.
+ */
+async function findAuthUserByEmail(email) {
+  const wanted = normalizeEmail(email);
+  if (!wanted) return null;
+
+  const admin = adminClient();
+
+  for (let page = 1; page <= 20; page++) {
+    const result = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000
+    });
+
+    if (result?.error) throw result.error;
+
+    const users = result?.data?.users || [];
+    const found = users.find(
+      u => normalizeEmail(u?.email) === wanted
+    );
+
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+
+  return null;
+}
+
+async function saveRegistrationOtp(userId, entry) {
+  const admin = adminClient();
+  const result = await admin.auth.admin.getUserById(userId);
+
+  if (result?.error || !result?.data?.user) {
+    throw result?.error || new Error("Kayıt kullanıcısı bulunamadı.");
+  }
+
+  const oldMeta = result.data.user.user_metadata || {};
+  const nextMeta = {
+    ...oldMeta,
+    minegram_verification_code: String(entry.code),
+    minegram_verification_expires: Number(entry.expires),
+    minegram_verification_attempts: Number(entry.attempts || 0),
+    minegram_verification_username: entry.username || "",
+    minegram_verification_display_name: entry.displayName || ""
+  };
+
+  const updated = await admin.auth.admin.updateUserById(userId, {
+    user_metadata: nextMeta
+  });
+
+  if (updated?.error) throw updated.error;
+}
+
+async function loadRegistrationEntry(email) {
+  const user = await findAuthUserByEmail(email);
+  if (!user) return { user: null, entry: null };
+
+  const meta = user.user_metadata || {};
+  const code = normalizeOtpCode(meta.minegram_verification_code);
+  const expires = Number(meta.minegram_verification_expires || 0);
+
+  if (!code || !expires) {
+    return { user, entry: null };
+  }
+
+  return {
+    user,
+    entry: {
+      code,
+      userId: user.id,
+      email: normalizeEmail(user.email),
+      expires,
+      attempts: Number(meta.minegram_verification_attempts || 0),
+      username: String(meta.minegram_verification_username || user.user_metadata?.username || ""),
+      displayName: String(meta.minegram_verification_display_name || user.user_metadata?.display_name || "")
+    }
+  };
+}
+
+async function clearRegistrationOtp(userId) {
+  const admin = adminClient();
+  const result = await admin.auth.admin.getUserById(userId);
+  if (result?.error || !result?.data?.user) return;
+
+  const meta = { ...(result.data.user.user_metadata || {}) };
+  delete meta.minegram_verification_code;
+  delete meta.minegram_verification_expires;
+  delete meta.minegram_verification_attempts;
+  delete meta.minegram_verification_username;
+  delete meta.minegram_verification_display_name;
+
+  await admin.auth.admin.updateUserById(userId, {
+    user_metadata: meta
+  });
+}
+
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -934,17 +1034,25 @@ app.post(
        */
       const code = createVerificationCode();
 
+      const registrationEntry = {
+        code,
+        userId: authUser.id,
+        email,
+        expires: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+        username,
+        displayName
+      };
+
       registrationCodes.set(
         registrationKey(email),
-        {
-          code,
-          userId: authUser.id,
-          email,
-          expires: Date.now() + 10 * 60 * 1000,
-          attempts: 0,
-          username,
-          displayName
-        }
+        registrationEntry
+      );
+
+      // Kodu Supabase'e de kaydet: Render restart/instance değişiminde kaybolmasın.
+      await saveRegistrationOtp(
+        authUser.id,
+        registrationEntry
       );
 
       registrationRate.set(
@@ -1069,12 +1177,22 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      // Önce hızlı RAM kontrolü, yoksa Supabase Auth metadata'dan geri yükle.
+      let entry = registrationCodes.get(key);
+
+      if (!entry) {
+        const loaded = await loadRegistrationEntry(email);
+        entry = loaded.entry;
+
+        if (entry) {
+          registrationCodes.set(key, entry);
+        }
+      }
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
+          code: "CODE_NOT_FOUND",
           error:
             "Doğrulama kodu bulunamadı. Yeni kod iste."
         });
@@ -1104,6 +1222,12 @@ app.post(
 
       if (entry.code !== code) {
         entry.attempts += 1;
+
+        try {
+          await saveRegistrationOtp(entry.userId, entry);
+        } catch (persistError) {
+          console.error("OTP ATTEMPT SAVE ERROR:", persistError?.message || persistError);
+        }
 
         return res.status(400).json({
           ok: false,
@@ -1144,6 +1268,11 @@ app.post(
       }
 
       registrationCodes.delete(key);
+      try {
+        await clearRegistrationOtp(entry.userId);
+      } catch (clearError) {
+        console.error("OTP METADATA TEMİZLEME HATASI:", clearError?.message || clearError);
+      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1235,8 +1364,14 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      let entry = registrationCodes.get(key);
+
+      // Restart sonrası resend de Supabase metadata'daki kaydı kullanır.
+      if (!entry) {
+        const loaded = await loadRegistrationEntry(email);
+        entry = loaded.entry;
+        if (entry) registrationCodes.set(key, entry);
+      }
 
       if (!entry) {
         return res.status(404).json({
@@ -1297,6 +1432,8 @@ app.post(
       entry.expires =
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
+
+      await saveRegistrationOtp(entry.userId, entry);
 
       registrationRate.set(
         key,
