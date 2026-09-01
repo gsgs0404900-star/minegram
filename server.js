@@ -946,7 +946,45 @@ app.post(
           displayName
         }
       );
+  
+    const admin = adminClient();
 
+const { error: otpSaveError } =
+  await admin.auth.admin.updateUserById(
+    authUser.id,
+    {
+      user_metadata: {
+        ...(authUser.user_metadata || {}),
+        minegram_verification: {
+          code: String(code),
+          expires: Date.now() + 10 * 60 * 1000,
+          username: username || "",
+          displayName: displayName || ""
+        }
+      }
+    }
+  );
+
+if (otpSaveError) {
+
+  console.error(
+    "[MINEGRAM OTP] Supabase OTP kayıt hatası:",
+    otpSaveError
+  );
+
+  return res.status(500).json({
+    ok: false,
+    error:
+      "Doğrulama kodu kaydedilemedi. Lütfen tekrar deneyin."
+  });
+
+}
+
+console.log(
+  "[MINEGRAM OTP] Kod kaydedildi:",
+  String(code)
+);
+      
       registrationRate.set(
         registrationKey(email),
         Date.now()
@@ -1069,16 +1107,104 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      let entry =
+  registrationCodes.get(key);
 
-      if (!entry) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
-        });
+/*
+ * RAM'de OTP yoksa Supabase Auth'tan kullanıcıyı bul.
+ */
+if (!entry) {
+
+  const admin = adminClient();
+
+  const {
+    data: usersData,
+    error: usersError
+  } =
+    await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000
+    });
+
+  if (!usersError && usersData?.users) {
+
+    const authUser =
+      usersData.users.find(
+        user =>
+          normalizeEmail(user.email) === email
+      );
+
+    if (authUser) {
+
+      const savedOtp =
+        authUser.user_metadata
+          ?.minegram_verification;
+
+      if (
+        savedOtp &&
+        savedOtp.code
+      ) {
+
+        entry = {
+
+          code:
+            String(savedOtp.code),
+
+          userId:
+            authUser.id,
+
+          email:
+            normalizeEmail(authUser.email),
+
+          expires:
+            Number(savedOtp.expires || 0),
+
+          attempts: 0,
+
+          username:
+            savedOtp.username ||
+            authUser.user_metadata?.username ||
+            "",
+
+          displayName:
+            savedOtp.displayName ||
+            authUser.user_metadata?.displayName ||
+            ""
+        };
+
+        registrationCodes.set(
+          key,
+          entry
+        );
+
+        console.log(
+          "[MINEGRAM OTP] Supabase'den OTP geri yüklendi."
+        );
+
       }
+
+    }
+
+  }
+
+}
+
+/*
+ * Hem RAM'de hem Supabase'de bulunamadıysa
+ * gerçekten kayıt yoktur.
+ */
+if (!entry) {
+
+  return res.status(400).json({
+
+    ok: false,
+
+    error:
+      "Doğrulama kaydı bulunamadı. Lütfen yeni kod iste."
+
+  });
+
+}
 
       if (entry.expires < Date.now()) {
         registrationCodes.delete(key);
