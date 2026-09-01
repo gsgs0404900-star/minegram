@@ -1,1858 +1,490 @@
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
-import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
 
-/* =========================================================
-   TEMEL
-========================================================= */
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.set("trust proxy", 1);
 
-const PORT = Number(process.env.PORT) || 10000;
-
-/* =========================================================
-   ENV
-========================================================= */
+const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
-    const value = process.env[name];
+  const value = process.env[name];
 
-    if (value == null) {
-        return "";
-    }
+  if (value == null) {
+    return "";
+  }
 
-    return String(value)
-        .trim()
-        .replace(/^["']|["']$/g, "");
+  return String(value)
+    .trim()
+    .replace(/^(["'])|(["'])$/g, "");
 }
 
 const SUPABASE_URL = env("SUPABASE_URL");
 
 const SUPABASE_KEY =
-    env("SUPABASE_PUBLISHABLE_KEY") ||
-    env("SUPABASE_ANON_KEY") ||
-    env("SUPABASE_KEY");
+  env("SUPABASE_PUBLISHABLE_KEY") ||
+  env("SUPABASE_ANON_KEY");
 
 const SUPABASE_SERVICE_ROLE_KEY =
-    env("SUPABASE_SERVICE_ROLE_KEY");
+  env("SUPABASE_SERVICE_ROLE_KEY");
 
-const RESEND_API_KEY =
-    env("RESEND_API_KEY");
+const BUCKET = "media";
 
-const RESEND_FROM_EMAIL =
-    env("RESEND_FROM_EMAIL");
-
-const PUBLIC_URL =
-    env("PUBLIC_URL").replace(/\/+$/, "");
-
-const SUPABASE_OK =
-    Boolean(SUPABASE_URL && SUPABASE_KEY);
-
-const RESEND_OK =
-    Boolean(
-        RESEND_API_KEY &&
-        RESEND_FROM_EMAIL
-    );
-
-/* =========================================================
-   BAŞLANGIÇ KONTROLLERİ
-========================================================= */
-
-console.log("");
-console.log("======================================");
-console.log("          MINEGRAM SERVER");
-console.log("======================================");
-
-console.log(
-    "SUPABASE:",
-    SUPABASE_OK ? "OK" : "EKSİK"
+const CONFIG_OK = Boolean(
+  SUPABASE_URL && SUPABASE_KEY
 );
 
-console.log(
-    "RESEND:",
-    RESEND_OK ? "OK" : "EKSİK"
-);
-
-console.log(
-    "FROM EMAIL:",
-    RESEND_FROM_EMAIL || "EKSİK"
-);
-
-console.log(
-    "PORT:",
-    PORT
-);
-
-console.log("======================================");
-console.log("");
-
-/* =========================================================
-   MIDDLEWARE
-========================================================= */
-
-app.use(
-    cors({
-        origin: true,
-        credentials: true
-    })
-);
-
-app.use(
-    express.json({
-        limit: "10mb"
-    })
-);
-
-app.use(
-    express.urlencoded({
-        extended: true,
-        limit: "10mb"
-    })
-);
-
-/* =========================================================
-   DOSYALAR
-========================================================= */
-
-const publicDir =
-    path.join(__dirname, "public");
-
-if (fs.existsSync(publicDir)) {
-    app.use(
-        express.static(publicDir, {
-            index: false
-        })
-    );
-}
-
-app.use(
-    express.static(__dirname, {
-        index: false
-    })
-);
-
-/* =========================================================
-   UPLOAD
-========================================================= */
-
-const upload = multer({
-    storage: multer.memoryStorage(),
-
-    limits: {
-        fileSize:
-            100 * 1024 * 1024
-    }
-});
-
-/* =========================================================
-   SUPABASE
-========================================================= */
-
-function getSupabase(token = null) {
-
-    if (!SUPABASE_OK) {
-        throw new Error(
-            "Supabase yapılandırması eksik."
-        );
-    }
-
-    const options = {
-        auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-        }
-    };
-
-    if (token) {
-        options.global = {
-            headers: {
-                Authorization:
-                    `Bearer ${token}`
-            }
-        };
-    }
-
-    return createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY,
-        options
-    );
-}
-
-function getAdminSupabase() {
-
-    if (
-        !SUPABASE_URL ||
-        !SUPABASE_SERVICE_ROLE_KEY
-    ) {
-        throw new Error(
-            "SUPABASE_SERVICE_ROLE_KEY eksik."
-        );
-    }
-
-    return createClient(
-        SUPABASE_URL,
-        SUPABASE_SERVICE_ROLE_KEY,
-        {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false
-            }
-        }
-    );
-}
-
-/* =========================================================
-   YARDIMCI
-========================================================= */
-
-function normalizeEmail(value) {
-
-    return String(value || "")
-        .trim()
-        .toLowerCase();
-}
-
-function normalizeUsername(value) {
-
-    return String(value || "")
-        .trim()
-        .replace(/^@/, "")
-        .toLowerCase();
-}
-
-function createOTP() {
-
-    return String(
-        crypto.randomInt(
-            100000,
-            1000000
-        )
-    );
-}
-
-function maskEmail(email) {
-
-    const value =
-        normalizeEmail(email);
-
-    const at =
-        value.indexOf("@");
-
-    if (at <= 0) {
-        return "***";
-    }
-
-    const name =
-        value.substring(0, at);
-
-    const domain =
-        value.substring(at + 1);
-
-    if (name.length <= 2) {
-
-        return (
-            name[0] +
-            "***@" +
-            domain
-        );
-    }
-
-    return (
-        name.substring(0, 2) +
-        "***@" +
-        domain
-    );
-}
-
-/* =========================================================
-   RESEND EMAIL
-========================================================= */
-
-async function sendResendEmail(
-    to,
-    subject,
-    html,
-    text
-) {
-
-    if (!RESEND_API_KEY) {
-
-        throw new Error(
-            "RESEND_API_KEY eksik."
-        );
-    }
-
-    if (!RESEND_FROM_EMAIL) {
-
-        throw new Error(
-            "RESEND_FROM_EMAIL eksik."
-        );
-    }
-
-    const email =
-        normalizeEmail(to);
-
-    if (!email) {
-
-        throw new Error(
-            "Geçerli bir e-posta adresi gerekli."
-        );
-    }
-
-    console.log(
-        "Resend gönderiliyor:",
-        maskEmail(email)
-    );
-
-    const response =
-        await fetch(
-            "https://api.resend.com/emails",
-            {
-                method: "POST",
-
-                headers: {
-                    Authorization:
-                        `Bearer ${RESEND_API_KEY}`,
-
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    from:
-                        RESEND_FROM_EMAIL,
-
-                    to: [email],
-
-                    subject,
-
-                    html,
-
-                    text
-                })
-            }
-        );
-
-    const raw =
-        await response.text();
-
-    let data = {};
-
-    try {
-        data =
-            raw ? JSON.parse(raw) : {};
-    } catch {
-        data = {
-            raw
-        };
-    }
-
-    if (!response.ok) {
-
-        console.error(
-            "RESEND ERROR:",
-            response.status,
-            data
-        );
-
-        throw new Error(
-            data?.message ||
-            data?.error ||
-            `Resend HTTP ${response.status}`
-        );
-    }
-
-    console.log(
-        "RESEND BAŞARILI:",
-        data
-    );
-
-    return data;
-}
-
-/* =========================================================
-   OTP
-========================================================= */
-
-const verificationCodes =
-    new Map();
-
-/*
-   OTP yapısı:
-
-   email -> {
-       code,
-       expires,
-       attempts
-   }
-*/
-
-function saveOTP(email, code) {
-
-    verificationCodes.set(
-        email,
-        {
-            code,
-            expires:
-                Date.now() +
-                10 * 60 * 1000,
-            attempts: 0
-        }
-    );
-}
-
-function getOTP(email) {
-
-    return verificationCodes.get(
-        email
-    );
-}
-
-function deleteOTP(email) {
-
-    verificationCodes.delete(
-        email
-    );
-}
-
-/* =========================================================
-   SEND OTP
-========================================================= */
-
-app.post(
-    "/api/register/send-code",
-    async (req, res) => {
-
-        try {
-
-            const email =
-                normalizeEmail(
-                    req.body?.email
-                );
-
-            if (!email) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "E-posta adresi gerekli."
-                });
-            }
-
-            if (
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                    .test(email)
-            ) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Geçerli bir e-posta adresi gir."
-                });
-            }
-
-            const code =
-                createOTP();
-
-            saveOTP(
-                email,
-                code
-            );
-
-            const html = `
-<!doctype html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-</head>
-
-<body style="
-margin:0;
-padding:40px 20px;
-background:#f5f5f5;
-font-family:Arial,Helvetica,sans-serif;
-">
-
-<div style="
-max-width:520px;
-margin:auto;
-background:white;
-border-radius:20px;
-padding:35px;
-text-align:center;
-box-shadow:0 10px 30px rgba(0,0,0,.08);
-">
-
-<h1 style="
-margin:0 0 15px;
-font-size:30px;
-">
-Minegram
-</h1>
-
-<p style="
-font-size:16px;
-color:#555;
-">
-Hesabını doğrulamak için
-aşağıdaki 6 haneli kodu kullan.
-</p>
-
-<div style="
-margin:30px 0;
-font-size:40px;
-font-weight:bold;
-letter-spacing:10px;
-">
-${code}
-</div>
-
-<p style="
-color:#666;
-">
-Bu kod <strong>10 dakika</strong> geçerlidir.
-</p>
-
-<hr style="
-border:0;
-border-top:1px solid #eee;
-margin:30px 0;
-">
-
-<p style="
-font-size:13px;
-color:#888;
-">
-Bu işlemi sen başlatmadıysan
-bu e-postayı dikkate alma.
-</p>
-
-</div>
-
-</body>
-</html>
-`;
-
-            const text = `
-Minegram hesap doğrulama kodun: ${code}
-
-Bu kod 10 dakika geçerlidir.
-
-Bu işlemi sen başlatmadıysan bu e-postayı dikkate alma.
-`;
-
-            await sendResendEmail(
-                email,
-                "Minegram hesap doğrulama kodun",
-                html,
-                text
-            );
-
-            console.log(
-                "OTP GÖNDERİLDİ:",
-                maskEmail(email)
-            );
-
-            return res.json({
-                ok: true,
-                sent: true,
-                email,
-                message:
-                    "Doğrulama kodu gönderildi."
-            });
-
-        } catch (error) {
-
-            console.error(
-                "SEND OTP ERROR:",
-                error
-            );
-
-            return res.status(500).json({
-                ok: false,
-                error:
-                    error?.message ||
-                    "E-posta gönderilemedi."
-            });
-        }
-    }
-);
-
-/* =========================================================
-   VERIFY OTP
-========================================================= */
-
-app.post(
-    "/api/register/verify-code",
-    async (req, res) => {
-
-        try {
-
-            const email =
-                normalizeEmail(
-                    req.body?.email
-                );
-
-            const code =
-                String(
-                    req.body?.code || ""
-                ).trim();
-
-            if (!email || !code) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "E-posta ve doğrulama kodu gerekli."
-                });
-            }
-
-            if (!/^\d{6}$/.test(code)) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Doğrulama kodu 6 haneli olmalı."
-                });
-            }
-
-            const entry =
-                getOTP(email);
-
-            if (!entry) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Doğrulama kodu bulunamadı. Yeni kod iste."
-                });
-            }
-
-            if (
-                Date.now() >
-                entry.expires
-            ) {
-
-                deleteOTP(email);
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Doğrulama kodunun süresi dolmuş."
-                });
-            }
-
-            entry.attempts++;
-
-            if (
-                entry.attempts > 5
-            ) {
-
-                deleteOTP(email);
-
-                return res.status(429).json({
-                    ok: false,
-                    error:
-                        "Çok fazla hatalı deneme. Yeni kod iste."
-                });
-            }
-
-            if (
-                entry.code !== code
-            ) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Doğrulama kodu yanlış."
-                });
-            }
-
-            deleteOTP(email);
-
-            return res.json({
-                ok: true,
-                verified: true,
-                email,
-                message:
-                    "E-posta başarıyla doğrulandı."
-            });
-
-        } catch (error) {
-
-            console.error(
-                "VERIFY OTP ERROR:",
-                error
-            );
-
-            return res.status(500).json({
-                ok: false,
-                error:
-                    error?.message ||
-                    "Kod doğrulanamadı."
-            });
-        }
-    }
-);
-
-/* =========================================================
-   TEST EMAIL
-========================================================= */
-
-app.post(
-    "/api/test-email",
-    async (req, res) => {
-
-        try {
-
-            const email =
-                normalizeEmail(
-                    req.body?.email
-                );
-
-            if (!email) {
-
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Test e-posta adresi gerekli."
-                });
-            }
-
-            const result =
-                await sendResendEmail(
-                    email,
-                    "Minegram test e-postası",
-
-                    `
-                    <div style="
-                    font-family:Arial;
-                    padding:30px;
-                    ">
-                        <h2>Minegram</h2>
-
-                        <p>
-                        Resend bağlantısı başarıyla çalışıyor.
-                        </p>
-                    </div>
-                    `,
-
-                    "Minegram Resend test e-postası."
-                );
-
-            return res.json({
-                ok: true,
-                sent: true,
-                result,
-                message:
-                    "Test e-postası gönderildi."
-            });
-
-        } catch (error) {
-
-            console.error(
-                "TEST EMAIL ERROR:",
-                error
-            );
-
-            return res.status(500).json({
-                ok: false,
-                error:
-                    error?.message ||
-                    "Test e-postası gönderilemedi."
-            });
-        }
-    }
-);
-
-/* =========================================================
-   HEALTH
-========================================================= */
-
-app.get(
-    "/api/health",
-    async (req, res) => {
-
-        res.json({
-            ok: true,
-            server: "Minegram",
-            resend: RESEND_OK,
-            supabase: SUPABASE_OK,
-            port: PORT,
-            time:
-                new Date().toISOString()
-        });
-    }
-);
-
-/* =========================================================
-   AUTH CONFIG
-========================================================= */
-
-app.get(
-    "/api/auth-config",
-    (req, res) => {
-
-        if (
-            !SUPABASE_URL ||
-            !SUPABASE_KEY
-        ) {
-
-            return res.status(500).json({
-                ok: false,
-                error:
-                    "Supabase yapılandırması eksik."
-            });
-        }
-
-        return res.json({
-            ok: true,
-            url:
-                SUPABASE_URL,
-            key:
-                SUPABASE_KEY
-        });
-    }
-);
-
-/* =========================================================
-   USERNAME CHECK
-========================================================= */
-
-app.get(
-    "/api/check-username",
-    async (req, res) => {
-
-        try {
-
-            const username =
-                normalizeUsername(
-                    req.query?.username
-                );
-
-            if (!username) {
-
-                return res.json({
-                    ok: true,
-                    available: false,
-                    error:
-                        "Kullanıcı adı gerekli."
-                });
-            }
-
-            if (
-                !/^[a-z0-9._]{3,30}$/
-                    .test(username)
-            ) {
-
-                return res.json({
-                    ok: true,
-                    available: false,
-                    error:
-                        "3-30 karakter kullan. Harf, sayı, _ veya . kullanabilirsin."
-                });
-            }
-
-            if (
-                !SUPABASE_URL ||
-                !SUPABASE_SERVICE_ROLE_KEY
-            ) {
-
-                return res.status(500).json({
-                    ok: false,
-                    error:
-                        "Supabase service role yapılandırması eksik."
-                });
-            }
-
-            const admin =
-                getAdminSupabase();
-
-            const {
-                data,
-                error
-            } =
-                await admin
-                    .from("profiles")
-                    .select("id")
-                    .eq(
-                        "username",
-                        username
-                    )
-                    .limit(1);
-
-            if (error) {
-
-                console.error(
-                    "USERNAME CHECK ERROR:",
-                    error
-                );
-
-                return res.status(500).json({
-                    ok: false,
-                    error:
-                        "Kullanıcı adı kontrol edilemedi."
-                });
-            }
-
-            const taken =
-                Array.isArray(data) &&
-                data.length > 0;
-
-            return res.json({
-                ok: true,
-                available:
-                    !taken,
-                username
-            });
-
-        } catch (error) {
-
-            console.error(
-                "USERNAME CHECK EXCEPTION:",
-                error
-            );
-
-            return res.status(500).json({
-                ok: false,
-                error:
-                    error?.message ||
-                    "Kullanıcı adı kontrol edilemedi."
-            });
-        }
-    }
-);
-
-/* =========================================================
-   MESAJ
-========================================================= */
-
-app.get(
-    "/mesaj",
-    (req, res) => {
-
-        const file =
-            path.join(
-                publicDir,
-                "mesaj.html"
-            );
-
-        if (
-            fs.existsSync(file)
-        ) {
-
-            return res.sendFile(file);
-        }
-
-        return res.status(404).send(
-            "mesaj.html bulunamadı."
-        );
-    }
-);
-
-/* =========================================================
-   İLETİŞİM BİLGİLERİ
-========================================================= */
-
-app.get(
-    "/iletisim-bilgileri",
-    (req, res) => {
-
-        const file =
-            path.join(
-                publicDir,
-                "iletisim-bilgileri.html"
-            );
-
-        if (
-            fs.existsSync(file)
-        ) {
-
-            return res.sendFile(file);
-        }
-
-        return res.status(404).send(
-            "iletisim-bilgileri.html bulunamadı."
-        );
-    }
-);
-
-/* =========================================================
-   ANA SAYFA
-========================================================= */
-
-app.get(
-    "/",
-    (req, res) => {
-
-        const file =
-            path.join(
-                publicDir,
-                "giris.html"
-            );
-
-        if (
-            fs.existsSync(file)
-        ) {
-
-            return res.sendFile(file);
-        }
-
-        return res.status(404).send(
-            "giris.html bulunamadı."
-        );
-    }
-);
-
-/* =========================================================
-   HTML CACHE KAPAT
-========================================================= */
-
-app.use(
-    (req, res, next) => {
-
-        if (
-            req.path.endsWith(".html")
-        ) {
-
-            res.set(
-                "Cache-Control",
-                "no-store, no-cache, must-revalidate, proxy-revalidate"
-            );
-
-            res.set(
-                "Pragma",
-                "no-cache"
-            );
-
-            res.set(
-                "Expires",
-                "0"
-            );
-        }
-
-        next();
-    }
-);
-
-/* =========================================================
-   404
-========================================================= */
-
-app.use(
-    (req, res) => {
-
-        if (
-            req.path.startsWith("/api/")
-        ) {
-
-            return res.status(404).json({
-                ok: false,
-                error:
-                    "API endpoint bulunamadı."
-            });
-        }
-
-        const giris =
-            path.join(
-                publicDir,
-                "giris.html"
-            );
-
-        if (
-            fs.existsSync(giris)
-        ) {
-
-            return res.sendFile(
-                giris
-            );
-        }
-
-        return res.status(404).send(
-            "Minegram sayfası bulunamadı."
-        );
-    }
-);
-
-/* =========================================================
-   HATA YAKALAMA
-========================================================= */
-
-app.use(
-    (error, req, res, next) => {
-
-        console.error(
-            "SERVER ERROR:",
-            error
-        );
-
-        if (res.headersSent) {
-            return next(error);
-        }
-
-        return res.status(500).json({
-            ok: false,
-            error:
-                error?.message ||
-                "Sunucu tarafında hata oluştu."
-        });
-    }
-);
-
-/* =========================================================
-   START
-========================================================= */
-
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
-
-        console.log("");
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            `Minegram server çalışıyor. PORT=${PORT}`
-        );
-
-        console.log(
-            `PUBLIC DIR: ${publicDir}`
-        );
-
-        console.log(
-            `SUPABASE: ${
-                SUPABASE_OK
-                    ? "OK"
-                    : "EKSİK"
-            }`
-        );
-
-        console.log(
-            `RESEND: ${
-                RESEND_OK
-                    ? "OK"
-                    : "EKSİK"
-            }`
-        );
-
-        console.log(
-            `FROM EMAIL: ${
-                RESEND_FROM_EMAIL ||
-                "EKSİK"
-            }`
-        );
-
-        console.log(
-            "======================================"
-        );
-
-        console.log("");
-    }
-);
-
-/* =========================================================
-   RESEND + OTP SİSTEMİ
-========================================================= */
-
-const RESEND_API_KEY = env("RESEND_API_KEY");
-
-const RESEND_FROM_EMAIL =
-  env("RESEND_FROM_EMAIL");
-
-const OTP_EXPIRE_MS =
-  10 * 60 * 1000;
-
-const OTP_MAX_ATTEMPTS = 5;
-
-/*
-  Geçici OTP deposu.
-  Render yeniden başlatılırsa OTP'ler silinir.
-*/
-const verificationCodes = new Map();
-
-
-function createOTP() {
-  return String(
-    crypto.randomInt(
-      100000,
-      1000000
-    )
+if (!CONFIG_OK) {
+  console.error(
+    "Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY veya SUPABASE_ANON_KEY gerekli."
   );
 }
 
+app.use(
+  express.json({
+    limit: "2mb"
+  })
+);
 
-function normalizeEmail(email) {
-  return String(email || "")
+const publicDir = path.join(__dirname, "public");
+const rootIndex = path.join(__dirname, "giris.html");
+
+app.use((req, res, next) => {
+  if (
+    req.path.endsWith(".html") ||
+    req.path === "/"
+  ) {
+    res.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+
+  next();
+});
+
+app.use(express.static(publicDir));
+app.use(express.static(__dirname));
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024
+  }
+});
+
+function client(token = null) {
+  if (!CONFIG_OK) {
+    throw new Error(
+      "Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et."
+    );
+  }
+
+  const options = {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  };
+
+  if (token) {
+    options.global = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  }
+
+  return createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    options
+  );
+}
+
+function adminClient() {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    throw new Error(
+      "SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY eksik."
+    );
+  }
+
+  return createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+}
+
+function bearer(req) {
+  const h =
+    req.headers.authorization || "";
+
+  return h.startsWith("Bearer ")
+    ? h.slice(7)
+    : null;
+}
+
+async function auth(req, res, next) {
+  try {
+    const token = bearer(req);
+
+    if (!token) {
+      throw new Error("Oturum gerekli");
+    }
+
+    const sb = client(token);
+
+    const {
+      data: {
+        user
+      },
+      error
+    } = await sb.auth.getUser(token);
+
+    if (error || !user) {
+      throw error || new Error("Oturum gerekli");
+    }
+
+    let {
+      data: profile,
+      error: pError
+    } = await sb
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const fallback =
+        await sb
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+
+      profile =
+        fallback.data || null;
+
+      pError =
+        fallback.error || null;
+    }
+
+    if (pError || !profile) {
+      throw (
+        pError ||
+        new Error("Profil bulunamadı")
+      );
+    }
+
+    req.token = token;
+    req.sb = sb;
+    req.authUser = user;
+    req.user = profile;
+
+    next();
+  } catch (e) {
+    console.error(
+      "AUTH ERROR:",
+      e?.message || e
+    );
+
+    res.status(401).json({
+      error: "Oturum gerekli"
+    });
+  }
+}
+
+function safeUser(u) {
+  if (!u) {
+    return {
+      id: null,
+      username: "user",
+      displayName: "user",
+      bio: "",
+      avatar: null,
+      verified: false,
+      settings: {}
+    };
+  }
+
+  return {
+    id: u.id,
+    username: u.username,
+    displayName:
+      u.display_name ??
+      u.displayName ??
+      u.username,
+    bio: u.bio || "",
+    avatar:
+      u.avatar_url ??
+      u.avatar ??
+      null,
+    verified: !!u.verified,
+    settings: u.settings || {}
+  };
+}
+
+function safeProfile(u) {
+  return safeUser(u);
+}
+
+function normalizeUsername(x) {
+  return String(x || "")
     .trim()
+    .replace(/^@/, "")
     .toLowerCase();
 }
 
-  if (!RESEND_API_KEY) {
-    throw new Error(
-      "RESEND_API_KEY eksik. Render > Environment Variables bölümüne ekle."
-    );
+async function findProfile(
+  sb,
+  username
+) {
+  const q =
+    normalizeUsername(username);
+
+  const {
+    data,
+    error
+  } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("username", q)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
   }
-
-  if (!RESEND_FROM_EMAIL) {
-    throw new Error(
-      "RESEND_FROM_EMAIL eksik. Örneğin: Minegram <onboarding@resend.dev>"
-    );
-  }
-
-  const response = await fetch(
-    "https://api.resend.com/emails",
-    {
-      method: "POST",
-
-      headers: {
-        "Authorization":
-          `Bearer ${RESEND_API_KEY}`,
-
-        "Content-Type":
-          "application/json"
-      },
-
-      body: JSON.stringify({
-        from: RESEND_FROM_EMAIL,
-
-        to: [
-          normalizeEmail(to)
-        ],
-
-        subject,
-
-        html,
-
-        text
-      })
-    }
-  );
-
-  const raw =
-    await response.text();
-
-  let data = {};
-
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    data = {
-      message: raw
-    };
-  }
-
-  if (!response.ok) {
-
-    console.error(
-      "RESEND API HATASI:",
-      response.status,
-      data
-    );
-
-    throw new Error(
-      data?.message ||
-      data?.error ||
-      `Resend HTTP ${response.status}`
-    );
-  }
-
-  console.log(
-    "RESEND EMAIL OK:",
-    data
-  );
 
   return data;
 }
 
-
-/* =========================================================
-   OTP GÖNDER
-========================================================= */
-
-app.post(
-  "/api/register/send-code",
-  async (req, res) => {
-
-    try {
-
-      const email =
-        normalizeEmail(
-          req.body?.email
-        );
-
-      if (!email) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "E-posta adresi gerekli."
-        });
-
-      }
-
-      /*
-        Basit e-posta kontrolü
-      */
-      if (
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          .test(email)
-      ) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Geçerli bir e-posta adresi gir."
-        });
-
-      }
-
-      const existing =
-        verificationCodes.get(
-          email
-        );
-
-      /*
-        Çok sık kod istemeyi engelle
-      */
-      if (
-        existing &&
-        existing.lastSent &&
-        Date.now() -
-          existing.lastSent <
-          60 * 1000
-      ) {
-
-        const remaining =
-          Math.ceil(
-            (
-              60 * 1000 -
-              (
-                Date.now() -
-                existing.lastSent
-              )
-            ) / 1000
-          );
-
-        return res.status(429).json({
-          ok: false,
-          error:
-            `Yeni kod istemeden önce ${remaining} saniye bekle.`
-        });
-
-      }
-
-      const code =
-        createOTP();
-
-      verificationCodes.set(
-        email,
-        {
-          code,
-
-          expires:
-            Date.now() +
-            OTP_EXPIRE_MS,
-
-          attempts: 0,
-
-          lastSent:
-            Date.now()
-        }
-      );
-
-
-      const html = `
-<!doctype html>
-
-<html lang="tr">
-
-<head>
-<meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,initial-scale=1.0">
-
-<title>Minegram doğrulama</title>
-
-</head>
-
-<body style="
-margin:0;
-padding:0;
-background:#f5f5f5;
-font-family:Arial,Helvetica,sans-serif;
-">
-
-<div style="
-max-width:520px;
-margin:40px auto;
-padding:20px;
-">
-
-<div style="
-background:#ffffff;
-border-radius:20px;
-padding:35px 25px;
-text-align:center;
-box-shadow:0 5px 25px rgba(0,0,0,.08);
-">
-
-<h1 style="
-margin:0 0 15px;
-font-size:30px;
-">
-Minegram
-</h1>
-
-<p style="
-font-size:16px;
-color:#444;
-">
-Hesabını doğrulamak için
-aşağıdaki 6 haneli kodu kullan.
-</p>
-
-<div style="
-margin:30px 0;
-padding:20px;
-background:#f2f2f2;
-border-radius:15px;
-font-size:38px;
-font-weight:bold;
-letter-spacing:10px;
-">
-${code}
-</div>
-
-<p style="
-color:#555;
-">
-Bu kod <b>10 dakika</b> boyunca geçerlidir.
-</p>
-
-<p style="
-font-size:13px;
-color:#999;
-margin-top:30px;
-">
-Bu işlemi sen başlatmadıysan
-bu e-postayı dikkate alma.
-</p>
-
-</div>
-
-</div>
-
-</body>
-
-</html>
-`;
-
-
-      const text = `
-Minegram hesap doğrulama
-
-Doğrulama kodun:
-
-${code}
-
-Bu kod 10 dakika geçerlidir.
-
-Bu işlemi sen başlatmadıysan
-bu e-postayı dikkate alma.
-`;
-
-
-      await sendResendEmail(
-        email,
-
-        "Minegram doğrulama kodun",
-
-        html,
-
-        text
-      );
-
-
-      console.log(
-        "OTP GÖNDERİLDİ:",
-        email
-      );
-
-
-      return res.json({
-
-        ok: true,
-
-        sent: true,
-
-        message:
-          "Doğrulama kodu e-posta adresine gönderildi.",
-
-        expiresIn:
-          OTP_EXPIRE_MS / 1000
-
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "SEND OTP ERROR:",
-        error
-      );
-
-      return res.status(500).json({
-
-        ok: false,
-
-        error:
-          error?.message ||
-          "E-posta gönderilemedi."
-
-      });
-
-    }
-
+async function addNotification({
+  userId,
+  type,
+  fromUserId,
+  postId = null,
+  text
+}) {
+  if (userId === fromUserId) {
+    return;
   }
-);
 
-
-/* =========================================================
-   OTP DOĞRULA
-========================================================= */
-
-app.post(
-  "/api/register/verify-code",
-  async (req, res) => {
-
-    try {
-
-      const email =
-        normalizeEmail(
-          req.body?.email
-        );
-
-      const code =
-        String(
-          req.body?.code || ""
-        ).trim();
-
-
-      if (!email || !code) {
-
-        return res.status(400).json({
-
-          ok: false,
-
-          error:
-            "E-posta ve doğrulama kodu gerekli."
-
-        });
-
-      }
-
-
-      if (!/^\d{6}$/.test(code)) {
-
-        return res.status(400).json({
-
-          ok: false,
-
-          error:
-            "Doğrulama kodu 6 haneli olmalı."
-
-        });
-
-      }
-
-
-      const entry =
-        verificationCodes.get(
-          email
-        );
-
-
-      if (!entry) {
-
-        return res.status(400).json({
-
-          ok: false,
-
-          verified: false,
-
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
-
-        });
-
-      }
-
-
-      if (
-        Date.now() >
-        entry.expires
-      ) {
-
-        verificationCodes.delete(
-          email
-        );
-
-        return res.status(400).json({
-
-          ok: false,
-
-          verified: false,
-
-          error:
-            "Doğrulama kodunun süresi dolmuş. Yeni kod iste."
-
-        });
-
-      }
-
-
-      if (
-        entry.attempts >=
-        OTP_MAX_ATTEMPTS
-      ) {
-
-        verificationCodes.delete(
-          email
-        );
-
-        return res.status(429).json({
-
-          ok: false,
-
-          verified: false,
-
-          error:
-            "Çok fazla yanlış deneme yapıldı. Yeni kod iste."
-
-        });
-
-      }
-
-
-      if (
-        entry.code !==
-        code
-      ) {
-
-        entry.attempts++;
-
-        verificationCodes.set(
-          email,
-          entry
-        );
-
-        return res.status(400).json({
-
-          ok: false,
-
-          verified: false,
-
-          error:
-            `Doğrulama kodu yanlış. Kalan deneme: ${
-              OTP_MAX_ATTEMPTS -
-              entry.attempts
-            }`
-
-        });
-
-      }
-
-
-      /*
-        OTP başarılı
-      */
-
-      verificationCodes.delete(
-        email
-      );
-
-
-      return res.json({
-
-        ok: true,
-
-        verified: true,
-
-        email,
-
-        message:
-          "E-posta başarıyla doğrulandı."
-
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "VERIFY OTP ERROR:",
-        error
-      );
-
-      return res.status(500).json({
-
-        ok: false,
-
-        verified: false,
-
-        error:
-          error?.message ||
-          "Kod doğrulanamadı."
-
-      });
-
-    }
-
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return;
   }
-);
 
+  const admin =
+    adminClient();
 
-/* =========================================================
-   TEST EMAIL
-========================================================= */
-
-app.post(
-  "/api/test-email",
-  async (req, res) => {
-
-    try {
-
-      const email =
-        normalizeEmail(
-          req.body?.email
-        );
-
-
-      if (!email) {
-
-        return res.status(400).json({
-
-          ok: false,
-
-          error:
-            "Test e-posta adresi gerekli."
-
-        });
-
-      }
-
-
-      const result =
-        await sendResendEmail(
-
-          email,
-
-          "Minegram test e-postası",
-
-          `
-          <div style="
-          font-family:Arial;
-          padding:30px;
-          ">
-
-          <h2>Minegram</h2>
-
-          <p>
-          Resend bağlantısı başarıyla çalışıyor.
-          </p>
-
-          </div>
-          `,
-
-          "Minegram Resend test e-postası."
-
-        );
-
-
-      return res.json({
-
-        ok: true,
-
-        message:
-          "Test e-postası gönderildi.",
-
-        id:
-          result?.id || null
-
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "TEST EMAIL ERROR:",
-        error
-      );
-
-      return res.status(500).json({
-
-        ok: false,
-
-        error:
-          error?.message ||
-          "Test e-postası gönderilemedi."
-
-      });
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   RESEND DURUMU
-========================================================= */
-
-app.get(
-  "/api/email-status",
-  (req, res) => {
-
-    res.json({
-
-      ok: true,
-
-      resend:
-        Boolean(
-          RESEND_API_KEY
-        ),
-
-      from:
-        Boolean(
-          RESEND_FROM_EMAIL
-        ),
-
-      message:
-        RESEND_API_KEY &&
-        RESEND_FROM_EMAIL
-          ? "Resend hazır."
-          : "Resend Environment Variables eksik."
-
+  await admin
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type,
+      from_user_id: fromUserId,
+      post_id: postId,
+      text
     });
+}
 
+async function hydratePosts(
+  sb,
+  posts,
+  userId
+) {
+  if (!posts.length) {
+    return [];
   }
-);
+
+  const userIds = [
+    ...new Set(
+      posts.map(
+        p => p.user_id
+      )
+    )
+  ];
+
+  const postIds =
+    posts.map(p => p.id);
+
+  const [
+    profilesResult,
+    likesResult,
+    commentsResult,
+    savesResult
+  ] = await Promise.all([
+    sb
+      .from("profiles")
+      .select(
+        "id,username,display_name,bio,avatar_url,verified"
+      )
+      .in("id", userIds),
+
+    sb
+      .from("post_likes")
+      .select(
+        "post_id,user_id"
+      )
+      .in("post_id", postIds),
+
+    sb
+      .from("comments")
+      .select(
+        "id,post_id,user_id,text,created_at,profiles(username,display_name)"
+      )
+      .in("post_id", postIds)
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      ),
+
+    sb
+      .from("saves")
+      .select(
+        "post_id,user_id"
+      )
+      .eq(
+        "user_id",
+        userId
+      )
+      .in(
+        "post_id",
+        postIds
+      )
+  ]);
+
+  const profiles =
+    profilesResult.data || [];
+
+  const likes =
+    likesResult.data || [];
+
+  const comments =
+    commentsResult.data || [];
+
+  const saves =
+    savesResult.data || [];
+
+  const pmap =
+    new Map(
+      profiles.map(
+        p => [p.id, p]
+      )
+    );
+
+  const likeMap =
+    new Map();
+
+  for (const l of likes) {
+    likeMap.set(
+      l.post_id,
+      (likeMap.get(l.post_id) || 0) + 1
+    );
+  }
+
+  const liked =
+    new Set(
+      likes
+        .filter(
+          x => x.user_id === userId
+        )
+        .map(
+          x => x.post_id
+        )
+    );
+
+  const saved =
+    new Set(
+      saves.map(
+        x => x.post_id
+      )
+    );
+
+  const commentsMap =
+    new Map();
+
+  for (const c of comments) {
+    if (
+      !commentsMap.has(
+        c.post_id
+      )
+    ) {
+      commentsMap.set(
+        c.post_id,
+        []
+      );
+    }
+
+    commentsMap
+      .get(c.post_id)
+      .push({
+        id: c.id,
+        userId: c.user_id,
+        text: c.text,
+        createdAt:
+          c.created_at,
+        username:
+          c.profiles?.username ||
+          ""
+      });
+  }
+
+  return posts.map(p => ({
+    id: p.id,
+    userId: p.user_id,
+    caption: p.caption,
+    media: p.media_url,
+    mediaName:
+      p.media_name,
+    mediaType:
+      p.media_type,
+    createdAt:
+      p.created_at,
+
+    likes: Array(
+      likeMap.get(p.id) || 0
+    ).fill(null),
+
+    comments:
+      commentsMap.get(p.id) || [],
+
+    likedByMe:
+      liked.has(p.id),
+
+    savedByMe:
+      saved.has(p.id),
+
+    user: safeUser(
+      pmap.get(p.user_id) || {
+        id: p.user_id,
+        username: "user"
+      }
+    )
+  }));
+}
 
 /* =========================================================
    USERNAME CHECK
@@ -1968,6 +600,10 @@ app.get(
 
 const registrationCodes = new Map();
 const registrationRate = new Map();
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
 function createVerificationCode() {
   return crypto.randomInt(100000, 1000000).toString();
@@ -2246,6 +882,65 @@ app.post(
       }
 
       createdAuthUserId = authUser.id;
+
+      /* Son kullanıcı adı kontrolü — yarış durumunu yakala */
+      const {
+        data: finalUsernameCheck,
+        error: finalUsernameError
+      } =
+        await admin
+          .from("profiles")
+          .select("id,username")
+          .eq("username", username)
+          .limit(1)
+          .maybeSingle();
+
+      if (finalUsernameError) {
+        console.error(
+          "FINAL USERNAME CHECK ERROR:",
+          finalUsernameError
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+
+        createdAuthUserId = null;
+
+        return res.status(500).json({
+          ok: false,
+          code: "USERNAME_CHECK_ERROR",
+          error: "Kullanıcı adı son kontrolde doğrulanamadı."
+        });
+      }
+
+      if (finalUsernameCheck) {
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+
+        createdAuthUserId = null;
+
+        return res.status(409).json({
+          ok: false,
+          code: "USERNAME_TAKEN",
+          error: "Bu kullanıcı adı zaten alınmış."
+        });
+      }
 
       /* Profil oluştur */
       const {
