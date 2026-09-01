@@ -935,19 +935,17 @@ app.post(
       const code = createVerificationCode();
 
       registrationCodes.set(
-        registrationKey(email),
-        {
-          code,
-          userId: authUser.id,
-          email,
-          expires: Date.now() + 10 * 60 * 1000,
-          attempts: 0,
-          username,
-          displayName
-        }
-      );
-  
-    const admin = adminClient();
+  registrationKey(email),
+  {
+    code,
+    userId: authUser.id,
+    email,
+    expires: Date.now() + 10 * 60 * 1000,
+    attempts: 0,
+    username,
+    displayName
+  }
+);
 
 const { error: otpSaveError } =
   await admin.auth.admin.updateUserById(
