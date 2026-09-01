@@ -883,30 +883,128 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
+      /*
+       * PROFİL OLUŞTUR / TRIGGER UYUMLU
+       *
+       * Supabase tarafında auth.users -> profiles trigger'ı varsa,
+       * createUser() sonrasında profil zaten oluşmuş olabilir.
+       * Bu yüzden körlemesine INSERT yapmıyoruz. Önce id ile arıyoruz;
+       * varsa UPDATE, yoksa INSERT yapıyoruz.
+       */
+      let profile = null;
+      let profileError = null;
+
       const {
-        data: profile,
-        error: profileError
-      } =
-        await admin
+        data: existingById,
+        error: existingByIdError
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
+      if (existingByIdError) {
+        console.error(
+          "PROFILE LOOKUP ERROR:",
+          existingByIdError
+        );
+      }
+
+      if (existingById) {
+        const updatePayload = {
+          username,
+          display_name: displayName,
+          bio: existingById.bio ?? "",
+          avatar_url: existingById.avatar_url ?? null,
+          verified: existingById.verified ?? false,
+          settings: existingById.settings ?? {}
+        };
+
+        if (Object.prototype.hasOwnProperty.call(existingById, "auth_user_id")) {
+          updatePayload.auth_user_id = authUser.id;
+        }
+
+        const updated = await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .update(updatePayload)
+          .eq("id", authUser.id)
           .select("*")
           .single();
 
-      if (profileError) {
+        profile = updated.data;
+        profileError = updated.error;
+      } else {
+        const insertPayload = {
+          id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        };
+
+        /* auth_user_id kolonu varsa ekle. Tablo boşsa sample row alınamayacağı
+           için ayrı bir select denemesi yapıyoruz. Kolon yoksa Supabase hata
+           verebilir; o durumda auth_user_id olmadan tekrar insert edeceğiz. */
+        let hasAuthUserIdColumn = false;
+        const schemaProbe = await admin
+          .from("profiles")
+          .select("auth_user_id")
+          .limit(1);
+
+        if (!schemaProbe.error) {
+          hasAuthUserIdColumn = true;
+          insertPayload.auth_user_id = authUser.id;
+        }
+
+        let inserted = await admin
+          .from("profiles")
+          .insert(insertPayload)
+          .select("*")
+          .single();
+
+        /* Trigger INSERT'i aynı anda yaptıysa duplicate olabilir.
+           Bu durumda oluşan profili tekrar okuyup devam ediyoruz. */
+        if (inserted.error && /auth_user_id|column/i.test(String(inserted.error.message || "")) && hasAuthUserIdColumn) {
+          const fallbackPayload = { ...insertPayload };
+          delete fallbackPayload.auth_user_id;
+          inserted = await admin
+            .from("profiles")
+            .insert(fallbackPayload)
+            .select("*")
+            .single();
+        }
+
+        if (inserted.error) {
+          console.error(
+            "PROFILE INSERT ERROR:",
+            inserted.error
+          );
+
+          const retry = await admin
+            .from("profiles")
+            .select("*")
+            .eq("id", authUser.id)
+            .maybeSingle();
+
+          if (retry.data) {
+            profile = retry.data;
+            profileError = null;
+          } else {
+            profile = null;
+            profileError = inserted.error;
+          }
+        } else {
+          profile = inserted.data;
+          profileError = null;
+        }
+      }
+
+      if (profileError || !profile) {
         console.error(
           "PROFILE CREATE ERROR:",
-          profileError
+          profileError || "Profil kaydı bulunamadı."
         );
 
         try {
@@ -925,7 +1023,8 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
+          error: "Profil oluşturulamadı.",
+          details: profileError?.message || null
         });
       }
 
