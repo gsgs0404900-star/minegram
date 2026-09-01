@@ -4726,4 +4726,4 @@ app.listen(
       `Minegram server çalışıyor. PORT=${PORT}` 
     ); 
   } 
-);       BUDA 2 PARÇA SORUNU BUL DÜZELT VE SONRA BİRLEŞTİRİP HAZIR YAPIŞTIRMALIK VER
+); 
