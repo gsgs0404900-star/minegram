@@ -1047,7 +1047,7 @@ app.post(
         normalizeEmail(req.body?.email);
 
       const code =
-        String(req.body?.code || req.body?.otp || "")
+        String(req.body?.code || "")
           .replace(/\D/g, "")
           .slice(0, 6);
 
@@ -1157,10 +1157,7 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password ||
-            req.body?.newPassword ||
-            req.body?.registerPassword ||
-            ""
+            req.body?.password || ""
           )
         });
 
@@ -1191,7 +1188,6 @@ app.post(
       return res.json({
         ok: true,
         verified: true,
-        login: true,
         token:
           loginData.session.access_token,
         user: {
@@ -2380,365 +2376,76 @@ app.get(
 
 
 /* =========================================================
-   RESEND - MINEGRAM E-POSTA GÖNDERİCİ
+   RESEND
 ========================================================= */
 
-function resendEnv(name, fallback = "") {
-  return String(
-    process.env[name] ?? fallback
-  )
-    .trim()
-    .replace(/^("|')|("|')$/g, "");
-}
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY ||
+      ""
+    ).trim();
 
-async function sendResendEmail(to, subject, html, text = "") {
-  const recipient = String(to || "").trim().toLowerCase();
-  const apiKey =
-    resendEnv("RESEND_API_KEY") ||
-    resendEnv("RESEND_KEY");
-
-  const fromEmail =
-    resendEnv("RESEND_FROM_EMAIL") ||
-    resendEnv("RESEND_FROM") ||
-    "onboarding@resend.dev";
-
-  const fromName =
-    resendEnv("RESEND_FROM_NAME", "Minegram");
-
-  if (!recipient) {
-    throw new Error("E-posta alıcısı boş.");
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-    throw new Error("Geçersiz e-posta alıcısı.");
-  }
-
-  if (!apiKey) {
+  if (!key) {
     throw new Error(
-      "RESEND_API_KEY eksik. .env içine Resend API anahtarını ekle ve sunucuyu yeniden başlat."
+      "RESEND_API_KEY eksik."
     );
   }
 
-  if (!fromEmail.includes("@")) {
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
+
+  const r =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${key}`,
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
+      }
+    );
+
+  const j =
+    await r
+      .json()
+      .catch(
+        () => ({})
+      );
+
+  if (!r.ok) {
     throw new Error(
-      "RESEND_FROM_EMAIL geçersiz. Örn: onboarding@resend.dev"
+      j.message ||
+      "E-posta gönderilemedi."
     );
   }
 
-  const payload = {
-    from: `${fromName} <${fromEmail}>`,
-    to: [recipient],
-    subject: String(subject || "Minegram"),
-    html: String(html || ""),
-    text: String(text || "")
-  };
-
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-
-    try {
-      const response = await fetch(
-        "https://api.resend.com/emails",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "User-Agent": "Minegram/1.0"
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        }
-      );
-
-      const raw = await response.text();
-      let body = {};
-
-      try {
-        body = raw ? JSON.parse(raw) : {};
-      } catch {
-        body = { message: raw };
-      }
-
-      if (response.ok) {
-        console.log(
-          `[RESEND] OK -> ${recipient} (${body.id || "id-yok"})`
-        );
-        return body;
-      }
-
-      const message =
-        body?.message ||
-        body?.error ||
-        `Resend HTTP ${response.status}`;
-
-      lastError = new Error(
-        `Resend HTTP ${response.status}: ${message}`
-      );
-
-      if ([400, 401, 403, 422].includes(response.status)) {
-        break;
-      }
-    } catch (e) {
-      lastError =
-        e?.name === "AbortError"
-          ? new Error("Resend bağlantısı zaman aşımına uğradı.")
-          : e;
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (attempt < 2) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-    }
-  }
-
-  console.error(
-    "[RESEND] GÖNDERME HATASI:",
-    lastError?.message || lastError
-  );
-
-  throw lastError || new Error("E-posta gönderilemedi.");
+  return j;
 }
 
 const recoveryCodes =
   new Map();
 
-function cleanupRecoveryCodes() {
-  const now = Date.now();
-  for (const [key, entry] of recoveryCodes.entries()) {
-    if (!entry || entry.expires < now) {
-      recoveryCodes.delete(key);
-    }
-  }
-}
-
-setInterval(cleanupRecoveryCodes, 60 * 1000).unref();
-
-function cleanupRegistrationCodes() {
-  const now = Date.now();
-  for (const [key, entry] of registrationCodes.entries()) {
-    if (!entry || entry.expires < now) registrationCodes.delete(key);
-  }
-}
-
-setInterval(cleanupRegistrationCodes, 60 * 1000).unref();
-
-// 6 haneli kurtarma kodu doğrulandıktan sonra
-// yeni şifre belirlemek için kısa ömürlü tek kullanımlık anahtarlar.
-const passwordResetTokens = new Map();
-
-function cleanupPasswordResetTokens() {
-  const now = Date.now();
-  for (const [token, entry] of passwordResetTokens.entries()) {
-    if (!entry || entry.expires < now) {
-      passwordResetTokens.delete(token);
-    }
-  }
-}
-
-
-/* =========================================================
-   MINEGRAM - E-POSTA OTP
-   POST /api/send-email-otp
-========================================================= */
-
-const emailOtpStore = new Map();
-const emailOtpRate = new Map();
-
-function createEmailOtp() {
-  return crypto.randomInt(100000, 1000000).toString();
-}
-
-function normalizeOtpCode(value) {
-  return String(value ?? "")
-    .replace(/\D/g, "")
-    .slice(0, 6);
-}
-
-function isValidOtpCode(value) {
-  return /^\d{6}$/.test(normalizeOtpCode(value));
-}
-
-function otpKey(email) {
-  return normalizeEmail(email);
-}
-
-app.post("/api/send-email-otp", async (req, res) => {
-  try {
-    const email = String(req.body?.email || "")
-      .trim()
-      .toLowerCase();
-
-    const username = String(req.body?.username || "")
-      .trim()
-      .replace(/^@/, "")
-      .toLowerCase();
-
-    if (!email) {
-      return res.status(400).json({
-        ok: false,
-        code: "EMAIL_REQUIRED",
-        error: "E-posta adresi gerekli."
-      });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_EMAIL",
-        error: "Geçerli bir e-posta adresi gir."
-      });
-    }
-
-    const lastSent = emailOtpRate.get(email) || 0;
-    if (Date.now() - lastSent < 60 * 1000) {
-      const remaining = Math.ceil(
-        (60 * 1000 - (Date.now() - lastSent)) / 1000
-      );
-      return res.status(429).json({
-        ok: false,
-        code: "RATE_LIMIT",
-        error: `${remaining} saniye sonra tekrar deneyin.`
-      });
-    }
-
-    const suppliedCode = normalizeOtpCode(req.body?.code);
-    const code = isValidOtpCode(suppliedCode)
-      ? suppliedCode
-      : createEmailOtp();
-
-    const html = `
-<!DOCTYPE html>
-<html lang="tr">
-<head><meta charset="UTF-8"><title>Minegram doğrulama kodu</title></head>
-<body style="margin:0;padding:0;background:#000;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:520px;margin:40px auto;padding:35px 25px;background:#111;border-radius:14px;text-align:center;color:#fff">
-  <h1 style="margin:0 0 20px;font-size:28px">Minegram</h1>
-  <p style="font-size:16px;color:#ddd">Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:</p>
-  <div style="margin:30px 0;padding:20px;background:#222;border-radius:12px;font-size:38px;font-weight:bold;letter-spacing:10px;color:#fff">${code}</div>
-  <p style="color:#999;font-size:13px">Bu kod 10 dakika geçerlidir.</p>
-  <p style="color:#999;font-size:13px">Bu kodu kimseyle paylaşma.</p>
-</div>
-</body>
-</html>`;
-
-    const text =
-      `Minegram e-posta doğrulama kodun\n\nKodun: ${code}\n\nBu kod 10 dakika geçerlidir.\nBu kodu kimseyle paylaşma.`;
-
-    await sendResendEmail(
-      email,
-      "Minegram doğrulama kodun",
-      html,
-      text
-    );
-
-    emailOtpStore.set(otpKey(email), {
-      code,
-      username,
-      email,
-      sentAt: Date.now(),
-      expires: Date.now() + 10 * 60 * 1000,
-      attempts: 0
-    });
-    emailOtpRate.set(otpKey(email), Date.now());
-
-    return res.json({
-      ok: true,
-      message: "Doğrulama kodu gönderildi.",
-      email
-    });
-  } catch (e) {
-    console.error("[OTP] RESEND HATASI:", e);
-    return res.status(500).json({
-      ok: false,
-      code: "EMAIL_SEND_FAILED",
-      error: e?.message || "Sunucu e-posta gönderirken hata verdi."
-    });
-  }
-});
-
-/* =========================================================
-   E-POSTA OTP VERIFY
-   POST /api/verify-email-otp
-
-   Kayıt ekranı için gönderilen kodu sunucu tarafında da doğrular.
-   Böylece uygulamanın kendi ürettiği kod ile e-postaya gönderilen
-   kod farklı olsa bile doğrulama yapılmaz; tek kaynak sunucudur.
-========================================================= */
-
-app.post("/api/verify-email-otp", async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    const code = normalizeOtpCode(req.body?.code);
-
-    if (!email) {
-      return res.status(400).json({
-        ok: false,
-        code: "EMAIL_REQUIRED",
-        error: "E-posta gerekli."
-      });
-    }
-
-    if (!isValidOtpCode(code)) {
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_CODE",
-        error: "6 haneli doğrulama kodunu gir."
-      });
-    }
-
-    const key = otpKey(email);
-    const entry = emailOtpStore.get(key);
-
-    if (!entry || entry.expires < Date.now()) {
-      emailOtpStore.delete(key);
-      return res.status(400).json({
-        ok: false,
-        code: "CODE_EXPIRED",
-        error: "Kod yanlış veya süresi dolmuş. Yeni kod iste."
-      });
-    }
-
-    if ((entry.attempts || 0) >= 5) {
-      emailOtpStore.delete(key);
-      return res.status(429).json({
-        ok: false,
-        code: "TOO_MANY_ATTEMPTS",
-        error: "Çok fazla yanlış kod girildi. Yeni kod iste."
-      });
-    }
-
-    if (entry.code !== code) {
-      entry.attempts = (entry.attempts || 0) + 1;
-      return res.status(400).json({
-        ok: false,
-        code: "INVALID_CODE",
-        error: "Doğrulama kodu yanlış."
-      });
-    }
-
-    emailOtpStore.delete(key);
-
-    return res.json({
-      ok: true,
-      verified: true,
-      email,
-      username: entry.username || ""
-    });
-  } catch (e) {
-    console.error("VERIFY EMAIL OTP ERROR:", e);
-    return res.status(500).json({
-      ok: false,
-      code: "OTP_VERIFY_ERROR",
-      error: e?.message || "Kod doğrulanamadı."
-    });
-  }
-});
 
 /* =========================================================
    FORGOT START
@@ -2748,11 +2455,6 @@ app.post(
   "/api/forgot/start",
   async (req, res) => {
     try {
-      cleanupRecoveryCodes();
-      cleanupPasswordResetTokens();
-      for (const [key, entry] of emailOtpStore.entries()) {
-        if (!entry || entry.expires < Date.now()) emailOtpStore.delete(key);
-      }
       const found =
         await resolveRecoveryEmail(
           req.body?.identifier,
@@ -2776,15 +2478,17 @@ app.post(
           )
         );
 
-      const recoveryKey = found.email.toLowerCase();
-      const recoveryEntry = {
-        code,
-        expires: Date.now() + 10 * 60 * 1000,
-        sentAt: Date.now(),
-        attempts: 0,
-        profile: found.profile,
-        authUserId: found.authUser?.id || null
-      };
+      recoveryCodes.set(
+        found.email.toLowerCase(),
+        {
+          code,
+          expires:
+            Date.now() +
+            10 * 60 * 1000,
+          profile:
+            found.profile
+        }
+      );
 
       await sendResendEmail(
         found.email,
@@ -2801,8 +2505,6 @@ app.post(
 
         `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
       );
-
-      recoveryCodes.set(recoveryKey, recoveryEntry);
 
       res.json({
         ok: true,
@@ -2836,8 +2538,6 @@ app.post(
   "/api/forgot/verify",
   async (req, res) => {
     try {
-      cleanupRecoveryCodes();
-      cleanupPasswordResetTokens();
       const found =
         await resolveRecoveryEmail(
           req.body?.identifier,
@@ -2860,42 +2560,25 @@ app.post(
           key
         );
 
-      if (!entry || entry.expires < Date.now()) {
-        recoveryCodes.delete(key);
+      if (
+        !entry ||
+        entry.expires <
+          Date.now() ||
+        entry.code !==
+          String(
+            req.body?.code ||
+            ""
+          ).trim()
+      ) {
         return res.status(400).json({
-          error: "Kod yanlış veya süresi dolmuş."
+          error:
+            "Kod yanlış veya süresi dolmuş."
         });
       }
 
-      if ((entry.attempts || 0) >= 5) {
-        recoveryCodes.delete(key);
-        return res.status(429).json({
-          error: "Çok fazla yanlış kod girildi. Yeni kod iste."
-        });
-      }
-
-      const enteredCode = String(req.body?.code || "")
-        .replace(/\D/g, "")
-        .slice(0, 6);
-
-      if (entry.code !== enteredCode) {
-        entry.attempts = (entry.attempts || 0) + 1;
-        return res.status(400).json({
-          error: "Kod yanlış veya süresi dolmuş."
-        });
-      }
-
-      // Kod tek kullanımlık olsun. Doğrulama başarılı olduğunda
-      // şifre değiştirme için 10 dakikalık geçici anahtar üret.
-      recoveryCodes.delete(key);
-      cleanupPasswordResetTokens();
-
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      passwordResetTokens.set(resetToken, {
-        userId: found.authUser?.id || entry.authUserId || null,
-        email: found.email,
-        expires: Date.now() + 10 * 60 * 1000
-      });
+      recoveryCodes.delete(
+        key
+      );
 
       const p =
         entry.profile ||
@@ -2904,16 +2587,16 @@ app.post(
 
       res.json({
         ok: true,
-        verified: true,
-        resetToken,
-        email: found.email,
+        email:
+          found.email,
 
         account: {
           username:
             p.username ||
             "minegram",
 
-          email: found.email,
+          email:
+            found.email,
 
           displayName:
             p.display_name ||
@@ -2925,156 +2608,6 @@ app.post(
       res.status(400).json({
         error:
           e.message
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   RESET PASSWORD - 6 HANELİ KOD SONRASI
-========================================================= */
-
-app.post(
-  "/api/forgot/reset-password",
-  async (req, res) => {
-    try {
-      const resetToken =
-        String(req.body?.resetToken || "").trim();
-
-      const password =
-        String(req.body?.password || "");
-
-      if (!resetToken) {
-        return res.status(400).json({
-          ok: false,
-          error: "Şifre sıfırlama anahtarı gerekli."
-        });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({
-          ok: false,
-          error: "Yeni şifre en az 6 karakter olmalı."
-        });
-      }
-
-      cleanupPasswordResetTokens();
-
-      const entry = passwordResetTokens.get(resetToken);
-
-      if (!entry || entry.expires < Date.now()) {
-        passwordResetTokens.delete(resetToken);
-        return res.status(400).json({
-          ok: false,
-          error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş."
-        });
-      }
-
-      if (!entry.userId) {
-        passwordResetTokens.delete(resetToken);
-        return res.status(400).json({
-          ok: false,
-          error: "Hesap bilgisi bulunamadı."
-        });
-      }
-
-      const admin = adminClient();
-
-      const { error } =
-        await admin.auth.admin.updateUserById(
-          entry.userId,
-          { password }
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      passwordResetTokens.delete(resetToken);
-
-      return res.json({
-        ok: true,
-        message: "Şifren başarıyla değiştirildi. Şimdi giriş yapabilirsin.",
-        email: entry.email
-      });
-    } catch (e) {
-      console.error("RESET PASSWORD ERROR:", e);
-      return res.status(400).json({
-        ok: false,
-        error: e?.message || "Şifre değiştirilemedi."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   FORGOT CODE RESEND
-========================================================= */
-
-app.post(
-  "/api/forgot/resend",
-  async (req, res) => {
-    try {
-      const found =
-        await resolveRecoveryEmail(
-          req.body?.identifier,
-          req.body?.mode || "email"
-        );
-
-      if (!found?.email) {
-        return res.status(404).json({
-          ok: false,
-          error: "Hesap bulunamadı."
-        });
-      }
-
-      const key = found.email.toLowerCase();
-      const previous = recoveryCodes.get(key);
-
-      if (previous?.sentAt && Date.now() - previous.sentAt < 60 * 1000) {
-        return res.status(429).json({
-          ok: false,
-          error: "Yeni kod göndermek için 60 saniye bekle."
-        });
-      }
-
-      const code = crypto.randomInt(100000, 1000000).toString();
-
-      const resendEntry = {
-        code,
-        expires: Date.now() + 10 * 60 * 1000,
-        sentAt: Date.now(),
-        attempts: 0,
-        profile: found.profile,
-        authUserId: found.authUser?.id || null
-      };
-
-      await sendResendEmail(
-        found.email,
-        "Minegram doğrulama kodun",
-        `<div style="font-family:Arial,sans-serif">
-          <h2>Minegram</h2>
-          <p>Şifre sıfırlama doğrulama kodun:</p>
-          <div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div>
-          <p>Bu kod 10 dakika geçerlidir.</p>
-        </div>`,
-        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-      );
-
-      recoveryCodes.set(key, resendEntry);
-
-      return res.json({
-        ok: true,
-        email: found.email,
-        maskedEmail: maskEmail(found.email)
-      });
-    } catch (e) {
-      console.error("FORGOT RESEND ERROR:", e);
-      return res.status(500).json({
-        ok: false,
-        error: e?.message || "Kod gönderilemedi."
       });
     }
   }
