@@ -143,21 +143,6 @@ function client(token = null) {
   );
 }
 
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
-}
-
-async function getAuthUserByIdSafe(admin, userId) {
-  const id = String(userId || "").trim();
-
-  if (!isUuid(id)) {
-    console.warn("AUTH USER ID UUID DEĞİL, ATLANDI:", id);
-    return { data: null, error: new Error("Auth kullanıcı ID değeri geçerli bir UUID değil.") };
-  }
-
-  return admin.auth.admin.getUserById(id);
-}
-
 function adminClient() {
   if (
     !SUPABASE_URL ||
@@ -179,6 +164,19 @@ function adminClient() {
       }
     }
   );
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
+}
+
+async function getAuthUserByIdSafe(admin, id) {
+  const authId = String(id || "").trim();
+  if (!isUuid(authId)) {
+    console.warn("AUTH ID UUID DEĞİL, getUserById atlandı:", authId);
+    return { data: null, error: new Error("Auth kullanıcı ID geçerli bir UUID değil.") };
+  }
+  return admin.auth.admin.getUserById(authId);
 }
 
 function bearer(req) {
@@ -1305,7 +1303,10 @@ app.post(
         data: authData,
         error: authError
       } =
-        await getAuthUserByIdSafe(admin, entry.userId);
+        await getAuthUserByIdSafe(
+          admin,
+          entry.userId
+        );
 
       if (
         authError ||
@@ -1469,7 +1470,10 @@ app.post(
           data: au,
           error: ae
         } =
-          await getAuthUserByIdSafe(admin, authId);
+          await getAuthUserByIdSafe(
+            admin,
+            authId
+          );
 
         if (
           ae ||
@@ -2112,7 +2116,10 @@ async function findUserByPhone(
               data: authData,
               error: authError
             } =
-              await getAuthUserByIdSafe(admin, authId);
+              await getAuthUserByIdSafe(
+                admin,
+                authId
+              );
 
             if (
               !authError &&
@@ -2198,7 +2205,9 @@ async function resolveRecoveryEmail(
         .select(
           "id,auth_user_id,username,email,display_name"
         )
-        .eq("auth_user_id", authUser.id)
+        .or(
+          `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+        )
         .limit(1)
         .maybeSingle();
 
@@ -2242,7 +2251,10 @@ async function resolveRecoveryEmail(
       data,
       error
     } =
-      await getAuthUserByIdSafe(admin, authId);
+      await getAuthUserByIdSafe(
+        admin,
+        authId
+      );
 
     if (
       error ||
@@ -2339,7 +2351,10 @@ app.post(
           data,
           error
         } =
-          await getAuthUserByIdSafe(admin, authId);
+          await getAuthUserByIdSafe(
+            admin,
+            authId
+          );
 
         if (
           error ||
@@ -2412,68 +2427,73 @@ app.get(
    RESEND
 ========================================================= */
 
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
+async function sendResendEmail(to, subject, html, text = "") {
+  const recipient = String(to || "").trim().toLowerCase();
+  const apiKey =
+    env("RESEND_API_KEY") ||
+    env("RESEND_KEY");
+  const fromEmail =
+    env("RESEND_FROM_EMAIL") ||
+    env("RESEND_FROM") ||
+    "onboarding@resend.dev";
+  const fromName = env("RESEND_FROM_NAME") || "Minegram";
 
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
+  if (!recipient) throw new Error("E-posta alıcısı boş.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+    throw new Error("Geçersiz e-posta alıcısı.");
+  }
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY eksik. Render > Environment bölümüne RESEND_API_KEY ekle.");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
+    throw new Error(`RESEND_FROM_EMAIL geçersiz: ${fromEmail}`);
   }
 
-  const from =
-    String(
-      process.env.RESEND_FROM_EMAIL ||
-      "onboarding@resend.dev"
-    ).trim();
+  const payload = {
+    from: `${fromName} <${fromEmail}>`,
+    to: [recipient],
+    subject: String(subject || "Minegram"),
+    html: String(html || ""),
+    text: String(text || "")
+  };
 
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
 
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": "Minegram/1.0"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
 
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
+    const raw = await response.text();
+    let body = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch { body = { message: raw }; }
 
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
+    if (!response.ok) {
+      const message = body?.message || body?.error || `Resend HTTP ${response.status}`;
+      console.error("[RESEND] HTTP HATASI", response.status, body);
+      if (response.status === 401) throw new Error("Resend API anahtarı geçersiz. RESEND_API_KEY değerini kontrol et.");
+      if (response.status === 403) throw new Error(`Resend gönderim izni reddedildi: ${message}. onboarding@resend.dev kullanıyorsan yalnızca Resend hesabında doğrulanmış alıcıya test gönderilebilir; gerçek kullanıcılar için doğrulanmış alan adından RESEND_FROM_EMAIL kullan.`);
+      if (response.status === 422) throw new Error(`Resend e-posta bilgilerini kabul etmedi: ${message}`);
+      throw new Error(`Resend HTTP ${response.status}: ${message}`);
+    }
 
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
+    console.log(`[RESEND] OK -> ${recipient} (${body.id || "id-yok"})`);
+    return body;
+  } catch (e) {
+    if (e?.name === "AbortError") throw new Error("Resend bağlantısı 15 saniyede yanıt vermedi.");
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return j;
 }
 
 const recoveryCodes =
