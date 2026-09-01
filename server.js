@@ -2851,78 +2851,7 @@ const recoveryCodes = new Map();
 
 
 
-/* =========================================================
-   RESEND
-========================================================= */
 
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY || ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(
-      process.env.RESEND_FROM_EMAIL ||
-      "onboarding@resend.dev"
-    ).trim();
-
-  const response =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(() => ({}));
-
-  if (!response.ok) {
-    console.error(
-      "[RESEND ERROR]",
-      response.status,
-      data
-    );
-
-    throw new Error(
-      data?.message ||
-      data?.error ||
-      `Resend hata verdi (${response.status}).`
-    );
-  }
-
-  return data;
-}
 
 app.post(
   "/api/forgot-password/find-account",
