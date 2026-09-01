@@ -12,6 +12,36 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+/* =========================================================
+   EXPRESS 5 / RENDER UYUMLU CORS
+   NOT: app.options("*") KULLANMA. Express 5 + path-to-regexp
+   wildcard route tanımında "Missing parameter name" hatası verir.
+========================================================= */
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PATCH,PUT,DELETE,OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With"
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  next();
+});
+
 const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
@@ -613,6 +643,49 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
+async function findAuthUserByEmail(admin, email) {
+  const wanted = normalizeEmail(email);
+
+  for (let page = 1; page <= 20; page++) {
+    const result = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000
+    });
+
+    if (result?.error) {
+      throw result.error;
+    }
+
+    const users = result?.data?.users || [];
+    const found = users.find(
+      u => normalizeEmail(u?.email) === wanted
+    );
+
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+
+  return null;
+}
+
+async function persistRegistrationCode(admin, userId, email, code, expires, username, displayName) {
+  const { error } = await admin.auth.admin.updateUserById(
+    userId,
+    {
+      user_metadata: {
+        minegram_registration_pending: true,
+        minegram_registration_code: code,
+        minegram_registration_expires: expires,
+        minegram_registration_email: email,
+        username,
+        display_name: displayName
+      }
+    }
+  );
+
+  if (error) throw error;
+}
+
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -934,13 +1007,27 @@ app.post(
        */
       const code = createVerificationCode();
 
+      const registrationExpires = Date.now() + 10 * 60 * 1000;
+
+      // OTP'yi sadece RAM'de tutma. Render yeniden başlarsa Map silinir.
+      // Supabase Auth user_metadata içine de kaydediyoruz.
+      await persistRegistrationCode(
+        admin,
+        authUser.id,
+        email,
+        code,
+        registrationExpires,
+        username,
+        displayName
+      );
+
       registrationCodes.set(
         registrationKey(email),
         {
           code,
           userId: authUser.id,
           email,
-          expires: Date.now() + 10 * 60 * 1000,
+          expires: registrationExpires,
           attempts: 0,
           username,
           displayName
@@ -1066,17 +1153,38 @@ app.post(
         });
       }
 
-      const key =
-        registrationKey(email);
+      const key = registrationKey(email);
+      let entry = registrationCodes.get(key);
 
-      const entry =
-        registrationCodes.get(key);
+      // Render yeniden başlatıldıysa RAM Map boş olabilir.
+      // Bu durumda OTP'yi Supabase Auth metadata'dan geri yükle.
+      if (!entry) {
+        const admin = adminClient();
+        const persistedUser = await findAuthUserByEmail(admin, email);
+        const meta = persistedUser?.user_metadata || {};
+
+        if (
+          persistedUser?.id &&
+          meta.minegram_registration_pending === true &&
+          String(meta.minegram_registration_code || '').length === 6
+        ) {
+          entry = {
+            code: String(meta.minegram_registration_code),
+            userId: persistedUser.id,
+            email,
+            expires: Number(meta.minegram_registration_expires || 0),
+            attempts: 0,
+            username: meta.username || '',
+            displayName: meta.display_name || ''
+          };
+          registrationCodes.set(key, entry);
+        }
+      }
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
+          error: "Doğrulama kodu bulunamadı. Yeni kod iste."
         });
       }
 
@@ -1144,6 +1252,19 @@ app.post(
       }
 
       registrationCodes.delete(key);
+
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            ...(updated?.user?.user_metadata || {}),
+            minegram_registration_pending: false,
+            minegram_registration_code: null,
+            minegram_registration_expires: null
+          }
+        });
+      } catch (metadataError) {
+        console.error('REGISTRATION METADATA CLEANUP ERROR:', metadataError);
+      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1232,17 +1353,36 @@ app.post(
         });
       }
 
-      const key =
-        registrationKey(email);
+      const key = registrationKey(email);
+      let entry = registrationCodes.get(key);
 
-      const entry =
-        registrationCodes.get(key);
+      if (!entry) {
+        const admin = adminClient();
+        const persistedUser = await findAuthUserByEmail(admin, email);
+        const meta = persistedUser?.user_metadata || {};
+
+        if (
+          persistedUser?.id &&
+          meta.minegram_registration_pending === true &&
+          String(meta.minegram_registration_code || '').length === 6
+        ) {
+          entry = {
+            code: String(meta.minegram_registration_code),
+            userId: persistedUser.id,
+            email,
+            expires: Number(meta.minegram_registration_expires || 0),
+            attempts: 0,
+            username: meta.username || '',
+            displayName: meta.display_name || ''
+          };
+          registrationCodes.set(key, entry);
+        }
+      }
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
-          error:
-            "Bekleyen bir kayıt bulunamadı."
+          error: "Bekleyen bir kayıt bulunamadı."
         });
       }
 
@@ -1294,9 +1434,18 @@ app.post(
         createVerificationCode();
 
       entry.code = code;
-      entry.expires =
-        Date.now() + 10 * 60 * 1000;
+      entry.expires = Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
+
+      await persistRegistrationCode(
+        admin,
+        entry.userId,
+        email,
+        code,
+        entry.expires,
+        entry.username,
+        entry.displayName
+      );
 
       registrationRate.set(
         key,
