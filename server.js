@@ -10,6 +10,22 @@ import fs from "fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+const smtpHost = process.env.SMTP_HOST;
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+const smtpFrom = process.env.SMTP_FROM || smtpUser;
+
+const mailer = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+        user: smtpUser,
+        pass: smtpPass
+    }
+});
+
 import crypto from "crypto";
 
 const otpStore = new Map();
