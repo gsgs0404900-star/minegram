@@ -143,21 +143,6 @@ function client(token = null) {
   );
 }
 
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
-}
-
-async function getAuthUserByIdSafe(admin, userId) {
-  const id = String(userId || "").trim();
-
-  if (!isUuid(id)) {
-    console.warn("AUTH USER ID UUID DEĞİL, ATLANDI:", id);
-    return { data: null, error: new Error("Auth kullanıcı ID değeri geçerli bir UUID değil.") };
-  }
-
-  return admin.auth.admin.getUserById(id);
-}
-
 function adminClient() {
   if (
     !SUPABASE_URL ||
@@ -667,121 +652,6 @@ function registrationAllowed(email) {
   return now - last >= 60 * 1000;
 }
 
-/*
- * Render yeniden başlarsa RAM'deki Map temizlenir.
- * Bu yüzden bekleyen kayıt bilgilerini Supabase Auth user_metadata
- * içine de kaydediyoruz. Böylece /api/register/verify ve /resend
- * restart sonrasında da kodu bulabilir.
- */
-async function findAuthUserByEmail(admin, email) {
-  const wanted = normalizeEmail(email);
-
-  for (let page = 1; page <= 20; page++) {
-    const result = await admin.auth.admin.listUsers({
-      page,
-      perPage: 1000
-    });
-
-    if (result?.error) {
-      throw result.error;
-    }
-
-    const users = result?.data?.users || [];
-    const user = users.find(
-      u => normalizeEmail(u?.email) === wanted
-    );
-
-    if (user) return user;
-    if (users.length < 1000) break;
-  }
-
-  return null;
-}
-
-async function persistRegistrationEntry(admin, entry) {
-  if (!entry?.userId || !isUuid(entry.userId)) {
-    throw new Error("Kayıt için geçerli Supabase Auth UUID bulunamadı.");
-  }
-
-  const { data: current, error: getError } =
-    await getAuthUserByIdSafe(admin, entry.userId);
-
-  if (getError || !current?.user) {
-    throw getError || new Error("Supabase Auth kullanıcısı bulunamadı.");
-  }
-
-  const oldMeta = current.user.user_metadata || {};
-  const nextMeta = {
-    ...oldMeta,
-    minegram_registration_pending: true,
-    minegram_registration_code: String(entry.code),
-    minegram_registration_expires: Number(entry.expires),
-    minegram_registration_attempts: Number(entry.attempts || 0),
-    minegram_registration_username: String(entry.username || ""),
-    minegram_registration_display_name: String(entry.displayName || "")
-  };
-
-  const { data, error } = await admin.auth.admin.updateUserById(
-    entry.userId,
-    { user_metadata: nextMeta }
-  );
-
-  if (error) throw error;
-  return data?.user || current.user;
-}
-
-async function loadRegistrationEntry(admin, email) {
-  const key = registrationKey(email);
-  const fromMemory = registrationCodes.get(key);
-
-  if (fromMemory) return fromMemory;
-
-  const user = await findAuthUserByEmail(admin, email);
-  if (!user) return null;
-
-  const meta = user.user_metadata || {};
-  if (!meta.minegram_registration_pending) return null;
-
-  const expires = Number(meta.minegram_registration_expires || 0);
-  const code = String(meta.minegram_registration_code || "");
-
-  if (!/^\d{6}$/.test(code) || !expires) return null;
-
-  const entry = {
-    code,
-    userId: user.id,
-    email: normalizeEmail(user.email || email),
-    expires,
-    attempts: Number(meta.minegram_registration_attempts || 0),
-    username: String(meta.minegram_registration_username || ""),
-    displayName: String(meta.minegram_registration_display_name || "")
-  };
-
-  registrationCodes.set(key, entry);
-  return entry;
-}
-
-async function clearRegistrationEntry(admin, entry) {
-  if (!entry?.userId || !isUuid(entry.userId)) return;
-
-  const { data: current, error: getError } =
-    await getAuthUserByIdSafe(admin, entry.userId);
-
-  if (getError || !current?.user) return;
-
-  const meta = { ...(current.user.user_metadata || {}) };
-  delete meta.minegram_registration_pending;
-  delete meta.minegram_registration_code;
-  delete meta.minegram_registration_expires;
-  delete meta.minegram_registration_attempts;
-  delete meta.minegram_registration_username;
-  delete meta.minegram_registration_display_name;
-
-  await admin.auth.admin.updateUserById(entry.userId, {
-    user_metadata: meta
-  });
-}
-
 async function sendRegistrationCode(email, code) {
   await sendResendEmail(
     email,
@@ -1113,12 +983,6 @@ app.post(
       );
 
       try {
-        await persistRegistrationEntry(admin, registrationCodes.get(registrationKey(email)));
-      } catch (persistError) {
-        console.error("REGISTRATION PERSIST ERROR:", persistError);
-      }
-
-      try {
         await sendRegistrationCode(
           email,
           code
@@ -1129,10 +993,22 @@ app.post(
           mailError
         );
 
-        // E-posta geçici olarak gönderilemese bile Auth kullanıcısını silme.
-        // Pending kayıt Supabase metadata içinde tutulduğu için /resend ile
-        // işlem devam ettirilebilir.
-        return res.status(502).json({
+        registrationCodes.delete(
+          registrationKey(email)
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP AFTER MAIL ERROR:",
+            cleanupError
+          );
+        }
+
+        return res.status(500).json({
           ok: false,
           code: "EMAIL_SEND_ERROR",
           error:
@@ -1223,9 +1099,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      const admin = adminClient();
       const entry =
-        await loadRegistrationEntry(admin, email);
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(400).json({
@@ -1248,7 +1123,6 @@ app.post(
 
       if (entry.attempts >= 5) {
         registrationCodes.delete(key);
-        try { await clearRegistrationEntry(admin, entry); } catch (e) { console.error("REGISTRATION META CLEAN ERROR:", e); }
 
         return res.status(429).json({
           ok: false,
@@ -1260,7 +1134,6 @@ app.post(
 
       if (entry.code !== code) {
         entry.attempts += 1;
-        try { await persistRegistrationEntry(admin, entry); } catch (e) { console.error("REGISTRATION ATTEMPT PERSIST ERROR:", e); }
 
         return res.status(400).json({
           ok: false,
@@ -1269,6 +1142,8 @@ app.post(
             "Kod yanlış. Lütfen tekrar kontrol et."
         });
       }
+
+      const admin = adminClient();
 
       /*
        * Kod doğru:
@@ -1299,7 +1174,6 @@ app.post(
       }
 
       registrationCodes.delete(key);
-      try { await clearRegistrationEntry(admin, entry); } catch (e) { console.error("REGISTRATION META CLEAR ERROR:", e); }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1391,9 +1265,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      const admin = adminClient();
       const entry =
-        await loadRegistrationEntry(admin, email);
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(404).json({
@@ -1411,11 +1284,15 @@ app.post(
         });
       }
 
+      const admin = adminClient();
+
       const {
         data: authData,
         error: authError
       } =
-        await getAuthUserByIdSafe(admin, entry.userId);
+        await admin.auth.admin.getUserById(
+          entry.userId
+        );
 
       if (
         authError ||
@@ -1455,8 +1332,6 @@ app.post(
         key,
         Date.now()
       );
-
-      await persistRegistrationEntry(admin, entry);
 
       await sendRegistrationCode(
         email,
@@ -1581,7 +1456,9 @@ app.post(
           data: au,
           error: ae
         } =
-          await getAuthUserByIdSafe(admin, authId);
+          await admin.auth.admin.getUserById(
+            authId
+          );
 
         if (
           ae ||
@@ -2224,7 +2101,9 @@ async function findUserByPhone(
               data: authData,
               error: authError
             } =
-              await getAuthUserByIdSafe(admin, authId);
+              await admin.auth.admin.getUserById(
+                authId
+              );
 
             if (
               !authError &&
@@ -2310,7 +2189,9 @@ async function resolveRecoveryEmail(
         .select(
           "id,auth_user_id,username,email,display_name"
         )
-        .eq("auth_user_id", authUser.id)
+        .or(
+          `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+        )
         .limit(1)
         .maybeSingle();
 
@@ -2354,7 +2235,9 @@ async function resolveRecoveryEmail(
       data,
       error
     } =
-      await getAuthUserByIdSafe(admin, authId);
+      await admin.auth.admin.getUserById(
+        authId
+      );
 
     if (
       error ||
@@ -2451,7 +2334,9 @@ app.post(
           data,
           error
         } =
-          await getAuthUserByIdSafe(admin, authId);
+          await admin.auth.admin.getUserById(
+            authId
+          );
 
         if (
           error ||
@@ -2497,28 +2382,6 @@ app.post(
 
 
 /* =========================================================
-   EMAIL DIAGNOSTIC
-   Resend yapılandırmasını güvenli şekilde kontrol eder.
-========================================================= */
-app.get("/api/email-status", (req, res) => {
-  const key = String(process.env.RESEND_API_KEY || "").trim();
-  const from = String(
-    process.env.RESEND_FROM_EMAIL ||
-    process.env.RESEND_FROM ||
-    "onboarding@resend.dev"
-  ).trim();
-
-  res.json({
-    ok: Boolean(key),
-    resendConfigured: Boolean(key),
-    fromConfigured: Boolean(from),
-    fromEmail: from,
-    apiKeyLoaded: Boolean(key),
-    node: process.version
-  });
-});
-
-/* =========================================================
    AUTH CONFIG
 ========================================================= */
 
@@ -2546,36 +2409,46 @@ app.get(
    RESEND
 ========================================================= */
 
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text = ""
-) {
-  const recipient = normalizeEmail(to);
-  const key = String(process.env.RESEND_API_KEY || "").trim();
-  const configuredFrom = String(
-    process.env.RESEND_FROM_EMAIL ||
-    process.env.RESEND_FROM ||
-    ""
-  ).trim().replace(/^(["'])|(["'])$/g, "");
-  const from = configuredFrom || "onboarding@resend.dev";
+function resendEnv(name, fallback = "") {
+  return String(process.env[name] ?? fallback)
+    .trim()
+    .replace(/^(["'])|(["'])$/g, "");
+}
+
+async function sendResendEmail(to, subject, html, text = "") {
+  const recipient = resendEnv("RESEND_RECIPIENT", to).toLowerCase();
+  const apiKey =
+    resendEnv("RESEND_API_KEY") ||
+    resendEnv("RESEND_KEY");
+
+  const fromEmail =
+    resendEnv("RESEND_FROM_EMAIL") ||
+    resendEnv("RESEND_FROM") ||
+    "onboarding@resend.dev";
+
+  const fromName = resendEnv("RESEND_FROM_NAME", "Minegram");
 
   if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-    throw new Error("Geçersiz e-posta alıcısı.");
+    throw new Error("Geçersiz e-posta alıcısı: " + recipient);
   }
 
-  if (!key) {
+  if (!apiKey) {
     throw new Error(
-      "RESEND_API_KEY eksik. Render > Environment bölümüne RESEND_API_KEY ekle."
+      "RESEND_API_KEY eksik. Render > Environment içine RESEND_API_KEY ekle."
     );
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) {
+  if (!fromEmail.includes("@")) {
     throw new Error(
-      `RESEND_FROM_EMAIL geçersiz: ${from}`
+      "RESEND_FROM_EMAIL geçersiz. Örn: onboarding@resend.dev veya doğrulanmış alan adındaki bir adres."
     );
   }
+
+  // RESEND_FROM_EMAIL yanlışlıkla "Minegram <mail@site.com>" şeklinde verilirse
+  // doğrudan kullanabilmek için formatı koru; yalnızca düz adreslerde isim ekle.
+  const from = /<[^>]+>/.test(fromEmail)
+    ? fromEmail
+    : `${fromName} <${fromEmail}>`;
 
   const payload = {
     from,
@@ -2589,65 +2462,234 @@ async function sendResendEmail(
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const response = await fetch(
-        "https://api.resend.com/emails",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${key}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "User-Agent": "Minegram/1.0"
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        }
-      );
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": "Minegram/1.0"
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
 
       const raw = await response.text();
       let body = {};
-      try { body = raw ? JSON.parse(raw) : {}; }
-      catch { body = { message: raw }; }
+      try {
+        body = raw ? JSON.parse(raw) : {};
+      } catch {
+        body = { message: raw };
+      }
 
       if (response.ok) {
-        console.log(`[RESEND] OK -> ${recipient} | from=${from} | id=${body.id || "yok"}`);
+        console.log(`[RESEND] OK -> ${recipient} (${body.id || "id-yok"})`);
         return body;
       }
 
       const message =
         body?.message ||
         body?.error ||
-        raw ||
-        `HTTP ${response.status}`;
+        `Resend HTTP ${response.status}`;
 
-      lastError = new Error(
-        `Resend HTTP ${response.status}: ${message}`
-      );
+      lastError = new Error(`Resend HTTP ${response.status}: ${message}`);
 
-      console.error(
-        `[RESEND] HTTP ${response.status} | from=${from} | to=${recipient} | ${message}`
-      );
+      console.error("[RESEND] API HATASI:", {
+        status: response.status,
+        message,
+        from,
+        to: recipient
+      });
 
+      // 400/401/403/422 tekrar denenirse aynı sonucu verir.
       if ([400, 401, 403, 422].includes(response.status)) break;
     } catch (e) {
       lastError =
         e?.name === "AbortError"
-          ? new Error("Resend bağlantısı 20 saniyede yanıt vermedi.")
+          ? new Error("Resend bağlantısı zaman aşımına uğradı.")
           : e;
     } finally {
       clearTimeout(timer);
     }
 
     if (attempt < 2) {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 700));
     }
   }
 
-  throw lastError || new Error("Resend e-posta gönderimi başarısız.");
+  console.error("[RESEND] GÖNDERME HATASI:", lastError?.message || lastError);
+  throw lastError || new Error("E-posta gönderilemedi.");
 }
+
+/* =========================================================
+   MINEGRAM - E-POSTA OTP API
+   /api/send-email-otp
+   /api/verify-email-otp
+
+   Kayıt ekranı doğrudan bu endpointleri kullanıyorsa 404 oluşmasını
+   engeller. Kod sunucuda tutulur; istemciden gelen kod kabul edilmez.
+========================================================= */
+const emailOtpStore = new Map();
+const emailOtpRate = new Map();
+
+function createEmailOtp() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+function normalizeOtpCode(value) {
+  return String(value ?? "").replace(/\D/g, "").slice(0, 6);
+}
+
+function isValidOtpCode(value) {
+  return /^\d{6}$/.test(normalizeOtpCode(value));
+}
+
+function otpKey(email) {
+  return normalizeEmail(email);
+}
+
+function cleanupEmailOtpStore() {
+  const now = Date.now();
+  for (const [key, entry] of emailOtpStore.entries()) {
+    if (!entry || entry.expires < now) emailOtpStore.delete(key);
+  }
+}
+
+setInterval(cleanupEmailOtpStore, 60 * 1000).unref();
+
+app.post("/api/send-email-otp", async (req, res) => {
+  try {
+    cleanupEmailOtpStore();
+
+    const email = normalizeEmail(req.body?.email);
+    const username = normalizeUsername(req.body?.username || "");
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        code: "EMAIL_REQUIRED",
+        error: "E-posta adresi gerekli."
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_EMAIL",
+        error: "Geçerli bir e-posta adresi gir."
+      });
+    }
+
+    const key = otpKey(email);
+    const lastSent = emailOtpRate.get(key) || 0;
+    const elapsed = Date.now() - lastSent;
+
+    if (elapsed < 60 * 1000) {
+      const remaining = Math.ceil((60 * 1000 - elapsed) / 1000);
+      return res.status(429).json({
+        ok: false,
+        code: "RATE_LIMIT",
+        error: `${remaining} saniye sonra tekrar deneyin.`
+      });
+    }
+
+    const code = createEmailOtp();
+
+    const html = `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8"><title>Minegram doğrulama kodu</title></head>
+<body style="margin:0;padding:0;background:#000;font-family:Arial,Helvetica,sans-serif">
+<div style="max-width:520px;margin:40px auto;padding:35px 25px;background:#111;border-radius:14px;text-align:center;color:#fff">
+<h1 style="margin:0 0 20px;font-size:28px">Minegram</h1>
+<p style="font-size:16px;color:#ddd">Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:</p>
+<div style="margin:30px 0;padding:20px;background:#222;border-radius:12px;font-size:38px;font-weight:bold;letter-spacing:10px;color:#fff">${code}</div>
+<p style="color:#999;font-size:13px">Bu kod 10 dakika geçerlidir.</p>
+<p style="color:#999;font-size:13px">Bu kodu kimseyle paylaşma.</p>
+</div></body></html>`;
+
+    const text = `Minegram e-posta doğrulama kodun\n\nKodun: ${code}\n\nBu kod 10 dakika geçerlidir.\nBu kodu kimseyle paylaşma.`;
+
+    // Önce gönder, başarılı olmadan kodu geçerli olarak kaydetme.
+    await sendResendEmail(email, "Minegram doğrulama kodun", html, text);
+
+    emailOtpStore.set(key, {
+      code,
+      username,
+      email,
+      sentAt: Date.now(),
+      expires: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    });
+    emailOtpRate.set(key, Date.now());
+
+    return res.json({
+      ok: true,
+      message: "Doğrulama kodu gönderildi.",
+      email,
+      maskedEmail: maskEmail(email)
+    });
+  } catch (e) {
+    console.error("[OTP] E-POSTA GÖNDERME HATASI:", e?.message || e);
+    return res.status(500).json({
+      ok: false,
+      code: "EMAIL_SEND_FAILED",
+      error: e?.message || "Sunucu e-posta gönderirken hata verdi."
+    });
+  }
+});
+
+app.post("/api/verify-email-otp", async (req, res) => {
+  try {
+    cleanupEmailOtpStore();
+
+    const email = normalizeEmail(req.body?.email);
+    const code = normalizeOtpCode(req.body?.code);
+
+    if (!email) {
+      return res.status(400).json({ ok: false, code: "EMAIL_REQUIRED", error: "E-posta gerekli." });
+    }
+
+    if (!isValidOtpCode(code)) {
+      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "6 haneli doğrulama kodunu gir." });
+    }
+
+    const key = otpKey(email);
+    const entry = emailOtpStore.get(key);
+
+    if (!entry || entry.expires < Date.now()) {
+      emailOtpStore.delete(key);
+      return res.status(400).json({ ok: false, code: "CODE_EXPIRED", error: "Kod yanlış veya süresi dolmuş. Yeni kod iste." });
+    }
+
+    if ((entry.attempts || 0) >= 5) {
+      emailOtpStore.delete(key);
+      return res.status(429).json({ ok: false, code: "TOO_MANY_ATTEMPTS", error: "Çok fazla yanlış kod girildi. Yeni kod iste." });
+    }
+
+    if (entry.code !== code) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      return res.status(400).json({ ok: false, code: "INVALID_CODE", error: "Kod yanlış. Lütfen tekrar kontrol et." });
+    }
+
+    emailOtpStore.delete(key);
+
+    return res.json({
+      ok: true,
+      verified: true,
+      email,
+      username: entry.username || ""
+    });
+  } catch (e) {
+    console.error("[OTP] DOĞRULAMA HATASI:", e?.message || e);
+    return res.status(500).json({
+      ok: false,
+      code: "OTP_VERIFY_ERROR",
+      error: e?.message || "Kod doğrulanamadı."
+    });
+  }
+});
 
 const recoveryCodes =
   new Map();
