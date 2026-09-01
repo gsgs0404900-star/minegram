@@ -1575,248 +1575,6 @@ app.post(
 
 
 /* =========================================================
-   LOGIN
-========================================================= */
-
-app.post(
-  "/api/login",
-  async (req, res) => {
-    try {
-      const identifier =
-        String(
-          req.body?.username ??
-          req.body?.email ??
-          ""
-        ).trim();
-
-      const password =
-        String(
-          req.body?.password ??
-          ""
-        );
-
-      if (
-        !identifier ||
-        !password
-      ) {
-        return res.status(400).json({
-          error:
-            "Kullanıcı adı/e-posta ve şifre gerekli."
-        });
-      }
-
-      if (!CONFIG_OK) {
-        return res.status(500).json({
-          error:
-            "Supabase ortam değişkenleri eksik."
-        });
-      }
-
-      if (
-        !SUPABASE_SERVICE_ROLE_KEY
-      ) {
-        return res.status(500).json({
-          error:
-            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
-        });
-      }
-
-      const admin =
-        adminClient();
-
-      let email =
-        identifier.toLowerCase();
-
-      if (
-        !identifier.includes("@")
-      ) {
-        const username =
-          normalizeUsername(
-            identifier
-          );
-
-        const {
-          data: profile,
-          error: pe
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .eq(
-            "username",
-            username
-          )
-          .maybeSingle();
-
-        if (pe) {
-          return res.status(500).json({
-            error: pe.message
-          });
-        }
-
-        if (!profile) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı adı veya şifre hatalı."
-          });
-        }
-
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
-
-        const {
-          data: au,
-          error: ae
-        } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
-
-        if (
-          ae ||
-          !au?.user?.email
-        ) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı adı veya şifre hatalı."
-          });
-        }
-
-        email =
-          au.user.email.toLowerCase();
-      }
-
-      const anon =
-        client();
-
-      const {
-        data: sd,
-        error: le
-      } =
-        await anon.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (
-        le ||
-        !sd?.session ||
-        !sd?.user
-      ) {
-        return res.status(401).json({
-          error:
-            /invalid login credentials/i.test(
-              le?.message || ""
-            )
-              ? "Kullanıcı adı/e-posta veya şifre hatalı."
-              : (
-                  le?.message ||
-                  "Giriş başarısız."
-                )
-        });
-      }
-
-      const authId =
-        sd.user.id;
-
-      const {
-        data: profiles,
-        error: pe2
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq(
-          "auth_user_id",
-          authId
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        );
-
-      if (pe2) {
-        return res.status(500).json({
-          error: pe2.message
-        });
-      }
-
-      let list =
-        profiles || [];
-
-      if (!list.length) {
-        const {
-          data: legacy
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .eq(
-            "id",
-            authId
-          )
-          .maybeSingle();
-
-        if (legacy) {
-          list = [legacy];
-        }
-      }
-
-      if (!list.length) {
-        return res.status(404).json({
-          error:
-            "Bu hesap için Minegram profili bulunamadı."
-        });
-      }
-
-      const safe =
-        list.map(
-          safeProfile
-        );
-
-      const selected =
-        identifier.includes("@")
-          ? safe[0]
-          : (
-              safe.find(
-                x =>
-                  x.username ===
-                  normalizeUsername(
-                    identifier
-                  )
-              ) ||
-              safe[0]
-            );
-
-      return res.json({
-        ok: true,
-        multipleProfiles:
-          safe.length > 1,
-        profiles: safe,
-        profile: selected,
-        token:
-          sd.session
-            .access_token,
-        user: selected
-      });
-
-    } catch (e) {
-      console.error(
-        "LOGIN ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        error:
-          e?.message ||
-          "Giriş başarısız."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
    RECOVERY HELPERS
 ========================================================= */
 
@@ -1881,34 +1639,43 @@ function normalizeRecoveryPhone(
   return digits;
 }
 
+
 /* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT + SEND CODE
+   FORGOT PASSWORD - FIND ACCOUNT
 ========================================================= */
 
 app.post(
   "/api/forgot-password/find-account",
   async (req, res) => {
     try {
-      const identifier = String(
-        req.body?.identifier ??
-        req.body?.email ??
-        req.body?.username ??
-        req.body?.phone ??
-        ""
-      ).trim();
+      const identifier =
+        String(
+          req.body?.identifier ??
+          req.body?.email ??
+          req.body?.username ??
+          req.body?.phone ??
+          ""
+        ).trim();
 
-      const mode = String(
-        req.body?.mode ?? ""
-      ).trim().toLowerCase();
+      const mode =
+        String(
+          req.body?.mode ??
+          ""
+        )
+          .trim()
+          .toLowerCase();
 
       if (!identifier) {
         return res.status(400).json({
           ok: false,
-          error:
-            "E-posta, kullanıcı adı veya telefon numarası gerekli."
+          error: "E-posta, kullanıcı adı veya telefon numarası gerekli."
         });
       }
 
+      /*
+       * Frontend mode gönderiyorsa onu kullanıyoruz.
+       * Göndermiyorsa identifier'a göre otomatik belirliyoruz.
+       */
       let recoveryMode = mode;
 
       if (!recoveryMode) {
@@ -1926,48 +1693,60 @@ app.post(
 
       let found = null;
 
-      /* TELEFON */
+      /*
+       * -----------------------------------------------------
+       * 1) TELEFON
+       * -----------------------------------------------------
+       */
+
       if (
         recoveryMode === "phone" ||
         recoveryMode === "tel" ||
         recoveryMode === "telefon"
       ) {
         const authUser =
-          await findUserByPhone(identifier);
+          await findUserByPhone(
+            identifier
+          );
 
         if (authUser?.email) {
-          const admin = adminClient();
+          const admin =
+            adminClient();
+
+          let profile = null;
 
           const {
-            data: profileById,
-            error: profileError
-          } = await admin
-            .from("profiles")
-            .select(
-              "id,auth_user_id,username,email,display_name,avatar_url"
-            )
-            .or(
-              `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
-            )
-            .limit(1)
-            .maybeSingle();
+            data: profileById
+          } =
+            await admin
+              .from("profiles")
+              .select(
+                "id,auth_user_id,username,email,display_name,avatar_url"
+              )
+              .or(
+                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+              )
+              .limit(1)
+              .maybeSingle();
 
-          if (profileError) {
-            return res.status(500).json({
-              ok: false,
-              error: profileError.message
-            });
-          }
+          profile =
+            profileById || null;
 
           found = {
-            email: authUser.email,
-            profile: profileById || null,
+            email:
+              authUser.email,
+            profile,
             authUser
           };
         }
       }
 
-      /* E-POSTA / KULLANICI ADI */
+      /*
+       * -----------------------------------------------------
+       * 2) E-POSTA / KULLANICI ADI
+       * -----------------------------------------------------
+       */
+
       if (!found) {
         found =
           await resolveRecoveryEmail(
@@ -1978,19 +1757,28 @@ app.post(
           );
       }
 
-      /* HESAP BULUNAMADI */
+      /*
+       * -----------------------------------------------------
+       * HESAP YOK
+       * -----------------------------------------------------
+       */
+
       if (!found?.email) {
         return res.status(404).json({
           ok: false,
-          error:
-            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+          error: "Bu bilgilerle eşleşen bir hesap bulunamadı."
         });
       }
 
       const profile =
         found.profile || {};
 
-      /* BAŞARILI */
+      /*
+       * -----------------------------------------------------
+       * FRONTEND'E GÖNDERİLECEK HESAP BİLGİSİ
+       * -----------------------------------------------------
+       */
+
       return res.json({
         ok: true,
 
@@ -2001,7 +1789,8 @@ app.post(
             null,
 
           username:
-            profile.username || "",
+            profile.username ||
+            "",
 
           displayName:
             profile.display_name ||
@@ -2013,13 +1802,19 @@ app.post(
             found.email,
 
           maskedEmail:
-            maskEmail(found.email),
+            maskEmail(
+              found.email
+            ),
 
           avatar:
             profile.avatar_url ||
             null
         },
 
+        /*
+         * Frontend'in sonraki adımda kullanabilmesi
+         * için normalize edilmiş değerler.
+         */
         identifier,
         mode: recoveryMode
       });
@@ -2039,7 +1834,6 @@ app.post(
     }
   }
 );
-
 
 /* =========================================================
    TEK VE TEMİZ findUserByPhone
@@ -2582,749 +2376,159 @@ app.get(
 
 
 /* =========================================================
-   REGISTER VERIFICATION OTP
-========================================================= */
-
-const registerVerificationCodes = new Map();
-
-
-/* =========================================================
-   REGISTER OTP SEND
-========================================================= */
-
-app.post(
-  "/api/register/send-code",
-  async (req, res) => {
-    try {
-      const email =
-        String(
-          req.body?.email || ""
-        ).trim().toLowerCase();
-
-      if (!email) {
-        return res.status(400).json({
-          error: "E-posta gerekli."
-        });
-      }
-
-      const code =
-        createVerificationCode();
-
-      registerVerificationCodes.set(
-        email,
-        {
-          code,
-          expires:
-            Date.now() +
-            10 * 60 * 1000
-        }
-      );
-
-      await sendResendEmail(
-        email,
-        "Minegram hesap doğrulama kodun",
-
-        `
-        <div style="font-family:Arial,sans-serif;background:#fff;padding:30px">
-          <h2 style="margin:0 0 20px">
-            Minegram
-          </h2>
-
-          <p>
-            Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:
-          </p>
-
-          <div style="
-            font-size:36px;
-            font-weight:700;
-            letter-spacing:10px;
-            margin:25px 0;
-          ">
-            ${code}
-          </div>
-
-          <p>
-            Bu kod 10 dakika geçerlidir.
-          </p>
-
-          <p style="color:#777">
-            Bu kodu sen istemediysen bu e-postayı dikkate alma.
-          </p>
-        </div>
-        `,
-
-        `Minegram hesap doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-      );
-
-      console.log(
-        "REGISTER OTP GÖNDERİLDİ:",
-        email
-      );
-
-      res.json({
-        ok: true
-      });
-
-    } catch (e) {
-
-      console.error(
-        "REGISTER OTP SEND ERROR:",
-        e
-      );
-
-      res.status(500).json({
-        error:
-          e.message ||
-          "Doğrulama kodu gönderilemedi."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   REGISTER OTP VERIFY
-========================================================= */
-
-app.post(
-  "/api/register/verify-code",
-  async (req, res) => {
-    try {
-
-      const email =
-        String(
-          req.body?.email || ""
-        ).trim().toLowerCase();
-
-      const code =
-        String(
-          req.body?.code || ""
-        ).trim();
-
-      if (!email || !code) {
-        return res.status(400).json({
-          error:
-            "E-posta ve doğrulama kodu gerekli."
-        });
-      }
-
-      const entry =
-        registerVerificationCodes.get(
-          email
-        );
-
-      if (!entry) {
-        return res.status(400).json({
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod gönder."
-        });
-      }
-
-      if (
-        entry.expires <
-        Date.now()
-      ) {
-
-        registerVerificationCodes.delete(
-          email
-        );
-
-        return res.status(400).json({
-          error:
-            "Doğrulama kodunun süresi dolmuş."
-        });
-      }
-
-      if (
-        entry.code !== code
-      ) {
-
-        return res.status(400).json({
-          error:
-            "Doğrulama kodu yanlış."
-        });
-      }
-
-      registerVerificationCodes.delete(
-        email
-      );
-
-      res.json({
-        ok: true,
-        verified: true
-      });
-
-    } catch (e) {
-
-      console.error(
-        "REGISTER OTP VERIFY ERROR:",
-        e
-      );
-
-      res.status(500).json({
-        error:
-          e.message ||
-          "Kod doğrulanamadı."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
    RESEND
 ========================================================= */
 
-async function sendResendEmail(to, subject, html, text) {
-  const key = String(
-    process.env.RESEND_API_KEY || ""
-  ).trim();
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY ||
+      ""
+    ).trim();
 
   if (!key) {
-    throw new Error("RESEND_API_KEY eksik.");
-  }
-
-  const from = String(
-    process.env.RESEND_FROM_EMAIL ||
-    "onboarding@resend.dev"
-  ).trim();
-
-  const response = await fetch(
-    "https://api.resend.com/emails",
-    {
-      method: "POST",
-
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject,
-        html,
-        text
-      })
-    }
-  );
-
-  const data = await response
-    .json()
-    .catch(() => ({}));
-
-  if (!response.ok) {
-    console.error(
-      "[RESEND ERROR]",
-      response.status,
-      data
-    );
-
     throw new Error(
-      data?.message ||
-      data?.error ||
-      `Resend hata verdi (${response.status}).`
+      "RESEND_API_KEY eksik."
     );
   }
 
-  return data;
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
+
+  const r =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${key}`,
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
+      }
+    );
+
+  const j =
+    await r
+      .json()
+      .catch(
+        () => ({})
+      );
+
+  if (!r.ok) {
+    throw new Error(
+      j.message ||
+      "E-posta gönderilemedi."
+    );
+  }
+
+  return j;
 }
 
-
-/* =========================================================
-   RECOVERY CODES
-========================================================= */
-
-const recoveryCodes = new Map();
+const recoveryCodes =
+  new Map();
 
 
 /* =========================================================
-   RECOVERY HELPERS
+   FORGOT START
 ========================================================= */
-
-
-
-
-
-
-
-
-
-
-
 
 app.post(
-  "/api/forgot-password/find-account",
+  "/api/forgot/start",
   async (req, res) => {
     try {
-
-      const identifier =
-        String(
-          req.body?.identifier ??
-          req.body?.email ??
-          req.body?.username ??
-          req.body?.phone ??
-          ""
-        ).trim();
-
-      const mode =
-        String(
-          req.body?.mode ?? ""
-        )
-          .trim()
-          .toLowerCase();
-
-
-      if (!identifier) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "E-posta, kullanıcı adı veya telefon numarası gerekli."
-        });
-      }
-
-
-      let recoveryMode = mode;
-
-
-      if (!recoveryMode) {
-
-        if (
-          identifier.includes("@")
-        ) {
-          recoveryMode = "email";
-
-        } else if (
-          /[\d\s()+\-]/.test(identifier) &&
-          normalizeRecoveryPhone(
-            identifier
-          ).length >= 10
-        ) {
-          recoveryMode = "phone";
-
-        } else {
-          recoveryMode = "username";
-        }
-      }
-
-
-      let found = null;
-
-
-      /* -----------------------------------------------------
-         TELEFON
-      ----------------------------------------------------- */
-
-      if (
-        recoveryMode === "phone" ||
-        recoveryMode === "tel" ||
-        recoveryMode === "telefon"
-      ) {
-
-        const authUser =
-          await findUserByPhone(
-            identifier
-          );
-
-
-        if (authUser?.email) {
-
-          const admin =
-            adminClient();
-
-
-          const {
-            data: profileById
-          } =
-            await admin
-              .from("profiles")
-              .select(
-                "id,auth_user_id,username,email,display_name,avatar_url"
-              )
-              .or(
-                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
-              )
-              .limit(1)
-              .maybeSingle();
-
-
-          found = {
-            email:
-              authUser.email,
-
-            profile:
-              profileById || null,
-
-            authUser
-          };
-        }
-      }
-
-
-      /* -----------------------------------------------------
-         E-POSTA / KULLANICI ADI
-      ----------------------------------------------------- */
+      const found =
+        await resolveRecoveryEmail(
+          req.body?.identifier,
+          req.body?.mode ||
+            "email"
+        );
 
       if (!found) {
-
-        found =
-          await resolveRecoveryEmail(
-            identifier,
-
-            recoveryMode === "username"
-              ? "email"
-              : recoveryMode
-          );
-      }
-
-
-      /* -----------------------------------------------------
-         HESAP YOK
-      ----------------------------------------------------- */
-
-      if (!found?.email) {
-
         return res.status(404).json({
-          ok: false,
           error:
-            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+            "Hesap bulunamadı."
         });
       }
-
-
-      const email =
-        String(
-          found.email
-        )
-          .trim()
-          .toLowerCase();
-
-
-      const profile =
-        found.profile || {};
-
-
-      /* -----------------------------------------------------
-         6 HANELİ KOD
-      ----------------------------------------------------- */
 
       const code =
         String(
           Math.floor(
             100000 +
-            Math.random() * 900000
+            Math.random() *
+              900000
           )
         );
 
-
       recoveryCodes.set(
-        email,
+        found.email.toLowerCase(),
         {
           code,
-
           expires:
             Date.now() +
             10 * 60 * 1000,
-
-          profile
+          profile:
+            found.profile
         }
       );
-
-
-      /* -----------------------------------------------------
-         E-POSTA GÖNDER
-      ----------------------------------------------------- */
 
       await sendResendEmail(
-
-        email,
-
+        found.email,
         "Minegram doğrulama kodun",
 
-        `
-        <div
-          style="
-            font-family:Arial,sans-serif;
-            max-width:500px;
-            margin:auto;
-            padding:30px;
-            background:#fff;
-            color:#111;
-            border-radius:12px;
-          "
-        >
-
+        `<div style="font-family:Arial,sans-serif">
           <h2>Minegram</h2>
-
-          <p>
-            Şifre sıfırlama işlemin için
-            doğrulama kodun:
-          </p>
-
-          <div
-            style="
-              font-size:32px;
-              font-weight:700;
-              letter-spacing:8px;
-              margin:25px 0;
-            "
-          >
+          <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
+          <div style="font-size:32px;font-weight:700;letter-spacing:8px">
             ${code}
           </div>
+          <p>Bu kod 10 dakika geçerlidir.</p>
+        </div>`,
 
-          <p>
-            Bu kod 10 dakika geçerlidir.
-          </p>
-
-          <p
-            style="
-              color:#777;
-              font-size:12px;
-            "
-          >
-            Bu işlemi sen yapmadıysan
-            bu e-postayı dikkate alma.
-          </p>
-
-        </div>
-        `,
-
-        `Minegram doğrulama kodun: ${code}
-
-Bu kod 10 dakika geçerlidir.`
+        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
       );
 
-
-      /* -----------------------------------------------------
-         BAŞARILI
-      ----------------------------------------------------- */
-
-      return res.status(200).json({
-
+      res.json({
         ok: true,
-
-        account: {
-
-          id:
-            profile.id ||
-            found.authUser?.id ||
-            null,
-
-          username:
-            profile.username || "",
-
-          displayName:
-            profile.display_name ||
-            profile.displayName ||
-            profile.username ||
-            "",
-
-          email,
-
-          maskedEmail:
-            maskEmail(email),
-
-          avatar:
-            profile.avatar_url ||
-            null
-        },
-
-        identifier,
-
-        mode:
-          recoveryMode
-      });
-
-
-    } catch (e) {
-
-      console.error(
-        "FIND ACCOUNT ERROR:",
-        e
-      );
-
-
-      return res.status(500).json({
-
-        ok: false,
-
-        error:
-          e?.message ||
-          "Hesap aranırken bir hata oluştu."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   FORGOT PASSWORD - VERIFY CODE
-========================================================= */
-
-app.post(
-  "/api/forgot-password/verify",
-  async (req, res) => {
-
-    try {
-
-      const identifier =
-        String(
-          req.body?.identifier ||
-          req.body?.email ||
-          ""
-        )
-          .trim()
-          .toLowerCase();
-
-
-      const code =
-        String(
-          req.body?.code ||
-          ""
-        ).trim();
-
-
-      if (!identifier || !code) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "E-posta ve doğrulama kodu gerekli."
-        });
-      }
-
-
-      let email = identifier;
-
-
-      if (!identifier.includes("@")) {
-
-        const found =
-          await resolveRecoveryEmail(
-            identifier,
-            "email"
-          );
-
-        if (!found?.email) {
-
-          return res.status(404).json({
-            ok: false,
-            error:
-              "Hesap bulunamadı."
-          });
-        }
-
-        email =
-          String(
+        email:
+          found.email,
+        maskedEmail:
+          maskEmail(
             found.email
           )
-            .trim()
-            .toLowerCase();
-      }
-
-
-      const entry =
-        recoveryCodes.get(
-          email
-        );
-
-
-      if (!entry) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Doğrulama kodu bulunamadı veya süresi dolmuş."
-        });
-      }
-
-
-      if (
-        entry.expires <
-        Date.now()
-      ) {
-
-        recoveryCodes.delete(
-          email
-        );
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Doğrulama kodunun süresi dolmuş."
-        });
-      }
-
-
-      if (
-        entry.code !== code
-      ) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Doğrulama kodu yanlış."
-        });
-      }
-
-
-      const profile =
-        entry.profile || {};
-
-
-      recoveryCodes.delete(
-        email
-      );
-
-
-      return res.status(200).json({
-
-        ok: true,
-
-        verified: true,
-
-        account: {
-
-          id:
-            profile.id || null,
-
-          username:
-            profile.username || "",
-
-          displayName:
-            profile.display_name ||
-            profile.displayName ||
-            profile.username ||
-            "",
-
-          email,
-
-          avatar:
-            profile.avatar_url ||
-            null
-        }
       });
-
-
     } catch (e) {
-
       console.error(
-        "VERIFY CODE ERROR:",
+        "FORGOT START ERROR:",
         e
       );
 
-
-      return res.status(500).json({
-
-        ok: false,
-
+      res.status(500).json({
         error:
-          e?.message ||
-          "Kod doğrulanırken hata oluştu."
+          e.message
       });
     }
   }
 );
+
 
 /* =========================================================
    FORGOT VERIFY
