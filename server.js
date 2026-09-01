@@ -626,9 +626,9 @@ app.get(
 
 /* =========================================================
    REGISTER + 6 HANELİ E-POSTA DOĞRULAMA
+   OTP Supabase Auth user_metadata içinde tutulur.
+   Böylece Render restart/deploy olduğunda kod kaybolmaz.
    ========================================================= */
-
-const registrationCodes = new Map();
 const registrationRate = new Map();
 
 function normalizeEmail(value) {
@@ -647,8 +647,6 @@ function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
   const last = registrationRate.get(key) || 0;
-
-  // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
   return now - last >= 60 * 1000;
 }
 
@@ -660,9 +658,7 @@ async function sendRegistrationCode(email, code) {
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
         <h2 style="margin:0 0 16px">Minegram</h2>
         <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
-        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
-          ${code}
-        </div>
+        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div>
         <p style="color:#666">Bu kod 10 dakika geçerlidir.</p>
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
@@ -671,696 +667,262 @@ async function sendRegistrationCode(email, code) {
   );
 }
 
-app.post(
-  "/api/register",
-  async (req, res) => {
-    let createdAuthUserId = null;
+app.post("/api/register", async (req, res) => {
+  let createdAuthUserId = null;
+
+  try {
+    const username = normalizeUsername(req.body?.username);
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
+
+    if (!username) return res.status(400).json({ ok:false, code:"USERNAME_REQUIRED", error:"Kullanıcı adı gerekli." });
+    if (!email) return res.status(400).json({ ok:false, code:"EMAIL_REQUIRED", error:"E-posta gerekli." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ ok:false, code:"INVALID_EMAIL", error:"Geçerli bir e-posta adresi gir." });
+    if (password.length < 6) return res.status(400).json({ ok:false, code:"PASSWORD_TOO_SHORT", error:"Şifre en az 6 karakter olmalı." });
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) return res.status(400).json({ ok:false, code:"INVALID_USERNAME", error:"Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan." });
+    if (!CONFIG_OK) return res.status(500).json({ ok:false, code:"SUPABASE_CONFIG_ERROR", error:"Supabase yapılandırması eksik." });
+    if (!SUPABASE_SERVICE_ROLE_KEY) return res.status(500).json({ ok:false, code:"SERVICE_ROLE_MISSING", error:"SUPABASE_SERVICE_ROLE_KEY eksik." });
+    if (!registrationAllowed(email)) return res.status(429).json({ ok:false, code:"CODE_RATE_LIMIT", error:"Bu e-posta adresine yeni kod göndermek için 60 saniye bekle." });
+
+    const admin = adminClient();
+
+    const { data: existingProfile, error: usernameCheckError } = await admin
+      .from("profiles")
+      .select("id,username,auth_user_id")
+      .eq("username", username)
+      .limit(1)
+      .maybeSingle();
+
+    if (usernameCheckError) {
+      console.error("USERNAME CHECK ERROR:", usernameCheckError);
+      return res.status(500).json({ ok:false, code:"USERNAME_CHECK_ERROR", error:"Kullanıcı adı kontrol edilirken hata oluştu." });
+    }
+    if (existingProfile) return res.status(409).json({ ok:false, code:"USERNAME_TAKEN", error:"Bu kullanıcı adı zaten alınmış." });
 
     try {
-      const username =
-        normalizeUsername(req.body?.username);
-
-      const email =
-        normalizeEmail(req.body?.email);
-
-      const password =
-        String(req.body?.password || "");
-
-      const displayName =
-        String(
-          req.body?.displayName || username
-        )
-          .trim()
-          .slice(0, 80);
-
-      if (!username) {
-        return res.status(400).json({
-          ok: false,
-          code: "USERNAME_REQUIRED",
-          error: "Kullanıcı adı gerekli."
-        });
+      let emailAlreadyExists = false;
+      for (let page = 1; page <= 20; page++) {
+        const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        const users = result?.data?.users || [];
+        if (result?.error) { console.error("EMAIL CHECK ERROR:", result.error); break; }
+        if (users.some(u => normalizeEmail(u?.email) === email)) { emailAlreadyExists = true; break; }
+        if (users.length < 1000) break;
       }
-
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          code: "EMAIL_REQUIRED",
-          error: "E-posta gerekli."
-        });
-      }
-
-      if (
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-      ) {
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_EMAIL",
-          error: "Geçerli bir e-posta adresi gir."
-        });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({
-          ok: false,
-          code: "PASSWORD_TOO_SHORT",
-          error: "Şifre en az 6 karakter olmalı."
-        });
-      }
-
-      if (
-        !/^[a-z0-9._]{3,30}$/.test(username)
-      ) {
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_USERNAME",
-          error:
-            "Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan."
-        });
-      }
-
-      if (!CONFIG_OK) {
-        return res.status(500).json({
-          ok: false,
-          code: "SUPABASE_CONFIG_ERROR",
-          error: "Supabase yapılandırması eksik."
-        });
-      }
-
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({
-          ok: false,
-          code: "SERVICE_ROLE_MISSING",
-          error: "SUPABASE_SERVICE_ROLE_KEY eksik."
-        });
-      }
-
-      if (!registrationAllowed(email)) {
-        return res.status(429).json({
-          ok: false,
-          code: "CODE_RATE_LIMIT",
-          error:
-            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle."
-        });
-      }
-
-      const admin = adminClient();
-
-      /* Kullanıcı adı kontrolü */
-      const {
-        data: existingProfile,
-        error: usernameCheckError
-      } = await admin
-        .from("profiles")
-        .select("id,username,auth_user_id")
-        .eq("username", username)
-        .limit(1)
-        .maybeSingle();
-
-      if (usernameCheckError) {
-        console.error(
-          "USERNAME CHECK ERROR:",
-          usernameCheckError
-        );
-
-        return res.status(500).json({
-          ok: false,
-          code: "USERNAME_CHECK_ERROR",
-          error:
-            "Kullanıcı adı kontrol edilirken hata oluştu."
-        });
-      }
-
-      if (existingProfile) {
-        return res.status(409).json({
-          ok: false,
-          code: "USERNAME_TAKEN",
-          error: "Bu kullanıcı adı zaten alınmış."
-        });
-      }
-
-      /* E-posta kontrolü */
-      try {
-        let emailAlreadyExists = false;
-
-        for (let page = 1; page <= 20; page++) {
-          const result =
-            await admin.auth.admin.listUsers({
-              page,
-              perPage: 1000
-            });
-
-          const users =
-            result?.data?.users || [];
-
-          if (result?.error) {
-            console.error(
-              "EMAIL CHECK ERROR:",
-              result.error
-            );
-            break;
-          }
-
-          if (
-            users.some(
-              u =>
-                normalizeEmail(u?.email) === email
-            )
-          ) {
-            emailAlreadyExists = true;
-            break;
-          }
-
-          if (users.length < 1000) {
-            break;
-          }
-        }
-
-        if (emailAlreadyExists) {
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_TAKEN",
-            error:
-              "Bu e-posta adresi zaten kullanılıyor."
-          });
-        }
-      } catch (emailCheckError) {
-        console.error(
-          "EMAIL PRECHECK ERROR:",
-          emailCheckError?.message ||
-            emailCheckError
-        );
-      }
-
-      /*
-       * ÖNEMLİ:
-       * Supabase'in kendi confirmation mailini kullanmıyoruz.
-       * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Resend ile biz gönderiyoruz.
-       */
-      const {
-        data: created,
-        error: createError
-      } =
-        await admin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: false,
-          user_metadata: {
-            username,
-            display_name: displayName
-          }
-        });
-
-      if (createError) {
-        console.error(
-          "AUTH CREATE ERROR:",
-          createError
-        );
-
-        const message =
-          String(createError.message || "");
-
-        if (
-          /already registered/i.test(message) ||
-          /already exists/i.test(message) ||
-          /user already registered/i.test(message)
-        ) {
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_TAKEN",
-            error:
-              "Bu e-posta adresi zaten kullanılıyor."
-          });
-        }
-
-        return res.status(400).json({
-          ok: false,
-          code: "SIGNUP_ERROR",
-          error:
-            message || "Kayıt başarısız."
-        });
-      }
-
-      const authUser = created?.user;
-
-      if (!authUser?.id) {
-        return res.status(400).json({
-          ok: false,
-          code: "USER_CREATE_FAILED",
-          error: "Kullanıcı oluşturulamadı."
-        });
-      }
-
-      createdAuthUserId = authUser.id;
-
-      /* Profil oluştur */
-      const {
-        data: profile,
-        error: profileError
-      } =
-        await admin
-          .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
-          .select("*")
-          .single();
-
-      if (profileError) {
-        console.error(
-          "PROFILE CREATE ERROR:",
-          profileError
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-
-        createdAuthUserId = null;
-
-        return res.status(500).json({
-          ok: false,
-          code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
-        });
-      }
-
-      /*
-       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
-       */
-      const code = createVerificationCode();
-
-      registrationCodes.set(
-        registrationKey(email),
-        {
-          code,
-          userId: authUser.id,
-          email,
-          expires: Date.now() + 10 * 60 * 1000,
-          attempts: 0,
-          username,
-          displayName
-        }
-      );
-
-      registrationRate.set(
-        registrationKey(email),
-        Date.now()
-      );
-
-      try {
-        await sendRegistrationCode(
-          email,
-          code
-        );
-      } catch (mailError) {
-        console.error(
-          "REGISTRATION EMAIL ERROR:",
-          mailError
-        );
-
-        registrationCodes.delete(
-          registrationKey(email)
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP AFTER MAIL ERROR:",
-            cleanupError
-          );
-        }
-
-        return res.status(500).json({
-          ok: false,
-          code: "EMAIL_SEND_ERROR",
-          error:
-            mailError?.message ||
-            "Doğrulama e-postası gönderilemedi."
-        });
-      }
-
-      createdAuthUserId = null;
-
-      return res.json({
-        ok: true,
-        needsEmailVerification: true,
-        message:
-          "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.",
-        maskedEmail: maskEmail(email),
-        email,
-        user: {
-          id: authUser.id,
-          email: authUser.email,
-          username,
-          displayName
-        }
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER ERROR:",
-        e
-      );
-
-      if (createdAuthUserId) {
-        try {
-          await adminClient()
-            .auth.admin.deleteUser(
-              createdAuthUserId
-            );
-        } catch (cleanupError) {
-          console.error(
-            "FINAL AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-      }
-
-      return res.status(500).json({
-        ok: false,
-        code: "REGISTER_ERROR",
-        error:
-          e?.message ||
-          "Kayıt başarısız."
-      });
+      if (emailAlreadyExists) return res.status(409).json({ ok:false, code:"EMAIL_TAKEN", error:"Bu e-posta adresi zaten kullanılıyor." });
+    } catch (emailCheckError) {
+      console.error("EMAIL PRECHECK ERROR:", emailCheckError?.message || emailCheckError);
     }
+
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: false,
+      user_metadata: { username, display_name: displayName }
+    });
+
+    if (createError) {
+      console.error("AUTH CREATE ERROR:", createError);
+      const message = String(createError.message || "");
+      if (/already registered|already exists|user already registered/i.test(message)) {
+        return res.status(409).json({ ok:false, code:"EMAIL_TAKEN", error:"Bu e-posta adresi zaten kullanılıyor." });
+      }
+      return res.status(400).json({ ok:false, code:"SIGNUP_ERROR", error:message || "Kayıt başarısız." });
+    }
+
+    const authUser = created?.user;
+    if (!authUser?.id) return res.status(400).json({ ok:false, code:"USER_CREATE_FAILED", error:"Kullanıcı oluşturulamadı." });
+    createdAuthUserId = authUser.id;
+
+    const { error: profileError } = await admin.from("profiles").insert({
+      id: authUser.id,
+      auth_user_id: authUser.id,
+      username,
+      display_name: displayName,
+      bio: "",
+      avatar_url: null,
+      verified: false,
+      settings: {}
+    });
+
+    if (profileError) {
+      console.error("PROFILE CREATE ERROR:", profileError);
+      try { await admin.auth.admin.deleteUser(authUser.id); } catch (e) { console.error("AUTH CLEANUP ERROR:", e); }
+      createdAuthUserId = null;
+      return res.status(500).json({ ok:false, code:"PROFILE_CREATE_ERROR", error:"Profil oluşturulamadı." });
+    }
+
+    const code = createVerificationCode();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    // KRİTİK: OTP artık Render RAM'inde değil, Supabase Auth metadata'sında.
+    const { error: otpSaveError } = await admin.auth.admin.updateUserById(authUser.id, {
+      user_metadata: {
+        ...(authUser.user_metadata || {}),
+        username,
+        display_name: displayName,
+        minegram_email_verification_code: code,
+        minegram_email_verification_expires: expiresAt,
+        minegram_email_verification_attempts: 0
+      }
+    });
+
+    if (otpSaveError) {
+      console.error("OTP SAVE ERROR:", otpSaveError);
+      try { await admin.auth.admin.deleteUser(authUser.id); } catch (e) { console.error("AUTH CLEANUP AFTER OTP ERROR:", e); }
+      return res.status(500).json({ ok:false, code:"OTP_SAVE_ERROR", error:"Doğrulama kodu kaydedilemedi." });
+    }
+
+    registrationRate.set(registrationKey(email), Date.now());
+
+    try {
+      await sendRegistrationCode(email, code);
+    } catch (mailError) {
+      console.error("REGISTRATION EMAIL ERROR:", mailError);
+      try { await admin.auth.admin.deleteUser(authUser.id); } catch (e) { console.error("AUTH CLEANUP AFTER MAIL ERROR:", e); }
+      return res.status(500).json({ ok:false, code:"EMAIL_SEND_ERROR", error:mailError?.message || "Doğrulama e-postası gönderilemedi." });
+    }
+
+    createdAuthUserId = null;
+    return res.json({
+      ok:true,
+      needsEmailVerification:true,
+      message:"6 haneli doğrulama kodu e-posta adresine gönderildi.",
+      maskedEmail:maskEmail(email),
+      email,
+      user:{ id:authUser.id, email:authUser.email, username, displayName }
+    });
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
+    if (createdAuthUserId) {
+      try { await adminClient().auth.admin.deleteUser(createdAuthUserId); } catch (cleanupError) { console.error("FINAL AUTH CLEANUP ERROR:", cleanupError); }
+    }
+    return res.status(500).json({ ok:false, code:"REGISTER_ERROR", error:e?.message || "Kayıt başarısız." });
   }
-);
+});
 
 /* =========================================================
    REGISTER VERIFY
    ========================================================= */
+app.post("/api/register/verify", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const code = String(req.body?.code || "").replace(/\D/g, "").slice(0, 6);
+    if (!email) return res.status(400).json({ ok:false, error:"E-posta gerekli." });
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok:false, error:"6 haneli doğrulama kodunu gir." });
 
-app.post(
-  "/api/register/verify",
-  async (req, res) => {
-    try {
-      const email =
-        normalizeEmail(req.body?.email);
+    const admin = adminClient();
+    let targetUser = null;
 
-      const code =
-        String(req.body?.code || "")
-          .replace(/\D/g, "")
-          .slice(0, 6);
-
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          error: "E-posta gerekli."
-        });
-      }
-
-      if (!/^\d{6}$/.test(code)) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "6 haneli doğrulama kodunu gir."
-        });
-      }
-
-      const key =
-        registrationKey(email);
-
-      const entry =
-        registrationCodes.get(key);
-
-      if (!entry) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
-        });
-      }
-
-      if (entry.expires < Date.now()) {
-        registrationCodes.delete(key);
-
-        return res.status(400).json({
-          ok: false,
-          code: "CODE_EXPIRED",
-          error:
-            "Kodun süresi dolmuş. Yeni kod iste."
-        });
-      }
-
-      if (entry.attempts >= 5) {
-        registrationCodes.delete(key);
-
-        return res.status(429).json({
-          ok: false,
-          code: "TOO_MANY_ATTEMPTS",
-          error:
-            "Çok fazla yanlış kod girildi. Yeni kod iste."
-        });
-      }
-
-      if (entry.code !== code) {
-        entry.attempts += 1;
-
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_CODE",
-          error:
-            "Kod yanlış. Lütfen tekrar kontrol et."
-        });
-      }
-
-      const admin = adminClient();
-
-      /*
-       * Kod doğru:
-       * Supabase Auth kullanıcısının e-postasını doğrula.
-       */
-      const {
-        data: updated,
-        error: updateError
-      } =
-        await admin.auth.admin.updateUserById(
-          entry.userId,
-          {
-            email_confirm: true
-          }
-        );
-
-      if (updateError) {
-        console.error(
-          "EMAIL CONFIRM ERROR:",
-          updateError
-        );
-
-        return res.status(500).json({
-          ok: false,
-          error:
-            "E-posta doğrulanamadı. Lütfen tekrar deneyin."
-        });
-      }
-
-      registrationCodes.delete(key);
-
-      /*
-       * Doğrulama tamamlandıktan sonra otomatik giriş.
-       */
-      const anon = client();
-
-      const {
-        data: loginData,
-        error: loginError
-      } =
-        await anon.auth.signInWithPassword({
-          email: entry.email,
-          password: String(
-            req.body?.password || ""
-          )
-        });
-
-      /*
-       * Şifre frontend tarafından gönderilmiyorsa
-       * doğrulama yine başarılı sayılır; frontend normal
-       * giriş ekranından devam edebilir.
-       */
-      if (
-        loginError ||
-        !loginData?.session
-      ) {
-        return res.json({
-          ok: true,
-          verified: true,
-          needsLogin: true,
-          message:
-            "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
-          user: {
-            id: updated?.user?.id || entry.userId,
-            email: entry.email,
-            username: entry.username,
-            displayName: entry.displayName
-          }
-        });
-      }
-
-      return res.json({
-        ok: true,
-        verified: true,
-        token:
-          loginData.session.access_token,
-        user: {
-          id: updated?.user?.id || entry.userId,
-          email: entry.email,
-          username: entry.username,
-          displayName: entry.displayName
-        }
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER VERIFY ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Doğrulama başarısız."
-      });
+    for (let page = 1; page <= 20 && !targetUser; page++) {
+      const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (result?.error) throw result.error;
+      const users = result?.data?.users || [];
+      targetUser = users.find(u => normalizeEmail(u?.email) === email) || null;
+      if (users.length < 1000) break;
     }
+
+    if (!targetUser) return res.status(400).json({ ok:false, code:"PENDING_NOT_FOUND", error:"Bekleyen bir kayıt bulunamadı. Lütfen yeniden kayıt ol." });
+
+    if (targetUser.email_confirmed_at) {
+      return res.json({ ok:true, verified:true, message:"E-posta zaten doğrulanmış." });
+    }
+
+    const metadata = targetUser.user_metadata || {};
+    const savedCode = String(metadata.minegram_email_verification_code || "");
+    const expiresAt = Number(metadata.minegram_email_verification_expires || 0);
+    const attempts = Number(metadata.minegram_email_verification_attempts || 0);
+
+    if (!savedCode || !expiresAt) return res.status(400).json({ ok:false, code:"CODE_NOT_FOUND", error:"Doğrulama kodu bulunamadı. Yeni kod iste." });
+    if (expiresAt < Date.now()) return res.status(400).json({ ok:false, code:"CODE_EXPIRED", error:"Kodun süresi dolmuş. Yeni kod iste." });
+    if (attempts >= 5) return res.status(429).json({ ok:false, code:"TOO_MANY_ATTEMPTS", error:"Çok fazla yanlış kod girildi. Yeni kod iste." });
+
+    if (savedCode !== code) {
+      await admin.auth.admin.updateUserById(targetUser.id, {
+        user_metadata: { ...metadata, minegram_email_verification_attempts: attempts + 1 }
+      });
+      return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"Kod yanlış. Lütfen tekrar kontrol et." });
+    }
+
+    const cleanMetadata = { ...metadata };
+    delete cleanMetadata.minegram_email_verification_code;
+    delete cleanMetadata.minegram_email_verification_expires;
+    delete cleanMetadata.minegram_email_verification_attempts;
+
+    const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(targetUser.id, {
+      email_confirm: true,
+      user_metadata: cleanMetadata
+    });
+
+    if (updateError) {
+      console.error("EMAIL CONFIRM ERROR:", updateError);
+      return res.status(500).json({ ok:false, error:"E-posta doğrulanamadı. Lütfen tekrar deneyin." });
+    }
+
+    await admin.from("profiles").update({ verified:true }).eq("id", targetUser.id);
+
+    const username = cleanMetadata.username || "";
+    const displayName = cleanMetadata.display_name || username;
+    const password = String(req.body?.password || "");
+
+    if (password) {
+      const anon = client();
+      const { data: loginData, error: loginError } = await anon.auth.signInWithPassword({ email, password });
+      if (!loginError && loginData?.session) {
+        return res.json({ ok:true, verified:true, token:loginData.session.access_token, user:{ id:targetUser.id, email, username, displayName } });
+      }
+    }
+
+    return res.json({ ok:true, verified:true, needsLogin:true, message:"E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.", user:{ id:updated?.user?.id || targetUser.id, email, username, displayName } });
+  } catch (e) {
+    console.error("REGISTER VERIFY ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Doğrulama başarısız." });
   }
-);
+});
 
 /* =========================================================
    REGISTER RESEND
    ========================================================= */
+app.post("/api/register/resend", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) return res.status(400).json({ ok:false, error:"E-posta gerekli." });
+    if (!registrationAllowed(email)) return res.status(429).json({ ok:false, error:"Yeni kod göndermek için 60 saniye bekle." });
 
-app.post(
-  "/api/register/resend",
-  async (req, res) => {
-    try {
-      const email =
-        normalizeEmail(req.body?.email);
-
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          error: "E-posta gerekli."
-        });
-      }
-
-      const key =
-        registrationKey(email);
-
-      const entry =
-        registrationCodes.get(key);
-
-      if (!entry) {
-        return res.status(404).json({
-          ok: false,
-          error:
-            "Bekleyen bir kayıt bulunamadı."
-        });
-      }
-
-      if (!registrationAllowed(email)) {
-        return res.status(429).json({
-          ok: false,
-          error:
-            "Yeni kod göndermek için 60 saniye bekle."
-        });
-      }
-
-      const admin = adminClient();
-
-      const {
-        data: authData,
-        error: authError
-      } =
-        await admin.auth.admin.getUserById(
-          entry.userId
-        );
-
-      if (
-        authError ||
-        !authData?.user
-      ) {
-        registrationCodes.delete(key);
-
-        return res.status(404).json({
-          ok: false,
-          error:
-            "Kayıt bulunamadı. Lütfen yeniden kayıt ol."
-        });
-      }
-
-      if (
-        authData.user.email_confirmed_at
-      ) {
-        registrationCodes.delete(key);
-
-        return res.json({
-          ok: true,
-          verified: true,
-          message:
-            "E-posta zaten doğrulanmış."
-        });
-      }
-
-      const code =
-        createVerificationCode();
-
-      entry.code = code;
-      entry.expires =
-        Date.now() + 10 * 60 * 1000;
-      entry.attempts = 0;
-
-      registrationRate.set(
-        key,
-        Date.now()
-      );
-
-      await sendRegistrationCode(
-        email,
-        code
-      );
-
-      return res.json({
-        ok: true,
-        message:
-          "Yeni 6 haneli doğrulama kodu gönderildi.",
-        maskedEmail:
-          maskEmail(email)
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER RESEND ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Yeni kod gönderilemedi."
-      });
+    const admin = adminClient();
+    let targetUser = null;
+    for (let page = 1; page <= 20 && !targetUser; page++) {
+      const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (result?.error) throw result.error;
+      const users = result?.data?.users || [];
+      targetUser = users.find(u => normalizeEmail(u?.email) === email) || null;
+      if (users.length < 1000) break;
     }
+
+    if (!targetUser) return res.status(404).json({ ok:false, error:"Bekleyen bir kayıt bulunamadı. Lütfen yeniden kayıt ol." });
+    if (targetUser.email_confirmed_at) return res.json({ ok:true, verified:true, message:"E-posta zaten doğrulanmış." });
+
+    const code = createVerificationCode();
+    const metadata = targetUser.user_metadata || {};
+    const { error: saveError } = await admin.auth.admin.updateUserById(targetUser.id, {
+      user_metadata: {
+        ...metadata,
+        minegram_email_verification_code: code,
+        minegram_email_verification_expires: Date.now() + 10 * 60 * 1000,
+        minegram_email_verification_attempts: 0
+      }
+    });
+    if (saveError) throw saveError;
+
+    await sendRegistrationCode(email, code);
+    registrationRate.set(registrationKey(email), Date.now());
+
+    return res.json({ ok:true, message:"Yeni 6 haneli doğrulama kodu gönderildi.", maskedEmail:maskEmail(email) });
+  } catch (e) {
+    console.error("REGISTER RESEND ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Yeni kod gönderilemedi." });
   }
-);
+});
 
 /* =========================================================
    LOGIN
