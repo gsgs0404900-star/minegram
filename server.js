@@ -12,36 +12,6 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-/* =========================================================
-   EXPRESS 5 / RENDER UYUMLU CORS
-   NOT: app.options("*") KULLANMA. Express 5 + path-to-regexp
-   wildcard route tanımında "Missing parameter name" hatası verir.
-========================================================= */
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PATCH,PUT,DELETE,OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
-  );
-  res.setHeader("Access-Control-Max-Age", "86400");
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
-  next();
-});
-
 const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
@@ -643,71 +613,6 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
-/* Render yeniden başlasa bile doğrulama kodunu kaybetmemek için
-   kodu geçici olarak Supabase Auth user_metadata içinde de tutuyoruz. */
-async function findAuthUserByEmail(admin, email) {
-  const wanted = normalizeEmail(email);
-
-  for (let page = 1; page <= 20; page++) {
-    const result = await admin.auth.admin.listUsers({
-      page,
-      perPage: 1000
-    });
-
-    if (result?.error) {
-      throw result.error;
-    }
-
-    const users = result?.data?.users || [];
-    const user = users.find(
-      u => normalizeEmail(u?.email) === wanted
-    );
-
-    if (user) return user;
-    if (users.length < 1000) break;
-  }
-
-  return null;
-}
-
-async function saveRegistrationOtp(admin, userId, entry) {
-  const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error || !data?.user) {
-    throw error || new Error("Kayıt kullanıcısı bulunamadı.");
-  }
-
-  const oldMeta = data.user.user_metadata || {};
-  const { error: updateError } = await admin.auth.admin.updateUserById(
-    userId,
-    {
-      user_metadata: {
-        ...oldMeta,
-        minegram_verification_code: entry.code,
-        minegram_verification_expires: entry.expires,
-        minegram_verification_attempts: entry.attempts || 0,
-        minegram_verification_email: entry.email,
-        username: entry.username || oldMeta.username || "",
-        display_name: entry.displayName || oldMeta.display_name || ""
-      }
-    }
-  );
-
-  if (updateError) throw updateError;
-}
-
-async function clearRegistrationOtp(admin, userId) {
-  const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error || !data?.user) return;
-
-  const meta = { ...(data.user.user_metadata || {}) };
-  delete meta.minegram_verification_code;
-  delete meta.minegram_verification_expires;
-  delete meta.minegram_verification_attempts;
-  delete meta.minegram_verification_email;
-
-  await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
-}
-
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -1029,26 +934,17 @@ app.post(
        */
       const code = createVerificationCode();
 
-      const registrationEntry = {
-        code,
-        userId: authUser.id,
-        email,
-        expires: Date.now() + 10 * 60 * 1000,
-        attempts: 0,
-        username,
-        displayName
-      };
-
       registrationCodes.set(
         registrationKey(email),
-        registrationEntry
-      );
-
-      // OTP'yi Render RAM'ine ek olarak Supabase Auth metadata'ya yaz.
-      await saveRegistrationOtp(
-        admin,
-        authUser.id,
-        registrationEntry
+        {
+          code,
+          userId: authUser.id,
+          email,
+          expires: Date.now() + 10 * 60 * 1000,
+          attempts: 0,
+          username,
+          displayName
+        }
       );
 
       registrationRate.set(
@@ -1173,31 +1069,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry =
+      const entry =
         registrationCodes.get(key);
-
-      // Render yeniden başladıysa Map boş olabilir.
-      // Kodu Supabase Auth metadata'dan geri yükle.
-      if (!entry) {
-        const admin = adminClient();
-        const authUser = await findAuthUserByEmail(admin, email);
-        const meta = authUser?.user_metadata || {};
-        const savedCode = String(meta.minegram_verification_code || "");
-        const savedExpires = Number(meta.minegram_verification_expires || 0);
-
-        if (authUser?.id && /^\d{6}$/.test(savedCode)) {
-          entry = {
-            code: savedCode,
-            userId: authUser.id,
-            email,
-            expires: savedExpires,
-            attempts: Number(meta.minegram_verification_attempts || 0),
-            username: meta.username || "",
-            displayName: meta.display_name || ""
-          };
-          registrationCodes.set(key, entry);
-        }
-      }
 
       if (!entry) {
         return res.status(400).json({
@@ -1231,12 +1104,6 @@ app.post(
 
       if (entry.code !== code) {
         entry.attempts += 1;
-
-        try {
-          await saveRegistrationOtp(adminClient(), entry.userId, entry);
-        } catch (otpError) {
-          console.error("OTP ATTEMPT SAVE ERROR:", otpError);
-        }
 
         return res.status(400).json({
           ok: false,
@@ -1277,12 +1144,6 @@ app.post(
       }
 
       registrationCodes.delete(key);
-
-      try {
-        await clearRegistrationOtp(admin, entry.userId);
-      } catch (clearError) {
-        console.error("OTP METADATA CLEANUP ERROR:", clearError);
-      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1374,35 +1235,8 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry =
+      const entry =
         registrationCodes.get(key);
-
-      // Render yeniden başladıysa bekleyen kaydı metadata'dan geri yükle.
-      if (!entry) {
-        const admin = adminClient();
-        const authUser = await findAuthUserByEmail(admin, email);
-        const meta = authUser?.user_metadata || {};
-        if (authUser?.id && !authUser.email_confirmed_at) {
-          entry = {
-            code: String(meta.minegram_verification_code || ""),
-            userId: authUser.id,
-            email,
-            expires: Number(meta.minegram_verification_expires || 0),
-            attempts: Number(meta.minegram_verification_attempts || 0),
-            username: meta.username || "",
-            displayName: meta.display_name || ""
-          };
-
-          if (!/^\d{6}$/.test(entry.code)) {
-            return res.status(404).json({
-              ok: false,
-              error: "Bekleyen bir kayıt bulunamadı. Lütfen yeniden kayıt ol."
-            });
-          }
-
-          registrationCodes.set(key, entry);
-        }
-      }
 
       if (!entry) {
         return res.status(404).json({
@@ -1467,12 +1301,6 @@ app.post(
       registrationRate.set(
         key,
         Date.now()
-      );
-
-      await saveRegistrationOtp(
-        admin,
-        entry.userId,
-        entry
       );
 
       await sendRegistrationCode(
