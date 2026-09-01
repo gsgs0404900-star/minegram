@@ -1575,6 +1575,248 @@ app.post(
 
 
 /* =========================================================
+   LOGIN
+========================================================= */
+
+app.post(
+  "/api/login",
+  async (req, res) => {
+    try {
+      const identifier =
+        String(
+          req.body?.username ??
+          req.body?.email ??
+          ""
+        ).trim();
+
+      const password =
+        String(
+          req.body?.password ??
+          ""
+        );
+
+      if (
+        !identifier ||
+        !password
+      ) {
+        return res.status(400).json({
+          error:
+            "Kullanıcı adı/e-posta ve şifre gerekli."
+        });
+      }
+
+      if (!CONFIG_OK) {
+        return res.status(500).json({
+          error:
+            "Supabase ortam değişkenleri eksik."
+        });
+      }
+
+      if (
+        !SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        return res.status(500).json({
+          error:
+            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
+        });
+      }
+
+      const admin =
+        adminClient();
+
+      let email =
+        identifier.toLowerCase();
+
+      if (
+        !identifier.includes("@")
+      ) {
+        const username =
+          normalizeUsername(
+            identifier
+          );
+
+        const {
+          data: profile,
+          error: pe
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "username",
+            username
+          )
+          .maybeSingle();
+
+        if (pe) {
+          return res.status(500).json({
+            error: pe.message
+          });
+        }
+
+        if (!profile) {
+          return res.status(401).json({
+            error:
+              "Kullanıcı adı veya şifre hatalı."
+          });
+        }
+
+        const authId =
+          profile.auth_user_id ||
+          profile.id;
+
+        const {
+          data: au,
+          error: ae
+        } =
+          await admin.auth.admin.getUserById(
+            authId
+          );
+
+        if (
+          ae ||
+          !au?.user?.email
+        ) {
+          return res.status(401).json({
+            error:
+              "Kullanıcı adı veya şifre hatalı."
+          });
+        }
+
+        email =
+          au.user.email.toLowerCase();
+      }
+
+      const anon =
+        client();
+
+      const {
+        data: sd,
+        error: le
+      } =
+        await anon.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (
+        le ||
+        !sd?.session ||
+        !sd?.user
+      ) {
+        return res.status(401).json({
+          error:
+            /invalid login credentials/i.test(
+              le?.message || ""
+            )
+              ? "Kullanıcı adı/e-posta veya şifre hatalı."
+              : (
+                  le?.message ||
+                  "Giriş başarısız."
+                )
+        });
+      }
+
+      const authId =
+        sd.user.id;
+
+      const {
+        data: profiles,
+        error: pe2
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .eq(
+          "auth_user_id",
+          authId
+        )
+        .order(
+          "created_at",
+          {
+            ascending: true
+          }
+        );
+
+      if (pe2) {
+        return res.status(500).json({
+          error: pe2.message
+        });
+      }
+
+      let list =
+        profiles || [];
+
+      if (!list.length) {
+        const {
+          data: legacy
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            authId
+          )
+          .maybeSingle();
+
+        if (legacy) {
+          list = [legacy];
+        }
+      }
+
+      if (!list.length) {
+        return res.status(404).json({
+          error:
+            "Bu hesap için Minegram profili bulunamadı."
+        });
+      }
+
+      const safe =
+        list.map(
+          safeProfile
+        );
+
+      const selected =
+        identifier.includes("@")
+          ? safe[0]
+          : (
+              safe.find(
+                x =>
+                  x.username ===
+                  normalizeUsername(
+                    identifier
+                  )
+              ) ||
+              safe[0]
+            );
+
+      return res.json({
+        ok: true,
+        multipleProfiles:
+          safe.length > 1,
+        profiles: safe,
+        profile: selected,
+        token:
+          sd.session
+            .access_token,
+        user: selected
+      });
+
+    } catch (e) {
+      console.error(
+        "LOGIN ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        error:
+          e?.message ||
+          "Giriş başarısız."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
    RECOVERY HELPERS
 ========================================================= */
 
@@ -2600,14 +2842,6 @@ const recoveryCodes = new Map();
    RECOVERY HELPERS
 ========================================================= */
 
-function publicOrigin(req) {
-  const proto =
-    req.headers["x-forwarded-proto"] ||
-    req.protocol ||
-    "http";
-
-  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
-}
 
 
 function maskEmail(email) {
@@ -2727,6 +2961,307 @@ async function sendResendEmail(
 }
 
 app.post(
+  "/api/forgot-password/find-account",
+  async (req, res) => {
+    try {
+
+      const identifier =
+        String(
+          req.body?.identifier ??
+          req.body?.email ??
+          req.body?.username ??
+          req.body?.phone ??
+          ""
+        ).trim();
+
+      const mode =
+        String(
+          req.body?.mode ?? ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      if (!identifier) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "E-posta, kullanıcı adı veya telefon numarası gerekli."
+        });
+      }
+
+
+      let recoveryMode = mode;
+
+
+      if (!recoveryMode) {
+
+        if (
+          identifier.includes("@")
+        ) {
+          recoveryMode = "email";
+
+        } else if (
+          /[\d\s()+\-]/.test(identifier) &&
+          normalizeRecoveryPhone(
+            identifier
+          ).length >= 10
+        ) {
+          recoveryMode = "phone";
+
+        } else {
+          recoveryMode = "username";
+        }
+      }
+
+
+      let found = null;
+
+
+      /* -----------------------------------------------------
+         TELEFON
+      ----------------------------------------------------- */
+
+      if (
+        recoveryMode === "phone" ||
+        recoveryMode === "tel" ||
+        recoveryMode === "telefon"
+      ) {
+
+        const authUser =
+          await findUserByPhone(
+            identifier
+          );
+
+
+        if (authUser?.email) {
+
+          const admin =
+            adminClient();
+
+
+          const {
+            data: profileById
+          } =
+            await admin
+              .from("profiles")
+              .select(
+                "id,auth_user_id,username,email,display_name,avatar_url"
+              )
+              .or(
+                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+              )
+              .limit(1)
+              .maybeSingle();
+
+
+          found = {
+            email:
+              authUser.email,
+
+            profile:
+              profileById || null,
+
+            authUser
+          };
+        }
+      }
+
+
+      /* -----------------------------------------------------
+         E-POSTA / KULLANICI ADI
+      ----------------------------------------------------- */
+
+      if (!found) {
+
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+      }
+
+
+      /* -----------------------------------------------------
+         HESAP YOK
+      ----------------------------------------------------- */
+
+      if (!found?.email) {
+
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Bu bilgilerle eşleşen bir hesap bulunamadı."
+        });
+      }
+
+
+      const email =
+        String(
+          found.email
+        )
+          .trim()
+          .toLowerCase();
+
+
+      const profile =
+        found.profile || {};
+
+
+      /* -----------------------------------------------------
+         6 HANELİ KOD
+      ----------------------------------------------------- */
+
+      const code =
+        String(
+          Math.floor(
+            100000 +
+            Math.random() * 900000
+          )
+        );
+
+
+      recoveryCodes.set(
+        email,
+        {
+          code,
+
+          expires:
+            Date.now() +
+            10 * 60 * 1000,
+
+          profile
+        }
+      );
+
+
+      /* -----------------------------------------------------
+         E-POSTA GÖNDER
+      ----------------------------------------------------- */
+
+      await sendResendEmail(
+
+        email,
+
+        "Minegram doğrulama kodun",
+
+        `
+        <div
+          style="
+            font-family:Arial,sans-serif;
+            max-width:500px;
+            margin:auto;
+            padding:30px;
+            background:#fff;
+            color:#111;
+            border-radius:12px;
+          "
+        >
+
+          <h2>Minegram</h2>
+
+          <p>
+            Şifre sıfırlama işlemin için
+            doğrulama kodun:
+          </p>
+
+          <div
+            style="
+              font-size:32px;
+              font-weight:700;
+              letter-spacing:8px;
+              margin:25px 0;
+            "
+          >
+            ${code}
+          </div>
+
+          <p>
+            Bu kod 10 dakika geçerlidir.
+          </p>
+
+          <p
+            style="
+              color:#777;
+              font-size:12px;
+            "
+          >
+            Bu işlemi sen yapmadıysan
+            bu e-postayı dikkate alma.
+          </p>
+
+        </div>
+        `,
+
+        `Minegram doğrulama kodun: ${code}
+
+Bu kod 10 dakika geçerlidir.`
+      );
+
+
+      /* -----------------------------------------------------
+         BAŞARILI
+      ----------------------------------------------------- */
+
+      return res.status(200).json({
+
+        ok: true,
+
+        account: {
+
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
+
+          username:
+            profile.username || "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email,
+
+          maskedEmail:
+            maskEmail(email),
+
+          avatar:
+            profile.avatar_url ||
+            null
+        },
+
+        identifier,
+
+        mode:
+          recoveryMode
+      });
+
+
+    } catch (e) {
+
+      console.error(
+        "FIND ACCOUNT ERROR:",
+        e
+      );
+
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          e?.message ||
+          "Hesap aranırken bir hata oluştu."
+      });
+    }
+  }
+);
 
 
 /* =========================================================
