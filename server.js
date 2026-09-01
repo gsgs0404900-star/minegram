@@ -11,6 +11,145 @@ import fs from "fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+import crypto from "crypto";
+
+const otpStore = new Map();
+
+function generateOtp() {
+    return crypto.randomInt(100000, 1000000).toString();
+}
+
+app.post("/api/send-email-otp", async (req, res) => {
+    try {
+        const email = String(
+            req.body?.email ||
+            req.body?.emailAddress ||
+            ""
+        ).trim().toLowerCase();
+
+        const username = String(
+            req.body?.username || ""
+        ).trim();
+
+        console.log("[OTP] Gelen istek:", {
+            email,
+            username
+        });
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "E-posta adresi gerekli."
+            });
+        }
+
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Geçerli bir e-posta adresi gir."
+            });
+        }
+
+        if (
+            !process.env.SMTP_HOST ||
+            !process.env.SMTP_PORT ||
+            !process.env.SMTP_USER ||
+            !process.env.SMTP_PASS ||
+            !process.env.SMTP_FROM
+        ) {
+            console.error(
+                "[OTP] SMTP environment değişkenleri eksik."
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Sunucu e-posta ayarları eksik. Render Environment Variables bölümünü kontrol et."
+            });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT),
+            secure:
+                String(process.env.SMTP_SECURE).toLowerCase() === "true",
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+
+        await transporter.verify();
+
+        const otp = generateOtp();
+
+        otpStore.set(email, {
+            code: otp,
+            username,
+            expiresAt: Date.now() + 10 * 60 * 1000
+        });
+
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM,
+            to: email,
+            subject: "Minegram doğrulama kodun",
+            text:
+                `Minegram hesabını doğrulamak için kodun: ${otp}\n\n` +
+                `Bu kod 10 dakika geçerlidir.`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto">
+                    <h2>Minegram</h2>
+                    <p>Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:</p>
+
+                    <div style="
+                        font-size:32px;
+                        font-weight:bold;
+                        letter-spacing:8px;
+                        padding:20px;
+                        text-align:center;
+                        background:#f3f3f3;
+                        border-radius:10px;
+                    ">
+                        ${otp}
+                    </div>
+
+                    <p>Bu kod 10 dakika geçerlidir.</p>
+                    <p>Bu kodu kimseyle paylaşma.</p>
+                </div>
+            `
+        });
+
+        console.log(
+            `[OTP] Kod gönderildi: ${email}`
+        );
+
+        return res.json({
+            success: true,
+            message: "Doğrulama kodu gönderildi."
+        });
+
+    } catch (error) {
+
+        console.error(
+            "[OTP] E-posta gönderme hatası:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Sunucu e-posta gönderirken hata verdi.",
+            error:
+                process.env.NODE_ENV === "production"
+                    ? undefined
+                    : error.message
+        });
+    }
+});
+
 const otpStore = new Map();
 
 const mailTransporter = nodemailer.createTransport({
