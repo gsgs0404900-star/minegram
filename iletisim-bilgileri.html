@@ -182,29 +182,16 @@ body{
     color:#000;
 }
 
-.next-btn:hover{
-    background:#348dca;
-}
-
 .next-btn:disabled{
     opacity:.6;
     cursor:not-allowed;
 }
 
 @media(max-width:600px){
-
     .box{
         width:calc(100% - 40px);
         max-width:365px;
         margin-top:60px;
-    }
-
-    .header{
-        margin-bottom:22px;
-    }
-
-    .header-title{
-        font-size:15px;
     }
 
     .title{
@@ -212,29 +199,6 @@ body{
     }
 
     .description{
-        font-size:12px;
-    }
-
-    .tab{
-        height:44px;
-        font-size:12px;
-    }
-
-    .input{
-        height:44px;
-        font-size:12px;
-    }
-
-    .note{
-        font-size:11px;
-    }
-
-    .action{
-        height:42px;
-        font-size:12px;
-    }
-
-    .status{
         font-size:12px;
     }
 }
@@ -246,145 +210,103 @@ body{
 <div class="page">
 <div class="box">
 
-    <div class="header">
+<div class="header">
 
-        <div
-            id="topBack"
-            class="back"
-            role="button"
-            tabindex="0"
-            aria-label="Geri"
-        >‹</div>
+<div
+    id="topBack"
+    class="back"
+    role="button"
+    tabindex="0"
+    aria-label="Geri"
+>‹</div>
 
-        <div class="header-title">
-            Kayıt ol
-        </div>
+<div class="header-title">
+    Kayıt ol
+</div>
 
-    </div>
+</div>
 
-    <h1 class="title">
-        İletişim bilgini ekle
-    </h1>
+<h1 class="title">
+    İletişim bilgini ekle
+</h1>
 
-    <p class="description">
-        Hesabını doğrulamak için e-posta adresini<br>
-        kullan.
-    </p>
+<p class="description">
+    Hesabını doğrulamak için e-posta adresini<br>
+    kullan.
+</p>
 
-    <div class="tabs">
+<div class="tabs">
 
-        <button
-            id="emailTab"
-            class="tab email"
-            type="button"
-        >
-            E-posta
-        </button>
+<button
+    id="emailTab"
+    class="tab email"
+    type="button"
+>
+    E-posta
+</button>
 
-        <button
-            id="phoneTab"
-            class="tab phone"
-            type="button"
-        >
-            Telefon
-        </button>
+<button
+    id="phoneTab"
+    class="tab phone"
+    type="button"
+>
+    Telefon
+</button>
 
-    </div>
+</div>
 
-    <input
-        id="contact"
-        class="input"
-        type="email"
-        autocomplete="email"
-        placeholder="E-posta adresi"
-    >
+<input
+    id="contact"
+    class="input"
+    type="email"
+    autocomplete="email"
+    placeholder="E-posta adresi"
+>
 
-    <div id="note" class="note">
-        Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.
-    </div>
+<div id="note" class="note">
+    Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.
+</div>
 
-    <div id="status" class="status"></div>
+<div id="status" class="status"></div>
 
-    <div class="bottom">
+<div class="bottom">
 
-        <button
-            id="backBtn"
-            class="action back-btn"
-            type="button"
-        >
-            Geri
-        </button>
+<button
+    id="backBtn"
+    class="action back-btn"
+    type="button"
+>
+    Geri
+</button>
 
-        <button
-            id="nextBtn"
-            class="action next-btn"
-            type="button"
-        >
-            İleri
-        </button>
+<button
+    id="nextBtn"
+    class="action next-btn"
+    type="button"
+>
+    İleri
+</button>
 
-    </div>
+</div>
 
 </div>
 </div>
 
-
-<script type="module">
-
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
-import {
-    getFunctions,
-    httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-
+<script>
 
 /* =====================================================
-   FIREBASE
+   MINEGRAM SERVER
 ===================================================== */
 
-const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-
-    authDomain:
-        "mim-ea133.firebaseapp.com",
-
-    databaseURL:
-        "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-
-    projectId:
-        "mim-ea133",
-
-    storageBucket:
-        "mim-ea133.firebasestorage.app",
-
-    messagingSenderId:
-        "303525353436",
-
-    appId:
-        "1:303525353436:web:082fc090b5025e19942119",
-
-    measurementId:
-        "G-K962QE5P1R"
-};
-
-
-const app = initializeApp(firebaseConfig);
-
-
 /*
-   Cloud Function ile AYNI bölge:
-   europe-west1
+   Eğer siteyi server.js üzerinden açıyorsan:
+   /api/register/send-otp
+
+   Eğer farklı port kullanıyorsan aşağıdaki URL'yi
+   server.js portuna göre değiştir.
 */
 
-const functions = getFunctions(
-    app,
-    "europe-west1"
-);
+const API_BASE = "";
 
 
 /* =====================================================
@@ -403,9 +325,6 @@ const contact =
 const note =
     document.getElementById("note");
 
-const status =
-    document.getElementById("status");
-
 const nextBtn =
     document.getElementById("nextBtn");
 
@@ -415,20 +334,22 @@ const backBtn =
 const topBack =
     document.getElementById("topBack");
 
+const status =
+    document.getElementById("status");
+
 
 let mode = "email";
 let busy = false;
 
 
 /* =====================================================
-   URL
+   USERNAME
 ===================================================== */
 
 const params =
     new URLSearchParams(
         window.location.search
     );
-
 
 let username =
     (
@@ -441,7 +362,6 @@ let username =
     .trim()
     .replace(/^@/, "")
     .toLowerCase();
-
 
 if(username){
 
@@ -458,83 +378,114 @@ if(username){
 ===================================================== */
 
 function showStatus(
-    text = "",
+    text,
     success = false,
     loading = false
 ){
 
-    status.textContent = text;
-
-    status.className = "status";
-
-    if(success){
-        status.classList.add("success");
-    }
+    status.textContent =
+        text || "";
 
     if(loading){
-        status.classList.add("loading");
+
+        status.className =
+            "status loading";
+
+        return;
     }
 
+    status.className =
+        success
+            ? "status success"
+            : "status";
 }
 
 
 /* =====================================================
-   EMAIL TAB
+   EMAIL
 ===================================================== */
 
 emailTab.addEventListener(
     "click",
-    () => {
+    function(){
 
         mode = "email";
 
-        emailTab.style.background = "#554f67";
-        emailTab.style.borderColor = "#554f67";
-        emailTab.style.color = "#eee8fa";
+        emailTab.style.background =
+            "#554f67";
 
-        phoneTab.style.background = "#000";
-        phoneTab.style.borderColor = "#292929";
-        phoneTab.style.color = "#fff";
+        emailTab.style.borderColor =
+            "#554f67";
 
-        contact.type = "email";
-        contact.autocomplete = "email";
-        contact.placeholder = "E-posta adresi";
+        emailTab.style.color =
+            "#eee8fa";
+
+        phoneTab.style.background =
+            "#000";
+
+        phoneTab.style.borderColor =
+            "#292929";
+
+        phoneTab.style.color =
+            "#fff";
+
+        contact.type =
+            "email";
+
+        contact.autocomplete =
+            "email";
+
+        contact.placeholder =
+            "E-posta adresi";
 
         note.textContent =
             "Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.";
 
         showStatus("");
 
-        contact.focus();
-
     }
 );
 
 
 /* =====================================================
-   PHONE TAB
+   PHONE
 ===================================================== */
 
 phoneTab.addEventListener(
     "click",
-    () => {
+    function(){
 
         mode = "phone";
 
-        phoneTab.style.background = "#554f67";
-        phoneTab.style.borderColor = "#554f67";
-        phoneTab.style.color = "#eee8fa";
+        phoneTab.style.background =
+            "#554f67";
 
-        emailTab.style.background = "#000";
-        emailTab.style.borderColor = "#292929";
-        emailTab.style.color = "#fff";
+        phoneTab.style.borderColor =
+            "#554f67";
 
-        contact.type = "tel";
-        contact.autocomplete = "tel";
-        contact.placeholder = "Telefon numarası";
+        phoneTab.style.color =
+            "#eee8fa";
+
+        emailTab.style.background =
+            "#000";
+
+        emailTab.style.borderColor =
+            "#292929";
+
+        emailTab.style.color =
+            "#fff";
+
+        contact.type =
+            "tel";
+
+        contact.autocomplete =
+            "tel";
+
+        contact.placeholder =
+            "Telefon numarası";
 
         note.textContent =
-            "Telefon doğrulaması henüz aktif değil. E-posta seçeneğini kullan.";
+            "Telefon doğrulaması şu anda aktif değil. E-posta seçeneğini kullan.";
 
         showStatus("");
 
@@ -548,12 +499,13 @@ phoneTab.addEventListener(
 
 function goBack(){
 
-    window.location.href =
+    const url =
         "./sifre-olustur.html?username=" +
         encodeURIComponent(username);
 
+    window.location.href =
+        url;
 }
-
 
 topBack.addEventListener(
     "click",
@@ -567,7 +519,7 @@ backBtn.addEventListener(
 
 topBack.addEventListener(
     "keydown",
-    event => {
+    function(event){
 
         if(
             event.key === "Enter" ||
@@ -585,7 +537,7 @@ topBack.addEventListener(
 
 
 /* =====================================================
-   EMAIL OTP
+   OTP GÖNDER
 ===================================================== */
 
 async function sendOtpEmail(email){
@@ -593,50 +545,73 @@ async function sendOtpEmail(email){
     try{
 
         console.log(
-            "[MINEGRAM] sendEmailOtp çağrılıyor",
-            {
-                email,
-                username
-            }
+            "[MINEGRAM] Server OTP isteği:",
+            email
         );
 
 
-        const sendEmailOtp =
-            httpsCallable(
-                functions,
-                "sendEmailOtp"
+        const response =
+            await fetch(
+                API_BASE +
+                "/api/register/send-otp",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    credentials:"include",
+
+                    body:JSON.stringify({
+
+                        email:email,
+
+                        username:username
+
+                    })
+                }
             );
 
 
-        const result =
-            await sendEmailOtp({
+        let data = {};
 
-                email:
-                    email,
+        try{
 
-                username:
-                    username
+            data =
+                await response.json();
 
-            });
+        }catch(e){
 
+            data = {};
 
-        console.log(
-            "[MINEGRAM] Cloud Function sonucu:",
-            result.data
-        );
+        }
 
 
-        if(
-            !result.data ||
-            result.data.ok !== true
-        ){
+        if(!response.ok){
 
             throw new Error(
-                "Sunucu geçerli cevap vermedi."
+                data.error ||
+                "Sunucu e-posta gönderirken hata verdi."
             );
 
         }
 
+
+        if(!data.ok){
+
+            throw new Error(
+                data.error ||
+                "Doğrulama kodu gönderilemedi."
+            );
+
+        }
+
+
+        console.log(
+            "[MINEGRAM] OTP gönderildi."
+        );
 
         return true;
 
@@ -644,78 +619,17 @@ async function sendOtpEmail(email){
     }catch(error){
 
         console.error(
-            "[MINEGRAM] sendEmailOtp HATASI:",
+            "[MINEGRAM] OTP HATASI:",
             error
         );
 
-
-        let message =
-            "Doğrulama kodu gönderilemedi.";
-
-
-        switch(error.code){
-
-            case "functions/not-found":
-
-                message =
-                    "sendEmailOtp bulunamadı. Firebase Function dağıtılmamış olabilir.";
-
-                break;
-
-
-            case "functions/invalid-argument":
-
-                message =
-                    error.message ||
-                    "E-posta bilgisi geçersiz.";
-
-                break;
-
-
-            case "functions/resource-exhausted":
-
-                message =
-                    "Çok fazla kod istendi. Lütfen birkaç dakika bekle.";
-
-                break;
-
-
-            case "functions/internal":
-
-                message =
-                    "Sunucu e-posta gönderirken hata verdi. Firebase Function SMTP ayarlarını kontrol et.";
-
-                break;
-
-
-            case "functions/unavailable":
-
-                message =
-                    "Firebase sunucusuna ulaşılamadı. İnternet bağlantını kontrol et.";
-
-                break;
-
-
-            default:
-
-                if(error.message){
-
-                    message =
-                        error.message;
-
-                }
-
-                break;
-
-        }
-
-
-        showStatus(message);
+        showStatus(
+            error.message ||
+            "Doğrulama kodu gönderilemedi."
+        );
 
         return false;
-
     }
-
 }
 
 
@@ -726,6 +640,7 @@ async function sendOtpEmail(email){
 async function goNext(){
 
     if(busy){
+
         return;
     }
 
@@ -737,17 +652,14 @@ async function goNext(){
         );
 
         return;
-
     }
 
 
-    const email =
-        contact.value
-            .trim()
-            .toLowerCase();
+    const value =
+        contact.value.trim();
 
 
-    if(!email){
+    if(!value){
 
         showStatus(
             "Lütfen e-posta adresini gir."
@@ -756,7 +668,6 @@ async function goNext(){
         contact.focus();
 
         return;
-
     }
 
 
@@ -764,7 +675,7 @@ async function goNext(){
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
-    if(!validEmail.test(email)){
+    if(!validEmail.test(value)){
 
         showStatus(
             "Geçerli bir e-posta adresi gir."
@@ -773,22 +684,17 @@ async function goNext(){
         contact.focus();
 
         return;
-
     }
 
 
-    /*
-       Kayıt bilgilerini sakla
-    */
-
     sessionStorage.setItem(
         "minegram_register_email",
-        email
+        value
     );
 
     sessionStorage.setItem(
         "minegram_otp_email",
-        email
+        value
     );
 
     sessionStorage.setItem(
@@ -797,19 +703,10 @@ async function goNext(){
     );
 
 
-    if(username){
-
-        sessionStorage.setItem(
-            "minegram_register_username",
-            username
-        );
-
-    }
-
-
     busy = true;
 
-    nextBtn.disabled = true;
+    nextBtn.disabled =
+        true;
 
     nextBtn.textContent =
         "Kod gönderiliyor...";
@@ -823,20 +720,20 @@ async function goNext(){
 
 
     const success =
-        await sendOtpEmail(email);
+        await sendOtpEmail(value);
 
 
     if(!success){
 
         busy = false;
 
-        nextBtn.disabled = false;
+        nextBtn.disabled =
+            false;
 
         nextBtn.textContent =
             "İleri";
 
         return;
-
     }
 
 
@@ -850,26 +747,15 @@ async function goNext(){
         "Kod gönderildi";
 
 
-    /*
-       Doğrulama sayfası
-    */
-
     const url =
-        "./hesap-doğrulama.html" +
-        "?username=" +
+        "./hesap-doğrulama.html?username=" +
         encodeURIComponent(username) +
         "&email=" +
-        encodeURIComponent(email);
-
-
-    console.log(
-        "[MINEGRAM] Doğrulama:",
-        url
-    );
+        encodeURIComponent(value);
 
 
     setTimeout(
-        () => {
+        function(){
 
             window.location.href =
                 url;
@@ -877,12 +763,11 @@ async function goNext(){
         },
         700
     );
-
 }
 
 
 /* =====================================================
-   BUTON
+   BUTTON
 ===================================================== */
 
 nextBtn.addEventListener(
@@ -897,7 +782,7 @@ nextBtn.addEventListener(
 
 contact.addEventListener(
     "keydown",
-    event => {
+    function(event){
 
         if(event.key === "Enter"){
 
@@ -920,8 +805,9 @@ const savedEmail =
         "minegram_register_email"
     );
 
-
 if(savedEmail){
+
+    mode = "email";
 
     contact.value =
         savedEmail;
@@ -934,16 +820,12 @@ if(savedEmail){
 ===================================================== */
 
 console.log(
-    "[MINEGRAM] İletişim sayfası hazır."
+    "[MINEGRAM] İletişim bilgileri hazır."
 );
 
 console.log(
     "[MINEGRAM] Username:",
     username
-);
-
-console.log(
-    "[MINEGRAM] Function region: europe-west1"
 );
 
 </script>
