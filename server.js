@@ -883,65 +883,6 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Son kullanıcı adı kontrolü — yarış durumunu yakala */
-      const {
-        data: finalUsernameCheck,
-        error: finalUsernameError
-      } =
-        await admin
-          .from("profiles")
-          .select("id,username")
-          .eq("username", username)
-          .limit(1)
-          .maybeSingle();
-
-      if (finalUsernameError) {
-        console.error(
-          "FINAL USERNAME CHECK ERROR:",
-          finalUsernameError
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-
-        createdAuthUserId = null;
-
-        return res.status(500).json({
-          ok: false,
-          code: "USERNAME_CHECK_ERROR",
-          error: "Kullanıcı adı son kontrolde doğrulanamadı."
-        });
-      }
-
-      if (finalUsernameCheck) {
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-
-        createdAuthUserId = null;
-
-        return res.status(409).json({
-          ok: false,
-          code: "USERNAME_TAKEN",
-          error: "Bu kullanıcı adı zaten alınmış."
-        });
-      }
-
       /* Profil oluştur */
       const {
         data: profile,
@@ -2505,6 +2446,19 @@ async function sendResendEmail(
 const recoveryCodes =
   new Map();
 
+// 6 haneli kurtarma kodu doğrulandıktan sonra
+// yeni şifre belirlemek için kısa ömürlü tek kullanımlık anahtarlar.
+const passwordResetTokens = new Map();
+
+function cleanupPasswordResetTokens() {
+  const now = Date.now();
+  for (const [token, entry] of passwordResetTokens.entries()) {
+    if (!entry || entry.expires < now) {
+      passwordResetTokens.delete(token);
+    }
+  }
+}
+
 
 /* =========================================================
    FORGOT START
@@ -2635,9 +2589,17 @@ app.post(
         });
       }
 
-      recoveryCodes.delete(
-        key
-      );
+      // Kod tek kullanımlık olsun. Doğrulama başarılı olduğunda
+      // şifre değiştirme için 10 dakikalık geçici anahtar üret.
+      recoveryCodes.delete(key);
+      cleanupPasswordResetTokens();
+
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      passwordResetTokens.set(resetToken, {
+        userId: found.authUser?.id || entry.authUserId || null,
+        email: found.email,
+        expires: Date.now() + 10 * 60 * 1000
+      });
 
       const p =
         entry.profile ||
@@ -2646,16 +2608,16 @@ app.post(
 
       res.json({
         ok: true,
-        email:
-          found.email,
+        verified: true,
+        resetToken,
+        email: found.email,
 
         account: {
           username:
             p.username ||
             "minegram",
 
-          email:
-            found.email,
+          email: found.email,
 
           displayName:
             p.display_name ||
@@ -2667,6 +2629,153 @@ app.post(
       res.status(400).json({
         error:
           e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   RESET PASSWORD - 6 HANELİ KOD SONRASI
+========================================================= */
+
+app.post(
+  "/api/forgot/reset-password",
+  async (req, res) => {
+    try {
+      const resetToken =
+        String(req.body?.resetToken || "").trim();
+
+      const password =
+        String(req.body?.password || "");
+
+      if (!resetToken) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama anahtarı gerekli."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre en az 6 karakter olmalı."
+        });
+      }
+
+      cleanupPasswordResetTokens();
+
+      const entry = passwordResetTokens.get(resetToken);
+
+      if (!entry || entry.expires < Date.now()) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş."
+        });
+      }
+
+      if (!entry.userId) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap bilgisi bulunamadı."
+        });
+      }
+
+      const admin = adminClient();
+
+      const { error } =
+        await admin.auth.admin.updateUserById(
+          entry.userId,
+          { password }
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      passwordResetTokens.delete(resetToken);
+
+      return res.json({
+        ok: true,
+        message: "Şifren başarıyla değiştirildi. Şimdi giriş yapabilirsin.",
+        email: entry.email
+      });
+    } catch (e) {
+      console.error("RESET PASSWORD ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Şifre değiştirilemedi."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   FORGOT CODE RESEND
+========================================================= */
+
+app.post(
+  "/api/forgot/resend",
+  async (req, res) => {
+    try {
+      const found =
+        await resolveRecoveryEmail(
+          req.body?.identifier,
+          req.body?.mode || "email"
+        );
+
+      if (!found?.email) {
+        return res.status(404).json({
+          ok: false,
+          error: "Hesap bulunamadı."
+        });
+      }
+
+      const key = found.email.toLowerCase();
+      const previous = recoveryCodes.get(key);
+
+      if (previous?.sentAt && Date.now() - previous.sentAt < 60 * 1000) {
+        return res.status(429).json({
+          ok: false,
+          error: "Yeni kod göndermek için 60 saniye bekle."
+        });
+      }
+
+      const code = crypto.randomInt(100000, 1000000).toString();
+
+      recoveryCodes.set(key, {
+        code,
+        expires: Date.now() + 10 * 60 * 1000,
+        sentAt: Date.now(),
+        profile: found.profile,
+        authUserId: found.authUser?.id || null
+      });
+
+      await sendResendEmail(
+        found.email,
+        "Minegram doğrulama kodun",
+        `<div style="font-family:Arial,sans-serif">
+          <h2>Minegram</h2>
+          <p>Şifre sıfırlama doğrulama kodun:</p>
+          <div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div>
+          <p>Bu kod 10 dakika geçerlidir.</p>
+        </div>`,
+        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      );
+
+      return res.json({
+        ok: true,
+        email: found.email,
+        maskedEmail: maskEmail(found.email)
+      });
+    } catch (e) {
+      console.error("FORGOT RESEND ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "Kod gönderilemedi."
       });
     }
   }
