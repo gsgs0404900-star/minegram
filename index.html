@@ -43,15 +43,25 @@
 <div id="toast" class="toast"></div>
 <script>
 const API='/api';
-let token=localStorage.getItem('minegram_token');
+let token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||null;
 let currentUser=null,currentCommentPost=null,currentMenuPost=null,currentCommentSort='forYou',replyingTo=null;
 const feedEl=document.getElementById('feed');
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 async function api(path,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};let r=await fetch(API+path,opt);let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'İşlem başarısız');return j}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.classList.remove('show'),2200)}
-function showLogin(){location.replace('index.html')}
+function showLogin(){
+  showHome();
+  if(feedEl){
+    feedEl.innerHTML='<div class="empty"><strong>Oturum açman gerekiyor</strong><small>Minegram'ı kullanmak için giriş yap.</small><br><button onclick="location.href=\'giris.html\'" style="margin-top:16px;padding:12px 22px;border:0;border-radius:22px;background:#fff;color:#000;font-weight:700;cursor:pointer">Giriş Yap</button></div>';
+  }
+}
 function showHome(){document.getElementById('home').classList.remove('hidden');document.getElementById('bottomNav').classList.remove('hidden')}
-function logout(){localStorage.removeItem('minegram_token');localStorage.removeItem('minegram_supabase_token');token=null;currentUser=null;showLogin()}
+function logout(){
+  localStorage.removeItem('minegram_token');
+  localStorage.removeItem('minegram_supabase_token');
+  localStorage.removeItem('minegram_user');
+  token=null; currentUser=null; showLogin();
+}
 async function login(){try{const j=await api('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:lu.value,password:lp.value})});if(!j.token)return toast('E-posta adresini doğrula, sonra giriş yap.');token=j.token;localStorage.setItem('minegram_token',token);showHome();loadFeed()}catch(e){toast(e.message)}}
 async function forgot(){const x=prompt('E-posta adresini veya kullanıcı adını gir:');if(!x)return;try{await api('/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:x})});toast('Kurtarma bağlantısı gönderildi.')}catch(e){toast(e.message)}}
 function profileUrl(username){return 'profile.html?user='+encodeURIComponent(username)}
@@ -354,7 +364,24 @@ async function likeComment(id){
     toast(r.liked?'Yorum beğenildi':'Yorum beğenisi kaldırıldı');
   }catch(e){if(btn)btn.classList.toggle('liked');toast(e.message||'Beğeni işlemi başarısız');}
 }
-async function init(){if(!token){showLogin();return}try{currentUser=await api('/me');showHome();loadFeed()}catch(e){logout()}}
+async function init(){
+  token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||null;
+  showHome();
+  if(!token){ showLogin(); return; }
+  try{
+    const me=await api('/me');
+    currentUser=me?.user||me;
+    localStorage.setItem('minegram_user',JSON.stringify(currentUser));
+    showHome();
+    await loadFeed();
+  }catch(e){
+    console.error('[INDEX AUTH ERROR]',e);
+    localStorage.removeItem('minegram_token');
+    localStorage.removeItem('minegram_supabase_token');
+    token=null; currentUser=null;
+    showLogin();
+  }
+}
 init();
 </script>
 </body>
