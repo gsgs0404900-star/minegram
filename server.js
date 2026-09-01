@@ -1,4 +1,5 @@
 import "dotenv/config";
+import nodemailer from "nodemailer";
 import express from "express";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
@@ -9,6 +10,899 @@ import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+/* =========================================================
+   MINEGRAM - EMAIL OTP
+   POST /api/send-email-otp
+========================================================= */
+
+const otpStore = new Map();
+
+const mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+
+    port: Number(
+        process.env.SMTP_PORT || 465
+    ),
+
+    secure:
+        String(
+            process.env.SMTP_SECURE || "true"
+        ).toLowerCase() === "true",
+
+    auth: {
+        user:
+            process.env.SMTP_USER,
+
+        pass:
+            process.env.SMTP_PASS
+    }
+});
+
+
+/* =========================================================
+   SMTP TEST
+========================================================= */
+
+mailTransporter.verify()
+    .then(() => {
+        console.log(
+            "[MINEGRAM] SMTP bağlantısı başarılı."
+        );
+    })
+    .catch((error) => {
+        console.error(
+            "[MINEGRAM] SMTP bağlantı hatası:",
+            error.message
+        );
+    });
+
+
+/* =========================================================
+   SEND EMAIL OTP
+========================================================= */
+
+app.post(
+    "/api/send-email-otp",
+    async (req, res) => {
+
+        try {
+
+            const email =
+                String(
+                    req.body?.email || ""
+                )
+                .trim()
+                .toLowerCase();
+
+
+            const username =
+                String(
+                    req.body?.username || ""
+                )
+                .trim()
+                .replace(/^@/, "");
+
+
+            /* -----------------------------------------
+               EMAIL KONTROL
+            ----------------------------------------- */
+
+            if (!email) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "E-posta adresi gerekli."
+                });
+
+            }
+
+
+            const validEmail =
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+            if (!validEmail.test(email)) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Geçerli bir e-posta adresi gir."
+                });
+
+            }
+
+
+            /* -----------------------------------------
+               SMTP AYAR KONTROL
+            ----------------------------------------- */
+
+            if (
+                !process.env.SMTP_USER ||
+                !process.env.SMTP_PASS
+            ) {
+
+                console.error(
+                    "[MINEGRAM] SMTP_USER veya SMTP_PASS eksik."
+                );
+
+                return res.status(500).json({
+                    ok: false,
+                    error:
+                        "Sunucu e-posta ayarları eksik. SMTP ayarlarını kontrol et."
+                });
+
+            }
+
+
+            /* -----------------------------------------
+               OTP OLUŞTUR
+            ----------------------------------------- */
+
+            const code =
+                String(
+                    Math.floor(
+                        100000 +
+                        Math.random() * 900000
+                    )
+                );
+
+
+            const expiresAt =
+                Date.now() +
+                10 * 60 * 1000;
+
+
+            otpStore.set(
+                email,
+                {
+                    code,
+                    expiresAt,
+                    username,
+                    attempts: 0
+                }
+            );
+
+
+            console.log(
+                `[MINEGRAM] OTP oluşturuldu: ${email}`
+            );
+
+
+            /* -----------------------------------------
+               E-POSTA
+            ----------------------------------------- */
+
+            const mailFrom =
+                process.env.MAIL_FROM ||
+                process.env.SMTP_USER;
+
+
+            await mailTransporter.sendMail({
+
+                from:
+                    `"Minegram" <${mailFrom}>`,
+
+                to:
+                    email,
+
+                subject:
+                    "Minegram doğrulama kodun",
+
+                text:
+                    `Minegram doğrulama kodun: ${code}\n\n` +
+                    `Bu kod 10 dakika boyunca geçerlidir.\n\n` +
+                    `Bu kodu kimseyle paylaşma.`,
+
+                html: `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    background:#000;
+    font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+    max-width:520px;
+    margin:40px auto;
+    padding:35px 25px;
+    background:#111;
+    border-radius:16px;
+    text-align:center;
+    color:#fff;
+">
+
+    <h1 style="
+        margin:0 0 12px;
+        font-size:28px;
+    ">
+        Minegram
+    </h1>
+
+    <p style="
+        color:#aaa;
+        font-size:15px;
+        margin-bottom:28px;
+    ">
+        Hesabını doğrulamak için doğrulama kodun:
+    </p>
+
+    <div style="
+        display:inline-block;
+        padding:18px 30px;
+        background:#222;
+        border-radius:12px;
+        font-size:34px;
+        font-weight:bold;
+        letter-spacing:8px;
+        color:#fff;
+    ">
+        ${code}
+    </div>
+
+    <p style="
+        margin-top:28px;
+        color:#888;
+        font-size:13px;
+        line-height:1.6;
+    ">
+        Bu kod 10 dakika boyunca geçerlidir.
+        <br>
+        Kodu kimseyle paylaşma.
+    </p>
+
+    <p style="
+        margin-top:30px;
+        color:#555;
+        font-size:12px;
+    ">
+        Minegram
+    </p>
+
+</div>
+
+</body>
+</html>
+`
+            });
+
+
+            /* -----------------------------------------
+               BAŞARILI
+            ----------------------------------------- */
+
+            console.log(
+                `[MINEGRAM] OTP gönderildi: ${email}`
+            );
+
+
+            return res.json({
+
+                ok: true,
+
+                message:
+                    "Doğrulama kodu e-posta adresine gönderildi.",
+
+                email
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] EMAIL OTP ERROR:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Sunucu e-posta gönderirken hata verdi.",
+
+                detail:
+                    process.env.NODE_ENV === "development"
+                        ? error.message
+                        : undefined
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   OTP VERIFY
+========================================================= */
+
+app.post(
+    "/api/verify-email-otp",
+    async (req, res) => {
+
+        try {
+
+            const email =
+                String(
+                    req.body?.email || ""
+                )
+                .trim()
+                .toLowerCase();
+
+
+            const code =
+                String(
+                    req.body?.code || ""
+                )
+                .trim();
+
+
+            if (!email || !code) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "E-posta ve doğrulama kodu gerekli."
+                });
+
+            }
+
+
+            const entry =
+                otpStore.get(email);
+
+
+            if (!entry) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodu bulunamadı. Yeni kod iste."
+                });
+
+            }
+
+
+            if (
+                Date.now() >
+                entry.expiresAt
+            ) {
+
+                otpStore.delete(email);
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodunun süresi dolmuş."
+                });
+
+            }
+
+
+            if (
+                entry.code !== code
+            ) {
+
+                entry.attempts++;
+
+                if (
+                    entry.attempts >= 5
+                ) {
+
+                    otpStore.delete(email);
+
+                    return res.status(400).json({
+                        ok: false,
+                        error:
+                            "Çok fazla hatalı kod girildi. Yeni kod iste."
+                    });
+
+                }
+
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodu yanlış."
+                });
+
+            }
+
+
+            otpStore.delete(email);
+
+
+            return res.json({
+
+                ok: true,
+
+                verified: true,
+
+                email
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] OTP VERIFY ERROR:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Doğrulama sırasında sunucu hatası."
+
+            });
+
+        }
+
+    }
+);
+```
+```js
+/* =========================================================
+   MINEGRAM - EMAIL OTP
+   POST /api/send-email-otp
+========================================================= */
+
+const otpStore = new Map();
+
+const mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+
+    port: Number(
+        process.env.SMTP_PORT || 465
+    ),
+
+    secure:
+        String(
+            process.env.SMTP_SECURE || "true"
+        ).toLowerCase() === "true",
+
+    auth: {
+        user:
+            process.env.SMTP_USER,
+
+        pass:
+            process.env.SMTP_PASS
+    }
+});
+
+
+/* =========================================================
+   SMTP TEST
+========================================================= */
+
+mailTransporter.verify()
+    .then(() => {
+        console.log(
+            "[MINEGRAM] SMTP bağlantısı başarılı."
+        );
+    })
+    .catch((error) => {
+        console.error(
+            "[MINEGRAM] SMTP bağlantı hatası:",
+            error.message
+        );
+    });
+
+
+/* =========================================================
+   SEND EMAIL OTP
+========================================================= */
+
+app.post(
+    "/api/send-email-otp",
+    async (req, res) => {
+
+        try {
+
+            const email =
+                String(
+                    req.body?.email || ""
+                )
+                .trim()
+                .toLowerCase();
+
+
+            const username =
+                String(
+                    req.body?.username || ""
+                )
+                .trim()
+                .replace(/^@/, "");
+
+
+            /* -----------------------------------------
+               EMAIL KONTROL
+            ----------------------------------------- */
+
+            if (!email) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "E-posta adresi gerekli."
+                });
+
+            }
+
+
+            const validEmail =
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+            if (!validEmail.test(email)) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Geçerli bir e-posta adresi gir."
+                });
+
+            }
+
+
+            /* -----------------------------------------
+               SMTP AYAR KONTROL
+            ----------------------------------------- */
+
+            if (
+                !process.env.SMTP_USER ||
+                !process.env.SMTP_PASS
+            ) {
+
+                console.error(
+                    "[MINEGRAM] SMTP_USER veya SMTP_PASS eksik."
+                );
+
+                return res.status(500).json({
+                    ok: false,
+                    error:
+                        "Sunucu e-posta ayarları eksik. SMTP ayarlarını kontrol et."
+                });
+
+            }
+
+
+            /* -----------------------------------------
+               OTP OLUŞTUR
+            ----------------------------------------- */
+
+            const code =
+                String(
+                    Math.floor(
+                        100000 +
+                        Math.random() * 900000
+                    )
+                );
+
+
+            const expiresAt =
+                Date.now() +
+                10 * 60 * 1000;
+
+
+            otpStore.set(
+                email,
+                {
+                    code,
+                    expiresAt,
+                    username,
+                    attempts: 0
+                }
+            );
+
+
+            console.log(
+                `[MINEGRAM] OTP oluşturuldu: ${email}`
+            );
+
+
+            /* -----------------------------------------
+               E-POSTA
+            ----------------------------------------- */
+
+            const mailFrom =
+                process.env.MAIL_FROM ||
+                process.env.SMTP_USER;
+
+
+            await mailTransporter.sendMail({
+
+                from:
+                    `"Minegram" <${mailFrom}>`,
+
+                to:
+                    email,
+
+                subject:
+                    "Minegram doğrulama kodun",
+
+                text:
+                    `Minegram doğrulama kodun: ${code}\n\n` +
+                    `Bu kod 10 dakika boyunca geçerlidir.\n\n` +
+                    `Bu kodu kimseyle paylaşma.`,
+
+                html: `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    background:#000;
+    font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+    max-width:520px;
+    margin:40px auto;
+    padding:35px 25px;
+    background:#111;
+    border-radius:16px;
+    text-align:center;
+    color:#fff;
+">
+
+    <h1 style="
+        margin:0 0 12px;
+        font-size:28px;
+    ">
+        Minegram
+    </h1>
+
+    <p style="
+        color:#aaa;
+        font-size:15px;
+        margin-bottom:28px;
+    ">
+        Hesabını doğrulamak için doğrulama kodun:
+    </p>
+
+    <div style="
+        display:inline-block;
+        padding:18px 30px;
+        background:#222;
+        border-radius:12px;
+        font-size:34px;
+        font-weight:bold;
+        letter-spacing:8px;
+        color:#fff;
+    ">
+        ${code}
+    </div>
+
+    <p style="
+        margin-top:28px;
+        color:#888;
+        font-size:13px;
+        line-height:1.6;
+    ">
+        Bu kod 10 dakika boyunca geçerlidir.
+        <br>
+        Kodu kimseyle paylaşma.
+    </p>
+
+    <p style="
+        margin-top:30px;
+        color:#555;
+        font-size:12px;
+    ">
+        Minegram
+    </p>
+
+</div>
+
+</body>
+</html>
+`
+            });
+
+
+            /* -----------------------------------------
+               BAŞARILI
+            ----------------------------------------- */
+
+            console.log(
+                `[MINEGRAM] OTP gönderildi: ${email}`
+            );
+
+
+            return res.json({
+
+                ok: true,
+
+                message:
+                    "Doğrulama kodu e-posta adresine gönderildi.",
+
+                email
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] EMAIL OTP ERROR:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Sunucu e-posta gönderirken hata verdi.",
+
+                detail:
+                    process.env.NODE_ENV === "development"
+                        ? error.message
+                        : undefined
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   OTP VERIFY
+========================================================= */
+
+app.post(
+    "/api/verify-email-otp",
+    async (req, res) => {
+
+        try {
+
+            const email =
+                String(
+                    req.body?.email || ""
+                )
+                .trim()
+                .toLowerCase();
+
+
+            const code =
+                String(
+                    req.body?.code || ""
+                )
+                .trim();
+
+
+            if (!email || !code) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "E-posta ve doğrulama kodu gerekli."
+                });
+
+            }
+
+
+            const entry =
+                otpStore.get(email);
+
+
+            if (!entry) {
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodu bulunamadı. Yeni kod iste."
+                });
+
+            }
+
+
+            if (
+                Date.now() >
+                entry.expiresAt
+            ) {
+
+                otpStore.delete(email);
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodunun süresi dolmuş."
+                });
+
+            }
+
+
+            if (
+                entry.code !== code
+            ) {
+
+                entry.attempts++;
+
+                if (
+                    entry.attempts >= 5
+                ) {
+
+                    otpStore.delete(email);
+
+                    return res.status(400).json({
+                        ok: false,
+                        error:
+                            "Çok fazla hatalı kod girildi. Yeni kod iste."
+                    });
+
+                }
+
+
+                return res.status(400).json({
+                    ok: false,
+                    error:
+                        "Doğrulama kodu yanlış."
+                });
+
+            }
+
+
+            otpStore.delete(email);
+
+
+            return res.json({
+
+                ok: true,
+
+                verified: true,
+
+                email
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] OTP VERIFY ERROR:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Doğrulama sırasında sunucu hatası."
+
+            });
+
+        }
+
+    }
+);
 
 app.set("trust proxy", 1);
 
