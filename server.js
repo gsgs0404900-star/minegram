@@ -1069,21 +1069,25 @@ console.log(
   }
 );
 
+/* =========================================================
+   REGISTER VERIFY
+========================================================= */
+
 app.post(
   "/api/register/verify",
   async (req, res) => {
     try {
-      const email = normalizeEmail(
-        req.body?.email
-      );
+      const email =
+        normalizeEmail(req.body?.email);
 
-      const code = String(
-        req.body?.code ||
-        req.body?.otp ||
-        ""
-      )
-        .replace(/\D/g, "")
-        .slice(0, 6);
+      const code =
+        String(
+          req.body?.code ||
+          req.body?.otp ||
+          ""
+        )
+          .replace(/\D/g, "")
+          .slice(0, 6);
 
       if (!email) {
         return res.status(400).json({
@@ -1103,30 +1107,40 @@ app.post(
       }
 
       /*
-       * Önce RAM'den kontrol et.
+       * ÖNEMLİ:
+       * key burada tanımlanmalı.
        */
+      const key =
+        registrationKey(email);
+
+      /*
+       * Önce RAM'den OTP'yi ara.
+       */
+      let entry =
+        registrationCodes.get(key);
 
       /*
        * Render yeniden başladıysa RAM silinir.
-       * Bu nedenle Supabase Auth metadata'dan
-       * OTP'yi geri yüklemeyi deniyoruz.
+       * Bu nedenle Supabase Auth metadata'dan OTP'yi
+       * geri yüklemeyi deniyoruz.
        */
       if (!entry) {
-        const verifyAdmin =
+        const admin =
           adminClient();
 
         let authUser = null;
+
         let page = 1;
 
         while (
           !authUser &&
-          page <= 20
+          page <= 10
         ) {
           const {
             data,
             error
           } =
-            await verifyAdmin.auth.admin.listUsers({
+            await admin.auth.admin.listUsers({
               page,
               perPage: 1000
             });
@@ -1146,7 +1160,7 @@ app.post(
             users.find(
               user =>
                 normalizeEmail(
-                  user.email
+                  user?.email
                 ) === email
             ) || null;
 
@@ -1160,11 +1174,13 @@ app.post(
         }
 
         /*
-         * Kullanıcı bulunduysa OTP metadata'dan al.
+         * Kullanıcı bulunduysa metadata içindeki
+         * doğrulama kodunu geri yükle.
          */
         if (authUser) {
           const verification =
-            authUser.user_metadata
+            authUser
+              .user_metadata
               ?.minegram_verification;
 
           if (
@@ -1172,9 +1188,10 @@ app.post(
             verification.code
           ) {
             entry = {
-              code: String(
-                verification.code
-              ),
+              code:
+                String(
+                  verification.code
+                ),
 
               userId:
                 authUser.id,
@@ -1203,8 +1220,6 @@ app.post(
               displayName:
                 verification.displayName ||
                 authUser.user_metadata
-                  ?.display_name ||
-                authUser.user_metadata
                   ?.displayName ||
                 ""
             };
@@ -1215,7 +1230,7 @@ app.post(
             );
 
             console.log(
-              "[MINEGRAM OTP] OTP Supabase metadata'dan geri yüklendi."
+              "[MINEGRAM OTP] Supabase metadata'dan OTP geri yüklendi."
             );
           }
         }
@@ -1229,17 +1244,16 @@ app.post(
           ok: false,
           code: "OTP_NOT_FOUND",
           error:
-            "Doğrulama kaydı bulunamadı. Lütfen yeni kod iste."
+            "Doğrulama kodu bulunamadı. Lütfen yeni kod iste."
         });
       }
 
       /*
-       * Süre kontrolü.
+       * Kod süresi dolmuş mu?
        */
       if (
-        !entry.expires ||
-        Number(entry.expires) <
-          Date.now()
+        Number(entry.expires || 0) <
+        Date.now()
       ) {
         registrationCodes.delete(
           key
@@ -1254,7 +1268,7 @@ app.post(
       }
 
       /*
-       * 5 yanlış deneme limiti.
+       * Maksimum 5 yanlış deneme.
        */
       if (
         Number(entry.attempts || 0) >= 5
@@ -1272,25 +1286,22 @@ app.post(
       }
 
       /*
-       * =====================================================
-       * KOD KARŞILAŞTIRMA
-       * =====================================================
+       * Kayıtlı kod.
        */
-
       const savedCode =
-        String(entry.code || "")
+        String(
+          entry.code || ""
+        )
           .replace(/\D/g, "")
           .slice(0, 6);
 
+      /*
+       * Kullanıcının girdiği kod.
+       */
       const enteredCode =
         String(code || "")
           .replace(/\D/g, "")
           .slice(0, 6);
-
-      console.log(
-        "[MINEGRAM OTP] E-posta:",
-        email
-      );
 
       console.log(
         "[MINEGRAM OTP] Kayıtlı kod:",
@@ -1313,46 +1324,44 @@ app.post(
             entry.attempts || 0
           ) + 1;
 
-        registrationCodes.set(
-          key,
-          entry
-        );
-
         /*
-         * Deneme sayısını Supabase metadata'ya da kaydet.
+         * Deneme sayısını Supabase metadata'ya da yaz.
          */
         try {
-          const attemptAdmin =
+          const admin =
             adminClient();
 
-          await attemptAdmin.auth.admin.updateUserById(
+          await admin.auth.admin.updateUserById(
             entry.userId,
             {
               user_metadata: {
                 minegram_verification: {
-                  code: String(
-                    entry.code
-                  ),
+                  code:
+                    String(
+                      entry.code
+                    ),
+
                   expires:
                     Number(
                       entry.expires
                     ),
-                  attempts:
-                    entry.attempts,
+
                   username:
-                    entry.username ||
-                    "",
+                    entry.username || "",
+
                   displayName:
-                    entry.displayName ||
-                    ""
+                    entry.displayName || "",
+
+                  attempts:
+                    entry.attempts
                 }
               }
             }
           );
-        } catch (attemptError) {
+        } catch (metadataError) {
           console.error(
-            "[MINEGRAM OTP] Deneme sayısı kaydedilemedi:",
-            attemptError
+            "[MINEGRAM OTP] Attempts kayıt hatası:",
+            metadataError
           );
         }
 
@@ -1368,36 +1377,37 @@ app.post(
         });
       }
 
-      /*
-       * =====================================================
-       * KOD DOĞRU
-       * =====================================================
-       */
-
       console.log(
         "[MINEGRAM OTP] KOD DOĞRU"
       );
 
-      const confirmAdmin =
+      /*
+       * Supabase Auth admin client.
+       */
+      const admin =
         adminClient();
 
       /*
-       * Supabase Auth e-postasını doğrula.
+       * E-posta doğrulamasını tamamla.
        */
       const {
         data: updated,
         error: updateError
       } =
-        await confirmAdmin.auth.admin.updateUserById(
+        await admin.auth.admin.updateUserById(
           entry.userId,
           {
-            email_confirm: true
+            email_confirm: true,
+
+            user_metadata: {
+              minegram_verification: null
+            }
           }
         );
 
       if (updateError) {
         console.error(
-          "[MINEGRAM OTP] EMAIL CONFIRM ERROR:",
+          "EMAIL CONFIRM ERROR:",
           updateError
         );
 
@@ -1410,50 +1420,30 @@ app.post(
       }
 
       /*
-       * OTP artık kullanılmasın.
+       * RAM'deki OTP'yi sil.
        */
       registrationCodes.delete(
         key
       );
 
       /*
-       * Supabase metadata'daki OTP'yi temizle.
+       * Rate limit'i temizle.
        */
-      try {
-        const cleanAdmin =
-          adminClient();
-
-        await cleanAdmin.auth.admin.updateUserById(
-          entry.userId,
-          {
-            user_metadata: {
-              ...(updated?.user
-                ?.user_metadata || {}),
-              minegram_verification:
-                null
-            }
-          }
-        );
-      } catch (cleanError) {
-        console.error(
-          "[MINEGRAM OTP] OTP metadata temizleme hatası:",
-          cleanError
-        );
-      }
+      registrationRate.delete(
+        key
+      );
 
       /*
-       * =====================================================
-       * OTOMATİK GİRİŞ
-       * =====================================================
-       *
-       * Frontend password gönderiyorsa otomatik giriş yapılır.
+       * Şifre frontend'den gönderilmişse
+       * otomatik giriş yapmayı dene.
        */
-      const password = String(
-        req.body?.password ||
-        req.body?.newPassword ||
-        req.body?.registerPassword ||
-        ""
-      );
+      const password =
+        String(
+          req.body?.password ||
+          req.body?.newPassword ||
+          req.body?.registerPassword ||
+          ""
+        );
 
       if (password) {
         try {
@@ -1465,8 +1455,7 @@ app.post(
             error: loginError
           } =
             await anon.auth.signInWithPassword({
-              email:
-                entry.email,
+              email: entry.email,
               password
             });
 
@@ -1482,6 +1471,10 @@ app.post(
               token:
                 loginData.session
                   .access_token,
+
+              refreshToken:
+                loginData.session
+                  .refresh_token,
 
               user: {
                 id:
@@ -1499,21 +1492,16 @@ app.post(
               }
             });
           }
-
-          console.log(
-            "[MINEGRAM OTP] Otomatik giriş yapılamadı:",
-            loginError?.message
-          );
         } catch (loginError) {
           console.error(
-            "[MINEGRAM OTP] LOGIN ERROR:",
+            "AUTO LOGIN ERROR:",
             loginError
           );
         }
       }
 
       /*
-       * Şifre gönderilmemişse doğrulama başarılı.
+       * Şifre gönderilmediyse doğrulama yine başarılı.
        */
       return res.json({
         ok: true,
@@ -1555,7 +1543,6 @@ app.post(
     }
   }
 );
-
       const email =
         normalizeEmail(req.body?.email);
 
