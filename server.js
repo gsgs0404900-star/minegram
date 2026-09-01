@@ -3603,6 +3603,190 @@ function cleanupPasswordResetTokens() {
 
 
 /* =========================================================
+   MINEGRAM - E-POSTA OTP
+   POST /api/send-email-otp
+   ========================================================= */
+
+const emailOtpStore = new Map();
+const emailOtpRate = new Map();
+
+function createEmailOtp() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+app.post("/api/send-email-otp", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+
+    const username = String(req.body?.username || "")
+      .trim()
+      .replace(/^@/, "")
+      .toLowerCase();
+
+    console.log("[OTP] İstek geldi:", {
+      email,
+      username
+    });
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        code: "EMAIL_REQUIRED",
+        error: "E-posta adresi gerekli."
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_EMAIL",
+        error: "Geçerli bir e-posta adresi gir."
+      });
+    }
+
+    const lastSent = emailOtpRate.get(email) || 0;
+
+    if (Date.now() - lastSent < 60 * 1000) {
+      const remaining = Math.ceil(
+        (60 * 1000 - (Date.now() - lastSent)) / 1000
+      );
+
+      return res.status(429).json({
+        ok: false,
+        code: "RATE_LIMIT",
+        error: `${remaining} saniye sonra tekrar deneyin.`
+      });
+    }
+
+    const code = createEmailOtp();
+
+    emailOtpStore.set(email, {
+      code,
+      username,
+      expires: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    });
+
+    const html = `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Minegram doğrulama kodu</title>
+</head>
+
+<body style="
+  margin:0;
+  padding:0;
+  background:#000;
+  font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+  max-width:520px;
+  margin:40px auto;
+  padding:35px 25px;
+  background:#111;
+  border-radius:14px;
+  text-align:center;
+  color:#fff;
+">
+
+  <h1 style="
+    margin:0 0 20px;
+    font-size:28px;
+  ">
+    Minegram
+  </h1>
+
+  <p style="
+    font-size:16px;
+    color:#ddd;
+  ">
+    Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan:
+  </p>
+
+  <div style="
+    margin:30px 0;
+    padding:20px;
+    background:#222;
+    border-radius:12px;
+    font-size:38px;
+    font-weight:bold;
+    letter-spacing:10px;
+    color:#fff;
+  ">
+    ${code}
+  </div>
+
+  <p style="
+    color:#999;
+    font-size:13px;
+  ">
+    Bu kod 10 dakika geçerlidir.
+  </p>
+
+  <p style="
+    color:#999;
+    font-size:13px;
+  ">
+    Bu kodu kimseyle paylaşma.
+  </p>
+
+</div>
+
+</body>
+</html>
+`;
+
+    const text = `
+Minegram e-posta doğrulama kodun
+
+Kodun: ${code}
+
+Bu kod 10 dakika geçerlidir.
+Bu kodu kimseyle paylaşma.
+`;
+
+    console.log("[OTP] Resend'e gönderiliyor:", email);
+
+    await sendResendEmail(
+      email,
+      "Minegram doğrulama kodun",
+      html,
+      text
+    );
+
+    emailOtpRate.set(email, Date.now());
+
+    console.log("[OTP] E-posta başarıyla gönderildi:", email);
+
+    return res.json({
+      ok: true,
+      message: "Doğrulama kodu gönderildi.",
+      email
+    });
+
+  } catch (error) {
+
+    console.error(
+      "[OTP] RESEND HATASI:",
+      error?.message || error
+    );
+
+    return res.status(500).json({
+      ok: false,
+      code: "EMAIL_SEND_FAILED",
+      error:
+        error?.message ||
+        "Sunucu e-posta gönderirken hata verdi."
+    });
+  }
+});
+
+/* =========================================================
    FORGOT START
 ========================================================= */
 
