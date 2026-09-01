@@ -2,18 +2,32 @@
 
 <html lang="tr">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+
+>
+
+<meta
+name="theme-color"
+content="#000000"
+
+>
+
 <title>Hesabını doğrula - Minegram</title>
 
 <style>
+
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
 }
 
-html,body{
+html,
+body{
     margin:0;
     padding:0;
     width:100%;
@@ -150,7 +164,6 @@ body{
     font-size:12px;
     font-weight:700;
     cursor:pointer;
-    font-family:Arial,Helvetica,sans-serif;
 }
 
 .back-btn{
@@ -184,22 +197,11 @@ body{
     font-size:12px;
     font-weight:700;
     cursor:pointer;
-    font-family:Arial,Helvetica,sans-serif;
 }
 
 .resend:disabled{
     color:#555;
     cursor:not-allowed;
-}
-
-button{
-    -webkit-appearance:none;
-    appearance:none;
-    outline:none;
-}
-
-button:active{
-    transform:scale(.98);
 }
 
 @media(max-width:600px){
@@ -244,6 +246,7 @@ button:active{
         font-size:12px;
     }
 }
+
 </style>
 
 </head>
@@ -256,15 +259,15 @@ button:active{
 
 <header class="header">
 
-<button
-type="button"
-class="back"
-id="backButton"
-aria-label="Geri"
-
+<div
+    class="back"
+    id="backButton"
+    aria-label="Geri"
+    role="button"
+    tabindex="0"
 >
-
-</button>
+    ‹
+</div>
 
 <div class="header-title">
     Kayıt ol
@@ -315,7 +318,9 @@ type="button"
 
 >
 
+```
 İletişim bilgini değiştir
+```
 
 </button>
 
@@ -327,7 +332,9 @@ disabled
 
 >
 
+```
 Kontrol et
+```
 
 </button>
 
@@ -341,7 +348,9 @@ disabled
 
 >
 
+```
 Doğrulama kodunu tekrar gönder
+```
 
 </button>
 
@@ -357,58 +366,78 @@ Doğrulama kodunu tekrar gönder
    ELEMENTLER
 ===================================================== */
 
-const emailBox = document.getElementById("emailBox");
-const codeInput = document.getElementById("codeInput");
-const statusBox = document.getElementById("status");
-const verifyButton = document.getElementById("verifyButton");
-const resendButton = document.getElementById("resendButton");
-const changeButton = document.getElementById("changeButton");
-const backButton = document.getElementById("backButton");
+const emailBox =
+    document.getElementById("emailBox");
+
+const codeInput =
+    document.getElementById("codeInput");
+
+const status =
+    document.getElementById("status");
+
+const verifyButton =
+    document.getElementById("verifyButton");
+
+const resendButton =
+    document.getElementById("resendButton");
+
+const changeButton =
+    document.getElementById("changeButton");
+
+const backButton =
+    document.getElementById("backButton");
 
 
 /* =====================================================
-   PARAMETRELER
+   URL
 ===================================================== */
 
-const params = new URLSearchParams(
-    window.location.search
-);
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
 
 
 /* =====================================================
-   KULLANICI BİLGİLERİ
+   KAYIT BİLGİLERİ
 ===================================================== */
 
-const username = (
-    params.get("username") ||
-    sessionStorage.getItem("minegram_register_username") ||
-    localStorage.getItem("minegram_register_username") ||
-    ""
-)
-.trim()
-.replace(/^@/, "")
-.toLowerCase();
+const username =
+    (
+        params.get("username") ||
+        sessionStorage.getItem(
+            "minegram_register_username"
+        ) ||
+        ""
+    )
+    .trim()
+    .replace(/^@/,"")
+    .toLowerCase();
 
 
-const email = (
-    params.get("email") ||
-    sessionStorage.getItem("minegram_register_email") ||
-    sessionStorage.getItem("minegram_otp_email") ||
-    localStorage.getItem("minegram_register_email") ||
-    localStorage.getItem("minegram_otp_email") ||
-    ""
-)
-.trim()
-.toLowerCase();
+const email =
+    (
+        params.get("email") ||
+        sessionStorage.getItem(
+            "minegram_register_email"
+        ) ||
+        sessionStorage.getItem(
+            "minegram_otp_email"
+        ) ||
+        ""
+    )
+    .trim()
+    .toLowerCase();
 
 
 /* =====================================================
-   E-POSTA
+   EMAIL GÖSTER
 ===================================================== */
 
 if(email){
 
-    emailBox.textContent = email;
+    emailBox.textContent =
+        email;
 
 }else{
 
@@ -419,17 +448,26 @@ if(email){
 
 
 /* =====================================================
-   DURUM
+   STATUS
 ===================================================== */
 
-function showStatus(text,type=""){
+function showStatus(
+    text,
+    type = ""
+){
 
-    statusBox.textContent = text || "";
+    status.textContent =
+        text || "";
 
-    statusBox.className = "status";
+    status.className =
+        "status";
 
     if(type){
-        statusBox.classList.add(type);
+
+        status.classList.add(
+            type
+        );
+
     }
 
 }
@@ -441,111 +479,113 @@ function showStatus(text,type=""){
 
 function goBack(){
 
-    let url = "./iletisim-bilgileri.html";
-
-    const query = [];
+    let url =
+        "./iletisim-bilgileri.html";
 
     if(username){
 
-        query.push(
-            "username=" +
-            encodeURIComponent(username)
-        );
+        url +=
+            "?username=" +
+            encodeURIComponent(
+                username
+            );
 
     }
 
-    if(email){
-
-        query.push(
-            "email=" +
-            encodeURIComponent(email)
-        );
-
-    }
-
-    if(query.length){
-
-        url += "?" + query.join("&");
-
-    }
-
-    window.location.href = url;
+    window.location.href =
+        url;
 
 }
 
 
-/* =====================================================
-   BUTONLAR
-===================================================== */
-
-backButton.onclick = function(){
-
-    goBack();
-
-};
+backButton.addEventListener(
+    "click",
+    goBack
+);
 
 
-changeButton.onclick = function(){
-
-    goBack();
-
-};
-
-
-/* =====================================================
-   KOD INPUT
-===================================================== */
-
-codeInput.oninput = function(){
-
-    this.value =
-        this.value
-        .replace(/[^0-9]/g,"")
-        .slice(0,6);
+changeButton.addEventListener(
+    "click",
+    goBack
+);
 
 
-    if(this.value.length === 6){
+backButton.addEventListener(
+    "keydown",
+    function(event){
 
-        verifyButton.disabled = false;
+        if(
+            event.key === "Enter" ||
+            event.key === " "
+        ){
 
-    }else{
+            event.preventDefault();
 
-        verifyButton.disabled = true;
+            goBack();
+
+        }
 
     }
+);
 
-};
+
+/* =====================================================
+   KOD GİRİŞİ
+===================================================== */
+
+codeInput.addEventListener(
+    "input",
+    function(){
+
+        this.value =
+            this.value
+                .replace(/\D/g,"")
+                .slice(0,6);
+
+        verifyButton.disabled =
+            this.value.length !== 6;
+
+    }
+);
 
 
 /* =====================================================
    API
 ===================================================== */
 
-async function api(url,options={}){
+async function api(
+    url,
+    options = {}
+){
 
-    const response = await fetch(
-        url,
-        {
-            ...options,
+    const response =
+        await fetch(
+            url,
+            {
+                ...options,
 
-            headers:{
-                "Content-Type":"application/json",
-                ...(options.headers || {})
+                headers:{
+                    "Content-Type":
+                        "application/json",
+
+                    ...(options.headers || {})
+                }
             }
-        }
-    );
+        );
 
 
-    const text = await response.text();
+    const text =
+        await response.text();
+
 
     let data = {};
 
-
     try{
 
-        data = text
-            ? JSON.parse(text)
-            : {};
+        data =
+            text
+                ? JSON.parse(text)
+                : {};
 
     }catch{
 
@@ -571,7 +611,7 @@ async function api(url,options={}){
 
 
 /* =====================================================
-   SAYAC
+   TEKRAR GÖNDER SAYACI
 ===================================================== */
 
 let resendTimer = null;
@@ -581,7 +621,9 @@ function startResendTimer(){
 
     if(resendTimer){
 
-        clearInterval(resendTimer);
+        clearInterval(
+            resendTimer
+        );
 
     }
 
@@ -589,7 +631,8 @@ function startResendTimer(){
     let seconds = 30;
 
 
-    resendButton.disabled = true;
+    resendButton.disabled =
+        true;
 
 
     resendButton.textContent =
@@ -598,34 +641,41 @@ function startResendTimer(){
         ")";
 
 
-    resendTimer = setInterval(
-        function(){
+    resendTimer =
+        setInterval(
+            function(){
 
-            seconds--;
+                seconds--;
 
-
-            resendButton.textContent =
-                "Tekrar gönder (" +
-                seconds +
-                ")";
-
-
-            if(seconds <= 0){
-
-                clearInterval(resendTimer);
-
-                resendTimer = null;
-
-                resendButton.disabled = false;
 
                 resendButton.textContent =
-                    "Doğrulama kodunu tekrar gönder";
+                    "Tekrar gönder (" +
+                    seconds +
+                    ")";
 
-            }
 
-        },
-        1000
-    );
+                if(seconds <= 0){
+
+                    clearInterval(
+                        resendTimer
+                    );
+
+                    resendTimer =
+                        null;
+
+
+                    resendButton.disabled =
+                        false;
+
+
+                    resendButton.textContent =
+                        "Doğrulama kodunu tekrar gönder";
+
+                }
+
+            },
+            1000
+        );
 
 }
 
@@ -649,7 +699,8 @@ async function sendCode(){
 
     try{
 
-        resendButton.disabled = true;
+        resendButton.disabled =
+            true;
 
         resendButton.textContent =
             "Gönderiliyor...";
@@ -661,17 +712,19 @@ async function sendCode(){
         );
 
 
-        const result = await api(
-            "/api/register/resend"
-            {
-                method:"POST",
+        const result =
+            await api(
+                "/api/register/resend",
+                {
+                    method:"POST",
 
-                body:JSON.stringify({
-                    email:email,
-                    username:username
-                })
-            }
-        );
+                    body:
+                        JSON.stringify({
+                            email:email,
+                            username:username
+                        })
+                }
+            );
 
 
         if(
@@ -687,26 +740,17 @@ async function sendCode(){
         }
 
 
-        sessionStorage.setItem(
-            "minegram_otp_pending",
-            "true"
-        );
-
-
         showStatus(
             "6 haneli doğrulama kodu e-posta adresine gönderildi.",
             "success"
         );
 
 
-        startResendTimer();
-
-
         verifyButton.disabled =
             codeInput.value.length !== 6;
 
 
-        codeInput.focus();
+        startResendTimer();
 
 
         return true;
@@ -726,7 +770,8 @@ async function sendCode(){
         );
 
 
-        resendButton.disabled = false;
+        resendButton.disabled =
+            false;
 
         resendButton.textContent =
             "Doğrulama kodunu tekrar gönder";
@@ -740,280 +785,208 @@ async function sendCode(){
 
 
 /* =====================================================
-   DOĞRULA
+   KOD DOĞRULA
 ===================================================== */
 
-verifyButton.onclick = async function(){
+verifyButton.addEventListener(
+    "click",
+    async function(){
 
-    const code =
-        codeInput.value.trim();
-
-
-    if(!email){
-
-        showStatus(
-            "E-posta adresi bulunamadı."
-        );
-
-        return;
-
-    }
-
-
-    if(code.length !== 6){
-
-        showStatus(
-            "6 haneli doğrulama kodunu gir."
-        );
-
-        return;
-
-    }
-
-
-    verifyButton.disabled = true;
-
-    resendButton.disabled = true;
-
-
-    verifyButton.textContent =
-        "Kontrol ediliyor...";
-
-
-    showStatus(
-        "Doğrulama kodu kontrol ediliyor...",
-        "loading"
-    );
-
-
-    try{
-
-        const result = await api(
-            "/api/register/verify"
-            {
-                method:"POST",
-
-                body:JSON.stringify({
-                    email:email,
-                    code:code,
-                    username:username
-                })
-            }
-        );
+        const code =
+            codeInput.value.trim();
 
 
         if(
-            !result ||
-            result.ok !== true ||
-            result.verified !== true
+            !email ||
+            code.length !== 6
         ){
 
-            throw new Error(
-                result?.error ||
-                "Doğrulama kodu yanlış."
+            showStatus(
+                "6 haneli doğrulama kodunu gir."
             );
+
+            return;
 
         }
 
 
-        /* =============================================
-           DOĞRULAMA BAŞARILI
-        ============================================= */
+        verifyButton.disabled =
+            true;
 
-        sessionStorage.setItem(
-            "minegram_email_verified",
-            "true"
+        resendButton.disabled =
+            true;
+
+
+        verifyButton.textContent =
+            "Kontrol ediliyor...";
+
+
+        showStatus(
+            "Doğrulama kodu kontrol ediliyor...",
+            "loading"
         );
 
 
-        sessionStorage.setItem(
-            "minegram_register_verified_email",
-            email
-        );
+        try{
 
+            const result =
+                await api(
+                    "/api/register/verify",
+                    {
+                        method:"POST",
 
-        sessionStorage.removeItem(
-            "minegram_otp_pending"
-        );
-
-
-        if(username){
-
-            localStorage.setItem(
-                "minegram_username",
-                username
-            );
-
-            localStorage.setItem(
-                "minegram_register_username",
-                username
-            );
-
-        }
-
-
-        localStorage.setItem(
-            "minegram_email",
-            email
-        );
-
-
-        /* =============================================
-           TOKEN VARSA KAYDET
-        ============================================= */
-
-        const token =
-            result.token ||
-            result.accessToken ||
-            result.access_token ||
-            result.authToken ||
-            result.auth_token ||
-            "";
-
-
-        if(token){
-
-            localStorage.setItem(
-                "minegram_token",
-                token
-            );
-
-            localStorage.setItem(
-                "token",
-                token
-            );
-
-            sessionStorage.setItem(
-                "minegram_token",
-                token
-            );
-
-        }
-
-
-        /* =============================================
-           USER VARSA KAYDET
-        ============================================= */
-
-        if(result.user){
-
-            try{
-
-                localStorage.setItem(
-                    "minegram_user",
-                    JSON.stringify(result.user)
+                        body:
+                            JSON.stringify({
+                                email:email,
+                                code:code,
+                                username:username
+                            })
+                    }
                 );
 
-            }catch(error){
 
-                console.warn(
-                    "[MINEGRAM] User kaydedilemedi:",
-                    error
+            if(
+                !result ||
+                result.ok !== true ||
+                result.verified !== true
+            ){
+
+                throw new Error(
+                    result?.error ||
+                    "Doğrulama kodu yanlış."
                 );
 
             }
 
+
+            /* =========================================
+               DOĞRULAMA BAŞARILI
+            ========================================= */
+
+            sessionStorage.setItem(
+                "minegram_email_verified",
+                "true"
+            );
+
+
+            sessionStorage.setItem(
+                "minegram_register_verified_email",
+                email
+            );
+
+
+            sessionStorage.removeItem(
+                "minegram_otp_pending"
+            );
+
+
+            showStatus(
+                "E-posta adresin doğrulandı. Minegram'a giriyorsun...",
+                "success"
+            );
+
+
+            verifyButton.textContent =
+                "Doğrulandı";
+
+
+            setTimeout(
+                function(){
+
+                    window.location.href =
+                        "./index.html";
+
+                },
+                800
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                "[MINEGRAM] OTP doğrulama hatası:",
+                error
+            );
+
+
+            showStatus(
+                error.message ||
+                "Doğrulama kodu yanlış."
+            );
+
+
+            verifyButton.disabled =
+                codeInput.value.length !== 6;
+
+
+            resendButton.disabled =
+                false;
+
+
+            verifyButton.textContent =
+                "Kontrol et";
+
         }
 
-
-        showStatus(
-            "E-posta adresin doğrulandı. Minegram'a giriyorsun...",
-            "success"
-        );
-
-
-        verifyButton.textContent =
-            "Doğrulandı";
-
-
-        setTimeout(
-            function(){
-
-                window.location.replace(
-                    "./index.html"
-                );
-
-            },
-            700
-        );
-
-
     }
-    catch(error){
-
-        console.error(
-            "[MINEGRAM] OTP doğrulama hatası:",
-            error
-        );
-
-
-        showStatus(
-            error.message ||
-            "Doğrulama kodu yanlış."
-        );
-
-
-        verifyButton.disabled =
-            codeInput.value.length !== 6;
-
-
-        resendButton.disabled = false;
-
-
-        verifyButton.textContent =
-            "Kontrol et";
-
-    }
-
-};
+);
 
 
 /* =====================================================
    TEKRAR GÖNDER
 ===================================================== */
 
-resendButton.onclick = async function(){
+resendButton.addEventListener(
+    "click",
+    async function(){
 
-    if(this.disabled){
-
-        return;
+        await sendCode();
 
     }
-
-    await sendCode();
-
-};
+);
 
 
 /* =====================================================
    ENTER
 ===================================================== */
 
-codeInput.onkeydown = function(event){
+codeInput.addEventListener(
+    "keydown",
+    function(event){
 
-    if(
-        event.key === "Enter" &&
-        codeInput.value.length === 6 &&
-        !verifyButton.disabled
-    ){
+        if(
+            event.key === "Enter" &&
+            codeInput.value.length === 6
+        ){
 
-        event.preventDefault();
+            event.preventDefault();
 
-        verifyButton.click();
+            verifyButton.click();
+
+        }
 
     }
-
-};
+);
 
 
 /* =====================================================
-   BAŞLAT
+   SAYFA BAŞLAT
 ===================================================== */
 
 async function start(){
 
     console.log(
-        "[MINEGRAM] hesap-doğrulama.html başladı"
+        "[MINEGRAM] hesap-doğrulama.html başladı."
+    );
+
+    console.log(
+        "[MINEGRAM] Username:",
+        username
+    );
+
+    console.log(
+        "[MINEGRAM] Email:",
+        email
     );
 
 
@@ -1023,13 +996,25 @@ async function start(){
             "E-posta adresi bulunamadı."
         );
 
-        verifyButton.disabled = true;
-        resendButton.disabled = true;
+        verifyButton.disabled =
+            true;
+
+        resendButton.disabled =
+            true;
 
         return;
 
     }
 
+
+    /*
+     * iletisim-bilgileri.html
+     * kodu zaten gönderdiyse burada
+     * TEKRAR göndermiyoruz.
+     *
+     * Böylece kullanıcı aynı anda
+     * iki farklı OTP almaz.
+     */
 
     const otpPending =
         sessionStorage.getItem(
@@ -1045,25 +1030,30 @@ async function start(){
         );
 
 
-        resendButton.disabled = true;
+        resendButton.disabled =
+            true;
+
 
         startResendTimer();
 
+
         codeInput.focus();
+
 
         return;
 
     }
 
 
+    /*
+     * Eğer sayfa doğrudan açıldıysa
+     * kod gönder.
+     */
+
     await sendCode();
 
 }
 
-
-/* =====================================================
-   ÇALIŞTIR
-===================================================== */
 
 start();
 
