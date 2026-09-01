@@ -1177,15 +1177,35 @@ app.post(
       const key =
         registrationKey(email);
 
-      // Önce hızlı RAM kontrolü, yoksa Supabase Auth metadata'dan geri yükle.
+      // Önce kayıt OTP'si, sonra Supabase metadata, en son yeni OTP sistemi.
+      // Böylece /api/send-email-otp ile gönderilen kod /api/register/verify
+      // tarafından da kabul edilir. Eski ve yeni kayıt ekranları birlikte çalışır.
       let entry = registrationCodes.get(key);
+      let entrySource = "registration";
 
       if (!entry) {
-        const loaded = await loadRegistrationEntry(email);
-        entry = loaded.entry;
+        try {
+          const loaded = await loadRegistrationEntry(email);
+          entry = loaded.entry;
 
-        if (entry) {
-          registrationCodes.set(key, entry);
+          if (entry) {
+            registrationCodes.set(key, entry);
+          }
+        } catch (loadError) {
+          console.error("REGISTER VERIFY METADATA LOAD ERROR:", loadError?.message || loadError);
+        }
+      }
+
+      // Yeni OTP endpointinin gönderdiği kodu da burada ara.
+      if (!entry) {
+        const otpEntry = emailOtpStore.get(key);
+        if (otpEntry) {
+          entry = {
+            ...otpEntry,
+            userId: otpEntry.userId || null,
+            attempts: Number(otpEntry.attempts || 0)
+          };
+          entrySource = "otp";
         }
       }
 
@@ -1234,6 +1254,34 @@ app.post(
           code: "INVALID_CODE",
           error:
             "Kod yanlış. Lütfen tekrar kontrol et."
+        });
+      }
+
+      // /api/send-email-otp ile gelen bağımsız OTP ise burada doğrulama tamamlanır.
+      // Eğer aynı e-posta için Supabase Auth kullanıcısı zaten varsa onu da onayla.
+      if (entrySource === "otp" && !entry.userId) {
+        try {
+          const existingUser = await findAuthUserByEmail(email);
+          if (existingUser?.id) {
+            const admin = adminClient();
+            const { error: confirmError } = await admin.auth.admin.updateUserById(
+              existingUser.id,
+              { email_confirm: true }
+            );
+            if (confirmError) throw confirmError;
+          }
+        } catch (confirmError) {
+          console.error("OTP AUTH CONFIRM ERROR:", confirmError?.message || confirmError);
+        }
+
+        emailOtpStore.delete(key);
+        registrationCodes.delete(key);
+
+        return res.json({
+          ok: true,
+          verified: true,
+          email,
+          username: entry.username || normalizeUsername(req.body?.username || "")
         });
       }
 
