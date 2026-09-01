@@ -1191,17 +1191,113 @@ if (!entry) {
  * Hem RAM'de hem Supabase'de bulunamadıysa
  * gerçekten kayıt yoktur.
  */
+let entry = registrationCodes.get(key);
+
+/*
+ * Render yeniden başladıysa RAM'deki OTP silinmiş olabilir.
+ * Önce Supabase Auth metadata'dan OTP'yi geri yükle.
+ */
+if (!entry) {
+
+  const admin = adminClient();
+
+  let authUser = null;
+
+  let page = 1;
+
+  while (!authUser && page <= 10) {
+
+    const {
+      data,
+      error
+    } =
+      await admin.auth.admin.listUsers({
+        page,
+        perPage: 1000
+      });
+
+    if (error) {
+      console.error(
+        "[MINEGRAM OTP] Kullanıcı arama hatası:",
+        error
+      );
+      break;
+    }
+
+    authUser =
+      data?.users?.find(
+        user =>
+          normalizeEmail(user.email) === email
+      ) || null;
+
+    if (
+      !data?.users ||
+      data.users.length < 1000
+    ) {
+      break;
+    }
+
+    page++;
+  }
+
+  if (authUser) {
+
+    const verification =
+      authUser.user_metadata
+        ?.minegram_verification;
+
+    if (
+      verification &&
+      verification.code
+    ) {
+
+      entry = {
+        code:
+          String(verification.code),
+
+        userId:
+          authUser.id,
+
+        email:
+          normalizeEmail(authUser.email),
+
+        expires:
+          Number(verification.expires || 0),
+
+        attempts:
+          Number(verification.attempts || 0),
+
+        username:
+          verification.username ||
+          authUser.user_metadata?.username ||
+          "",
+
+        displayName:
+          verification.displayName ||
+          authUser.user_metadata?.displayName ||
+          ""
+      };
+
+      registrationCodes.set(
+        key,
+        entry
+      );
+
+      console.log(
+        "[MINEGRAM OTP] OTP Supabase metadata'dan geri yüklendi."
+      );
+    }
+  }
+}
+
 if (!entry) {
 
   return res.status(400).json({
-
     ok: false,
-
+    code: "OTP_NOT_FOUND",
     error:
-      "Doğrulama kaydı bulunamadı. Lütfen yeni kod iste."
-
+      "Doğrulama kodu bulunamadı. Lütfen yeni kod iste."
   });
-
 }
 
       if (entry.expires < Date.now()) {
