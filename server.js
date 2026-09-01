@@ -1086,14 +1086,41 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      let entry = registrationCodes.get(key);
+
+      // Sunucu yeniden başladıysa RAM'deki kayıt silinmiş olabilir.
+      // Supabase Auth metadata'daki son OTP'yi geri yükle.
+      if (!entry) {
+        const adminForOtp = adminClient();
+        const { data: usersData, error: usersError } =
+          await adminForOtp.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+        if (!usersError) {
+          const authUser = (usersData?.users || []).find(
+            u => normalizeEmail(u.email) === email
+          );
+          const otp = authUser?.user_metadata?.minegram_verification;
+
+          if (authUser && otp?.code) {
+            entry = {
+              code: String(otp.code),
+              userId: authUser.id,
+              email,
+              expires: Number(otp.expires || 0),
+              attempts: 0,
+              username: otp.username || authUser.user_metadata?.username || "",
+              displayName: otp.displayName || authUser.user_metadata?.displayName || ""
+            };
+            registrationCodes.set(key, entry);
+          }
+        }
+      }
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
           error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
+            "Doğrulama kaydı bulunamadı. Lütfen yeni kod iste."
         });
       }
 
@@ -1161,6 +1188,16 @@ app.post(
       }
 
       registrationCodes.delete(key);
+
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            minegram_verification: null
+          }
+        });
+      } catch (cleanupMetaError) {
+        console.error("OTP METADATA CLEANUP ERROR:", cleanupMetaError);
+      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
