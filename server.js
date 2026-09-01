@@ -741,408 +741,971 @@ async function sendRegistrationCode(email, code) {
   ); 
 } 
  
-app.post( 
-  "/api/register", 
-  async (req, res) => { 
-    let createdAuthUserId = null; 
- 
-    try { 
-      const username = 
-        normalizeUsername(req.body?.username); 
- 
-      const email = 
-        normalizeEmail(req.body?.email); 
- 
-      const password = 
-        String(req.body?.password || ""); 
- 
-      const displayName = 
-        String( 
-          req.body?.displayName || username 
-        ) 
-          .trim() 
-          .slice(0, 80); 
- 
-      if (!username) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "USERNAME_REQUIRED", 
-          error: "Kullanıcı adı gerekli." 
-        }); 
-      } 
- 
-      if (!email) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "EMAIL_REQUIRED", 
-          error: "E-posta gerekli." 
-        }); 
-      } 
- 
-      if ( 
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) 
-      ) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "INVALID_EMAIL", 
-          error: "Geçerli bir e-posta adresi gir." 
-        }); 
-      } 
- 
-      if (password.length < 6) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "PASSWORD_TOO_SHORT", 
-          error: "Şifre en az 6 karakter olmalı." 
-        }); 
-      } 
- 
-      if ( 
-        !/^[a-z0-9._]{3,30}$/.test(username) 
-      ) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "INVALID_USERNAME", 
-          error: 
-            "Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan." 
-        }); 
-      } 
- 
-      if (!CONFIG_OK) { 
-        return res.status(500).json({ 
-          ok: false, 
-          code: "SUPABASE_CONFIG_ERROR", 
-          error: "Supabase yapılandırması eksik." 
-        }); 
-      } 
- 
-      if (!SUPABASE_SERVICE_ROLE_KEY) { 
-        return res.status(500).json({ 
-          ok: false, 
-          code: "SERVICE_ROLE_MISSING", 
-          error: "SUPABASE_SERVICE_ROLE_KEY eksik." 
-        }); 
-      } 
- 
-      if (!registrationAllowed(email)) { 
-        return res.status(429).json({ 
-          ok: false, 
-          code: "CODE_RATE_LIMIT", 
-          error: 
-            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle." 
-        }); 
-      } 
- 
-      const admin = adminClient(); 
- 
-      /* Kullanıcı adı kontrolü */ 
-      const { 
-        data: existingProfile, 
-        error: usernameCheckError 
-      } = await admin 
-        .from("profiles") 
-        .select("id,username,auth_user_id") 
-        .eq("username", username) 
-        .limit(1) 
-        .maybeSingle(); 
- 
-      if (usernameCheckError) { 
-        console.error( 
-          "USERNAME CHECK ERROR:", 
-          usernameCheckError 
-        ); 
- 
-        return res.status(500).json({ 
-          ok: false, 
-          code: "USERNAME_CHECK_ERROR", 
-          error: 
-            "Kullanıcı adı kontrol edilirken hata oluştu." 
-        }); 
-      } 
- 
-      if (existingProfile) { 
-        return res.status(409).json({ 
-          ok: false, 
-          code: "USERNAME_TAKEN", 
-          error: "Bu kullanıcı adı zaten alınmış." 
-        }); 
-      } 
- 
-      /* E-posta kontrolü */ 
-      try { 
-        let emailAlreadyExists = false; 
- 
-        for (let page = 1; page <= 20; page++) { 
-          const result = 
-            await admin.auth.admin.listUsers({ 
-              page, 
-              perPage: 1000 
-            }); 
- 
-          const users = 
-            result?.data?.users || []; 
- 
-          if (result?.error) { 
-            console.error( 
-              "EMAIL CHECK ERROR:", 
-              result.error 
-            ); 
-            break; 
-          } 
- 
-          if ( 
-            users.some( 
-              u => 
-                normalizeEmail(u?.email) === email 
-            ) 
-          ) { 
-            emailAlreadyExists = true; 
-            break; 
-          } 
- 
-          if (users.length < 1000) { 
-            break; 
-          } 
-        } 
- 
-        if (emailAlreadyExists) { 
-          return res.status(409).json({ 
-            ok: false, 
-            code: "EMAIL_TAKEN", 
-            error: 
-              "Bu e-posta adresi zaten kullanılıyor." 
-          }); 
-        } 
-      } catch (emailCheckError) { 
-        console.error( 
-          "EMAIL PRECHECK ERROR:", 
-          emailCheckError?.message || 
-            emailCheckError 
-        ); 
-      } 
- 
-      /* 
-       * ÖNEMLİ: 
-       * Supabase'in kendi confirmation mailini kullanmıyoruz. 
-       * Hesabı email_confirm:false olarak oluşturuyoruz. 
-       * 6 haneli kodu Resend ile biz gönderiyoruz. 
-       */ 
-      const { 
-        data: created, 
-        error: createError 
-      } = 
-        await admin.auth.admin.createUser({ 
-          email, 
-          password, 
-          email_confirm: false, 
-          user_metadata: { 
-            username, 
-            display_name: displayName 
-          } 
-        }); 
- 
-      if (createError) { 
-        console.error( 
-          "AUTH CREATE ERROR:", 
-          createError 
-        ); 
- 
-        const message = 
-          String(createError.message || ""); 
- 
-        if ( 
-          /already registered/i.test(message) || 
-          /already exists/i.test(message) || 
-          /user already registered/i.test(message) 
-        ) { 
-          return res.status(409).json({ 
-            ok: false, 
-            code: "EMAIL_TAKEN", 
-            error: 
-              "Bu e-posta adresi zaten kullanılıyor." 
-          }); 
-        } 
- 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "SIGNUP_ERROR", 
-          error: 
-            message || "Kayıt başarısız." 
-        }); 
-      } 
- 
-      const authUser = created?.user; 
- 
-      if (!authUser?.id) { 
-        return res.status(400).json({ 
-          ok: false, 
-          code: "USER_CREATE_FAILED", 
-          error: "Kullanıcı oluşturulamadı." 
-        }); 
-      } 
- 
-      createdAuthUserId = authUser.id; 
- 
-      /* Profil oluştur */ 
-      const { 
-        data: profile, 
-        error: profileError 
-      } = 
-        await admin 
-          .from("profiles") 
-          .insert({ 
-            id: authUser.id, 
-            auth_user_id: authUser.id, 
-            username, 
-            display_name: displayName, 
-            bio: "", 
-            avatar_url: null, 
-            verified: false, 
-            settings: {} 
-          }) 
-          .select("*") 
-          .single(); 
- 
-      if (profileError) { 
-        console.error( 
-          "PROFILE CREATE ERROR:", 
-          profileError 
-        ); 
- 
-        try { 
-          await admin.auth.admin.deleteUser( 
-            authUser.id 
-          ); 
-        } catch (cleanupError) { 
-          console.error( 
-            "AUTH CLEANUP ERROR:", 
-            cleanupError 
-          ); 
-        } 
- 
-        createdAuthUserId = null; 
- 
-        return res.status(500).json({ 
-          ok: false, 
-          code: "PROFILE_CREATE_ERROR", 
-          error: "Profil oluşturulamadı." 
-        }); 
-      } 
- 
-      /* 
-       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER 
-       */ 
-      const code = createVerificationCode(); 
- 
-      const registrationEntry = { 
-        code, 
-        userId: authUser.id, 
-        email, 
-        expires: Date.now() + 10 * 60 * 1000, 
-        attempts: 0, 
-        username, 
-        displayName 
-      }; 
- 
-      registrationCodes.set( 
-        registrationKey(email), 
-        registrationEntry 
-      ); 
- 
-      // Kodu Supabase'e de kaydet: Render restart/instance değişiminde kaybolmasın. 
-      await saveRegistrationOtp( 
-        authUser.id, 
-        registrationEntry 
-      ); 
- 
-      registrationRate.set( 
-        registrationKey(email), 
-        Date.now() 
-      ); 
- 
-      try { 
-        await sendRegistrationCode( 
-          email, 
-          code 
-        ); 
-      } catch (mailError) { 
-        console.error( 
-          "REGISTRATION EMAIL ERROR:", 
-          mailError 
-        ); 
- 
-        registrationCodes.delete( 
-          registrationKey(email) 
-        ); 
- 
-        try { 
-          await admin.auth.admin.deleteUser( 
-            authUser.id 
-          ); 
-        } catch (cleanupError) { 
-          console.error( 
-            "AUTH CLEANUP AFTER MAIL ERROR:", 
-            cleanupError 
-          ); 
-        } 
- 
-        return res.status(500).json({ 
-          ok: false, 
-          code: "EMAIL_SEND_ERROR", 
-          error: 
-            mailError?.message || 
-            "Doğrulama e-postası gönderilemedi." 
-        }); 
-      } 
- 
-      createdAuthUserId = null; 
- 
-      return res.json({ 
-        ok: true, 
-        needsEmailVerification: true, 
-        message: 
-          "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.", 
-        maskedEmail: maskEmail(email), 
-        email, 
-        user: { 
-          id: authUser.id, 
-          email: authUser.email, 
-          username, 
-          displayName 
-        } 
-      }); 
- 
-    } catch (e) { 
-      console.error( 
-        "REGISTER ERROR:", 
-        e 
-      ); 
- 
-      if (createdAuthUserId) { 
-        try { 
-          await adminClient() 
-            .auth.admin.deleteUser( 
-              createdAuthUserId 
-            ); 
-        } catch (cleanupError) { 
-          console.error( 
-            "FINAL AUTH CLEANUP ERROR:", 
-            cleanupError 
-          ); 
-        } 
-      } 
- 
-      return res.status(500).json({ 
-        ok: false, 
-        code: "REGISTER_ERROR", 
-        error: 
-          e?.message || 
-          "Kayıt başarısız." 
-      }); 
-    } 
-  } 
-); 
- 
+/* =========================================================
+   MINEGRAM REGISTER - TAM DÜZELTİLMİŞ
+   Profil oluşturulamadı hatasını çözer.
+
+   Özellikler:
+   - Supabase Auth kullanıcısı oluşturur
+   - profiles tablosunun gerçek kolonlarını kontrol eder
+   - Sadece mevcut kolonlara veri gönderir
+   - id = Auth UUID
+   - auth_user_id varsa otomatik doldurur
+   - Trigger tarafından profil zaten oluşturulduysa tekrar INSERT yapmaz
+   - Profil varsa UPDATE eder
+   - OTP oluşturur
+   - Resend ile 6 haneli kod gönderir
+========================================================= */
+
+app.post(
+  "/api/register",
+  async (req, res) => {
+
+    let createdAuthUserId = null;
+
+    try {
+
+      /* ---------------------------------------------------
+         1) CONFIG KONTROL
+      --------------------------------------------------- */
+
+      if (!CONFIG_OK) {
+        return res.status(500).json({
+          ok: false,
+          code: "CONFIG_ERROR",
+          error: "Supabase yapılandırması eksik."
+        });
+      }
+
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          ok: false,
+          code: "SERVICE_ROLE_MISSING",
+          error: "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      const admin = adminClient();
+
+      /* ---------------------------------------------------
+         2) GELEN VERİLER
+      --------------------------------------------------- */
+
+      const username =
+        normalizeUsername(
+          req.body?.username ||
+          req.body?.userName ||
+          ""
+        );
+
+      const email =
+        normalizeEmail(
+          req.body?.email || ""
+        );
+
+      const password =
+        String(
+          req.body?.password || ""
+        );
+
+      const displayName =
+        String(
+          req.body?.displayName ||
+          req.body?.display_name ||
+          username
+        )
+          .trim()
+          .slice(0, 80);
+
+      console.log("");
+      console.log("======================================");
+      console.log("MINEGRAM REGISTER BAŞLADI");
+      console.log("Kullanıcı:", username);
+      console.log("E-posta:", email);
+      console.log("Display:", displayName);
+      console.log("======================================");
+
+      /* ---------------------------------------------------
+         3) VALIDATION
+      --------------------------------------------------- */
+
+      if (!username) {
+        return res.status(400).json({
+          ok: false,
+          code: "USERNAME_REQUIRED",
+          error: "Kullanıcı adı gerekli."
+        });
+      }
+
+      if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_USERNAME",
+          error:
+            "Kullanıcı adı 3-30 karakter olmalı ve sadece küçük harf, rakam, nokta veya alt çizgi içerebilir."
+        });
+      }
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          code: "EMAIL_REQUIRED",
+          error: "E-posta adresi gerekli."
+        });
+      }
+
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      ) {
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_EMAIL",
+          error: "Geçerli bir e-posta adresi gir."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          code: "WEAK_PASSWORD",
+          error: "Şifre en az 6 karakter olmalı."
+        });
+      }
+
+      /* ---------------------------------------------------
+         4) KULLANICI ADI KONTROL
+      --------------------------------------------------- */
+
+      const {
+        data: usernameProfile,
+        error: usernameError
+      } =
+        await admin
+          .from("profiles")
+          .select("id,username")
+          .eq("username", username)
+          .maybeSingle();
+
+      if (usernameError) {
+
+        console.error(
+          "USERNAME CHECK ERROR:",
+          usernameError
+        );
+
+        return res.status(500).json({
+          ok: false,
+          code: "USERNAME_CHECK_ERROR",
+          error:
+            usernameError.message ||
+            "Kullanıcı adı kontrol edilemedi."
+        });
+      }
+
+      if (usernameProfile) {
+        return res.status(409).json({
+          ok: false,
+          code: "USERNAME_TAKEN",
+          error:
+            "Bu kullanıcı adı zaten kullanılıyor."
+        });
+      }
+
+      /* ---------------------------------------------------
+         5) E-POSTA KONTROL
+      --------------------------------------------------- */
+
+      try {
+
+        for (
+          let page = 1;
+          page <= 20;
+          page++
+        ) {
+
+          const {
+            data,
+            error
+          } =
+            await admin.auth.admin.listUsers({
+              page,
+              perPage: 1000
+            });
+
+          if (error) {
+            console.error(
+              "AUTH LIST USERS ERROR:",
+              error
+            );
+            break;
+          }
+
+          const users =
+            data?.users || [];
+
+          const exists =
+            users.some(
+              user =>
+                String(
+                  user?.email || ""
+                ).toLowerCase() === email
+            );
+
+          if (exists) {
+            return res.status(409).json({
+              ok: false,
+              code: "EMAIL_TAKEN",
+              error:
+                "Bu e-posta adresi zaten kullanılıyor."
+            });
+          }
+
+          if (users.length < 1000) {
+            break;
+          }
+        }
+
+      } catch (emailCheckError) {
+
+        console.error(
+          "EMAIL CHECK ERROR:",
+          emailCheckError
+        );
+
+      }
+
+      /* ---------------------------------------------------
+         6) SUPABASE AUTH USER OLUŞTUR
+      --------------------------------------------------- */
+
+      const {
+        data: created,
+        error: createError
+      } =
+        await admin.auth.admin.createUser({
+          email,
+          password,
+
+          /*
+             Kendi 6 haneli Minegram OTP sistemimizi
+             kullandığımız için false.
+          */
+          email_confirm: false,
+
+          user_metadata: {
+            username,
+            display_name: displayName
+          }
+        });
+
+      if (createError) {
+
+        console.error(
+          "AUTH CREATE ERROR:",
+          createError
+        );
+
+        const message =
+          String(
+            createError.message || ""
+          );
+
+        if (
+          /already registered/i.test(message) ||
+          /already exists/i.test(message) ||
+          /user already registered/i.test(message)
+        ) {
+          return res.status(409).json({
+            ok: false,
+            code: "EMAIL_TAKEN",
+            error:
+              "Bu e-posta adresi zaten kullanılıyor."
+          });
+        }
+
+        return res.status(400).json({
+          ok: false,
+          code: "SIGNUP_ERROR",
+          error:
+            message ||
+            "Kayıt başarısız."
+        });
+      }
+
+      const authUser =
+        created?.user;
+
+      if (!authUser?.id) {
+
+        return res.status(400).json({
+          ok: false,
+          code: "USER_CREATE_FAILED",
+          error:
+            "Kullanıcı oluşturulamadı."
+        });
+      }
+
+      createdAuthUserId =
+        authUser.id;
+
+      console.log(
+        "AUTH USER OLUŞTURULDU:",
+        authUser.id
+      );
+
+      /* ===================================================
+         7) PROFILES TABLOSU KOLONLARINI BUL
+      =================================================== */
+
+      const {
+        data: schemaSample,
+        error: schemaError
+      } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .limit(1);
+
+      if (schemaError) {
+
+        console.error(
+          "PROFILES SCHEMA OKUMA HATASI:",
+          schemaError
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch {}
+
+        createdAuthUserId = null;
+
+        return res.status(500).json({
+          ok: false,
+          code: "PROFILE_SCHEMA_ERROR",
+          error:
+            "profiles tablosu okunamadı: " +
+            (
+              schemaError.message ||
+              "Bilinmeyen Supabase hatası."
+            )
+        });
+      }
+
+      /*
+         PostgREST select(*) sonucundan gerçek kolon isimlerini
+         alıyoruz.
+
+         Tablo boş olsa bile Supabase normalde kolon yapısını
+         response metadata'sında kullanır; fakat güvenlik için
+         aşağıdaki known columns yöntemiyle ilerliyoruz.
+      */
+
+      const existingColumns =
+        new Set(
+          schemaSample?.length
+            ? Object.keys(
+                schemaSample[0]
+              )
+            : []
+        );
+
+      console.log(
+        "PROFILES KOLONLARI:",
+        [...existingColumns]
+      );
+
+      /* ---------------------------------------------------
+         8) PROFİLİ ÖNCE KONTROL ET
+         Trigger oluşturmuş olabilir.
+      --------------------------------------------------- */
+
+      let existingProfile =
+        null;
+
+      try {
+
+        const byId =
+          await admin
+            .from("profiles")
+            .select("*")
+            .eq("id", authUser.id)
+            .maybeSingle();
+
+        if (
+          !byId.error &&
+          byId.data
+        ) {
+          existingProfile =
+            byId.data;
+        }
+
+      } catch {}
+
+      if (
+        !existingProfile &&
+        existingColumns.has(
+          "auth_user_id"
+        )
+      ) {
+
+        try {
+
+          const byAuth =
+            await admin
+              .from("profiles")
+              .select("*")
+              .eq(
+                "auth_user_id",
+                authUser.id
+              )
+              .maybeSingle();
+
+          if (
+            !byAuth.error &&
+            byAuth.data
+          ) {
+            existingProfile =
+              byAuth.data;
+          }
+
+        } catch {}
+      }
+
+      /* ===================================================
+         9) PROFİL VERİSİNİ DİNAMİK OLUŞTUR
+      =================================================== */
+
+      const profilePayload = {};
+
+      /*
+         ID
+         Senin profiles.id UUID olduğu için Auth UUID
+         burada doğru kullanımdır.
+      */
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("id")
+      ) {
+        profilePayload.id =
+          authUser.id;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("auth_user_id")
+      ) {
+        profilePayload.auth_user_id =
+          authUser.id;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("username")
+      ) {
+        profilePayload.username =
+          username;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("display_name")
+      ) {
+        profilePayload.display_name =
+          displayName;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("bio")
+      ) {
+        profilePayload.bio = "";
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("avatar_url")
+      ) {
+        profilePayload.avatar_url =
+          null;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("verified")
+      ) {
+        profilePayload.verified =
+          false;
+      }
+
+      if (
+        existingColumns.size === 0 ||
+        existingColumns.has("settings")
+      ) {
+        profilePayload.settings =
+          {};
+      }
+
+      console.log(
+        "PROFİL PAYLOAD:",
+        profilePayload
+      );
+
+      /* ===================================================
+         10) PROFİL VARSA UPDATE
+      =================================================== */
+
+      let profile =
+        existingProfile;
+
+      if (existingProfile) {
+
+        console.log(
+          "PROFİL ZATEN VAR. UPDATE YAPILIYOR:",
+          existingProfile.id
+        );
+
+        const updatePayload = {};
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            profilePayload,
+            "username"
+          )
+        ) {
+          updatePayload.username =
+            profilePayload.username;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            profilePayload,
+            "display_name"
+          )
+        ) {
+          updatePayload.display_name =
+            profilePayload.display_name;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            profilePayload,
+            "auth_user_id"
+          ) &&
+          !existingProfile.auth_user_id
+        ) {
+          updatePayload.auth_user_id =
+            profilePayload.auth_user_id;
+        }
+
+        if (
+          Object.keys(
+            updatePayload
+          ).length
+        ) {
+
+          const {
+            data: updatedProfile,
+            error: updateError
+          } =
+            await admin
+              .from("profiles")
+              .update(
+                updatePayload
+              )
+              .eq(
+                "id",
+                existingProfile.id
+              )
+              .select("*")
+              .single();
+
+          if (updateError) {
+
+            console.error(
+              "PROFILE UPDATE ERROR:",
+              updateError
+            );
+
+            throw updateError;
+          }
+
+          profile =
+            updatedProfile;
+        }
+
+      } else {
+
+        /* =================================================
+           11) PROFİL YOKSA INSERT
+        ================================================= */
+
+        console.log(
+          "YENİ PROFİL OLUŞTURULUYOR..."
+        );
+
+        const {
+          data: insertedProfile,
+          error: insertError
+        } =
+          await admin
+            .from("profiles")
+            .insert(
+              profilePayload
+            )
+            .select("*")
+            .single();
+
+        if (insertError) {
+
+          console.error(
+            "======================================"
+          );
+
+          console.error(
+            "PROFILE CREATE ERROR"
+          );
+
+          console.error(
+            "CODE:",
+            insertError.code
+          );
+
+          console.error(
+            "MESSAGE:",
+            insertError.message
+          );
+
+          console.error(
+            "DETAILS:",
+            insertError.details
+          );
+
+          console.error(
+            "HINT:",
+            insertError.hint
+          );
+
+          console.error(
+            "PAYLOAD:",
+            profilePayload
+          );
+
+          console.error(
+            "======================================"
+          );
+
+          /*
+             Auth kullanıcısını temizle.
+          */
+
+          try {
+            await admin.auth.admin.deleteUser(
+              authUser.id
+            );
+          } catch (
+            cleanupError
+          ) {
+            console.error(
+              "AUTH CLEANUP ERROR:",
+              cleanupError
+            );
+          }
+
+          createdAuthUserId =
+            null;
+
+          return res.status(500).json({
+            ok: false,
+            code: "PROFILE_CREATE_ERROR",
+
+            /*
+               Artık frontend'e gerçek Supabase
+               hatasını da gönderiyoruz.
+            */
+            error:
+              "Profil oluşturulamadı: " +
+              (
+                insertError.message ||
+                "Supabase profiles insert hatası."
+              ),
+
+            supabase: {
+              code:
+                insertError.code ||
+                null,
+
+              message:
+                insertError.message ||
+                null,
+
+              details:
+                insertError.details ||
+                null,
+
+              hint:
+                insertError.hint ||
+                null
+            }
+          });
+        }
+
+        profile =
+          insertedProfile;
+
+        console.log(
+          "PROFİL BAŞARIYLA OLUŞTURULDU:",
+          profile?.id
+        );
+      }
+
+      /* ===================================================
+         12) OTP OLUŞTUR
+      =================================================== */
+
+      const code =
+        createVerificationCode();
+
+      const key =
+        registrationKey(email);
+
+      const registrationEntry = {
+        code,
+
+        userId:
+          authUser.id,
+
+        email,
+
+        expires:
+          Date.now() +
+          10 * 60 * 1000,
+
+        attempts: 0,
+
+        username,
+
+        displayName
+      };
+
+      registrationCodes.set(
+        key,
+        registrationEntry
+      );
+
+      registrationRate.set(
+        key,
+        Date.now()
+      );
+
+      /* ---------------------------------------------------
+         OTP'Yİ AUTH METADATA'YA KAYDET
+      --------------------------------------------------- */
+
+      try {
+
+        await saveRegistrationOtp(
+          authUser.id,
+          registrationEntry
+        );
+
+      } catch (otpSaveError) {
+
+        console.error(
+          "OTP METADATA SAVE ERROR:",
+          otpSaveError?.message ||
+          otpSaveError
+        );
+
+        /*
+           Metadata kaydı başarısız olsa bile RAM
+           kaydı kullanılabilir.
+        */
+      }
+
+      /* ===================================================
+         13) RESEND İLE E-POSTA GÖNDER
+      =================================================== */
+
+      try {
+
+        await sendRegistrationCode(
+          email,
+          code
+        );
+
+      } catch (mailError) {
+
+        console.error(
+          "REGISTRATION EMAIL ERROR:",
+          mailError
+        );
+
+        registrationCodes.delete(
+          key
+        );
+
+        try {
+          await clearRegistrationOtp(
+            authUser.id
+          );
+        } catch {}
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (
+          cleanupError
+        ) {
+          console.error(
+            "AUTH CLEANUP AFTER MAIL ERROR:",
+            cleanupError
+          );
+        }
+
+        createdAuthUserId =
+          null;
+
+        return res.status(500).json({
+          ok: false,
+          code: "EMAIL_SEND_ERROR",
+          error:
+            mailError?.message ||
+            "Doğrulama e-postası gönderilemedi."
+        });
+      }
+
+      /* ===================================================
+         14) BAŞARILI
+      =================================================== */
+
+      createdAuthUserId =
+        null;
+
+      console.log(
+        "======================================"
+      );
+
+      console.log(
+        "MINEGRAM REGISTER BAŞARILI"
+      );
+
+      console.log(
+        "AUTH ID:",
+        authUser.id
+      );
+
+      console.log(
+        "USERNAME:",
+        username
+      );
+
+      console.log(
+        "EMAIL:",
+        email
+      );
+
+      console.log(
+        "OTP GÖNDERİLDİ"
+      );
+
+      console.log(
+        "======================================"
+      );
+
+      return res.json({
+        ok: true,
+
+        needsEmailVerification:
+          true,
+
+        message:
+          "E-posta adresine 6 haneli doğrulama kodu gönderildi.",
+
+        email,
+
+        maskedEmail:
+          maskEmail(email),
+
+        user: {
+          id:
+            authUser.id,
+
+          email:
+            authUser.email,
+
+          username,
+
+          displayName
+        }
+      });
+
+    } catch (e) {
+
+      console.error(
+        "======================================"
+      );
+
+      console.error(
+        "MINEGRAM REGISTER FATAL ERROR"
+      );
+
+      console.error(
+        "MESSAGE:",
+        e?.message
+      );
+
+      console.error(
+        "ERROR:",
+        e
+      );
+
+      console.error(
+        "======================================"
+      );
+
+      /* ---------------------------------------------------
+         AUTH TEMİZLE
+      --------------------------------------------------- */
+
+      if (createdAuthUserId) {
+
+        try {
+
+          await adminClient()
+            .auth.admin.deleteUser(
+              createdAuthUserId
+            );
+
+        } catch (
+          cleanupError
+        ) {
+
+          console.error(
+            "FINAL AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+
+        }
+      }
+
+      return res.status(500).json({
+        ok: false,
+
+        code:
+          "REGISTER_ERROR",
+
+        error:
+          e?.message ||
+          "Kayıt sırasında sunucu hatası oluştu."
+      });
+    }
+  }
+);
+
 /* ========================================================= 
    REGISTER VERIFY 
    ========================================================= */ 
