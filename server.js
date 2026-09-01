@@ -2656,9 +2656,18 @@ app.post("/api/verify-email-otp", async (req, res) => {
     }
 
     const key = otpKey(email);
-    const entry = emailOtpStore.get(key);
+   const entry = emailOtpStore.get(key);
 
-    if (!entry || entry.expires < Date.now()) {
+console.log("[OTP VERIFY]", {
+  email,
+  key,
+  storeHasKey: emailOtpStore.has(key),
+  entryExists: !!entry,
+  now: Date.now(),
+  expires: entry?.expires || null
+});
+
+if (!entry || entry.expires < Date.now()) {
       emailOtpStore.delete(key);
       return res.status(400).json({ ok: false, code: "CODE_EXPIRED", error: "Kod yanlış veya süresi dolmuş. Yeni kod iste." });
     }
