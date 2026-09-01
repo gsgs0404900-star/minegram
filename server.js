@@ -166,19 +166,6 @@ function adminClient() {
   );
 }
 
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
-}
-
-async function getAuthUserByIdSafe(admin, id) {
-  const authId = String(id || "").trim();
-  if (!isUuid(authId)) {
-    console.warn("AUTH ID UUID DEĞİL, getUserById atlandı:", authId);
-    return { data: null, error: new Error("Auth kullanıcı ID geçerli bir UUID değil.") };
-  }
-  return admin.auth.admin.getUserById(authId);
-}
-
 function bearer(req) {
   const h =
     req.headers.authorization || "";
@@ -1079,6 +1066,117 @@ app.post(
 );
 
 /* =========================================================
+   REGISTER SEND-CODE / RESEND UYUMLULUK
+   Eski hesap-doğrulama.html sürümleri /api/register/send-code
+   çağırabiliyor. İkisini de aynı kayıt kodu sistemiyle çalıştır.
+========================================================= */
+
+app.post(
+  "/api/register/send-code",
+  async (req, res) => {
+    try {
+      const email = normalizeEmail(req.body?.email);
+      const username = normalizeUsername(req.body?.username);
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          code: "EMAIL_REQUIRED",
+          error: "E-posta gerekli."
+        });
+      }
+
+      if (!registrationAllowed(email)) {
+        return res.status(429).json({
+          ok: false,
+          code: "CODE_RATE_LIMIT",
+          error: "Yeni kod göndermek için 60 saniye bekle."
+        });
+      }
+
+      const key = registrationKey(email);
+      let entry = registrationCodes.get(key);
+
+      if (!entry) {
+        const admin = adminClient();
+        const { data: users, error: listError } =
+          await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+        if (listError) throw listError;
+
+        const authUser = (users?.users || []).find(
+          u => normalizeEmail(u?.email) === email
+        );
+
+        if (!authUser?.id) {
+          return res.status(404).json({
+            ok: false,
+            code: "REGISTRATION_NOT_FOUND",
+            error: "Bekleyen kayıt bulunamadı. Önce kayıt ol."
+          });
+        }
+
+        if (authUser.email_confirmed_at) {
+          return res.json({
+            ok: true,
+            verified: true,
+            message: "E-posta zaten doğrulanmış."
+          });
+        }
+
+        entry = {
+          code: createVerificationCode(),
+          userId: safeAuthUserId(authUser.id),
+          email,
+          username,
+          displayName: username,
+          expires: Date.now() + 10 * 60 * 1000,
+          attempts: 0
+        };
+
+        if (!entry.userId) {
+          return res.status(500).json({
+            ok: false,
+            code: "INVALID_AUTH_ID",
+            error: "Hesap kimliği geçersiz."
+          });
+        }
+      } else {
+        entry.code = createVerificationCode();
+        entry.expires = Date.now() + 10 * 60 * 1000;
+        entry.attempts = 0;
+        if (!entry.userId) {
+          return res.status(400).json({
+            ok: false,
+            code: "INVALID_AUTH_ID",
+            error: "Kayıt hesabının kimliği geçersiz. Yeniden kayıt ol."
+          });
+        }
+      }
+
+      registrationRate.set(key, Date.now());
+      await sendRegistrationCode(email, entry.code);
+      registrationCodes.set(key, entry);
+
+      return res.json({
+        ok: true,
+        needsEmailVerification: true,
+        message: "Yeni 6 haneli doğrulama kodu gönderildi.",
+        maskedEmail: maskEmail(email),
+        email
+      });
+    } catch (e) {
+      console.error("REGISTER SEND-CODE ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        code: "EMAIL_SEND_ERROR",
+        error: e?.message || "Doğrulama kodu gönderilemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
    REGISTER VERIFY
    ========================================================= */
 
@@ -1157,6 +1255,16 @@ app.post(
       }
 
       const admin = adminClient();
+      const authUserId = safeAuthUserId(entry.userId);
+
+      if (!authUserId) {
+        registrationCodes.delete(key);
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_AUTH_ID",
+          error: "Kayıt hesabının kimliği geçersiz. Lütfen yeniden kayıt ol."
+        });
+      }
 
       /*
        * Kod doğru:
@@ -1167,7 +1275,7 @@ app.post(
         error: updateError
       } =
         await admin.auth.admin.updateUserById(
-          entry.userId,
+          authUserId,
           {
             email_confirm: true
           }
@@ -1303,8 +1411,7 @@ app.post(
         data: authData,
         error: authError
       } =
-        await getAuthUserByIdSafe(
-          admin,
+        await admin.auth.admin.getUserById(
           entry.userId
         );
 
@@ -1470,8 +1577,7 @@ app.post(
           data: au,
           error: ae
         } =
-          await getAuthUserByIdSafe(
-            admin,
+          await admin.auth.admin.getUserById(
             authId
           );
 
@@ -1682,6 +1788,17 @@ function normalizeRecoveryPhone(
   }
 
   return digits;
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "").trim()
+  );
+}
+
+function safeAuthUserId(value) {
+  const id = String(value || "").trim();
+  return isUuid(id) ? id : null;
 }
 
 
@@ -2108,16 +2225,25 @@ async function findUserByPhone(
         ].filter(Boolean);
 
         for (
-          const authId of
+          const rawAuthId of
           possibleAuthIds
         ) {
+          const authId = safeAuthUserId(rawAuthId);
+
+          if (!authId) {
+            console.log(
+              "AUTH ID UUID DEĞİL, ATLADIM:",
+              rawAuthId
+            );
+            continue;
+          }
+
           try {
             const {
               data: authData,
               error: authError
             } =
-              await getAuthUserByIdSafe(
-                admin,
+              await admin.auth.admin.getUserById(
                 authId
               );
 
@@ -2243,16 +2369,23 @@ async function resolveRecoveryEmail(
     const admin =
       adminClient();
 
-    const authId =
-      profile.auth_user_id ||
-      profile.id;
+    const authId = safeAuthUserId(
+      profile.auth_user_id || profile.id
+    );
+
+    if (!authId) {
+      console.error(
+        "PROFILE AUTH ID UUID DEĞİL:",
+        profile.auth_user_id || profile.id
+      );
+      return null;
+    }
 
     const {
       data,
       error
     } =
-      await getAuthUserByIdSafe(
-        admin,
+      await admin.auth.admin.getUserById(
         authId
       );
 
@@ -2351,8 +2484,7 @@ app.post(
           data,
           error
         } =
-          await getAuthUserByIdSafe(
-            admin,
+          await admin.auth.admin.getUserById(
             authId
           );
 
@@ -2427,73 +2559,68 @@ app.get(
    RESEND
 ========================================================= */
 
-async function sendResendEmail(to, subject, html, text = "") {
-  const recipient = String(to || "").trim().toLowerCase();
-  const apiKey =
-    env("RESEND_API_KEY") ||
-    env("RESEND_KEY");
-  const fromEmail =
-    env("RESEND_FROM_EMAIL") ||
-    env("RESEND_FROM") ||
-    "onboarding@resend.dev";
-  const fromName = env("RESEND_FROM_NAME") || "Minegram";
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY ||
+      ""
+    ).trim();
 
-  if (!recipient) throw new Error("E-posta alıcısı boş.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-    throw new Error("Geçersiz e-posta alıcısı.");
-  }
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY eksik. Render > Environment bölümüne RESEND_API_KEY ekle.");
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
-    throw new Error(`RESEND_FROM_EMAIL geçersiz: ${fromEmail}`);
+  if (!key) {
+    throw new Error(
+      "RESEND_API_KEY eksik."
+    );
   }
 
-  const payload = {
-    from: `${fromName} <${fromEmail}>`,
-    to: [recipient],
-    subject: String(subject || "Minegram"),
-    html: String(html || ""),
-    text: String(text || "")
-  };
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const r =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
 
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": "Minegram/1.0"
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+        headers: {
+          Authorization:
+            `Bearer ${key}`,
+          "Content-Type":
+            "application/json"
+        },
 
-    const raw = await response.text();
-    let body = {};
-    try { body = raw ? JSON.parse(raw) : {}; } catch { body = { message: raw }; }
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
+      }
+    );
 
-    if (!response.ok) {
-      const message = body?.message || body?.error || `Resend HTTP ${response.status}`;
-      console.error("[RESEND] HTTP HATASI", response.status, body);
-      if (response.status === 401) throw new Error("Resend API anahtarı geçersiz. RESEND_API_KEY değerini kontrol et.");
-      if (response.status === 403) throw new Error(`Resend gönderim izni reddedildi: ${message}. onboarding@resend.dev kullanıyorsan yalnızca Resend hesabında doğrulanmış alıcıya test gönderilebilir; gerçek kullanıcılar için doğrulanmış alan adından RESEND_FROM_EMAIL kullan.`);
-      if (response.status === 422) throw new Error(`Resend e-posta bilgilerini kabul etmedi: ${message}`);
-      throw new Error(`Resend HTTP ${response.status}: ${message}`);
-    }
+  const j =
+    await r
+      .json()
+      .catch(
+        () => ({})
+      );
 
-    console.log(`[RESEND] OK -> ${recipient} (${body.id || "id-yok"})`);
-    return body;
-  } catch (e) {
-    if (e?.name === "AbortError") throw new Error("Resend bağlantısı 15 saniyede yanıt vermedi.");
-    throw e;
-  } finally {
-    clearTimeout(timer);
+  if (!r.ok) {
+    throw new Error(
+      j.message ||
+      "E-posta gönderilemedi."
+    );
   }
+
+  return j;
 }
 
 const recoveryCodes =
@@ -4225,6 +4352,28 @@ app.use(
     );
   }
 );
+
+
+/* =========================================================
+   EMAIL DIAGNOSTICS
+========================================================= */
+
+app.get("/api/email-config", (req, res) => {
+  const apiKey = resendEnv("RESEND_API_KEY") || resendEnv("RESEND_KEY");
+  const fromEmail =
+    resendEnv("RESEND_FROM_EMAIL") ||
+    resendEnv("RESEND_FROM") ||
+    "onboarding@resend.dev";
+
+  res.json({
+    ok: Boolean(apiKey && fromEmail.includes("@")),
+    resendConfigured: Boolean(apiKey),
+    fromEmail,
+    message: apiKey
+      ? "Resend API anahtarı sunucuda mevcut."
+      : "RESEND_API_KEY Render Environment Variables içine eklenmeli."
+  });
+});
 
 
 /* =========================================================
