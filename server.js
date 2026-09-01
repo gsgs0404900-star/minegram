@@ -653,8 +653,14 @@ function registrationAllowed(email) {
 }
 
 async function sendRegistrationCode(email, code) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) throw new Error("E-posta adresi boş.");
+  if (!/^\S+@\S+\.\S+$/.test(normalized)) {
+    throw new Error("Geçerli bir e-posta adresi gir.");
+  }
+
   await sendResendEmail(
-    email,
+    normalized,
     "Minegram e-posta doğrulama kodun",
     `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
@@ -977,43 +983,15 @@ app.post(
         }
       );
 
-      registrationRate.set(
-        registrationKey(email),
-        Date.now()
-      );
-
-      // Kodu Supabase Auth metadata'ya da kaydet.
-      // Render yeniden başlasa bile doğrulama kodu kaybolmaz.
-      try {
-        const { error: metadataError } =
-          await admin.auth.admin.updateUserById(
-            authUser.id,
-            {
-              user_metadata: {
-                ...(authUser.user_metadata || {}),
-                minegram_verification_code: code,
-                minegram_verification_expires: Date.now() + 10 * 60 * 1000,
-                minegram_verification_attempts: 0,
-                minegram_verification_username: username,
-                minegram_verification_display_name: displayName
-              }
-            }
-          );
-
-        if (metadataError) {
-          throw metadataError;
-        }
-      } catch (metadataError) {
-        console.error(
-          "VERIFICATION METADATA SAVE ERROR:",
-          metadataError
-        );
-      }
-
       try {
         await sendRegistrationCode(
           email,
           code
+        );
+
+        registrationRate.set(
+          registrationKey(email),
+          Date.now()
         );
       } catch (mailError) {
         console.error(
@@ -1094,6 +1072,119 @@ app.post(
 );
 
 /* =========================================================
+   GENERIC EMAIL OTP
+   POST /api/send-email-otp
+   Android/web istemcilerinin doğrudan kullanabilmesi için.
+   Bu endpoint Resend üzerinden kod gönderir ve aynı sunucu
+   tarafı registrationCodes deposunda saklar.
+========================================================= */
+
+app.post("/api/send-email-otp", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const username = normalizeUsername(req.body?.username || "");
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        code: "EMAIL_REQUIRED",
+        error: "E-posta adresi gerekli."
+      });
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_EMAIL",
+        error: "Geçerli bir e-posta adresi gir."
+      });
+    }
+
+    if (!registrationAllowed(email)) {
+      const last = registrationRate.get(registrationKey(email)) || 0;
+      const remaining = Math.max(1, Math.ceil((60000 - (Date.now() - last)) / 1000));
+      return res.status(429).json({
+        ok: false,
+        code: "RATE_LIMIT",
+        error: `${remaining} saniye sonra tekrar deneyin.`
+      });
+    }
+
+    const code = createVerificationCode();
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:30px auto;padding:30px;background:#111;color:#fff;border-radius:16px;text-align:center">
+        <h1 style="margin:0 0 18px">Minegram</h1>
+        <p style="color:#ddd;font-size:16px">E-posta adresini doğrulamak için 6 haneli kodun:</p>
+        <div style="margin:25px 0;padding:20px;background:#222;border-radius:12px;font-size:38px;font-weight:700;letter-spacing:10px">${code}</div>
+        <p style="color:#999;font-size:13px">Bu kod 10 dakika geçerlidir.</p>
+        <p style="color:#999;font-size:13px">Bu kodu kimseyle paylaşma.</p>
+      </div>`;
+
+    await sendResendEmail(
+      email,
+      "Minegram e-posta doğrulama kodun",
+      html,
+      `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+    );
+
+    registrationCodes.set(registrationKey(email), {
+      code,
+      userId: null,
+      email,
+      expires: Date.now() + 10 * 60 * 1000,
+      attempts: 0,
+      username,
+      displayName: username
+    });
+    registrationRate.set(registrationKey(email), Date.now());
+
+    return res.json({
+      ok: true,
+      message: "Doğrulama kodu gönderildi.",
+      email,
+      maskedEmail: maskEmail(email)
+    });
+  } catch (e) {
+    console.error("SEND EMAIL OTP ERROR:", e);
+    return res.status(500).json({
+      ok: false,
+      code: "EMAIL_SEND_ERROR",
+      error: e?.message || "Doğrulama kodu gönderilemedi."
+    });
+  }
+});
+
+
+app.post("/api/verify-email-otp", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const code = String(req.body?.code || "").replace(/\D/g, "").slice(0, 6);
+    if (!email) return res.status(400).json({ ok:false, code:"EMAIL_REQUIRED", error:"E-posta gerekli." });
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"6 haneli doğrulama kodunu gir." });
+
+    const key = registrationKey(email);
+    const entry = registrationCodes.get(key);
+    if (!entry || entry.expires < Date.now()) {
+      registrationCodes.delete(key);
+      return res.status(400).json({ ok:false, code:"CODE_EXPIRED", error:"Doğrulama kodu bulunamadı veya süresi doldu. Yeni kod iste." });
+    }
+    if ((entry.attempts || 0) >= 5) {
+      registrationCodes.delete(key);
+      return res.status(429).json({ ok:false, code:"TOO_MANY_ATTEMPTS", error:"Çok fazla yanlış kod girildi. Yeni kod iste." });
+    }
+    if (entry.code !== code) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"Kod yanlış. Lütfen tekrar kontrol et." });
+    }
+    registrationCodes.delete(key);
+    return res.json({ ok:true, verified:true, email, username:entry.username || "" });
+  } catch (e) {
+    console.error("VERIFY EMAIL OTP ERROR:", e);
+    return res.status(500).json({ ok:false, code:"OTP_VERIFY_ERROR", error:e?.message || "Kod doğrulanamadı." });
+  }
+});
+
+/* =========================================================
    REGISTER VERIFY
    ========================================================= */
 
@@ -1127,60 +1218,12 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry =
-        registrationCodes.get(key) || null;
-
-      // Map RAM'de tutulduğu için Render restart/deploy sonrası boşalabilir.
-      // Bu durumda kodu Supabase Auth metadata'dan geri yükle.
-      if (!entry) {
-        try {
-          const admin = adminClient();
-          let authUser = null;
-
-          for (let page = 1; page <= 20 && !authUser; page++) {
-            const result = await admin.auth.admin.listUsers({
-              page,
-              perPage: 1000
-            });
-
-            if (result?.error) {
-              console.error("VERIFY USER LOOKUP ERROR:", result.error);
-              break;
-            }
-
-            authUser = (result?.data?.users || []).find(
-              u => normalizeEmail(u?.email) === email
-            ) || null;
-
-            if ((result?.data?.users || []).length < 1000) break;
-          }
-
-          const meta = authUser?.user_metadata || {};
-          const savedCode = String(meta.minegram_verification_code || "");
-          const savedExpires = Number(meta.minegram_verification_expires || 0);
-
-          if (authUser?.id && /^\d{6}$/.test(savedCode) && savedExpires > Date.now()) {
-            entry = {
-              code: savedCode,
-              userId: authUser.id,
-              email,
-              expires: savedExpires,
-              attempts: Number(meta.minegram_verification_attempts || 0),
-              username: String(meta.minegram_verification_username || ""),
-              displayName: String(meta.minegram_verification_display_name || "")
-            };
-
-            registrationCodes.set(key, entry);
-          }
-        } catch (lookupError) {
-          console.error("VERIFY METADATA LOOKUP ERROR:", lookupError);
-        }
-      }
+      const entry =
+        registrationCodes.get(key);
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
-          code: "CODE_NOT_FOUND",
           error:
             "Doğrulama kodu bulunamadı. Yeni kod iste."
         });
@@ -1210,23 +1253,6 @@ app.post(
 
       if (entry.code !== code) {
         entry.attempts += 1;
-
-        try {
-          const admin = adminClient();
-          const { data: currentUser } =
-            await admin.auth.admin.getUserById(entry.userId);
-          await admin.auth.admin.updateUserById(
-            entry.userId,
-            {
-              user_metadata: {
-                ...(currentUser?.user?.user_metadata || {}),
-                minegram_verification_attempts: entry.attempts
-              }
-            }
-          );
-        } catch (metadataError) {
-          console.error("VERIFY ATTEMPT SAVE ERROR:", metadataError);
-        }
 
         return res.status(400).json({
           ok: false,
@@ -1267,25 +1293,6 @@ app.post(
       }
 
       registrationCodes.delete(key);
-
-      // Doğrulama tamamlandı; kodu Auth metadata'dan da temizle.
-      try {
-        const cleanMetadata = {
-          ...(updated?.user?.user_metadata || {})
-        };
-        delete cleanMetadata.minegram_verification_code;
-        delete cleanMetadata.minegram_verification_expires;
-        delete cleanMetadata.minegram_verification_attempts;
-        delete cleanMetadata.minegram_verification_username;
-        delete cleanMetadata.minegram_verification_display_name;
-
-        await admin.auth.admin.updateUserById(
-          entry.userId,
-          { user_metadata: cleanMetadata }
-        );
-      } catch (metadataError) {
-        console.error("VERIFY METADATA CLEANUP ERROR:", metadataError);
-      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1377,45 +1384,12 @@ app.post(
       const key =
         registrationKey(email);
 
-      let entry =
-        registrationCodes.get(key) || null;
+      const entry =
+        registrationCodes.get(key);
 
-      // Render restart sonrası RAM Map boşsa Auth metadata'dan kaydı geri al.
       if (!entry) {
-        const admin = adminClient();
-        let authUser = null;
-
-        for (let page = 1; page <= 20 && !authUser; page++) {
-          const result = await admin.auth.admin.listUsers({
-            page,
-            perPage: 1000
-          });
-          if (result?.error) break;
-          authUser = (result?.data?.users || []).find(
-            u => normalizeEmail(u?.email) === email
-          ) || null;
-          if ((result?.data?.users || []).length < 1000) break;
-        }
-
-        const meta = authUser?.user_metadata || {};
-        if (authUser?.id && !authUser.email_confirmed_at) {
-          entry = {
-            code: String(meta.minegram_verification_code || ""),
-            userId: authUser.id,
-            email,
-            expires: Number(meta.minegram_verification_expires || 0),
-            attempts: Number(meta.minegram_verification_attempts || 0),
-            username: String(meta.minegram_verification_username || ""),
-            displayName: String(meta.minegram_verification_display_name || "")
-          };
-          registrationCodes.set(key, entry);
-        }
-      }
-
-      if (!entry?.userId) {
         return res.status(404).json({
           ok: false,
-          code: "PENDING_REGISTRATION_NOT_FOUND",
           error:
             "Bekleyen bir kayıt bulunamadı."
         });
@@ -1477,26 +1451,6 @@ app.post(
         key,
         Date.now()
       );
-
-      try {
-        const { data: currentUser } =
-          await admin.auth.admin.getUserById(entry.userId);
-        await admin.auth.admin.updateUserById(
-          entry.userId,
-          {
-            user_metadata: {
-              ...(currentUser?.user?.user_metadata || {}),
-              minegram_verification_code: code,
-              minegram_verification_expires: entry.expires,
-              minegram_verification_attempts: 0,
-              minegram_verification_username: entry.username || "",
-              minegram_verification_display_name: entry.displayName || ""
-            }
-          }
-        );
-      } catch (metadataError) {
-        console.error("RESEND METADATA SAVE ERROR:", metadataError);
-      }
 
       await sendRegistrationCode(
         email,
