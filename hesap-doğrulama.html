@@ -742,6 +742,80 @@ async function verifyCode(){
 
     }
 
+   // KAYIT BAŞARILI
+localStorage.setItem("minegram_register_verified", "true");
+
+const finalUsername = String(
+  data.user?.username ||
+  username ||
+  ""
+)
+  .trim()
+  .replace(/^@/, "");
+
+if (finalUsername) {
+  sessionStorage.setItem(
+    "minegram_register_username",
+    finalUsername
+  );
+
+  localStorage.setItem(
+    "minegram_register_username",
+    finalUsername
+  );
+
+  localStorage.setItem(
+    "minegram_username",
+    finalUsername
+  );
+
+  localStorage.setItem(
+    "username",
+    finalUsername
+  );
+}
+
+// TOKEN'I KAYDET
+const finalToken = String(
+  data.access_token ||
+  data.token ||
+  data.session?.access_token ||
+  data.session?.accessToken ||
+  ""
+).trim();
+
+if (finalToken) {
+  localStorage.setItem(
+    "minegram_token",
+    finalToken
+  );
+
+  localStorage.setItem(
+    "access_token",
+    finalToken
+  );
+
+  localStorage.setItem(
+    "token",
+    finalToken
+  );
+
+  sessionStorage.setItem(
+    "minegram_token",
+    finalToken
+  );
+
+  sessionStorage.setItem(
+    "access_token",
+    finalToken
+  );
+}
+
+// PROFİL SAYFASINA GİT
+setTimeout(function () {
+  window.location.replace("./profile.html");
+}, 500);
+    
 
     /* =====================================================
        TOKEN
