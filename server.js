@@ -646,6 +646,11 @@ app.post(
   async (req, res) => {
     let createdAuthUserId = null;
 
+    let reusedOrphanProfile = false;
+    let reusedProfileId = null;
+    let oldAuthUserId = null;
+    let newProfileCreated = false;
+
     try {
       const username =
         normalizeUsername(req.body?.username);
@@ -662,6 +667,10 @@ app.post(
         )
           .trim()
           .slice(0, 80);
+
+      /* =========================
+         TEMEL KONTROLLER
+      ========================= */
 
       if (!username) {
         return res.status(400).json({
@@ -712,7 +721,8 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "SUPABASE_CONFIG_ERROR",
-          error: "Supabase yapılandırması eksik."
+          error:
+            "Supabase yapılandırması eksik."
         });
       }
 
@@ -720,7 +730,8 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "SERVICE_ROLE_MISSING",
-          error: "SUPABASE_SERVICE_ROLE_KEY eksik."
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY eksik."
         });
       }
 
@@ -735,13 +746,23 @@ app.post(
 
       const admin = adminClient();
 
-      /* Kullanıcı adı kontrolü */
+      /* =========================
+         KULLANICI ADI KONTROLÜ
+         
+         ÖNEMLİ:
+         Profil varsa ama auth.users içinde
+         karşılığı yoksa bu bir YETİM PROFİLDİR.
+         
+         Böyle bir profili silmiyoruz.
+         Yeni Auth hesabına bağlıyoruz.
+      ========================= */
+
       const {
         data: existingProfile,
         error: usernameCheckError
       } = await admin
         .from("profiles")
-        .select("id,username")
+        .select("*")
         .eq("username", username)
         .limit(1)
         .maybeSingle();
@@ -761,18 +782,87 @@ app.post(
       }
 
       if (existingProfile) {
-        return res.status(409).json({
-          ok: false,
-          code: "USERNAME_TAKEN",
-          error: "Bu kullanıcı adı zaten alınmış."
-        });
+
+        const existingAuthId =
+          existingProfile.auth_user_id ||
+          existingProfile.id ||
+          null;
+
+        let authExists = false;
+
+        if (existingAuthId) {
+          try {
+            const {
+              data: authLookup,
+              error: authLookupError
+            } =
+              await admin.auth.admin.getUserById(
+                existingAuthId
+              );
+
+            if (
+              !authLookupError &&
+              authLookup?.user
+            ) {
+              authExists = true;
+            }
+          } catch (authLookupException) {
+            console.error(
+              "EXISTING AUTH LOOKUP ERROR:",
+              authLookupException
+            );
+          }
+        }
+
+        /*
+         * Auth hesabı gerçekten varsa:
+         * kullanıcı adı kullanılıyor.
+         */
+        if (authExists) {
+          return res.status(409).json({
+            ok: false,
+            code: "USERNAME_TAKEN",
+            error:
+              "Bu kullanıcı adı zaten alınmış."
+          });
+        }
+
+        /*
+         * Buraya geldiysek:
+         *
+         * profiles kaydı VAR
+         * fakat auth.users kaydı YOK.
+         *
+         * Yani ORPHAN / YETİM PROFİL.
+         */
+
+        reusedOrphanProfile = true;
+        reusedProfileId = existingProfile.id;
+        oldAuthUserId =
+          existingProfile.auth_user_id || null;
+
+        console.log(
+          "ORPHAN PROFILE REUSE:",
+          {
+            profileId: reusedProfileId,
+            oldAuthUserId,
+            username
+          }
+        );
       }
 
-      /* E-posta kontrolü */
+      /* =========================
+         E-POSTA KONTROLÜ
+      ========================= */
+
       try {
         let emailAlreadyExists = false;
 
-        for (let page = 1; page <= 20; page++) {
+        for (
+          let page = 1;
+          page <= 20;
+          page++
+        ) {
           const result =
             await admin.auth.admin.listUsers({
               page,
@@ -793,7 +883,8 @@ app.post(
           if (
             users.some(
               u =>
-                normalizeEmail(u?.email) === email
+                normalizeEmail(u?.email) ===
+                email
             )
           ) {
             emailAlreadyExists = true;
@@ -813,6 +904,7 @@ app.post(
               "Bu e-posta adresi zaten kullanılıyor."
           });
         }
+
       } catch (emailCheckError) {
         console.error(
           "EMAIL PRECHECK ERROR:",
@@ -821,12 +913,10 @@ app.post(
         );
       }
 
-      /*
-       * ÖNEMLİ:
-       * Supabase'in kendi confirmation mailini kullanmıyoruz.
-       * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Resend ile biz gönderiyoruz.
-       */
+      /* =========================
+         SUPABASE AUTH KULLANICISI
+      ========================= */
+
       const {
         data: created,
         error: createError
@@ -848,12 +938,20 @@ app.post(
         );
 
         const message =
-          String(createError.message || "");
+          String(
+            createError.message || ""
+          );
 
         if (
-          /already registered/i.test(message) ||
-          /already exists/i.test(message) ||
-          /user already registered/i.test(message)
+          /already registered/i.test(
+            message
+          ) ||
+          /already exists/i.test(
+            message
+          ) ||
+          /user already registered/i.test(
+            message
+          )
         ) {
           return res.status(409).json({
             ok: false,
@@ -867,145 +965,300 @@ app.post(
           ok: false,
           code: "SIGNUP_ERROR",
           error:
-            message || "Kayıt başarısız."
+            message ||
+            "Kayıt başarısız."
         });
       }
 
-      const authUser = created?.user;
+      const authUser =
+        created?.user;
 
       if (!authUser?.id) {
         return res.status(400).json({
           ok: false,
           code: "USER_CREATE_FAILED",
-          error: "Kullanıcı oluşturulamadı."
+          error:
+            "Kullanıcı oluşturulamadı."
         });
       }
 
-      createdAuthUserId = authUser.id;
+      createdAuthUserId =
+        authUser.id;
 
-      /*
-       * PROFİL OLUŞTUR / TRIGGER UYUMLU
-       *
-       * Supabase tarafında auth.users -> profiles trigger'ı varsa,
-       * createUser() sonrasında profil zaten oluşmuş olabilir.
-       * Bu yüzden körlemesine INSERT yapmıyoruz. Önce id ile arıyoruz;
-       * varsa UPDATE, yoksa INSERT yapıyoruz.
-       */
+      /* =========================
+         PROFİL İŞLEMİ
+      ========================= */
+
       let profile = null;
       let profileError = null;
 
-      const {
-        data: existingById,
-        error: existingByIdError
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
+      /*
+       * 1) YETİM PROFİL VARSA
+       *
+       * profiles.id DEĞİŞMEZ.
+       *
+       * Sadece auth_user_id yeni Auth
+       * kullanıcısına bağlanır.
+       */
 
-      if (existingByIdError) {
-        console.error(
-          "PROFILE LOOKUP ERROR:",
-          existingByIdError
-        );
-      }
+      if (
+        reusedOrphanProfile &&
+        reusedProfileId
+      ) {
 
-      if (existingById) {
         const updatePayload = {
+          auth_user_id: authUser.id,
           username,
-          display_name: displayName,
-          bio: existingById.bio ?? "",
-          avatar_url: existingById.avatar_url ?? null,
-          verified: existingById.verified ?? false,
-          settings: existingById.settings ?? {}
+          display_name: displayName
         };
 
-        if (Object.prototype.hasOwnProperty.call(existingById, "auth_user_id")) {
-          updatePayload.auth_user_id = authUser.id;
-        }
+        /*
+         * Mevcut profil bilgilerini
+         * kesinlikle silmiyoruz.
+         */
 
-        const updated = await admin
-          .from("profiles")
-          .update(updatePayload)
-          .eq("id", authUser.id)
-          .select("*")
-          .single();
-
-        profile = updated.data;
-        profileError = updated.error;
-      } else {
-        const insertPayload = {
-          id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        };
-
-        /* auth_user_id kolonu varsa ekle. Tablo boşsa sample row alınamayacağı
-           için ayrı bir select denemesi yapıyoruz. Kolon yoksa Supabase hata
-           verebilir; o durumda auth_user_id olmadan tekrar insert edeceğiz. */
-        let hasAuthUserIdColumn = false;
-        const schemaProbe = await admin
-          .from("profiles")
-          .select("auth_user_id")
-          .limit(1);
-
-        if (!schemaProbe.error) {
-          hasAuthUserIdColumn = true;
-          insertPayload.auth_user_id = authUser.id;
-        }
-
-        let inserted = await admin
-          .from("profiles")
-          .insert(insertPayload)
-          .select("*")
-          .single();
-
-        /* Trigger INSERT'i aynı anda yaptıysa duplicate olabilir.
-           Bu durumda oluşan profili tekrar okuyup devam ediyoruz. */
-        if (inserted.error && /auth_user_id|column/i.test(String(inserted.error.message || "")) && hasAuthUserIdColumn) {
-          const fallbackPayload = { ...insertPayload };
-          delete fallbackPayload.auth_user_id;
-          inserted = await admin
+        const updated =
+          await admin
             .from("profiles")
-            .insert(fallbackPayload)
+            .update(updatePayload)
+            .eq(
+              "id",
+              reusedProfileId
+            )
             .select("*")
             .single();
+
+        profile =
+          updated.data;
+
+        profileError =
+          updated.error;
+
+        if (profileError) {
+          console.error(
+            "ORPHAN PROFILE REPAIR ERROR:",
+            profileError
+          );
         }
 
-        if (inserted.error) {
+      } else {
+
+        /*
+         * 2) NORMAL YENİ PROFİL
+         *
+         * Önce trigger tarafından
+         * oluşturulmuş olabilir mi diye bak.
+         */
+
+        const {
+          data: existingById,
+          error: existingByIdError
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            authUser.id
+          )
+          .maybeSingle();
+
+        if (existingByIdError) {
           console.error(
-            "PROFILE INSERT ERROR:",
-            inserted.error
+            "PROFILE LOOKUP ERROR:",
+            existingByIdError
           );
+        }
 
-          const retry = await admin
-            .from("profiles")
-            .select("*")
-            .eq("id", authUser.id)
-            .maybeSingle();
+        if (existingById) {
 
-          if (retry.data) {
-            profile = retry.data;
-            profileError = null;
-          } else {
-            profile = null;
-            profileError = inserted.error;
+          const updatePayload = {
+            username,
+            display_name:
+              displayName,
+            bio:
+              existingById.bio ??
+              "",
+            avatar_url:
+              existingById.avatar_url ??
+              null,
+            verified:
+              existingById.verified ??
+              false,
+            settings:
+              existingById.settings ??
+              {}
+          };
+
+          if (
+            Object.prototype.hasOwnProperty.call(
+              existingById,
+              "auth_user_id"
+            )
+          ) {
+            updatePayload.auth_user_id =
+              authUser.id;
           }
+
+          const updated =
+            await admin
+              .from("profiles")
+              .update(
+                updatePayload
+              )
+              .eq(
+                "id",
+                authUser.id
+              )
+              .select("*")
+              .single();
+
+          profile =
+            updated.data;
+
+          profileError =
+            updated.error;
+
         } else {
-          profile = inserted.data;
-          profileError = null;
+
+          /*
+           * Yepyeni profil oluştur.
+           */
+
+          const insertPayload = {
+            id: authUser.id,
+            username,
+            display_name:
+              displayName,
+            bio: "",
+            avatar_url: null,
+            verified: false,
+            settings: {}
+          };
+
+          /*
+           * auth_user_id kolonu varsa
+           * mutlaka doldur.
+           */
+
+          const schemaProbe =
+            await admin
+              .from("profiles")
+              .select(
+                "auth_user_id"
+              )
+              .limit(1);
+
+          if (!schemaProbe.error) {
+            insertPayload.auth_user_id =
+              authUser.id;
+          }
+
+          let inserted =
+            await admin
+              .from("profiles")
+              .insert(
+                insertPayload
+              )
+              .select("*")
+              .single();
+
+          /*
+           * Eğer auth_user_id kolonu
+           * problemi olduysa fallback.
+           */
+
+          if (
+            inserted.error &&
+            /auth_user_id|column/i.test(
+              String(
+                inserted.error.message ||
+                  ""
+              )
+            ) &&
+            Object.prototype.hasOwnProperty.call(
+              insertPayload,
+              "auth_user_id"
+            )
+          ) {
+            const fallbackPayload =
+              {
+                ...insertPayload
+              };
+
+            delete fallbackPayload.auth_user_id;
+
+            inserted =
+              await admin
+                .from("profiles")
+                .insert(
+                  fallbackPayload
+                )
+                .select("*")
+                .single();
+          }
+
+          if (inserted.error) {
+            console.error(
+              "PROFILE INSERT ERROR:",
+              inserted.error
+            );
+
+            /*
+             * Trigger aynı anda oluşturmuş
+             * olabilir.
+             */
+
+            const retry =
+              await admin
+                .from("profiles")
+                .select("*")
+                .eq(
+                  "id",
+                  authUser.id
+                )
+                .maybeSingle();
+
+            if (retry.data) {
+              profile =
+                retry.data;
+              profileError =
+                null;
+            } else {
+              profile = null;
+              profileError =
+                inserted.error;
+            }
+
+          } else {
+            profile =
+              inserted.data;
+
+            profileError =
+              null;
+
+            newProfileCreated =
+              true;
+          }
         }
       }
 
-      if (profileError || !profile) {
+      /* =========================
+         PROFİL KONTROLÜ
+      ========================= */
+
+      if (
+        profileError ||
+        !profile
+      ) {
         console.error(
-          "PROFILE CREATE ERROR:",
-          profileError || "Profil kaydı bulunamadı."
+          "PROFILE CREATE/REPAIR ERROR:",
+          profileError ||
+            "Profil bulunamadı."
         );
+
+        /*
+         * Yeni Auth hesabını temizle.
+         */
 
         try {
           await admin.auth.admin.deleteUser(
@@ -1018,20 +1271,26 @@ app.post(
           );
         }
 
-        createdAuthUserId = null;
+        createdAuthUserId =
+          null;
 
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı.",
-          details: profileError?.message || null
+          error:
+            "Profil oluşturulamadı.",
+          details:
+            profileError?.message ||
+            null
         });
       }
 
-      /*
-       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
-       */
-      const code = createVerificationCode();
+      /* =========================
+         6 HANELİ DOĞRULAMA KODU
+      ========================= */
+
+      const code =
+        createVerificationCode();
 
       registrationCodes.set(
         registrationKey(email),
@@ -1039,10 +1298,20 @@ app.post(
           code,
           userId: authUser.id,
           email,
-          expires: Date.now() + 10 * 60 * 1000,
+          expires:
+            Date.now() +
+            10 * 60 * 1000,
           attempts: 0,
           username,
-          displayName
+          displayName,
+
+          /*
+           * Doğrulama sırasında
+           * hangi profile bağlandığını
+           * bilmek için.
+           */
+          profileId:
+            profile.id
         }
       );
 
@@ -1051,12 +1320,18 @@ app.post(
         Date.now()
       );
 
+      /* =========================
+         E-POSTA GÖNDER
+      ========================= */
+
       try {
         await sendRegistrationCode(
           email,
           code
         );
+
       } catch (mailError) {
+
         console.error(
           "REGISTRATION EMAIL ERROR:",
           mailError
@@ -1065,6 +1340,10 @@ app.post(
         registrationCodes.delete(
           registrationKey(email)
         );
+
+        /*
+         * Auth hesabını sil.
+         */
 
         try {
           await admin.auth.admin.deleteUser(
@@ -1077,6 +1356,64 @@ app.post(
           );
         }
 
+        /*
+         * Eğer yetim profili
+         * yeniden kullandıysak eski
+         * auth_user_id değerini geri koy.
+         *
+         * profiles.id kesinlikle değişmez.
+         */
+
+        if (
+          reusedOrphanProfile &&
+          reusedProfileId
+        ) {
+
+          try {
+            await admin
+              .from("profiles")
+              .update({
+                auth_user_id:
+                  oldAuthUserId ||
+                  "983d1bb4-7a1e-40b5-ab1b-872588c28101"
+              })
+              .eq(
+                "id",
+                reusedProfileId
+              );
+
+          } catch (restoreError) {
+            console.error(
+              "ORPHAN PROFILE RESTORE ERROR:",
+              restoreError
+            );
+          }
+        }
+
+        /*
+         * Yeni profil oluşturulduysa
+         * profil de temizlenebilir.
+         */
+
+        if (
+          newProfileCreated
+        ) {
+          try {
+            await admin
+              .from("profiles")
+              .delete()
+              .eq(
+                "id",
+                authUser.id
+              );
+          } catch (profileCleanupError) {
+            console.error(
+              "PROFILE CLEANUP ERROR:",
+              profileCleanupError
+            );
+          }
+        }
+
         return res.status(500).json({
           ok: false,
           code: "EMAIL_SEND_ERROR",
@@ -1086,30 +1423,49 @@ app.post(
         });
       }
 
-      createdAuthUserId = null;
+      /*
+       * Başarılı.
+       */
+
+      createdAuthUserId =
+        null;
 
       return res.json({
         ok: true,
-        needsEmailVerification: true,
+        needsEmailVerification:
+          true,
         message:
           "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.",
-        maskedEmail: maskEmail(email),
+        maskedEmail:
+          maskEmail(email),
         email,
+
         user: {
-          id: authUser.id,
-          email: authUser.email,
+          id: profile.id,
+          auth_user_id:
+            authUser.id,
+          email:
+            authUser.email,
           username,
           displayName
         }
       });
 
     } catch (e) {
+
       console.error(
         "REGISTER ERROR:",
         e
       );
 
-      if (createdAuthUserId) {
+      /*
+       * Beklenmeyen hata:
+       * yeni Auth hesabını temizle.
+       */
+
+      if (
+        createdAuthUserId
+      ) {
         try {
           await adminClient()
             .auth.admin.deleteUser(
@@ -1119,6 +1475,35 @@ app.post(
           console.error(
             "FINAL AUTH CLEANUP ERROR:",
             cleanupError
+          );
+        }
+      }
+
+      /*
+       * Yetim profil yeni Auth hesabına
+       * bağlandıysa eski bağlantıyı geri al.
+       */
+
+      if (
+        reusedOrphanProfile &&
+        reusedProfileId &&
+        oldAuthUserId
+      ) {
+        try {
+          await adminClient()
+            .from("profiles")
+            .update({
+              auth_user_id:
+                oldAuthUserId
+            })
+            .eq(
+              "id",
+              reusedProfileId
+            );
+        } catch (restoreError) {
+          console.error(
+            "FINAL PROFILE RESTORE ERROR:",
+            restoreError
           );
         }
       }
@@ -1137,7 +1522,7 @@ app.post(
 /* =========================================================
    REGISTER VERIFY
    ========================================================= */
-
+   
 app.post(
   "/api/register/verify",
   async (req, res) => {
