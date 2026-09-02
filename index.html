@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <title>Minegram - Ana Sayfa</title>
 
 <style>
@@ -643,6 +644,7 @@ body{
     padding-left:calc((100% - 760px)/2);
     padding-right:calc((100% - 760px)/2)
   }
+
 }
 </style>
 </head>
@@ -666,12 +668,10 @@ class="icon-btn"
 onclick="location.href='bildirimler.html'"
 aria-label="Bildirimler"
 >
-
 <svg class="svg" viewBox="0 0 24 24">
 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
 <path d="M10 21h4"/>
 </svg>
-
 </button>
 
 <button
@@ -679,12 +679,10 @@ class="icon-btn"
 onclick="location.href='mesajlar.html'"
 aria-label="Mesajlar"
 >
-
 <svg class="svg" viewBox="0 0 24 24">
 <path d="M22 2 11 13"/>
 <path d="m22 2-7 20-4-9-9-4Z"/>
 </svg>
-
 </button>
 
 </div>
@@ -716,81 +714,66 @@ Yükleniyor...
 
 </section>
 
-
 <nav id="bottomNav" class="nav hidden">
 
 <a class="active" href="index.html">
 
 <span class="nav-icon">
-
 <svg class="svg" viewBox="0 0 24 24">
 <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
 </svg>
-
 </span>
 
 Ana Sayfa
 
 </a>
 
-
 <a href="ara.html">
 
 <span class="nav-icon">
-
 <svg class="svg" viewBox="0 0 24 24">
 <circle cx="11" cy="11" r="6.5"/>
 <path d="m16 16 5 5"/>
 </svg>
-
 </span>
 
 Ara
 
 </a>
 
-
 <a href="olustur.html">
 
 <span class="nav-icon">
-
 <svg class="svg" viewBox="0 0 24 24">
 <rect x="4" y="4" width="16" height="16" rx="4"/>
 <path d="M12 8v8M8 12h8"/>
 </svg>
-
 </span>
 
 Oluştur
 
 </a>
 
-
 <a href="reels.html">
 
 <span class="nav-icon">
-
 <svg class="svg" viewBox="0 0 24 24">
 <rect x="3" y="4" width="18" height="16" rx="2"/>
 <path d="M3 9h18M8 4l3 5M13 4l3 5"/>
 </svg>
-
 </span>
 
 Reels
 
 </a>
 
-
 <a href="profile.html">
 
 <span class="nav-icon">
-
 <svg class="svg" viewBox="0 0 24 24">
 <circle cx="12" cy="8" r="3.5"/>
 <path d="M5 20a7 7 0 0 1 14 0"/>
 </svg>
-
 </span>
 
 Profil
@@ -801,12 +784,7 @@ Profil
 
 </div>
 
-
-<div
-id="menuBackdrop"
-class="menu-backdrop"
-onclick="closeMenu(event)"
->
+<div id="menuBackdrop" class="menu-backdrop" onclick="closeMenu(event)">
 
 <div
 id="postMenu"
@@ -815,7 +793,6 @@ onclick="event.stopPropagation()"
 ></div>
 
 </div>
-
 
 <div
 id="commentsModal"
@@ -843,7 +820,6 @@ Yorumlar
 
 </div>
 
-
 <div class="sort">
 
 <select
@@ -868,15 +844,9 @@ En çok beğenilen
 
 </div>
 
-
-<div
-id="commentList"
-class="comment-list"
-></div>
-
+<div id="commentList" class="comment-list"></div>
 
 <div class="emoji-row">
-
 <span>❤️</span>
 <span>🙌</span>
 <span>🔥</span>
@@ -885,16 +855,11 @@ class="comment-list"
 <span>😍</span>
 <span>😮</span>
 <span>😂</span>
-
 </div>
-
 
 <div class="comment-compose">
 
-<div
-id="composeAvatar"
-class="avatar small"
->
+<div id="composeAvatar" class="avatar small">
 M
 </div>
 
@@ -922,153 +887,229 @@ onclick="sendComment()"
 
 </div>
 
-
-<div
-id="toast"
-class="toast"
-></div>
-
+<div id="toast" class="toast"></div>
 
 <script>
 
-const API='/api';
+"use strict";
+
+const API="/api";
 
 
 /* =========================================================
-   MINEGRAM OTURUM TOKENI
+   MINEGRAM TOKEN SİSTEMİ
 ========================================================= */
+
+function validToken(value){
+
+  return !!(
+    value &&
+    typeof value==="string" &&
+    value.trim() &&
+    value!=="null" &&
+    value!=="undefined"
+  );
+
+}
+
 
 function getMinegramToken(){
 
   const keys=[
-    'minegram_token',
-    'minegram_supabase_token',
-    'supabase_token',
-    'access_token'
+
+    "minegram_token",
+    "minegram_supabase_token",
+    "minegram_access_token",
+
+    "supabase_token",
+    "access_token"
+
   ];
 
-  /* Önce localStorage */
+
+  /*
+    LOCAL STORAGE
+  */
 
   for(const key of keys){
 
-    const value=localStorage.getItem(key);
+    const value=
+      localStorage.getItem(key);
 
-    if(
-      value &&
-      value!=='null' &&
-      value!=='undefined'
-    ){
-      return value;
+    if(validToken(value)){
+
+      return value.trim();
+
     }
 
   }
 
 
-  /* Sonra sessionStorage */
+  /*
+    SESSION STORAGE
+  */
 
   for(const key of keys){
 
-    const value=sessionStorage.getItem(key);
+    const value=
+      sessionStorage.getItem(key);
 
-    if(
-      value &&
-      value!=='null' &&
-      value!=='undefined'
-    ){
-      return value;
+    if(validToken(value)){
+
+      return value.trim();
+
     }
 
   }
 
 
   return null;
+
 }
 
 
-let token=getMinegramToken();
+let token=
+  getMinegramToken();
 
 let currentUser=null;
+
 let currentCommentPost=null;
+
 let currentMenuPost=null;
-let currentCommentSort='forYou';
+
+let currentCommentSort="forYou";
+
 let replyingTo=null;
 
-const feedEl=document.getElementById('feed');
+const feedEl=
+  document.getElementById("feed");
 
 
 /* =========================================================
-   YARDIMCI FONKSİYONLAR
+   HTML ESCAPE
 ========================================================= */
 
-function esc(s=''){
+function esc(s=""){
 
   return String(s).replace(
     /[&<>"']/g,
     m=>({
-      '&':'&amp;',
-      '<':'&lt;',
-      '>':'&gt;',
-      '"':'&quot;',
-      "'":'&#039;'
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
     }[m])
   );
 
 }
 
 
+/* =========================================================
+   API
+========================================================= */
+
 async function api(path,opt={}){
 
-  const controller=new AbortController();
+  const controller=
+    new AbortController();
 
-  const timer=setTimeout(
-    ()=>controller.abort(),
-    10000
-  );
+  const timer=
+    setTimeout(
+      ()=>controller.abort(),
+      12000
+    );
+
 
   try{
 
+    /*
+      Her API isteğinden hemen önce
+      tokenı yeniden oku.
+    */
+
+    token=
+      getMinegramToken();
+
+
     const headers={
       ...(opt.headers||{}),
+
       ...(token
-        ? {Authorization:'Bearer '+token}
+        ? {
+            Authorization:
+              "Bearer "+token
+          }
         : {})
     };
 
-    const response=await fetch(
-      API+path,
-      {
-        ...opt,
-        headers,
-        signal:controller.signal
-      }
-    );
 
-    const json=await response
-      .json()
-      .catch(()=>({}));
+    const response=
+      await fetch(
+        API+path,
+        {
+          ...opt,
+
+          headers,
+
+          signal:
+            controller.signal,
+
+          credentials:
+            "same-origin",
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    const json=
+      await response
+        .json()
+        .catch(
+          ()=>({})
+        );
+
 
     if(!response.ok){
 
-      const error=new Error(
-        json.error ||
-        json.message ||
-        ('HTTP '+response.status)
-      );
+      const error=
+        new Error(
+          json.error ||
+          json.message ||
+          ("HTTP "+response.status)
+        );
 
-      error.status=response.status;
+
+      error.status=
+        response.status;
+
 
       throw error;
+
     }
+
 
     return json;
 
   }catch(e){
 
-    if(e.name==='AbortError'){
-      throw new Error(
-        'Sunucu yanıt vermiyor.'
-      );
+    if(
+      e.name==="AbortError"
+    ){
+
+      const error=
+        new Error(
+          "Sunucu yanıt vermiyor."
+        );
+
+      error.status=0;
+
+      throw error;
+
     }
+
 
     throw e;
 
@@ -1081,50 +1122,76 @@ async function api(path,opt={}){
 }
 
 
+/* =========================================================
+   TOAST
+========================================================= */
+
 function toast(text){
 
-  const el=document.getElementById('toast');
+  const el=
+    document.getElementById(
+      "toast"
+    );
+
 
   if(!el)return;
 
-  el.textContent=text;
 
-  el.classList.add('show');
+  el.textContent=
+    text;
 
-  clearTimeout(window.__toast);
 
-  window.__toast=setTimeout(
-    ()=>el.classList.remove('show'),
-    2200
+  el.classList.add(
+    "show"
   );
+
+
+  clearTimeout(
+    window.__toast
+  );
+
+
+  window.__toast=
+    setTimeout(
+      ()=>el.classList.remove("show"),
+      2200
+    );
 
 }
 
 
 /* =========================================================
-   OTURUM / ANA SAYFA
+   ANA SAYFA
 ========================================================= */
 
 function showHome(){
 
   document
-    .getElementById('home')
+    .getElementById("home")
     ?.classList
-    .remove('hidden');
+    .remove("hidden");
+
 
   document
-    .getElementById('bottomNav')
+    .getElementById("bottomNav")
     ?.classList
-    .remove('hidden');
+    .remove("hidden");
 
 }
 
 
 function showLogin(){
 
+  /*
+    Burada artık home tamamen gizlenmiyor.
+    Kullanıcı mevcut sayfayı görür.
+  */
+
   showHome();
 
+
   if(!feedEl)return;
+
 
   feedEl.innerHTML=`
 
@@ -1163,14 +1230,25 @@ function showLogin(){
 }
 
 
+/* =========================================================
+   OTURUM TEMİZLE
+========================================================= */
+
 function clearMinegramSession(){
 
   const keys=[
-    'minegram_token',
-    'minegram_supabase_token',
-    'supabase_token',
-    'access_token'
+
+    "minegram_token",
+    "minegram_supabase_token",
+    "minegram_access_token",
+
+    "supabase_token",
+    "access_token",
+
+    "minegram_refresh_token"
+
   ];
+
 
   for(const key of keys){
 
@@ -1179,13 +1257,31 @@ function clearMinegramSession(){
 
   }
 
-  localStorage.removeItem('minegram_user');
+
+  /*
+    Kullanıcı bilgisi sadece gerçek logout/auth
+    probleminde silinir.
+  */
+
+  localStorage.removeItem(
+    "minegram_user"
+  );
+
+  localStorage.removeItem(
+    "minegram_profile"
+  );
+
 
   token=null;
+
   currentUser=null;
 
 }
 
+
+/* =========================================================
+   LOGOUT
+========================================================= */
 
 function logout(){
 
@@ -1196,53 +1292,72 @@ function logout(){
 }
 
 
+/* =========================================================
+   PROFILE URL
+========================================================= */
+
 function profileUrl(username){
 
-  return 'profile.html?user='+
-    encodeURIComponent(username);
+  return (
+    "profile.html?user="+
+    encodeURIComponent(username)
+  );
 
 }
 
 
 /* =========================================================
-   POST RENDER
+   POST
 ========================================================= */
 
 function renderPost(p){
 
-  const username=esc(
-    p.user?.username ||
-    p.username ||
-    'minegram'
-  );
-
-  const initial=esc(
-    (
+  const username=
+    esc(
       p.user?.username ||
       p.username ||
-      'M'
-    )[0].toUpperCase()
-  );
-
-  const liked=!!p.likedByMe;
-
-  const likes=Array.isArray(p.likes)
-    ? p.likes.length
-    : Number(p.likes||0);
-
-  const comments=mergeComments(
-    Array.isArray(p.comments)
-      ? p.comments
-      : (
-        Array.isArray(p.post?.comments)
-          ? p.post.comments
-          : []
-      ),
-    p.id
-  );
+      "minegram"
+    );
 
 
-  let media='';
+  const rawUsername=
+    p.user?.username ||
+    p.username ||
+    "M";
+
+
+  const initial=
+    esc(
+      String(rawUsername)
+        .charAt(0)
+        .toUpperCase()
+    );
+
+
+  const liked=
+    !!p.likedByMe;
+
+
+  const likes=
+    Array.isArray(p.likes)
+      ? p.likes.length
+      : Number(p.likes||0);
+
+
+  const comments=
+    mergeComments(
+      Array.isArray(p.comments)
+        ? p.comments
+        : (
+          Array.isArray(p.post?.comments)
+            ? p.post.comments
+            : []
+        ),
+      p.id
+    );
+
+
+  let media="";
 
 
   if(p.media){
@@ -1335,14 +1450,14 @@ function renderPost(p){
           </div>
 
           `
-          : ''
+          : ""
       }
 
 
       <div class="actions">
 
         <button
-          class="action like ${liked?'liked':''}"
+          class="action like ${liked?"liked":""}"
           onclick="likePost('${esc(p.id)}')"
           aria-label="Beğen"
         >
@@ -1354,7 +1469,7 @@ function renderPost(p){
 
             <path
               d="M20.8 8.8c0 5.4-8.8 10.2-8.8 10.2S3.2 14.2 3.2 8.8A4.8 4.8 0 0 1 8 4c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2a4.8 4.8 0 0 1 4.8 4.8Z"
-              ${liked?'fill="currentColor"':''}
+              ${liked?'fill="currentColor"':""}
             />
 
           </svg>
@@ -1418,7 +1533,7 @@ function renderPost(p){
           @${username}
         </b>
 
-        ${esc(p.caption||'')}
+        ${esc(p.caption||"")}
 
       </div>
 
@@ -1434,24 +1549,24 @@ function renderPost(p){
 
             ${
               comments.length>3
-                ? 'Tüm '+comments.length+' yorumu gör'
+                ? "Tüm "+comments.length+" yorumu gör"
                 : comments.map(
                     c=>`
                       <div>
                         <b>
-                          @${esc(c.username||'')}
+                          @${esc(c.username||"")}
                         </b>
 
-                        ${esc(c.text||'')}
+                        ${esc(c.text||"")}
                       </div>
                     `
-                  ).join('')
+                  ).join("")
             }
 
           </div>
 
           `
-          : ''
+          : ""
       }
 
     </article>
@@ -1469,6 +1584,7 @@ async function loadFeed(){
 
   if(!feedEl)return;
 
+
   feedEl.innerHTML=`
 
     <div class="empty">
@@ -1480,7 +1596,11 @@ async function loadFeed(){
 
   try{
 
-    const result=await api('/feed');
+    const result=
+      await api(
+        "/feed"
+      );
+
 
     const posts=
       Array.isArray(result)
@@ -1497,11 +1617,10 @@ async function loadFeed(){
 
 
     feedEl.innerHTML=
-
       posts.length
-
-        ? posts.map(renderPost).join('')
-
+        ? posts.map(
+            renderPost
+          ).join("")
         : `
 
           <div class="empty">
@@ -1519,14 +1638,14 @@ async function loadFeed(){
 
   }catch(e){
 
-    const msg=String(
-      e?.message||''
-    );
+    const msg=
+      String(
+        e?.message||""
+      );
 
 
     /*
-      SADECE GERÇEK YETKİLENDİRME HATASINDA
-      OTURUMU TEMİZLE.
+      SADECE GERÇEK AUTH HATALARI
     */
 
     const isAuthError=
@@ -1541,7 +1660,9 @@ async function loadFeed(){
 
       /jwt/i.test(msg) ||
 
-      /not authenticated/i.test(msg);
+      /not authenticated/i.test(msg) ||
+
+      /session expired/i.test(msg);
 
 
     if(isAuthError){
@@ -1566,7 +1687,7 @@ async function loadFeed(){
         <small>
           ${esc(
             msg ||
-            'Sunucuya bağlanılamadı.'
+            "Sunucuya bağlanılamadı."
           )}
         </small>
 
@@ -1592,9 +1713,10 @@ async function loadFeed(){
 
     `;
 
+
     toast(
       msg ||
-      'Gönderiler yüklenemedi'
+      "Gönderiler yüklenemedi"
     );
 
   }
@@ -1608,49 +1730,57 @@ async function loadFeed(){
 
 async function likePost(id){
 
-  const article=document.querySelector(
-    '.post[data-id="'+
-    CSS.escape(String(id))+
-    '"]'
-  );
+  const article=
+    document.querySelector(
+      '.post[data-id="'+
+      CSS.escape(String(id))+
+      '"]'
+    );
 
-  const btn=article?.querySelector(
-    '.action.like'
-  );
 
-  const path=btn?.querySelector(
-    'path'
-  );
+  const btn=
+    article?.querySelector(
+      ".action.like"
+    );
 
-  const likesEl=article?.querySelector(
-    '.likes'
-  );
+
+  const path=
+    btn?.querySelector(
+      "path"
+    );
+
+
+  const likesEl=
+    article?.querySelector(
+      ".likes"
+    );
 
 
   const wasLiked=
-    !!btn?.classList.contains('liked');
+    !!btn?.classList.contains(
+      "liked"
+    );
 
-  const nextLiked=!wasLiked;
 
+  const nextLiked=
+    !wasLiked;
 
-  /*
-    Optimistic UI
-  */
 
   if(btn){
 
     btn.classList.toggle(
-      'liked',
+      "liked",
       nextLiked
     );
+
 
     if(path){
 
       path.setAttribute(
-        'fill',
+        "fill",
         nextLiked
-          ? 'currentColor'
-          : 'none'
+          ? "currentColor"
+          : "none"
       );
 
     }
@@ -1660,51 +1790,56 @@ async function likePost(id){
 
   if(likesEl){
 
-    const current=parseInt(
-      (likesEl.textContent||'0')
-        .replace(/\D/g,''),
-      10
-    )||0;
+    const current=
+      parseInt(
+        (likesEl.textContent||"0")
+          .replace(/\D/g,""),
+        10
+      )||0;
+
 
     likesEl.textContent=
       Math.max(
         0,
-        current+(nextLiked?1:-1)
+        current+
+        (nextLiked?1:-1)
       )+
-      ' beğenme';
+      " beğenme";
 
   }
 
 
   try{
 
-    const r=await api(
-      '/posts/'+
-      encodeURIComponent(id)+
-      '/like',
-      {
-        method:'POST'
-      }
-    );
+    const r=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)+
+        "/like",
+        {
+          method:"POST"
+        }
+      );
 
 
     if(
       btn &&
-      typeof r.liked==='boolean'
+      typeof r.liked==="boolean"
     ){
 
       btn.classList.toggle(
-        'liked',
+        "liked",
         r.liked
       );
+
 
       if(path){
 
         path.setAttribute(
-          'fill',
+          "fill",
           r.liked
-            ? 'currentColor'
-            : 'none'
+            ? "currentColor"
+            : "none"
         );
 
       }
@@ -1714,36 +1849,33 @@ async function likePost(id){
 
     if(
       likesEl &&
-      typeof r.likes==='number'
+      typeof r.likes==="number"
     ){
 
       likesEl.textContent=
         r.likes+
-        ' beğenme';
+        " beğenme";
 
     }
 
 
   }catch(e){
 
-    /*
-      Başarısızsa UI'ı geri al.
-    */
-
     if(btn){
 
       btn.classList.toggle(
-        'liked',
+        "liked",
         wasLiked
       );
+
 
       if(path){
 
         path.setAttribute(
-          'fill',
+          "fill",
           wasLiked
-            ? 'currentColor'
-            : 'none'
+            ? "currentColor"
+            : "none"
         );
 
       }
@@ -1753,11 +1885,13 @@ async function likePost(id){
 
     if(likesEl){
 
-      const current=parseInt(
-        (likesEl.textContent||'0')
-          .replace(/\D/g,''),
-        10
-      )||0;
+      const current=
+        parseInt(
+          (likesEl.textContent||"0")
+            .replace(/\D/g,""),
+          10
+        )||0;
+
 
       likesEl.textContent=
         Math.max(
@@ -1765,14 +1899,14 @@ async function likePost(id){
           current+
           (nextLiked?-1:1)
         )+
-        ' beğenme';
+        " beğenme";
 
     }
 
 
     toast(
       e.message ||
-      'Beğeni işlemi başarısız'
+      "Beğeni işlemi başarısız"
     );
 
   }
@@ -1782,21 +1916,27 @@ async function likePost(id){
 
 async function doubleLike(id){
 
-  const pop=document.getElementById(
-    'heart-'+
-    CSS.escape(String(id))
-  );
+  const pop=
+    document.getElementById(
+      "heart-"+
+      CSS.escape(String(id))
+    );
+
 
   if(pop){
 
-    pop.classList.add('show');
+    pop.classList.add(
+      "show"
+    );
+
 
     setTimeout(
-      ()=>pop.classList.remove('show'),
+      ()=>pop.classList.remove("show"),
       650
     );
 
   }
+
 
   likePost(id);
 
@@ -1811,30 +1951,32 @@ async function savePost(id){
 
   try{
 
-    const r=await api(
-      '/posts/'+
-      encodeURIComponent(id)+
-      '/save',
-      {
-        method:'POST'
-      }
-    );
+    const r=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)+
+        "/save",
+        {
+          method:"POST"
+        }
+      );
 
 
     toast(
       r.saved
-        ? 'Kaydedildi'
-        : 'Kayıttan kaldırıldı'
+        ? "Kaydedildi"
+        : "Kayıttan kaldırıldı"
     );
 
 
     await loadFeed();
 
+
   }catch(e){
 
     toast(
       e.message ||
-      'Kaydetme işlemi başarısız'
+      "Kaydetme işlemi başarısız"
     );
 
   }
@@ -1850,7 +1992,7 @@ async function sharePost(id){
 
   const url=
     location.origin+
-    '/post.html?id='+
+    "/post.html?id="+
     encodeURIComponent(id);
 
 
@@ -1859,7 +2001,7 @@ async function sharePost(id){
     if(navigator.share){
 
       await navigator.share({
-        title:'Minegram gönderisi',
+        title:"Minegram gönderisi",
         url
       });
 
@@ -1869,26 +2011,20 @@ async function sharePost(id){
         url
       );
 
+
       toast(
-        'Gönderi bağlantısı kopyalandı'
+        "Gönderi bağlantısı kopyalandı"
       );
 
     }
 
-  }catch(e){
-
-    /*
-      Kullanıcı paylaşım ekranını kapattıysa
-      hata gösterme.
-    */
-
-  }
+  }catch(e){}
 
 }
 
 
 /* =========================================================
-   GÖNDERİ MENÜSÜ
+   MENÜ
 ========================================================= */
 
 function openMenu(ev,id){
@@ -1897,9 +2033,12 @@ function openMenu(ev,id){
 
   currentMenuPost=id;
 
-  const menu=document.getElementById(
-    'postMenu'
-  );
+
+  const menu=
+    document.getElementById(
+      "postMenu"
+    );
+
 
   menu.innerHTML=`
 
@@ -1908,15 +2047,8 @@ function openMenu(ev,id){
       onclick="saveFromMenu()"
     >
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
-
-        <path
-          d="M6 4h12v17l-6-4-6 4Z"
-        />
-
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="M6 4h12v17l-6-4-6 4Z"/>
       </svg>
 
       Kaydet
@@ -1929,32 +2061,13 @@ function openMenu(ev,id){
       onclick="sharePost(currentMenuPost);closeMenu()"
     >
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
+      <svg class="svg" viewBox="0 0 24 24">
 
-        <circle
-          cx="18"
-          cy="5"
-          r="2"
-        />
+        <circle cx="18" cy="5" r="2"/>
+        <circle cx="6" cy="12" r="2"/>
+        <circle cx="18" cy="19" r="2"/>
 
-        <circle
-          cx="6"
-          cy="12"
-          r="2"
-        />
-
-        <circle
-          cx="18"
-          cy="19"
-          r="2"
-        />
-
-        <path
-          d="m8 11 8-5M8 13l8 5"
-        />
+        <path d="m8 11 8-5M8 13l8 5"/>
 
       </svg>
 
@@ -1968,15 +2081,8 @@ function openMenu(ev,id){
       onclick="openComments(currentMenuPost);closeMenu()"
     >
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
-
-        <path
-          d="M4 5h16v11H8l-4 4Z"
-        />
-
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="M4 5h16v11H8l-4 4Z"/>
       </svg>
 
       Yorumları gör
@@ -1989,10 +2095,7 @@ function openMenu(ev,id){
       onclick="deletePostFromMenu()"
     >
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
+      <svg class="svg" viewBox="0 0 24 24">
 
         <path
           d="M5 7h14M10 11v6M14 11v6M8 7l1-3h6l1 3v13H8Z"
@@ -2008,9 +2111,11 @@ function openMenu(ev,id){
 
 
   document
-    .getElementById('menuBackdrop')
+    .getElementById(
+      "menuBackdrop"
+    )
     .classList
-    .add('open');
+    .add("open");
 
 }
 
@@ -2019,8 +2124,9 @@ function closeMenu(e){
 
   const backdrop=
     document.getElementById(
-      'menuBackdrop'
+      "menuBackdrop"
     );
+
 
   if(
     !e ||
@@ -2028,7 +2134,7 @@ function closeMenu(e){
   ){
 
     backdrop.classList.remove(
-      'open'
+      "open"
     );
 
   }
@@ -2046,6 +2152,7 @@ async function saveFromMenu(){
 
   }
 
+
   closeMenu();
 
 }
@@ -2055,43 +2162,49 @@ async function deletePostFromMenu(){
 
   if(!currentMenuPost)return;
 
-  const id=currentMenuPost;
+
+  const id=
+    currentMenuPost;
+
 
   closeMenu();
 
 
   if(
     !confirm(
-      'Bu gönderiyi silmek istediğine emin misin?'
+      "Bu gönderiyi silmek istediğine emin misin?"
     )
   ){
+
     return;
+
   }
 
 
   try{
 
     await api(
-      '/posts/'+
+      "/posts/"+
       encodeURIComponent(id),
       {
-        method:'DELETE'
+        method:"DELETE"
       }
     );
 
 
     toast(
-      'Gönderi silindi'
+      "Gönderi silindi"
     );
 
 
     await loadFeed();
 
+
   }catch(e){
 
     toast(
       e.message ||
-      'Gönderi silinemedi'
+      "Gönderi silinemedi"
     );
 
   }
@@ -2100,12 +2213,12 @@ async function deletePostFromMenu(){
 
 
 /* =========================================================
-   YORUMLAR - LOCAL
+   LOCAL COMMENTS
 ========================================================= */
 
 function localCommentsKey(id){
 
-  return 'minegram_comments_'+
+  return "minegram_comments_"+
     String(id);
 
 }
@@ -2119,9 +2232,10 @@ function getLocalComments(id){
       JSON.parse(
         localStorage.getItem(
           localCommentsKey(id)
-        ) ||
-        '[]'
+        )||
+        "[]"
       );
+
 
     return Array.isArray(value)
       ? value
@@ -2141,7 +2255,9 @@ function saveLocalComment(id,c){
   const arr=
     getLocalComments(id);
 
+
   arr.push(c);
+
 
   localStorage.setItem(
     localCommentsKey(id),
@@ -2160,35 +2276,40 @@ function mergeComments(server,id){
       ? server
       : [];
 
+
   const local=
     getLocalComments(id);
 
-  const all=[...remote];
+
+  const all=[
+    ...remote
+  ];
 
 
   for(const c of local){
 
-    const exists=all.some(
-      x=>
-        String(x.id||'')===
-        String(c.id||'') ||
+    const exists=
+      all.some(
+        x=>
+          String(x.id||"")===
+          String(c.id||"") ||
 
-        (
-          x.username===c.username &&
-          x.text===c.text &&
-          Math.abs(
-            new Date(
-              x.createdAt||
-              x.created_at||
-              0
-            )-
-            new Date(
-              c.createdAt||
-              0
-            )
-          )<10000
-        )
-    );
+          (
+            x.username===c.username &&
+            x.text===c.text &&
+            Math.abs(
+              new Date(
+                x.createdAt||
+                x.created_at||
+                0
+              )-
+              new Date(
+                c.createdAt||
+                0
+              )
+            )<10000
+          )
+      );
 
 
     if(!exists){
@@ -2218,7 +2339,7 @@ function sortComments(comments){
 
   if(
     currentCommentSort===
-    'newest'
+    "newest"
   ){
 
     return arr.sort(
@@ -2240,7 +2361,7 @@ function sortComments(comments){
 
   if(
     currentCommentSort===
-    'popular'
+    "popular"
   ){
 
     return arr.sort(
@@ -2290,8 +2411,10 @@ function renderCommentsForPost(
   return sorted.length
 
     ? sorted
-        .map(renderComment)
-        .join('')
+        .map(
+          renderComment
+        )
+        .join("")
 
     : `
 
@@ -2308,7 +2431,8 @@ function changeCommentSort(
   value
 ){
 
-  currentCommentSort=value;
+  currentCommentSort=
+    value;
 
 
   if(currentCommentPost){
@@ -2320,7 +2444,7 @@ function changeCommentSort(
 
 
     document.getElementById(
-      'commentList'
+      "commentList"
     ).innerHTML=
       renderCommentsForPost(
         all
@@ -2335,7 +2459,7 @@ function changeCommentSort(
 
 
 /* =========================================================
-   YORUMLARI SUNUCUDAN GETİR
+   YORUM SUNUCU
 ========================================================= */
 
 async function refreshComments(
@@ -2344,12 +2468,14 @@ async function refreshComments(
 
   if(!currentCommentPost)return;
 
+
   const id=
     currentCommentPost;
 
+
   const list=
     document.getElementById(
-      'commentList'
+      "commentList"
     );
 
 
@@ -2365,10 +2491,11 @@ async function refreshComments(
 
   try{
 
-    const p=await api(
-      '/posts/'+
-      encodeURIComponent(id)
-    );
+    const p=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)
+      );
 
 
     const remote=
@@ -2391,14 +2518,8 @@ async function refreshComments(
         )
       );
 
-  }catch(e){
 
-    /*
-      Yorumlar yerelde varsa
-      onları göstermeye devam et.
-    */
-
-  }
+  }catch(e){}
 
 }
 
@@ -2411,49 +2532,53 @@ async function openComments(id){
 
   currentCommentPost=id;
 
-  currentCommentSort='forYou';
+  currentCommentSort=
+    "forYou";
 
   replyingTo=null;
 
 
   const input=
     document.getElementById(
-      'commentInput'
+      "commentInput"
     );
+
 
   if(input){
 
-    input.value='';
+    input.value="";
 
     input.placeholder=
-      'Bunun hakkında ne düşünüyorsun?';
+      "Bunun hakkında ne düşünüyorsun?";
 
   }
 
 
   const sort=
     document.getElementById(
-      'commentSort'
+      "commentSort"
     );
+
 
   if(sort){
 
-    sort.value='forYou';
+    sort.value=
+      "forYou";
 
   }
 
 
   document
     .getElementById(
-      'commentsModal'
+      "commentsModal"
     )
     .classList
-    .add('open');
+    .add("open");
 
 
   const list=
     document.getElementById(
-      'commentList'
+      "commentList"
     );
 
 
@@ -2465,10 +2590,11 @@ async function openComments(id){
 
   try{
 
-    const p=await api(
-      '/posts/'+
-      encodeURIComponent(id)
-    );
+    const p=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)
+      );
 
 
     const remote=
@@ -2491,6 +2617,7 @@ async function openComments(id){
         )
       );
 
+
   }catch(e){
 
     const local=
@@ -2499,11 +2626,9 @@ async function openComments(id){
 
     list.innerHTML=
       local.length
-
         ? local
             .map(renderComment)
-            .join('')
-
+            .join("")
         : `
 
           <div class="empty">
@@ -2521,7 +2646,7 @@ function closeComments(e){
 
   const modal=
     document.getElementById(
-      'commentsModal'
+      "commentsModal"
     );
 
 
@@ -2531,8 +2656,9 @@ function closeComments(e){
   ){
 
     modal.classList.remove(
-      'open'
+      "open"
     );
+
 
     currentCommentPost=null;
 
@@ -2549,13 +2675,17 @@ function closeComments(e){
 
 function relativeTime(v){
 
-  const d=new Date(v);
+  const d=
+    new Date(v);
 
-  if(!v || isNaN(d))return '';
+
+  if(!v || isNaN(d))return "";
+
 
   let seconds=
     Math.floor(
-      (Date.now()-d.getTime())/
+      (Date.now()-
+      d.getTime())/
       1000
     );
 
@@ -2563,7 +2693,7 @@ function relativeTime(v){
   if(seconds<60){
 
     return seconds+
-      ' saniye önce';
+      " saniye önce";
 
   }
 
@@ -2577,7 +2707,7 @@ function relativeTime(v){
   if(minutes<60){
 
     return minutes+
-      ' dakika önce';
+      " dakika önce";
 
   }
 
@@ -2591,7 +2721,7 @@ function relativeTime(v){
   if(hours<24){
 
     return hours+
-      ' saat önce';
+      " saat önce";
 
   }
 
@@ -2605,7 +2735,7 @@ function relativeTime(v){
   if(days<7){
 
     return days+
-      ' gün önce';
+      " gün önce";
 
   }
 
@@ -2615,45 +2745,48 @@ function relativeTime(v){
     return Math.floor(
       days/7
     )+
-    ' hafta önce';
+    " hafta önce";
 
   }
 
 
   return d.toLocaleDateString(
-    'tr-TR'
+    "tr-TR"
   );
 
 }
 
 
 /* =========================================================
-   YORUM RENDER
+   COMMENT RENDER
 ========================================================= */
 
 function renderComment(c){
 
-  const username=esc(
-    c.username||
-    c.user?.username||
-    currentUser?.username||
-    'minegram'
-  );
+  const username=
+    esc(
+      c.username||
+      c.user?.username||
+      currentUser?.username||
+      "minegram"
+    );
 
 
-  const initial=esc(
-    username[0]
-      .toUpperCase()
-  );
+  const initial=
+    esc(
+      username[0]
+        .toUpperCase()
+    );
 
 
   const liked=
     !!c.likedByMe;
 
 
-  const id=esc(
-    c.id||''
-  );
+  const id=
+    esc(
+      c.id||""
+    );
 
 
   const replyCount=
@@ -2693,7 +2826,7 @@ function renderComment(c){
             ${esc(
               c.text||
               c.content||
-              ''
+              ""
             )}
           </div>
 
@@ -2717,7 +2850,6 @@ function renderComment(c){
 
             ${
               replyCount
-
                 ? `
 
                   &nbsp;
@@ -2730,8 +2862,7 @@ function renderComment(c){
                   </button>
 
                 `
-
-                : ''
+                : ""
             }
 
           </div>
@@ -2740,10 +2871,10 @@ function renderComment(c){
 
 
         <button
-          class="comment-like ${liked?'liked':''}"
+          class="comment-like ${liked?"liked":""}"
           onclick="likeComment('${id}')"
         >
-          ${liked?'♥':'♡'}
+          ${liked?"♥":"♡"}
         </button>
 
       </div>
@@ -2758,8 +2889,8 @@ function renderComment(c){
           Array.isArray(c.replies)
             ? c.replies
                 .map(renderReply)
-                .join('')
-            : ''
+                .join("")
+            : ""
         }
 
       </div>
@@ -2773,11 +2904,12 @@ function renderComment(c){
 
 function renderReply(r){
 
-  const username=esc(
-    r.username||
-    r.user?.username||
-    'minegram'
-  );
+  const username=
+    esc(
+      r.username||
+      r.user?.username||
+      "minegram"
+    );
 
 
   return `
@@ -2803,7 +2935,7 @@ function renderReply(r){
           ${esc(
             r.text||
             r.content||
-            ''
+            ""
           )}
         </div>
 
@@ -2840,7 +2972,7 @@ function startReply(
 
   const input=
     document.getElementById(
-      'commentInput'
+      "commentInput"
     );
 
 
@@ -2848,9 +2980,9 @@ function startReply(
 
 
   input.placeholder=
-    '@'+
+    "@"+
     username+
-    ' kişisine yanıt yaz...';
+    " kişisine yanıt yaz...";
 
 
   input.focus();
@@ -2862,11 +2994,13 @@ function toggleReplies(id){
 
   document
     .getElementById(
-      'replies-'+
+      "replies-"+
       CSS.escape(String(id))
     )
     ?.classList
-    .toggle('hidden');
+    .toggle(
+      "hidden"
+    );
 
 }
 
@@ -2879,7 +3013,7 @@ async function sendComment(){
 
   const input=
     document.getElementById(
-      'commentInput'
+      "commentInput"
     );
 
 
@@ -2888,10 +3022,12 @@ async function sendComment(){
 
 
   if(
-    !textValue ||
+    !textValue||
     !currentCommentPost
   ){
+
     return;
+
   }
 
 
@@ -2905,7 +3041,7 @@ async function sendComment(){
 
   const sendButton=
     document.querySelector(
-      '.comment-compose .send'
+      ".comment-compose .send"
     );
 
 
@@ -2917,7 +3053,7 @@ async function sendComment(){
 
 
   const me=
-    typeof currentUser==='object' &&
+    typeof currentUser==="object" &&
     currentUser
       ? currentUser
       : {};
@@ -2926,7 +3062,7 @@ async function sendComment(){
   const username=
     me.username||
     me.name||
-    'minegram';
+    "minegram";
 
 
   const now=
@@ -2934,9 +3070,9 @@ async function sendComment(){
 
 
   const tempId=
-    'local-'+
+    "local-"+
     Date.now()+
-    '-'+
+    "-"+
     Math.random()
       .toString(36)
       .slice(2);
@@ -2958,10 +3094,6 @@ async function sendComment(){
 
   };
 
-
-  /*
-    YANIT
-  */
 
   if(replyId){
 
@@ -3007,100 +3139,32 @@ async function sendComment(){
     const wrap=
       document.querySelector(
         '.comment-wrap[data-comment-id="'+
-        CSS.escape(
-          String(replyId)
-        )+
+        CSS.escape(String(replyId))+
         '"]'
       );
 
 
     const replies=
       wrap?.querySelector(
-        '.replies'
+        ".replies"
       );
 
 
     if(replies){
 
       replies.classList.remove(
-        'hidden'
+        "hidden"
       );
 
 
       replies.insertAdjacentHTML(
-        'beforeend',
+        "beforeend",
         renderReply(item)
       );
 
-
-      const meta=
-        wrap.querySelector(
-          '.comment-meta'
-        );
-
-
-      if(meta){
-
-        let countBtn=
-          meta.querySelector(
-            '.reply-count-link'
-          );
-
-
-        if(!countBtn){
-
-          countBtn=
-            document.createElement(
-              'button'
-            );
-
-          countBtn.className=
-            'reply-link reply-count-link';
-
-
-          countBtn.onclick=()=>
-            toggleReplies(
-              replyId
-            );
-
-
-          meta.appendChild(
-            document.createTextNode(
-              ' '
-            )
-          );
-
-
-          meta.appendChild(
-            countBtn
-          );
-
-        }
-
-
-        const currentCount=
-          parent &&
-          Array.isArray(
-            parent.replies
-          )
-            ? parent.replies.length
-            : 1;
-
-
-        countBtn.textContent=
-          currentCount+
-          ' yanıt';
-
-      }
-
     }
 
-
   }else{
-
-    /*
-      NORMAL YORUM
-    */
 
     saveLocalComment(
       postId,
@@ -3110,7 +3174,7 @@ async function sendComment(){
 
     const list=
       document.getElementById(
-        'commentList'
+        "commentList"
       );
 
 
@@ -3118,17 +3182,19 @@ async function sendComment(){
 
       const empty=
         list.querySelector(
-          '.empty'
+          ".empty"
         );
 
 
       if(empty){
+
         empty.remove();
+
       }
 
 
       list.insertAdjacentHTML(
-        'beforeend',
+        "beforeend",
         renderComment(item)
       );
 
@@ -3141,24 +3207,20 @@ async function sendComment(){
   }
 
 
-  input.value='';
+  input.value="";
 
   replyingTo=null;
 
   input.placeholder=
-    'Bunun hakkında ne düşünüyorsun?';
+    "Bunun hakkında ne düşünüyorsun?";
 
 
   toast(
     replyId
-      ? 'Yanıt gönderildi'
-      : 'Yorum gönderildi'
+      ? "Yanıt gönderildi"
+      : "Yorum gönderildi"
   );
 
-
-  /*
-    Sunucuya arka planda gönder.
-  */
 
   try{
 
@@ -3171,17 +3233,17 @@ async function sendComment(){
 
         result=
           await api(
-            '/comments/'+
-            encodeURIComponent(
-              replyId
-            )+
-            '/reply',
+            "/comments/"+
+            encodeURIComponent(replyId)+
+            "/reply",
             {
-              method:'POST',
+              method:"POST",
+
               headers:{
-                'Content-Type':
-                  'application/json'
+                "Content-Type":
+                  "application/json"
               },
+
               body:
                 JSON.stringify({
                   text:textValue
@@ -3193,21 +3255,19 @@ async function sendComment(){
 
         result=
           await api(
-            '/posts/'+
-            encodeURIComponent(
-              postId
-            )+
-            '/comments/'+
-            encodeURIComponent(
-              replyId
-            )+
-            '/reply',
+            "/posts/"+
+            encodeURIComponent(postId)+
+            "/comments/"+
+            encodeURIComponent(replyId)+
+            "/reply",
             {
-              method:'POST',
+              method:"POST",
+
               headers:{
-                'Content-Type':
-                  'application/json'
+                "Content-Type":
+                  "application/json"
               },
+
               body:
                 JSON.stringify({
                   text:textValue
@@ -3217,22 +3277,21 @@ async function sendComment(){
 
       }
 
-
     }else{
 
       result=
         await api(
-          '/posts/'+
-          encodeURIComponent(
-            postId
-          )+
-          '/comments',
+          "/posts/"+
+          encodeURIComponent(postId)+
+          "/comments",
           {
-            method:'POST',
+            method:"POST",
+
             headers:{
-              'Content-Type':
-                'application/json'
+              "Content-Type":
+                "application/json"
             },
+
             body:
               JSON.stringify({
                 text:textValue
@@ -3243,11 +3302,6 @@ async function sendComment(){
     }
 
 
-    /*
-      API gerçek kimlik döndürdüyse
-      local kayıtla eşleştir.
-    */
-
     const returned=
       result?.comment||
       result?.data||
@@ -3256,7 +3310,7 @@ async function sendComment(){
 
     if(
       returned &&
-      typeof returned==='object'
+      typeof returned==="object"
     ){
 
       const realId=
@@ -3301,9 +3355,7 @@ async function sendComment(){
 
           if(
             replyId &&
-            Array.isArray(
-              c.replies
-            )
+            Array.isArray(c.replies)
           ){
 
             for(
@@ -3317,6 +3369,7 @@ async function sendComment(){
               ){
 
                 reply.id=realId;
+
                 reply.local=false;
 
               }
@@ -3340,21 +3393,12 @@ async function sendComment(){
     }
 
 
-    /*
-      Arka planda senkronizasyon.
-    */
-
     refreshComments(false);
 
     loadFeed();
 
 
   }catch(e){
-
-    /*
-      Sunucuya gönderilemediyse
-      geçici local kaydı kaldır.
-    */
 
     const local=
       getLocalComments(
@@ -3419,7 +3463,7 @@ async function sendComment(){
     ){
 
       document.getElementById(
-        'commentList'
+        "commentList"
       ).innerHTML=
         renderCommentsForPost(
           local
@@ -3430,9 +3474,8 @@ async function sendComment(){
 
     toast(
       e.message||
-      'Gönderilemedi'
+      "Gönderilemedi"
     );
-
 
   }finally{
 
@@ -3456,7 +3499,7 @@ async function likeComment(id){
   if(!id){
 
     toast(
-      'Yorum kimliği bulunamadı'
+      "Yorum kimliği bulunamadı"
     );
 
     return;
@@ -3464,43 +3507,38 @@ async function likeComment(id){
   }
 
 
-  /*
-    Doğrudan comment-wrap üzerinden bul.
-  */
-
   const wrap=
     document.querySelector(
       '.comment-wrap[data-comment-id="'+
-      CSS.escape(
-        String(id)
-      )+
+      CSS.escape(String(id))+
       '"]'
     );
 
 
   const btn=
     wrap?.querySelector(
-      '.comment-like'
+      ".comment-like"
     );
 
 
   const wasLiked=
     !!btn?.classList.contains(
-      'liked'
+      "liked"
     );
 
 
   if(btn){
 
     btn.classList.toggle(
-      'liked',
+      "liked",
       !wasLiked
     );
 
+
     btn.textContent=
       !wasLiked
-        ? '♥'
-        : '♡';
+        ? "♥"
+        : "♡";
 
   }
 
@@ -3509,37 +3547,38 @@ async function likeComment(id){
 
     const r=
       await api(
-        '/comments/'+
+        "/comments/"+
         encodeURIComponent(id)+
-        '/like',
+        "/like",
         {
-          method:'POST'
+          method:"POST"
         }
       );
 
 
     if(
       btn &&
-      typeof r.liked==='boolean'
+      typeof r.liked==="boolean"
     ){
 
       btn.classList.toggle(
-        'liked',
+        "liked",
         r.liked
       );
 
+
       btn.textContent=
         r.liked
-          ? '♥'
-          : '♡';
+          ? "♥"
+          : "♡";
 
     }
 
 
     toast(
       r.liked
-        ? 'Yorum beğenildi'
-        : 'Yorum beğenisi kaldırıldı'
+        ? "Yorum beğenildi"
+        : "Yorum beğenisi kaldırıldı"
     );
 
 
@@ -3548,21 +3587,22 @@ async function likeComment(id){
     if(btn){
 
       btn.classList.toggle(
-        'liked',
+        "liked",
         wasLiked
       );
 
+
       btn.textContent=
         wasLiked
-          ? '♥'
-          : '♡';
+          ? "♥"
+          : "♡";
 
     }
 
 
     toast(
       e.message||
-      'Beğeni işlemi başarısız'
+      "Beğeni işlemi başarısız"
     );
 
   }
@@ -3571,7 +3611,7 @@ async function likeComment(id){
 
 
 /* =========================================================
-   LOGIN / ESKİ FONKSİYON UYUMLULUĞU
+   ESKİ LOGIN UYUMLULUĞU
 ========================================================= */
 
 async function login(){
@@ -3579,26 +3619,26 @@ async function login(){
   try{
 
     const usernameInput=
-      document.getElementById('lu');
+      document.getElementById("lu");
 
     const passwordInput=
-      document.getElementById('lp');
+      document.getElementById("lp");
 
 
     const username=
       usernameInput?.value?.trim()||
-      '';
+      "";
 
 
     const password=
       passwordInput?.value||
-      '';
+      "";
 
 
-    if(!username || !password){
+    if(!username||!password){
 
       toast(
-        'Kullanıcı adı ve şifre gerekli.'
+        "Kullanıcı adı ve şifre gerekli."
       );
 
       return;
@@ -3608,13 +3648,15 @@ async function login(){
 
     const j=
       await api(
-        '/login',
+        "/login",
         {
-          method:'POST',
+          method:"POST",
+
           headers:{
-            'Content-Type':
-              'application/json'
+            "Content-Type":
+              "application/json"
           },
+
           body:
             JSON.stringify({
               username,
@@ -3624,10 +3666,24 @@ async function login(){
       );
 
 
-    if(!j.token){
+    /*
+      Eski endpoint uyumluluğu.
+    */
+
+    const oldToken=
+      j.token||
+      j.access_token||
+      j.accessToken||
+      j.supabaseAccessToken||
+      j.session?.access_token||
+      j.data?.access_token||
+      "";
+
+
+    if(!oldToken){
 
       toast(
-        'E-posta adresini doğrula, sonra giriş yap.'
+        "Giriş tokenı alınamadı."
       );
 
       return;
@@ -3635,25 +3691,30 @@ async function login(){
     }
 
 
-    token=j.token;
+    token=
+      String(oldToken);
 
-
-    /*
-      Oturumu bütün sayfaların
-      okuyabileceği ana anahtara yaz.
-    */
 
     localStorage.setItem(
-      'minegram_token',
+      "minegram_token",
       token
     );
 
-    /*
-      Eski uyumluluk.
-    */
 
     localStorage.setItem(
-      'minegram_supabase_token',
+      "minegram_supabase_token",
+      token
+    );
+
+
+    localStorage.setItem(
+      "minegram_access_token",
+      token
+    );
+
+
+    localStorage.setItem(
+      "access_token",
       token
     );
 
@@ -3663,8 +3724,9 @@ async function login(){
       currentUser=
         j.user;
 
+
       localStorage.setItem(
-        'minegram_user',
+        "minegram_user",
         JSON.stringify(
           currentUser
         )
@@ -3682,7 +3744,7 @@ async function login(){
 
     toast(
       e.message||
-      'Giriş yapılamadı.'
+      "Giriş yapılamadı."
     );
 
   }
@@ -3691,14 +3753,14 @@ async function login(){
 
 
 /* =========================================================
-   ŞİFRE KURTARMA
+   ŞİFRE KURTARMA ESKİ UYUMLULUK
 ========================================================= */
 
 async function forgot(){
 
   const value=
     prompt(
-      'E-posta adresini veya kullanıcı adını gir:'
+      "E-posta adresini veya kullanıcı adını gir:"
     );
 
 
@@ -3708,13 +3770,15 @@ async function forgot(){
   try{
 
     await api(
-      '/forgot',
+      "/forgot",
       {
-        method:'POST',
+        method:"POST",
+
         headers:{
-          'Content-Type':
-            'application/json'
+          "Content-Type":
+            "application/json"
         },
+
         body:
           JSON.stringify({
             identifier:value
@@ -3724,7 +3788,7 @@ async function forgot(){
 
 
     toast(
-      'Kurtarma bağlantısı gönderildi.'
+      "Kurtarma bağlantısı gönderildi."
     );
 
 
@@ -3732,7 +3796,7 @@ async function forgot(){
 
     toast(
       e.message||
-      'Kurtarma işlemi başarısız.'
+      "Kurtarma işlemi başarısız."
     );
 
   }
@@ -3741,32 +3805,60 @@ async function forgot(){
 
 
 /* =========================================================
-   SAYFA BAŞLATMA
+   INIT
 ========================================================= */
 
 async function init(){
 
   /*
-    Her sayfa açılışında tokenı
-    yeniden oku.
+    Tokenı yeniden al.
   */
 
-  token=getMinegramToken();
+  token=
+    getMinegramToken();
 
 
   console.log(
-    '[MINEGRAM] Token kontrolü:',
+    "[MINEGRAM] Token kontrolü:",
     token
-      ? 'VAR'
-      : 'YOK'
+      ? "VAR"
+      : "YOK"
   );
+
+
+  /*
+    Kullanıcıyı localden al.
+  */
+
+  const savedUser=
+    localStorage.getItem(
+      "minegram_user"
+    );
+
+
+  if(savedUser){
+
+    try{
+
+      currentUser=
+        JSON.parse(
+          savedUser
+        );
+
+    }catch(_){
+
+      currentUser=null;
+
+    }
+
+  }
 
 
   showHome();
 
 
   /*
-    Hiç token yoksa giriş ekranı.
+    Token yoksa giriş.
   */
 
   if(!token){
@@ -3781,11 +3873,13 @@ async function init(){
   try{
 
     /*
-      Sunucudan mevcut kullanıcıyı doğrula.
+      Gerçek sunucu oturumunu kontrol et.
     */
 
     const me=
-      await api('/me');
+      await api(
+        "/me"
+      );
 
 
     currentUser=
@@ -3793,14 +3887,10 @@ async function init(){
       me;
 
 
-    /*
-      Kullanıcı bilgisini yerel olarak sakla.
-    */
-
     if(currentUser){
 
       localStorage.setItem(
-        'minegram_user',
+        "minegram_user",
         JSON.stringify(
           currentUser
         )
@@ -3811,8 +3901,9 @@ async function init(){
 
     showHome();
 
+
     /*
-      Feed yükle.
+      Feed.
     */
 
     await loadFeed();
@@ -3821,7 +3912,7 @@ async function init(){
   }catch(e){
 
     console.error(
-      '[INDEX AUTH ERROR]',
+      "[INDEX AUTH ERROR]",
       e
     );
 
@@ -3829,13 +3920,12 @@ async function init(){
     const msg=
       String(
         e?.message||
-        ''
+        ""
       );
 
 
     /*
-      SADECE gerçek auth hatasıysa
-      token sil.
+      GERÇEK AUTH HATASI
     */
 
     const isAuthError=
@@ -3850,10 +3940,21 @@ async function init(){
 
       /jwt/i.test(msg) ||
 
-      /not authenticated/i.test(msg);
+      /not authenticated/i.test(msg) ||
+
+      /session expired/i.test(msg);
 
 
     if(isAuthError){
+
+      console.error(
+        "[MINEGRAM] Token sunucu tarafından reddedildi."
+      );
+
+
+      /*
+        Bu durumda gerçekten oturum geçersizdir.
+      */
 
       clearMinegramSession();
 
@@ -3865,38 +3966,12 @@ async function init(){
 
 
     /*
-      Sunucu geçici hata verdiyse
-      kullanıcıyı OTURUMDAN ATMA.
+      /me geçici hata verdiyse
+      kullanıcıyı çıkış yaptırma.
     */
-
-    const saved=
-      localStorage.getItem(
-        'minegram_user'
-      );
-
-
-    if(saved){
-
-      try{
-
-        currentUser=
-          JSON.parse(saved);
-
-      }catch(_){
-
-        currentUser=null;
-
-      }
-
-    }
-
 
     showHome();
 
-
-    /*
-      Feed tekrar denenebilir.
-    */
 
     if(feedEl){
 
@@ -3910,7 +3985,7 @@ async function init(){
 
           <small>
             Oturumun açık.
-            Birkaç saniye sonra tekrar deneyebilirsin.
+            Sunucuya bağlanırken geçici bir sorun oluştu.
           </small>
 
           <br>
@@ -3943,14 +4018,14 @@ async function init(){
 
 
 /* =========================================================
-   ESCAPE - MENÜ / MODAL KAPAT
+   ESC
 ========================================================= */
 
 document.addEventListener(
-  'keydown',
+  "keydown",
   e=>{
 
-    if(e.key==='Escape'){
+    if(e.key==="Escape"){
 
       closeMenu();
 
@@ -3963,23 +4038,23 @@ document.addEventListener(
 
 
 /* =========================================================
-   DIŞARISI TIKLANINCA MENÜ KAPAT
+   DIŞARI TIKLAMA
 ========================================================= */
 
 document.addEventListener(
-  'click',
+  "click",
   e=>{
 
     const backdrop=
       document.getElementById(
-        'menuBackdrop'
+        "menuBackdrop"
       );
 
 
     if(
       backdrop &&
       backdrop.classList.contains(
-        'open'
+        "open"
       ) &&
       e.target===backdrop
     ){
