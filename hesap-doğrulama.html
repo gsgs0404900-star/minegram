@@ -1,358 +1,5 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-
-<meta charset="UTF-8">
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover"
->
-
-<meta
-name="theme-color"
-content="#000000"
->
-
-<title>Hesabını doğrula - Minegram</title>
-
-<style>
-
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-}
-
-html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    min-height:100%;
-    background:#000;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-    min-height:100vh;
-}
-
-.page{
-    width:100%;
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-}
-
-.box{
-    width:365px;
-    margin-top:90px;
-    text-align:center;
-}
-
-.header{
-    display:flex;
-    align-items:center;
-    justify-content:flex-start;
-    margin-bottom:25px;
-}
-
-.back{
-    width:28px;
-    height:28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-size:30px;
-    line-height:1;
-    font-weight:300;
-    cursor:pointer;
-    user-select:none;
-    margin-right:8px;
-}
-
-.header-title{
-    font-size:16px;
-    font-weight:700;
-}
-
-.title{
-    font-size:22px;
-    line-height:1.25;
-    font-weight:700;
-    margin:0 0 12px;
-}
-
-.description{
-    color:#777;
-    font-size:13px;
-    line-height:1.45;
-    margin:0 0 22px;
-}
-
-.email-box{
-    width:100%;
-    min-height:44px;
-    padding:13px 12px;
-    border:1px solid #292929;
-    border-radius:7px;
-    background:#050505;
-    color:#fff;
-    font-size:12px;
-    word-break:break-all;
-}
-
-.code-box{
-    width:100%;
-    height:50px;
-    margin-top:12px;
-    padding:0 14px;
-    border:1px solid #292929;
-    border-radius:7px;
-    outline:none;
-    background:#050505;
-    color:#fff;
-    text-align:center;
-    font-size:22px;
-    font-weight:700;
-    letter-spacing:8px;
-}
-
-.code-box:focus{
-    border-color:#0095f6;
-}
-
-.code-box::placeholder{
-    color:#555;
-    letter-spacing:2px;
-    font-size:13px;
-}
-
-.status{
-    min-height:20px;
-    margin-top:15px;
-    font-size:12px;
-    line-height:1.45;
-    color:#ff4d4d;
-}
-
-.status.success{
-    color:#35c759;
-}
-
-.status.loading{
-    color:#aaa;
-}
-
-.bottom{
-    display:flex;
-    gap:9px;
-    width:100%;
-    margin-top:25px;
-}
-
-.action{
-    width:50%;
-    height:42px;
-    border-radius:22px;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-}
-
-.back-btn{
-    background:#000;
-    border:1px solid #555;
-    color:#0095f6;
-}
-
-.verify{
-    background:#2d80bd;
-    border:0;
-    color:#000;
-}
-
-.verify:hover{
-    background:#348dca;
-}
-
-.verify:disabled{
-    opacity:.6;
-    cursor:not-allowed;
-}
-
-.resend{
-    width:100%;
-    height:38px;
-    margin-top:10px;
-    border:0;
-    background:transparent;
-    color:#0095f6;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-}
-
-.resend:disabled{
-    color:#555;
-    cursor:not-allowed;
-}
-
-@media(max-width:600px){
-
-    .box{
-        width:calc(100% - 40px);
-        max-width:365px;
-        margin-top:60px;
-    }
-
-    .header{
-        margin-bottom:22px;
-    }
-
-    .header-title{
-        font-size:15px;
-    }
-
-    .title{
-        font-size:21px;
-    }
-
-    .description{
-        font-size:12px;
-    }
-
-    .email-box{
-        font-size:12px;
-    }
-
-    .code-box{
-        height:48px;
-        font-size:20px;
-    }
-
-    .action{
-        height:42px;
-        font-size:12px;
-    }
-
-    .status{
-        font-size:12px;
-    }
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="page">
-
-<div class="box">
-
-<header class="header">
-
-<div
-    class="back"
-    id="backButton"
-    aria-label="Geri"
-    role="button"
-    tabindex="0"
->
-    ‹
-</div>
-
-<div class="header-title">
-    Şifre değiştirme
-</div>
-
-</header>
-
-
-<h1 class="title">
-    Hesabını doğrula
-</h1>
-
-
-<p class="description">
-    E-posta adresine gönderilen 6 haneli<br>
-    doğrulama kodunu aşağıya yaz.
-</p>
-
-
-<div
-    id="emailBox"
-    class="email-box"
->
-    E-posta yükleniyor...
-</div>
-
-
-<input
-    id="codeInput"
-    class="code-box"
-    type="text"
-    inputmode="numeric"
-    autocomplete="one-time-code"
-    maxlength="6"
-    placeholder="6 haneli kod"
->
-
-
-<div
-    id="status"
-    class="status loading"
->
-    Doğrulama hazırlanıyor...
-</div>
-
-
-<div class="bottom">
-
-<button
-    id="changeButton"
-    class="action back-btn"
-    type="button"
->
-    Hesabı değiştir
-</button>
-
-
-<button
-    id="verifyButton"
-    class="action verify"
-    type="button"
-    disabled
->
-    Kontrol et
-</button>
-
-</div>
-
-
-<button
-    id="resendButton"
-    class="resend"
-    type="button"
-    disabled
->
-    Doğrulama kodunu tekrar gönder
-</button>
-
-
-</div>
-</div>
-
-
 <script>
-
 "use strict";
-
 
 /* =====================================================
    ELEMENTLER
@@ -433,7 +80,7 @@ const email =
 
 
 /* =====================================================
-   BİLGİLERİ SESSION'A KAYDET
+   SESSION'A KAYDET
 ===================================================== */
 
 if(identifier){
@@ -870,9 +517,7 @@ verifyButton.addEventListener(
             codeInput.value.trim();
 
 
-        if(
-            !identifier
-        ){
+        if(!identifier){
 
             showStatus(
                 "Hesap bilgisi bulunamadı."
@@ -883,9 +528,7 @@ verifyButton.addEventListener(
         }
 
 
-        if(
-            code.length !== 6
-        ){
+        if(code.length !== 6){
 
             showStatus(
                 "6 haneli doğrulama kodunu gir."
@@ -915,14 +558,6 @@ verifyButton.addEventListener(
 
         try{
 
-            /*
-             * ÖNEMLİ:
-             * Bu artık register/verify DEĞİL.
-             *
-             * Şifre kurtarma doğrulaması:
-             * /api/forgot/verify
-             */
-
             const result =
                 await api(
                     "/api/forgot/verify",
@@ -949,6 +584,10 @@ verifyButton.addEventListener(
                 );
 
 
+            /* =================================================
+               DOĞRULAMA BAŞARISIZ
+            ================================================= */
+
             if(
                 !result ||
                 result.ok !== true
@@ -962,35 +601,9 @@ verifyButton.addEventListener(
             }
 
 
-            /*
-             * SERVER TARAFINDAN ÜRETİLEN
-             * RESET TOKEN
-             */
-
-            const resetToken =
-                result.resetToken ||
-                result.token ||
-                "";
-
-
-            if(!resetToken){
-
-                throw new Error(
-                    "Kod doğrulandı ancak şifre yenileme anahtarı alınamadı. Lütfen tekrar kod iste."
-                );
-
-            }
-
-
-            /*
-             * TOKEN'I SESSION'A DA KAYDET
-             */
-
-            sessionStorage.setItem(
-                "minegram_password_reset_token",
-                resetToken
-            );
-
+            /* =================================================
+               HESAP BİLGİLERİNİ KAYDET
+            ================================================= */
 
             if(result.email){
 
@@ -1006,14 +619,30 @@ verifyButton.addEventListener(
             }
 
 
+            if(result.account){
+
+                sessionStorage.setItem(
+                    "minegram_recovery_account",
+                    JSON.stringify(
+                        result.account
+                    )
+                );
+
+            }
+
+
             sessionStorage.setItem(
                 "minegram_recovery_verified",
                 "true"
             );
 
 
+            /* =================================================
+               BAŞARILI
+            ================================================= */
+
             showStatus(
-                "Kod doğrulandı. Yeni şifreni oluşturabilirsin.",
+                "Kod doğrulandı. Hesapların bulundu.",
                 "success"
             );
 
@@ -1022,21 +651,16 @@ verifyButton.addEventListener(
                 "Doğrulandı";
 
 
-            /*
-             * YENİ ŞİFRE SAYFASINA GİT
-             */
+            /* =================================================
+               HESAPLARINI-BULDUK.HTML
+               GÖNDER
+            ================================================= */
 
             setTimeout(
                 function(){
 
                     const nextParams =
                         new URLSearchParams();
-
-
-                    nextParams.set(
-                        "token",
-                        resetToken
-                    );
 
 
                     if(identifier){
@@ -1066,13 +690,41 @@ verifyButton.addEventListener(
                     }
 
 
+                    if(result.account){
+
+                        if(
+                            result.account.username
+                        ){
+
+                            nextParams.set(
+                                "username",
+                                result.account.username
+                            );
+
+                        }
+
+                        if(
+                            result.account.displayName
+                        ){
+
+                            nextParams.set(
+                                "displayName",
+                                result.account.displayName
+                            );
+
+                        }
+
+                    }
+
+
                     window.location.href =
-                        "./yeni-sifre.html?" +
+                        "./hesaplarini-bulduk.html?" +
                         nextParams.toString();
 
                 },
-                700
+                500
             );
+
 
         }
         catch(error){
@@ -1189,11 +841,6 @@ async function start(){
     }
 
 
-    /*
-     * ŞİFRE KURTARMA SAYFASINDAN GELDİYSE
-     * KOD ZATEN GÖNDERİLMİŞ OLABİLİR.
-     */
-
     const recoveryStarted =
         sessionStorage.getItem(
             "minegram_recovery_started"
@@ -1221,11 +868,6 @@ async function start(){
     }
 
 
-    /*
-     * SAYFA DOĞRUDAN AÇILDIYSA
-     * KOD GÖNDER
-     */
-
     await sendRecoveryCode();
 
 }
@@ -1238,6 +880,3 @@ async function start(){
 start();
 
 </script>
-
-</body>
-</html>
