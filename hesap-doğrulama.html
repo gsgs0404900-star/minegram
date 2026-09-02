@@ -289,50 +289,47 @@ body{
 
 "use strict";
 
-
 /* =========================================================
    ELEMENTLER
 ========================================================= */
 
-const codeInput =
-  document.getElementById("code");
-
-const verifyButton =
-  document.getElementById("verifyButton");
-
-const changeButton =
-  document.getElementById("changeButton");
-
-const backButton =
-  document.getElementById("backButton");
-
-const status =
-  document.getElementById("status");
+const codeInput = document.getElementById("code");
+const verifyButton = document.getElementById("verifyButton");
+const changeButton = document.getElementById("changeButton");
+const backButton = document.getElementById("backButton");
+const status = document.getElementById("status");
 
 
 /* =========================================================
-   STORAGE
+   STORAGE OKUMA
 ========================================================= */
 
 function getStorageValue(key){
 
-  return (
-    sessionStorage.getItem(key) ||
-    localStorage.getItem(key) ||
-    ""
-  ).trim();
+  const sessionValue =
+    sessionStorage.getItem(key);
 
+  if(sessionValue && String(sessionValue).trim()){
+    return String(sessionValue).trim();
+  }
+
+  const localValue =
+    localStorage.getItem(key);
+
+  if(localValue && String(localValue).trim()){
+    return String(localValue).trim();
+  }
+
+  return "";
 }
 
 
 /* =========================================================
-   URL PARAMETRELERİ
+   URL
 ========================================================= */
 
 const urlParams =
-  new URLSearchParams(
-    window.location.search
-  );
+  new URLSearchParams(window.location.search);
 
 
 /* =========================================================
@@ -342,9 +339,7 @@ const urlParams =
 const username =
   (
     urlParams.get("username") ||
-    getStorageValue(
-      "minegram_register_username"
-    )
+    getStorageValue("minegram_register_username")
   )
   .trim()
   .replace(/^@/, "");
@@ -353,9 +348,7 @@ const username =
 const email =
   (
     urlParams.get("email") ||
-    getStorageValue(
-      "minegram_register_email"
-    )
+    getStorageValue("minegram_register_email")
   )
   .trim()
   .toLowerCase();
@@ -364,9 +357,7 @@ const email =
 const phone =
   (
     urlParams.get("phone") ||
-    getStorageValue(
-      "minegram_register_phone"
-    )
+    getStorageValue("minegram_register_phone")
   )
   .trim();
 
@@ -374,21 +365,24 @@ const phone =
 const displayName =
   (
     urlParams.get("displayName") ||
-    getStorageValue(
-      "minegram_register_display_name"
-    ) ||
+    getStorageValue("minegram_register_display_name") ||
     username
   )
   .trim();
 
 
 /* =========================================================
-   BİLGİLERİ KORU
+   KAYIT BİLGİLERİNİ KORU
 ========================================================= */
 
 if(username){
 
   sessionStorage.setItem(
+    "minegram_register_username",
+    username
+  );
+
+  localStorage.setItem(
     "minegram_register_username",
     username
   );
@@ -402,11 +396,21 @@ if(email){
     email
   );
 
+  localStorage.setItem(
+    "minegram_register_email",
+    email
+  );
+
 }
 
 if(phone){
 
   sessionStorage.setItem(
+    "minegram_register_phone",
+    phone
+  );
+
+  localStorage.setItem(
     "minegram_register_phone",
     phone
   );
@@ -420,17 +424,19 @@ if(displayName){
     displayName
   );
 
+  localStorage.setItem(
+    "minegram_register_display_name",
+    displayName
+  );
+
 }
 
 
 /* =========================================================
-   DURUM MESAJI
+   DURUM
 ========================================================= */
 
-function showStatus(
-  text,
-  success = false
-){
+function showStatus(text, success = false){
 
   status.textContent =
     text || "";
@@ -439,12 +445,11 @@ function showStatus(
     success
       ? "status success"
       : "status";
-
 }
 
 
 /* =========================================================
-   KOD INPUT
+   INPUT
 ========================================================= */
 
 codeInput.addEventListener(
@@ -453,8 +458,8 @@ codeInput.addEventListener(
 
     this.value =
       this.value
-        .replace(/\D/g,"")
-        .slice(0,6);
+        .replace(/\D/g, "")
+        .slice(0, 6);
 
     showStatus("");
 
@@ -463,7 +468,7 @@ codeInput.addEventListener(
 
 
 /* =========================================================
-   GERİ / İLETİŞİM BİLGİLERİNİ DEĞİŞTİR
+   GERİ
 ========================================================= */
 
 function goBack(){
@@ -471,77 +476,40 @@ function goBack(){
   const params =
     new URLSearchParams();
 
-
   if(username){
-
-    params.set(
-      "username",
-      username
-    );
-
+    params.set("username", username);
   }
-
 
   if(email){
-
-    params.set(
-      "email",
-      email
-    );
-
+    params.set("email", email);
   }
-
 
   if(phone){
-
-    params.set(
-      "phone",
-      phone
-    );
-
+    params.set("phone", phone);
   }
-
 
   if(displayName){
-
-    params.set(
-      "displayName",
-      displayName
-    );
-
+    params.set("displayName", displayName);
   }
-
-
-  const query =
-    params.toString();
-
 
   let url =
     "./iletisim-bilgileri.html";
 
+  const query =
+    params.toString();
 
   if(query){
-
     url += "?" + query;
-
   }
 
-
-  window.location.href =
-    url;
-
+  window.location.href = url;
 }
 
-
-/* =========================================================
-   GERİ BUTONLARI
-========================================================= */
 
 backButton.addEventListener(
   "click",
   goBack
 );
-
 
 changeButton.addEventListener(
   "click",
@@ -550,7 +518,283 @@ changeButton.addEventListener(
 
 
 /* =========================================================
-   KOD DOĞRULAMA
+   TÜM ESKİ TOKENLARI TEMİZLE
+========================================================= */
+
+function clearOldTokens(){
+
+  const keys = [
+    "minegram_token",
+    "minegram_access_token",
+    "minegram_supabase_token",
+    "minegram_register_token",
+    "minegram_register_access_token",
+    "supabase_token",
+    "access_token",
+    "token"
+  ];
+
+  keys.forEach(function(key){
+
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+
+  });
+
+}
+
+
+/* =========================================================
+   TOKEN KAYDET
+========================================================= */
+
+function saveMinegramToken(data){
+
+  const token = String(
+    data?.access_token ||
+    data?.token ||
+    data?.supabaseAccessToken ||
+    data?.session?.access_token ||
+    data?.session?.accessToken ||
+    ""
+  ).trim();
+
+
+  console.log(
+    "[MINEGRAM] Bulunan token:",
+    token ? "VAR" : "YOK"
+  );
+
+
+  if(!token){
+
+    console.error(
+      "[MINEGRAM] VERIFY CEVABINDA TOKEN YOK:",
+      data
+    );
+
+    return false;
+  }
+
+
+  /*
+     Önce eski tokenları temizle
+  */
+
+  clearOldTokens();
+
+
+  /*
+     ANA MINEGRAM TOKEN
+  */
+
+  localStorage.setItem(
+    "minegram_token",
+    token
+  );
+
+
+  /*
+     UYUMLULUK TOKENLARI
+  */
+
+  localStorage.setItem(
+    "minegram_access_token",
+    token
+  );
+
+  localStorage.setItem(
+    "minegram_supabase_token",
+    token
+  );
+
+  localStorage.setItem(
+    "access_token",
+    token
+  );
+
+  localStorage.setItem(
+    "token",
+    token
+  );
+
+
+  /*
+     SESSION
+  */
+
+  sessionStorage.setItem(
+    "minegram_token",
+    token
+  );
+
+  sessionStorage.setItem(
+    "minegram_access_token",
+    token
+  );
+
+  sessionStorage.setItem(
+    "minegram_supabase_token",
+    token
+  );
+
+  sessionStorage.setItem(
+    "access_token",
+    token
+  );
+
+  sessionStorage.setItem(
+    "token",
+    token
+  );
+
+
+  /*
+     KAYIT TOKEN
+  */
+
+  sessionStorage.setItem(
+    "minegram_register_token",
+    token
+  );
+
+  sessionStorage.setItem(
+    "minegram_register_access_token",
+    token
+  );
+
+
+  console.log(
+    "[MINEGRAM] Token başarıyla kaydedildi."
+  );
+
+
+  return true;
+}
+
+
+/* =========================================================
+   USER BİLGİLERİNİ KAYDET
+========================================================= */
+
+function saveMinegramUser(data){
+
+  const user =
+    data?.user ||
+    data?.profile ||
+    null;
+
+
+  if(!user){
+    return;
+  }
+
+
+  try{
+
+    localStorage.setItem(
+      "minegram_user",
+      JSON.stringify(user)
+    );
+
+    sessionStorage.setItem(
+      "minegram_register_user",
+      JSON.stringify(user)
+    );
+
+  }
+  catch(error){
+
+    console.warn(
+      "[MINEGRAM] User storage hatası:",
+      error
+    );
+
+  }
+
+
+  if(user.id){
+
+    localStorage.setItem(
+      "minegram_user_id",
+      String(user.id)
+    );
+
+  }
+
+
+  const finalUsername =
+    String(
+      user.username ||
+      username ||
+      ""
+    )
+    .trim()
+    .replace(/^@/, "");
+
+
+  if(finalUsername){
+
+    localStorage.setItem(
+      "minegram_username",
+      finalUsername
+    );
+
+    localStorage.setItem(
+      "minegram_register_username",
+      finalUsername
+    );
+
+    sessionStorage.setItem(
+      "minegram_register_username",
+      finalUsername
+    );
+
+    localStorage.setItem(
+      "username",
+      finalUsername
+    );
+
+  }
+
+
+  if(user.displayName){
+
+    localStorage.setItem(
+      "minegram_display_name",
+      String(user.displayName)
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   E-POSTA / TELEFON KAYDET
+========================================================= */
+
+if(email){
+
+  localStorage.setItem(
+    "minegram_email",
+    email
+  );
+
+}
+
+if(phone){
+
+  localStorage.setItem(
+    "minegram_phone",
+    phone
+  );
+
+}
+
+
+/* =========================================================
+   DOĞRULAMA
 ========================================================= */
 
 async function verifyCode(){
@@ -569,7 +813,6 @@ async function verifyCode(){
     );
 
     return;
-
   }
 
 
@@ -580,7 +823,6 @@ async function verifyCode(){
     );
 
     return;
-
   }
 
 
@@ -593,7 +835,6 @@ async function verifyCode(){
     codeInput.focus();
 
     return;
-
   }
 
 
@@ -611,14 +852,16 @@ async function verifyCode(){
         "/api/register/verify",
         {
 
-          method:"POST",
+          method: "POST",
 
-          headers:{
+          headers: {
+
             "Content-Type":
               "application/json",
 
             "Accept":
               "application/json"
+
           },
 
           body:
@@ -659,6 +902,10 @@ async function verifyCode(){
     );
 
 
+    /* =====================================================
+       HATA
+    ===================================================== */
+
     if(!response.ok){
 
       throw new Error(
@@ -686,171 +933,17 @@ async function verifyCode(){
 
 
     /* =====================================================
-       BAŞARILI DOĞRULAMA
+       TOKEN KONTROLÜ
     ===================================================== */
 
-    sessionStorage.setItem(
-      "minegram_register_verified",
-      "true"
-    );
+    const tokenSaved =
+      saveMinegramToken(data);
 
 
-    localStorage.setItem(
-      "minegram_register_verified",
-      "true"
-    );
+    if(!tokenSaved){
 
-
-    sessionStorage.setItem(
-      "minegram_register_username",
-      username
-    );
-
-
-    localStorage.setItem(
-      "minegram_username",
-      username
-    );
-
-
-    if(email){
-
-      sessionStorage.setItem(
-        "minegram_register_email",
-        email
-      );
-
-    }
-
-
-    if(phone){
-
-      sessionStorage.setItem(
-        "minegram_register_phone",
-        phone
-      );
-
-    }
-
-
-    if(displayName){
-
-      sessionStorage.setItem(
-        "minegram_register_display_name",
-        displayName
-      );
-
-    }
-
-   // KAYIT BAŞARILI
-localStorage.setItem("minegram_register_verified", "true");
-
-const finalUsername = String(
-  data.user?.username ||
-  username ||
-  ""
-)
-  .trim()
-  .replace(/^@/, "");
-
-if (finalUsername) {
-  sessionStorage.setItem(
-    "minegram_register_username",
-    finalUsername
-  );
-
-  localStorage.setItem(
-    "minegram_register_username",
-    finalUsername
-  );
-
-  localStorage.setItem(
-    "minegram_username",
-    finalUsername
-  );
-
-  localStorage.setItem(
-    "username",
-    finalUsername
-  );
-}
-
-// TOKEN'I KAYDET
-const finalToken = String(
-  data.access_token ||
-  data.token ||
-  data.session?.access_token ||
-  data.session?.accessToken ||
-  ""
-).trim();
-
-if (finalToken) {
-  localStorage.setItem(
-    "minegram_token",
-    finalToken
-  );
-
-  localStorage.setItem(
-    "access_token",
-    finalToken
-  );
-
-  localStorage.setItem(
-    "token",
-    finalToken
-  );
-
-  sessionStorage.setItem(
-    "minegram_token",
-    finalToken
-  );
-
-  sessionStorage.setItem(
-    "access_token",
-    finalToken
-  );
-}
-
-// PROFİL SAYFASINA GİT
-setTimeout(function () {
-  window.location.replace("./profile.html");
-}, 500);
-    
-
-    /* =====================================================
-       TOKEN
-    ===================================================== */
-
-    if(data.token){
-
-      sessionStorage.setItem(
-        "minegram_register_token",
-        String(data.token)
-      );
-
-      localStorage.setItem(
-        "minegram_token",
-        String(data.token)
-      );
-
-    }
-
-
-    if(data.access_token){
-
-      sessionStorage.setItem(
-        "minegram_register_access_token",
-        String(data.access_token)
-      );
-
-      localStorage.setItem(
-        "minegram_access_token",
-        String(data.access_token)
-      );
-
-      localStorage.setItem(
-        "minegram_supabase_token",
-        String(data.access_token)
+      throw new Error(
+        "Hesabın doğrulandı ancak oturum başlatılamadı. Lütfen tekrar dene."
       );
 
     }
@@ -860,55 +953,60 @@ setTimeout(function () {
        USER
     ===================================================== */
 
-    if(data.user){
-
-      try{
-
-        sessionStorage.setItem(
-          "minegram_register_user",
-          JSON.stringify(data.user)
-        );
-
-        localStorage.setItem(
-          "minegram_user",
-          JSON.stringify(data.user)
-        );
-
-      }
-      catch(error){
-
-        console.warn(
-          "Kullanıcı bilgisi saklanamadı:",
-          error
-        );
-
-      }
+    saveMinegramUser(data);
 
 
-      if(data.user.id){
+    /* =====================================================
+       KAYIT TAMAMLANDI
+    ===================================================== */
 
-        localStorage.setItem(
-          "minegram_user_id",
-          String(data.user.id)
-        );
+    localStorage.setItem(
+      "minegram_register_verified",
+      "true"
+    );
 
-      }
+    sessionStorage.setItem(
+      "minegram_register_verified",
+      "true"
+    );
 
 
-      if(data.user.username){
+    /* =====================================================
+       PROFİL BİLGİLERİ
+    ===================================================== */
 
-        localStorage.setItem(
-          "minegram_username",
-          String(data.user.username)
-        );
+    if(email){
 
-      }
+      localStorage.setItem(
+        "minegram_email",
+        email
+      );
+
+    }
+
+
+    if(phone){
+
+      localStorage.setItem(
+        "minegram_phone",
+        phone
+      );
+
+    }
+
+
+    if(displayName){
+
+      localStorage.setItem(
+        "minegram_display_name",
+        displayName
+      );
 
     }
 
 
     /* =====================================================
-       BAŞARILI MESAJ
+       BAŞARILI
     ===================================================== */
 
     showStatus(
@@ -919,16 +1017,23 @@ setTimeout(function () {
 
     verifyButton.textContent =
       "Doğrulandı";
-    
-/* =====================================================
-   DİREKT PROFILE.HTML
-===================================================== */
 
-setTimeout(function(){
 
-  window.location.replace("./profile.html");
+    /*
+       BURADA ARTIK TOKEN KAYDEDİLDİ.
+       Sonra profile gidiyoruz.
+    */
 
-}, 500);
+    setTimeout(
+      function(){
+
+        window.location.replace(
+          "./profile.html"
+        );
+
+      },
+      500
+    );
 
   }
   catch(error){
@@ -948,7 +1053,6 @@ setTimeout(function(){
     verifyButton.disabled =
       false;
 
-
     verifyButton.textContent =
       "Kodu doğrula ve Minegram'a gir";
 
@@ -958,7 +1062,7 @@ setTimeout(function(){
 
 
 /* =========================================================
-   DOĞRULAMA BUTONU
+   BUTON
 ========================================================= */
 
 verifyButton.addEventListener(
@@ -968,7 +1072,7 @@ verifyButton.addEventListener(
 
 
 /* =========================================================
-   ENTER TUŞU
+   ENTER
 ========================================================= */
 
 codeInput.addEventListener(
@@ -979,7 +1083,11 @@ codeInput.addEventListener(
 
       event.preventDefault();
 
-      verifyCode();
+      if(!verifyButton.disabled){
+
+        verifyCode();
+
+      }
 
     }
 
@@ -1021,6 +1129,10 @@ setTimeout(
 );
 
 
+/* =========================================================
+   DEBUG
+========================================================= */
+
 console.log(
   "[MINEGRAM] Kayıt doğrulama sayfası hazır."
 );
@@ -1041,6 +1153,6 @@ console.log(
 );
 
 </script>
-
+  
 </body>
 </html>
