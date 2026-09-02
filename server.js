@@ -1967,6 +1967,148 @@ app.post("/api/login", async (req, res) => {
 
     } else {
 
+// ======================================================
+// GEÇİCİ MINEGRAM ŞİFRE SIFIRLAMA
+// ======================================================
+app.post("/api/admin/reset-login-password", async (req, res) => {
+  try {
+    const secret = String(
+      req.headers["x-reset-secret"] || ""
+    ).trim();
+
+    const expectedSecret = env("MINEGRAM_RESET_SECRET");
+
+    if (
+      !expectedSecret ||
+      secret !== expectedSecret
+    ) {
+      return res.status(403).json({
+        ok: false,
+        error: "Yetkisiz işlem."
+      });
+    }
+
+    const username = normalizeUsername(
+      req.body?.username
+    );
+
+    const newPassword = String(
+      req.body?.newPassword || ""
+    );
+
+    if (!username) {
+      return res.status(400).json({
+        ok: false,
+        error: "Kullanıcı adı gerekli."
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        ok: false,
+        error: "Yeni şifre en az 6 karakter olmalı."
+      });
+    }
+
+    const admin = adminClient();
+
+    // PROFİLİ BUL
+    const {
+      data: profile,
+      error: profileError
+    } = await admin
+      .from("profiles")
+      .select("id, username, auth_user_id")
+      .eq("username", username)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "RESET PROFILE ERROR:",
+        profileError
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error: profileError.message
+      });
+    }
+
+    if (!profile) {
+      return res.status(404).json({
+        ok: false,
+        error: "Kullanıcı bulunamadı."
+      });
+    }
+
+    if (!profile.auth_user_id) {
+      return res.status(400).json({
+        ok: false,
+        error: "Bu hesabın Auth bağlantısı bulunamadı."
+      });
+    }
+
+    console.log(
+      "ŞİFRE SIFIRLAMA:",
+      profile.username
+    );
+
+    console.log(
+      "AUTH USER ID:",
+      profile.auth_user_id
+    );
+
+    // SUPABASE AUTH ŞİFRESİNİ DEĞİŞTİR
+    const {
+      data: updated,
+      error: updateError
+    } = await admin.auth.admin.updateUserById(
+      profile.auth_user_id,
+      {
+        password: newPassword
+      }
+    );
+
+    if (updateError) {
+      console.error(
+        "PASSWORD UPDATE ERROR:",
+        updateError
+      );
+
+      return res.status(400).json({
+        ok: false,
+        error: updateError.message
+      });
+    }
+
+    console.log(
+      "MINEGRAM ŞİFRE BAŞARIYLA DEĞİŞTİRİLDİ"
+    );
+
+    return res.json({
+      ok: true,
+      message: "Şifre başarıyla değiştirildi.",
+      username: profile.username,
+      auth_user_id:
+        updated?.user?.id ||
+        profile.auth_user_id
+    });
+
+  } catch (error) {
+    console.error(
+      "RESET PASSWORD FATAL ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      ok: false,
+      error:
+        error?.message ||
+        "Şifre güncellenemedi."
+    });
+  }
+});
+      
       /* ===================================================
          2 — KULLANICI ADI İLE GİRİŞ
       =================================================== */
