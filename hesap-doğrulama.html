@@ -1,48 +1,83 @@
 <script>
 "use strict";
 
-/* =====================================================
-   ELEMENTLER
-===================================================== */
+document.addEventListener("DOMContentLoaded", function () {
 
-const emailBox =
-    document.getElementById("emailBox");
+    /* =====================================================
+       ELEMENTLER
+    ===================================================== */
 
-const codeInput =
-    document.getElementById("codeInput");
-
-const status =
-    document.getElementById("status");
-
-const verifyButton =
-    document.getElementById("verifyButton");
-
-const resendButton =
-    document.getElementById("resendButton");
-
-const changeButton =
-    document.getElementById("changeButton");
-
-const backButton =
-    document.getElementById("backButton");
+    const emailBox = document.getElementById("emailBox");
+    const codeInput = document.getElementById("codeInput");
+    const status = document.getElementById("status");
+    const verifyButton = document.getElementById("verifyButton");
+    const resendButton = document.getElementById("resendButton");
+    const changeButton = document.getElementById("changeButton");
+    const backButton = document.getElementById("backButton");
 
 
-/* =====================================================
-   URL PARAMETRELERİ
-===================================================== */
+    /* =====================================================
+       ELEMENT KONTROLÜ
+    ===================================================== */
 
-const params =
-    new URLSearchParams(
+    if (
+        !emailBox ||
+        !codeInput ||
+        !status ||
+        !verifyButton ||
+        !resendButton ||
+        !changeButton ||
+        !backButton
+    ) {
+        console.error(
+            "[MINEGRAM] Doğrulama sayfasındaki HTML elemanları eksik."
+        );
+
+        if (document.body) {
+            document.body.innerHTML = `
+                <div style="
+                    min-height:100vh;
+                    background:#000;
+                    color:#fff;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    padding:30px;
+                    box-sizing:border-box;
+                    font-family:Arial,sans-serif;
+                    text-align:center;
+                ">
+                    <div>
+                        <h2>Minegram</h2>
+                        <p>
+                            Doğrulama sayfası yüklenemedi.
+                        </p>
+                        <p style="color:#aaa;font-size:14px;">
+                            Sayfanın HTML yapısını kontrol et.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        return;
+    }
+
+
+    /* =====================================================
+       URL PARAMETRELERİ
+    ===================================================== */
+
+    const params = new URLSearchParams(
         window.location.search
     );
 
 
-/* =====================================================
-   HESAP BİLGİLERİ
-===================================================== */
+    /* =====================================================
+       HESAP BİLGİLERİ
+    ===================================================== */
 
-const identifier =
-    (
+    let identifier = (
         params.get("identifier") ||
         params.get("username") ||
         sessionStorage.getItem(
@@ -50,124 +85,102 @@ const identifier =
         ) ||
         ""
     )
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase();
+        .trim()
+        .replace(/^@/, "")
+        .toLowerCase();
 
 
-const mode =
-    (
+    let mode = (
         params.get("mode") ||
         sessionStorage.getItem(
             "minegram_recovery_mode"
         ) ||
         "username"
     )
-    .trim()
-    .toLowerCase();
+        .trim()
+        .toLowerCase();
 
 
-const email =
-    (
+    let email = (
         params.get("email") ||
         sessionStorage.getItem(
             "minegram_recovery_email"
         ) ||
         ""
     )
-    .trim()
-    .toLowerCase();
+        .trim()
+        .toLowerCase();
 
 
-/* =====================================================
-   SESSION'A KAYDET
-===================================================== */
+    /* =====================================================
+       SESSION KAYDET
+    ===================================================== */
 
-if(identifier){
-
-    sessionStorage.setItem(
-        "minegram_recovery_identifier",
-        identifier
-    );
-
-}
-
-if(email){
-
-    sessionStorage.setItem(
-        "minegram_recovery_email",
-        email
-    );
-
-}
-
-sessionStorage.setItem(
-    "minegram_recovery_mode",
-    mode
-);
-
-
-/* =====================================================
-   EMAIL GÖSTER
-===================================================== */
-
-if(email){
-
-    emailBox.textContent =
-        email;
-
-}else{
-
-    emailBox.textContent =
-        "E-posta adresi bulunamadı.";
-
-}
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-function showStatus(
-    text,
-    type = ""
-){
-
-    status.textContent =
-        text || "";
-
-    status.className =
-        "status";
-
-    if(type){
-
-        status.classList.add(
-            type
+    if (identifier) {
+        sessionStorage.setItem(
+            "minegram_recovery_identifier",
+            identifier
         );
-
     }
 
-}
+    if (email) {
+        sessionStorage.setItem(
+            "minegram_recovery_email",
+            email
+        );
+    }
+
+    sessionStorage.setItem(
+        "minegram_recovery_mode",
+        mode
+    );
 
 
-/* =====================================================
-   API
-===================================================== */
+    /* =====================================================
+       EMAIL GÖSTER
+    ===================================================== */
 
-async function api(
-    url,
-    options = {}
-){
+    if (email) {
+        emailBox.textContent = email;
+    } else {
+        emailBox.textContent =
+            "E-posta adresi yükleniyor...";
+    }
 
-    try{
 
-        const response =
-            await fetch(
+    /* =====================================================
+       STATUS
+    ===================================================== */
+
+    function showStatus(text, type) {
+
+        status.textContent = text || "";
+        status.className = "status";
+
+        if (type) {
+            status.classList.add(type);
+        }
+    }
+
+
+    /* =====================================================
+       API
+    ===================================================== */
+
+    async function api(url, options) {
+
+        options = options || {};
+
+        let response;
+
+        try {
+
+            response = await fetch(
                 url,
                 {
                     ...options,
 
-                    headers:{
+                    headers: {
                         "Content-Type":
                             "application/json",
 
@@ -176,6 +189,18 @@ async function api(
                 }
             );
 
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] FETCH HATASI:",
+                error
+            );
+
+            throw new Error(
+                "Sunucuya bağlanılamadı. Minegram sunucusunu kontrol et."
+            );
+        }
+
 
         const text =
             await response.text();
@@ -183,389 +208,359 @@ async function api(
 
         let data = {};
 
+        try {
 
-        try{
+            data = text
+                ? JSON.parse(text)
+                : {};
 
-            data =
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] JSON HATASI:",
                 text
-                    ? JSON.parse(text)
-                    : {};
-
-        }catch{
+            );
 
             data = {};
-
         }
 
 
-        if(!response.ok){
+        if (!response.ok) {
 
             throw new Error(
                 data.error ||
                 data.message ||
                 "Sunucu hatası."
             );
-
         }
 
 
         return data;
+    }
 
-    }catch(error){
 
-        if(
-            error instanceof TypeError
-        ){
+    /* =====================================================
+       GERİ
+    ===================================================== */
 
-            throw new Error(
-                "Sunucuya bağlanılamadı. İnternet bağlantını ve Minegram sunucusunu kontrol et."
+    function goBack() {
+
+        window.location.href =
+            "./hesaplarini-bulduk.html";
+    }
+
+
+    backButton.addEventListener(
+        "click",
+        goBack
+    );
+
+
+    changeButton.addEventListener(
+        "click",
+        goBack
+    );
+
+
+    backButton.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Enter" ||
+                event.key === " "
+            ) {
+
+                event.preventDefault();
+                goBack();
+            }
+        }
+    );
+
+
+    /* =====================================================
+       KOD GİRİŞİ
+    ===================================================== */
+
+    codeInput.addEventListener(
+        "input",
+        function () {
+
+            this.value =
+                this.value
+                    .replace(/\D/g, "")
+                    .slice(0, 6);
+
+
+            verifyButton.disabled =
+                this.value.length !== 6;
+        }
+    );
+
+
+    /* =====================================================
+       TEKRAR GÖNDER SAYACI
+    ===================================================== */
+
+    let resendTimer = null;
+
+
+    function startResendTimer() {
+
+        if (resendTimer) {
+
+            clearInterval(
+                resendTimer
             );
 
+            resendTimer = null;
         }
 
-        throw error;
 
-    }
-
-}
+        let seconds = 30;
 
 
-/* =====================================================
-   GERİ
-===================================================== */
-
-function goBack(){
-
-    window.location.href =
-        "./hesaplarini-bulduk.html";
-
-}
+        resendButton.disabled = true;
 
 
-backButton.addEventListener(
-    "click",
-    goBack
-);
+        resendButton.textContent =
+            "Tekrar gönder (" +
+            seconds +
+            ")";
 
 
-changeButton.addEventListener(
-    "click",
-    goBack
-);
+        resendTimer =
+            setInterval(
+                function () {
 
-
-backButton.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" ||
-            event.key === " "
-        ){
-
-            event.preventDefault();
-
-            goBack();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   KOD GİRİŞİ
-===================================================== */
-
-codeInput.addEventListener(
-    "input",
-    function(){
-
-        this.value =
-            this.value
-                .replace(/\D/g,"")
-                .slice(0,6);
-
-
-        verifyButton.disabled =
-            this.value.length !== 6;
-
-    }
-);
-
-
-/* =====================================================
-   TEKRAR GÖNDER SAYACI
-===================================================== */
-
-let resendTimer = null;
-
-
-function startResendTimer(){
-
-    if(resendTimer){
-
-        clearInterval(
-            resendTimer
-        );
-
-    }
-
-
-    let seconds = 30;
-
-
-    resendButton.disabled =
-        true;
-
-
-    resendButton.textContent =
-        "Tekrar gönder (" +
-        seconds +
-        ")";
-
-
-    resendTimer =
-        setInterval(
-            function(){
-
-                seconds--;
-
-
-                resendButton.textContent =
-                    "Tekrar gönder (" +
-                    seconds +
-                    ")";
-
-
-                if(seconds <= 0){
-
-                    clearInterval(
-                        resendTimer
-                    );
-
-                    resendTimer =
-                        null;
-
-
-                    resendButton.disabled =
-                        false;
+                    seconds--;
 
 
                     resendButton.textContent =
-                        "Doğrulama kodunu tekrar gönder";
-
-                }
-
-            },
-            1000
-        );
-
-}
+                        "Tekrar gönder (" +
+                        seconds +
+                        ")";
 
 
-/* =====================================================
-   KURTARMA KODU GÖNDER
-===================================================== */
+                    if (seconds <= 0) {
 
-async function sendRecoveryCode(){
+                        clearInterval(
+                            resendTimer
+                        );
 
-    if(!identifier){
+                        resendTimer = null;
 
-        showStatus(
-            "Hesap bilgisi bulunamadı. Lütfen şifre yenileme işlemini yeniden başlat."
-        );
 
-        return false;
+                        resendButton.disabled =
+                            false;
 
+
+                        resendButton.textContent =
+                            "Doğrulama kodunu tekrar gönder";
+                    }
+
+                },
+                1000
+            );
     }
 
 
-    try{
+    /* =====================================================
+       KURTARMA KODU GÖNDER
+    ===================================================== */
 
-        resendButton.disabled =
-            true;
+    async function sendRecoveryCode() {
 
-        resendButton.textContent =
-            "Gönderiliyor...";
+        if (!identifier) {
+
+            showStatus(
+                "Hesap bilgisi bulunamadı. Şifre yenileme işlemini yeniden başlat."
+            );
+
+            return false;
+        }
 
 
-        showStatus(
-            "Doğrulama kodu gönderiliyor...",
-            "loading"
-        );
+        try {
+
+            resendButton.disabled = true;
+
+            resendButton.textContent =
+                "Gönderiliyor...";
 
 
-        const result =
-            await api(
-                "/api/forgot/start",
-                {
-                    method:"POST",
+            showStatus(
+                "Doğrulama kodu gönderiliyor...",
+                "loading"
+            );
 
-                    body:
-                        JSON.stringify({
 
+            const result =
+                await api(
+                    "/api/forgot/start",
+                    {
+                        method: "POST",
+
+                        body: JSON.stringify({
                             identifier:
                                 identifier,
 
                             mode:
                                 mode
-
                         })
-                }
-            );
+                    }
+                );
 
 
-        if(
-            result &&
-            result.ok === false
-        ){
+            if (
+                !result ||
+                result.ok === false
+            ) {
 
-            throw new Error(
-                result.error ||
-                "Kod gönderilemedi."
-            );
+                throw new Error(
+                    result?.error ||
+                    "Kod gönderilemedi."
+                );
+            }
 
-        }
+
+            /* ---------------------------------------------
+               SUNUCUDAN GELEN EMAIL
+            --------------------------------------------- */
+
+            if (result.email) {
+
+                email =
+                    String(
+                        result.email
+                    )
+                        .trim()
+                        .toLowerCase();
 
 
-        if(result?.email){
+                sessionStorage.setItem(
+                    "minegram_recovery_email",
+                    email
+                );
+
+
+                emailBox.textContent =
+                    email;
+            }
+
+
+            /* ---------------------------------------------
+               RECOVERY BAŞLADI
+            --------------------------------------------- */
 
             sessionStorage.setItem(
-                "minegram_recovery_email",
-                String(
-                    result.email
-                )
-                .trim()
-                .toLowerCase()
+                "minegram_recovery_started",
+                "true"
             );
 
-
-            emailBox.textContent =
-                String(
-                    result.email
-                )
-                .trim()
-                .toLowerCase();
-
-        }
-
-
-        sessionStorage.setItem(
-            "minegram_recovery_started",
-            "true"
-        );
-
-
-        showStatus(
-            "6 haneli doğrulama kodu e-posta adresine gönderildi.",
-            "success"
-        );
-
-
-        startResendTimer();
-
-
-        verifyButton.disabled =
-            codeInput.value.length !== 6;
-
-
-        codeInput.focus();
-
-
-        return true;
-
-    }
-    catch(error){
-
-        console.error(
-            "[MINEGRAM] Şifre kurtarma kodu gönderme hatası:",
-            error
-        );
-
-
-        showStatus(
-            error.message ||
-            "Doğrulama kodu gönderilemedi."
-        );
-
-
-        resendButton.disabled =
-            false;
-
-
-        resendButton.textContent =
-            "Doğrulama kodunu tekrar gönder";
-
-
-        return false;
-
-    }
-
-}
-
-
-/* =====================================================
-   KOD DOĞRULA
-===================================================== */
-
-verifyButton.addEventListener(
-    "click",
-    async function(){
-
-        const code =
-            codeInput.value.trim();
-
-
-        if(!identifier){
 
             showStatus(
-                "Hesap bilgisi bulunamadı."
+                "6 haneli doğrulama kodu e-posta adresine gönderildi.",
+                "success"
             );
 
-            return;
 
-        }
+            startResendTimer();
 
 
-        if(code.length !== 6){
+            verifyButton.disabled =
+                codeInput.value.length !== 6;
+
+
+            try {
+                codeInput.focus();
+            } catch (e) {}
+
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "[MINEGRAM] Kod gönderme hatası:",
+                error
+            );
+
 
             showStatus(
-                "6 haneli doğrulama kodunu gir."
+                error.message ||
+                "Doğrulama kodu gönderilemedi."
             );
 
-            return;
 
+            resendButton.disabled =
+                false;
+
+
+            resendButton.textContent =
+                "Doğrulama kodunu tekrar gönder";
+
+
+            return false;
         }
+    }
 
 
-        verifyButton.disabled =
-            true;
+    /* =====================================================
+       KOD DOĞRULA
+    ===================================================== */
 
-        resendButton.disabled =
-            true;
+    verifyButton.addEventListener(
+        "click",
+        async function () {
 
-
-        verifyButton.textContent =
-            "Kontrol ediliyor...";
-
-
-        showStatus(
-            "Doğrulama kodu kontrol ediliyor...",
-            "loading"
-        );
+            const code =
+                codeInput.value.trim();
 
 
-        try{
+            if (!identifier) {
 
-            const result =
-                await api(
-                    "/api/forgot/verify",
-                    {
-                        method:"POST",
+                showStatus(
+                    "Hesap bilgisi bulunamadı."
+                );
 
-                        body:
-                            JSON.stringify({
+                return;
+            }
+
+
+            if (code.length !== 6) {
+
+                showStatus(
+                    "6 haneli doğrulama kodunu gir."
+                );
+
+                return;
+            }
+
+
+            verifyButton.disabled = true;
+            resendButton.disabled = true;
+
+
+            verifyButton.textContent =
+                "Kontrol ediliyor...";
+
+
+            showStatus(
+                "Doğrulama kodu kontrol ediliyor...",
+                "loading"
+            );
+
+
+            try {
+
+                const result =
+                    await api(
+                        "/api/forgot/verify",
+                        {
+                            method: "POST",
+
+                            body: JSON.stringify({
 
                                 identifier:
                                     identifier,
@@ -578,305 +573,319 @@ verifyButton.addEventListener(
 
                                 code:
                                     code
-
                             })
-                    }
-                );
+                        }
+                    );
 
 
-            /* =================================================
-               DOĞRULAMA BAŞARISIZ
-            ================================================= */
+                /* -----------------------------------------
+                   BAŞARISIZ
+                ----------------------------------------- */
 
-            if(
-                !result ||
-                result.ok !== true
-            ){
+                if (
+                    !result ||
+                    result.ok !== true
+                ) {
 
-                throw new Error(
-                    result?.error ||
-                    "Doğrulama kodu yanlış veya süresi dolmuş."
-                );
-
-            }
-
-
-            /* =================================================
-               HESAP BİLGİLERİNİ KAYDET
-            ================================================= */
-
-            if(result.email){
-
-                sessionStorage.setItem(
-                    "minegram_recovery_email",
-                    String(
-                        result.email
-                    )
-                    .trim()
-                    .toLowerCase()
-                );
-
-            }
+                    throw new Error(
+                        result?.error ||
+                        "Doğrulama kodu yanlış veya süresi dolmuş."
+                    );
+                }
 
 
-            if(result.account){
+                /* -----------------------------------------
+                   EMAIL KAYDET
+                ----------------------------------------- */
 
-                sessionStorage.setItem(
-                    "minegram_recovery_account",
-                    JSON.stringify(
-                        result.account
-                    )
-                );
+                if (result.email) {
 
-            }
-
-
-            sessionStorage.setItem(
-                "minegram_recovery_verified",
-                "true"
-            );
-
-
-            /* =================================================
-               BAŞARILI
-            ================================================= */
-
-            showStatus(
-                "Kod doğrulandı. Hesapların bulundu.",
-                "success"
-            );
-
-
-            verifyButton.textContent =
-                "Doğrulandı";
-
-
-            /* =================================================
-               HESAPLARINI-BULDUK.HTML
-               GÖNDER
-            ================================================= */
-
-            setTimeout(
-                function(){
-
-                    const nextParams =
-                        new URLSearchParams();
-
-
-                    if(identifier){
-
-                        nextParams.set(
-                            "identifier",
-                            identifier
-                        );
-
-                    }
-
-
-                    if(result.email){
-
-                        nextParams.set(
-                            "email",
+                    email =
+                        String(
                             result.email
-                        );
-
-                    }else if(email){
-
-                        nextParams.set(
-                            "email",
-                            email
-                        );
-
-                    }
+                        )
+                            .trim()
+                            .toLowerCase();
 
 
-                    if(result.account){
+                    sessionStorage.setItem(
+                        "minegram_recovery_email",
+                        email
+                    );
+                }
 
-                        if(
+
+                /* -----------------------------------------
+                   HESAP KAYDET
+                ----------------------------------------- */
+
+                if (result.account) {
+
+                    sessionStorage.setItem(
+                        "minegram_recovery_account",
+                        JSON.stringify(
+                            result.account
+                        )
+                    );
+                }
+
+
+                /* -----------------------------------------
+                   DOĞRULANDI
+                ----------------------------------------- */
+
+                sessionStorage.setItem(
+                    "minegram_recovery_verified",
+                    "true"
+                );
+
+
+                showStatus(
+                    "Kod doğrulandı. Hesapların bulundu.",
+                    "success"
+                );
+
+
+                verifyButton.textContent =
+                    "Doğrulandı";
+
+
+                /* -----------------------------------------
+                   HESAPLARINI BULDUK SAYFASINA GİT
+                ----------------------------------------- */
+
+                setTimeout(
+                    function () {
+
+                        const nextParams =
+                            new URLSearchParams();
+
+
+                        if (identifier) {
+
+                            nextParams.set(
+                                "identifier",
+                                identifier
+                            );
+                        }
+
+
+                        if (email) {
+
+                            nextParams.set(
+                                "email",
+                                email
+                            );
+                        }
+
+
+                        if (
+                            result.account &&
                             result.account.username
-                        ){
+                        ) {
 
                             nextParams.set(
                                 "username",
                                 result.account.username
                             );
-
                         }
 
-                        if(
-                            result.account.displayName
-                        ){
+
+                        if (
+                            result.account &&
+                            (
+                                result.account.displayName ||
+                                result.account.display_name
+                            )
+                        ) {
 
                             nextParams.set(
                                 "displayName",
-                                result.account.displayName
+                                result.account.displayName ||
+                                result.account.display_name
                             );
-
                         }
 
-                    }
+
+                        const target =
+                            "./hesaplarini-bulduk.html" +
+                            (
+                                nextParams.toString()
+                                    ? "?" +
+                                      nextParams.toString()
+                                    : ""
+                            );
 
 
-                    window.location.href =
-                        "./hesaplarini-bulduk.html?" +
-                        nextParams.toString();
+                        console.log(
+                            "[MINEGRAM] Hesap bulundu, yönlendiriliyor:",
+                            target
+                        );
 
-                },
-                500
-            );
 
+                        window.location.href =
+                            target;
+
+                    },
+                    700
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MINEGRAM] Doğrulama hatası:",
+                    error
+                );
+
+
+                showStatus(
+                    error.message ||
+                    "Doğrulama kodu yanlış."
+                );
+
+
+                verifyButton.disabled =
+                    codeInput.value.length !== 6;
+
+
+                resendButton.disabled =
+                    false;
+
+
+                verifyButton.textContent =
+                    "Kontrol et";
+            }
 
         }
-        catch(error){
+    );
 
-            console.error(
-                "[MINEGRAM] Şifre kurtarma doğrulama hatası:",
-                error
-            );
 
+    /* =====================================================
+       TEKRAR GÖNDER
+    ===================================================== */
+
+    resendButton.addEventListener(
+        "click",
+        async function () {
+
+            await sendRecoveryCode();
+
+        }
+    );
+
+
+    /* =====================================================
+       ENTER
+    ===================================================== */
+
+    codeInput.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Enter" &&
+                codeInput.value.length === 6 &&
+                !verifyButton.disabled
+            ) {
+
+                event.preventDefault();
+
+                verifyButton.click();
+            }
+        }
+    );
+
+
+    /* =====================================================
+       SAYFA BAŞLAT
+    ===================================================== */
+
+    async function start() {
+
+        console.log(
+            "[MINEGRAM] Doğrulama sayfası başlatıldı."
+        );
+
+        console.log(
+            "[MINEGRAM] identifier:",
+            identifier
+        );
+
+        console.log(
+            "[MINEGRAM] mode:",
+            mode
+        );
+
+        console.log(
+            "[MINEGRAM] email:",
+            email
+        );
+
+
+        /* ---------------------------------------------
+           IDENTIFIER YOK
+        --------------------------------------------- */
+
+        if (!identifier) {
 
             showStatus(
-                error.message ||
-                "Doğrulama kodu yanlış."
+                "Hesap bilgisi bulunamadı. Şifre yenileme işlemini yeniden başlat."
             );
 
 
-            verifyButton.disabled =
-                codeInput.value.length !== 6;
+            verifyButton.disabled = true;
+            resendButton.disabled = true;
 
 
-            resendButton.disabled =
-                false;
-
-
-            verifyButton.textContent =
-                "Kontrol et";
-
+            return;
         }
 
-    }
-);
+
+        /* ---------------------------------------------
+           DAHA ÖNCE KOD GÖNDERİLDİYSE
+        --------------------------------------------- */
+
+        const recoveryStarted =
+            sessionStorage.getItem(
+                "minegram_recovery_started"
+            );
 
 
-/* =====================================================
-   TEKRAR GÖNDER
-===================================================== */
+        if (
+            recoveryStarted === "true"
+        ) {
 
-resendButton.addEventListener(
-    "click",
-    async function(){
+            showStatus(
+                "E-postana gönderilen 6 haneli kodu gir.",
+                "success"
+            );
+
+
+            startResendTimer();
+
+
+            try {
+                codeInput.focus();
+            } catch (e) {}
+
+
+            return;
+        }
+
+
+        /* ---------------------------------------------
+           İLK KEZ
+        --------------------------------------------- */
 
         await sendRecoveryCode();
-
-    }
-);
-
-
-/* =====================================================
-   ENTER
-===================================================== */
-
-codeInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" &&
-            codeInput.value.length === 6
-        ){
-
-            event.preventDefault();
-
-            verifyButton.click();
-
-        }
-
-    }
-);
-
-
-/* =====================================================
-   SAYFA BAŞLAT
-===================================================== */
-
-async function start(){
-
-    console.log(
-        "[MINEGRAM] sifremi-unuttum-dogrulama.html başladı."
-    );
-
-    console.log(
-        "[MINEGRAM] Identifier:",
-        identifier
-    );
-
-    console.log(
-        "[MINEGRAM] Mode:",
-        mode
-    );
-
-    console.log(
-        "[MINEGRAM] Email:",
-        email
-    );
-
-
-    if(!identifier){
-
-        showStatus(
-            "Hesap bilgisi bulunamadı. Şifre değiştirme işlemini yeniden başlat."
-        );
-
-
-        verifyButton.disabled =
-            true;
-
-
-        resendButton.disabled =
-            true;
-
-
-        return;
-
     }
 
 
-    const recoveryStarted =
-        sessionStorage.getItem(
-            "minegram_recovery_started"
-        );
+    /* =====================================================
+       BAŞLAT
+    ===================================================== */
 
+    start();
 
-    if(
-        recoveryStarted === "true"
-    ){
-
-        showStatus(
-            "E-postana gönderilen 6 haneli kodu gir.",
-            "success"
-        );
-
-
-        startResendTimer();
-
-
-        codeInput.focus();
-
-
-        return;
-
-    }
-
-
-    await sendRecoveryCode();
-
-}
-
-
-/* =====================================================
-   BAŞLAT
-===================================================== */
-
-start();
-
+});
 </script>
