@@ -252,6 +252,7 @@ body{
 <div class="page">
 
 <div class="topbar">
+
     <div
         class="back"
         onclick="goBack()"
@@ -261,12 +262,13 @@ body{
     <div class="top-title">
         Şifremi unuttum
     </div>
+
 </div>
 
 
-<!-- ============================= -->
-<!-- E-POSTA / KULLANICI ADI -->
-<!-- ============================= -->
+<!-- =========================================
+     E-POSTA / KULLANICI ADI
+========================================= -->
 
 <main
     class="content"
@@ -313,7 +315,7 @@ body{
     </a>
 
     <a
-        href="giris.html"
+        href="./giris.html"
         class="other-method"
         style="margin-top:25px;"
     >
@@ -323,9 +325,9 @@ body{
 </main>
 
 
-<!-- ============================= -->
-<!-- TELEFON -->
-<!-- ============================= -->
+<!-- =========================================
+     TELEFON
+========================================= -->
 
 <main
     class="content phone-screen"
@@ -377,7 +379,22 @@ body{
 <script>
 "use strict";
 
+/* =========================================
+   API
+========================================= */
+
 const API = "/api";
+
+/*
+ * DOĞRULAMA SAYFASININ ADRESİ
+ *
+ * Aynı klasörde olması gerekiyor.
+ */
+const VERIFICATION_PAGE =
+    new URL(
+        "./sifremi-unuttum-dogrulama.html",
+        window.location.href
+    ).href;
 
 
 /* =========================================
@@ -446,6 +463,110 @@ function clearMessage(id){
 
 
 /* =========================================
+   GİRİŞ EKRANINA GİT
+========================================= */
+
+function goLogin(){
+
+    window.location.href =
+        "./giris.html";
+}
+
+
+/* =========================================
+   DOĞRULAMA SAYFASINA GİT
+========================================= */
+
+function goVerification(
+    identifier,
+    mode,
+    email
+){
+
+    /*
+     * Bilgileri geçici olarak sakla.
+     * Böylece URL'de sorun olsa bile
+     * doğrulama sayfası bilgileri bulabilir.
+     */
+
+    try{
+
+        sessionStorage.setItem(
+            "minegram_recovery_identifier",
+            String(identifier || "")
+        );
+
+        sessionStorage.setItem(
+            "minegram_recovery_mode",
+            String(mode || "")
+        );
+
+        sessionStorage.setItem(
+            "minegram_recovery_email",
+            String(email || "")
+        );
+
+        sessionStorage.setItem(
+            "minegram_recovery_started",
+            "1"
+        );
+
+    }catch(error){
+
+        console.warn(
+            "sessionStorage kullanılamadı:",
+            error
+        );
+
+    }
+
+
+    /*
+     * URL oluştur
+     */
+
+    const url =
+        new URL(
+            VERIFICATION_PAGE
+        );
+
+    url.searchParams.set(
+        "identifier",
+        String(identifier || "")
+    );
+
+    url.searchParams.set(
+        "mode",
+        String(mode || "")
+    );
+
+    if(email){
+
+        url.searchParams.set(
+            "email",
+            String(email)
+        );
+
+    }
+
+
+    console.log(
+        "[MINEGRAM] DOĞRULAMA SAYFASINA GİDİLİYOR:",
+        url.href
+    );
+
+
+    /*
+     * BEKLEME YOK.
+     * Direkt yönlendir.
+     */
+
+    window.location.href =
+        url.href;
+}
+
+
+/* =========================================
    GERİ
 ========================================= */
 
@@ -461,8 +582,7 @@ function goBack(){
         return;
     }
 
-    window.location.href =
-        "giris.html";
+    goLogin();
 }
 
 
@@ -554,6 +674,12 @@ async function readResponse(response){
 
     }
 
+    console.log(
+        "[MINEGRAM API]",
+        response.status,
+        data
+    );
+
     return data;
 }
 
@@ -567,7 +693,9 @@ async function continueEmail(){
     const value =
         String(
             emailUsername?.value || ""
-        ).trim();
+        )
+        .trim()
+        .replace(/^@/,"");
 
     clearMessage(
         "emailMessage"
@@ -586,6 +714,7 @@ async function continueEmail(){
         return;
     }
 
+
     emailContinue.disabled =
         true;
 
@@ -594,15 +723,6 @@ async function continueEmail(){
 
 
     try{
-
-        /*
-         * SERVER:
-         *
-         * POST /api/forgot/start
-         *
-         * identifier
-         * mode=email
-         */
 
         const response =
             await fetch(
@@ -622,7 +742,14 @@ async function continueEmail(){
 
                         identifier:value,
 
-                        mode:"email"
+                        /*
+                         * E-posta VE kullanıcı adı
+                         * destekleniyor.
+                         */
+                        mode:
+                            value.includes("@")
+                                ? "email"
+                                : "username"
 
                     }),
 
@@ -639,15 +766,9 @@ async function continueEmail(){
             );
 
 
-        console.log(
-            "[MINEGRAM FORGOT EMAIL]",
-            data
-        );
-
-
         if(
             !response.ok ||
-            !data.ok
+            data.ok !== true
         ){
 
             throw new Error(
@@ -657,41 +778,36 @@ async function continueEmail(){
         }
 
 
+        /*
+         * BAŞARILI
+         */
+
+        const targetEmail =
+            String(
+                data.email ||
+                ""
+            ).trim();
+
+
         showMessage(
             "emailMessage",
-            "Doğrulama kodu e-posta adresine gönderildi.",
+            "Doğrulama kodu gönderildi. Yönlendiriliyorsun...",
             "success"
         );
 
 
         /*
-         * ÖNEMLİ:
-         *
-         * Doğrulama sayfasına sadece email
-         * göndermiyoruz.
-         *
-         * identifier + mode + email
-         * birlikte taşınıyor.
+         * ARTIK BEKLEME YOK.
+         * Direkt doğrulama sayfasına git.
          */
 
-        const target =
-            "sifremi-unuttum-dogrulama.html" +
-            "?identifier=" +
-            encodeURIComponent(value) +
-            "&mode=email" +
-            "&email=" +
-            encodeURIComponent(
-                data.email || ""
-            );
-
-
-        setTimeout(function(){
-
-            window.location.replace(
-                target
-            );
-
-        },700);
+        goVerification(
+            value,
+            value.includes("@")
+                ? "email"
+                : "username",
+            targetEmail
+        );
 
 
     }catch(error){
@@ -708,14 +824,16 @@ async function continueEmail(){
             "error"
         );
 
-    }finally{
 
         emailContinue.disabled =
             false;
 
         emailContinue.textContent =
             "Devam";
+
+        return;
     }
+
 }
 
 
@@ -747,6 +865,7 @@ async function continuePhone(){
         return;
     }
 
+
     phoneContinue.disabled =
         true;
 
@@ -755,15 +874,6 @@ async function continuePhone(){
 
 
     try{
-
-        /*
-         * SERVER:
-         *
-         * POST /api/forgot/start
-         *
-         * identifier
-         * mode=phone
-         */
 
         const response =
             await fetch(
@@ -800,15 +910,9 @@ async function continuePhone(){
             );
 
 
-        console.log(
-            "[MINEGRAM FORGOT PHONE]",
-            data
-        );
-
-
         if(
             !response.ok ||
-            !data.ok
+            data.ok !== true
         ){
 
             throw new Error(
@@ -818,39 +922,29 @@ async function continuePhone(){
         }
 
 
+        const targetEmail =
+            String(
+                data.email ||
+                ""
+            ).trim();
+
+
         showMessage(
             "phoneMessage",
-            "Doğrulama kodu e-posta adresine gönderildi.",
+            "Doğrulama kodu gönderildi. Yönlendiriliyorsun...",
             "success"
         );
 
 
         /*
-         * Telefon doğrulama sayfasına:
-         *
-         * identifier
-         * mode
-         * email
+         * DİREKT DOĞRULAMA SAYFASI
          */
 
-        const target =
-            "sifremi-unuttum-dogrulama.html" +
-            "?identifier=" +
-            encodeURIComponent(value) +
-            "&mode=phone" +
-            "&email=" +
-            encodeURIComponent(
-                data.email || ""
-            );
-
-
-        setTimeout(function(){
-
-            window.location.replace(
-                target
-            );
-
-        },700);
+        goVerification(
+            value,
+            "phone",
+            targetEmail
+        );
 
 
     }catch(error){
@@ -867,14 +961,16 @@ async function continuePhone(){
             "error"
         );
 
-    }finally{
 
         phoneContinue.disabled =
             false;
 
         phoneContinue.textContent =
             "Devam";
+
+        return;
     }
+
 }
 
 
@@ -892,6 +988,7 @@ phoneContinue.addEventListener(
     continuePhone
 );
 
+
 phoneMethod.addEventListener(
     "click",
     function(){
@@ -900,6 +997,7 @@ phoneMethod.addEventListener(
 
     }
 );
+
 
 emailMethod.addEventListener(
     "click",
@@ -922,6 +1020,7 @@ emailUsername.addEventListener(
             event.preventDefault();
 
             continueEmail();
+
         }
 
     }
@@ -939,6 +1038,7 @@ phoneNumber.addEventListener(
             event.preventDefault();
 
             continuePhone();
+
         }
 
     }
@@ -957,6 +1057,11 @@ document.addEventListener(
 
         console.log(
             "[MINEGRAM] Şifre sıfırlama sistemi hazır."
+        );
+
+        console.log(
+            "[MINEGRAM] Doğrulama sayfası:",
+            VERIFICATION_PAGE
         );
 
     }
