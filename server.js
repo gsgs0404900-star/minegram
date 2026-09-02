@@ -2406,155 +2406,170 @@ app.post("/api/login", async (req, res) => {
 // MINEGRAM - MINEGRAM111 ŞİFRE SIFIRLAMA
 // ======================================================
 
-app.post("/api/admin/reset-minegram111-password", async (req, res) => {
-  try {
+app.post(
+  "/api/admin/reset-minegram111-password",
+  async (req, res) => {
+    try {
+      const secret = String(
+        req.headers["x-reset-secret"] || ""
+      ).trim();
 
-    const secret = String(
-      req.headers["x-reset-secret"] || ""
-    ).trim();
+      const expectedSecret = env(
+        "MINEGRAM_RESET_SECRET"
+      );
 
-    const expectedSecret = env(
-      "MINEGRAM_RESET_SECRET"
-    );
+      if (!expectedSecret) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "MINEGRAM_RESET_SECRET Render'da tanımlı değil."
+        });
+      }
 
-    if (!expectedSecret) {
+      if (secret !== expectedSecret) {
+        return res.status(403).json({
+          ok: false,
+          error: "Yetkisiz işlem."
+        });
+      }
+
+      const newPassword = String(
+        req.body?.newPassword || ""
+      );
+
+      if (!newPassword) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre gerekli."
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Yeni şifre en az 6 karakter olmalı."
+        });
+      }
+
+      // ==================================================
+      // MINEGRAM111 GERÇEK SUPABASE AUTH ID
+      // ==================================================
+
+      const authUserId =
+        "de0ae602-6778-4e9c-a848-6a97d23b3f72";
+
+      const admin = adminClient();
+
+      // ==================================================
+      // AUTH KULLANICISINI KONTROL ET
+      // ==================================================
+
+      const {
+        data: authData,
+        error: getUserError
+      } =
+        await admin.auth.admin.getUserById(
+          authUserId
+        );
+
+      if (getUserError) {
+        console.error(
+          "AUTH USER BULMA HATASI:",
+          getUserError
+        );
+
+        return res.status(404).json({
+          ok: false,
+          error: getUserError.message
+        });
+      }
+
+      if (!authData?.user) {
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Supabase Auth hesabı bulunamadı."
+        });
+      }
+
+      console.log(
+        "MINEGRAM111 AUTH HESABI BULUNDU:",
+        authData.user.id
+      );
+
+      console.log(
+        "AUTH EMAIL:",
+        authData.user.email
+      );
+
+      // ==================================================
+      // SADECE ŞİFREYİ DEĞİŞTİR
+      // ==================================================
+
+      const {
+        data: updatedUser,
+        error: updateError
+      } =
+        await admin.auth.admin.updateUserById(
+          authUserId,
+          {
+            password: newPassword
+          }
+        );
+
+      if (updateError) {
+        console.error(
+          "ŞİFRE DEĞİŞTİRME HATASI:",
+          updateError
+        );
+
+        return res.status(400).json({
+          ok: false,
+          error: updateError.message
+        });
+      }
+
+      console.log(
+        "================================="
+      );
+
+      console.log(
+        "MINEGRAM111 ŞİFRE DEĞİŞTİRİLDİ"
+      );
+
+      console.log(
+        "AUTH ID:",
+        updatedUser?.user?.id
+      );
+
+      console.log(
+        "================================="
+      );
+
+      return res.json({
+        ok: true,
+        message:
+          "minegram111 şifresi başarıyla değiştirildi.",
+        username: "minegram111",
+        auth_user_id: authUserId
+      });
+
+    } catch (error) {
+      console.error(
+        "MINEGRAM111 RESET FATAL:",
+        error
+      );
+
       return res.status(500).json({
         ok: false,
-        error: "MINEGRAM_RESET_SECRET Render'da tanımlı değil."
+        error:
+          error?.message ||
+          "Şifre sıfırlanamadı."
       });
     }
-
-    if (secret !== expectedSecret) {
-      return res.status(403).json({
-        ok: false,
-        error: "Yetkisiz işlem."
-      });
-    }
-
-    const newPassword = String(
-      req.body?.newPassword || ""
-    );
-
-    if (!newPassword) {
-      return res.status(400).json({
-        ok: false,
-        error: "Yeni şifre gerekli."
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        ok: false,
-        error: "Yeni şifre en az 6 karakter olmalı."
-      });
-    }
-
-    // MINEGRAM111 GERÇEK SUPABASE AUTH ID
-    const authUserId =
-      "de0ae602-6778-4e9c-a848-6a97d23b3f72";
-
-    const admin = adminClient();
-
-    // AUTH KULLANICISINI KONTROL ET
-    const {
-      data: authData,
-      error: getUserError
-    } = await admin.auth.admin.getUserById(
-      authUserId
-    );
-
-    if (getUserError) {
-      console.error(
-        "AUTH USER BULMA HATASI:",
-        getUserError
-      );
-
-      return res.status(404).json({
-        ok: false,
-        error: getUserError.message
-      });
-    }
-
-    if (!authData?.user) {
-      return res.status(404).json({
-        ok: false,
-        error: "Supabase Auth hesabı bulunamadı."
-      });
-    }
-
-    console.log(
-      "MINEGRAM111 AUTH HESABI BULUNDU:",
-      authData.user.id
-    );
-
-    console.log(
-      "AUTH EMAIL:",
-      authData.user.email
-    );
-
-    // SADECE ŞİFREYİ DEĞİŞTİR
-    const {
-      data: updatedUser,
-      error: updateError
-    } = await admin.auth.admin.updateUserById(
-      authUserId,
-      {
-        password: newPassword
-      }
-    );
-
-    if (updateError) {
-      console.error(
-        "ŞİFRE DEĞİŞTİRME HATASI:",
-        updateError
-      );
-
-      return res.status(400).json({
-        ok: false,
-        error: updateError.message
-      });
-    }
-
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "MINEGRAM111 ŞİFRE DEĞİŞTİRİLDİ"
-    );
-
-    console.log(
-      "AUTH ID:",
-      updatedUser?.user?.id
-    );
-
-    console.log(
-      "================================="
-    );
-
-    return res.json({
-      ok: true,
-      message:
-        "minegram111 şifresi başarıyla değiştirildi.",
-      username: "minegram111",
-      auth_user_id: authUserId
-    });
-
-  } catch (error) {
-
-    console.error(
-      "MINEGRAM111 RESET FATAL:",
-      error
-    );
-
-    return res.status(500).json({
-      ok: false,
-      error:
-        error?.message ||
-        "Şifre sıfırlanamadı."
-    });
   }
-});
+);
       
       /* ===================================================
          2 — KULLANICI ADI İLE GİRİŞ
