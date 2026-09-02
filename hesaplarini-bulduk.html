@@ -429,14 +429,58 @@ Direkt giriş yap
 </button>
 
 <button
-class="action-btn secondary"
-id="resetButton"
+class="action-btn primary"
+id="loginButton"
 type="button"
-onclick="startPasswordReset(event)"
+onclick="directLogin(event)"
 >
-Şifre değiştirmeye devam et
+Direkt giriş yap
 </button>
 
+<button
+    class="action-btn secondary"
+    id="resetButton"
+    type="button"
+    onclick="startPasswordReset(event)"
+>
+    Şifre değiştirmeye devam et
+</button>
+
+<script>
+function startPasswordReset(event) {
+    if (event) event.preventDefault();
+
+    if (!window.selectedAccount) {
+        alert("Lütfen bir hesap seç.");
+        return;
+    }
+
+    localStorage.setItem(
+        "minegram_recovery_username",
+        window.selectedAccount.username || ""
+    );
+
+    localStorage.setItem(
+        "minegram_recovery_identifier",
+        window.selectedAccount.username || ""
+    );
+
+    localStorage.setItem(
+        "minegram_recovery_mode",
+        "username"
+    );
+
+    window.location.href = "yeni-sifre.html";
+}
+</script>
+</div>
+
+<div class="status" id="status"></div>
+
+</main>
+</div>
+
+<script>
 </div>
 
 <div class="status" id="status"></div>
