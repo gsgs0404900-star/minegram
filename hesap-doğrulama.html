@@ -54,10 +54,6 @@ body{
   text-align:center;
 }
 
-/* =========================
-   ÜST
-========================= */
-
 .header{
   display:flex;
   align-items:center;
@@ -68,20 +64,15 @@ body{
 .back{
   width:28px;
   height:28px;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
   color:#fff;
-
   font-size:30px;
   line-height:1;
   font-weight:300;
-
   cursor:pointer;
   user-select:none;
-
   margin-right:8px;
 }
 
@@ -90,55 +81,32 @@ body{
   font-weight:700;
 }
 
-/* =========================
-   BAŞLIK
-========================= */
-
 .title{
   font-size:22px;
   line-height:1.25;
   font-weight:700;
-
   margin:0 0 12px;
 }
 
-/* =========================
-   AÇIKLAMA
-========================= */
-
 .description{
   color:#777;
-
   font-size:13px;
   line-height:1.45;
-
   margin:0 0 22px;
 }
-
-/* =========================
-   KOD
-========================= */
 
 .code{
   width:100%;
   height:44px;
-
   margin-bottom:9px;
-
   padding:0 12px;
-
   border:1px solid #292929;
   border-radius:7px;
-
   background:#000;
   color:#fff;
-
   outline:none;
-
   font-size:12px;
-
   letter-spacing:4px;
-
   text-align:center;
 }
 
@@ -152,19 +120,11 @@ body{
   letter-spacing:0;
 }
 
-/* =========================
-   DURUM
-========================= */
-
 .status{
   min-height:20px;
-
   margin-top:10px;
-
   font-size:12px;
-
   color:#ff4d4d;
-
   line-height:1.4;
 }
 
@@ -172,30 +132,21 @@ body{
   color:#35c759;
 }
 
-/* =========================
-   ALT BUTONLAR
-========================= */
-
 .bottom{
   width:100%;
   margin-top:25px;
-
   text-align:center;
 }
 
 .verify{
   width:100%;
   height:42px;
-
   border:0;
   border-radius:22px;
-
   background:#62b0ed;
   color:#30207c;
-
   font-size:12px;
   font-weight:700;
-
   cursor:pointer;
 }
 
@@ -211,24 +162,16 @@ body{
 .change{
   border:0;
   background:transparent;
-
   color:#62b0ed;
-
   font-size:12px;
   font-weight:700;
-
   margin-top:18px;
-
   cursor:pointer;
 }
 
 .change:hover{
   color:#80c3f5;
 }
-
-/* =========================
-   MOBİL
-========================= */
 
 @media(max-width:600px){
 
@@ -272,10 +215,6 @@ body{
 
   <div class="box">
 
-    <!-- =========================
-         ÜST
-    ========================== -->
-
     <header class="header">
 
       <div
@@ -291,11 +230,6 @@ body{
       </div>
 
     </header>
-
-
-    <!-- =========================
-         İÇERİK
-    ========================== -->
 
     <main>
 
@@ -490,7 +424,7 @@ if(displayName){
 
 
 /* =========================================================
-   DURUM
+   DURUM MESAJI
 ========================================================= */
 
 function showStatus(
@@ -529,7 +463,7 @@ codeInput.addEventListener(
 
 
 /* =========================================================
-   GERİ
+   GERİ / İLETİŞİM BİLGİLERİNİ DEĞİŞTİR
 ========================================================= */
 
 function goBack(){
@@ -568,6 +502,16 @@ function goBack(){
   }
 
 
+  if(displayName){
+
+    params.set(
+      "displayName",
+      displayName
+    );
+
+  }
+
+
   const query =
     params.toString();
 
@@ -583,16 +527,15 @@ function goBack(){
   }
 
 
- setTimeout(
-  function(){
+  window.location.href =
+    url;
 
-    window.location.href =
-      "./profile.html";
+}
 
-  },
-  500
-);
 
+/* =========================================================
+   GERİ BUTONLARI
+========================================================= */
 
 backButton.addEventListener(
   "click",
@@ -743,7 +686,7 @@ async function verifyCode(){
 
 
     /* =====================================================
-       BAŞARILI
+       BAŞARILI DOĞRULAMA
     ===================================================== */
 
     sessionStorage.setItem(
@@ -752,8 +695,20 @@ async function verifyCode(){
     );
 
 
+    localStorage.setItem(
+      "minegram_register_verified",
+      "true"
+    );
+
+
     sessionStorage.setItem(
       "minegram_register_username",
+      username
+    );
+
+
+    localStorage.setItem(
+      "minegram_username",
       username
     );
 
@@ -811,6 +766,11 @@ async function verifyCode(){
 
       sessionStorage.setItem(
         "minegram_register_access_token",
+        String(data.access_token)
+      );
+
+      localStorage.setItem(
+        "minegram_access_token",
         String(data.access_token)
       );
 
@@ -878,7 +838,7 @@ async function verifyCode(){
     ===================================================== */
 
     showStatus(
-      "Hesabın doğrulandı. Profil oluşturma sayfasına geçiliyor...",
+      "Hesabın doğrulandı. Minegram'a giriliyor...",
       true
     );
 
@@ -888,18 +848,19 @@ async function verifyCode(){
 
 
     /* =====================================================
-       PROFİL OLUŞTUR
+       DİREKT PROFILE.HTML
     ===================================================== */
 
     setTimeout(
       function(){
 
         window.location.href =
-          "./profil-olustur.html";
+          "./profile.html";
 
       },
       500
     );
+
 
   }
   catch(error){
@@ -929,7 +890,7 @@ async function verifyCode(){
 
 
 /* =========================================================
-   BUTON
+   DOĞRULAMA BUTONU
 ========================================================= */
 
 verifyButton.addEventListener(
@@ -939,7 +900,7 @@ verifyButton.addEventListener(
 
 
 /* =========================================================
-   ENTER
+   ENTER TUŞU
 ========================================================= */
 
 codeInput.addEventListener(
