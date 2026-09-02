@@ -2,420 +2,160 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Şifremi unuttum - Minegram</title>
 
 <style>
 *{box-sizing:border-box}
-
 html,body{
-    margin:0;
-    width:100%;
-    min-height:100%;
-    background:#000;
-    color:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+margin:0;width:100%;min-height:100%;background:#000;color:#fff;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif
 }
-
-body{
-    min-height:100vh;
-    min-height:100dvh;
-    overflow-x:hidden;
-}
-
+body{min-height:100vh;min-height:100dvh;overflow-x:hidden}
 button{font-family:inherit}
 
 .page{
-    width:100%;
-    min-height:100vh;
-    min-height:100dvh;
-    background:#000;
-    padding:max(18px,env(safe-area-inset-top)) 0 calc(28px + env(safe-area-inset-bottom));
+width:100%;min-height:100vh;min-height:100dvh;background:#000;
+padding:max(18px,env(safe-area-inset-top)) 0 calc(28px + env(safe-area-inset-bottom))
 }
 
 .header{
-    width:100%;
-    height:60px;
-    display:flex;
-    align-items:center;
-    padding-left:38px;
+width:100%;height:60px;display:flex;align-items:center;padding-left:38px
 }
 
 .back{
-    width:25px;
-    height:35px;
-    border:0;
-    background:transparent;
-    color:#fff;
-    padding:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
+width:25px;height:35px;border:0;background:transparent;color:#fff;padding:0;
+display:flex;align-items:center;justify-content:center;cursor:pointer
 }
 
 .back svg{
-    width:25px;
-    height:35px;
-    stroke:currentColor;
-    stroke-width:3;
-    fill:none;
-    stroke-linecap:round;
-    stroke-linejoin:round;
+width:25px;height:35px;stroke:currentColor;stroke-width:3;fill:none;
+stroke-linecap:round;stroke-linejoin:round
 }
 
 .header-title{
-    margin-left:15px;
-    font-size:20px;
-    line-height:1;
-    font-weight:700;
-    letter-spacing:-.3px;
+margin-left:15px;font-size:20px;line-height:1;font-weight:700
 }
 
 .content{
-    width:317px;
-    margin:115px auto 0;
+width:317px;margin:115px auto 0
 }
 
 h1{
-    margin:0 0 34px;
-    font-size:30px;
-    line-height:1.15;
-    font-weight:700;
-    letter-spacing:-.5px;
+margin:0 0 34px;font-size:30px;line-height:1.15;font-weight:700
 }
 
 .subtitle{
-    margin:0 0 65px;
-    color:#bdbdbd;
-    font-size:18px;
-    line-height:1.45;
+margin:0 0 65px;color:#bdbdbd;font-size:18px;line-height:1.45
 }
 
 .accounts{
-    width:100%;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
+width:100%;display:flex;flex-direction:column;gap:10px
 }
 
 .account{
-    width:100%;
-    min-height:72px;
-    padding:12px 13px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
-    color:#fff;
-    text-align:left;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    transition:.15s;
-}
-
-.account:hover{
-    background:#0b0b0b;
-}
-
-.account:active{
-    transform:scale(.99);
+width:100%;min-height:72px;padding:12px 13px;border:1px solid #252525;
+border-radius:9px;background:#050505;color:#fff;text-align:left;cursor:pointer;
+display:flex;align-items:center;justify-content:space-between
 }
 
 .account.selected{
-    border-color:#2677b5;
-    background:#080808;
+border-color:#2677b5;background:#080808
 }
 
-.account-info{
-    min-width:0;
-    flex:1;
-}
+.account-info{min-width:0;flex:1}
 
 .username{
-    font-size:15px;
-    font-weight:700;
-    line-height:1.25;
-    margin-bottom:5px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+font-size:15px;font-weight:700;line-height:1.25;margin-bottom:5px;
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap
 }
 
 .email{
-    color:#b6b6b6;
-    font-size:12px;
-    line-height:1.25;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+color:#b6b6b6;font-size:12px;line-height:1.25;
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap
 }
 
 .radio{
-    flex:0 0 auto;
-    width:22px;
-    height:22px;
-    margin-left:12px;
-    border:2px solid #555;
-    border-radius:50%;
-    position:relative;
+flex:0 0 auto;width:22px;height:22px;margin-left:12px;
+border:2px solid #555;border-radius:50%;position:relative
 }
 
-.account.selected .radio{
-    border-color:#2677b5;
-}
+.account.selected .radio{border-color:#2677b5}
 
 .account.selected .radio:after{
-    content:"";
-    position:absolute;
-    width:10px;
-    height:10px;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    border-radius:50%;
-    background:#2677b5;
+content:"";position:absolute;width:10px;height:10px;left:50%;top:50%;
+transform:translate(-50%,-50%);border-radius:50%;background:#2677b5
 }
 
 .actions{
-    display:none;
-    flex-direction:column;
-    gap:8px;
-    margin-top:10px;
+display:none;flex-direction:column;gap:8px;margin-top:10px
 }
 
-.actions.show{
-    display:flex;
-}
+.actions.show{display:flex}
 
 .action-btn{
-    width:100%;
-    height:37px;
-    border:0;
-    border-radius:22px;
-    padding:0 12px;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.15s;
+width:100%;height:37px;border:0;border-radius:22px;padding:0 12px;
+font-size:12px;font-weight:700;cursor:pointer
 }
 
-.action-btn:hover{
-    opacity:.92;
-}
+.action-btn:disabled{opacity:.55;cursor:not-allowed}
 
-.action-btn:active{
-    transform:scale(.99);
-}
-
-.action-btn:disabled{
-    opacity:.55;
-    cursor:not-allowed;
-}
-
-.primary,
-.secondary{
-    background:#2677b5;
-    color:#000;
-}
+.primary,.secondary{background:#2677b5;color:#000}
 
 .status{
-    display:none;
-    min-height:18px;
-    margin-top:12px;
-    font-size:11px;
-    line-height:1.4;
+display:none;min-height:18px;margin-top:12px;font-size:11px;line-height:1.4
 }
 
-.status.show{
-    display:block;
-}
-
-.status.error{
-    color:#ff5c5c;
-}
-
-.status.success{
-    color:#63e6be;
-}
+.status.show{display:block}
+.status.error{color:#ff5c5c}
+.status.success{color:#49d17d}
 
 .loading-box{
-    width:100%;
-    min-height:72px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#b7b7b7;
-    font-size:12px;
+width:100%;min-height:72px;border:1px solid #252525;border-radius:9px;
+background:#050505;display:flex;align-items:center;justify-content:center;
+color:#b7b7b7;font-size:12px
 }
 
 .spinner{
-    width:17px;
-    height:17px;
-    margin-right:9px;
-    border:2px solid #333;
-    border-top-color:#2677b5;
-    border-radius:50%;
-    animation:spin .8s linear infinite;
+width:17px;height:17px;margin-right:9px;border:2px solid #333;
+border-top-color:#2677b5;border-radius:50%;animation:spin .8s linear infinite
 }
 
-@keyframes spin{
-    to{
-        transform:rotate(360deg);
-    }
-}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 .empty{
-    width:100%;
-    padding:18px 14px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
-    color:#b7b7b7;
-    text-align:center;
-    font-size:12px;
-    line-height:1.5;
+width:100%;padding:18px 14px;border:1px solid #252525;border-radius:9px;
+background:#050505;color:#b7b7b7;text-align:center;font-size:12px;line-height:1.5
 }
 
 @media(max-width:600px){
-
-    .page{
-        padding-left:28px;
-        padding-right:28px;
-    }
-
-    .header{
-        height:70px;
-        padding-left:0;
-    }
-
-    .back{
-        width:30px;
-        height:38px;
-    }
-
-    .back svg{
-        width:30px;
-        height:38px;
-    }
-
-    .header-title{
-        margin-left:15px;
-        font-size:21px;
-    }
-
-    .content{
-        width:calc(100% - 120px);
-        max-width:714px;
-        margin:105px auto 0;
-    }
-
-    h1{
-        margin-bottom:30px;
-        font-size:42px;
-    }
-
-    .subtitle{
-        margin-bottom:55px;
-        font-size:21px;
-        line-height:1.5;
-    }
-
-    .accounts{
-        gap:12px;
-    }
-
-    .account{
-        min-height:68px;
-        padding:14px 20px;
-        border:2px solid #252525;
-    }
-
-    .username{
-        font-size:18px;
-        margin-bottom:6px;
-    }
-
-    .email{
-        font-size:15px;
-    }
-
-    .radio{
-        width:24px;
-        height:24px;
-        margin-left:15px;
-    }
-
-    .account.selected .radio:after{
-        width:12px;
-        height:12px;
-    }
-
-    .actions{
-        gap:10px;
-        margin-top:12px;
-    }
-
-    .action-btn{
-        height:58px;
-        border-radius:32px;
-        font-size:20px;
-    }
-
-    .status{
-        font-size:14px;
-    }
-
-    .loading-box{
-        min-height:68px;
-        border:2px solid #252525;
-        font-size:14px;
-    }
-
-    .empty{
-        padding:20px;
-        border:2px solid #252525;
-        font-size:14px;
-    }
+.page{padding-left:28px;padding-right:28px}
+.header{height:70px;padding-left:0}
+.back{width:30px;height:38px}
+.back svg{width:30px;height:38px}
+.header-title{margin-left:15px;font-size:21px}
+.content{width:calc(100% - 120px);max-width:714px;margin:105px auto 0}
+h1{margin-bottom:30px;font-size:42px}
+.subtitle{margin-bottom:55px;font-size:21px;line-height:1.5}
+.account{min-height:68px;padding:14px 20px;border:2px solid #252525}
+.username{font-size:18px}
+.email{font-size:15px}
+.radio{width:24px;height:24px}
+.action-btn{height:58px;border-radius:32px;font-size:20px}
+.status{font-size:14px}
+.loading-box{min-height:68px;border:2px solid #252525;font-size:14px}
+.empty{padding:20px;border:2px solid #252525;font-size:14px}
 }
 
 @media(max-width:430px){
-
-    .content{
-        width:calc(100% - 40px);
-        margin-top:65px;
-    }
-
-    h1{
-        font-size:38px;
-    }
-
-    .subtitle{
-        font-size:20px;
-    }
-
-    .account{
-        min-height:65px;
-        padding:13px 15px;
-    }
-
-    .username{
-        font-size:17px;
-    }
-
-    .email{
-        font-size:14px;
-    }
-
-    .action-btn{
-        height:55px;
-        font-size:18px;
-    }
+.content{width:calc(100% - 40px);margin-top:65px}
+h1{font-size:38px}
+.subtitle{font-size:20px}
+.account{min-height:65px;padding:13px 15px}
+.username{font-size:17px}
+.email{font-size:14px}
+.action-btn{height:55px;font-size:18px}
 }
 </style>
 </head>
@@ -484,13 +224,15 @@ onclick="startPasswordReset(event)"
 <script>
 "use strict";
 
-const API = "/api";
+const API="/api";
 
-let selectedAccount = null;
+let selectedAccount=null;
 
-const params = new URLSearchParams(window.location.search);
+const params=new URLSearchParams(
+    window.location.search
+);
 
-let recoveryIdentifier = (
+let recoveryIdentifier=(
     params.get("identifier") ||
     params.get("username") ||
     sessionStorage.getItem("minegram_recovery_identifier") ||
@@ -500,14 +242,14 @@ let recoveryIdentifier = (
     ""
 ).trim().replace(/^@/,"").toLowerCase();
 
-let recoveryMode = (
+let recoveryMode=(
     params.get("mode") ||
     sessionStorage.getItem("minegram_recovery_mode") ||
     localStorage.getItem("minegram_recovery_mode") ||
     ""
 ).trim().toLowerCase();
 
-let recoveryEmail = (
+let recoveryEmail=(
     params.get("email") ||
     sessionStorage.getItem("minegram_recovery_email") ||
     localStorage.getItem("minegram_recovery_email") ||
@@ -517,10 +259,10 @@ let recoveryEmail = (
 
 function goBack(){
 
-    if(history.length > 1){
+    if(history.length>1){
         history.back();
     }else{
-        window.location.href = "giris.html";
+        window.location.href="giris.html";
     }
 
 }
@@ -528,25 +270,19 @@ function goBack(){
 
 function showStatus(text,type=""){
 
-    const el = document.getElementById("status");
+    const el=document.getElementById("status");
 
     if(!el)return;
 
-    el.className = "status";
+    el.className="status";
+    el.textContent=text || "";
 
     if(text){
-
-        el.textContent = text;
         el.classList.add("show");
+    }
 
-        if(type){
-            el.classList.add(type);
-        }
-
-    }else{
-
-        el.textContent = "";
-
+    if(type){
+        el.classList.add(type);
     }
 
 }
@@ -572,11 +308,9 @@ function selectAccount(button){
 
     button.classList.add("selected");
 
-    selectedAccount = {
+    selectedAccount={
 
-        id:String(
-            button.dataset.id || ""
-        ).trim(),
+        id:String(button.dataset.id || "").trim(),
 
         username:String(
             button.dataset.username || ""
@@ -584,51 +318,24 @@ function selectAccount(button){
 
         email:String(
             button.dataset.email || ""
-        ).trim().toLowerCase(),
-
-        displayName:String(
-            button.dataset.displayName || ""
-        ).trim(),
-
-        avatar:String(
-            button.dataset.avatar || ""
-        ).trim()
+        ).trim().toLowerCase()
 
     };
 
-    recoveryIdentifier = selectedAccount.username;
-    recoveryMode = "username";
-    recoveryEmail = selectedAccount.email;
+    recoveryIdentifier=selectedAccount.username;
+    recoveryEmail=selectedAccount.email;
+    recoveryMode="username";
 
-    sessionStorage.setItem(
-        "minegram_recovery_identifier",
-        recoveryIdentifier
-    );
+    const values={
+        minegram_recovery_identifier:recoveryIdentifier,
+        minegram_recovery_username:recoveryIdentifier,
+        minegram_recovery_mode:"username"
+    };
 
-    sessionStorage.setItem(
-        "minegram_recovery_username",
-        recoveryIdentifier
-    );
-
-    sessionStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
-
-    localStorage.setItem(
-        "minegram_recovery_identifier",
-        recoveryIdentifier
-    );
-
-    localStorage.setItem(
-        "minegram_recovery_username",
-        recoveryIdentifier
-    );
-
-    localStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
+    Object.entries(values).forEach(([key,value])=>{
+        sessionStorage.setItem(key,value);
+        localStorage.setItem(key,value);
+    });
 
     if(recoveryEmail){
 
@@ -655,52 +362,41 @@ function selectAccount(button){
 
 function createAccountCard(account){
 
-    const username = String(
-        account?.username || ""
+    const username=String(
+        account?.username ||
+        account?.user_name ||
+        ""
     ).trim().replace(/^@/,"").toLowerCase();
 
-    const email = String(
-        account?.email || ""
+    const email=String(
+        account?.email ||
+        ""
     ).trim().toLowerCase();
 
     if(!username && !email){
         return null;
     }
 
-    const button = document.createElement("button");
+    const button=document.createElement("button");
 
-    button.type = "button";
-    button.className = "account";
+    button.type="button";
+    button.className="account";
 
-    button.dataset.id =
-        String(account.id || "");
-
-    button.dataset.username =
-        username;
-
-    button.dataset.email =
-        email;
-
-    button.dataset.displayName =
+    button.dataset.id=
         String(
-            account.displayName ||
-            account.display_name ||
-            username
-        );
-
-    button.dataset.avatar =
-        String(
-            account.avatar ||
-            account.avatar_url ||
+            account?.id ||
+            account?.user_id ||
             ""
         );
 
-    button.innerHTML = `
+    button.dataset.username=username;
+    button.dataset.email=email;
+
+    button.innerHTML=`
         <div class="account-info">
             <div class="username">
                 @${escapeHtml(username || "minegram")}
             </div>
-
             <div class="email">
                 ${escapeHtml(
                     email ||
@@ -708,15 +404,12 @@ function createAccountCard(account){
                 )}
             </div>
         </div>
-
         <div class="radio"></div>
     `;
 
     button.addEventListener(
         "click",
-        ()=>{
-            selectAccount(button);
-        }
+        ()=>selectAccount(button)
     );
 
     return button;
@@ -726,17 +419,17 @@ function createAccountCard(account){
 
 function renderAccounts(accounts){
 
-    const container =
+    const container=
         document.getElementById("accounts");
 
-    container.innerHTML = "";
+    container.innerHTML="";
 
     if(
         !Array.isArray(accounts) ||
         !accounts.length
     ){
 
-        container.innerHTML = `
+        container.innerHTML=`
             <div class="empty">
                 Bu bilgilerle eşleşen Minegram hesabı bulunamadı.
             </div>
@@ -747,7 +440,7 @@ function renderAccounts(accounts){
 
     accounts.forEach(account=>{
 
-        const card =
+        const card=
             createAccountCard(account);
 
         if(card){
@@ -756,12 +449,12 @@ function renderAccounts(accounts){
 
     });
 
-    const cards =
+    const cards=
         container.querySelectorAll(".account");
 
     if(!cards.length){
 
-        container.innerHTML = `
+        container.innerHTML=`
             <div class="empty">
                 Hesap bilgileri yüklenemedi.
             </div>
@@ -775,8 +468,8 @@ function renderAccounts(accounts){
         cards.forEach(card=>{
 
             if(
-                card.dataset.username.toLowerCase() ===
-                recoveryIdentifier.toLowerCase()
+                card.dataset.username ===
+                recoveryIdentifier
             ){
 
                 selectAccount(card);
@@ -792,23 +485,18 @@ function renderAccounts(accounts){
 
 async function findAccount(){
 
-    const container =
+    const container=
         document.getElementById("accounts");
 
     try{
 
-        let identifier =
-            recoveryIdentifier;
-
-        let mode =
-            recoveryMode;
+        let identifier=recoveryIdentifier;
+        let mode=recoveryMode;
 
         if(!identifier && recoveryEmail){
 
-            identifier =
-                recoveryEmail;
-
-            mode = "email";
+            identifier=recoveryEmail;
+            mode="email";
 
         }
 
@@ -820,9 +508,9 @@ async function findAccount(){
 
         }
 
-        const response =
+        const response=
             await fetch(
-                API + "/forgot-password/find-account",
+                API+"/forgot-password/find-account",
                 {
                     method:"POST",
 
@@ -836,15 +524,14 @@ async function findAccount(){
 
                     body:JSON.stringify({
 
-                        identifier:
-                            identifier,
+                        identifier:identifier,
 
                         mode:
                             mode ||
                             (
                                 identifier.includes("@")
-                                    ? "email"
-                                    : "username"
+                                ? "email"
+                                : "username"
                             )
 
                     }),
@@ -853,14 +540,14 @@ async function findAccount(){
                 }
             );
 
-        const data =
+        const data=
             await response
                 .json()
                 .catch(()=>({}));
 
         if(
             !response.ok ||
-            data.ok === false
+            data.ok===false
         ){
 
             throw new Error(
@@ -873,32 +560,19 @@ async function findAccount(){
 
         if(data.account){
 
-            renderAccounts(
-                [data.account]
-            );
-
+            renderAccounts([data.account]);
             return;
         }
 
-        if(
-            Array.isArray(
-                data.accounts
-            )
-        ){
+        if(Array.isArray(data.accounts)){
 
-            renderAccounts(
-                data.accounts
-            );
-
+            renderAccounts(data.accounts);
             return;
         }
 
         if(data.profile){
 
-            renderAccounts(
-                [data.profile]
-            );
-
+            renderAccounts([data.profile]);
             return;
         }
 
@@ -913,7 +587,7 @@ async function findAccount(){
             error
         );
 
-        container.innerHTML = `
+        container.innerHTML=`
             <div class="empty">
                 ${escapeHtml(
                     error.message ||
@@ -950,35 +624,29 @@ function directLogin(event){
         return;
     }
 
-    const p =
-        new URLSearchParams();
+    const query=new URLSearchParams();
 
     if(selectedAccount.username){
-
-        p.set(
+        query.set(
             "username",
             selectedAccount.username
         );
-
     }
 
     if(selectedAccount.email){
-
-        p.set(
+        query.set(
             "email",
             selectedAccount.email
         );
-
     }
 
-    window.location.href =
-        "giris.html?" +
-        p.toString();
+    window.location.href=
+        "giris.html?"+query.toString();
 
 }
 
 
-function startPasswordReset(event){
+async function startPasswordReset(event){
 
     if(event){
         event.preventDefault();
@@ -995,71 +663,239 @@ function startPasswordReset(event){
         return;
     }
 
-    /*
-       Hesap bilgilerini sakla.
-       Bu sayede yeni-sifre.html
-       gerekli kullanıcı bilgisini okuyabilir.
-    */
-
-    const username =
+    const username=
         selectedAccount.username || "";
 
-    const email =
+    const email=
         selectedAccount.email || "";
 
-    localStorage.setItem(
-        "minegram_recovery_username",
-        username
-    );
+    const resetButton=
+        document.getElementById("resetButton");
 
-    localStorage.setItem(
-        "minegram_recovery_identifier",
-        username
-    );
+    try{
 
-    localStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
+        resetButton.disabled=true;
+        resetButton.textContent="Hazırlanıyor...";
 
-    sessionStorage.setItem(
-        "minegram_recovery_username",
-        username
-    );
+        /*
+         * Recovery bilgilerinin tamamını sakla.
+         */
 
-    sessionStorage.setItem(
-        "minegram_recovery_identifier",
-        username
-    );
+        const recoveryValues={
 
-    sessionStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
+            minegram_recovery_username:
+                username,
 
-    if(email){
+            minegram_recovery_identifier:
+                username,
 
-        localStorage.setItem(
-            "minegram_recovery_email",
-            email
+            minegram_recovery_mode:
+                "username"
+
+        };
+
+        Object.entries(recoveryValues).forEach(
+            ([key,value])=>{
+                sessionStorage.setItem(key,value);
+                localStorage.setItem(key,value);
+            }
         );
 
-        sessionStorage.setItem(
-            "minegram_recovery_email",
-            email
+        if(email){
+
+            sessionStorage.setItem(
+                "minegram_recovery_email",
+                email
+            );
+
+            localStorage.setItem(
+                "minegram_recovery_email",
+                email
+            );
+
+        }
+
+        /*
+         * ÖNCE GERÇEK RESET OTURUMU OLUŞTUR.
+         *
+         * Bu işlem yapılmadan yeni-sifre.html
+         * açılırsa resetToken olmayacağı için
+         * "oturum geçersiz" hatası oluşur.
+         */
+
+        const response=
+            await fetch(
+                API+"/forgot/start",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        identifier:username,
+
+                        username:username,
+
+                        email:email,
+
+                        mode:"username"
+
+                    }),
+
+                    cache:"no-store"
+                }
+            );
+
+        const data=
+            await response
+                .json()
+                .catch(()=>({}));
+
+        console.log(
+            "[MINEGRAM FORGOT START]",
+            data
         );
+
+        if(
+            !response.ok ||
+            data.ok===false
+        ){
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Şifre sıfırlama oturumu oluşturulamadı."
+            );
+
+        }
+
+        /*
+         * Backend'den tokenı farklı isimlerden
+         * güvenli şekilde yakala.
+         */
+
+        const resetToken=String(
+
+            data.resetToken ||
+
+            data.reset_token ||
+
+            data.recoveryToken ||
+
+            data.recovery_token ||
+
+            data.token ||
+
+            data.data?.resetToken ||
+
+            data.data?.reset_token ||
+
+            data.data?.recoveryToken ||
+
+            data.data?.recovery_token ||
+
+            data.data?.token ||
+
+            ""
+
+        ).trim();
+
+        if(!resetToken){
+
+            console.error(
+                "[MINEGRAM] /api/forgot/start TOKEN YOK:",
+                data
+            );
+
+            throw new Error(
+                "Şifre sıfırlama oturumu oluşturuldu ancak güvenlik anahtarı alınamadı."
+            );
+
+        }
+
+        /*
+         * TOKENI HEM SESSION HEM LOCAL STORAGE'A YAZ.
+         */
+
+        const tokenKeys=[
+            "minegram_reset_token",
+            "minegram_recovery_token",
+            "resetToken"
+        ];
+
+        tokenKeys.forEach(key=>{
+
+            sessionStorage.setItem(
+                key,
+                resetToken
+            );
+
+            localStorage.setItem(
+                key,
+                resetToken
+            );
+
+        });
+
+        /*
+         * Yeni şifre sayfasına direkt git.
+         * Doğrulama ekranını göstermiyoruz.
+         */
+
+        const next=
+            new URL(
+                "yeni-sifre.html",
+                window.location.href
+            );
+
+        next.searchParams.set(
+            "resetToken",
+            resetToken
+        );
+
+        next.searchParams.set(
+            "username",
+            username
+        );
+
+        if(email){
+
+            next.searchParams.set(
+                "email",
+                email
+            );
+
+        }
+
+        window.location.replace(
+            next.toString()
+        );
+
+    }catch(error){
+
+        console.error(
+            "[MINEGRAM RESET START ERROR]",
+            error
+        );
+
+        showStatus(
+            error.message ||
+            "Şifre sıfırlama başlatılamadı.",
+            "error"
+        );
+
+        resetButton.disabled=false;
+        resetButton.textContent=
+            "Şifre değiştirmeye devam et";
 
     }
-
-    /*
-       İSTEDİĞİN KISIM:
-       Şifre değiştirmeye devam et
-       butonuna basınca direkt
-       yeni-sifre.html açılır.
-    */
-
-    window.location.href =
-        "yeni-sifre.html";
 
 }
 
