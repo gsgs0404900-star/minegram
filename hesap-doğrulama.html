@@ -257,7 +257,6 @@ body{
 
 <div class="page">
 
-<!-- ÜST -->
 <div class="topbar">
 
     <div
@@ -273,11 +272,6 @@ body{
     </div>
 
 </div>
-
-
-<!-- ========================================= -->
-<!-- E-POSTA DOĞRULAMA -->
-<!-- ========================================= -->
 
 <main class="content">
 
@@ -400,6 +394,10 @@ async function verifyCode(){
     const button =
         document.getElementById("verifyButton");
 
+    if(!input || !button){
+        return;
+    }
+
     const code =
         input.value.trim();
 
@@ -417,40 +415,62 @@ async function verifyCode(){
     button.disabled = true;
     button.textContent = "Doğrulanıyor...";
 
-    /*
-     * URL'deki e-posta / telefon bilgisi alınır.
-     */
-
     const params =
-        new URLSearchParams(window.location.search);
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const identifier =
+        (
+            params.get("identifier") ||
+            params.get("username") ||
+            sessionStorage.getItem(
+                "minegram_recovery_identifier"
+            ) ||
+            ""
+        )
+        .trim()
+        .replace(/^@/,"")
+        .toLowerCase();
+
+    const mode =
+        (
+            params.get("mode") ||
+            sessionStorage.getItem(
+                "minegram_recovery_mode"
+            ) ||
+            "email"
+        )
+        .trim()
+        .toLowerCase();
 
     const email =
-        params.get("email");
-
-    const phone =
-        params.get("phone");
+        (
+            params.get("email") ||
+            sessionStorage.getItem(
+                "minegram_recovery_email"
+            ) ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
 
     try{
-
-        /*
-         * GERÇEK SERVER ENDPOINT'İ:
-         *
-         * POST /api/forgot/verify
-         *
-         * Server.js tarafındaki endpoint'in
-         * mevcut olması gerekir.
-         */
 
         const body = {
             code: code
         };
 
-        if(email){
-            body.email = email;
+        if(identifier){
+            body.identifier = identifier;
         }
 
-        if(phone){
-            body.phone = phone;
+        if(mode){
+            body.mode = mode;
+        }
+
+        if(email){
+            body.email = email;
         }
 
         const response =
@@ -495,18 +515,47 @@ async function verifyCode(){
 
         if(data.ok){
 
-            showMessage(
-                "Kod doğrulandı. Yeni şifreni oluşturabilirsin.",
-                "success"
-            );
-
             /*
-             * Server bir resetToken döndürüyorsa
-             * yeni şifre sayfasına taşınır.
+             * Eski sistem:
+             * Doğrulama başarılı olunca
+             * yeni şifre sayfasına geç.
              */
 
             const token =
-                data.resetToken || "";
+                data.resetToken ||
+                data.token ||
+                "";
+
+            if(!token){
+
+                throw new Error(
+                    "Kod doğrulandı ancak şifre yenileme anahtarı alınamadı. Lütfen tekrar kod iste."
+                );
+            }
+
+            showMessage(
+                "Kod doğrulandı. Yeni şifre sayfasına yönlendiriliyorsun.",
+                "success"
+            );
+
+            sessionStorage.setItem(
+                "minegram_recovery_verified",
+                "true"
+            );
+
+            sessionStorage.setItem(
+                "minegram_recovery_token",
+                token
+            );
+
+            if(data.email){
+
+                sessionStorage.setItem(
+                    "minegram_recovery_email",
+                    data.email
+                );
+
+            }
 
             setTimeout(function(){
 
@@ -557,14 +606,49 @@ async function resendCode(){
     const button =
         document.getElementById("resendButton");
 
+    if(!button){
+        return;
+    }
+
     const params =
-        new URLSearchParams(window.location.search);
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const identifier =
+        (
+            params.get("identifier") ||
+            params.get("username") ||
+            sessionStorage.getItem(
+                "minegram_recovery_identifier"
+            ) ||
+            ""
+        )
+        .trim()
+        .replace(/^@/,"")
+        .toLowerCase();
+
+    const mode =
+        (
+            params.get("mode") ||
+            sessionStorage.getItem(
+                "minegram_recovery_mode"
+            ) ||
+            "email"
+        )
+        .trim()
+        .toLowerCase();
 
     const email =
-        params.get("email");
-
-    const phone =
-        params.get("phone");
+        (
+            params.get("email") ||
+            sessionStorage.getItem(
+                "minegram_recovery_email"
+            ) ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
 
     button.disabled = true;
     button.textContent = "Gönderiliyor...";
@@ -572,16 +656,10 @@ async function resendCode(){
     try{
 
         const body = {
-            mode: phone ? "phone" : "email"
+            identifier:
+                identifier || email,
+            mode: mode
         };
-
-        if(email){
-            body.identifier = email;
-        }
-
-        if(phone){
-            body.identifier = phone;
-        }
 
         const response =
             await fetch(
@@ -618,6 +696,15 @@ async function resendCode(){
             );
         }
 
+        if(data.email){
+
+            sessionStorage.setItem(
+                "minegram_recovery_email",
+                data.email
+            );
+
+        }
+
         showMessage(
             "Yeni doğrulama kodu e-posta adresine gönderildi.",
             "success"
@@ -625,6 +712,11 @@ async function resendCode(){
 
     }
     catch(error){
+
+        console.error(
+            "[MINEGRAM RESEND ERROR]",
+            error
+        );
 
         showMessage(
             error.message ||
@@ -636,7 +728,8 @@ async function resendCode(){
     finally{
 
         button.disabled = false;
-        button.textContent = "Kodu tekrar gönder";
+        button.textContent =
+            "Kodu tekrar gönder";
 
     }
 }
