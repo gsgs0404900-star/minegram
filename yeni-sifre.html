@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Yeni şifre - Minegram</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+body{
+    min-height:100vh;
+}
+
+.topbar{
+    width:100%;
+    height:60px;
+    display:flex;
+    align-items:center;
+    padding-left:38px;
+}
+
+.back{
+    width:25px;
+    height:35px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    font-size:34px;
+    line-height:35px;
+    cursor:pointer;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.top-title{
+    margin-left:15px;
+    font-size:20px;
+    font-weight:700;
+    color:#fff;
+}
+
+.content{
+    width:317px;
+    margin:115px auto 0;
+}
+
+.title{
+    font-size:30px;
+    line-height:1.15;
+    font-weight:700;
+    margin-bottom:34px;
+}
+
+.description{
+    font-size:18px;
+    line-height:1.45;
+    color:#bdbdbd;
+    margin-bottom:65px;
+}
+
+.field{
+    width:100%;
+    margin-bottom:14px;
+}
+
+.label{
+    display:block;
+    font-size:12px;
+    color:#bdbdbd;
+    margin-bottom:7px;
+}
+
+.password-wrap{
+    position:relative;
+    width:100%;
+}
+
+.password-input{
+    width:100%;
+    height:39px;
+    padding:0 42px 0 10px;
+    border:1px solid #252525;
+    border-radius:6px;
+    outline:none;
+    background:#050505;
+    color:#fff;
+    font-size:12px;
+}
+
+.password-input::placeholder{
+    color:#777;
+}
+
+.password-input:focus{
+    border-color:#2677b5;
+    box-shadow:0 0 0 1px #2677b5;
+}
+
+.toggle-password{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    border:0;
+    background:transparent;
+    color:#888;
+    cursor:pointer;
+    font-size:12px;
+    padding:4px;
+}
+
+.toggle-password:hover{
+    color:#fff;
+}
+
+.password-info{
+    color:#777;
+    font-size:10px;
+    line-height:1.4;
+    margin-top:6px;
+}
+
+.reset-btn{
+    width:100%;
+    height:37px;
+    margin-top:14px;
+    border:0;
+    border-radius:22px;
+    background:#2677b5;
+    color:#000;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.reset-btn:hover{
+    background:#3189ce;
+}
+
+.reset-btn:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+.message{
+    min-height:18px;
+    margin-top:12px;
+    font-size:11px;
+    color:#2677b5;
+    line-height:1.4;
+}
+
+.message.error{
+    color:#ff5c5c;
+}
+
+.message.success{
+    color:#49d17d;
+}
+
+@media(max-width:600px){
+
+    .topbar{
+        height:70px;
+        padding-left:28px;
+    }
+
+    .back{
+        width:30px;
+        height:38px;
+        font-size:38px;
+        line-height:38px;
+    }
+
+    .top-title{
+        font-size:21px;
+        margin-left:15px;
+    }
+
+    .content{
+        width:calc(100% - 120px);
+        max-width:714px;
+        margin:105px auto 0;
+    }
+
+    .title{
+        font-size:42px;
+        margin-bottom:30px;
+    }
+
+    .description{
+        font-size:21px;
+        line-height:1.5;
+        margin-bottom:55px;
+    }
+
+    .field{
+        margin-bottom:18px;
+    }
+
+    .label{
+        font-size:14px;
+        margin-bottom:8px;
+    }
+
+    .password-input{
+        height:68px;
+        padding:0 55px 0 20px;
+        font-size:18px;
+        border:2px solid #686868;
+        border-radius:9px;
+    }
+
+    .toggle-password{
+        right:15px;
+        font-size:16px;
+    }
+
+    .password-info{
+        font-size:13px;
+        margin-top:7px;
+    }
+
+    .reset-btn{
+        height:58px;
+        margin-top:18px;
+        font-size:20px;
+        border-radius:32px;
+    }
+
+    .message{
+        font-size:14px;
+    }
+}
+
+@media(max-width:430px){
+
+    .content{
+        width:calc(100% - 40px);
+        margin-top:65px;
+    }
+
+    .title{
+        font-size:38px;
+    }
+
+    .description{
+        font-size:20px;
+    }
+
+    .password-input{
+        height:58px;
+        font-size:17px;
+    }
+
+    .reset-btn{
+        height:55px;
+        font-size:18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <button class="back" id="backBtn" aria-label="Geri">‹</button>
+    <div class="top-title">Şifre yenileme</div>
+</header>
+
+<main class="content">
+
+    <h1 class="title">Yeni şifreni oluştur</h1>
+
+    <p class="description">
+        Hesabın için yeni bir şifre belirle.
+        Yeni şifreni aşağıdaki alanlara iki kez gir.
+    </p>
+
+    <div class="field">
+        <label class="label" for="password">Yeni şifre</label>
+
+        <div class="password-wrap">
+            <input
+                id="password"
+                class="password-input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Yeni şifren"
+            >
+
+            <button
+                type="button"
+                class="toggle-password"
+                data-target="password"
+            >Göster</button>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label" for="password2">Yeni şifre tekrar</label>
+
+        <div class="password-wrap">
+            <input
+                id="password2"
+                class="password-input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Yeni şifreni tekrar gir"
+            >
+
+            <button
+                type="button"
+                class="toggle-password"
+                data-target="password2"
+            >Göster</button>
+        </div>
+
+        <div class="password-info">
+            Şifren en az 6 karakter olmalıdır.
+        </div>
+    </div>
+
+    <button
+        type="button"
+        class="reset-btn"
+        id="resetBtn"
+    >
+        Şifreyi yenile
+    </button>
+
+    <div
+        id="message"
+        class="message"
+        aria-live="polite"
+    ></div>
+
+</main>
+
+<script>
+
+const API_BASE = "https://minegram-hwns.onrender.com";
+
+const passwordInput = document.getElementById("password");
+const password2Input = document.getElementById("password2");
+const resetBtn = document.getElementById("resetBtn");
+const message = document.getElementById("message");
+const backBtn = document.getElementById("backBtn");
+
+function showMessage(text, type = ""){
+    message.textContent = text;
+    message.className = "message";
+
+    if(type){
+        message.classList.add(type);
+    }
+}
+
+function getRecoveryToken(){
+
+    const params = new URLSearchParams(window.location.search);
+
+    return (
+        params.get("token") ||
+        params.get("resetToken") ||
+        params.get("reset_token") ||
+        sessionStorage.getItem("minegram_reset_token") ||
+        sessionStorage.getItem("resetToken") ||
+        ""
+    );
+}
+
+function getRecoveryId(){
+
+    return (
+        sessionStorage.getItem("minegram_recovery_id") ||
+        sessionStorage.getItem("recovery_id") ||
+        ""
+    );
+}
+
+document.querySelectorAll(".toggle-password").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        const target = document.getElementById(
+            button.dataset.target
+        );
+
+        if(target.type === "password"){
+            target.type = "text";
+            button.textContent = "Gizle";
+        }else{
+            target.type = "password";
+            button.textContent = "Göster";
+        }
+
+    });
+
+});
+
+backBtn.addEventListener("click", () => {
+
+    if(history.length > 1){
+        history.back();
+    }else{
+        window.location.href = "giris.html";
+    }
+
+});
+
+passwordInput.addEventListener("input", () => {
+    showMessage("");
+});
+
+password2Input.addEventListener("input", () => {
+    showMessage("");
+});
+
+resetBtn.addEventListener("click", async () => {
+
+    const password = passwordInput.value.trim();
+    const password2 = password2Input.value.trim();
+
+    const token = getRecoveryToken();
+    const recoveryId = getRecoveryId();
+
+    showMessage("");
+
+    if(!password){
+        showMessage("Yeni şifreni gir.", "error");
+        passwordInput.focus();
+        return;
+    }
+
+    if(password.length < 6){
+        showMessage("Şifre en az 6 karakter olmalıdır.", "error");
+        passwordInput.focus();
+        return;
+    }
+
+    if(!password2){
+        showMessage("Yeni şifreni tekrar gir.", "error");
+        password2Input.focus();
+        return;
+    }
+
+    if(password !== password2){
+        showMessage("Şifreler aynı değil.", "error");
+        password2Input.focus();
+        return;
+    }
+
+    if(!token && !recoveryId){
+        showMessage(
+            "Şifre yenileme oturumu bulunamadı. Lütfen işlemi yeniden başlat.",
+            "error"
+        );
+        return;
+    }
+
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Yenileniyor...";
+
+    try{
+
+        const response = await fetch(
+            API_BASE + "/api/forgot/reset-password",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+
+                    token: token || undefined,
+
+                    resetToken: token || undefined,
+
+                    recoveryToken: token || undefined,
+
+                    userId: recoveryId || undefined,
+
+                    password: password,
+
+                    newPassword: password,
+
+                    confirmPassword: password2
+
+                })
+            }
+        );
+
+        let data = {};
+
+        try{
+            data = await response.json();
+        }catch{
+            data = {};
+        }
+
+        if(!response.ok || data.ok === false){
+
+            throw new Error(
+                data.message ||
+                data.error ||
+                "Şifre yenilenemedi."
+            );
+        }
+
+        showMessage(
+            "Şifren başarıyla yenilendi. Giriş sayfasına yönlendiriliyorsun...",
+            "success"
+        );
+
+        sessionStorage.removeItem("minegram_reset_token");
+        sessionStorage.removeItem("resetToken");
+        sessionStorage.removeItem("minegram_recovery_id");
+        sessionStorage.removeItem("recovery_id");
+
+        passwordInput.disabled = true;
+        password2Input.disabled = true;
+
+        setTimeout(() => {
+            window.location.href = "giris.html";
+        }, 1800);
+
+    }catch(error){
+
+        console.error("Şifre yenileme hatası:", error);
+
+        showMessage(
+            error.message ||
+            "Şifre yenilenirken bir hata oluştu.",
+            "error"
+        );
+
+        resetBtn.disabled = false;
+        resetBtn.textContent = "Şifreyi yenile";
+    }
+
+});
+
+</script>
+
+</body>
+</html>
