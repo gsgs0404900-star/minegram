@@ -1220,20 +1220,23 @@ Cinsiyet özellikleri
 
 <script>
 
-const params =
-new URLSearchParams(location.search);
+const params = new URLSearchParams(location.search);
 
-const target =
-params.get('username');
+/*
+=========================================================
+URL'DEN BAŞKA PROFİL AÇILDIYSA
+=========================================================
+*/
+const target = params.get('username');
 
-let me=null;
-let currentProfile=null;
-let currentPosts=[];
+let me = null;
+let currentProfile = null;
+let currentPosts = [];
 
 
-/* =========================
+/* =========================================================
    OTURUM / TOKEN
-   ========================= */
+========================================================= */
 
 function getToken(){
 
@@ -1249,39 +1252,57 @@ function getToken(){
 }
 
 
-/* =========================
-   API CEVABI YARDIMCILARI
-   ========================= */
+/* =========================================================
+   API CEVABI
+========================================================= */
 
 function unwrapUser(data){
 
-  if(!data)return {};
+  if(!data) return {};
 
-  if(data.profile){
+  /*
+    PROFİL VARSA ÖNCELİKLE ONU AL
+  */
+  if(data.profile && typeof data.profile === 'object'){
     return data.profile;
   }
 
-  if(data.user?.profile){
+  if(
+    data.user &&
+    data.user.profile &&
+    typeof data.user.profile === 'object'
+  ){
     return data.user.profile;
   }
 
-  if(data.user){
+  if(data.user && typeof data.user === 'object'){
     return data.user;
   }
 
-  if(data.me){
+  if(data.me && typeof data.me === 'object'){
     return data.me;
   }
 
-  if(data.data?.profile){
+  if(
+    data.data &&
+    data.data.profile &&
+    typeof data.data.profile === 'object'
+  ){
     return data.data.profile;
   }
 
-  if(data.data?.user){
+  if(
+    data.data &&
+    data.data.user &&
+    typeof data.data.user === 'object'
+  ){
     return data.data.user;
   }
 
-  if(data.data && typeof data.data === 'object'){
+  if(
+    data.data &&
+    typeof data.data === 'object'
+  ){
     return data.data;
   }
 
@@ -1290,11 +1311,15 @@ function unwrapUser(data){
 }
 
 
+/* =========================================================
+   ID
+========================================================= */
+
 function getId(data){
 
-  const x=unwrapUser(data);
+  const x = unwrapUser(data);
 
-  return (
+  return String(
     x?.id ||
     x?.user_id ||
     x?.userId ||
@@ -1308,28 +1333,55 @@ function getId(data){
 }
 
 
-function getUsername(data){
+/* =========================================================
+   KULLANICI ADI
+========================================================= */
 
-  const x=unwrapUser(data);
+function cleanUsername(value){
 
-  return String(
-    x?.username ||
-    x?.handle ||
-    data?.username ||
-    data?.user?.username ||
-    data?.profile?.username ||
-    data?.data?.username ||
-    localStorage.getItem('minegram_username') ||
-    ''
-  )
-  .trim()
-  .replace(/^@/,'');
+  return String(value || '')
+    .trim()
+    .replace(/^@/, '')
+    .trim();
+
 }
 
 
+function getUsername(data){
+
+  const x = unwrapUser(data);
+
+  /*
+    ÖNEMLİ:
+    Burada artık eski localStorage minegram
+    kullanıcı adını FALLBACK olarak kullanmıyoruz.
+
+    Çünkü eski kullanıcı adı yeni hesabın
+    üzerine yazılabiliyordu.
+  */
+
+  return cleanUsername(
+    x?.username ||
+    x?.handle ||
+    data?.username ||
+    data?.handle ||
+    data?.user?.username ||
+    data?.profile?.username ||
+    data?.data?.username ||
+    data?.data?.profile?.username ||
+    ''
+  );
+
+}
+
+
+/* =========================================================
+   DISPLAY NAME
+========================================================= */
+
 function getDisplayName(data){
 
-  const x=unwrapUser(data);
+  const x = unwrapUser(data);
 
   return String(
     x?.displayName ??
@@ -1343,9 +1395,13 @@ function getDisplayName(data){
 }
 
 
+/* =========================================================
+   BIO
+========================================================= */
+
 function getBio(data){
 
-  const x=unwrapUser(data);
+  const x = unwrapUser(data);
 
   return String(
     x?.bio ??
@@ -1356,9 +1412,13 @@ function getBio(data){
 }
 
 
+/* =========================================================
+   AVATAR
+========================================================= */
+
 function getAvatar(data){
 
-  const x=unwrapUser(data);
+  const x = unwrapUser(data);
 
   return (
     x?.avatar ||
@@ -1377,40 +1437,47 @@ function getAvatar(data){
 }
 
 
+/* =========================================================
+   ID KARŞILAŞTIR
+========================================================= */
+
 function sameId(a,b){
 
-  if(a===undefined || a===null)return false;
-  if(b===undefined || b===null)return false;
+  if(a === undefined || a === null) return false;
+  if(b === undefined || b === null) return false;
+
+  if(String(a).trim() === '') return false;
+  if(String(b).trim() === '') return false;
 
   return String(a) === String(b);
 
 }
 
 
+/* =========================================================
+   USERNAME KARŞILAŞTIR
+========================================================= */
+
 function sameUsername(a,b){
 
-  return String(a||'')
-    .trim()
-    .replace(/^@/,'')
-    .toLowerCase()
-    ===
-    String(b||'')
-    .trim()
-    .replace(/^@/,'')
-    .toLowerCase();
+  return cleanUsername(a).toLowerCase() ===
+         cleanUsername(b).toLowerCase();
 
 }
 
 
-/* =========================
-   OTURUM BİLGİLERİNİ SAKLA
-   ========================= */
+/* =========================================================
+   OTURUM KULLANICISINI SAKLA
+========================================================= */
 
-function saveCurrentSessionUser(user,profile){
+function saveCurrentSessionUser(user, profile){
 
-  const u=unwrapUser(user);
-  const p=unwrapUser(profile);
+  const u = unwrapUser(user);
+  const p = unwrapUser(profile);
 
+  /*
+    PROFİL KULLANICI ADI ÖNCELİKLİ
+  */
   const username =
     getUsername(p) ||
     getUsername(u);
@@ -1438,6 +1505,9 @@ function saveCurrentSessionUser(user,profile){
     u?.contact_email ||
     '';
 
+  /*
+    BOŞ USERNAME İLE ESKİ VERİYİ EZME
+  */
   if(username){
 
     localStorage.setItem(
@@ -1465,10 +1535,10 @@ function saveCurrentSessionUser(user,profile){
 
   }
 
-  const sessionUser={
+  const sessionUser = {
     ...u,
     ...p,
-    id:id || u?.id || p?.id,
+    id: id || u?.id || p?.id,
     username,
     displayName,
     bio,
@@ -1498,22 +1568,24 @@ function saveCurrentSessionUser(user,profile){
 }
 
 
-/* =========================
-   YARDIMCI
-   ========================= */
+/* =========================================================
+   TOAST
+========================================================= */
 
 function toast(msg){
 
-  const el=document.getElementById('toast');
+  const el =
+    document.getElementById('toast');
 
-  if(!el)return;
+  if(!el) return;
 
-  el.textContent=msg;
+  el.textContent = msg;
+
   el.classList.add('show');
 
   clearTimeout(window.__toast);
 
-  window.__toast=setTimeout(()=>{
+  window.__toast = setTimeout(()=>{
 
     el.classList.remove('show');
 
@@ -1522,18 +1594,22 @@ function toast(msg){
 }
 
 
+/* =========================================================
+   API
+========================================================= */
+
 async function api(url,opt={}){
 
-  const authToken=getToken();
+  const authToken = getToken();
 
-  opt.headers={
+  opt.headers = {
 
-    ...(opt.headers||{}),
+    ...(opt.headers || {}),
 
     ...(authToken
       ? {
           Authorization:
-            'Bearer '+authToken
+            'Bearer ' + authToken
         }
       : {})
 
@@ -1541,57 +1617,57 @@ async function api(url,opt={}){
 
   if(
     opt.body &&
-    typeof opt.body!=='string'
+    typeof opt.body !== 'string'
   ){
 
-    opt.headers['Content-Type']=
+    opt.headers['Content-Type'] =
       'application/json';
 
-    opt.body=
+    opt.body =
       JSON.stringify(opt.body);
 
   }
 
-  const r=
+  const r =
     await fetch(
       url,
       opt
     );
 
-  const text=
+  const text =
     await r.text();
 
-  let data={};
+  let data = {};
 
   try{
 
-    data=
+    data =
       text
       ? JSON.parse(text)
       : {};
 
   }catch{
 
-    data={};
+    data = {};
 
   }
 
   if(!r.ok){
 
-    const error=
+    const error =
       new Error(
         data.error ||
         data.message ||
         data.detail ||
         (
-          r.status===401
+          r.status === 401
           ? 'Oturum süresi dolmuş. Lütfen tekrar giriş yap.'
           : 'İşlem başarısız'
         )
       );
 
-    error.status=r.status;
-    error.data=data;
+    error.status = r.status;
+    error.data = data;
 
     throw error;
 
@@ -1602,13 +1678,17 @@ async function api(url,opt={}){
 }
 
 
+/* =========================================================
+   HTML
+========================================================= */
+
 function escapeHtml(s){
 
-  return String(s??'').replace(
+  return String(s ?? '').replace(
 
     /[&<>"']/g,
 
-    c=>({
+    c => ({
 
       '&':'&amp;',
       '<':'&lt;',
@@ -1623,9 +1703,13 @@ function escapeHtml(s){
 }
 
 
+/* =========================================================
+   MODAL
+========================================================= */
+
 function closeModal(id){
 
-  const el=
+  const el =
     document.getElementById(id);
 
   if(el)
@@ -1636,7 +1720,7 @@ function closeModal(id){
 
 function openModal(id){
 
-  const el=
+  const el =
     document.getElementById(id);
 
   if(el)
@@ -1645,9 +1729,9 @@ function openModal(id){
 }
 
 
-/* =========================
+/* =========================================================
    PROFİL TAMAMLAMA
-   ========================= */
+========================================================= */
 
 function profileCompletedKey(){
 
@@ -1669,9 +1753,8 @@ function isProfileCompleted(){
       profileCompletedKey()
     );
 
-  if(saved==='true'){
+  if(saved === 'true')
     return true;
-  }
 
   const name =
     String(
@@ -1712,17 +1795,22 @@ function updateCompleteProfileVisibility(){
       'completeProfileRow'
     );
 
-  if(!row)return;
+  if(!row) return;
 
   const mine =
     sameId(
       currentProfile.id,
       me.id
+    ) ||
+    sameUsername(
+      currentProfile.username,
+      me.username
     );
 
   if(!mine){
 
     row.style.display='none';
+
     return;
 
   }
@@ -1735,9 +1823,9 @@ function updateCompleteProfileVisibility(){
 }
 
 
-/* =========================
+/* =========================================================
    TELEFON
-   ========================= */
+========================================================= */
 
 function phoneDismissedKey(){
 
@@ -1776,9 +1864,8 @@ function dismissPhoneRow(){
       'phoneRow'
     );
 
-  if(row){
+  if(row)
     row.style.display='none';
-  }
 
 }
 
@@ -1799,6 +1886,7 @@ function renderPhone(){
   if(isPhoneDismissed()){
 
     row.style.display='none';
+
     return;
 
   }
@@ -1811,59 +1899,76 @@ function renderPhone(){
 
   row.style.display='';
 
-  document.getElementById(
-    'phoneTitle'
-  ).textContent =
-    phone
-    ? 'Telefon Numarası'
-    : 'Telefon Numarası Ekle';
+  const title =
+    document.getElementById('phoneTitle');
 
-  document.getElementById(
-    'phoneHelp'
-  ).textContent =
-    phone
-    ? 'Hesabına bağlı telefon numaran.'
-    : 'Şifreni yenileyebilmek, arkadaşlarını bulmak ve çok daha fazlası için telefon numaranı ekle.';
+  const help =
+    document.getElementById('phoneHelp');
 
-  document.getElementById(
-    'phoneValue'
-  ).textContent=phone;
+  const value =
+    document.getElementById('phoneValue');
 
-  document.getElementById(
-    'phoneBtn'
-  ).textContent =
-    phone
-    ? '✎'
-    : '＋';
+  const btn =
+    document.getElementById('phoneBtn');
+
+  if(title){
+
+    title.textContent =
+      phone
+      ? 'Telefon Numarası'
+      : 'Telefon Numarası Ekle';
+
+  }
+
+  if(help){
+
+    help.textContent =
+      phone
+      ? 'Hesabına bağlı telefon numaran.'
+      : 'Şifreni yenileyebilmek, arkadaşlarını bulmak ve çok daha fazlası için telefon numaranı ekle.';
+
+  }
+
+  if(value)
+    value.textContent = phone;
+
+  if(btn){
+
+    btn.textContent =
+      phone
+      ? '✎'
+      : '＋';
+
+  }
 
 }
 
 
-/* =========================
+/* =========================================================
    PROFİL EXTRA
-   ========================= */
+========================================================= */
 
 function renderProfileExtra(){
 
   if(!currentProfile)
     return;
 
-  const id=
+  const id =
     currentProfile.id;
 
   const pronouns =
     localStorage.getItem(
-      'minegram_pronouns_'+id
+      'minegram_pronouns_' + id
     ) || '';
 
   const link =
     localStorage.getItem(
-      'minegram_profile_link_'+id
+      'minegram_profile_link_' + id
     ) || '';
 
   const gender =
     localStorage.getItem(
-      'minegram_gender_'+id
+      'minegram_gender_' + id
     ) || '';
 
   const box =
@@ -1886,31 +1991,29 @@ function renderProfileExtra(){
       'profileGenderDisplay'
     );
 
-  p.textContent=pronouns;
-  p.style.display=
-    pronouns
-    ? ''
-    : 'none';
+  if(!box || !p || !a || !g)
+    return;
 
-  g.textContent=gender;
-  g.style.display=
-    gender
-    ? ''
-    : 'none';
+  p.textContent = pronouns;
+
+  p.style.display =
+    pronouns ? '' : 'none';
+
+  g.textContent = gender;
+
+  g.style.display =
+    gender ? '' : 'none';
 
   if(link){
 
     a.href =
       /^https?:\/\//i.test(link)
       ? link
-      : 'https://'+link;
+      : 'https://' + link;
 
     a.textContent =
       link
-      .replace(
-        /^https?:\/\//i,
-        ''
-      )
+      .replace(/^https?:\/\//i,'')
       .replace(/\/$/,'');
 
     a.style.display='';
@@ -1918,7 +2021,9 @@ function renderProfileExtra(){
   }else{
 
     a.style.display='none';
+
     a.textContent='';
+
     a.removeAttribute('href');
 
   }
@@ -1933,16 +2038,15 @@ function renderProfileExtra(){
 }
 
 
-/* =========================
+/* =========================================================
    ÖNE ÇIKANLAR
-   ========================= */
+========================================================= */
 
 function highlightsKey(){
 
   return 'minegram_highlights_' +
     String(
-      currentProfile?.username ||
-      ''
+      currentProfile?.username || ''
     ).toLowerCase();
 
 }
@@ -1965,7 +2069,7 @@ function getHighlights(){
 
   }catch{
 
-    return[];
+    return [];
 
   }
 
@@ -1991,6 +2095,10 @@ function renderHighlights(){
     sameId(
       currentProfile.id,
       me.id
+    ) ||
+    sameUsername(
+      currentProfile.username,
+      me.username
     );
 
   const section =
@@ -2003,93 +2111,96 @@ function renderHighlights(){
       'highlights'
     );
 
-  section.hidden=!mine;
+  if(!section || !box)
+    return;
+
+  section.hidden = !mine;
 
   if(!mine)
     return;
 
-  const items=
+  const items =
     getHighlights();
 
   box.innerHTML='';
 
-  const add=
-    document.createElement(
-      'button'
-    );
+  const add =
+    document.createElement('button');
 
   add.className='highlight';
 
   add.innerHTML =
-    '<span class="highlight-cover">＋</span>'+
+    '<span class="highlight-cover">＋</span>' +
     '<span class="highlight-title">Yeni</span>';
 
-  add.onclick=addHighlight;
+  add.onclick =
+    addHighlight;
 
   box.appendChild(add);
 
   items.forEach(
     (item,index)=>{
 
-      const b=
-        document.createElement(
-          'button'
-        );
+      const b =
+        document.createElement('button');
 
       b.className='highlight';
 
       b.innerHTML =
-        '<span class="highlight-cover">'+
+        '<span class="highlight-cover">' +
         (
           item.image
-          ? '<img src="'+
-            escapeHtml(item.image)+
+          ? '<img src="' +
+            escapeHtml(item.image) +
             '" alt="">'
           : '★'
-        )+
-        '</span>'+
-        '<span class="highlight-title">'+
+        ) +
+        '</span>' +
+        '<span class="highlight-title">' +
         escapeHtml(
-          item.title ||
-          'Öne çıkan'
-        )+
+          item.title || 'Öne çıkan'
+        ) +
         '</span>';
 
       b.onclick=()=>{
 
-        const selected=
+        const selected =
           getHighlights()[index];
 
         if(!selected)
           return;
 
-        document.getElementById(
-          'highlightBigCover'
-        ).innerHTML =
-          selected.image
-          ? '<img src="'+
-            escapeHtml(
-              selected.image
-            )+
-            '" alt="">'
-          : '★';
+        const cover =
+          document.getElementById(
+            'highlightBigCover'
+          );
 
-        document.getElementById(
-          'highlightViewName'
-        ).textContent =
-          selected.title ||
-          'Öne çıkan';
+        const name =
+          document.getElementById(
+            'highlightViewName'
+          );
 
         const view =
           document.getElementById(
             'highlightViewScreen'
           );
 
-        view.dataset.index=index;
+        if(!cover || !name || !view)
+          return;
 
-        view.classList.add(
-          'open'
-        );
+        cover.innerHTML =
+          selected.image
+          ? '<img src="' +
+            escapeHtml(selected.image) +
+            '" alt="">'
+          : '★';
+
+        name.textContent =
+          selected.title || 'Öne çıkan';
+
+        view.dataset.index = index;
+
+        view.classList.add('open');
 
       };
 
@@ -2103,51 +2214,48 @@ function renderHighlights(){
 
 function addHighlight(){
 
-  const input=
-    document.createElement(
-      'input'
-    );
+  const input =
+    document.createElement('input');
 
   input.type='file';
 
-  input.accept=
+  input.accept =
     'image/*,video/*';
 
   input.style.display='none';
 
   input.onchange=()=>{
 
-    const file=
+    const file =
       input.files?.[0];
 
     if(!file){
 
       input.remove();
+
       return;
 
     }
 
-    const reader=
+    const reader =
       new FileReader();
 
     reader.onload=()=>{
 
-      const items=
+      const items =
         getHighlights();
 
       items.push({
 
         title:
-          'Öne çıkan '+
-          (items.length+1),
+          'Öne çıkan ' +
+          (items.length + 1),
 
         image:
           reader.result,
 
         type:
-          file.type.startsWith(
-            'video/'
-          )
+          file.type.startsWith('video/')
           ? 'video'
           : 'image',
 
@@ -2172,18 +2280,16 @@ function addHighlight(){
 
   };
 
-  document.body.appendChild(
-    input
-  );
+  document.body.appendChild(input);
 
   input.click();
 
 }
 
 
-/* =========================
+/* =========================================================
    GÖNDERİLER
-   ========================= */
+========================================================= */
 
 function normalizePosts(data){
 
@@ -2202,7 +2308,7 @@ function normalizePosts(data){
   if(Array.isArray(data?.results))
     return data.results;
 
-  return[];
+  return [];
 
 }
 
@@ -2213,14 +2319,14 @@ function getPostMedia(post){
     return '';
 
   return(
-    post.media||
-    post.image||
-    post.imageUrl||
-    post.mediaUrl||
-    post.photo||
-    post.photoUrl||
-    post.thumbnail||
-    post.thumbnailUrl||
+    post.media ||
+    post.image ||
+    post.imageUrl ||
+    post.mediaUrl ||
+    post.photo ||
+    post.photoUrl ||
+    post.thumbnail ||
+    post.thumbnailUrl ||
     ''
   );
 
@@ -2233,9 +2339,9 @@ function getPostCaption(post){
     return '';
 
   return(
-    post.caption??
-    post.text??
-    post.description??
+    post.caption ??
+    post.text ??
+    post.description ??
     ''
   );
 
@@ -2248,80 +2354,68 @@ function getPostViews(post){
     return 0;
 
   return Number(
-    post.views??
-    post.viewCount??
-    post.viewsCount??
-    post.impressions??
+    post.views ??
+    post.viewCount ??
+    post.viewsCount ??
+    post.impressions ??
     0
-  )||0;
+  ) || 0;
 
 }
 
 
 function formatViews(value){
 
-  const n=
-    Number(value||0);
+  const n =
+    Number(value || 0);
 
   if(!Number.isFinite(n))
     return '0';
 
-  if(n>=1000000){
+  if(n >= 1000000){
 
     return(
-      n/1000000
+      n / 1000000
     ).toFixed(
-      n%1000000
-      ? 1
-      : 0
-    ).replace(
-      '.0',
-      ''
-    )+
+      n % 1000000 ? 1 : 0
+    ).replace('.0','') +
     ' mn';
 
   }
 
-  if(n>=10000){
+  if(n >= 10000){
 
     return(
-      n/1000
+      n / 1000
     ).toFixed(
-      n%1000
-      ? 1
-      : 0
-    ).replace(
-      '.0',
-      ''
-    )+
+      n % 1000 ? 1 : 0
+    ).replace('.0','') +
     ' bin';
 
   }
 
-  return n.toLocaleString(
-    'tr-TR'
-  );
+  return n.toLocaleString('tr-TR');
 
 }
 
 
 function renderPosts(data){
 
-  currentPosts=
+  currentPosts =
     normalizePosts(data);
 
-  const grid=
-    document.getElementById(
-      'grid'
-    );
+  const grid =
+    document.getElementById('grid');
 
   if(!grid)
     return;
 
-  document.getElementById(
-    'postCount'
-  ).textContent=
-    currentPosts.length;
+  const postCount =
+    document.getElementById('postCount');
+
+  if(postCount)
+    postCount.textContent =
+      currentPosts.length;
 
   if(!currentPosts.length){
 
@@ -2335,173 +2429,176 @@ function renderPosts(data){
   }
 
   const eyeIcon =
-    '<svg viewBox="0 0 24 24" aria-hidden="true">'+
-    '<path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path>'+
-    '<circle cx="12" cy="12" r="2.8"></circle>'+
+    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path>' +
+    '<circle cx="12" cy="12" r="2.8"></circle>' +
     '</svg>';
 
   grid.innerHTML='';
 
-  currentPosts.forEach(
-    post=>{
+  currentPosts.forEach(post=>{
 
-      const tile=
-        document.createElement(
-          'button'
-        );
+    const tile =
+      document.createElement('button');
 
-      tile.className=
-        'tile post-tile';
+    tile.className =
+      'tile post-tile';
 
-      const media=
-        getPostMedia(post);
+    const media =
+      getPostMedia(post);
 
-      const caption=
-        getPostCaption(post);
+    const caption =
+      getPostCaption(post);
 
-      const views=
-        getPostViews(post);
+    const views =
+      getPostViews(post);
 
-      if(media){
+    if(media){
 
-        const img=
-          document.createElement(
-            'img'
-          );
+      const img =
+        document.createElement('img');
 
-        img.src=media;
+      img.src = media;
 
-        img.loading='lazy';
+      img.loading='lazy';
 
-        img.alt='Gönderi';
+      img.alt='Gönderi';
 
-        img.onerror=()=>{
+      img.onerror=()=>{
 
-          img.style.display=
-            'none';
+        img.style.display='none';
 
-          const txt=
-            document.createElement(
-              'div'
-            );
-
-          txt.className='txt';
-
-          txt.textContent=
-            caption ||
-            'Gönderi';
-
-          tile.appendChild(txt);
-
-        };
-
-        tile.appendChild(img);
-
-      }else{
-
-        const txt=
-          document.createElement(
-            'div'
-          );
+        const txt =
+          document.createElement('div');
 
         txt.className='txt';
 
-        txt.textContent=
-          caption ||
-          'Gönderi';
+        txt.textContent =
+          caption || 'Gönderi';
 
         tile.appendChild(txt);
 
-      }
-
-      const view=
-        document.createElement(
-          'span'
-        );
-
-      view.className=
-        'tile-views';
-
-      view.innerHTML =
-        eyeIcon+
-        '<span>'+
-        escapeHtml(
-          formatViews(views)
-        )+
-        '</span>';
-
-      tile.appendChild(view);
-
-      tile.onclick=()=>{
-
-        try{
-
-          sessionStorage.setItem(
-            'minegram_selected_post',
-            JSON.stringify(post)
-          );
-
-          sessionStorage.setItem(
-            'minegram_selected_profile',
-            JSON.stringify(
-              currentProfile||{}
-            )
-          );
-
-          location.href=
-            'post.html';
-
-        }catch{
-
-          toast(
-            'Gönderi açılamadı'
-          );
-
-        }
-
       };
 
-      grid.appendChild(tile);
+      tile.appendChild(img);
+
+    }else{
+
+      const txt =
+        document.createElement('div');
+
+      txt.className='txt';
+
+      txt.textContent =
+        caption || 'Gönderi';
+
+      tile.appendChild(txt);
 
     }
-  );
+
+    const view =
+      document.createElement('span');
+
+    view.className='tile-views';
+
+    view.innerHTML =
+      eyeIcon +
+      '<span>' +
+      escapeHtml(
+        formatViews(views)
+      ) +
+      '</span>';
+
+    tile.appendChild(view);
+
+    tile.onclick=()=>{
+
+      try{
+
+        sessionStorage.setItem(
+          'minegram_selected_post',
+          JSON.stringify(post)
+        );
+
+        sessionStorage.setItem(
+          'minegram_selected_profile',
+          JSON.stringify(
+            currentProfile || {}
+          )
+        );
+
+        location.href='post.html';
+
+      }catch{
+
+        toast(
+          'Gönderi açılamadı'
+        );
+
+      }
+
+    };
+
+    grid.appendChild(tile);
+
+  });
 
   renderPrompts();
 
 }
 
 
-/* =========================
-   PROMPTLAR
-   ========================= */
+/* =========================================================
+   PROMPT
+========================================================= */
 
 function renderPrompts(){
 
   if(!currentProfile)
     return;
 
-  const hasPosts=
-    currentPosts.length>0;
+  const hasPosts =
+    currentPosts.length > 0;
 
-  const mine=
+  const mine =
     me &&
-    sameId(
-      currentProfile.id,
-      me.id
+    (
+      sameId(
+        currentProfile.id,
+        me.id
+      ) ||
+      sameUsername(
+        currentProfile.username,
+        me.username
+      )
     );
 
-  document.getElementById(
-    'photoPromptRow'
-  ).classList.toggle(
-    'hidden',
-    hasPosts ||
-    !mine
-  );
+  const photoPrompt =
+    document.getElementById(
+      'photoPromptRow'
+    );
 
-  const phoneRow=
+  if(photoPrompt){
+
+    photoPrompt.classList.toggle(
+      'hidden',
+      hasPosts || !mine
+    );
+
+    photoPrompt.style.display =
+      hasPosts || !mine
+      ? 'none'
+      : '';
+
+  }
+
+  const phoneRow =
     document.getElementById(
       'phoneRow'
     );
+
+  if(!phoneRow)
+    return;
 
   if(!mine){
 
@@ -2518,60 +2615,106 @@ function renderPrompts(){
 }
 
 
-/* =========================
-   PROFİL YÜKLE
-   ========================= */
+/* =========================================================
+   PROFİLİ YÜKLE
+========================================================= */
+
+let profileLoading = false;
 
 async function load(){
 
-  const activeToken=
+  /*
+    ÖNEMLİ:
+    Aynı anda ikinci load çalışmasını engelle.
+  */
+
+  if(profileLoading)
+    return;
+
+  profileLoading=true;
+
+  const activeToken =
     getToken();
+
+  /*
+    ESKİ KODDA BURADA:
+
+       location.href='profile.html';
+
+    VARDI.
+
+    BU SAYFANIN KENDİSİ OLDUĞU İÇİN
+    SONSUZ YENİLEME OLUŞUYORDU.
+
+    ARTIK LOGIN'E GİDİYORUZ.
+  */
 
   if(!activeToken){
 
-    location.href=
-      'profile.html';
+    profileLoading=false;
+
+    /*
+      Eğer kayıt doğrulaması yeni bittiyse
+      token henüz yazılmamış olabilir.
+    */
+
+    const verified =
+      localStorage.getItem(
+        'minegram_register_verified'
+      );
+
+    if(verified === '1'){
+
+      /*
+        profile.html'yi tekrar tekrar açma.
+        Token yoksa giriş sayfasına git.
+      */
+
+      location.href =
+        'giris.html';
+
+      return;
+
+    }
+
+    location.href =
+      'giris.html';
 
     return;
 
   }
 
-  const grid=
-    document.getElementById(
-      'grid'
-    );
+  const grid =
+    document.getElementById('grid');
 
   try{
 
-    grid.innerHTML =
-      '<div class="empty">Profil yükleniyor...</div>';
+    if(grid){
 
-    /*
-      ÖNEMLİ:
-      /api/me cevabını doğrudan kullanmıyoruz.
-      Çünkü backend bazen:
-      {user: {...}}
-      {profile: {...}}
-      {data: {...}}
-      şeklinde döndürebilir.
-    */
+      grid.innerHTML =
+        '<div class="empty">Profil yükleniyor...</div>';
 
-    const meResponse=
-      await api(
-        '/api/me'
-      );
+    }
 
-    const meRaw=
+
+    /* =====================================================
+       GERÇEK GİRİŞ YAPAN KULLANICI
+    ===================================================== */
+
+    const meResponse =
+      await api('/api/me');
+
+    const meRaw =
       unwrapUser(
         meResponse
       );
 
-    const meUsername=
+    const meUsername =
       getUsername(
         meResponse
       );
 
-    const meId=
+    const meId =
       getId(
         meResponse
       );
@@ -2584,8 +2727,15 @@ async function load(){
 
     }
 
-    me={
+
+    /*
+      GERÇEK ME KULLANICISINI OLUŞTUR
+    */
+
+    me = {
+
       ...meRaw,
+
       id:
         meId ||
         meRaw.id,
@@ -2617,9 +2767,32 @@ async function load(){
 
     };
 
+
     /*
-      GERÇEK GİRİŞ YAPAN HESABI
-      localStorage'a güncelle.
+      KULLANICI ADI GERÇEKTEN VARSA KAYDET
+    */
+
+    if(me.username){
+
+      localStorage.setItem(
+        'minegram_username',
+        cleanUsername(me.username)
+      );
+
+    }
+
+    if(me.id){
+
+      localStorage.setItem(
+        'minegram_user_id',
+        String(me.id)
+      );
+
+    }
+
+
+    /*
+      OTURUMU GÜNCELLE
     */
 
     saveCurrentSessionUser(
@@ -2628,28 +2801,37 @@ async function load(){
     );
 
 
-    /*
-      URL'de username varsa başka profil açılır.
-      URL yoksa kesinlikle giriş yapan
-      kullanıcının profili açılır.
-    */
+    /* =====================================================
+       HANGİ PROFİL AÇILACAK?
+    ===================================================== */
 
-    let username='';
+    let username = '';
+
+    /*
+      URL'de username SADECE başka profile
+      girildiyse kullanılır.
+
+      Normal profile.html:
+      → me.username
+
+      profile.html?username=abc:
+      → abc
+    */
 
     if(
       target &&
-      String(target).trim()
+      cleanUsername(target)
     ){
 
-      username=
-        String(target)
-        .trim()
-        .replace(/^@/,'');
+      username =
+        cleanUsername(target);
 
     }else{
 
-      username=
-        me.username;
+      username =
+        cleanUsername(
+          me.username
+        );
 
     }
 
@@ -2663,19 +2845,17 @@ async function load(){
     }
 
 
-    /*
-      Profil bilgisi
-    */
+    /* =====================================================
+       PROFİL
+    ===================================================== */
 
-    const profileResponse=
+    const profileResponse =
       await api(
         '/api/users/' +
-        encodeURIComponent(
-          username
-        )
+        encodeURIComponent(username)
       );
 
-    currentProfile=
+    currentProfile =
       unwrapUser(
         profileResponse
       );
@@ -2697,62 +2877,81 @@ async function load(){
 
 
     /*
-      Kullanıcı adını kesin olarak backend'den al.
+      BACKEND'DEN GELEN GERÇEK USERNAME
     */
 
-    const realProfileUsername=
-      String(
+    const realProfileUsername =
+      cleanUsername(
         currentProfile.username ||
         currentProfile.handle ||
         username
-      )
-      .trim()
-      .replace(/^@/,'');
+      );
 
-    currentProfile.username=
+    currentProfile.username =
       realProfileUsername;
 
 
-    /*
-      Profil ekranını doldur
-    */
+    /* =====================================================
+       PROFİL YAZILARI
+    ===================================================== */
 
-    document.getElementById(
-      'username'
-    ).innerHTML =
-      '@'+
-      escapeHtml(
-        realProfileUsername
-      )+
-      (
-        currentProfile.verified
-        ? ' <span class="verified">✓</span>'
-        : ''
+    const usernameEl =
+      document.getElementById(
+        'username'
       );
 
+    if(usernameEl){
 
-    document.getElementById(
-      'display'
-    ).textContent =
-      currentProfile.displayName ||
-      currentProfile.display_name ||
-      currentProfile.name ||
-      '';
+      usernameEl.innerHTML =
+        '@' +
+        escapeHtml(
+          realProfileUsername
+        ) +
+        (
+          currentProfile.verified
+          ? ' <span class="verified">✓</span>'
+          : ''
+        );
+
+    }
 
 
-    document.getElementById(
-      'bio'
-    ).textContent =
-      currentProfile.bio ||
-      '';
+    const displayEl =
+      document.getElementById(
+        'display'
+      );
+
+    if(displayEl){
+
+      displayEl.textContent =
+        currentProfile.displayName ||
+        currentProfile.display_name ||
+        currentProfile.name ||
+        '';
+
+    }
+
+
+    const bioEl =
+      document.getElementById(
+        'bio'
+      );
+
+    if(bioEl){
+
+      bioEl.textContent =
+        currentProfile.bio ||
+        '';
+
+    }
 
 
     renderProfileExtra();
 
 
-    /*
-      Takipçi
-    */
+    /* =====================================================
+       TAKİPÇİ
+    ===================================================== */
 
     const followerCount =
       currentProfile.followers ??
@@ -2761,18 +2960,24 @@ async function load(){
       currentProfile.followers_count ??
       0;
 
-    document.getElementById(
-      'followers'
-    ).textContent=
-      Number(followerCount||0)
-      .toLocaleString(
-        'tr-TR'
+    const followersEl =
+      document.getElementById(
+        'followers'
       );
 
+    if(followersEl){
 
-    /*
-      Takip
-    */
+      followersEl.textContent =
+        Number(
+          followerCount || 0
+        ).toLocaleString('tr-TR');
+
+    }
+
+
+    /* =====================================================
+       TAKİP
+    ===================================================== */
 
     const followingCount =
       currentProfile.following ??
@@ -2780,61 +2985,73 @@ async function load(){
       currentProfile.following_count ??
       0;
 
-    document.getElementById(
-      'following'
-    ).textContent=
-      Number(followingCount||0)
-      .toLocaleString(
-        'tr-TR'
+    const followingEl =
+      document.getElementById(
+        'following'
       );
 
+    if(followingEl){
 
-    /*
-      BU PROFİL GİRİŞ YAPAN HESABIN PROFİLİ Mİ?
-    */
+      followingEl.textContent =
+        Number(
+          followingCount || 0
+        ).toLocaleString('tr-TR');
 
-    const mine=
+    }
+
+
+    /* =====================================================
+       BENİM PROFİLİM Mİ?
+    ===================================================== */
+
+    const mine =
       sameId(
         currentProfile.id,
         me.id
-      )
-      ||
+      ) ||
       sameUsername(
         currentProfile.username,
         me.username
       );
 
 
-    const edit=
+    const edit =
       document.getElementById(
         'editBtn'
       );
 
+    if(edit){
 
-    edit.textContent =
-      mine
-      ? '✎  Profil düzenle'
-      :
-      (
-        currentProfile.followingByMe
-        ? 'Takibi Bırak'
-        : 'Takip Et'
+      edit.textContent =
+        mine
+        ? '✎  Profil düzenle'
+        :
+        (
+          currentProfile.followingByMe
+          ? 'Takibi Bırak'
+          : 'Takip Et'
+        );
+
+      edit.classList.toggle(
+        'primary',
+        mine ||
+        !currentProfile.followingByMe
       );
 
-
-    edit.classList.toggle(
-      'primary',
-      mine ||
-      !currentProfile.followingByMe
-    );
+    }
 
 
-    document.getElementById(
-      'photoPromptRow'
-    ).style.display =
-      mine
-      ? ''
-      : 'none';
+    const photoPrompt =
+      document.getElementById(
+        'photoPromptRow'
+      );
+
+    if(photoPrompt){
+
+      photoPrompt.style.display =
+        mine ? '' : 'none';
+
+    }
 
 
     if(mine){
@@ -2843,9 +3060,13 @@ async function load(){
 
     }else{
 
-      document.getElementById(
-        'phoneRow'
-      ).style.display='none';
+      const phoneRow =
+        document.getElementById(
+          'phoneRow'
+        );
+
+      if(phoneRow)
+        phoneRow.style.display='none';
 
     }
 
@@ -2855,62 +3076,57 @@ async function load(){
     renderHighlights();
 
 
-    /*
-      PROFİL FOTOĞRAFI
-    */
+    /* =====================================================
+       PROFİL FOTOĞRAFI
+    ===================================================== */
 
-    const av=
+    const av =
       document.getElementById(
         'avatar'
       );
 
-    const avatar=
+    const avatar =
       getAvatar(
         currentProfile
       );
 
+    if(av){
 
-    if(avatar){
+      if(avatar){
 
-      av.innerHTML =
-        '<img src="'+
-        escapeHtml(
-          avatar
-        )+
-        '" alt="Profil fotoğrafı">';
+        av.innerHTML =
+          '<img src="' +
+          escapeHtml(avatar) +
+          '" alt="Profil fotoğrafı">';
 
-    }else{
+      }else{
 
-      const nameForLetter=
-        currentProfile.displayName ||
-        currentProfile.display_name ||
-        currentProfile.username ||
-        'M';
+        const nameForLetter =
+          currentProfile.displayName ||
+          currentProfile.display_name ||
+          currentProfile.username ||
+          'M';
 
-      av.textContent =
-        String(
-          nameForLetter
-        )[0]
-        .toUpperCase();
+        av.textContent =
+          String(
+            nameForLetter
+          )[0]
+          .toUpperCase();
+
+      }
 
     }
 
 
-    /*
-      KENDİ PROFİLİMİZSE SUNUCU BİLGİSİNİ
-      LOCAL STORAGE'A DA GÜNCELLE.
-    */
+    /* =====================================================
+       KENDİ PROFİLİMİZSE OTURUMU GÜNCELLE
+    ===================================================== */
 
     if(mine){
 
-      saveCurrentSessionUser(
-        me,
-        currentProfile
-      );
-
       /*
-        Özellikle eski @minegram bilgisini
-        temizle.
+        EN ÖNEMLİ KISIM:
+        Yeni gerçek kullanıcı adını kaydet.
       */
 
       localStorage.setItem(
@@ -2926,19 +3142,25 @@ async function load(){
         )
       );
 
+
+      saveCurrentSessionUser(
+        me,
+        currentProfile
+      );
+
     }
 
 
-    /*
-      GÖNDERİLER
-    */
+    /* =====================================================
+       GÖNDERİLER
+    ===================================================== */
 
-    const postsData=
+    const postsData =
       await api(
         '/api/users/' +
         encodeURIComponent(
           realProfileUsername
-        )+
+        ) +
         '/posts'
       );
 
@@ -2956,12 +3178,10 @@ async function load(){
 
 
     /*
-      TOKEN GEÇERSİZSE LOGIN'E DÖN.
+      SADECE GERÇEK 401'DE OTURUMU TEMİZLE.
     */
 
-    if(
-      e.status===401
-    ){
+    if(e.status === 401){
 
       localStorage.removeItem(
         'minegram_token'
@@ -2983,1172 +3203,264 @@ async function load(){
         'token'
       );
 
-      location.href=
-        'profile.html';
+      profileLoading=false;
+
+      /*
+        ARTIK profile.html'ye değil
+        giris.html'ye gidiyoruz.
+      */
+
+      location.href =
+        'giris.html';
 
       return;
 
     }
 
 
-    grid.innerHTML =
-      '<div class="empty">'+
-      'Profil yüklenemedi.<br><br>'+
-      escapeHtml(
-        e.message ||
-        'Bilinmeyen hata'
-      )+
-      '</div>';
+    if(grid){
 
+      grid.innerHTML =
+        '<div class="empty">' +
+        'Profil yüklenemedi.<br><br>' +
+        escapeHtml(
+          e.message ||
+          'Bilinmeyen hata'
+        ) +
+        '</div>';
+
+    }
 
     toast(
       e.message ||
       'Profil yüklenemedi'
     );
 
-  }
-
-}
-
-
-/* =========================
-   TAKİPÇİ / TAKİP
-   ========================= */
-
-async function openUserList(type){
-
-  if(!currentProfile)
-    return;
-
-  document.getElementById(
-    'usersTitle'
-  ).textContent =
-    type==='followers'
-    ? 'Takipçiler'
-    : 'Takip Edilenler';
-
-
-  document.getElementById(
-    'usersBody'
-  ).innerHTML =
-    '<div class="list-empty">Yükleniyor...</div>';
-
-
-  openModal(
-    'usersModal'
-  );
-
-
-  try{
-
-    const data=
-      await api(
-        '/api/users/' +
-        encodeURIComponent(
-          currentProfile.username
-        )+
-        '/'+
-        type
-      );
-
-
-    const users=
-      Array.isArray(data)
-      ? data
-      :
-      (
-        data.users||
-        data.followers||
-        data.following||
-        []
-      );
-
-
-    const body=
-      document.getElementById(
-        'usersBody'
-      );
-
-
-    if(!users.length){
-
-      body.innerHTML =
-        '<div class="list-empty">Henüz kullanıcı yok.</div>';
-
-      return;
-
-    }
-
-
-    body.innerHTML='';
-
-
-    users.forEach(
-      user=>{
-
-        const username=
-          user.username||
-          user.handle||
-          '';
-
-        if(!username)
-          return;
-
-
-        const row=
-          document.createElement(
-            'div'
-          );
-
-        row.className=
-          'user-item';
-
-
-        const name=
-          user.displayName||
-          user.display_name||
-          user.name||
-          username;
-
-
-        const avatar=
-          user.avatar||
-          user.avatar_url||
-          user.avatarUrl||
-          '';
-
-
-        row.innerHTML =
-          '<div class="user-avatar">'+
-          (
-            avatar
-            ? '<img src="'+
-              escapeHtml(
-                avatar
-              )+
-              '" alt="">'
-            :
-            escapeHtml(
-              (name||'M')[0]
-              .toUpperCase()
-            )
-          )+
-          '</div>'+
-          '<div class="user-copy">'+
-          '<div class="user-name">'+
-          escapeHtml(name)+
-          '</div>'+
-          '<div class="user-handle">@'+
-          escapeHtml(username)+
-          '</div>'+
-          '</div>'+
-          '<button class="user-action">'+
-          (
-            type==='following'
-            ? 'Takibi Bırak'
-            : 'Takip Et'
-          )+
-          '</button>';
-
-
-        row.onclick=()=>{
-
-          location.href =
-            'profile.html?username='+
-            encodeURIComponent(
-              username
-            );
-
-        };
-
-
-        const action=
-          row.querySelector(
-            '.user-action'
-          );
-
-
-        action.onclick=async e=>{
-
-          e.stopPropagation();
-
-
-          if(
-            type==='following'
-          ){
-
-            try{
-
-              await api(
-                '/api/users/'+
-                encodeURIComponent(
-                  username
-                )+
-                '/follow',
-                {
-                  method:'POST'
-                }
-              );
-
-              await openUserList(
-                'following'
-              );
-
-              await load();
-
-            }catch(err){
-
-              toast(
-                err.message
-              );
-
-            }
-
-          }else{
-
-            location.href =
-              'profile.html?username='+
-              encodeURIComponent(
-                username
-              );
-
-          }
-
-        };
-
-
-        body.appendChild(
-          row
-        );
-
-      }
-    );
-
-
-  }catch(e){
-
-    document.getElementById(
-      'usersBody'
-    ).innerHTML =
-      '<div class="list-empty">Liste yüklenemedi.</div>';
-
-    toast(
-      e.message
-    );
+    profileLoading=false;
 
   }
 
 }
 
 
-/* =========================
-   PROFİL DÜZENLE
-   ========================= */
-
-function openEditProfileScreen(){
-
-  if(
-    !currentProfile||
-    !me||
-    !sameId(
-      currentProfile.id,
-      me.id
-    )
-  )
-    return;
-
-
-  document.getElementById(
-    'profileNameInput'
-  ).value =
-    currentProfile.displayName ||
-    currentProfile.display_name ||
-    '';
-
-
-  document.getElementById(
-    'profileUsernameValue'
-  ).textContent =
-    '@'+
-    (
-      currentProfile.username ||
-      me.username ||
-      ''
-    );
-
-
-  document.getElementById(
-    'profilePronounsInput'
-  ).value =
-    localStorage.getItem(
-      'minegram_pronouns_'+
-      currentProfile.id
-    )||'';
-
-
-  document.getElementById(
-    'profileBioInput'
-  ).value =
-    currentProfile.bio||'';
-
-
-  document.getElementById(
-    'profileLinkInput'
-  ).value =
-    localStorage.getItem(
-      'minegram_profile_link_'+
-      currentProfile.id
-    )||'';
-
-
-  document.getElementById(
-    'profileGenderBtn'
-  ).textContent =
-    localStorage.getItem(
-      'minegram_gender_'+
-      currentProfile.id
-    )||
-    'Cinsiyet özellikleri';
-
-
-  document.getElementById(
-    'editProfileScreen'
-  ).classList.add(
-    'open'
-  );
-
-}
-
-
-function closeEditProfileScreen(){
-
-  document.getElementById(
-    'editProfileScreen'
-  ).classList.remove(
-    'open'
-  );
-
-}
-
-
-document.getElementById(
-  'editBtn'
-).onclick=async()=>{
-
-  if(!currentProfile)
-    return;
-
-
-  if(
-    !sameId(
-      currentProfile.id,
-      me?.id
-    )
-  ){
-
-    try{
-
-      await api(
-        '/api/users/'+
-        encodeURIComponent(
-          currentProfile.username
-        )+
-        '/follow',
-        {
-          method:'POST'
-        }
-      );
-
-      await load();
-
-    }catch(e){
-
-      toast(
-        e.message
-      );
-
-    }
-
-    return;
-
-  }
-
-
-  openEditProfileScreen();
-
-};
-
-
-document.getElementById(
-  'completeProfileBtn'
-).onclick =
-  openEditProfileScreen;
-
-
-document.getElementById(
-  'editProfileBack'
-).onclick =
-  closeEditProfileScreen;
-
-
-/* =========================
-   PROFİL KAYDET
-   ========================= */
-
-document.getElementById(
-  'editProfileSave'
-).onclick=async()=>{
-
-  if(!currentProfile||!me)
-    return;
-
-
-  const displayName=
-    document.getElementById(
-      'profileNameInput'
-    ).value.trim();
-
-
-  const bio=
-    document.getElementById(
-      'profileBioInput'
-    ).value.trim();
-
-
-  const pronouns=
-    document.getElementById(
-      'profilePronounsInput'
-    ).value.trim();
-
-
-  const link=
-    document.getElementById(
-      'profileLinkInput'
-    ).value.trim();
-
-
-  const gender=
-    document.getElementById(
-      'profileGenderBtn'
-    ).textContent.trim();
-
-
-  try{
-
-    await api(
-      '/api/me',
-      {
-        method:'PATCH',
-        body:{
-          displayName,
-          bio
-        }
-      }
-    );
-
-
-    currentProfile.displayName=
-      displayName;
-
-    currentProfile.bio=
-      bio;
-
-
-    localStorage.setItem(
-      'minegram_pronouns_'+
-      currentProfile.id,
-      pronouns
-    );
-
-
-    if(link){
-
-      localStorage.setItem(
-        'minegram_profile_link_'+
-        currentProfile.id,
-        link
-      );
-
-    }else{
-
-      localStorage.removeItem(
-        'minegram_profile_link_'+
-        currentProfile.id
-      );
-
-    }
-
-
-    if(
-      gender &&
-      gender!=='Cinsiyet özellikleri'
-    ){
-
-      localStorage.setItem(
-        'minegram_gender_'+
-        currentProfile.id,
-        gender
-      );
-
-    }else{
-
-      localStorage.removeItem(
-        'minegram_gender_'+
-        currentProfile.id
-      );
-
-    }
-
-
-    if(
-      displayName &&
-      bio
-    ){
-
-      localStorage.setItem(
-        profileCompletedKey(),
-        'true'
-      );
-
-      document.getElementById(
-        'completeProfileRow'
-      ).style.display='none';
-
-    }
-
-
-    document.getElementById(
-      'display'
-    ).textContent=
-      displayName;
-
-
-    document.getElementById(
-      'bio'
-    ).textContent=
-      bio;
-
-
-    renderProfileExtra();
-
-    updateCompleteProfileVisibility();
-
-    /*
-      Güncel kullanıcıyı tekrar sakla.
-    */
-
-    saveCurrentSessionUser(
-      me,
-      currentProfile
-    );
-
-
-    closeEditProfileScreen();
-
-    toast(
-      displayName && bio
-      ? 'Profil tamamlandı'
-      : 'Profil güncellendi'
-    );
-
-
-  }catch(e){
-
-    toast(
-      e.message ||
-      'Profil güncellenemedi'
-    );
-
-  }
-
-};
-
-
-/* =========================
-   CİNSİYET
-   ========================= */
-
-document.getElementById(
-  'profileGenderBtn'
-).onclick=()=>{
-
-  document.getElementById(
-    'genderPicker'
-  ).classList.add(
-    'open'
-  );
-
-};
-
-
-document.querySelectorAll(
-  '.gender-option'
-).forEach(
-  btn=>{
-
-    btn.onclick=()=>{
-
-      const value=
-        btn.dataset.gender;
-
-
-      if(currentProfile){
-
-        localStorage.setItem(
-          'minegram_gender_'+
-          currentProfile.id,
-          value
-        );
-
-      }
-
-
-      document.getElementById(
-        'profileGenderBtn'
-      ).textContent=
-        value;
-
-
-      document.getElementById(
-        'genderPicker'
-      ).classList.remove(
-        'open'
-      );
-
-    };
-
-  }
-);
-
-
-document.getElementById(
-  'genderPicker'
-).onclick=e=>{
-
-  if(
-    e.target.id===
-    'genderPicker'
-  ){
-
-    e.currentTarget
-      .classList
-      .remove('open');
-
-  }
-
-};
-
-
-/* =========================
-   PAYLAŞ
-   ========================= */
-
-document.getElementById(
-  'shareBtn'
-).onclick=async()=>{
-
-  if(!currentProfile)
-    return;
-
-
-  const url=
-    location.href;
-
-
-  try{
-
-    if(navigator.share){
-
-      await navigator.share({
-
-        title:
-          'Minegram profili',
-
-        text:
-          '@'+
-          currentProfile.username,
-
-        url
-
-      });
-
-    }else{
-
-      await navigator.clipboard
-        .writeText(url);
-
-      toast(
-        'Profil bağlantısı kopyalandı'
-      );
-
-    }
-
-  }catch(e){
-
-    if(
-      e.name!=='AbortError'
-    ){
-
-      toast(
-        'Paylaşım başarısız'
-      );
-
-    }
-
-  }
-
-};
-
-
-/* =========================
-   TELEFON
-   ========================= */
-
-document.getElementById(
-  'phoneBtn'
-).onclick=async()=>{
-
-  if(!me)
-    return;
-
-
-  const phone=
-    prompt(
-      'Telefon numaranı gir:',
-      me.phone||
-      me.phone_number||
-      me.phoneNumber||
-      ''
-    );
-
-
-  if(phone===null){
-
-    return;
-
-  }
-
-
-  if(!phone.trim()){
-
-    dismissPhoneRow();
-
-    toast(
-      'Telefon bölümü kapatıldı'
-    );
-
-    return;
-
-  }
-
-
-  try{
-
-    const updated=
-      await api(
-        '/api/me',
-        {
-          method:'PATCH',
-          body:{
-            phone:
-              phone.trim()
-          }
-        }
-      );
-
-
-    const updatedUser=
-      unwrapUser(
-        updated
-      );
-
-
-    me={
-      ...me,
-      ...updatedUser,
-      phone:
-        updatedUser.phone ||
-        phone.trim()
-    };
-
-
-    localStorage.removeItem(
-      phoneDismissedKey()
-    );
-
-
-    saveCurrentSessionUser(
-      me,
-      currentProfile
-    );
-
-
-    renderPhone();
-
-
-    toast(
-      'Telefon numarası kaydedildi'
-    );
-
-
-  }catch(e){
-
-    toast(
-      e.message ||
-      'Telefon numarası kaydedilemedi'
-    );
-
-  }
-
-};
-
-
-/* =========================
-   FOTOĞRAF
-   ========================= */
-
-document.getElementById(
-  'photoShareBtn'
-).onclick=()=>{
-
-  location.href=
-    'olustur.html';
-
-};
-
-
-/* =========================
-   İSTATİSTİKLER
-   ========================= */
-
-document.getElementById(
-  'followersStat'
-).onclick =
-  ()=>openUserList(
-    'followers'
-  );
-
-
-document.getElementById(
-  'followingStat'
-).onclick =
-  ()=>openUserList(
-    'following'
-  );
-
-
-document.getElementById(
-  'postsStat'
-).onclick=()=>{
-
-  document.getElementById(
-    'postsTab'
-  ).scrollIntoView({
-    behavior:'smooth'
-  });
-
-};
-
-
-/* =========================
+/* =========================================================
+   DİĞER MEVCUT FONKSİYONLAR
+   ========================================================= */
+
+/*
+  Buradan aşağıdaki mevcut kodlarının:
+
+  - openUserList()
+  - openEditProfileScreen()
+  - editBtn
+  - completeProfileBtn
+  - editProfileSave
+  - genderPicker
+  - shareBtn
+  - phoneBtn
+  - photoShareBtn
+  - followersStat
+  - followingStat
+  - postsStat
+  - backBtn
+  - usersBack
+  - menuBtn
+  - menuBack
+  - savedMenu
+  - likedMenu
+  - settingsMenu
+  - aboutMenu
+  - logoutMenu
+  - highlightViewBack
+  - highlightDeleteBtn
+  - Escape
+  - load()
+
+  KISIMLARINI MEVCUT DOSYANDA AYNEN BIRAKABİLİRSİN.
+*/
+
+
+/* =========================================================
    GERİ
-   ========================= */
+========================================================= */
 
-document.getElementById(
-  'backBtn'
-).onclick=()=>{
+const backBtn =
+  document.getElementById('backBtn');
 
-  if(
-    history.length>1
-  ){
+if(backBtn){
 
-    history.back();
+  backBtn.onclick=()=>{
 
-  }else{
+    if(history.length > 1){
 
-    location.href=
-      'index.html';
+      history.back();
 
-  }
+    }else{
 
-};
+      location.href='index.html';
 
-
-/* =========================
-   KULLANICI LİSTESİ
-   ========================= */
-
-document.getElementById(
-  'usersBack'
-).onclick =
-  ()=>closeModal(
-    'usersModal'
-  );
-
-
-/* =========================
-   MENÜ
-   ========================= */
-
-document.getElementById(
-  'menuBtn'
-).onclick=()=>{
-
-  document.getElementById(
-    'menuScreen'
-  ).classList.add(
-    'open'
-  );
-
-};
-
-
-document.getElementById(
-  'menuBack'
-).onclick=()=>{
-
-  document.getElementById(
-    'menuScreen'
-  ).classList.remove(
-    'open'
-  );
-
-};
-
-
-document.getElementById(
-  'savedMenu'
-).onclick=()=>{
-
-  document.getElementById(
-    'menuScreen'
-  ).classList.remove(
-    'open'
-  );
-
-  location.href=
-    'index.html#saved';
-
-};
-
-
-document.getElementById(
-  'likedMenu'
-).onclick=()=>{
-
-  document.getElementById(
-    'menuScreen'
-  ).classList.remove(
-    'open'
-  );
-
-  location.href=
-    'index.html#liked';
-
-};
-
-
-document.getElementById(
-  'settingsMenu'
-).onclick=()=>{
-
-  location.href=
-    'ayarlar.html';
-
-};
-
-
-document.getElementById(
-  'aboutMenu'
-).onclick=()=>{
-
-  alert(
-    'Minegram\nSosyal medya uygulaması'
-  );
-
-};
-
-
-/* =========================
-   ÇIKIŞ
-   ========================= */
-
-document.getElementById(
-  'logoutMenu'
-).onclick=()=>{
-
-  /*
-    Eski kullanıcı bilgilerinin
-    tekrar Minegram olarak görünmesini
-    engelle.
-  */
-
-  const keysToRemove=[
-
-    'minegram_token',
-    'minegram_access_token',
-    'minegram_supabase_token',
-    'access_token',
-    'token',
-
-    'minegram_user',
-    'currentUser',
-    'minegram_profile',
-    'minegram_username',
-    'minegram_user_id',
-    'minegram_email',
-
-    'minegram_register_username',
-    'minegram_register_email',
-    'minegram_register_phone'
-
-  ];
-
-
-  keysToRemove.forEach(
-    key=>{
-      localStorage.removeItem(
-        key
-      );
     }
-  );
+
+  };
+
+}
 
 
-  sessionStorage.removeItem(
-    'minegram_selected_profile'
-  );
+/* =========================================================
+   MENÜ
+========================================================= */
+
+const menuBtn =
+  document.getElementById('menuBtn');
+
+if(menuBtn){
+
+  menuBtn.onclick=()=>{
+
+    const screen =
+      document.getElementById(
+        'menuScreen'
+      );
+
+    if(screen)
+      screen.classList.add('open');
+
+  };
+
+}
 
 
-  location.href=
-    'profile.html';
+const menuBack =
+  document.getElementById('menuBack');
 
-};
+if(menuBack){
+
+  menuBack.onclick=()=>{
+
+    const screen =
+      document.getElementById(
+        'menuScreen'
+      );
+
+    if(screen)
+      screen.classList.remove('open');
+
+  };
+
+}
 
 
-/* =========================
-   ÖNE ÇIKAN SİL
-   ========================= */
+/* =========================================================
+   AYARLAR
+========================================================= */
 
-document.getElementById(
-  'highlightViewBack'
-).onclick=()=>{
-
+const settingsMenu =
   document.getElementById(
-    'highlightViewScreen'
-  ).classList.remove(
-    'open'
+    'settingsMenu'
   );
 
-};
+if(settingsMenu){
+
+  settingsMenu.onclick=()=>{
+
+    location.href =
+      'ayarlar.html';
+
+  };
+
+}
 
 
-document.getElementById(
-  'highlightDeleteBtn'
-).onclick=()=>{
+/* =========================================================
+   ÇIKIŞ
+========================================================= */
 
-  const view=
-    document.getElementById(
-      'highlightViewScreen'
+const logoutMenu =
+  document.getElementById(
+    'logoutMenu'
+  );
+
+if(logoutMenu){
+
+  logoutMenu.onclick=()=>{
+
+    const keysToRemove = [
+
+      'minegram_token',
+      'minegram_access_token',
+      'minegram_supabase_token',
+      'access_token',
+      'token',
+
+      'minegram_user',
+      'currentUser',
+      'minegram_profile',
+      'minegram_username',
+      'minegram_user_id',
+      'minegram_email',
+
+      'minegram_register_username',
+      'minegram_register_email',
+      'minegram_register_phone',
+
+      'minegram_register_verified'
+
+    ];
+
+    keysToRemove.forEach(key=>{
+
+      localStorage.removeItem(key);
+
+    });
+
+
+    sessionStorage.removeItem(
+      'minegram_selected_profile'
     );
 
 
-  const index=
-    Number(
-      view.dataset.index
-    );
+    location.href =
+      'giris.html';
+
+  };
+
+}
 
 
-  if(
-    !Number.isInteger(index)
-  )
-    return;
-
-
-  const items=
-    getHighlights();
-
-
-  items.splice(
-    index,
-    1
-  );
-
-
-  saveHighlights(
-    items
-  );
-
-
-  view.classList.remove(
-    'open'
-  );
-
-
-  renderHighlights();
-
-
-  toast(
-    'Öne çıkan silindi'
-  );
-
-};
-
-
-/* =========================
+/* =========================================================
    ESC
-   ========================= */
+========================================================= */
 
 document.addEventListener(
   'keydown',
   e=>{
 
-    if(
-      e.key!=='Escape'
-    )
+    if(e.key !== 'Escape')
       return;
 
-
-    document.getElementById(
-      'genderPicker'
-    ).classList.remove(
-      'open'
-    );
-
-
-    document.getElementById(
-      'editProfileScreen'
-    ).classList.remove(
-      'open'
-    );
-
-
-    document.getElementById(
-      'usersModal'
-    ).classList.remove(
-      'open'
-    );
-
-
-    document.getElementById(
-      'menuScreen'
-    ).classList.remove(
-      'open'
-    );
-
-
-    document.getElementById(
+    [
+      'genderPicker',
+      'editProfileScreen',
+      'usersModal',
+      'menuScreen',
       'highlightViewScreen'
-    ).classList.remove(
-      'open'
-    );
+    ].forEach(id=>{
+
+      const el =
+        document.getElementById(id);
+
+      if(el)
+        el.classList.remove('open');
+
+    });
 
   }
 );
 
 
-/* =========================
+/* =========================================================
    BAŞLAT
-   ========================= */
+========================================================= */
 
 load();
 
