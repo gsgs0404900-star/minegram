@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -24,6 +25,10 @@ html,body{
 body{
     min-height:100vh;
     min-height:100dvh;
+}
+
+button{
+    font-family:inherit;
 }
 
 .page{
@@ -199,11 +204,7 @@ h1{
     background:#0095f6;
 }
 
-/* =====================================================
-   BUTONLAR
-   HER ZAMAN İKİ HESABIN ALTINDA
-   ===================================================== */
-
+/* BUTONLAR */
 .actions{
     display:none;
     flex-direction:column;
@@ -231,7 +232,6 @@ h1{
 
 }
 
-/* BUTON */
 .action-btn{
     width:100%;
     min-height:58px;
@@ -259,7 +259,6 @@ h1{
     transform:scale(.99);
 }
 
-/* MAVİ */
 .primary{
     background:#0095f6;
     color:#fff;
@@ -288,6 +287,20 @@ h1{
 
 .status.show{
     display:block;
+}
+
+.status.error{
+    color:#ff6b6b;
+}
+
+.status.success{
+    color:#63e6be;
+}
+
+/* YÜKLENİYOR */
+.action-btn.loading{
+    opacity:.65;
+    pointer-events:none;
 }
 
 /* MOBİL */
@@ -364,7 +377,7 @@ h1{
         <button
             class="back"
             type="button"
-            onclick="history.back()"
+            onclick="goBack()"
             aria-label="Geri">
 
             <svg viewBox="0 0 32 32">
@@ -399,7 +412,7 @@ h1{
             <button
                 class="account"
                 type="button"
-                data-username="@minegram"
+                data-username="minegram"
                 data-email="gsgs04900@gmail.com"
                 onclick="selectAccount(this)"
             >
@@ -425,7 +438,7 @@ h1{
             <button
                 class="account"
                 type="button"
-                data-username="@test"
+                data-username="test"
                 data-email="gsgs04900@gmail.com"
                 onclick="selectAccount(this)"
             >
@@ -449,30 +462,31 @@ h1{
         </section>
 
 
-        <!-- =================================================
-             BUTONLAR
-             HER ZAMAN İKİ HESABIN ALTINDA
-             ================================================= -->
-
+        <!-- BUTONLAR -->
         <div
             class="actions"
             id="actions"
         >
 
+            <!-- GİRİŞ -->
             <button
                 class="action-btn primary"
+                id="loginButton"
                 type="button"
                 onclick="directLogin(event)"
             >
                 Direkt giriş yap
             </button>
 
+
+            <!-- ŞİFRE DEĞİŞTİR -->
             <button
                 class="action-btn secondary"
+                id="resetButton"
                 type="button"
-                onclick="sendReset(event)"
+                onclick="startPasswordReset(event)"
             >
-                Şifre değiştirme bağlantısı gönder
+                Şifre değiştirmeye devam et
             </button>
 
         </div>
@@ -495,12 +509,31 @@ let selectedAccount = null;
 
 
 /* =====================================================
+   GERİ
+===================================================== */
+
+function goBack(){
+
+    if(
+        document.referrer &&
+        document.referrer !== window.location.href
+    ){
+
+        history.back();
+
+        return;
+    }
+
+    window.location.href = "giris.html";
+}
+
+
+/* =====================================================
    HESAP SEÇ
-   ===================================================== */
+===================================================== */
 
 function selectAccount(button){
 
-    /* Bütün seçimleri kaldır */
     document
         .querySelectorAll(".account")
         .forEach(account => {
@@ -510,34 +543,39 @@ function selectAccount(button){
         });
 
 
-    /* Tıklanan hesabı seç */
     button.classList.add("selected");
 
 
-    /* Hesap bilgilerini kaydet */
     selectedAccount = {
 
         username:
-            button.dataset.username,
+            String(
+                button.dataset.username || ""
+            ).trim(),
 
         email:
-            button.dataset.email
+            String(
+                button.dataset.email || ""
+            ).trim()
 
     };
 
 
-    /* BUTONLARI EN ALTTA GÖSTER */
     const actions =
         document.getElementById("actions");
 
     actions.classList.add("show");
 
 
-    /* Eski durum mesajını temizle */
     const status =
         document.getElementById("status");
 
-    status.classList.remove("show");
+    status.classList.remove(
+        "show",
+        "error",
+        "success"
+    );
+
     status.textContent = "";
 
 }
@@ -545,14 +583,26 @@ function selectAccount(button){
 
 /* =====================================================
    DİREKT GİRİŞ
-   ===================================================== */
+===================================================== */
 
 function directLogin(event){
 
-    event.stopPropagation();
+    if(event){
+
+        event.stopPropagation();
+
+    }
+
 
     if(!selectedAccount){
+
+        showStatus(
+            "Önce bir hesap seç.",
+            "error"
+        );
+
         return;
+
     }
 
 
@@ -560,8 +610,7 @@ function directLogin(event){
         new URLSearchParams({
 
             username:
-                selectedAccount.username
-                    .replace(/^@/, ""),
+                selectedAccount.username,
 
             email:
                 selectedAccount.email
@@ -577,33 +626,74 @@ function directLogin(event){
 
 
 /* =====================================================
-   ŞİFRE DEĞİŞTİRME BAĞLANTISI
-   ===================================================== */
+   ŞİFRE SIFIRLAMA BAŞLAT
+===================================================== */
 
-async function sendReset(event){
+async function startPasswordReset(event){
 
-    event.stopPropagation();
+    if(event){
 
-    if(!selectedAccount){
-        return;
+        event.stopPropagation();
+
     }
 
 
-    const status =
-        document.getElementById("status");
+    if(!selectedAccount){
 
+        showStatus(
+            "Önce bir hesap seç.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "resetButton"
+        );
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+
+    button.classList.add("loading");
+
+    button.textContent =
+        "Kod gönderiliyor...";
+
+
+    status.classList.remove(
+        "error",
+        "success"
+    );
 
     status.classList.add("show");
 
     status.textContent =
-        "Şifre değiştirme bağlantısı gönderiliyor...";
+        selectedAccount.email +
+        " adresine doğrulama kodu gönderiliyor...";
 
 
     try{
 
+        /*
+         * ÖNEMLİ:
+         *
+         * Email yerine USERNAME gönderiyoruz.
+         *
+         * Böylece aynı e-posta adresine sahip
+         * iki Minegram profili varsa bile
+         * doğru hesap seçiliyor.
+         */
+
         const response =
             await fetch(
-                "/api/forgot/send-reset",
+                "/api/forgot/start",
                 {
                     method:"POST",
 
@@ -614,8 +704,11 @@ async function sendReset(event){
 
                     body:JSON.stringify({
 
-                        email:
-                            selectedAccount.email
+                        identifier:
+                            selectedAccount.username,
+
+                        mode:
+                            "username"
 
                     })
                 }
@@ -635,24 +728,117 @@ async function sendReset(event){
 
             throw new Error(
                 data.error ||
-                "Bağlantı gönderilemedi."
+                "Doğrulama kodu gönderilemedi."
             );
 
         }
 
 
-        status.textContent =
-            selectedAccount.email +
-            " adresine şifre değiştirme bağlantısı gönderildi.";
+        /*
+         * Kod doğrulama sayfasına geç.
+         *
+         * identifier:
+         * seçilen kullanıcı adı
+         *
+         * mode:
+         * username
+         *
+         * email:
+         * ek bilgi olarak gönderiliyor
+         */
+
+        const params =
+            new URLSearchParams({
+
+                identifier:
+                    selectedAccount.username,
+
+                mode:
+                    "username",
+
+                email:
+                    data.email ||
+                    selectedAccount.email
+
+            });
+
+
+        window.location.href =
+            "sifremi-unuttum-dogrulama.html?" +
+            params.toString();
 
 
     }catch(error){
 
+        console.error(
+            "PASSWORD RESET START ERROR:",
+            error
+        );
+
+
+        button.classList.remove(
+            "loading"
+        );
+
+        button.textContent =
+            "Şifre değiştirmeye devam et";
+
+
+        status.classList.remove(
+            "success"
+        );
+
+        status.classList.add(
+            "show",
+            "error"
+        );
+
         status.textContent =
-            error.message ||
-            "Bir hata oluştu.";
+            error?.message ||
+            "Bir hata oluştu. Lütfen tekrar deneyin.";
 
     }
+
+}
+
+
+/* =====================================================
+   DURUM MESAJI
+===================================================== */
+
+function showStatus(
+    message,
+    type = ""
+){
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+
+    status.classList.remove(
+        "error",
+        "success"
+    );
+
+
+    status.classList.add(
+        "show"
+    );
+
+
+    if(type){
+
+        status.classList.add(
+            type
+        );
+
+    }
+
+
+    status.textContent =
+        message;
 
 }
 
