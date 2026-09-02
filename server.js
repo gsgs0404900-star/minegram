@@ -2305,12 +2305,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-    /* =====================================================
-       1 — KULLANICI ADI / E-POSTA ÇÖZ
-    ===================================================== */
-
-    if (identifier.includes("@")) {
-
       email = identifier.toLowerCase();
 
       console.log("GİRİŞ TÜRÜ: E-POSTA");
