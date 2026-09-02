@@ -1439,100 +1439,111 @@ app.post(
   "/api/login",
   async (req, res) => {
     try {
-      const identifier =
-        String(
-          req.body?.username ??
-          req.body?.email ??
-          ""
-        ).trim();
+      const identifier = String(
+        req.body?.username ??
+        req.body?.email ??
+        ""
+      ).trim();
 
-      const password =
-        String(
-          req.body?.password ??
-          ""
-        );
+      const password = String(
+        req.body?.password ?? ""
+      );
 
-      if (
-        !identifier ||
-        !password
-      ) {
+      if (!identifier || !password) {
         return res.status(400).json({
-          error:
-            "Kullanıcı adı/e-posta ve şifre gerekli."
+          error: "Kullanıcı adı/e-posta ve şifre gerekli."
         });
       }
 
       if (!CONFIG_OK) {
         return res.status(500).json({
-          error:
-            "Supabase ortam değişkenleri eksik."
+          error: "Supabase ortam değişkenleri eksik."
         });
       }
 
-      if (
-        !SUPABASE_SERVICE_ROLE_KEY
-      ) {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({
           error:
             "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
         });
       }
 
-      const admin =
-        adminClient();
+      const admin = adminClient();
 
-      let email =
-        identifier.toLowerCase();
+      /*
+       * =====================================================
+       * 1. E-POSTA / KULLANICI ADI AYIR
+       * =====================================================
+       */
 
-      if (
-        !identifier.includes("@")
-      ) {
+      let email = identifier.toLowerCase();
+
+      if (!identifier.includes("@")) {
         const username =
-          normalizeUsername(
-            identifier
-          );
+          normalizeUsername(identifier);
 
         const {
-          data: profile,
-          error: pe
+          data: profileByUsername,
+          error: usernameError
         } = await admin
           .from("profiles")
           .select("*")
-          .eq(
-            "username",
-            username
-          )
+          .eq("username", username)
           .maybeSingle();
 
-        if (pe) {
+        if (usernameError) {
+          console.error(
+            "LOGIN USERNAME PROFILE ERROR:",
+            usernameError
+          );
+
           return res.status(500).json({
-            error: pe.message
+            error:
+              "Profil aranırken hata oluştu."
           });
         }
 
-        if (!profile) {
+        if (!profileByUsername) {
           return res.status(401).json({
             error:
               "Kullanıcı adı veya şifre hatalı."
           });
         }
 
+        /*
+         * Öncelik:
+         * auth_user_id
+         * yoksa id
+         */
+
         const authId =
-          profile.auth_user_id ||
-          profile.id;
+          profileByUsername.auth_user_id ||
+          profileByUsername.id;
+
+        if (!authId) {
+          return res.status(401).json({
+            error:
+              "Bu hesabın Auth bağlantısı bulunamadı."
+          });
+        }
 
         const {
-          data: au,
-          error: ae
+          data: authResult,
+          error: authLookupError
         } =
           await admin.auth.admin.getUserById(
             authId
           );
 
         if (
-          ae ||
-          !au?.user?.email
+          authLookupError ||
+          !authResult?.user?.email
         ) {
+          console.error(
+            "LOGIN AUTH USER ERROR:",
+            authLookupError
+          );
+
           return res.status(401).json({
             error:
               "Kullanıcı adı veya şifre hatalı."
@@ -1540,15 +1551,20 @@ app.post(
         }
 
         email =
-          au.user.email.toLowerCase();
+          authResult.user.email.toLowerCase();
       }
 
-      const anon =
-        client();
+      /*
+       * =====================================================
+       * 2. SUPABASE AUTH GİRİŞİ
+       * =====================================================
+       */
+
+      const anon = client();
 
       const {
-        data: sd,
-        error: le
+        data: sessionData,
+        error: loginError
       } =
         await anon.auth.signInWithPassword({
           email,
@@ -1556,105 +1572,295 @@ app.post(
         });
 
       if (
-        le ||
-        !sd?.session ||
-        !sd?.user
+        loginError ||
+        !sessionData?.session ||
+        !sessionData?.user
       ) {
+        console.error(
+          "SUPABASE LOGIN ERROR:",
+          loginError
+        );
+
         return res.status(401).json({
           error:
             /invalid login credentials/i.test(
-              le?.message || ""
+              loginError?.message || ""
             )
               ? "Kullanıcı adı/e-posta veya şifre hatalı."
               : (
-                  le?.message ||
+                  loginError?.message ||
                   "Giriş başarısız."
                 )
         });
       }
 
       const authId =
-        sd.user.id;
+        sessionData.user.id;
+
+      /*
+       * =====================================================
+       * 3. PROFİLİ BUL
+       *
+       * ÖNCE auth_user_id
+       * SONRA id
+       * =====================================================
+       */
+
+      let profile = null;
+
+      /*
+       * -----------------------------------------------------
+       * A) auth_user_id ile ara
+       * -----------------------------------------------------
+       */
 
       const {
-        data: profiles,
-        error: pe2
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq(
-          "auth_user_id",
-          authId
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        );
-
-      if (pe2) {
-        return res.status(500).json({
-          error: pe2.message
-        });
-      }
-
-      let list =
-        profiles || [];
-
-      if (!list.length) {
-        const {
-          data: legacy
-        } = await admin
+        data: profileByAuthId,
+        error: authProfileError
+      } =
+        await admin
           .from("profiles")
           .select("*")
           .eq(
-            "id",
+            "auth_user_id",
             authId
           )
+          .limit(1)
           .maybeSingle();
 
-        if (legacy) {
-          list = [legacy];
+      /*
+       * auth_user_id kolonu yoksa hata olabilir.
+       * Bu durumda id ile devam edeceğiz.
+       */
+
+      if (
+        !authProfileError &&
+        profileByAuthId
+      ) {
+        profile = profileByAuthId;
+      }
+
+      /*
+       * -----------------------------------------------------
+       * B) profiles.id ile ara
+       * -----------------------------------------------------
+       */
+
+      if (!profile) {
+        const {
+          data: profileById,
+          error: profileIdError
+        } =
+          await admin
+            .from("profiles")
+            .select("*")
+            .eq(
+              "id",
+              authId
+            )
+            .maybeSingle();
+
+        if (
+          !profileIdError &&
+          profileById
+        ) {
+          profile = profileById;
         }
       }
 
-      if (!list.length) {
+      /*
+       * =====================================================
+       * 4. HALA PROFİL YOKSA AUTH METADATA'DAN
+       *    PROFİL OLUŞTURMAYI DENE
+       * =====================================================
+       */
+
+      if (!profile) {
+        const authUser =
+          sessionData.user;
+
+        const metadata =
+          authUser.user_metadata || {};
+
+        const username =
+          normalizeUsername(
+            metadata.username ||
+            metadata.user_name ||
+            email.split("@")[0]
+          );
+
+        const displayName =
+          String(
+            metadata.display_name ||
+            metadata.full_name ||
+            username
+          )
+            .trim()
+            .slice(0, 80);
+
+        /*
+         * Username varsa tekrar ara.
+         */
+
+        if (username) {
+          const {
+            data: metadataProfile
+          } =
+            await admin
+              .from("profiles")
+              .select("*")
+              .eq(
+                "username",
+                username
+              )
+              .maybeSingle();
+
+          if (metadataProfile) {
+            profile = metadataProfile;
+          }
+        }
+
+        /*
+         * ===================================================
+         * 5. PROFİL GERÇEKTEN YOKSA OLUŞTUR
+         * ===================================================
+         */
+
+        if (!profile) {
+          const insertPayload = {
+            id: authId,
+            username,
+            display_name: displayName,
+            bio: "",
+            avatar_url: null,
+            verified: false,
+            settings: {}
+          };
+
+          /*
+           * auth_user_id kolonu varsa ekle.
+           */
+
+          let hasAuthUserId = false;
+
+          try {
+            const probe =
+              await admin
+                .from("profiles")
+                .select("auth_user_id")
+                .limit(1);
+
+            hasAuthUserId =
+              !probe.error;
+          } catch (_) {
+            hasAuthUserId = false;
+          }
+
+          if (hasAuthUserId) {
+            insertPayload.auth_user_id =
+              authId;
+          }
+
+          const {
+            data: createdProfile,
+            error: createProfileError
+          } =
+            await admin
+              .from("profiles")
+              .insert(insertPayload)
+              .select("*")
+              .single();
+
+          if (
+            createProfileError
+          ) {
+            console.error(
+              "LOGIN PROFILE CREATE ERROR:",
+              createProfileError
+            );
+
+            /*
+             * Trigger aynı anda oluşturmuş olabilir.
+             * Tekrar ara.
+             */
+
+            const {
+              data: retryProfile
+            } =
+              await admin
+                .from("profiles")
+                .select("*")
+                .eq(
+                  "id",
+                  authId
+                )
+                .maybeSingle();
+
+            if (retryProfile) {
+              profile = retryProfile;
+            } else {
+              return res.status(500).json({
+                error:
+                  "Hesabın Auth kaydı bulundu fakat Minegram profili oluşturulamadı."
+              });
+            }
+          } else {
+            profile =
+              createdProfile;
+          }
+        }
+      }
+
+      /*
+       * =====================================================
+       * 6. SON KONTROL
+       * =====================================================
+       */
+
+      if (!profile) {
         return res.status(404).json({
           error:
             "Bu hesap için Minegram profili bulunamadı."
         });
       }
 
-      const safe =
-        list.map(
-          safeProfile
-        );
+      /*
+       * =====================================================
+       * 7. PROFİLİ GÜVENLİ HALE GETİR
+       * =====================================================
+       */
 
-      const selected =
-        identifier.includes("@")
-          ? safe[0]
-          : (
-              safe.find(
-                x =>
-                  x.username ===
-                  normalizeUsername(
-                    identifier
-                  )
-              ) ||
-              safe[0]
-            );
+      const safe =
+        safeProfile(profile);
+
+      /*
+       * =====================================================
+       * 8. TOKEN + KULLANICI BİLGİLERİNİ DÖNDÜR
+       * =====================================================
+       */
 
       return res.json({
         ok: true,
-        multipleProfiles:
-          safe.length > 1,
-        profiles: safe,
-        profile: selected,
+
+        multipleProfiles: false,
+
+        profiles: [
+          safe
+        ],
+
+        profile: safe,
+
         token:
-          sd.session
+          sessionData
+            .session
             .access_token,
-        user: selected
+
+        supabaseAccessToken:
+          sessionData
+            .session
+            .access_token,
+
+        user: safe
       });
 
     } catch (e) {
@@ -1671,7 +1877,6 @@ app.post(
     }
   }
 );
-
 
 /* =========================================================
    RECOVERY HELPERS
