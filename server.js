@@ -150,66 +150,158 @@ async function auth(req, res, next) {
     const token = bearer(req);
 
     if (!token) {
-      throw new Error("Oturum gerekli");
+      return res.status(401).json({
+        ok: false,
+        error: "Oturum gerekli"
+      });
     }
+
+    /*
+     * -------------------------------------------------------
+     * 1) TOKEN'I SUPABASE AUTH İLE DOĞRULA
+     * -------------------------------------------------------
+     */
 
     const sb = client(token);
 
     const {
-      data: {
-        user
-      },
-      error
+      data: authData,
+      error: authError
     } = await sb.auth.getUser(token);
 
-    if (error || !user) {
-      throw error || new Error("Oturum gerekli");
+    const authUser = authData?.user;
+
+    if (authError || !authUser) {
+      console.error(
+        "AUTH TOKEN HATASI:",
+        authError?.message || "Kullanıcı bulunamadı"
+      );
+
+      return res.status(401).json({
+        ok: false,
+        error: "Oturum geçersiz veya süresi dolmuş."
+      });
     }
 
-    let {
-      data: profile,
-      error: pError
-    } = await sb
+    const authId = authUser.id;
+
+    /*
+     * -------------------------------------------------------
+     * 2) PROFİLİ ADMIN CLIENT İLE BUL
+     *
+     * Burada normal sb yerine admin kullanıyoruz.
+     * Böylece RLS yüzünden profil bulunamama problemi
+     * ortadan kalkar.
+     * -------------------------------------------------------
+     */
+
+    const admin = adminClient();
+
+    let profile = null;
+    let profileError = null;
+
+    /*
+     * Önce profiles.id = Auth user ID
+     */
+
+    const {
+      data: profileById,
+      error: profileByIdError
+    } = await admin
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", authId)
       .maybeSingle();
 
+    if (profileById) {
+      profile = profileById;
+    } else {
+      profileError = profileByIdError;
+    }
+
+    /*
+     * -------------------------------------------------------
+     * 3) BULUNAMAZSA auth_user_id İLE ARA
+     * -------------------------------------------------------
+     */
+
     if (!profile) {
-      const fallback =
-        await sb
-          .from("profiles")
-          .select("*")
-          .eq("auth_user_id", user.id)
-          .maybeSingle();
+      const {
+        data: profileByAuthId,
+        error: profileByAuthIdError
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("auth_user_id", authId)
+        .maybeSingle();
 
-      profile =
-        fallback.data || null;
-
-      pError =
-        fallback.error || null;
+      if (profileByAuthId) {
+        profile = profileByAuthId;
+        profileError = null;
+      } else if (!profileError) {
+        profileError = profileByAuthIdError;
+      }
     }
 
-    if (pError || !profile) {
-      throw (
-        pError ||
-        new Error("Profil bulunamadı")
+    /*
+     * -------------------------------------------------------
+     * 4) PROFİL HALA YOKSA
+     * -------------------------------------------------------
+     */
+
+    if (!profile) {
+      console.error(
+        "AUTH PROFİL BULUNAMADI:",
+        {
+          authId,
+          authEmail: authUser.email,
+          profileError:
+            profileError?.message || null
+        }
       );
+
+      return res.status(401).json({
+        ok: false,
+        error: "Minegram profili bulunamadı.",
+        user_id: authId
+      });
     }
+
+    /*
+     * -------------------------------------------------------
+     * 5) SESSION BİLGİLERİNİ REQUEST'E EKLE
+     * -------------------------------------------------------
+     */
 
     req.token = token;
+
     req.sb = sb;
-    req.authUser = user;
+
+    req.admin = admin;
+
+    req.authUser = authUser;
+
     req.user = profile;
 
+    req.userId = profile.id || authId;
+
+    /*
+     * -------------------------------------------------------
+     * 6) DEVAM ET
+     * -------------------------------------------------------
+     */
+
     next();
+
   } catch (e) {
+
     console.error(
       "AUTH ERROR:",
       e?.message || e
     );
 
-    res.status(401).json({
+    return res.status(401).json({
+      ok: false,
       error: "Oturum gerekli"
     });
   }
