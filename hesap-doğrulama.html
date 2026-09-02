@@ -563,7 +563,7 @@ const status =
 
 
 /* =========================================================
-   KAYIT BİLGİLERİNİ AL
+   STORAGE
 ========================================================= */
 
 function getStorageValue(key){
@@ -577,11 +577,19 @@ function getStorageValue(key){
 }
 
 
+/* =========================================================
+   URL PARAMETRELERİ
+========================================================= */
+
 const urlParams =
   new URLSearchParams(
     window.location.search
   );
 
+
+/* =========================================================
+   KAYIT BİLGİLERİ
+========================================================= */
 
 const username =
   (
@@ -627,7 +635,7 @@ const displayName =
 
 
 /* =========================================================
-   PARAMETRELERİ KORU
+   BİLGİLERİ KORU
 ========================================================= */
 
 if(username){
@@ -679,11 +687,6 @@ function showStatus(
   success = false
 ){
 
-  if(!status){
-    return;
-  }
-
-
   status.textContent =
     text || "";
 
@@ -703,7 +706,7 @@ function showStatus(
 
 
 /* =========================================================
-   KODU SADECE RAKAM YAP
+   KOD INPUT
 ========================================================= */
 
 codeInput.addEventListener(
@@ -722,13 +725,10 @@ codeInput.addEventListener(
 
 
 /* =========================================================
-   GERİ / İLETİŞİM BİLGİLERİNİ DEĞİŞTİR
+   GERİ
 ========================================================= */
 
 function goBack(){
-
-  let url =
-    "./iletisim-bilgileri.html";
 
   const params =
     new URLSearchParams();
@@ -766,6 +766,10 @@ function goBack(){
 
   const query =
     params.toString();
+
+
+  let url =
+    "./iletisim-bilgileri.html";
 
 
   if(query){
@@ -806,8 +810,6 @@ async function verifyCode(){
   showStatus("");
 
 
-  /* Kullanıcı adı kontrol */
-
   if(!username){
 
     showStatus(
@@ -819,8 +821,6 @@ async function verifyCode(){
   }
 
 
-  /* E-posta kontrol */
-
   if(!email && !phone){
 
     showStatus(
@@ -831,8 +831,6 @@ async function verifyCode(){
 
   }
 
-
-  /* Kod kontrol */
 
   if(!code){
 
@@ -860,8 +858,6 @@ async function verifyCode(){
   }
 
 
-  /* Butonu kilitle */
-
   verifyButton.disabled =
     true;
 
@@ -870,16 +866,6 @@ async function verifyCode(){
 
 
   try{
-
-    /*
-     * =====================================================
-     * MINEGRAM SERVER
-     * =====================================================
-     *
-     * POST /api/register/verify
-     *
-     * Kullanıcı adı + e-posta/telefon + kod gönderilir.
-     */
 
     const response =
       await fetch(
@@ -935,8 +921,6 @@ async function verifyCode(){
     );
 
 
-    /* Server hatası */
-
     if(!response.ok){
 
       throw new Error(
@@ -949,8 +933,6 @@ async function verifyCode(){
 
     }
 
-
-    /* Backend açıkça başarısız dönerse */
 
     if(data.ok === false){
 
@@ -966,7 +948,7 @@ async function verifyCode(){
 
 
     /* =====================================================
-       DOĞRULAMA BAŞARILI
+       BAŞARILI
     ===================================================== */
 
     sessionStorage.setItem(
@@ -1011,14 +993,19 @@ async function verifyCode(){
     }
 
 
-    /*
-     * Backend token gönderirse sakla.
-     */
+    /* =====================================================
+       TOKEN
+    ===================================================== */
 
     if(data.token){
 
       sessionStorage.setItem(
         "minegram_register_token",
+        String(data.token)
+      );
+
+      localStorage.setItem(
+        "minegram_token",
         String(data.token)
       );
 
@@ -1032,12 +1019,17 @@ async function verifyCode(){
         String(data.access_token)
       );
 
+      localStorage.setItem(
+        "minegram_supabase_token",
+        String(data.access_token)
+      );
+
     }
 
 
-    /*
-     * Kullanıcı bilgisi geldiyse sakla.
-     */
+    /* =====================================================
+       USER
+    ===================================================== */
 
     if(data.user){
 
@@ -1045,6 +1037,11 @@ async function verifyCode(){
 
         sessionStorage.setItem(
           "minegram_register_user",
+          JSON.stringify(data.user)
+        );
+
+        localStorage.setItem(
+          "minegram_user",
           JSON.stringify(data.user)
         );
 
@@ -1058,10 +1055,32 @@ async function verifyCode(){
 
       }
 
+
+      if(data.user.id){
+
+        localStorage.setItem(
+          "minegram_user_id",
+          String(data.user.id)
+        );
+
+      }
+
+
+      if(data.user.username){
+
+        localStorage.setItem(
+          "minegram_username",
+          String(data.user.username)
+        );
+
+      }
+
     }
 
 
-    /* Başarılı mesaj */
+    /* =====================================================
+       BAŞARILI MESAJ
+    ===================================================== */
 
     showStatus(
       "Hesabın doğrulandı. Profil oluşturma sayfasına geçiliyor...",
@@ -1073,15 +1092,9 @@ async function verifyCode(){
       "Doğrulandı";
 
 
-    /*
-     * =====================================================
-     * SONRAKİ ADIM
-     * =====================================================
-     *
-     * hesap doğrulandıktan sonra:
-     *
-     * profil-olustur.html
-     */
+    /* =====================================================
+       PROFİL OLUŞTUR
+    ===================================================== */
 
     setTimeout(
       function(){
@@ -1111,6 +1124,7 @@ async function verifyCode(){
     verifyButton.disabled =
       false;
 
+
     verifyButton.textContent =
       "Kodu doğrula ve Minegram'a gir";
 
@@ -1120,130 +1134,17 @@ async function verifyCode(){
 
 
 /* =========================================================
-   TEKRAR KOD GÖNDER
+   BUTON
 ========================================================= */
 
-async function resendCode(){
-
-  /*
-   * Bu sayfada ayrı bir tekrar gönder butonu yok.
-   *
-   * Kullanıcı iletişim bilgisini değiştirmek isterse
-   * "İletişim bilgini değiştir" butonuyla geri döner.
-   *
-   * Ancak eski kodla uyumluluk için fonksiyon bırakıldı.
-   */
-
-  if(!username){
-
-    showStatus(
-      "Kayıt bilgileri bulunamadı."
-    );
-
-    return;
-
-  }
-
-
-  try{
-
-    const response =
-      await fetch(
-        "/api/register/resend",
-        {
-
-          method:
-            "POST",
-
-          headers:{
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              username:
-                username,
-
-              email:
-                email,
-
-              phone:
-                phone
-
-            }),
-
-          cache:
-            "no-store"
-
-        }
-      );
-
-
-    const data =
-      await response
-        .json()
-        .catch(
-          () => ({})
-        );
-
-
-    if(!response.ok){
-
-      throw new Error(
-
-        data.error ||
-        data.message ||
-        "Yeni doğrulama kodu gönderilemedi."
-
-      );
-
-    }
-
-
-    if(data.ok === false){
-
-      throw new Error(
-
-        data.error ||
-        data.message ||
-        "Yeni doğrulama kodu gönderilemedi."
-
-      );
-
-    }
-
-
-    showStatus(
-      "Yeni doğrulama kodu e-posta adresine gönderildi.",
-      true
-    );
-
-  }
-  catch(error){
-
-    console.error(
-      "[MINEGRAM REGISTER RESEND ERROR]",
-      error
-    );
-
-
-    showStatus(
-      error.message ||
-      "Yeni kod gönderilemedi."
-    );
-
-  }
-
-}
+verifyButton.addEventListener(
+  "click",
+  verifyCode
+);
 
 
 /* =========================================================
-   ENTER İLE DOĞRULA
+   ENTER
 ========================================================= */
 
 codeInput.addEventListener(
