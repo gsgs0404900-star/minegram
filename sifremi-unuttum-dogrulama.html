@@ -1,36 +1,51 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#000000">
-<title>E-posta Kontrol Et - Minegram</title>
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
+
+<meta
+name="theme-color"
+content="#000000"
+>
+
+<title>Şifremi unuttum - Minegram</title>
 
 <style>
+
 *{
     box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
 }
 
-html,body{
+html,
+body{
     margin:0;
-    padding:0;
     width:100%;
     min-height:100%;
     background:#000;
     color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
 }
 
 body{
     min-height:100vh;
+    min-height:100dvh;
     overflow-x:hidden;
 }
 
-.page{
-    width:100%;
-    min-height:100vh;
-    background:#000;
+button{
+    font-family:inherit;
 }
 
 .topbar{
@@ -44,22 +59,30 @@ body{
 .back{
     width:25px;
     height:35px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    padding:0;
+    cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    color:#fff;
-    font-size:34px;
-    font-weight:300;
-    line-height:1;
-    cursor:pointer;
-    user-select:none;
+}
+
+.back svg{
+    width:25px;
+    height:35px;
+    stroke:currentColor;
+    stroke-width:3;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
 }
 
 .top-title{
     margin-left:15px;
     font-size:20px;
     font-weight:700;
-    color:#fff;
 }
 
 .content{
@@ -68,41 +91,31 @@ body{
 }
 
 .title{
-    text-align:center;
+    margin:0 0 34px;
     font-size:30px;
     line-height:1.15;
     font-weight:700;
-    margin:0 0 34px;
-    color:#fff;
 }
 
 .description{
+    margin:0 0 65px;
+    color:#bdbdbd;
     font-size:18px;
     line-height:1.45;
-    color:#bdbdbd;
-    margin:0 0 65px;
 }
 
 .code-input{
-    display:block;
     width:100%;
     height:39px;
     padding:0 10px;
     border:1px solid #252525;
     border-radius:6px;
+    outline:none;
     background:#050505;
     color:#fff;
-    outline:none;
     font-size:12px;
-    font-family:Arial,Helvetica,sans-serif;
     letter-spacing:3px;
     text-align:center;
-}
-
-.code-input::placeholder{
-    color:#777;
-    opacity:1;
-    letter-spacing:0;
 }
 
 .code-input:focus{
@@ -110,7 +123,6 @@ body{
 }
 
 .verify-btn{
-    display:block;
     width:100%;
     height:37px;
     margin-top:8px;
@@ -123,38 +135,24 @@ body{
     cursor:pointer;
 }
 
-.verify-btn:active{
-    transform:scale(.99);
-}
-
 .verify-btn:disabled{
-    opacity:.6;
+    opacity:.55;
     cursor:not-allowed;
 }
 
 .resend-btn{
     display:block;
-    width:100%;
-    margin-top:12px;
-    padding:0;
+    margin:12px auto 0;
     border:0;
     background:transparent;
-    text-align:center;
     color:#008cff;
     font-size:12px;
-    font-weight:400;
     cursor:pointer;
-    line-height:1.4;
-}
-
-.resend-btn:hover{
-    text-decoration:underline;
 }
 
 .resend-btn:disabled{
-    opacity:.6;
+    opacity:.5;
     cursor:not-allowed;
-    text-decoration:none;
 }
 
 .message{
@@ -180,7 +178,11 @@ body{
     .back{
         width:30px;
         height:38px;
-        font-size:38px;
+    }
+
+    .back svg{
+        width:30px;
+        height:38px;
     }
 
     .top-title{
@@ -196,7 +198,6 @@ body{
 
     .title{
         font-size:42px;
-        margin-bottom:30px;
     }
 
     .description{
@@ -208,23 +209,22 @@ body{
     .code-input{
         height:68px;
         padding:0 20px;
-        font-size:22px;
         border:2px solid #686868;
         border-radius:9px;
+        font-size:22px;
     }
 
     .verify-btn{
         height:58px;
         margin-top:18px;
-        font-size:20px;
         border-radius:32px;
+        font-size:20px;
     }
 
     .resend-btn{
         margin-top:25px;
         font-size:18px;
         font-weight:700;
-        color:#62b5f5;
     }
 
     .message{
@@ -247,334 +247,257 @@ body{
         font-size:20px;
     }
 }
+
 </style>
+
 </head>
 
 <body>
 
-<div class="page">
+<header class="topbar">
 
-<div class="topbar">
+<button
+class="back"
+type="button"
+onclick="goBack()"
+aria-label="Geri"
+>
 
-    <div
-        class="back"
-        id="backButton"
-        aria-label="Geri"
-    >
-        ‹
-    </div>
+<svg viewBox="0 0 32 32">
+<path d="M20 5 L9 16 L20 27"></path>
+<path d="M10 16 H27"></path>
+</svg>
 
-    <div class="top-title">
-        Şifremi unuttum
-    </div>
+</button>
 
+<div class="top-title">
+Şifremi unuttum
 </div>
 
+</header>
 
 <main class="content">
 
-    <h1 class="title">
-        E-postanı kontrol et
-    </h1>
+<h1 class="title">
+Kodu gir
+</h1>
 
-    <p class="description" id="description">
-        Hesabını onaylamak için e-posta adresine
-        gönderilen 6 haneli kodu aşağıya gir.
-    </p>
+<p class="description">
+E-posta adresine gönderdiğimiz 6 haneli doğrulama kodunu gir.
+</p>
 
-    <input
-        type="text"
-        id="code"
-        class="code-input"
-        placeholder="Kod"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        maxlength="6"
-        autocapitalize="none"
-        spellcheck="false"
-    >
+<input
+id="code"
+class="code-input"
+type="text"
+inputmode="numeric"
+autocomplete="one-time-code"
+maxlength="6"
+placeholder="6 haneli kod"
+aria-label="6 haneli doğrulama kodu"
+>
 
-    <div
-        id="codeMessage"
-        class="message success"
-    >
-        Kod e-posta adresine gönderildi.
-    </div>
+<button
+id="verifyBtn"
+class="verify-btn"
+type="button"
+onclick="verifyCode()"
+>
+Devam et
+</button>
 
-    <button
-        type="button"
-        id="verifyButton"
-        class="verify-btn"
-    >
-        Kodu doğrula
-    </button>
+<button
+id="resendBtn"
+class="resend-btn"
+type="button"
+onclick="resendCode()"
+>
+Kodu tekrar gönder
+</button>
 
-    <button
-        type="button"
-        id="resendButton"
-        class="resend-btn"
-    >
-        Kodu tekrar gönder
-    </button>
+<div
+id="message"
+class="message"
+aria-live="polite"
+></div>
 
 </main>
 
-</div>
-
-
 <script>
+
 "use strict";
 
-const API = "/api";
+const API="/api";
 
-const codeInput =
-    document.getElementById("code");
-
-const verifyButton =
-    document.getElementById("verifyButton");
-
-const resendButton =
-    document.getElementById("resendButton");
-
-const codeMessage =
-    document.getElementById("codeMessage");
-
-const description =
-    document.getElementById("description");
-
-const backButton =
-    document.getElementById("backButton");
-
-
-/* =========================================
-   URL BİLGİLERİ
-========================================= */
-
-const params =
+const params=
     new URLSearchParams(
         window.location.search
     );
 
-const identifier =
-    String(
-        params.get("identifier") || ""
-    ).trim();
+let identifier=(
+    params.get("identifier") ||
+    params.get("username") ||
+    sessionStorage.getItem(
+        "minegram_recovery_identifier"
+    ) ||
+    sessionStorage.getItem(
+        "minegram_recovery_username"
+    ) ||
+    ""
+)
+.trim()
+.replace(/^@/,"")
+.toLowerCase();
 
-const mode =
-    String(
-        params.get("mode") || "email"
-    ).trim().toLowerCase();
+let mode=(
+    params.get("mode") ||
+    sessionStorage.getItem(
+        "minegram_recovery_mode"
+    ) ||
+    "username"
+)
+.trim()
+.toLowerCase();
 
-const email =
-    String(
-        params.get("email") || ""
-    ).trim();
+let email=(
+    params.get("email") ||
+    sessionStorage.getItem(
+        "minegram_recovery_email"
+    ) ||
+    ""
+)
+.trim()
+.toLowerCase();
 
-const phone =
-    String(
-        params.get("phone") || ""
-    ).trim();
+const codeInput=
+    document.getElementById("code");
 
+const verifyBtn=
+    document.getElementById("verifyBtn");
 
-/* =========================================
-   MESAJ
-========================================= */
+const resendBtn=
+    document.getElementById("resendBtn");
 
-function showMessage(text,type){
+function showMessage(
+    text,
+    type=""
+){
 
-    if(!codeMessage){
-        return;
-    }
-
-    codeMessage.textContent =
-        String(text || "");
-
-    codeMessage.className =
-        "message" +
-        (
-            type === "success"
-                ? " success"
-                : ""
+    const el=
+        document.getElementById(
+            "message"
         );
-}
 
+    el.className="message";
+    el.textContent=text;
 
-/* =========================================
-   SADECE RAKAM
-========================================= */
-
-function onlyNumbers(){
-
-    if(!codeInput){
-        return;
+    if(type){
+        el.classList.add(type);
     }
-
-    codeInput.value =
-        codeInput.value
-            .replace(/\D/g,"")
-            .slice(0,6);
 }
-
-
-/* =========================================
-   JSON CEVABI
-========================================= */
-
-async function readResponse(response){
-
-    const raw =
-        await response.text();
-
-    let data = {};
-
-    try{
-
-        data =
-            raw
-                ? JSON.parse(raw)
-                : {};
-
-    }catch{
-
-        data = {
-            error:
-                raw ||
-                "Sunucudan geçersiz cevap geldi."
-        };
-
-    }
-
-    return data;
-}
-
-
-/* =========================================
-   GERİ
-========================================= */
 
 function goBack(){
 
-    window.location.replace(
-        "sifremi-unuttum.html"
-    );
+    if(history.length>1){
+        history.back();
+    }else{
+        window.location.href=
+            "hesaplarini-bulduk.html";
+    }
 }
 
+function cleanCode(value){
 
-/* =========================================
-   DOĞRULAMA BODY
-========================================= */
+    return String(
+        value || ""
+    )
+    .replace(/\D/g,"")
+    .slice(0,6);
+}
 
-function buildVerifyBody(code){
+codeInput.addEventListener(
+    "input",
+    function(){
 
-    const body = {
-        code:code
+        this.value=
+            cleanCode(
+                this.value
+            );
+
+        showMessage("");
+    }
+);
+
+codeInput.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key==="Enter"){
+            verifyCode();
+        }
+    }
+);
+
+function buildBody(code){
+
+    const body={
+        code:code,
+        identifier:identifier,
+        mode:mode
     };
 
-    /*
-     * Backend'in farklı sürümleriyle
-     * uyumluluk için bütün gerekli
-     * tanımlayıcıları gönderiyoruz.
-     */
-
-    if(identifier){
-        body.identifier =
-            identifier;
-    }
-
-    if(mode){
-        body.mode =
-            mode;
-    }
-
     if(email){
-        body.email =
-            email;
+        body.email=email;
     }
 
-    if(phone){
-        body.phone =
-            phone;
+    if(mode==="phone"){
+        body.phone=identifier;
     }
 
     return body;
 }
 
-
-/* =========================================
-   KODU DOĞRULA
-========================================= */
-
 async function verifyCode(){
 
-    onlyNumbers();
+    const code=
+        cleanCode(
+            codeInput.value
+        );
 
-    const code =
-        String(
-            codeInput?.value || ""
-        ).trim();
+    showMessage("");
 
-    if(code.length !== 6){
+    if(code.length!==6){
 
         showMessage(
-            "Lütfen 6 haneli doğrulama kodunu gir.",
+            "6 haneli doğrulama kodunu gir.",
             "error"
         );
 
-        codeInput?.focus();
+        codeInput.focus();
 
         return;
     }
-
-
-    /*
-     * Sayfa doğrudan açılmışsa
-     * hangi hesap için işlem yapıldığını
-     * bilemeyiz.
-     */
 
     if(
         !identifier &&
-        !email &&
-        !phone
+        !email
     ){
 
         showMessage(
-            "Doğrulama oturumu bulunamadı. Lütfen şifre sıfırlama işlemini yeniden başlat.",
+            "Doğrulama oturumu bulunamadı. İşlemi yeniden başlat.",
             "error"
         );
 
         return;
     }
 
-
-    verifyButton.disabled =
-        true;
-
-    resendButton.disabled =
-        true;
-
-    verifyButton.textContent =
-        "Doğrulanıyor...";
-
+    verifyBtn.disabled=true;
+    resendBtn.disabled=true;
+    verifyBtn.textContent="Kontrol ediliyor...";
 
     try{
 
-        const body =
-            buildVerifyBody(code);
-
-
-        console.log(
-            "[MINEGRAM FORGOT VERIFY REQUEST]",
-            {
-                mode:mode,
-                hasIdentifier:!!identifier,
-                hasEmail:!!email,
-                hasPhone:!!phone
-            }
-        );
-
-
-        const response =
+        const response=
             await fetch(
                 API + "/forgot/verify",
                 {
@@ -588,162 +511,160 @@ async function verifyCode(){
                             "application/json"
                     },
 
-                    body:JSON.stringify(body),
+                    body:JSON.stringify(
+                        buildBody(code)
+                    ),
 
-                    cache:"no-store",
-
-                    credentials:"same-origin"
+                    cache:"no-store"
                 }
             );
 
-
-        const data =
-            await readResponse(
-                response
-            );
-
+        const data=
+            await response
+                .json()
+                .catch(
+                    ()=>({})
+                );
 
         console.log(
-            "[MINEGRAM FORGOT VERIFY RESPONSE]",
+            "[MINEGRAM VERIFY]",
             data
         );
 
-
         if(
             !response.ok ||
-            !data.ok
+            data.ok===false
         ){
 
             throw new Error(
                 data.error ||
+                data.message ||
                 "Doğrulama kodu hatalı veya süresi dolmuş."
             );
         }
 
-
-        /*
-         * Backend'in döndürdüğü token.
-         */
-
-        const resetToken =
-            String(
-                data.resetToken ||
-                data.reset_token ||
-                ""
-            ).trim();
-
+        const resetToken=String(
+            data.resetToken ||
+            data.reset_token ||
+            data.token ||
+            data.recoveryToken ||
+            ""
+        ).trim();
 
         if(!resetToken){
 
             throw new Error(
-                "Kod doğrulandı ancak şifre yenileme anahtarı alınamadı. Lütfen tekrar kod iste."
+                "Kod doğrulandı ancak şifre yenileme anahtarı alınamadı."
             );
         }
 
+        sessionStorage.setItem(
+            "minegram_reset_token",
+            resetToken
+        );
+
+        sessionStorage.setItem(
+            "resetToken",
+            resetToken
+        );
+
+        if(
+            data.userId ||
+            data.user_id ||
+            data.id
+        ){
+
+            sessionStorage.setItem(
+                "minegram_recovery_id",
+                String(
+                    data.userId ||
+                    data.user_id ||
+                    data.id
+                )
+            );
+        }
+
+        const next=
+            new URLSearchParams();
+
+        next.set(
+            "token",
+            resetToken
+        );
+
+        if(identifier){
+            next.set(
+                "identifier",
+                identifier
+            );
+        }
+
+        if(email){
+            next.set(
+                "email",
+                email
+            );
+        }
 
         showMessage(
-            "Kod doğrulandı. Yeni şifreni oluşturabilirsin.",
+            "Kod doğrulandı. Şifre yenileme sayfası açılıyor...",
             "success"
         );
 
-
-        /*
-         * Yeni şifre ekranına:
-         *
-         * resetToken
-         *
-         * gönderilir.
-         *
-         * Token URL encode edilir.
-         */
-
-        const target =
-            "yeni-sifre.html" +
-            "?token=" +
-            encodeURIComponent(
-                resetToken
-            );
-
-
-        setTimeout(function(){
-
-            window.location.replace(
-                target
-            );
-
-        },700);
-
+        setTimeout(
+            ()=>{
+                window.location.href=
+                    "yeni-sifre.html?" +
+                    next.toString();
+            },
+            350
+        );
 
     }catch(error){
 
         console.error(
-            "[MINEGRAM FORGOT VERIFY ERROR]",
+            "[MINEGRAM VERIFY ERROR]",
             error
         );
 
+        verifyBtn.disabled=false;
+        resendBtn.disabled=false;
+        verifyBtn.textContent="Devam et";
+
         showMessage(
-            error?.message ||
-            "Bir hata oluştu. Lütfen tekrar dene.",
+            error.message ||
+            "Kod doğrulanamadı.",
             "error"
         );
-
-
-    }finally{
-
-        verifyButton.disabled =
-            false;
-
-        resendButton.disabled =
-            false;
-
-        verifyButton.textContent =
-            "Kodu doğrula";
-
     }
 }
 
-
-/* =========================================
-   TEKRAR KOD GÖNDER
-========================================= */
-
 async function resendCode(){
 
-    /*
-     * Yeniden gönderme için identifier
-     * kesinlikle gerekli.
-     */
-
-    const resendIdentifier =
-        identifier ||
-        email ||
-        phone;
-
-
-    if(!resendIdentifier){
+    if(
+        !identifier &&
+        !email
+    ){
 
         showMessage(
-            "Hesap bilgisi bulunamadı. Lütfen işlemi yeniden başlat.",
+            "Doğrulama oturumu bulunamadı.",
             "error"
         );
 
         return;
     }
 
+    resendBtn.disabled=true;
+    verifyBtn.disabled=true;
 
-    resendButton.disabled =
-        true;
-
-    verifyButton.disabled =
-        true;
-
-    resendButton.textContent =
+    resendBtn.textContent=
         "Gönderiliyor...";
 
+    showMessage("");
 
     try{
 
-        const response =
+        const response=
             await fetch(
                 API + "/forgot/start",
                 {
@@ -758,215 +679,89 @@ async function resendCode(){
                     },
 
                     body:JSON.stringify({
-
                         identifier:
-                            resendIdentifier,
+                            identifier || email,
 
                         mode:
-                            mode === "phone"
-                                ? "phone"
-                                : "email"
-
+                            mode ||
+                            (
+                                email
+                                    ? "email"
+                                    : "username"
+                            )
                     }),
 
-                    cache:"no-store",
-
-                    credentials:"same-origin"
+                    cache:"no-store"
                 }
             );
 
-
-        const data =
-            await readResponse(
-                response
-            );
-
-
-        console.log(
-            "[MINEGRAM FORGOT RESEND RESPONSE]",
-            data
-        );
-
+        const data=
+            await response
+                .json()
+                .catch(
+                    ()=>({})
+                );
 
         if(
             !response.ok ||
-            !data.ok
+            data.ok===false
         ){
 
             throw new Error(
                 data.error ||
+                data.message ||
                 "Kod tekrar gönderilemedi."
             );
         }
 
+        if(data.email){
 
-        showMessage(
-            "Yeni doğrulama kodu e-posta adresine gönderildi.",
-            "success"
-        );
+            email=
+                String(
+                    data.email
+                )
+                .trim()
+                .toLowerCase();
 
-
-        /*
-         * Backend yeni e-posta döndürürse
-         * URL'yi güncelle.
-         */
-
-        const newEmail =
-            String(
-                data.email || email || ""
-            ).trim();
-
-
-        if(newEmail){
-
-            const newUrl =
-                new URL(
-                    window.location.href
-                );
-
-            newUrl.searchParams.set(
-                "email",
-                newEmail
-            );
-
-            if(identifier){
-
-                newUrl.searchParams.set(
-                    "identifier",
-                    identifier
-                );
-
-            }
-
-            newUrl.searchParams.set(
-                "mode",
-                mode === "phone"
-                    ? "phone"
-                    : "email"
-            );
-
-            window.history.replaceState(
-                {},
-                "",
-                newUrl.toString()
+            sessionStorage.setItem(
+                "minegram_recovery_email",
+                email
             );
         }
 
+        showMessage(
+            "Yeni doğrulama kodu gönderildi.",
+            "success"
+        );
 
     }catch(error){
 
         console.error(
-            "[MINEGRAM FORGOT RESEND ERROR]",
+            "[MINEGRAM RESEND ERROR]",
             error
         );
 
         showMessage(
-            error?.message ||
-            "Kod gönderilemedi. Lütfen tekrar dene.",
+            error.message ||
+            "Kod gönderilemedi.",
             "error"
         );
 
-
     }finally{
 
-        resendButton.disabled =
-            false;
+        resendBtn.disabled=false;
+        verifyBtn.disabled=false;
 
-        verifyButton.disabled =
-            false;
-
-        resendButton.textContent =
+        resendBtn.textContent=
             "Kodu tekrar gönder";
-
     }
 }
-
-
-/* =========================================
-   ENTER
-========================================= */
-
-codeInput.addEventListener(
-    "input",
-    onlyNumbers
-);
-
-codeInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter"
-        ){
-
-            event.preventDefault();
-
-            verifyCode();
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   BUTONLAR
-========================================= */
-
-verifyButton.addEventListener(
-    "click",
-    verifyCode
-);
-
-resendButton.addEventListener(
-    "click",
-    resendCode
-);
-
-backButton.addEventListener(
-    "click",
-    goBack
-);
-
-
-/* =========================================
-   BAŞLANGIÇ
-========================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     function(){
 
-        /*
-         * Telefonla başladıysa bile kod
-         * e-posta adresine gönderildiği için
-         * başlık aynı kalır.
-         */
-
-        if(mode === "phone"){
-
-            description.textContent =
-                "Hesabını onaylamak için e-posta adresine gönderilen 6 haneli kodu aşağıya gir.";
-
-        }
-
-
-        console.log(
-            "[MINEGRAM] Şifre sıfırlama doğrulama hazır.",
-            {
-                mode:mode,
-                hasIdentifier:!!identifier,
-                hasEmail:!!email,
-                hasPhone:!!phone
-            }
-        );
-
-
-        setTimeout(function(){
-
-            codeInput?.focus();
-
-        },100);
+        codeInput.focus();
 
     }
 );
