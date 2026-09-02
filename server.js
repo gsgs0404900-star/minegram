@@ -2501,6 +2501,7 @@ async function sendResendEmail(to, subject, html, text) {
 
 const recoveryCodes = new Map();
 const passwordResetTokens = new Map();
+const recoveryChallenges = new Map();
 
 
 function cleanupRecoveryCodes() {
@@ -2520,6 +2521,15 @@ function cleanupPasswordResetTokens() {
   for (const [token, entry] of passwordResetTokens.entries()) {
     if (!entry || !entry.expires || entry.expires <= now) {
       passwordResetTokens.delete(token);
+    }
+  }
+}
+
+function cleanupRecoveryChallenges() {
+  const now = Date.now();
+  for (const [challenge, entry] of recoveryChallenges.entries()) {
+    if (!entry || !entry.expires || entry.expires <= now) {
+      recoveryChallenges.delete(challenge);
     }
   }
 }
@@ -2809,8 +2819,24 @@ app.post(
         req.body?.mode
       );
 
+      cleanupRecoveryChallenges();
+
+      // Güvenli doğrudan sayfa akışı: burada gerçek resetToken üretmiyoruz.
+      // Sadece e-postaya gönderilen 6 haneli kodla kullanılabilecek tek kullanımlık
+      // bir challenge oluşturuyoruz. Böylece hesap seçimi tek başına şifre değiştiremez.
+      const recoveryId = crypto.randomBytes(32).toString("hex");
+      recoveryChallenges.set(recoveryId, {
+        email: result.email,
+        identifier: result.identifier,
+        mode: result.mode,
+        createdAt: Date.now(),
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
       return res.json({
         ok: true,
+        recoveryId,
+        recovery_id: recoveryId,
         identifier: result.identifier,
         mode: result.mode,
         email: result.email,
@@ -3035,14 +3061,25 @@ app.post(
   async (req, res) => {
     try {
       cleanupPasswordResetTokens();
+      cleanupRecoveryCodes();
+      cleanupRecoveryChallenges();
 
-      const resetToken = String(
+      let resetToken = String(
         req.body?.resetToken ||
         req.body?.reset_token ||
         req.body?.token ||
         req.body?.recoveryToken ||
         ""
       ).trim();
+
+      const recoveryId = String(
+        req.body?.recoveryId ||
+        req.body?.recovery_id ||
+        req.body?.challenge ||
+        ""
+      ).trim();
+
+      const code = String(req.body?.code || "").trim();
 
       const password = String(
         req.body?.password ||
@@ -3055,6 +3092,113 @@ app.post(
         req.body?.passwordConfirm ||
         password
       );
+
+      // Yeni doğrudan sayfa akışı: recoveryId + e-postadaki 6 haneli kod.
+      // Doğru kod olmadan şifre değiştirme yapılamaz.
+      if (!resetToken && recoveryId) {
+        const challenge = recoveryChallenges.get(recoveryId);
+
+        if (!challenge || challenge.expires <= Date.now()) {
+          recoveryChallenges.delete(recoveryId);
+          return res.status(400).json({
+            ok: false,
+            error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş. Yeni kod iste."
+          });
+        }
+
+        if (!/^\d{6}$/.test(code)) {
+          return res.status(400).json({
+            ok: false,
+            error: "6 haneli doğrulama kodunu gir."
+          });
+        }
+
+        const recoveryEntry = recoveryCodes.get(challenge.email);
+
+        if (!recoveryEntry || recoveryEntry.expires <= Date.now()) {
+          recoveryCodes.delete(challenge.email);
+          recoveryChallenges.delete(recoveryId);
+          return res.status(400).json({
+            ok: false,
+            error: "Kodun süresi dolmuş. Yeni kod iste."
+          });
+        }
+
+        recoveryEntry.attempts = Number(recoveryEntry.attempts || 0) + 1;
+
+        if (recoveryEntry.attempts > 5) {
+          recoveryCodes.delete(challenge.email);
+          recoveryChallenges.delete(recoveryId);
+          return res.status(429).json({
+            ok: false,
+            error: "Çok fazla hatalı deneme. Yeni kod iste."
+          });
+        }
+
+        if (recoveryEntry.code !== code) {
+          recoveryCodes.set(challenge.email, recoveryEntry);
+          return res.status(400).json({
+            ok: false,
+            error: "Kod yanlış. Lütfen tekrar kontrol et."
+          });
+        }
+
+        const userId = recoveryEntry.authUserId;
+        if (!userId) {
+          recoveryCodes.delete(challenge.email);
+          recoveryChallenges.delete(recoveryId);
+          return res.status(400).json({
+            ok: false,
+            error: "Supabase hesap bilgisi bulunamadı."
+          });
+        }
+
+        const admin = adminClient();
+        const { data: userData, error: userError } =
+          await admin.auth.admin.getUserById(userId);
+
+        if (userError || !userData?.user) {
+          recoveryCodes.delete(challenge.email);
+          recoveryChallenges.delete(recoveryId);
+          return res.status(400).json({
+            ok: false,
+            error: "Supabase hesabı bulunamadı."
+          });
+        }
+
+        if (!passwordIsValid(password)) {
+          return res.status(400).json({
+            ok: false,
+            error: "Yeni şifre en az 6 karakter olmalı."
+          });
+        }
+
+        if (password !== confirmPassword) {
+          return res.status(400).json({
+            ok: false,
+            error: "Şifreler eşleşmiyor."
+          });
+        }
+
+        const { error: updateError } = await admin.auth.admin.updateUserById(
+          userId,
+          { password }
+        );
+
+        if (updateError) throw updateError;
+
+        // Kod ve challenge tek kullanımlık.
+        recoveryCodes.delete(challenge.email);
+        recoveryChallenges.delete(recoveryId);
+
+        return res.json({
+          ok: true,
+          success: true,
+          verified: true,
+          message: "Şifren başarıyla değiştirildi. Şimdi giriş yapabilirsin.",
+          email: challenge.email
+        });
+      }
 
       if (!resetToken) {
         return res.status(400).json({
@@ -3181,8 +3325,24 @@ app.post(
         req.body?.mode
       );
 
+      cleanupRecoveryChallenges();
+      for (const [id, item] of recoveryChallenges.entries()) {
+        if (item?.email === result.email) recoveryChallenges.delete(id);
+      }
+
+      const recoveryId = crypto.randomBytes(32).toString("hex");
+      recoveryChallenges.set(recoveryId, {
+        email: result.email,
+        identifier: result.identifier,
+        mode: result.mode,
+        createdAt: Date.now(),
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
       return res.json({
         ok: true,
+        recoveryId,
+        recovery_id: recoveryId,
         email: result.email,
         maskedEmail: result.maskedEmail,
         identifier: result.identifier,
