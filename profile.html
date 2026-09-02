@@ -4150,141 +4150,347 @@ function renderProfileExtra(){
     :"none"; 
 } 
  
- 
-/* ========================= 
-   PROFİL YÜKLE 
-========================= */ 
- 
-async function load(){ 
- 
-  if(!token){ 
- 
-    location.href="index.html"; 
- 
-    return; 
-  } 
- 
-  try{ 
- 
-    me=await api("/api/me"); 
- 
-    const username= 
-      target || 
-      me.username; 
- 
-    currentProfile= 
-      await api( 
-        "/api/users/"+ 
-        encodeURIComponent(username) 
-      ); 
- 
-    document.getElementById("username").innerHTML= 
-      "@"+ 
-      escapeHtml( 
-        currentProfile.username||"minegram" 
-      )+ 
-      ( 
-        currentProfile.verified 
-        ? 
-        ' <span class="verified">✓</span>' 
-        : 
-        "" 
-      ); 
- 
-    document.getElementById("display").textContent= 
-      currentProfile.displayName||""; 
- 
-    document.getElementById("bio").textContent= 
-      currentProfile.bio||""; 
- 
-    renderProfileExtra(); 
- 
-    document.getElementById("postCount").textContent= 
-      currentProfile.postCount||0; 
- 
-    document.getElementById("followers").textContent= 
-      currentProfile.followers||0; 
- 
-    document.getElementById("following").textContent= 
-      currentProfile.following||0; 
- 
-    const mine= 
-      String(currentProfile.id)=== 
-      String(me.id); 
- 
-    const edit= 
-      document.getElementById("editBtn"); 
- 
-    edit.textContent= 
-      mine 
-      ?"✎  Profil düzenle" 
-      :(currentProfile.followingByMe 
-        ?"Takibi Bırak" 
-        :"Takip Et"); 
- 
-    edit.classList.toggle( 
-      "primary", 
-      mine||!currentProfile.followingByMe 
-    ); 
- 
-    document.getElementById( 
-      "photoPromptRow" 
-    ).style.display= 
-      mine?"":"none"; 
- 
-    document.getElementById( 
-      "phoneRow" 
-    ).style.display= 
-      mine?"":"none"; 
- 
-    document.getElementById( 
-      "completeProfileRow" 
-    ).style.display= 
-      mine?"":"none"; 
- 
-    renderHighlights(); 
- 
-    const av= 
-      document.getElementById("avatar"); 
- 
-    if(currentProfile.avatar){ 
- 
-      av.innerHTML= 
-        '<img src="'+ 
-        escapeHtml(currentProfile.avatar)+ 
-        '" alt="Profil fotoğrafı">'; 
- 
-    }else{ 
- 
-      av.textContent= 
-        ( 
-          currentProfile.displayName|| 
-          currentProfile.username|| 
-          "M" 
-        )[0].toUpperCase(); 
-    } 
- 
-    const posts= 
-      await api( 
-        "/api/users/"+ 
-        encodeURIComponent(username)+ 
-        "/posts" 
-      ); 
- 
-    renderPosts(posts); 
- 
-    updateSettingsAccountInfo(); 
- 
-  }catch(e){ 
- 
-    console.error(e); 
- 
-    document.getElementById("grid").innerHTML= 
-      '<div class="empty">Profil yüklenemedi.</div>'; 
- 
-    toast(e.message||"Profil yüklenemedi"); 
-  } 
-} 
+ /* =========================
+   PROFİL YÜKLE
+========================= */
+
+async function load(){
+
+  if(!token){
+
+    location.href="index.html";
+
+    return;
+  }
+
+  try{
+
+    /* =========================
+       BENİM KULLANICIM
+    ========================= */
+
+    const meData=await api("/api/me");
+
+    me=
+      meData?.user ||
+      meData?.profile ||
+      meData?.data ||
+      meData;
+
+    if(!me){
+
+      throw new Error("Kullanıcı bilgisi alınamadı");
+    }
+
+
+    /* =========================
+       KULLANICI ADI
+    ========================= */
+
+    const username=
+      target ||
+      me.username ||
+      me.handle ||
+      me.name;
+
+    if(!username){
+
+      throw new Error("Kullanıcı adı bulunamadı");
+    }
+
+
+    /* =========================
+       PROFİL
+    ========================= */
+
+    const profileData=
+      await api(
+        "/api/users/"+
+        encodeURIComponent(username)
+      );
+
+    currentProfile=
+      profileData?.user ||
+      profileData?.profile ||
+      profileData?.data ||
+      profileData;
+
+    if(!currentProfile){
+
+      throw new Error("Profil bilgisi alınamadı");
+    }
+
+
+    /* =========================
+       KULLANICI ADI
+    ========================= */
+
+    const profileUsername=
+      currentProfile.username ||
+      currentProfile.handle ||
+      username;
+
+    document.getElementById("username").innerHTML=
+      "@"+
+      escapeHtml(profileUsername)+
+      (
+        currentProfile.verified
+        ?
+        ' <span class="verified">✓</span>'
+        :
+        ""
+      );
+
+
+    /* =========================
+       GÖRÜNEN AD
+    ========================= */
+
+    const displayName=
+      currentProfile.displayName ??
+      currentProfile.display_name ??
+      currentProfile.name ??
+      "";
+
+    document.getElementById("display").textContent=
+      displayName;
+
+
+    /* =========================
+       BİYOGRAFİ
+    ========================= */
+
+    document.getElementById("bio").textContent=
+      currentProfile.bio ??
+      currentProfile.biography ??
+      "";
+
+
+    renderProfileExtra();
+
+
+    /* =========================
+       GÖNDERİLERİ ÖNCE AL
+    ========================= */
+
+    const postsData=
+      await api(
+        "/api/users/"+
+        encodeURIComponent(profileUsername)+
+        "/posts"
+      );
+
+    const posts=
+      Array.isArray(postsData)
+      ?
+      postsData
+      :
+      (
+        postsData?.posts ||
+        postsData?.data ||
+        postsData?.items ||
+        postsData?.results ||
+        []
+      );
+
+
+    /* =========================
+       GÖNDERİ SAYISI
+    ========================= */
+
+    const postCount=
+      currentProfile.postCount ??
+      currentProfile.postsCount ??
+      currentProfile.post_count ??
+      currentProfile.posts_count ??
+      posts.length ??
+      0;
+
+    document.getElementById("postCount").textContent=
+      Number(postCount)||0;
+
+
+    /* =========================
+       TAKİPÇİ
+    ========================= */
+
+    const followers=
+      currentProfile.followers ??
+      currentProfile.followersCount ??
+      currentProfile.followerCount ??
+      currentProfile.followers_count ??
+      0;
+
+    document.getElementById("followers").textContent=
+      Number(followers)||0;
+
+
+    /* =========================
+       TAKİP
+    ========================= */
+
+    const following=
+      currentProfile.following ??
+      currentProfile.followingCount ??
+      currentProfile.following_count ??
+      0;
+
+    document.getElementById("following").textContent=
+      Number(following)||0;
+
+
+    /* =========================
+       KENDİ PROFİLİ Mİ?
+    ========================= */
+
+    const mine=
+      String(currentProfile.id)===
+      String(me.id);
+
+
+    const edit=
+      document.getElementById("editBtn");
+
+    if(edit){
+
+      edit.textContent=
+        mine
+        ?
+        "✎  Profil düzenle"
+        :
+        (
+          currentProfile.followingByMe
+          ?
+          "Takibi Bırak"
+          :
+          "Takip Et"
+        );
+
+      edit.classList.toggle(
+        "primary",
+        mine ||
+        !currentProfile.followingByMe
+      );
+    }
+
+
+    /* =========================
+       PROFİL TAMAMLAMA
+    ========================= */
+
+    const photoPrompt=
+      document.getElementById(
+        "photoPromptRow"
+      );
+
+    if(photoPrompt){
+
+      photoPrompt.style.display=
+        mine?"":"none";
+    }
+
+
+    const phoneRow=
+      document.getElementById(
+        "phoneRow"
+      );
+
+    if(phoneRow){
+
+      phoneRow.style.display=
+        mine?"":"none";
+    }
+
+
+    const completeProfileRow=
+      document.getElementById(
+        "completeProfileRow"
+      );
+
+    if(completeProfileRow){
+
+      completeProfileRow.style.display=
+        mine?"":"none";
+    }
+
+
+    /* =========================
+       ÖNE ÇIKANLAR
+    ========================= */
+
+    renderHighlights();
+
+
+    /* =========================
+       PROFİL FOTOĞRAFI
+    ========================= */
+
+    const av=
+      document.getElementById("avatar");
+
+    if(av){
+
+      const avatar=
+        currentProfile.avatar ||
+        currentProfile.avatar_url ||
+        currentProfile.avatarUrl ||
+        "";
+
+      if(avatar){
+
+        av.innerHTML=
+          '<img src="'+
+          escapeHtml(avatar)+
+          '" alt="Profil fotoğrafı">';
+
+      }else{
+
+        av.textContent=
+          (
+            displayName ||
+            profileUsername ||
+            "M"
+          )[0].toUpperCase();
+      }
+    }
+
+
+    /* =========================
+       GÖNDERİLERİ GÖSTER
+    ========================= */
+
+    renderPosts(posts);
+
+
+    /* =========================
+       AYARLAR
+    ========================= */
+
+    updateSettingsAccountInfo();
+
+
+  }catch(e){
+
+    console.error(
+      "PROFİL HATASI:",
+      e
+    );
+
+    const grid=
+      document.getElementById("grid");
+
+    if(grid){
+
+      grid.innerHTML=
+        '<div class="empty">Profil yüklenemedi.</div>';
+    }
+
+    toast(
+      e.message ||
+      "Profil yüklenemedi"
+    );
+  }
+}
  
  
 /* ========================= 
