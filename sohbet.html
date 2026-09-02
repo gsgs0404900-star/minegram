@@ -1,16 +1,29 @@
-<!doctype html
->
+<!doctype html>
 <html lang="tr">
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#000"
+>
+
 <title>Minegram • Mesajlar</title>
 
 <style>
-*{box-sizing:border-box}
 
-html,body{
+*{
+  box-sizing:border-box
+}
+
+html,
+body{
   margin:0;
   width:100%;
   min-height:100%;
@@ -20,18 +33,28 @@ html,body{
 }
 
 body{
-  overflow-x:hidden
+  overflow-x:hidden;
+  padding-bottom:0
 }
 
-button,input{font:inherit}
-button{cursor:pointer}
+button,
+input{
+  font:inherit
+}
+
+button{
+  cursor:pointer
+}
 
 .app{
   min-height:100dvh;
   background:#000;
 }
 
-/* HEADER */
+
+/* =========================
+   HEADER
+========================= */
 
 .header{
   height:52px;
@@ -63,7 +86,10 @@ button{cursor:pointer}
   margin-left:4px;
 }
 
-/* SEARCH */
+
+/* =========================
+   SEARCH
+========================= */
 
 .search-wrap{
   padding:9px 13px 0;
@@ -98,7 +124,10 @@ button{cursor:pointer}
   color:#bbb;
 }
 
-/* SECTIONS */
+
+/* =========================
+   SECTIONS
+========================= */
 
 .section{
   padding:18px 0 0;
@@ -109,7 +138,10 @@ button{cursor:pointer}
   margin:0 0 12px 15px;
 }
 
-/* NOTLAR */
+
+/* =========================
+   NOTLAR
+========================= */
 
 .notes-scroll{
   display:flex;
@@ -201,7 +233,10 @@ button{cursor:pointer}
   margin-top:0;
 }
 
-/* MESAJLAR */
+
+/* =========================
+   MESAJLAR / SOHBETLER
+========================= */
 
 .messages-section{
   padding-top:17px;
@@ -225,6 +260,11 @@ button{cursor:pointer}
   text-decoration:none;
   color:#fff;
   cursor:pointer;
+  transition:background .15s ease;
+}
+
+.message-row:hover{
+  background:#090909;
 }
 
 .message-row:active{
@@ -260,11 +300,20 @@ button{cursor:pointer}
   display:flex;
   align-items:center;
   gap:4px;
+  min-width:0;
+}
+
+.message-user-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .verified{
   width:17px;
   height:17px;
+  min-width:17px;
   border-radius:50%;
   background:#2388df;
   display:inline-grid;
@@ -287,9 +336,32 @@ button{cursor:pointer}
   font-weight:300;
   margin-left:auto;
   color:#fff;
+  line-height:1;
 }
 
-/* TOAST */
+
+/* =========================
+   YÜKLENİYOR
+========================= */
+
+.loading{
+  padding:35px 15px;
+  text-align:center;
+  color:#777;
+  font-size:13px;
+}
+
+.empty{
+  padding:35px 15px;
+  text-align:center;
+  color:#777;
+  font-size:13px;
+}
+
+
+/* =========================
+   TOAST
+========================= */
 
 .toast{
   position:fixed;
@@ -311,7 +383,10 @@ button{cursor:pointer}
   opacity:1;
 }
 
-/* DESKTOP */
+
+/* =========================
+   DESKTOP
+========================= */
 
 @media(min-width:700px){
 
@@ -323,16 +398,30 @@ button{cursor:pointer}
   }
 
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div class="app">
 
+
+<!-- =========================
+     HEADER
+========================= -->
+
 <header class="header">
 
-  <button class="back" id="back">‹</button>
+  <button
+    class="back"
+    id="back"
+    type="button"
+    aria-label="Geri"
+  >
+    ‹
+  </button>
 
   <div class="title">
     Mesajlar
@@ -341,18 +430,23 @@ button{cursor:pointer}
 </header>
 
 
-<!-- ARAMA -->
+<!-- =========================
+     ARAMA
+========================= -->
 
 <div class="search-wrap">
 
   <div class="search">
 
-    <span class="search-icon">⌕</span>
+    <span class="search-icon">
+      ⌕
+    </span>
 
     <input
       id="search"
       placeholder="Kişileri ara..."
       autocomplete="off"
+      type="search"
     >
 
   </div>
@@ -360,11 +454,15 @@ button{cursor:pointer}
 </div>
 
 
-<!-- NOTLAR -->
+<!-- =========================
+     NOTLAR
+========================= -->
 
 <section class="section">
 
-  <h2>Notlar</h2>
+  <h2>
+    Notlar
+  </h2>
 
   <div
     class="notes-scroll"
@@ -376,24 +474,25 @@ button{cursor:pointer}
 </section>
 
 
-<!-- MESAJLAR -->
+<!-- =========================
+     SOHBETLER
+========================= -->
 
 <section class="section messages-section">
 
-  <h2>Mesajlar</h2>
+  <h2>
+    Sohbetler
+  </h2>
 
   <div
     class="message-list"
     id="messageList"
   >
-    <div style="
-      padding:30px 15px;
-      text-align:center;
-      color:#777;
-      font-size:13px
-    ">
-      Mesajlar yükleniyor...
+
+    <div class="loading">
+      Sohbetler yükleniyor...
     </div>
+
   </div>
 
 </section>
@@ -401,85 +500,312 @@ button{cursor:pointer}
 </div>
 
 
-<div class="toast" id="toast"></div>
+<div
+  class="toast"
+  id="toast"
+></div>
 
 
 <script>
 
-const token =
-  localStorage.getItem('minegram_token') ||
-  localStorage.getItem('token') ||
-  '';
+/* =========================================================
+   MINEGRAM TOKEN
+========================================================= */
 
-const $ = id =>
-  document.getElementById(id);
+function getMinegramToken(){
+
+  return (
+
+    localStorage.getItem(
+      'minegram_token'
+    ) ||
+
+    localStorage.getItem(
+      'minegram_supabase_token'
+    ) ||
+
+    localStorage.getItem(
+      'minegram_access_token'
+    ) ||
+
+    localStorage.getItem(
+      'supabase_token'
+    ) ||
+
+    localStorage.getItem(
+      'access_token'
+    ) ||
+
+    localStorage.getItem(
+      'token'
+    ) ||
+
+    sessionStorage.getItem(
+      'minegram_token'
+    ) ||
+
+    sessionStorage.getItem(
+      'minegram_supabase_token'
+    ) ||
+
+    sessionStorage.getItem(
+      'minegram_access_token'
+    ) ||
+
+    sessionStorage.getItem(
+      'supabase_token'
+    ) ||
+
+    sessionStorage.getItem(
+      'access_token'
+    ) ||
+
+    sessionStorage.getItem(
+      'token'
+    ) ||
+
+    ''
+
+  );
+
+}
 
 
-/* HTML GÜVENLİĞİ */
+/* =========================================================
+   TOKEN
+========================================================= */
 
-const esc = s =>
-  String(s ?? '').replace(
+let token =
+  getMinegramToken();
+
+
+/* =========================================================
+   ELEMENT
+========================================================= */
+
+const $ =
+  id =>
+    document.getElementById(id);
+
+
+/* =========================================================
+   HTML GÜVENLİĞİ
+========================================================= */
+
+function esc(s){
+
+  return String(
+    s ?? ''
+  ).replace(
     /[&<>"']/g,
     c => ({
+
       '&':'&amp;',
       '<':'&lt;',
       '>':'&gt;',
       '"':'&quot;',
       "'":'&#39;'
+
     }[c])
   );
 
+}
 
-/* API */
 
-async function api(url,opt={}){
+/* =========================================================
+   API
+========================================================= */
+
+async function api(
+  url,
+  opt={}
+){
+
+  const currentToken =
+    getMinegramToken();
+
+  token =
+    currentToken;
 
   const headers = {
     ...(opt.headers || {})
   };
 
-  if(token){
+  if(currentToken){
+
     headers.Authorization =
-      'Bearer ' + token;
+      'Bearer ' +
+      currentToken;
+
   }
+
+  let body =
+    opt.body;
 
   if(
-    opt.body &&
-    typeof opt.body !== 'string'
+    body &&
+    typeof body !== 'string' &&
+    !(body instanceof FormData)
   ){
 
-    headers['Content-Type'] =
+    headers[
+      'Content-Type'
+    ] =
       'application/json';
 
-    opt.body =
-      JSON.stringify(opt.body);
+    body =
+      JSON.stringify(body);
+
   }
 
-  const r =
-    await fetch(
-      url,
-      {
-        ...opt,
-        headers
-      }
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () => controller.abort(),
+      15000
     );
+
+  let r;
+
+  try{
+
+    r =
+      await fetch(
+        url,
+        {
+          ...opt,
+          body,
+          headers,
+          credentials:'same-origin',
+          cache:'no-store',
+          signal:controller.signal
+        }
+      );
+
+  }catch(error){
+
+    if(
+      error?.name ===
+      'AbortError'
+    ){
+
+      throw new Error(
+        'Sunucu zaman aşımına uğradı.'
+      );
+
+    }
+
+    throw error;
+
+  }finally{
+
+    clearTimeout(timeout);
+
+  }
+
+
+  let data =
+    {};
+
+  try{
+
+    data =
+      await r.json();
+
+  }catch(e){
+
+    data =
+      {};
+
+  }
+
 
   if(!r.ok){
 
-    throw new Error(
-      (await r.json().catch(()=>({}))).error ||
-      ('HTTP ' + r.status)
-    );
+    const error =
+      data.error ||
+      data.message ||
+      ('HTTP ' + r.status);
+
+    const err =
+      new Error(error);
+
+    err.status =
+      r.status;
+
+    throw err;
 
   }
 
-  return r.status === 204
-    ? {}
-    : r.json().catch(()=>({}));
+  return data;
+
 }
 
 
-/* NOTLAR */
+/* =========================================================
+   AUTH KONTROLÜ
+========================================================= */
+
+function isAuthError(error){
+
+  const message =
+    String(
+      error?.message ||
+      ''
+    );
+
+  return (
+
+    error?.status === 401 ||
+
+    error?.status === 403 ||
+
+    /unauthorized/i.test(
+      message
+    ) ||
+
+    /invalid token/i.test(
+      message
+    ) ||
+
+    /token expired/i.test(
+      message
+    ) ||
+
+    /jwt/i.test(
+      message
+    ) ||
+
+    /not authenticated/i.test(
+      message
+    ) ||
+
+    /session expired/i.test(
+      message
+    )
+
+  );
+
+}
+
+
+/* =========================================================
+   GİRİŞE GÖNDER
+========================================================= */
+
+function goLogin(){
+
+  location.href =
+    'giris.html';
+
+}
+
+
+/* =========================================================
+   NOTLAR
+========================================================= */
 
 const demoNotes = [
 
@@ -516,416 +842,926 @@ const demoNotes = [
 ];
 
 
-/* AVATAR */
+/* =========================================================
+   AVATAR
+========================================================= */
 
-function avatarHtml(item,cls){
+function avatarHtml(
+  item,
+  cls
+){
+
+  const rawName =
+    item?.displayName ||
+    item?.username ||
+    'M';
 
   const name =
-    (
-      item.displayName ||
-      item.username ||
-      'M'
-    )[0].toUpperCase();
+    String(rawName)
+      .trim()
+      .charAt(0)
+      .toUpperCase() ||
+    'M';
 
   return `
+
     <div class="${cls}">
+
       ${
-        item.avatar
-        ? `<img src="${esc(item.avatar)}" alt="">`
+        item?.avatar
+
+        ? `
+
+          <img
+            src="${esc(item.avatar)}"
+            alt=""
+            loading="lazy"
+          >
+
+        `
+
         : esc(name)
       }
+
     </div>
+
   `;
+
 }
 
 
-/* NOTLARI OLUŞTUR */
+/* =========================================================
+   NOTLARI OLUŞTUR
+========================================================= */
 
-function renderNotes(list){
+function renderNotes(
+  list
+){
+
+  const notes =
+    Array.isArray(list)
+      ? list
+      : [];
 
   $('notes').innerHTML =
-    list.map(n => `
+    notes.map(
+      n => `
 
-      <div class="note">
+        <div
+          class="note"
+          data-username="${esc(
+            n.username || ''
+          )}"
+        >
 
-        <div class="note-text">
-          ${esc(n.text)}
-        </div>
+          <div class="note-text">
 
-        ${avatarHtml(n,'note-avatar')}
+            ${esc(
+              n.text || ''
+            )}
 
-        ${
-          n.plus
-          ? `
-            <button
-              class="plus"
-              type="button"
-            >+</button>
-          `
-          : ''
-        }
+          </div>
 
-        <div class="note-name ${n.plus?'bold':''}">
-          ${esc(
-            n.displayName ||
-            n.username
+          ${avatarHtml(
+            n,
+            'note-avatar'
           )}
+
+          ${
+            n.plus
+
+            ? `
+
+              <button
+                class="plus"
+                type="button"
+                aria-label="Not ekle"
+              >
+                +
+              </button>
+
+            `
+
+            : ''
+          }
+
+          <div
+            class="note-name ${
+              n.plus
+                ? 'bold'
+                : ''
+            }"
+          >
+
+            ${esc(
+              n.displayName ||
+              n.username ||
+              ''
+            )}
+
+          </div>
+
+          ${
+            n.music
+
+            ? `
+
+              <div class="music">
+                ▶ Şarkıyı çal
+              </div>
+
+            `
+
+            : ''
+          }
+
         </div>
 
-        ${
-          n.music
-          ? `
-            <div class="music">
-              ▶ Şarkıyı çal
-            </div>
-          `
-          : ''
-        }
+      `
+    ).join('');
 
-      </div>
-
-    `).join('');
 }
 
 
-/* KONUŞMALAR */
+/* =========================================================
+   KONUŞMA KULLANICILARINI ÇIKAR
+========================================================= */
 
-function conversationUsers(raw){
+function conversationUsers(
+  raw
+){
 
-  const map = new Map();
+  const map =
+    new Map();
 
-  for(const m of raw){
+  if(
+    !Array.isArray(raw)
+  ){
+
+    return [];
+
+  }
+
+
+  for(
+    const m of raw
+  ){
+
+    if(!m) continue;
+
 
     const sender =
       m.sender ||
       m.from ||
+      m.sender_username ||
+      m.senderUsername ||
       '';
+
 
     const recipient =
       m.recipient ||
       m.to ||
+      m.receiver ||
+      m.recipient_username ||
+      m.recipientUsername ||
       '';
+
 
     const me =
       m.me ||
+      m.currentUser ||
+      m.current_username ||
       '';
 
-    const target =
+
+    let target =
+      '';
+
+
+    if(
       String(sender).toLowerCase() ===
       String(me).toLowerCase()
-      ? recipient
-      : sender;
+    ){
 
-    if(target){
+      target =
+        recipient;
 
-      map.set(
-        target.toLowerCase(),
-        {
-          username:target,
+    }else{
 
-          displayName:
-            m.displayName ||
-            target,
+      target =
+        sender;
 
-          avatar:
-            m.avatar || '',
-
-          verified:
-            m.verified || false,
-
-          text:
-            m.text ||
-            m.message ||
-            '',
-
-          createdAt:
-            Number(
-              m.createdAt ||
-              m.timestamp ||
-              0
-            )
-        }
-      );
     }
+
+
+    /*
+     * Bazı API cevaplarında doğrudan
+     * username bulunabilir.
+     */
+
+    if(!target){
+
+      target =
+        m.username ||
+        m.other_username ||
+        m.otherUsername ||
+        '';
+
+    }
+
+
+    if(!target){
+
+      continue;
+
+    }
+
+
+    const key =
+      String(target)
+        .trim()
+        .toLowerCase();
+
+
+    if(!key){
+
+      continue;
+
+    }
+
+
+    const createdAt =
+      Number(
+        m.createdAt ||
+        m.created_at ||
+        m.timestamp ||
+        m.time ||
+        0
+      );
+
+
+    const old =
+      map.get(key);
+
+
+    /*
+     * Daha yeni mesaj varsa onu kullan.
+     */
+
+    if(
+      old &&
+      Number(old.createdAt || 0) >
+      createdAt
+    ){
+
+      continue;
+
+    }
+
+
+    map.set(
+      key,
+      {
+
+        username:
+          target,
+
+        displayName:
+          m.displayName ||
+          m.display_name ||
+          m.name ||
+          target,
+
+        avatar:
+          m.avatar ||
+          m.avatar_url ||
+          m.profile_image ||
+          '',
+
+        verified:
+          !!(
+            m.verified ||
+            m.is_verified ||
+            m.verified_user
+          ),
+
+        text:
+          m.text ||
+          m.message ||
+          m.content ||
+          m.last_message ||
+          m.lastMessage ||
+          '',
+
+        createdAt
+
+      }
+    );
+
   }
 
-  return [...map.values()].sort(
+
+  return [
+    ...map.values()
+  ].sort(
     (a,b) =>
-      (b.createdAt || 0) -
-      (a.createdAt || 0)
+      Number(
+        b.createdAt || 0
+      ) -
+      Number(
+        a.createdAt || 0
+      )
   );
+
 }
 
 
-/* MESAJ LİSTESİ */
+/* =========================================================
+   MESAJ / SOHBET LİSTESİ
+========================================================= */
 
-function renderMessages(list){
+function renderMessages(
+  list
+){
 
-  if(!list.length){
+  const users =
+    Array.isArray(list)
+      ? list
+      : [];
+
+
+  if(!users.length){
 
     $('messageList').innerHTML = `
-      <div style="
-        padding:35px 15px;
-        text-align:center;
-        color:#777;
-        font-size:13px
-      ">
-        Henüz mesaj yok.
+
+      <div class="empty">
+
+        Henüz sohbet yok.
+
       </div>
+
     `;
 
     return;
+
   }
 
+
   $('messageList').innerHTML =
-    list.map(m => `
+    users.map(
+      m => {
 
-      <a
-        class="message-row"
-        href="mesaj.html?username=${encodeURIComponent(
-          m.username
-        )}"
-      >
+        const username =
+          String(
+            m.username ||
+            ''
+          ).trim();
 
-        ${avatarHtml(
-          m,
-          'message-avatar'
-        )}
+        if(!username){
 
-        <div class="message-info">
+          return '';
 
-          <div class="message-user">
+        }
 
-            ${esc(
-              m.displayName ||
-              m.username
+
+        return `
+
+          <a
+            class="message-row"
+            href="mesaj.html?username=${encodeURIComponent(
+              username
+            )}"
+            data-username="${esc(
+              username
+            )}"
+          >
+
+            ${avatarHtml(
+              m,
+              'message-avatar'
             )}
 
-            ${
-              m.verified
-              ? `
-                <span class="verified">
-                  ✓
+            <div class="message-info">
+
+              <div class="message-user">
+
+                <span
+                  class="message-user-name"
+                >
+                  ${esc(
+                    m.displayName ||
+                    username
+                  )}
                 </span>
-              `
-              : ''
-            }
 
-          </div>
+                ${
+                  m.verified
 
-          <div class="message-preview">
-            ${esc(
-              m.text ||
-              'Mesaj gönderme için dokun'
-            )}
-          </div>
+                  ? `
 
-        </div>
+                    <span
+                      class="verified"
+                      aria-label="Doğrulanmış"
+                    >
+                      ✓
+                    </span>
 
-        <div class="chevron">›</div>
+                  `
 
-      </a>
+                  : ''
+                }
 
-    `).join('');
+              </div>
+
+              <div class="message-preview">
+
+                ${esc(
+                  m.text ||
+                  'Mesaj gönderme için dokun'
+                )}
+
+              </div>
+
+            </div>
+
+            <div class="chevron">
+              ›
+            </div>
+
+          </a>
+
+        `;
+
+      }
+    ).join('');
+
 }
 
 
-/* YÜKLE */
+/* =========================================================
+   SOHBETE GİT
+========================================================= */
+
+function openChat(
+  username
+){
+
+  const currentToken =
+    getMinegramToken();
+
+
+  if(!currentToken){
+
+    goLogin();
+
+    return;
+
+  }
+
+
+  if(!username){
+
+    return;
+
+  }
+
+
+  location.href =
+    'mesaj.html?username=' +
+    encodeURIComponent(
+      username
+    );
+
+}
+
+
+/* =========================================================
+   MESAJ SATIRI TIKLAMA
+========================================================= */
+
+$('messageList').addEventListener(
+  'click',
+  e => {
+
+    const row =
+      e.target.closest(
+        '.message-row'
+      );
+
+    if(!row){
+
+      return;
+
+    }
+
+
+    e.preventDefault();
+
+
+    const username =
+      row.dataset.username;
+
+
+    openChat(
+      username
+    );
+
+  }
+);
+
+
+/* =========================================================
+   MESAJLARI YÜKLE
+========================================================= */
 
 async function load(){
 
-  renderNotes(demoNotes);
+  renderNotes(
+    demoNotes
+  );
+
+
+  const currentToken =
+    getMinegramToken();
+
+
+  /*
+   * Gerçek oturum yoksa giriş.
+   */
+
+  if(!currentToken){
+
+    goLogin();
+
+    return;
+
+  }
+
 
   try{
 
-    const me =
-      await api('/api/me');
+    /*
+     * Önce mevcut kullanıcıyı doğrula.
+     */
 
-    let raw = [];
+    const me =
+      await api(
+        '/api/me'
+      );
+
+
+    /*
+     * Mesajları getir.
+     */
+
+    let raw =
+      [];
+
 
     try{
 
       const data =
-        await api('/api/messages');
+        await api(
+          '/api/messages'
+        );
+
 
       raw =
         Array.isArray(data)
+
         ? data
+
         : (
-          data.messages ||
-          data.items ||
-          []
-        );
+            data?.messages ||
+            data?.items ||
+            data?.conversations ||
+            data?.chats ||
+            []
+          );
 
-    }catch(e){
 
-      raw = [];
+    }catch(error){
+
+      console.error(
+        'MESAJLAR API HATASI:',
+        error
+      );
+
+
+      if(
+        isAuthError(error)
+      ){
+
+        goLogin();
+
+        return;
+
+      }
+
+
+      raw =
+        [];
 
     }
+
+
+    /*
+     * API'den gelen mesajlara
+     * mevcut kullanıcı adını ekle.
+     */
 
     raw =
-      raw.map(x => ({
-        ...x,
-        me:
-          me?.username || ''
-      }));
+      raw.map(
+        x => ({
 
-    let users =
-      conversationUsers(raw);
+          ...x,
 
-    if(!users.length){
+          me:
+            x?.me ||
+            me?.username ||
+            me?.user?.username ||
+            ''
 
-      users = [
-        {
-          username:'test',
-          displayName:'test',
-          text:
-            'Mesaj gönderme için dokun',
-          verified:true,
-          avatar:''
-        }
-      ];
+        })
+      );
+
+
+    const users =
+      conversationUsers(
+        raw
+      );
+
+
+    renderMessages(
+      users
+    );
+
+
+  }catch(error){
+
+    console.error(
+      'MESAJLAR YÜKLEME HATASI:',
+      error
+    );
+
+
+    if(
+      isAuthError(error)
+    ){
+
+      goLogin();
+
+      return;
 
     }
 
-    renderMessages(users);
 
-  }catch(e){
-
-    renderMessages([
-      {
-        username:'test',
-        displayName:'test',
-        text:
-          'Mesaj gönderme için dokun',
-        verified:true,
-        avatar:''
-      }
-    ]);
+    renderMessages(
+      []
+    );
 
   }
+
 }
 
 
-/* ARAMA */
+/* =========================================================
+   ARAMA
+========================================================= */
+
+let searchTimer =
+  null;
+
 
 $('search').addEventListener(
   'input',
-  async e => {
+  e => {
 
     const q =
       e.target.value
         .trim()
         .toLowerCase();
 
+
+    clearTimeout(
+      searchTimer
+    );
+
+
     if(!q){
 
       load();
+
       return;
+
     }
 
-    try{
 
-      const data =
-        await api(
-          '/api/users?search=' +
-          encodeURIComponent(q)
-        );
+    searchTimer =
+      setTimeout(
+        async () => {
 
-      const users =
-        Array.isArray(data)
-        ? data
-        : (
-          data.users ||
-          data.items ||
-          []
-        );
+          const currentToken =
+            getMinegramToken();
 
-      renderMessages(
-        users.map(u => ({
-          username:u.username,
 
-          displayName:
-            u.displayName ||
-            u.username,
+          if(!currentToken){
 
-          avatar:
-            u.avatar || '',
+            goLogin();
 
-          verified:
-            !!u.verified,
+            return;
 
-          text:
-            'Mesaj gönderme için dokun'
-        }))
+          }
+
+
+          try{
+
+            const data =
+              await api(
+                '/api/users?search=' +
+                encodeURIComponent(q)
+              );
+
+
+            const users =
+              Array.isArray(data)
+
+              ? data
+
+              : (
+                  data?.users ||
+                  data?.items ||
+                  data?.profiles ||
+                  []
+                );
+
+
+            renderMessages(
+
+              users
+                .map(
+                  u => ({
+
+                    username:
+                      u.username ||
+                      u.user?.username ||
+                      '',
+
+                    displayName:
+                      u.displayName ||
+                      u.display_name ||
+                      u.name ||
+                      u.username ||
+                      '',
+
+                    avatar:
+                      u.avatar ||
+                      u.avatar_url ||
+                      u.profile_image ||
+                      '',
+
+                    verified:
+                      !!(
+                        u.verified ||
+                        u.is_verified
+                      ),
+
+                    text:
+                      'Mesaj gönderme için dokun'
+
+                  })
+                )
+                .filter(
+                  u =>
+                    u.username
+                )
+
+            );
+
+
+          }catch(error){
+
+            console.error(
+              'KULLANICI ARAMA HATASI:',
+              error
+            );
+
+
+            if(
+              isAuthError(error)
+            ){
+
+              goLogin();
+
+              return;
+
+            }
+
+
+            renderMessages(
+              []
+            );
+
+          }
+
+        },
+        300
       );
-
-    }catch(e){
-
-      renderMessages([]);
-
-    }
 
   }
 );
 
 
-/* GERİ */
+/* =========================================================
+   GERİ
+========================================================= */
 
-$('back').onclick = () => {
+$('back').onclick =
+  () => {
 
-  if(history.length > 1){
+    if(
+      document.referrer &&
+      history.length > 1
+    ){
 
-    history.back();
+      history.back();
 
-  }else{
+    }else{
 
-    location.href =
-      'index.html';
+      location.href =
+        'index.html';
 
-  }
+    }
 
-};
+  };
 
 
-/* NOT TIKLAMA */
+/* =========================================================
+   NOT TIKLAMA
+========================================================= */
 
 $('notes').addEventListener(
   'click',
   e => {
 
+    /*
+     * + butonuna basıldıysa
+     * sohbet açma.
+     */
+
     if(
-      e.target.closest('.plus')
+      e.target.closest(
+        '.plus'
+      )
     ){
+
       return;
+
     }
 
-    const n =
-      e.target.closest('.note');
 
-    if(!n)return;
+    const note =
+      e.target.closest(
+        '.note'
+      );
 
-    const name =
-      n.querySelector(
+
+    if(!note){
+
+      return;
+
+    }
+
+
+    const username =
+      note.dataset.username ||
+      note.querySelector(
         '.note-name'
-      )?.textContent?.trim();
+      )?.textContent
+        ?.trim();
+
 
     if(
-      name &&
-      name !== 'Notun'
+      !username ||
+      username === 'Notun'
     ){
 
-      location.href =
-        'sohbet.html?username=' +
-        encodeURIComponent(name);
+      return;
 
     }
+
+
+    openChat(
+      username
+    );
 
   }
 );
 
 
-/* BAŞLAT */
+/* =========================================================
+   BAŞLAT
+========================================================= */
 
 load();
 
