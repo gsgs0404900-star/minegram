@@ -1815,7 +1815,7 @@ app.post(
 );
 
 /* =========================================================
-   LOGIN
+   LOGIN — TEK PARÇA / MINEGRAM
 ========================================================= */
 
 app.post("/api/login", async (req, res) => {
@@ -1827,7 +1827,8 @@ app.post("/api/login", async (req, res) => {
     ).trim();
 
     const password = String(
-      req.body?.password ?? ""
+      req.body?.password ??
+      ""
     );
 
     console.log("=================================");
@@ -1837,18 +1838,21 @@ app.post("/api/login", async (req, res) => {
 
     if (!identifier || !password) {
       return res.status(400).json({
+        ok: false,
         error: "Kullanıcı adı/e-posta ve şifre gerekli."
       });
     }
 
     if (!CONFIG_OK) {
       return res.status(500).json({
+        ok: false,
         error: "Supabase ortam değişkenleri eksik."
       });
     }
 
     if (!SUPABASE_SERVICE_ROLE_KEY) {
       return res.status(500).json({
+        ok: false,
         error: "SUPABASE_SERVICE_ROLE_KEY eksik."
       });
     }
@@ -1856,131 +1860,261 @@ app.post("/api/login", async (req, res) => {
     const admin = adminClient();
 
     let email = "";
+    let profile = null;
 
-    /*
-     * =====================================================
-     * 1 — E-POSTA İLE GİRİŞ
-     * =====================================================
-     */
+    /* =====================================================
+       1 — KULLANICI ADI / E-POSTA ÇÖZ
+    ===================================================== */
 
     if (identifier.includes("@")) {
+
       email = identifier.toLowerCase();
 
       console.log("GİRİŞ TÜRÜ: E-POSTA");
       console.log("EMAIL:", email);
-    }
 
-    /*
-     * =====================================================
-     * 2 — KULLANICI ADI İLE GİRİŞ
-     * =====================================================
-     */
+      /*
+       * E-posta ile girişte Auth kullanıcısını bul.
+       */
+      try {
 
-    else {
-      const username = normalizeUsername(identifier);
+        for (let page = 1; page <= 20; page++) {
 
-      console.log("GİRİŞ TÜRÜ: KULLANICI ADI");
-      console.log("USERNAME:", username);
+          const result =
+            await admin.auth.admin.listUsers({
+              page,
+              perPage: 1000
+            });
+
+          if (result?.error) {
+            console.error(
+              "AUTH USER LIST ERROR:",
+              result.error
+            );
+
+            break;
+          }
+
+          const users =
+            result?.data?.users || [];
+
+          const foundUser =
+            users.find(
+              u =>
+                normalizeEmail(u?.email) ===
+                normalizeEmail(email)
+            );
+
+          if (foundUser) {
+
+            console.log(
+              "AUTH E-POSTA BULUNDU:",
+              foundUser.id
+            );
+
+            /*
+             * Profil önce auth_user_id ile aranır.
+             */
+            const byAuth =
+              await admin
+                .from("profiles")
+                .select("*")
+                .eq(
+                  "auth_user_id",
+                  foundUser.id
+                )
+                .maybeSingle();
+
+            if (byAuth.data) {
+              profile = byAuth.data;
+            }
+
+            /*
+             * Eski yapı için id ile de kontrol.
+             */
+            if (!profile) {
+
+              const byId =
+                await admin
+                  .from("profiles")
+                  .select("*")
+                  .eq(
+                    "id",
+                    foundUser.id
+                  )
+                  .maybeSingle();
+
+              if (byId.data) {
+                profile = byId.data;
+              }
+            }
+
+            break;
+          }
+
+          if (users.length < 1000) {
+            break;
+          }
+        }
+
+      } catch (e) {
+
+        console.error(
+          "AUTH EMAIL SEARCH ERROR:",
+          e
+        );
+      }
+
+    } else {
+
+      /* ===================================================
+         2 — KULLANICI ADI İLE GİRİŞ
+      =================================================== */
+
+      const username =
+        normalizeUsername(identifier);
+
+      console.log(
+        "GİRİŞ TÜRÜ: KULLANICI ADI"
+      );
+
+      console.log(
+        "USERNAME:",
+        username
+      );
 
       const {
-        data: profile,
+        data: usernameProfile,
         error: profileError
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq("username", username)
-        .maybeSingle();
+      } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "username",
+            username
+          )
+          .maybeSingle();
 
       if (profileError) {
+
         console.error(
           "PROFILE SEARCH ERROR:",
           profileError
         );
 
         return res.status(500).json({
-          error: "Kullanıcı aranırken hata oluştu."
+          ok: false,
+          error:
+            "Kullanıcı aranırken hata oluştu."
         });
       }
 
-      if (!profile) {
+      if (!usernameProfile) {
+
         console.log(
           "PROFILE BULUNAMADI:",
           username
         );
 
         return res.status(401).json({
-          error: "Kullanıcı adı veya şifre yanlış."
+          ok: false,
+          error:
+            "Kullanıcı adı veya şifre yanlış."
         });
       }
 
-      console.log("PROFILE BULUNDU:");
-      console.log("PROFILE ID:", profile.id);
-      console.log("USERNAME:", profile.username);
-      console.log("AUTH USER ID:", profile.auth_user_id);
+      profile =
+        usernameProfile;
 
-      /*
-       * auth_user_id kesinlikle gerekli
-       */
+      console.log(
+        "PROFILE BULUNDU:"
+      );
+
+      console.log(
+        "PROFILE ID:",
+        profile.id
+      );
+
+      console.log(
+        "USERNAME:",
+        profile.username
+      );
+
+      console.log(
+        "AUTH USER ID:",
+        profile.auth_user_id
+      );
 
       if (!profile.auth_user_id) {
+
         console.error(
           "PROFILE AUTH USER ID YOK"
         );
 
         return res.status(401).json({
+          ok: false,
           error:
             "Bu hesabın Auth bağlantısı bulunamadı."
         });
       }
 
       /*
-       * Supabase Auth kullanıcısını bul
+       * Auth kullanıcısını bul.
        */
-
       const {
         data: authData,
         error: authError
-      } = await admin.auth.admin.getUserById(
-        profile.auth_user_id
-      );
+      } =
+        await admin.auth.admin.getUserById(
+          profile.auth_user_id
+        );
 
       if (authError) {
+
         console.error(
           "AUTH USER ERROR:",
           authError
         );
 
         return res.status(401).json({
+          ok: false,
           error:
             "Kullanıcı adı veya şifre yanlış."
         });
       }
 
-      const authUser = authData?.user;
+      const authUser =
+        authData?.user;
 
       if (!authUser) {
+
         console.error(
           "AUTH USER YOK"
         );
 
         return res.status(401).json({
+          ok: false,
           error:
             "Kullanıcı adı veya şifre yanlış."
         });
       }
 
       if (!authUser.email) {
+
         console.error(
           "AUTH EMAIL YOK"
         );
 
         return res.status(401).json({
+          ok: false,
           error:
             "Bu hesabın e-posta adresi bulunamadı."
         });
       }
 
-      email = authUser.email.toLowerCase();
+      email =
+        authUser.email.toLowerCase();
 
       console.log(
         "AUTH EMAIL:",
@@ -1988,52 +2122,46 @@ app.post("/api/login", async (req, res) => {
       );
     }
 
-    /*
-     * =====================================================
-     * 3 — SUPABASE PASSWORD LOGIN
-     * =====================================================
-     */
+    /* =====================================================
+       3 — EMAIL KONTROL
+    ===================================================== */
+
+    if (!email) {
+
+      return res.status(401).json({
+        ok: false,
+        error:
+          "Bu hesap için e-posta adresi bulunamadı."
+      });
+    }
 
     console.log(
       "SUPABASE SIGN IN EMAIL:",
       email
     );
 
-    /*
-     * ÖNEMLİ:
-     * Burada SERVICE ROLE DEĞİL,
-     * ANON/PUBLISHABLE KEY kullanan client()
-     * kullanılmalıdır.
-     */
+    /* =====================================================
+       4 — SUPABASE AUTH PASSWORD LOGIN
+    ===================================================== */
 
-    const anon = client();
-
-    if (!anon) {
-      console.error(
-        "SUPABASE ANON CLIENT OLUŞTURULAMADI"
-      );
-
-      return res.status(500).json({
-        error:
-          "Supabase giriş bağlantısı oluşturulamadı."
-      });
-    }
+    const anon =
+      client();
 
     const {
       data: sessionData,
       error: loginError
-    } = await anon.auth.signInWithPassword({
-      email,
-      password
-    });
+    } =
+      await anon.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    /*
-     * =====================================================
-     * 4 — GERÇEK SUPABASE HATASINI GÖSTER
-     * =====================================================
-     */
+    /* =====================================================
+       5 — SUPABASE HATASI
+    ===================================================== */
 
     if (loginError) {
+
       console.error(
         "================================="
       );
@@ -2053,13 +2181,13 @@ app.post("/api/login", async (req, res) => {
       );
 
       console.error(
-        "NAME:",
-        loginError.name
+        "CODE:",
+        loginError.code
       );
 
       console.error(
-        "FULL ERROR:",
-        loginError
+        "NAME:",
+        loginError.name
       );
 
       console.error(
@@ -2074,6 +2202,7 @@ app.post("/api/login", async (req, res) => {
           loginError.message || ""
         )
       ) {
+
         message =
           "E-posta adresiniz doğrulanmamış.";
       }
@@ -2083,6 +2212,7 @@ app.post("/api/login", async (req, res) => {
           loginError.message || ""
         )
       ) {
+
         message =
           "Kullanıcı adı veya şifre yanlış.";
       }
@@ -2092,38 +2222,42 @@ app.post("/api/login", async (req, res) => {
           loginError.message || ""
         )
       ) {
+
         message =
           "Çok fazla giriş denemesi yapıldı. Lütfen biraz bekleyin.";
       }
 
       return res.status(401).json({
+        ok: false,
         error: message
       });
     }
 
-    /*
-     * =====================================================
-     * 5 — SESSION KONTROL
-     * =====================================================
-     */
+    /* =====================================================
+       6 — SESSION KONTROL
+    ===================================================== */
 
     if (!sessionData?.session) {
+
       console.error(
         "SESSION OLUŞMADI"
       );
 
       return res.status(401).json({
+        ok: false,
         error:
           "Giriş başarılı ancak oturum oluşturulamadı."
       });
     }
 
     if (!sessionData?.user) {
+
       console.error(
         "AUTH USER SESSION YOK"
       );
 
       return res.status(401).json({
+        ok: false,
         error:
           "Giriş başarılı ancak kullanıcı bilgisi alınamadı."
       });
@@ -2141,60 +2275,56 @@ app.post("/api/login", async (req, res) => {
       authId
     );
 
-    /*
-     * =====================================================
-     * 6 — PROFILE BUL
-     * =====================================================
-     */
-
-    let profile = null;
-
-    const {
-      data: profileByAuth,
-      error: profileAuthError
-    } = await admin
-      .from("profiles")
-      .select("*")
-      .eq(
-        "auth_user_id",
-        authId
-      )
-      .maybeSingle();
-
-    if (profileAuthError) {
-      console.error(
-        "PROFILE AUTH SEARCH ERROR:",
-        profileAuthError
-      );
-
-      return res.status(500).json({
-        error:
-          "Minegram profili alınamadı."
-      });
-    }
-
-    if (profileByAuth) {
-      profile = profileByAuth;
-    }
-
-    /*
-     * Eski kayıt yapısı için ikinci kontrol
-     */
+    /* =====================================================
+       7 — PROFİLİ TEKRAR BUL
+    ===================================================== */
 
     if (!profile) {
+
+      const {
+        data: profileByAuth,
+        error: profileAuthError
+      } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "auth_user_id",
+            authId
+          )
+          .maybeSingle();
+
+      if (profileAuthError) {
+
+        console.error(
+          "PROFILE AUTH SEARCH ERROR:",
+          profileAuthError
+        );
+      }
+
+      if (profileByAuth) {
+        profile =
+          profileByAuth;
+      }
+    }
+
+    if (!profile) {
+
       const {
         data: profileById,
         error: profileIdError
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq(
-          "id",
-          authId
-        )
-        .maybeSingle();
+      } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            authId
+          )
+          .maybeSingle();
 
       if (profileIdError) {
+
         console.error(
           "PROFILE ID SEARCH ERROR:",
           profileIdError
@@ -2202,19 +2332,19 @@ app.post("/api/login", async (req, res) => {
       }
 
       if (profileById) {
-        profile = profileById;
+        profile =
+          profileById;
       }
     }
 
-    /*
-     * =====================================================
-     * 7 — PROFILE YOKSA OLUŞTUR
-     * =====================================================
-     */
+    /* =====================================================
+       8 — PROFILE YOKSA OLUŞTUR
+    ===================================================== */
 
     if (!profile) {
+
       console.log(
-        "PROFILE YOK — YENİ PROFILE OLUŞTURULUYOR"
+        "PROFILE YOK — OLUŞTURULUYOR"
       );
 
       const metadata =
@@ -2250,67 +2380,77 @@ app.post("/api/login", async (req, res) => {
       const {
         data: createdProfile,
         error: createProfileError
-      } = await admin
-        .from("profiles")
-        .insert(insertPayload)
-        .select("*")
-        .single();
+      } =
+        await admin
+          .from("profiles")
+          .insert(
+            insertPayload
+          )
+          .select("*")
+          .single();
 
       if (createProfileError) {
+
         console.error(
           "PROFILE CREATE ERROR:",
           createProfileError
         );
 
         /*
-         * Aynı anda başka istek oluşturmuş olabilir.
-         * Tekrar deniyoruz.
+         * Aynı anda oluşturulmuş olabilir.
          */
-
         const {
           data: retryProfile
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .eq(
-            "auth_user_id",
-            authId
-          )
-          .maybeSingle();
+        } =
+          await admin
+            .from("profiles")
+            .select("*")
+            .eq(
+              "auth_user_id",
+              authId
+            )
+            .maybeSingle();
 
         if (retryProfile) {
-          profile = retryProfile;
+
+          profile =
+            retryProfile;
+
         } else {
+
           return res.status(500).json({
+            ok: false,
             error:
               "Auth hesabı bulundu fakat Minegram profili oluşturulamadı."
           });
         }
+
       } else {
-        profile = createdProfile;
+
+        profile =
+          createdProfile;
       }
     }
 
-    /*
-     * =====================================================
-     * 8 — SON PROFILE KONTROL
-     * =====================================================
-     */
+    /* =====================================================
+       9 — SON KONTROL
+    ===================================================== */
 
     if (!profile) {
+
       return res.status(404).json({
+        ok: false,
         error:
           "Bu hesap için Minegram profili bulunamadı."
       });
     }
 
-    /*
-     * =====================================================
-     * 9 — GÜVENLİ PROFİL
-     * =====================================================
-     */
+    const safe =
+      safeProfile(profile);
 
-    const safe = safeProfile(profile);
+    /* =====================================================
+       10 — BAŞARILI LOGIN
+    ===================================================== */
 
     console.log(
       "================================="
@@ -2339,12 +2479,6 @@ app.post("/api/login", async (req, res) => {
       "================================="
     );
 
-    /*
-     * =====================================================
-     * 10 — RESPONSE
-     * =====================================================
-     */
-
     return res.json({
       ok: true,
 
@@ -2354,15 +2488,18 @@ app.post("/api/login", async (req, res) => {
       supabaseAccessToken:
         sessionData.session.access_token,
 
-      profile: safe,
+      profile:
+        safe,
 
       profiles: [
         safe
       ],
 
-      user: safe,
+      user:
+        safe,
 
-      multipleProfiles: false
+      multipleProfiles:
+        false
     });
 
   } catch (error) {
@@ -2384,12 +2521,14 @@ app.post("/api/login", async (req, res) => {
     );
 
     return res.status(500).json({
+      ok: false,
       error:
         error?.message ||
         "Giriş sırasında sunucu hatası oluştu."
     });
   }
 });
+
 
 /* =========================================================
    RECOVERY HELPERS
