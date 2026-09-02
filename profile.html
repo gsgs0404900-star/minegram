@@ -3038,1265 +3038,827 @@ body{
 </div> 
  
 <script>
-"use strict";
-
 /* =========================================================
-   MINEGRAM PROFİL - SADECE PROFİL VERİLERİ DÜZELTİLDİ
+   MINEGRAM PROFİL - SAĞLAM BUTON SİSTEMİ
+   Mevcut API ve tasarım korunur.
    ========================================================= */
 
-function getToken(){
-  const keys = [
-    "minegram_token",
-    "minegram_access_token",
-    "minegram_supabase_token",
-    "access_token",
-    "token"
-  ];
-
-  for(const key of keys){
-    const a = localStorage.getItem(key);
-    if(a && String(a).trim()){
-      return String(a).trim();
-    }
-
-    const b = sessionStorage.getItem(key);
-    if(b && String(b).trim()){
-      return String(b).trim();
-    }
-  }
-
-  return "";
-}
-
-const token = getToken();
+const token =
+  localStorage.getItem('minegram_token') ||
+  localStorage.getItem('minegram_access_token') ||
+  localStorage.getItem('minegram_supabase_token') ||
+  localStorage.getItem('access_token') ||
+  localStorage.getItem('token');
 
 const params = new URLSearchParams(location.search);
-const target = params.get("username");
+const target = params.get('username');
 
 let me = null;
 let currentProfile = null;
-let currentPosts = [];
 
-
-/* =========================================================
+/* =========================
    TOAST
-   ========================================================= */
+========================= */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
 
-function toast(msg){
-  const el = document.getElementById("toast");
-  if(!el) return;
-
-  el.textContent = msg || "";
-  el.classList.add("show");
+  el.textContent = msg;
+  el.classList.add('show');
 
   clearTimeout(window.__toast);
-
-  window.__toast = setTimeout(()=>{
-    el.classList.remove("show");
-  },2200);
+  window.__toast = setTimeout(() => {
+    el.classList.remove('show');
+  }, 2200);
 }
 
-
-/* =========================================================
+/* =========================
    API
-   ========================================================= */
+========================= */
+async function api(url, opt = {}) {
 
-async function api(url,opt={}){
-  const options = {...opt};
-
-  options.headers = {
-    ...(options.headers || {})
+  opt.headers = {
+    ...(opt.headers || {}),
+    ...(token ? {
+      Authorization: 'Bearer ' + token
+    } : {})
   };
 
-  if(token){
-    options.headers.Authorization = "Bearer " + token;
+  if (opt.body && typeof opt.body !== 'string') {
+    opt.headers['Content-Type'] = 'application/json';
+    opt.body = JSON.stringify(opt.body);
   }
 
-  if(
-    options.body &&
-    typeof options.body !== "string"
-  ){
-    options.headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(options.body);
+  const r = await fetch(url, opt);
+
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.error || 'İşlem başarısız');
   }
 
-  const r = await fetch(url,options);
-
-  let data = {};
-
-  try{
-    data = await r.json();
-  }catch(e){
-    data = {};
-  }
-
-  if(!r.ok){
-    const err = new Error(
-      data?.error ||
-      data?.message ||
-      "İşlem başarısız"
-    );
-
-    err.status = r.status;
-
-    throw err;
-  }
-
-  return data;
+  return r.json();
 }
 
-
-/* =========================================================
-   HTML GÜVENLİ
-   ========================================================= */
-
-function escapeHtml(value){
-  return String(value ?? "")
-    .replace(/[&<>"']/g,c=>({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#39;"
-    }[c]));
+/* =========================
+   HTML GÜVENLİĞİ
+========================= */
+function escapeHtml(s) {
+  return String(s ?? '').replace(
+    /[&<>"']/g,
+    c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c])
+  );
 }
 
-
-/* =========================================================
-   VERİ NORMALİZE
-   ========================================================= */
-
-function normalizeUser(raw){
-
-  if(!raw || typeof raw !== "object"){
-    return {};
-  }
-
-  /*
-    API bazen direkt kullanıcı,
-    bazen {user:...},
-    bazen {profile:...},
-    bazen {data:...} döndürebilir.
-  */
-
-  const u =
-    raw.user ||
-    raw.profile ||
-    raw.data ||
-    raw;
-
-  return {
-    ...u,
-
-    id:
-      u.id ??
-      u.user_id ??
-      u.auth_user_id ??
-      null,
-
-    username:
-      u.username ??
-      u.user_name ??
-      u.handle ??
-      "",
-
-    displayName:
-      u.displayName ??
-      u.display_name ??
-      u.name ??
-      u.full_name ??
-      u.username ??
-      "",
-
-    bio:
-      u.bio ??
-      u.biography ??
-      "",
-
-    avatar:
-      u.avatar ??
-      u.avatar_url ??
-      u.avatarUrl ??
-      null,
-
-    verified:
-      !!u.verified,
-
-    followers:
-      u.followers ??
-      u.followerCount ??
-      u.followersCount ??
-      0,
-
-    following:
-      u.following ??
-      u.followingCount ??
-      u.following_count ??
-      0,
-
-    postCount:
-      u.postCount ??
-      u.postsCount ??
-      u.post_count ??
-      u.posts_count ??
-      0,
-
-    followingByMe:
-      !!(
-        u.followingByMe ??
-        u.following_by_me
-      )
-  };
-}
-
-
-/* =========================================================
-   POST LİSTESİNİ NORMALİZE
-   ========================================================= */
-
-function normalizePosts(raw){
-
-  if(Array.isArray(raw)){
-    return raw;
-  }
-
-  if(raw && Array.isArray(raw.posts)){
-    return raw.posts;
-  }
-
-  if(raw && Array.isArray(raw.data)){
-    return raw.data;
-  }
-
-  if(raw && Array.isArray(raw.items)){
-    return raw.items;
-  }
-
-  if(raw && Array.isArray(raw.results)){
-    return raw.results;
-  }
-
-  return [];
-}
-
-
-/* =========================================================
+/* =========================
    MODAL
-   ========================================================= */
-
-function openModal(id){
+========================= */
+function openModal(id) {
   const m = document.getElementById(id);
-  if(!m) return;
+  if (!m) return;
 
-  m.classList.add("open");
-  m.setAttribute("aria-hidden","false");
+  m.classList.add('open');
+  m.setAttribute('aria-hidden', 'false');
 }
 
-function closeModal(id){
+function closeModal(id) {
   const m = document.getElementById(id);
-  if(!m) return;
+  if (!m) return;
 
-  m.classList.remove("open");
-  m.setAttribute("aria-hidden","true");
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden', 'true');
 }
 
+/* =========================
+   PROFİL YÜKLE
+========================= */
+async function load() {
 
-/* =========================================================
-   PROFİL GÖSTER
-   ========================================================= */
-
-function renderProfile(){
-
-  if(!currentProfile){
+  if (!token) {
+    location.href = 'giris.html';
     return;
   }
 
-  const usernameEl =
-    document.getElementById("username");
+  try {
 
-  const displayEl =
-    document.getElementById("display");
+    me = await api('/api/me');
 
-  const bioEl =
-    document.getElementById("bio");
+    const username = target || me.username;
 
-  const postCountEl =
-    document.getElementById("postCount");
+    currentProfile = await api(
+      '/api/users/' +
+      encodeURIComponent(username)
+    );
 
-  const followersEl =
-    document.getElementById("followers");
+    const title = document.getElementById('title');
+    const usernameEl = document.getElementById('username');
+    const displayEl = document.getElementById('display');
+    const bioEl = document.getElementById('bio');
+    const postCount = document.getElementById('postCount');
+    const followers = document.getElementById('followers');
+    const following = document.getElementById('following');
+    const edit = document.getElementById('editBtn');
+    const avatar = document.getElementById('avatar');
 
-  const followingEl =
-    document.getElementById("following");
-
-  const avatarEl =
-    document.getElementById("avatar");
-
-  const editEl =
-    document.getElementById("editBtn");
-
-
-  /* KULLANICI ADI */
-
-  const username =
-    String(
-      currentProfile.username ||
-      me?.username ||
-      "minegram"
-    ).replace(/^@/,"");
-
-  if(usernameEl){
-
-    usernameEl.innerHTML =
-      "@" +
-      escapeHtml(username) +
-      (
-        currentProfile.verified
-          ? ' <span class="verified">✓</span>'
-          : ""
-      );
-  }
-
-
-  /* GÖRÜNEN İSİM */
-
-  const displayName =
-    currentProfile.displayName ||
-    currentProfile.display_name ||
-    currentProfile.name ||
-    username;
-
-  if(displayEl){
-    displayEl.textContent = displayName;
-  }
-
-
-  /* BIO */
-
-  if(bioEl){
-    bioEl.textContent =
-      currentProfile.bio || "";
-  }
-
-
-  /* GÖNDERİ SAYISI */
-
-  if(postCountEl){
-
-    let count =
-      currentProfile.postCount ??
-      currentProfile.postsCount ??
-      currentProfile.post_count ??
-      currentProfile.posts_count;
-
-    if(
-      count === undefined ||
-      count === null ||
-      count === ""
-    ){
-      count = currentPosts.length;
+    if (title) {
+      title.textContent = 'Profil';
     }
 
-    postCountEl.textContent =
-      Number(count) || 0;
-  }
-
-
-  /* TAKİPÇİ */
-
-  if(followersEl){
-
-    followersEl.textContent =
-      Number(
-        currentProfile.followers ??
-        currentProfile.followerCount ??
-        0
-      ) || 0;
-  }
-
-
-  /* TAKİP */
-
-  if(followingEl){
-
-    followingEl.textContent =
-      Number(
-        currentProfile.following ??
-        currentProfile.followingCount ??
-        0
-      ) || 0;
-  }
-
-
-  /* PROFİL FOTOĞRAFI */
-
-  if(avatarEl){
-
-    const avatar =
-      currentProfile.avatar ||
-      currentProfile.avatar_url ||
-      currentProfile.avatarUrl ||
-      "";
-
-    if(avatar){
-
-      avatarEl.innerHTML =
-        '<img src="' +
-        escapeHtml(avatar) +
-        '" alt="Profil fotoğrafı">';
-
-    }else{
-
-      avatarEl.textContent =
-        String(
-          displayName ||
-          username ||
-          "M"
-        )[0].toUpperCase();
+    if (usernameEl) {
+      usernameEl.innerHTML =
+        '@' +
+        escapeHtml(currentProfile.username) +
+        (
+          currentProfile.verified
+            ? ' <span class="verified">✓</span>'
+            : ''
+        );
     }
-  }
 
+    if (displayEl) {
+      displayEl.textContent =
+        currentProfile.displayName || '';
+    }
 
-  /* DÜZENLE / TAKİP ET */
+    if (bioEl) {
+      bioEl.textContent =
+        currentProfile.bio || '';
+    }
 
-  if(editEl){
+    if (postCount) {
+      postCount.textContent =
+        currentProfile.postCount || 0;
+    }
+
+    if (followers) {
+      followers.textContent =
+        currentProfile.followers || 0;
+    }
+
+    if (following) {
+      following.textContent =
+        currentProfile.following || 0;
+    }
 
     const mine =
-      String(currentProfile.id || "") ===
-      String(me?.id || "");
+      currentProfile.id === me.id;
 
-    editEl.textContent =
-      mine
-        ? "✎  Profil düzenle"
+    if (edit) {
+
+      edit.textContent = mine
+        ? '✎  Profil düzenle'
         : (
-            currentProfile.followingByMe
-              ? "Takibi Bırak"
-              : "Takip Et"
-          );
+          currentProfile.followingByMe
+            ? 'Takibi Bırak'
+            : 'Takip Et'
+        );
 
-    editEl.classList.toggle(
-      "primary",
-      mine || !currentProfile.followingByMe
-    );
-  }
-}
-
-
-/* =========================================================
-   GÖNDERİLERİ GÖSTER
-   ========================================================= */
-
-function renderPosts(posts){
-
-  currentPosts =
-    Array.isArray(posts)
-      ? posts
-      : [];
-
-  const grid =
-    document.getElementById("grid");
-
-  if(!grid){
-    return;
-  }
-
-
-  /* GÖNDERİ SAYISINI HER ZAMAN GERÇEK LİSTEYE GÖRE
-     GÜNCELLE */
-
-  const postCount =
-    document.getElementById("postCount");
-
-  if(postCount){
-    postCount.textContent =
-      currentPosts.length;
-  }
-
-
-  if(!currentPosts.length){
-
-    grid.innerHTML =
-      '<div class="empty">Henüz gönderi yok</div>';
-
-    return;
-  }
-
-
-  grid.innerHTML =
-    currentPosts.map(post=>{
-
-      const media =
-        post.media ||
-        post.media_url ||
-        post.image ||
-        post.image_url ||
-        post.photo ||
-        "";
-
-      const caption =
-        post.caption ||
-        post.text ||
-        "";
-
-      if(media){
-
-        return `
-          <div
-            class="tile post-tile"
-            data-post-id="${escapeHtml(post.id || "")}"
-          >
-            <img
-              src="${escapeHtml(media)}"
-              loading="lazy"
-              alt="Gönderi"
-              onerror="this.style.display='none'"
-            >
-          </div>
-        `;
-      }
-
-      return `
-        <div
-          class="tile post-tile"
-          data-post-id="${escapeHtml(post.id || "")}"
-        >
-          <div class="txt">
-            ${escapeHtml(caption)}
-          </div>
-        </div>
-      `;
-
-    }).join("");
-}
-
-
-/* =========================================================
-   ANA YÜKLEME
-   ========================================================= */
-
-async function load(){
-
-  if(!token){
-
-    location.href = "index.html";
-    return;
-  }
-
-
-  try{
-
-    /* -----------------------------------------------------
-       1. OTURUM KULLANICISINI AL
-       ----------------------------------------------------- */
-
-    const meRaw =
-      await api("/api/me");
-
-    me =
-      normalizeUser(meRaw);
-
-
-    /*
-      Eğer /api/me username döndürüyorsa
-      direkt kullanacağız.
-    */
-
-    const myUsername =
-      String(
-        me.username ||
-        ""
-      )
-      .trim()
-      .replace(/^@/,"");
-
-
-    if(!myUsername){
-
-      throw new Error(
-        "Oturum kullanıcısının kullanıcı adı bulunamadı."
+      edit.classList.toggle(
+        'primary',
+        mine || !currentProfile.followingByMe
       );
     }
 
+    if (avatar) {
 
-    /* -----------------------------------------------------
-       2. HANGİ PROFİL AÇILACAK?
-       ----------------------------------------------------- */
+      if (currentProfile.avatar) {
 
-    const username =
-      String(
-        target ||
-        myUsername
-      )
-      .trim()
-      .replace(/^@/,"");
+        avatar.innerHTML =
+          '<img src="' +
+          escapeHtml(currentProfile.avatar) +
+          '" alt="Profil fotoğrafı">';
 
+      } else {
 
-    /* -----------------------------------------------------
-       3. PROFİLİ AL
-       ----------------------------------------------------- */
-
-    let profileRaw = null;
-
-    try{
-
-      profileRaw =
-        await api(
-          "/api/users/" +
-          encodeURIComponent(username)
-        );
-
-      currentProfile =
-        normalizeUser(profileRaw);
-
-    }catch(profileError){
-
-      /*
-        KENDİ PROFİLİNİ AÇIYORSA
-        /api/users endpointi hata verse bile
-        /api/me üzerinden profil göster.
-      */
-
-      if(
-        username.toLowerCase() ===
-        myUsername.toLowerCase()
-      ){
-
-        currentProfile = {
-          ...me,
-          username: myUsername
-        };
-
-      }else{
-
-        throw profileError;
+        avatar.textContent =
+          (
+            currentProfile.displayName ||
+            currentProfile.username ||
+            'M'
+          )[0].toUpperCase();
       }
     }
 
-
-    /* -----------------------------------------------------
-       4. PROFİL KULLANICI ADI BOŞSA URL'DEKİNİ KULLAN
-       ----------------------------------------------------- */
-
-    if(!currentProfile.username){
-
-      currentProfile.username =
-        username;
-    }
-
-
-    /* -----------------------------------------------------
-       5. ÖNCE PROFİLİ EKRANA BAS
-       ----------------------------------------------------- */
-
-    renderProfile();
-
-
-    /* -----------------------------------------------------
-       6. GÖNDERİLERİ AL
-       ----------------------------------------------------- */
-
-    try{
-
-      const postsRaw =
-        await api(
-          "/api/users/" +
-          encodeURIComponent(username) +
-          "/posts"
-        );
-
-      const posts =
-        normalizePosts(postsRaw);
-
-      renderPosts(posts);
-
-    }catch(postsError){
-
-      console.error(
-        "PROFİL GÖNDERİ HATASI:",
-        postsError
-      );
-
-      /*
-        Profil görünmeye devam etsin.
-      */
-
-      renderPosts([]);
-    }
-
-
-    /* -----------------------------------------------------
-       7. GÖNDERİ SAYISINI SON KEZ GARANTİLE
-       ----------------------------------------------------- */
-
-    const countEl =
-      document.getElementById("postCount");
-
-    if(countEl){
-
-      const serverCount =
-        Number(
-          currentProfile.postCount ??
-          currentProfile.postsCount ??
-          currentProfile.post_count ??
-          currentProfile.posts_count ??
-          0
-        );
-
-      /*
-        Sunucu 0 döndürse bile gerçek gönderi listesi
-        varsa liste sayısını göster.
-      */
-
-      if(
-        serverCount === 0 &&
-        currentPosts.length > 0
-      ){
-        countEl.textContent =
-          currentPosts.length;
-      }else{
-        countEl.textContent =
-          serverCount;
-      }
-    }
-
-  }catch(e){
-
-    console.error(
-      "PROFİL YÜKLEME HATASI:",
-      e
+    const posts = await api(
+      '/api/users/' +
+      encodeURIComponent(username) +
+      '/posts'
     );
 
-    const grid =
-      document.getElementById("grid");
+    renderPosts(posts);
 
-    if(grid){
+  } catch (e) {
 
+    console.error(e);
+
+    const grid = document.getElementById('grid');
+
+    if (grid) {
       grid.innerHTML =
         '<div class="empty">Profil yüklenemedi.</div>';
     }
 
-    toast(
-      e?.message ||
-      "Profil yüklenemedi."
-    );
+    toast(e.message || 'Profil yüklenemedi.');
   }
 }
 
+/* =========================
+   GÖNDERİLER
+========================= */
+function renderPosts(posts) {
 
-/* =========================================================
-   GERİ
-   ========================================================= */
+  const grid = document.getElementById('grid');
 
-document
-  .getElementById("backBtn")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      if(history.length > 1){
-        history.back();
-      }else{
-        location.href = "index.html";
-      }
-    }
-  );
+  if (!grid) return;
 
+  if (!Array.isArray(posts)) {
+    posts = [];
+  }
 
-/* =========================================================
-   PROFİL DÜZENLE / TAKİP
-   ========================================================= */
+  grid.innerHTML = posts.length
 
-document
-  .getElementById("editBtn")
-  ?.addEventListener(
-    "click",
-    async ()=>{
+    ? posts.map(x => {
 
-      if(!currentProfile){
-        return;
-      }
+        if (x.media) {
 
-      const mine =
-        String(currentProfile.id || "") ===
-        String(me?.id || "");
+          return `
+            <div class="tile">
+              <img
+                src="${escapeHtml(x.media)}"
+                loading="lazy"
+                alt="Gönderi"
+              >
+            </div>
+          `;
 
-
-      if(!mine){
-
-        try{
-
-          await api(
-            "/api/users/" +
-            encodeURIComponent(
-              currentProfile.username
-            ) +
-            "/follow",
-            {
-              method:"POST"
-            }
-          );
-
-          await load();
-
-        }catch(e){
-
-          toast(
-            e?.message ||
-            "Takip işlemi başarısız"
-          );
         }
 
-        return;
-      }
+        return `
+          <div class="tile">
+            <div class="txt">
+              ${escapeHtml(x.caption || '')}
+            </div>
+          </div>
+        `;
 
+      }).join('')
 
-      const nameInput =
-        document.getElementById("nameInput");
-
-      const bioInput =
-        document.getElementById("bioInput");
-
-      if(nameInput){
-
-        nameInput.value =
-          currentProfile.displayName ||
-          "";
-      }
-
-      if(bioInput){
-
-        bioInput.value =
-          currentProfile.bio ||
-          "";
-      }
-
-      openModal("editModal");
-    }
-  );
-
+    : '<div class="empty">Henüz gönderi yok</div>';
+}
 
 /* =========================================================
-   DÜZENLE İPTAL
-   ========================================================= */
+   BUTONLAR
+   EVENT DELEGATION KULLANILIYOR.
+   Böylece bir butonun JS hatası diğerlerini bozmaz.
+========================================================= */
 
-document
-  .getElementById("editCancel")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      closeModal("editModal");
+document.addEventListener('click', async function(e) {
+
+  const button = e.target.closest('button');
+
+  if (!button) return;
+
+  /* =========================
+     ☰ PROFİL MENÜSÜ
+  ========================= */
+  if (button.id === 'menuBtn') {
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    openModal('menuModal');
+
+    return;
+  }
+
+  /* =========================
+     MENÜ KAPAT
+  ========================= */
+  if (button.id === 'menuClose') {
+
+    e.preventDefault();
+
+    closeModal('menuModal');
+
+    return;
+  }
+
+  /* =========================
+     ÇIKIŞ
+  ========================= */
+  if (button.id === 'menuLogout') {
+
+    e.preventDefault();
+
+    [
+      'minegram_token',
+      'minegram_access_token',
+      'minegram_supabase_token',
+      'access_token',
+      'token'
+    ].forEach(k => {
+      localStorage.removeItem(k);
+    });
+
+    sessionStorage.removeItem('minegram_register_verified');
+
+    location.href = 'giris.html';
+
+    return;
+  }
+
+  /* =========================
+     GERİ
+  ========================= */
+  if (button.id === 'backBtn') {
+
+    e.preventDefault();
+
+    if (history.length > 1) {
+      history.back();
+    } else {
+      location.href = 'index.html';
     }
-  );
 
+    return;
+  }
 
-/* =========================================================
-   DÜZENLE KAYDET
-   ========================================================= */
+  /* =========================
+     PROFİL DÜZENLE / TAKİP
+  ========================= */
+  if (button.id === 'editBtn') {
 
-document
-  .getElementById("editSave")
-  ?.addEventListener(
-    "click",
-    async ()=>{
+    e.preventDefault();
 
-      try{
+    if (!currentProfile || !me) {
+      toast('Profil henüz yüklenmedi.');
+      return;
+    }
 
-        const nameInput =
-          document.getElementById("nameInput");
+    if (currentProfile.id !== me.id) {
 
-        const bioInput =
-          document.getElementById("bioInput");
-
+      try {
 
         await api(
-          "/api/me",
+          '/api/users/' +
+          encodeURIComponent(currentProfile.username) +
+          '/follow',
           {
-            method:"PATCH",
-
-            body:{
-              displayName:
-                nameInput?.value.trim() || "",
-
-              bio:
-                bioInput?.value.trim() || ""
-            }
+            method: 'POST'
           }
-        );
-
-
-        closeModal("editModal");
-
-        toast(
-          "Profil güncellendi"
         );
 
         await load();
 
-      }catch(e){
+      } catch (err) {
 
-        toast(
-          e?.message ||
-          "Profil güncellenemedi"
-        );
+        toast(err.message || 'Takip işlemi başarısız.');
       }
+
+      return;
     }
-  );
 
+    const nameInput =
+      document.getElementById('nameInput');
 
-/* =========================================================
-   PROFİL PAYLAŞ
-   ========================================================= */
+    const bioInput =
+      document.getElementById('bioInput');
 
-document
-  .getElementById("shareBtn")
-  ?.addEventListener(
-    "click",
-    async ()=>{
+    if (nameInput) {
+      nameInput.value =
+        currentProfile.displayName || '';
+    }
 
-      if(!currentProfile){
-        return;
-      }
+    if (bioInput) {
+      bioInput.value =
+        currentProfile.bio || '';
+    }
 
-      const url =
-        location.href;
+    openModal('editModal');
 
-      try{
+    return;
+  }
 
-        if(navigator.share){
+  /* =========================
+     PROFİL DÜZENLE İPTAL
+  ========================= */
+  if (button.id === 'editCancel') {
 
-          await navigator.share({
-            title:"Minegram profili",
-            text:
-              "@" +
-              currentProfile.username,
-            url
-          });
+    e.preventDefault();
 
-        }else{
+    closeModal('editModal');
 
-          await navigator.clipboard.writeText(
-            url
-          );
+    return;
+  }
 
-          toast(
-            "Profil bağlantısı kopyalandı"
-          );
+  /* =========================
+     PROFİL KAYDET
+  ========================= */
+  if (button.id === 'editSave') {
+
+    e.preventDefault();
+
+    try {
+
+      const nameInput =
+        document.getElementById('nameInput');
+
+      const bioInput =
+        document.getElementById('bioInput');
+
+      await api('/api/me', {
+        method: 'PATCH',
+        body: {
+          displayName:
+            nameInput
+              ? nameInput.value.trim()
+              : '',
+
+          bio:
+            bioInput
+              ? bioInput.value.trim()
+              : ''
         }
-
-      }catch(e){
-
-        if(e?.name !== "AbortError"){
-
-          toast(
-            "Paylaşım başarısız"
-          );
-        }
-      }
-    }
-  );
-
-
-/* =========================================================
-   FOTOĞRAF PAYLAŞ
-   ========================================================= */
-
-document
-  .getElementById("photoShareBtn")
-  ?.addEventListener(
-    "click",
-    async ()=>{
-
-      const url =
-        location.href + "#photos";
-
-      try{
-
-        if(navigator.share){
-
-          await navigator.share({
-            title:"Minegram fotoğrafları",
-            url
-          });
-
-        }else{
-
-          await navigator.clipboard.writeText(
-            url
-          );
-
-          toast(
-            "Fotoğraf bağlantısı kopyalandı"
-          );
-        }
-
-      }catch(e){
-
-        if(e?.name !== "AbortError"){
-
-          toast(
-            "Paylaşım başarısız"
-          );
-        }
-      }
-    }
-  );
-
-
-/* =========================================================
-   TELEFON
-   ========================================================= */
-
-document
-  .getElementById("phoneBtn")
-  ?.addEventListener(
-    "click",
-    async ()=>{
-
-      const phone =
-        prompt(
-          "Telefon numaranı gir:"
-        );
-
-      if(phone === null){
-        return;
-      }
-
-      if(!phone.trim()){
-
-        toast(
-          "Telefon numarası boş bırakılamaz"
-        );
-
-        return;
-      }
-
-      try{
-
-        await api(
-          "/api/me",
-          {
-            method:"PATCH",
-            body:{
-              phone:
-                phone.trim()
-            }
-          }
-        );
-
-        toast(
-          "Telefon numarası kaydedildi"
-        );
-
-      }catch(e){
-
-        toast(
-          e?.message ||
-          "Telefon numarası kaydedilemedi"
-        );
-      }
-    }
-  );
-
-
-/* =========================================================
-   MENÜ
-   ========================================================= */
-
-document
-  .getElementById("menuBtn")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      openModal("menuModal");
-    }
-  );
-
-
-document
-  .getElementById("menuClose")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      closeModal("menuModal");
-    }
-  );
-
-
-/* =========================================================
-   ÇIKIŞ
-   ========================================================= */
-
-document
-  .getElementById("menuLogout")
-  ?.addEventListener(
-    "click",
-    ()=>{
-
-      const keys = [
-        "minegram_token",
-        "minegram_access_token",
-        "minegram_supabase_token",
-        "access_token",
-        "token"
-      ];
-
-      keys.forEach(key=>{
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
       });
 
-      location.href =
-        "index.html";
+      closeModal('editModal');
+
+      toast('Profil güncellendi.');
+
+      await load();
+
+    } catch (err) {
+
+      toast(
+        err.message ||
+        'Profil güncellenemedi.'
+      );
     }
-  );
+
+    return;
+  }
+
+  /* =========================
+     PROFİL PAYLAŞ
+  ========================= */
+  if (button.id === 'shareBtn') {
+
+    e.preventDefault();
+
+    if (!currentProfile) {
+      toast('Profil yüklenmedi.');
+      return;
+    }
+
+    const url = location.href;
+
+    try {
+
+      if (navigator.share) {
+
+        await navigator.share({
+          title: 'Minegram profili',
+          text:
+            '@' +
+            currentProfile.username,
+          url
+        });
+
+      } else if (navigator.clipboard) {
+
+        await navigator.clipboard.writeText(url);
+
+        toast(
+          'Profil bağlantısı kopyalandı.'
+        );
+
+      } else {
+
+        prompt(
+          'Profil bağlantısı:',
+          url
+        );
+      }
+
+    } catch (err) {
+
+      if (err.name !== 'AbortError') {
+        toast('Paylaşım başarısız.');
+      }
+    }
+
+    return;
+  }
+
+  /* =========================
+     FOTOĞRAF PAYLAŞ
+  ========================= */
+  if (button.id === 'photoShareBtn') {
+
+    e.preventDefault();
+
+    const url =
+      location.href + '#photos';
+
+    try {
+
+      if (navigator.share) {
+
+        await navigator.share({
+          title:
+            'Minegram fotoğrafları',
+          url
+        });
+
+      } else if (navigator.clipboard) {
+
+        await navigator.clipboard.writeText(url);
+
+        toast(
+          'Fotoğraf bağlantısı kopyalandı.'
+        );
+
+      } else {
+
+        prompt(
+          'Fotoğraf bağlantısı:',
+          url
+        );
+      }
+
+    } catch (err) {
+
+      if (err.name !== 'AbortError') {
+        toast('Paylaşım başarısız.');
+      }
+    }
+
+    return;
+  }
+
+  /* =========================
+     TELEFON EKLE
+  ========================= */
+  if (button.id === 'phoneBtn') {
+
+    e.preventDefault();
+
+    const phone =
+      prompt(
+        'Telefon numaranı gir:'
+      );
+
+    if (phone === null) return;
+
+    if (!phone.trim()) {
+
+      toast(
+        'Telefon numarası boş bırakılamaz.'
+      );
+
+      return;
+    }
+
+    try {
+
+      await api('/api/me', {
+        method: 'PATCH',
+        body: {
+          phone: phone.trim()
+        }
+      });
+
+      toast(
+        'Telefon numarası kaydedildi.'
+      );
+
+    } catch (err) {
+
+      toast(
+        err.message ||
+        'Telefon numarası kaydedilemedi.'
+      );
+    }
+
+    return;
+  }
+
+  /* =========================
+     ANA SAYFA
+  ========================= */
+  if (button.id === 'homeNav') {
+
+    e.preventDefault();
+
+    location.href = 'index.html';
+
+    return;
+  }
+
+  /* =========================
+     ARA
+  ========================= */
+  if (button.id === 'searchNav') {
+
+    e.preventDefault();
+
+    location.href =
+      'index.html#search';
+
+    return;
+  }
+
+  /* =========================
+     OLUŞTUR
+  ========================= */
+  if (button.id === 'createNav') {
+
+    e.preventDefault();
+
+    location.href =
+      'index.html#create';
+
+    return;
+  }
+
+  /* =========================
+     REELS
+  ========================= */
+  if (button.id === 'reelsNav') {
+
+    e.preventDefault();
+
+    location.href =
+      'index.html#reels';
+
+    return;
+  }
+
+  /* =========================
+     PROFİL
+  ========================= */
+  if (button.id === 'profileNav') {
+
+    e.preventDefault();
+
+    location.href =
+      'profile.html';
+
+    return;
+  }
+
+  /* =========================
+     GÖNDERİLER
+  ========================= */
+  if (button.id === 'postsTab') {
+
+    e.preventDefault();
+
+    const postsTab =
+      document.getElementById('postsTab');
+
+    const likesTab =
+      document.getElementById('likesTab');
+
+    if (postsTab) {
+      postsTab.classList.add('active');
+    }
+
+    if (likesTab) {
+      likesTab.classList.remove('active');
+    }
+
+    await load();
+
+    return;
+  }
+
+  /* =========================
+     BEĞENİLER
+  ========================= */
+  if (button.id === 'likesTab') {
+
+    e.preventDefault();
+
+    const likesTab =
+      document.getElementById('likesTab');
+
+    const postsTab =
+      document.getElementById('postsTab');
+
+    if (likesTab) {
+      likesTab.classList.add('active');
+    }
+
+    if (postsTab) {
+      postsTab.classList.remove('active');
+    }
+
+    toast(
+      'Beğenilen gönderiler bölümü hazır.'
+    );
+
+    return;
+  }
+
+});
 
 
 /* =========================================================
-   MODAL DIŞINA TIKLAMA
-   ========================================================= */
+   MODAL DIŞINA TIKLAYINCA KAPAT
+========================================================= */
 
-[
-  "editModal",
-  "menuModal"
-].forEach(id=>{
+document.addEventListener('click', function(e) {
 
-  document
-    .getElementById(id)
-    ?.addEventListener(
-      "click",
-      e=>{
+  const editModal =
+    document.getElementById('editModal');
 
-        if(e.target.id === id){
+  const menuModal =
+    document.getElementById('menuModal');
 
-          closeModal(id);
-        }
-      }
-    );
+  if (
+    editModal &&
+    e.target === editModal
+  ) {
+    closeModal('editModal');
+  }
+
+  if (
+    menuModal &&
+    e.target === menuModal
+  ) {
+    closeModal('menuModal');
+  }
+
 });
 
 
 /* =========================================================
    ESC
-   ========================================================= */
+========================================================= */
 
-document.addEventListener(
-  "keydown",
-  e=>{
+document.addEventListener('keydown', function(e) {
 
-    if(e.key === "Escape"){
+  if (e.key === 'Escape') {
 
-      closeModal("editModal");
-      closeModal("menuModal");
-    }
+    closeModal('editModal');
+    closeModal('menuModal');
   }
-);
+
+});
 
 
 /* =========================================================
-   ALT MENÜ
-   ========================================================= */
+   BUTONLARIN ÜSTÜNE GELİNCE TIKLANABİLİR OLSUN
+========================================================= */
 
-document
-  .getElementById("homeNav")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      location.href =
-        "index.html";
-    }
-  );
+const buttonStyle = document.createElement('style');
 
-document
-  .getElementById("searchNav")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      location.href =
-        "index.html#search";
-    }
-  );
+buttonStyle.textContent = `
+  button {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
 
-document
-  .getElementById("createNav")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      location.href =
-        "index.html#create";
-    }
-  );
+  #menuBtn {
+    position: relative !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
 
-document
-  .getElementById("reelsNav")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      location.href =
-        "index.html#reels";
-    }
-  );
+  #menuModal {
+    z-index: 99999 !important;
+  }
 
-document
-  .getElementById("profileNav")
-  ?.addEventListener(
-    "click",
-    ()=>{
-      location.href =
-        "profile.html";
-    }
-  );
+  #menuModal.open {
+    display: flex !important;
+  }
 
+  #editModal {
+    z-index: 99998 !important;
+  }
 
-/* =========================================================
-   GÖNDERİLER SEKME
-   ========================================================= */
+  #editModal.open {
+    display: flex !important;
+  }
 
-document
-  .getElementById("postsTab")
-  ?.addEventListener(
-    "click",
-    async ()=>{
+  .bottom {
+    z-index: 9990 !important;
+  }
+`;
 
-      document
-        .getElementById("postsTab")
-        ?.classList.add("active");
-
-      document
-        .getElementById("likesTab")
-        ?.classList.remove("active");
-
-      await load();
-    }
-  );
-
-
-/* =========================================================
-   BEĞENİLENLER
-   ========================================================= */
-
-document
-  .getElementById("likesTab")
-  ?.addEventListener(
-    "click",
-    ()=>{
-
-      document
-        .getElementById("likesTab")
-        ?.classList.add("active");
-
-      document
-        .getElementById("postsTab")
-        ?.classList.remove("active");
-
-      toast(
-        "Beğenilen gönderiler bölümü hazır"
-      );
-    }
-  );
+document.head.appendChild(buttonStyle);
 
 
 /* =========================================================
    BAŞLAT
-   ========================================================= */
+========================================================= */
 
 load();
 
