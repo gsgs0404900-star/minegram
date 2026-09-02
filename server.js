@@ -1373,9 +1373,7 @@ app.post(
             await admin
               .from("profiles")
               .update({
-                auth_user_id:
-                  oldAuthUserId ||
-                  "983d1bb4-7a1e-40b5-ab1b-872588c28101"
+              auth_user_id: oldAuthUserId
               })
               .eq(
                 "id",
