@@ -306,6 +306,7 @@ button{
         height:55px;
         font-size:18px;
     }
+
 }
 
 </style>
@@ -455,78 +456,145 @@ const params=
         window.location.search
     );
 
+
 function showMessage(
     text,
     type=""
 ){
 
-    message.textContent=text;
+    message.textContent=text || "";
     message.className="message";
 
     if(type){
         message.classList.add(type);
     }
+
 }
+
+
+function getStorage(key){
+
+    return (
+        sessionStorage.getItem(key) ||
+        localStorage.getItem(key) ||
+        ""
+    );
+
+}
+
 
 function getRecoveryToken(){
 
-    return String(
-        params.get("token") ||
+    const token=
+
         params.get("resetToken") ||
+
         params.get("reset_token") ||
-        sessionStorage.getItem(
+
+        params.get("token") ||
+
+        params.get("recoveryToken") ||
+
+        params.get("recovery_token") ||
+
+        getStorage(
             "minegram_reset_token"
         ) ||
-        sessionStorage.getItem(
+
+        getStorage(
+            "minegram_recovery_token"
+        ) ||
+
+        getStorage(
             "resetToken"
         ) ||
-        ""
-    ).trim();
+
+        getStorage(
+            "reset_token"
+        ) ||
+
+        getStorage(
+            "recoveryToken"
+        ) ||
+
+        getStorage(
+            "recovery_token"
+        ) ||
+
+        "";
+
+    return String(token).trim();
+
 }
+
 
 function getRecoveryId(){
 
     return String(
-        sessionStorage.getItem(
+
+        params.get("userId") ||
+
+        params.get("user_id") ||
+
+        getStorage(
             "minegram_recovery_id"
         ) ||
-        sessionStorage.getItem(
+
+        getStorage(
             "recovery_id"
         ) ||
+
         ""
+
     ).trim();
+
 }
+
 
 function getIdentifier(){
 
     return String(
+
         params.get("identifier") ||
+
         params.get("username") ||
-        sessionStorage.getItem(
+
+        getStorage(
             "minegram_recovery_identifier"
         ) ||
-        sessionStorage.getItem(
+
+        getStorage(
             "minegram_recovery_username"
         ) ||
+
         ""
+
     )
     .trim()
     .replace(/^@/,"")
     .toLowerCase();
+
 }
+
 
 function getEmail(){
 
     return String(
+
         params.get("email") ||
-        sessionStorage.getItem(
+
+        getStorage(
             "minegram_recovery_email"
         ) ||
+
         ""
+
     )
     .trim()
     .toLowerCase();
+
 }
+
 
 document
 .querySelectorAll(".toggle-password")
@@ -560,19 +628,25 @@ document
 
 });
 
+
 backBtn.addEventListener(
     "click",
     ()=>{
 
         if(history.length>1){
+
             history.back();
+
         }else{
+
             window.location.href=
                 "giris.html";
+
         }
 
     }
 );
+
 
 passwordInput.addEventListener(
     "input",
@@ -581,18 +655,21 @@ passwordInput.addEventListener(
     }
 );
 
+
 password2Input.addEventListener(
     "input",
     ()=>{
         showMessage("");
     }
 );
+
 
 resetBtn.addEventListener(
     "click",
     resetPassword
 );
 
+
 passwordInput.addEventListener(
     "keydown",
     event=>{
@@ -604,6 +681,7 @@ passwordInput.addEventListener(
     }
 );
 
+
 password2Input.addEventListener(
     "keydown",
     event=>{
@@ -614,6 +692,7 @@ password2Input.addEventListener(
 
     }
 );
+
 
 async function resetPassword(){
 
@@ -637,6 +716,7 @@ async function resetPassword(){
 
     showMessage("");
 
+
     if(!password){
 
         showMessage(
@@ -645,9 +725,10 @@ async function resetPassword(){
         );
 
         passwordInput.focus();
-
         return;
+
     }
+
 
     if(password.length<6){
 
@@ -657,9 +738,10 @@ async function resetPassword(){
         );
 
         passwordInput.focus();
-
         return;
+
     }
+
 
     if(!password2){
 
@@ -669,9 +751,10 @@ async function resetPassword(){
         );
 
         password2Input.focus();
-
         return;
+
     }
+
 
     if(password!==password2){
 
@@ -681,58 +764,89 @@ async function resetPassword(){
         );
 
         password2Input.focus();
-
         return;
+
     }
+
 
     if(!token){
 
         showMessage(
-            "Şifre yenileme anahtarı bulunamadı. Lütfen kod doğrulama işlemini yeniden yap.",
+            "Şifre sıfırlama oturumu bulunamadı. Lütfen hesap seçme ekranından tekrar devam et.",
             "error"
         );
 
         return;
+
     }
 
+
     resetBtn.disabled=true;
-    resetBtn.textContent="Yenileniyor...";
+    resetBtn.textContent=
+        "Yenileniyor...";
+
 
     try{
 
-        /*
-         * Backend uyumluluğu için token
-         * birden fazla isimle gönderiliyor.
-         */
-
         const body={
+
             token:token,
+
             resetToken:token,
+
             reset_token:token,
+
             recoveryToken:token,
 
+            recovery_token:token,
+
             password:password,
+
             newPassword:password,
-            confirmPassword:password2
+
+            new_password:password,
+
+            confirmPassword:password2,
+
+            confirm_password:password2
+
         };
 
+
         if(recoveryId){
-            body.userId=recoveryId;
-            body.user_id=recoveryId;
+
+            body.userId=
+                recoveryId;
+
+            body.user_id=
+                recoveryId;
+
         }
+
 
         if(identifier){
-            body.identifier=identifier;
-            body.username=identifier;
+
+            body.identifier=
+                identifier;
+
+            body.username=
+                identifier;
+
         }
 
+
         if(email){
-            body.email=email;
+
+            body.email=
+                email;
+
         }
+
 
         const response=
             await fetch(
-                API + "/forgot/reset-password",
+                API+
+                "/forgot/reset-password",
                 {
                     method:"POST",
 
@@ -744,11 +858,13 @@ async function resetPassword(){
                             "application/json"
                     },
 
-                    body:JSON.stringify(body),
+                    body:
+                        JSON.stringify(body),
 
                     cache:"no-store"
                 }
             );
+
 
         const data=
             await response
@@ -757,10 +873,12 @@ async function resetPassword(){
                     ()=>({})
                 );
 
+
         console.log(
             "[MINEGRAM PASSWORD RESET]",
             data
         );
+
 
         if(
             !response.ok ||
@@ -772,55 +890,78 @@ async function resetPassword(){
                 data.message ||
                 "Şifre yenilenemedi."
             );
+
         }
+
 
         showMessage(
             "Şifren başarıyla yenilendi. Giriş sayfasına yönlendiriliyorsun...",
             "success"
         );
 
-        sessionStorage.removeItem(
-            "minegram_reset_token"
-        );
 
-        sessionStorage.removeItem(
-            "resetToken"
-        );
+        /*
+         * Başarılı reset sonrasında
+         * tüm recovery verilerini temizle.
+         */
 
-        sessionStorage.removeItem(
-            "minegram_recovery_id"
-        );
+        const tokenKeys=[
 
-        sessionStorage.removeItem(
-            "recovery_id"
-        );
+            "minegram_reset_token",
+            "minegram_recovery_token",
+            "resetToken",
+            "reset_token",
+            "recoveryToken",
+            "recovery_token"
 
-        sessionStorage.removeItem(
-            "minegram_recovery_identifier"
-        );
+        ];
 
-        sessionStorage.removeItem(
-            "minegram_recovery_username"
-        );
 
-        sessionStorage.removeItem(
-            "minegram_recovery_mode"
-        );
+        tokenKeys.forEach(key=>{
 
-        sessionStorage.removeItem(
+            sessionStorage.removeItem(key);
+            localStorage.removeItem(key);
+
+        });
+
+
+        const recoveryKeys=[
+
+            "minegram_recovery_id",
+            "recovery_id",
+
+            "minegram_recovery_identifier",
+            "minegram_recovery_username",
+
+            "minegram_recovery_mode",
             "minegram_recovery_email"
-        );
+
+        ];
+
+
+        recoveryKeys.forEach(key=>{
+
+            sessionStorage.removeItem(key);
+            localStorage.removeItem(key);
+
+        });
+
 
         passwordInput.disabled=true;
         password2Input.disabled=true;
+        resetBtn.disabled=true;
+
 
         setTimeout(
             ()=>{
+
                 window.location.href=
                     "giris.html";
+
             },
             1500
         );
+
 
     }catch(error){
 
@@ -838,8 +979,11 @@ async function resetPassword(){
         resetBtn.disabled=false;
         resetBtn.textContent=
             "Şifreyi yenile";
+
     }
+
 }
+
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -848,16 +992,18 @@ document.addEventListener(
         const token=
             getRecoveryToken();
 
+        console.log(
+            "[MINEGRAM] Recovery token mevcut:",
+            !!token
+        );
+
         if(!token){
 
-            /*
-             * Sayfa doğrudan açılırsa kullanıcıya
-             * neden devam edemediğini gösteriyoruz.
-             */
             showMessage(
-                "Şifre yenileme oturumu bulunamadı. Önce doğrulama kodunu onayla.",
+                "Şifre sıfırlama oturumu bulunamadı. Lütfen hesap seçme ekranından tekrar devam et.",
                 "error"
             );
+
         }
 
     }
