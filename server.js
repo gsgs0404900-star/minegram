@@ -609,8 +609,18 @@ function createVerificationCode() {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
-function registrationKey(email) {
-  return normalizeEmail(email);
+function registrationKey(email, username = "") {
+  const e = normalizeEmail(email);
+  const u = normalizeUsername(username);
+  return u ? `${e}::${u}` : e;
+}
+
+function createAuthEmail(username) {
+  // Supabase Auth e-posta alanı benzersizdir.
+  // Gerçek e-posta adresini user_metadata.contact_email içinde tutuyoruz;
+  // böylece aynı gerçek e-posta ile sınırsız Minegram hesabı açılabilir.
+  const suffix = crypto.randomBytes(8).toString("hex");
+  return `${normalizeUsername(username)}.${suffix}@auth.minegram.invalid`;
 }
 
 async function persistRegistrationCode(admin, entry) {
@@ -619,6 +629,7 @@ async function persistRegistrationCode(admin, entry) {
       user_metadata: {
         username: entry.username,
         display_name: entry.displayName,
+        contact_email: entry.email,
         minegram_registration_pending: true,
         minegram_registration_code: entry.code,
         minegram_registration_expires: entry.expires
@@ -637,7 +648,8 @@ function registrationEntryFromAuthUser(user) {
   return {
     code,
     userId: user.id,
-    email: normalizeEmail(user.email),
+    email: normalizeEmail(meta.contact_email || user.email),
+    authEmail: normalizeEmail(user.email),
     expires,
     attempts: 0,
     username: normalizeUsername(meta.username),
@@ -645,17 +657,24 @@ function registrationEntryFromAuthUser(user) {
   };
 }
 
-async function findPendingRegistration(admin, email) {
+async function findPendingRegistration(admin, email, username = "") {
   const wanted = normalizeEmail(email);
+  const wantedUsername = normalizeUsername(username);
   for (let page = 1; page <= 20; page++) {
     const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (result?.error) throw result.error;
     const users = result?.data?.users || [];
-    const user = users.find(u => normalizeEmail(u?.email) === wanted);
+    const user = users.find(u => {
+      const meta = u?.user_metadata || {};
+      const contact = normalizeEmail(meta.contact_email || "");
+      const un = normalizeUsername(meta.username || "");
+      if (wantedUsername) return contact === wanted && un === wantedUsername;
+      return contact === wanted && meta.minegram_registration_pending === true;
+    });
     if (user) {
       const entry = registrationEntryFromAuthUser(user);
       if (entry) {
-        registrationCodes.set(registrationKey(wanted), entry);
+        registrationCodes.set(registrationKey(wanted, entry.username), entry);
         return entry;
       }
       return null;
@@ -776,12 +795,13 @@ app.post(
         });
       }
 
-      if (!registrationAllowed(email)) {
+      const registrationRateKey = registrationKey(email, username);
+      if (!registrationAllowed(registrationRateKey)) {
         return res.status(429).json({
           ok: false,
           code: "CODE_RATE_LIMIT",
           error:
-            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle."
+            "Bu hesap için yeni kod göndermek üzere 60 saniye bekle."
         });
       }
 
@@ -820,76 +840,32 @@ app.post(
         });
       }
 
-      /* E-posta kontrolü */
-      try {
-        let emailAlreadyExists = false;
-
-        for (let page = 1; page <= 20; page++) {
-          const result =
-            await admin.auth.admin.listUsers({
-              page,
-              perPage: 1000
-            });
-
-          const users =
-            result?.data?.users || [];
-
-          if (result?.error) {
-            console.error(
-              "EMAIL CHECK ERROR:",
-              result.error
-            );
-            break;
-          }
-
-          if (
-            users.some(
-              u =>
-                normalizeEmail(u?.email) === email
-            )
-          ) {
-            emailAlreadyExists = true;
-            break;
-          }
-
-          if (users.length < 1000) {
-            break;
-          }
-        }
-
-        if (emailAlreadyExists) {
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_TAKEN",
-            error:
-              "Bu e-posta adresi zaten kullanılıyor."
-          });
-        }
-      } catch (emailCheckError) {
-        console.error(
-          "EMAIL PRECHECK ERROR:",
-          emailCheckError?.message ||
-            emailCheckError
-        );
-      }
+      /*
+       * E-posta artık benzersiz olmak zorunda değil.
+       * Supabase Auth benzersiz e-posta istediği için aşağıda gerçek
+       * e-postayı değil, hesap için benzersiz bir teknik Auth e-postası
+       * kullanıyoruz. Gerçek e-posta user_metadata.contact_email'dadır.
+       */
 
       /*
-       * ÖNEMLİ:
        * Supabase'in kendi confirmation mailini kullanmıyoruz.
        * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Resend ile biz gönderiyoruz.
+       * 6 haneli kodu gerçek e-posta adresine Resend ile biz gönderiyoruz.
        */
+      const authEmail = createAuthEmail(username);
+
       const {
         data: created,
         error: createError
       } =
         await admin.auth.admin.createUser({
-          email,
+          email: authEmail,
           password,
           email_confirm: false,
           user_metadata: {
             username,
-            display_name: displayName
+            display_name: displayName,
+            contact_email: email
           }
         });
 
@@ -935,36 +911,103 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
-      const {
-        data: profile,
-        error: profileError
-      } =
-        await admin
+      /* =====================================================
+         PROFİL OLUŞTUR
+         Şema farklılıklarına karşı güvenli/uyumlu ekleme.
+         Aynı e-posta ile birden fazla hesap açılabildiği için
+         profil kaydında e-posta benzersizliği kullanılmaz.
+      ===================================================== */
+      let profile = null;
+      let profileError = null;
+
+      const profileAttempts = [
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        },
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false
+        },
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName
+        },
+        {
+          id: authUser.id,
+          username,
+          display_name: displayName
+        }
+      ];
+
+      for (const profileData of profileAttempts) {
+        const result = await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .insert(profileData)
           .select("*")
           .single();
 
-      if (profileError) {
+        if (!result.error && result.data) {
+          profile = result.data;
+          profileError = null;
+          break;
+        }
+
+        profileError = result.error;
         console.error(
-          "PROFILE CREATE ERROR:",
+          "PROFILE CREATE ATTEMPT ERROR:",
+          profileError
+        );
+
+        /* Eğer kayıt zaten oluştuysa tekrar eklemeye çalışma. */
+        const existing = await admin
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", authUser.id)
+          .maybeSingle();
+
+        if (!existing.error && existing.data) {
+          profile = existing.data;
+          profileError = null;
+          break;
+        }
+      }
+
+      /* Eski şemalarda auth_user_id bulunmayabilir. */
+      if (!profile) {
+        const legacyResult = await admin
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (!legacyResult.error && legacyResult.data) {
+          profile = legacyResult.data;
+          profileError = null;
+        }
+      }
+
+      if (profileError || !profile) {
+        console.error(
+          "PROFILE CREATE FINAL ERROR:",
           profileError
         );
 
         try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
+          await admin.auth.admin.deleteUser(authUser.id);
         } catch (cleanupError) {
           console.error(
             "AUTH CLEANUP ERROR:",
@@ -977,7 +1020,9 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
+          error:
+            "Profil oluşturulamadı. Supabase profiles tablosunda gerekli alanlar eksik veya tablo yapısı uyumsuz.",
+          detail: profileError?.message || null
         });
       }
 
@@ -986,12 +1031,14 @@ app.post(
        */
       const code = createVerificationCode();
 
+      const regKey = registrationKey(email, username);
       registrationCodes.set(
-        registrationKey(email),
+        regKey,
         {
           code,
           userId: authUser.id,
           email,
+          authEmail: authUser.email,
           expires: Date.now() + 10 * 60 * 1000,
           attempts: 0,
           username,
@@ -999,10 +1046,10 @@ app.post(
         }
       );
 
-      await persistRegistrationCode(admin, registrationCodes.get(registrationKey(email)));
+      await persistRegistrationCode(admin, registrationCodes.get(regKey));
 
       registrationRate.set(
-        registrationKey(email),
+        regKey,
         Date.now()
       );
 
@@ -1018,7 +1065,7 @@ app.post(
         );
 
         registrationCodes.delete(
-          registrationKey(email)
+          regKey
         );
 
         try {
@@ -1100,6 +1147,9 @@ app.post(
       const email =
         normalizeEmail(req.body?.email);
 
+      const username =
+        normalizeUsername(req.body?.username);
+
       const code =
         String(req.body?.code || "")
           .replace(/\D/g, "")
@@ -1121,7 +1171,7 @@ app.post(
       }
 
       const key =
-        registrationKey(email);
+        registrationKey(email, username);
 
       let entry = registrationCodes.get(key);
 
@@ -1129,7 +1179,7 @@ app.post(
       // içinden geri yükleyerek doğrulamayı bozmadan devam ettir.
       if (!entry) {
         const admin = adminClient();
-        entry = await findPendingRegistration(admin, email);
+        entry = await findPendingRegistration(admin, email, username);
       }
 
       if (!entry) {
@@ -1208,6 +1258,9 @@ app.post(
       try {
         await admin.auth.admin.updateUserById(entry.userId, {
           user_metadata: {
+            username: entry.username,
+            display_name: entry.displayName,
+            contact_email: entry.email,
             minegram_registration_pending: false,
             minegram_registration_code: null,
             minegram_registration_expires: null
@@ -1227,7 +1280,7 @@ app.post(
         error: loginError
       } =
         await anon.auth.signInWithPassword({
-          email: entry.email,
+          email: entry.authEmail || entry.email,
           password: String(
             req.body?.password || ""
           )
@@ -1297,6 +1350,9 @@ app.post(
       const email =
         normalizeEmail(req.body?.email);
 
+      const username =
+        normalizeUsername(req.body?.username);
+
       if (!email) {
         return res.status(400).json({
           ok: false,
@@ -1305,7 +1361,7 @@ app.post(
       }
 
       const key =
-        registrationKey(email);
+        registrationKey(email, username);
 
       let entry = registrationCodes.get(key);
 
@@ -1313,7 +1369,7 @@ app.post(
       // Supabase Auth metadata içinden bekleyen kaydı geri yükle.
       if (!entry) {
         const admin = adminClient();
-        entry = await findPendingRegistration(admin, email);
+        entry = await findPendingRegistration(admin, email, username);
       }
 
       if (!entry) {
@@ -1324,7 +1380,7 @@ app.post(
         });
       }
 
-      if (!registrationAllowed(email)) {
+      if (!registrationAllowed(key)) {
         return res.status(429).json({
           ok: false,
           error:
@@ -2229,7 +2285,10 @@ async function resolveRecoveryEmail(
     }
 
     email =
-      authUser.email;
+      normalizeEmail(
+        authUser?.user_metadata?.contact_email ||
+        authUser.email
+      );
 
     const {
       data
@@ -2296,11 +2355,14 @@ async function resolveRecoveryEmail(
       return null;
     }
 
-    email =
-      data.user.email;
-
     authUser =
       data.user;
+
+    email =
+      normalizeEmail(
+        authUser?.user_metadata?.contact_email ||
+        authUser.email
+      );
   }
 
   if (!profile) {
