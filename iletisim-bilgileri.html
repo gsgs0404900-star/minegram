@@ -1,22 +1,13 @@
 <!DOCTYPE html>
-
 <html lang="tr">
-
 <head>
 <meta charset="UTF-8">
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-
->
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 
 <title>Minegram - İletişim Bilgileri</title>
 
 <style>
-
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
@@ -35,6 +26,7 @@ body{
 
 body{
     min-height:100vh;
+    overflow-x:hidden;
 }
 
 .page{
@@ -212,157 +204,116 @@ body{
     .description{
         font-size:12px;
     }
-
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div class="page">
 
-<div class="box">
+    <div class="box">
 
-<div class="header">
+        <div class="header">
 
-<div
-    id="topBack"
-    class="back"
-    role="button"
-    tabindex="0"
-    aria-label="Geri"
->
-    ‹
-</div>
+            <div
+                id="topBack"
+                class="back"
+                role="button"
+                tabindex="0"
+                aria-label="Geri"
+            >‹</div>
 
-<div class="header-title">
-    Kayıt ol
-</div>
+            <div class="header-title">
+                Kayıt ol
+            </div>
 
-</div>
+        </div>
 
-<h1 class="title">
-    İletişim bilgini ekle
-</h1>
+        <h1 class="title">
+            İletişim bilgini ekle
+        </h1>
 
-<p class="description">
-    Hesabını doğrulamak için e-posta adresini<br>
-    kullan.
-</p>
+        <p class="description">
+            Hesabını doğrulamak için e-posta adresini<br>
+            kullan.
+        </p>
 
-<div class="tabs">
+        <div class="tabs">
 
-<button
-id="emailTab"
-class="tab email"
-type="button"
+            <button
+                id="emailTab"
+                class="tab email"
+                type="button"
+            >
+                E-posta
+            </button>
 
->
+            <button
+                id="phoneTab"
+                class="tab phone"
+                type="button"
+            >
+                Telefon
+            </button>
 
-```
-E-posta
-```
+        </div>
 
-</button>
+        <input
+            id="contact"
+            class="input"
+            type="email"
+            autocomplete="email"
+            placeholder="E-posta adresi"
+            maxlength="254"
+        >
 
-<button
-id="phoneTab"
-class="tab phone"
-type="button"
+        <div id="note" class="note">
+            Devam ettiğinde e-posta adresine
+            6 haneli doğrulama kodu gönderilir.
+        </div>
 
->
+        <div id="status" class="status"></div>
 
-```
-Telefon
-```
+        <div class="bottom">
 
-</button>
+            <button
+                id="backBtn"
+                class="action back-btn"
+                type="button"
+            >
+                Geri
+            </button>
 
-</div>
+            <button
+                id="nextBtn"
+                class="action next-btn"
+                type="button"
+            >
+                İleri
+            </button>
 
-<input
-id="contact"
-class="input"
-type="email"
-autocomplete="email"
-placeholder="E-posta adresi"
+        </div>
 
->
+    </div>
 
-<div id="note" class="note">
-    Devam ettiğinde e-posta adresine
-    6 haneli doğrulama kodu gönderilir.
-</div>
-
-<div id="status" class="status"></div>
-
-<div class="bottom">
-
-<button
-id="backBtn"
-class="action back-btn"
-type="button"
-
->
-
-```
-Geri
-```
-
-</button>
-
-<button
-id="nextBtn"
-class="action next-btn"
-type="button"
-
->
-
-```
-İleri
-```
-
-</button>
-
-</div>
-
-</div>
 </div>
 
 <script>
-
 "use strict";
 
 /* =========================================================
    ELEMENTLER
 ========================================================= */
 
-const emailTab =
-    document.getElementById("emailTab");
-
-const phoneTab =
-    document.getElementById("phoneTab");
-
-const contact =
-    document.getElementById("contact");
-
-const note =
-    document.getElementById("note");
-
-const status =
-    document.getElementById("status");
-
-const nextBtn =
-    document.getElementById("nextBtn");
-
-const backBtn =
-    document.getElementById("backBtn");
-
-const topBack =
-    document.getElementById("topBack");
-
+const emailTab = document.getElementById("emailTab");
+const phoneTab = document.getElementById("phoneTab");
+const contact = document.getElementById("contact");
+const note = document.getElementById("note");
+const status = document.getElementById("status");
+const nextBtn = document.getElementById("nextBtn");
+const backBtn = document.getElementById("backBtn");
+const topBack = document.getElementById("topBack");
 
 let mode = "email";
 let busy = false;
@@ -373,9 +324,7 @@ let busy = false;
 ========================================================= */
 
 const params =
-    new URLSearchParams(
-        window.location.search
-    );
+    new URLSearchParams(window.location.search);
 
 
 /* =========================================================
@@ -449,92 +398,71 @@ function showStatus(
 
 
 /* =========================================================
-   EMAIL
+   SEKME
 ========================================================= */
+
+function selectEmail(){
+
+    mode = "email";
+
+    emailTab.style.background = "#554f67";
+    emailTab.style.borderColor = "#554f67";
+    emailTab.style.color = "#eee8fa";
+
+    phoneTab.style.background = "#000";
+    phoneTab.style.borderColor = "#292929";
+    phoneTab.style.color = "#fff";
+
+    contact.type = "email";
+    contact.autocomplete = "email";
+    contact.placeholder = "E-posta adresi";
+
+    note.textContent =
+        "Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.";
+
+    showStatus("");
+
+    const savedEmail =
+        sessionStorage.getItem(
+            "minegram_register_email"
+        );
+
+    if(savedEmail){
+
+        contact.value =
+            savedEmail;
+
+    }
+}
+
 
 emailTab.addEventListener(
     "click",
-    function(){
-
-        mode = "email";
-
-        emailTab.style.background =
-            "#554f67";
-
-        emailTab.style.borderColor =
-            "#554f67";
-
-        emailTab.style.color =
-            "#eee8fa";
-
-        phoneTab.style.background =
-            "#000";
-
-        phoneTab.style.borderColor =
-            "#292929";
-
-        phoneTab.style.color =
-            "#fff";
-
-        contact.type =
-            "email";
-
-        contact.autocomplete =
-            "email";
-
-        contact.placeholder =
-            "E-posta adresi";
-
-        note.textContent =
-            "Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.";
-
-        showStatus("");
-
-    }
+    selectEmail
 );
 
 
 /* =========================================================
-   PHONE
+   TELEFON
 ========================================================= */
 
 phoneTab.addEventListener(
     "click",
     function(){
 
-        mode = "phone";
+        /*
+         * Telefon sistemi henüz server tarafında
+         * aktif olmadığı için kayıt akışını
+         * yanlışlıkla telefona çevirmiyoruz.
+         */
 
-        phoneTab.style.background =
-            "#554f67";
+        selectEmail();
 
-        phoneTab.style.borderColor =
-            "#554f67";
+        showStatus(
+            "Şimdilik yalnızca e-posta ile doğrulama yapılabilir."
+        );
 
-        phoneTab.style.color =
-            "#eee8fa";
-
-        emailTab.style.background =
-            "#000";
-
-        emailTab.style.borderColor =
-            "#292929";
-
-        emailTab.style.color =
-            "#fff";
-
-        contact.type =
-            "tel";
-
-        contact.autocomplete =
-            "tel";
-
-        contact.placeholder =
-            "Telefon numarası";
-
-        note.textContent =
-            "Telefon doğrulaması henüz aktif değil. E-posta seçeneğini kullan.";
-
-        showStatus("");
+        contact.focus();
 
     }
 );
@@ -546,9 +474,12 @@ phoneTab.addEventListener(
 
 function goBack(){
 
-    window.location.href =
+    const url =
         "./sifre-olustur.html?username=" +
         encodeURIComponent(username);
+
+    window.location.href =
+        url;
 
 }
 
@@ -585,134 +516,110 @@ topBack.addEventListener(
 
 
 /* =========================================================
-   KAYIT OL + OTP GÖNDER
+   E-POSTA DOĞRULAMA
 ========================================================= */
 
-async function registerAccount(email){
+function validEmail(email){
 
-    try{
-
-        console.log(
-            "[MINEGRAM] Kayıt başlatılıyor..."
-        );
-
-        console.log(
-            "[MINEGRAM] Username:",
-            username
-        );
-
-        console.log(
-            "[MINEGRAM] Email:",
-            email
-        );
-
-        /*
-         * ŞİFREYİ BURADA SERVER'A GÖNDERİYORUZ.
-         *
-         * server.js:
-         * POST /api/register
-         */
-
-        const response =
-            await fetch(
-                "/api/register",
-                {
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json",
-
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            username:
-                                username,
-
-                            email:
-                                email,
-
-                            password:
-                                password,
-
-                            displayName:
-                                username
-
-                        })
-                }
-            );
-
-
-        let result = null;
-
-
-        try{
-
-            result =
-                await response.json();
-
-        }
-        catch(error){
-
-            console.error(
-                "[MINEGRAM] JSON cevap okunamadı:",
-                error
-            );
-
-        }
-
-
-        console.log(
-            "[MINEGRAM] /api/register cevabı:",
-            result
-        );
-
-
-        if(!response.ok){
-
-            throw new Error(
-                result?.error ||
-                result?.message ||
-                "Kayıt sırasında sunucu hatası oluştu."
-            );
-
-        }
-
-
-        if(!result?.ok){
-
-            throw new Error(
-                result?.error ||
-                result?.message ||
-                "Kayıt başarısız."
-            );
-
-        }
-
-
-        return result;
-
-    }
-    catch(error){
-
-        console.error(
-            "[MINEGRAM] REGISTER HATASI:",
-            error
-        );
-
-        throw error;
-
-    }
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
+    );
 
 }
 
 
 /* =========================================================
-   NEXT
+   REGISTER API
+========================================================= */
+
+async function registerAccount(email){
+
+    const response =
+        await fetch(
+            "/api/register",
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                        "application/json",
+
+                    "Accept":
+                        "application/json"
+                },
+
+                body:JSON.stringify({
+
+                    username:
+                        username,
+
+                    email:
+                        email,
+
+                    password:
+                        password,
+
+                    displayName:
+                        username
+
+                }),
+
+                cache:"no-store"
+            }
+        );
+
+
+    let result = {};
+
+    try{
+
+        result =
+            await response.json();
+
+    }
+    catch(error){
+
+        result = {};
+
+    }
+
+
+    console.log(
+        "[MINEGRAM REGISTER]",
+        response.status,
+        result
+    );
+
+
+    if(!response.ok){
+
+        throw new Error(
+            result.error ||
+            result.message ||
+            "Kayıt sırasında bir hata oluştu."
+        );
+
+    }
+
+
+    if(result.ok === false){
+
+        throw new Error(
+            result.error ||
+            result.message ||
+            "Kayıt başarısız."
+        );
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   İLERİ
 ========================================================= */
 
 async function goNext(){
@@ -724,24 +631,9 @@ async function goNext(){
     }
 
 
-    /* =====================================================
-       TELEFON
-    ===================================================== */
-
-    if(mode === "phone"){
-
-        showStatus(
-            "Telefon doğrulaması henüz aktif değil. E-posta seçeneğini kullan."
-        );
-
-        return;
-
-    }
-
-
-    /* =====================================================
+    /* -----------------------------------------------------
        USERNAME
-    ===================================================== */
+    ----------------------------------------------------- */
 
     if(!username){
 
@@ -754,14 +646,14 @@ async function goNext(){
     }
 
 
-    /* =====================================================
+    /* -----------------------------------------------------
        PASSWORD
-    ===================================================== */
+    ----------------------------------------------------- */
 
     if(!password){
 
         showStatus(
-            "Şifre bulunamadı. Lütfen şifre oluşturma adımına geri dön."
+            "Şifre bulunamadı. Lütfen geri dönüp şifreni oluştur."
         );
 
         return;
@@ -780,14 +672,27 @@ async function goNext(){
     }
 
 
-    /* =====================================================
+    /* -----------------------------------------------------
+       MODE
+    ----------------------------------------------------- */
+
+    if(mode !== "email"){
+
+        selectEmail();
+
+    }
+
+
+    /* -----------------------------------------------------
        EMAIL
-    ===================================================== */
+    ----------------------------------------------------- */
 
     const email =
-        contact.value
-            .trim()
-            .toLowerCase();
+        String(
+            contact.value || ""
+        )
+        .trim()
+        .toLowerCase();
 
 
     if(!email){
@@ -803,11 +708,7 @@ async function goNext(){
     }
 
 
-    const validEmail =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-
-    if(!validEmail.test(email)){
+    if(!validEmail(email)){
 
         showStatus(
             "Geçerli bir e-posta adresi gir."
@@ -820,9 +721,14 @@ async function goNext(){
     }
 
 
-    /* =====================================================
+    /* -----------------------------------------------------
        SESSION
-    ===================================================== */
+    ----------------------------------------------------- */
+
+    sessionStorage.setItem(
+        "minegram_register_username",
+        username
+    );
 
     sessionStorage.setItem(
         "minegram_register_email",
@@ -839,20 +745,14 @@ async function goNext(){
         "true"
     );
 
-    sessionStorage.setItem(
-        "minegram_register_username",
-        username
-    );
 
-
-    /* =====================================================
+    /* -----------------------------------------------------
        BUTON
-    ===================================================== */
+    ----------------------------------------------------- */
 
     busy = true;
 
-    nextBtn.disabled =
-        true;
+    nextBtn.disabled = true;
 
     nextBtn.textContent =
         "Kayıt yapılıyor...";
@@ -864,11 +764,11 @@ async function goNext(){
     );
 
 
-    /* =====================================================
-       REGISTER
-    ===================================================== */
-
     try{
+
+        /* -------------------------------------------------
+           SERVER'A KAYIT
+        ------------------------------------------------- */
 
         const result =
             await registerAccount(
@@ -876,51 +776,46 @@ async function goNext(){
             );
 
 
-        /*
-         * SERVER:
-         * Kullanıcı oluşturuldu
-         * Profil oluşturuldu
-         * OTP oluşturuldu
-         * E-posta gönderildi
-         */
+        /* -------------------------------------------------
+           SERVER'DAN GELEN E-POSTA
+        ------------------------------------------------- */
+
+        const serverEmail =
+            String(
+                result?.email ||
+                email
+            )
+            .trim()
+            .toLowerCase();
+
+
+        sessionStorage.setItem(
+            "minegram_register_email",
+            serverEmail
+        );
+
+        sessionStorage.setItem(
+            "minegram_otp_email",
+            serverEmail
+        );
+
+
+        /* -------------------------------------------------
+           BAŞARILI
+        ------------------------------------------------- */
 
         showStatus(
             "Kod gönderildi. E-postanı kontrol et.",
             true
         );
 
-
         nextBtn.textContent =
             "Kod gönderildi";
 
 
-        /*
-         * Server'ın döndürdüğü e-postayı
-         * de saklayalım.
-         */
-
-        if(result?.email){
-
-            sessionStorage.setItem(
-                "minegram_register_email",
-                String(result.email)
-                    .trim()
-                    .toLowerCase()
-            );
-
-            sessionStorage.setItem(
-                "minegram_otp_email",
-                String(result.email)
-                    .trim()
-                    .toLowerCase()
-            );
-
-        }
-
-
-        /* =================================================
+        /* -------------------------------------------------
            DOĞRULAMA SAYFASI
-        ================================================= */
+        ------------------------------------------------- */
 
         setTimeout(
             function(){
@@ -929,12 +824,11 @@ async function goNext(){
                     "./hesap-doğrulama.html?username=" +
                     encodeURIComponent(username) +
                     "&email=" +
-                    encodeURIComponent(email);
+                    encodeURIComponent(serverEmail);
 
             },
             700
         );
-
 
     }
     catch(error){
@@ -944,17 +838,19 @@ async function goNext(){
             error
         );
 
+
         busy = false;
 
-        nextBtn.disabled =
-            false;
+        nextBtn.disabled = false;
 
         nextBtn.textContent =
             "İleri";
 
+
         sessionStorage.removeItem(
             "minegram_otp_pending"
         );
+
 
         showStatus(
             error?.message ||
@@ -967,7 +863,7 @@ async function goNext(){
 
 
 /* =========================================================
-   NEXT BUTTON
+   BUTON
 ========================================================= */
 
 nextBtn.addEventListener(
@@ -1015,16 +911,14 @@ if(savedEmail){
 
 
 /* =========================================================
-   READY
+   SAYFA AÇILIŞI
 ========================================================= */
 
-console.log(
-    "[MINEGRAM] İletişim sayfası hazır."
-);
+selectEmail();
+
 
 console.log(
-    "[MINEGRAM] Kayıt endpoint:",
-    "/api/register"
+    "[MINEGRAM] İletişim bilgileri hazır."
 );
 
 console.log(
@@ -1033,8 +927,10 @@ console.log(
 );
 
 console.log(
-    "[MINEGRAM] Password mevcut:",
+    "[MINEGRAM] Password:",
     password.length >= 6
+        ? "HAZIR"
+        : "YOK"
 );
 
 </script>
