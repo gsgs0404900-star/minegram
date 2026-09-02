@@ -5,6 +5,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  auth_user_id uuid references auth.users(id) on delete cascade,
   username text not null unique check (username = lower(username)),
   display_name text not null default '',
   bio text not null default '',
@@ -81,6 +82,15 @@ create index if not exists notifications_user_id_idx on public.notifications(use
 create index if not exists messages_pair_idx on public.messages(sender_id, recipient_id, created_at);
 create index if not exists follows_following_idx on public.follows(following_id);
 
+-- Compatibility column for the Minegram backend.
+alter table public.profiles
+  add column if not exists auth_user_id uuid references auth.users(id) on delete cascade;
+
+-- Existing profiles are their own Auth users.
+update public.profiles
+set auth_user_id = id
+where auth_user_id is null;
+
 -- Create a profile automatically when Supabase Auth creates a user.
 create or replace function public.handle_new_user()
 returns trigger
@@ -100,8 +110,8 @@ begin
     requested_username := requested_username || '_' || substr(replace(new.id::text, '-', ''), 1, 6);
   end if;
 
-  insert into public.profiles (id, username, display_name)
-  values (new.id, requested_username, requested_display)
+  insert into public.profiles (id, auth_user_id, username, display_name)
+  values (new.id, new.id, requested_username, requested_display)
   on conflict (id) do nothing;
   return new;
 end;
