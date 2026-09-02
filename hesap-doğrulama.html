@@ -2,12 +2,13 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#000000">
 
 <title>E-posta Kontrol Et - Minegram</title>
 
 <style>
+
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
@@ -35,6 +36,7 @@ body{
     background:#000;
 }
 
+
 /* =========================
    ÜST BAR
 ========================= */
@@ -50,6 +52,7 @@ body{
 .back{
     width:25px;
     height:35px;
+
     display:flex;
     align-items:center;
     justify-content:center;
@@ -70,6 +73,7 @@ body{
     color:#fff;
 }
 
+
 /* =========================
    İÇERİK
 ========================= */
@@ -78,6 +82,11 @@ body{
     width:317px;
     margin:115px auto 0;
 }
+
+
+/* =========================
+   BAŞLIK
+========================= */
 
 .title{
     text-align:center;
@@ -90,38 +99,20 @@ body{
     color:#fff;
 }
 
+
+/* =========================
+   AÇIKLAMA
+========================= */
+
 .description{
     font-size:18px;
     line-height:1.45;
 
     color:#bdbdbd;
 
-    margin:0 0 18px;
+    margin:0 0 65px;
 }
 
-/* =========================
-   E-POSTA BİLGİSİ
-========================= */
-
-.email-info{
-    width:100%;
-    min-height:42px;
-
-    padding:11px 12px;
-    margin-bottom:45px;
-
-    border:1px solid #252525;
-    border-radius:7px;
-
-    background:#050505;
-
-    color:#fff;
-
-    font-size:13px;
-    line-height:1.4;
-
-    word-break:break-word;
-}
 
 /* =========================
    KOD
@@ -161,6 +152,7 @@ body{
     box-shadow:
         0 0 0 1px #2677b5;
 }
+
 
 /* =========================
    DOĞRULA
@@ -203,6 +195,7 @@ body{
     cursor:not-allowed;
 }
 
+
 /* =========================
    TEKRAR GÖNDER
 ========================= */
@@ -238,6 +231,7 @@ body{
     cursor:not-allowed;
 }
 
+
 /* =========================
    MESAJ
 ========================= */
@@ -262,6 +256,7 @@ body{
 .message.error{
     color:#ff5c5c;
 }
+
 
 /* =========================
    MOBİL
@@ -299,13 +294,7 @@ body{
     .description{
         font-size:21px;
         line-height:1.5;
-        margin-bottom:18px;
-    }
-
-    .email-info{
-        font-size:16px;
-        padding:14px;
-        margin-bottom:40px;
+        margin-bottom:55px;
     }
 
     .code-input{
@@ -350,7 +339,9 @@ body{
     .message{
         font-size:14px;
     }
+
 }
+
 
 /* =========================
    KÜÇÜK TELEFON
@@ -371,12 +362,11 @@ body{
         font-size:20px;
     }
 
-    .email-info{
-        font-size:15px;
-    }
 }
+
 </style>
 </head>
+
 
 <body>
 
@@ -395,7 +385,7 @@ body{
         </div>
 
         <div class="top-title">
-            Hesabını doğrula
+            Şifremi unuttum
         </div>
 
     </div>
@@ -410,16 +400,9 @@ body{
         </h1>
 
         <p class="description">
-            Hesabını doğrulamak için e-posta adresine
+            Hesabını onaylamak için e-posta adresine
             gönderilen 6 haneli kodu aşağıya gir.
         </p>
-
-        <div
-            id="emailInfo"
-            class="email-info"
-        >
-            E-posta adresine doğrulama kodu gönderildi.
-        </div>
 
 
         <input
@@ -464,32 +447,8 @@ body{
 
 
 <script>
+
 "use strict";
-
-/* =====================================================
-   AYARLAR
-===================================================== */
-
-const REGISTER_USERNAME_KEY =
-    "minegram_register_username";
-
-const REGISTER_PASSWORD_KEY =
-    "minegram_register_password";
-
-const REGISTER_EMAIL_KEY =
-    "minegram_register_email";
-
-const REGISTER_PHONE_KEY =
-    "minegram_register_phone";
-
-const REGISTER_DISPLAY_NAME_KEY =
-    "minegram_register_display_name";
-
-const REGISTER_MODE_KEY =
-    "minegram_register_mode";
-
-const REGISTER_PENDING_KEY =
-    "minegram_register_pending";
 
 
 /* =====================================================
@@ -553,7 +512,7 @@ function showMessage(text,type){
 
 
 /* =====================================================
-   KAYIT BİLGİLERİNİ AL
+   KAYIT BİLGİLERİ
 ===================================================== */
 
 function getRegisterData(){
@@ -561,10 +520,10 @@ function getRegisterData(){
     const username =
         (
             sessionStorage.getItem(
-                REGISTER_USERNAME_KEY
+                "minegram_register_username"
             ) ||
             localStorage.getItem(
-                REGISTER_USERNAME_KEY
+                "minegram_register_username"
             ) ||
             ""
         )
@@ -575,10 +534,10 @@ function getRegisterData(){
     const email =
         (
             sessionStorage.getItem(
-                REGISTER_EMAIL_KEY
+                "minegram_register_email"
             ) ||
             localStorage.getItem(
-                REGISTER_EMAIL_KEY
+                "minegram_register_email"
             ) ||
             ""
         )
@@ -589,10 +548,10 @@ function getRegisterData(){
     const phone =
         (
             sessionStorage.getItem(
-                REGISTER_PHONE_KEY
+                "minegram_register_phone"
             ) ||
             localStorage.getItem(
-                REGISTER_PHONE_KEY
+                "minegram_register_phone"
             ) ||
             ""
         )
@@ -602,10 +561,10 @@ function getRegisterData(){
     const displayName =
         (
             sessionStorage.getItem(
-                REGISTER_DISPLAY_NAME_KEY
+                "minegram_register_display_name"
             ) ||
             localStorage.getItem(
-                REGISTER_DISPLAY_NAME_KEY
+                "minegram_register_display_name"
             ) ||
             username
         )
@@ -615,10 +574,10 @@ function getRegisterData(){
     const mode =
         (
             sessionStorage.getItem(
-                REGISTER_MODE_KEY
+                "minegram_register_mode"
             ) ||
             localStorage.getItem(
-                REGISTER_MODE_KEY
+                "minegram_register_mode"
             ) ||
             "email"
         )
@@ -637,7 +596,7 @@ function getRegisterData(){
 
 
 /* =====================================================
-   E-POSTA GÖSTER
+   E-POSTAYI GÖSTER
 ===================================================== */
 
 function maskEmail(email){
@@ -678,7 +637,7 @@ function maskEmail(email){
 
 
 /* =====================================================
-   KOD DOĞRULAMA
+   KODU DOĞRULA
 ===================================================== */
 
 async function verifyCode(){
@@ -696,8 +655,7 @@ async function verifyCode(){
 
 
     const code =
-        input.value
-            .trim();
+        input.value.trim();
 
 
     if(!/^\d{6}$/.test(code)){
@@ -720,7 +678,7 @@ async function verifyCode(){
     if(!register.username){
 
         showMessage(
-            "Kullanıcı bilgisi bulunamadı. Lütfen kayıt işlemine yeniden başla.",
+            "Kayıt bilgileri bulunamadı. Lütfen kayıt işlemine yeniden başla.",
             "error"
         );
 
@@ -748,16 +706,12 @@ async function verifyCode(){
         };
 
 
-        /*
-         * Backend'in beklediği alanları
-         * mümkün olduğunca eksiksiz gönderiyoruz.
-         */
-
         if(register.email){
 
             body.email =
                 register.email;
         }
+
 
         if(register.phone){
 
@@ -824,41 +778,8 @@ async function verifyCode(){
 
 
         /*
-         * Başarılı doğrulama.
-         *
-         * Backend bazı sürümlerde token/session
-         * döndürebilir. Varsa saklıyoruz.
+         * Doğrulama başarılı.
          */
-
-        if(data.token){
-
-            sessionStorage.setItem(
-                "minegram_register_token",
-                data.token
-            );
-        }
-
-        if(data.access_token){
-
-            sessionStorage.setItem(
-                "minegram_register_access_token",
-                data.access_token
-            );
-        }
-
-        if(data.user){
-
-            try{
-
-                sessionStorage.setItem(
-                    "minegram_register_user",
-                    JSON.stringify(data.user)
-                );
-
-            }
-            catch(_){}
-        }
-
 
         sessionStorage.setItem(
             "minegram_register_verified",
@@ -881,6 +802,15 @@ async function verifyCode(){
         }
 
 
+        if(register.phone){
+
+            sessionStorage.setItem(
+                "minegram_register_phone",
+                register.phone
+            );
+        }
+
+
         if(register.displayName){
 
             sessionStorage.setItem(
@@ -890,17 +820,40 @@ async function verifyCode(){
         }
 
 
-        /*
-         * Artık kayıt doğrulandı.
-         */
+        if(data.token){
 
-        sessionStorage.removeItem(
-            REGISTER_PENDING_KEY
-        );
+            sessionStorage.setItem(
+                "minegram_register_token",
+                data.token
+            );
+        }
+
+
+        if(data.access_token){
+
+            sessionStorage.setItem(
+                "minegram_register_access_token",
+                data.access_token
+            );
+        }
+
+
+        if(data.user){
+
+            try{
+
+                sessionStorage.setItem(
+                    "minegram_register_user",
+                    JSON.stringify(data.user)
+                );
+
+            }
+            catch(_){}
+        }
 
 
         showMessage(
-            "E-posta doğrulandı. Profil oluşturma sayfasına geçiliyor...",
+            "Kod doğrulandı. Profil oluşturma sayfasına geçiliyor...",
             "success"
         );
 
@@ -910,7 +863,7 @@ async function verifyCode(){
 
 
         /*
-         * PROFİL OLUŞTURMA
+         * KAYIT AKIŞININ SONRAKİ ADIMI
          */
 
         setTimeout(
@@ -945,6 +898,7 @@ async function verifyCode(){
         button.textContent =
             "Kodu doğrula";
     }
+
 }
 
 
@@ -972,7 +926,7 @@ async function resendCode(){
     if(!register.username){
 
         showMessage(
-            "Kayıt bilgileri bulunamadı. Lütfen kayıt işlemini yeniden başlat.",
+            "Kayıt bilgileri bulunamadı. Lütfen kayıt işlemine yeniden başla.",
             "error"
         );
 
@@ -1071,7 +1025,7 @@ async function resendCode(){
         if(data.email){
 
             sessionStorage.setItem(
-                REGISTER_EMAIL_KEY,
+                "minegram_register_email",
                 data.email
             );
         }
@@ -1084,8 +1038,7 @@ async function resendCode(){
 
 
         /*
-         * Spam/çok hızlı tekrar gönderimi önlemek için
-         * 60 saniyelik sayaç.
+         * 60 saniye bekleme.
          */
 
         let seconds = 60;
@@ -1102,6 +1055,7 @@ async function resendCode(){
                 function(){
 
                     seconds--;
+
 
                     if(seconds <= 0){
 
@@ -1148,6 +1102,7 @@ async function resendCode(){
         button.textContent =
             "Kodu tekrar gönder";
     }
+
 }
 
 
@@ -1163,41 +1118,15 @@ document.addEventListener(
             getRegisterData();
 
 
-        const emailInfo =
-            document.getElementById(
-                "emailInfo"
-            );
-
-
-        if(emailInfo){
-
-            if(register.email){
-
-                emailInfo.textContent =
-                    maskEmail(register.email) +
-                    " adresine 6 haneli doğrulama kodu gönderildi.";
-
-            }
-            else if(register.phone){
-
-                emailInfo.textContent =
-                    register.phone +
-                    " numarasına doğrulama kodu gönderildi.";
-
-            }
-            else{
-
-                emailInfo.textContent =
-                    "İletişim adresine 6 haneli doğrulama kodu gönderildi.";
-            }
-        }
-
-
         const input =
             document.getElementById(
                 "code"
             );
 
+
+        /*
+         * Rakam kontrolü
+         */
 
         if(input){
 
@@ -1221,6 +1150,7 @@ document.addEventListener(
 
                         verifyCode();
                     }
+
                 }
             );
 
@@ -1231,10 +1161,29 @@ document.addEventListener(
                     input.focus();
 
                 },
-                150
+                100
             );
         }
 
+
+        /*
+         * Kayıt bilgisi yoksa hata göster.
+         */
+
+        if(!register.username){
+
+            showMessage(
+                "Kayıt bilgileri bulunamadı. Lütfen kayıt işlemine yeniden başlat.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Butonlar
+         */
 
         const verifyButton =
             document.getElementById(
@@ -1265,22 +1214,9 @@ document.addEventListener(
             );
         }
 
-
-        /*
-         * Sayfa doğrudan açıldıysa kayıt bilgisi
-         * var mı kontrol et.
-         */
-
-        if(!register.username){
-
-            showMessage(
-                "Kayıt bilgileri bulunamadı. Lütfen kayıt işlemini yeniden başlat.",
-                "error"
-            );
-        }
-
     }
 );
+
 </script>
 
 </body>
