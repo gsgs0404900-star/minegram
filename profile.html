@@ -2651,29 +2651,150 @@ async function load(){
 
   if(!activeToken){
 
-    profileLoading=false;
+  profileLoading=false;
 
-    /*
-      Eğer kayıt doğrulaması yeni bittiyse
-      token henüz yazılmamış olabilir.
-    */
+  console.error(
+    '[Minegram] Token bulunamadı.'
+  );
 
-    const verified =
-      localStorage.getItem(
-        'minegram_register_verified'
+  /*
+    Kayıt doğrulaması başarılı olduysa
+    profil sayfasında sonsuz yönlendirme yapma.
+  */
+
+  const savedUser =
+    localStorage.getItem('minegram_user');
+
+  const savedUsername =
+    localStorage.getItem('minegram_username') ||
+    localStorage.getItem('minegram_register_username');
+
+  if(savedUser || savedUsername){
+
+    let storedUser = {};
+
+    try{
+      storedUser =
+        savedUser
+        ? JSON.parse(savedUser)
+        : {};
+    }catch{
+      storedUser = {};
+    }
+
+    const username =
+      cleanUsername(
+        storedUser.username ||
+        savedUsername ||
+        ''
       );
 
-    if(verified === '1'){
+    if(username){
 
       /*
-        profile.html'yi tekrar tekrar açma.
-        Token yoksa giriş sayfasına git.
+        Token yok ama kayıt bilgisi mevcut.
+        Önce profil ekranını hazırlıyoruz.
       */
 
-      location.href =
-        'giris.html';
+      me = {
+
+        ...storedUser,
+
+        username,
+
+        displayName:
+          storedUser.displayName ||
+          storedUser.display_name ||
+          username,
+
+        bio:
+          storedUser.bio || '',
+
+        avatar:
+          storedUser.avatar ||
+          storedUser.avatar_url ||
+          ''
+
+      };
+
+      currentProfile = {
+        ...me,
+        username
+      };
+
+      const usernameEl =
+        document.getElementById('username');
+
+      if(usernameEl){
+
+        usernameEl.textContent =
+          '@' + username;
+
+      }
+
+      const displayEl =
+        document.getElementById('display');
+
+      if(displayEl){
+
+        displayEl.textContent =
+          me.displayName || username;
+
+      }
+
+      const bioEl =
+        document.getElementById('bio');
+
+      if(bioEl){
+
+        bioEl.textContent =
+          me.bio || '';
+
+      }
+
+      const av =
+        document.getElementById('avatar');
+
+      if(av){
+
+        if(me.avatar){
+
+          av.innerHTML =
+            '<img src="' +
+            escapeHtml(me.avatar) +
+            '" alt="Profil fotoğrafı">';
+
+        }else{
+
+          av.textContent =
+            username
+              .charAt(0)
+              .toUpperCase();
+
+        }
+
+      }
+
+      /*
+        Burada LOGIN'E ATMAYACAĞIZ.
+      */
 
       return;
+
+    }
+
+  }
+
+  /*
+    Gerçekten hiçbir kullanıcı bilgisi yoksa
+    giriş sayfasına git.
+  */
+
+  location.replace('giris.html');
+
+  return;
+
+}
 
     }
 
@@ -2818,22 +2939,43 @@ async function load(){
       → abc
     */
 
-    if(
-      target &&
-      cleanUsername(target)
-    ){
+    let username = '';
 
-      username =
-        cleanUsername(target);
+const requestedUsername =
+  cleanUsername(target);
 
-    }else{
+const loggedUsername =
+  cleanUsername(me.username);
 
-      username =
-        cleanUsername(
-          me.username
-        );
+/*
+  profile.html normal açılıyorsa
+  DAİMA giriş yapan hesabı aç.
+*/
 
-    }
+if(!requestedUsername){
+
+  username =
+    loggedUsername;
+
+}else{
+
+  /*
+    URL'de gerçekten başka kullanıcı istenmişse
+    onu aç.
+  */
+
+  username =
+    requestedUsername;
+
+}
+
+if(!username){
+
+  throw new Error(
+    'Kullanıcı adı bulunamadı.'
+  );
+
+}
 
 
     if(!username){
