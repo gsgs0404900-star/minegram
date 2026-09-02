@@ -1,2163 +1,2163 @@
-<!doctype html> 
-<html lang="tr"> 
-<head> 
-<meta charset="utf-8"> 
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"> 
-<meta name="theme-color" content="#000"> 
-<title>Minegram • Profil</title> 
- 
-<style> 
-*{ 
-  box-sizing:border-box 
-} 
- 
-html, 
-body{ 
-  margin:0; 
-  background:#000; 
-  color:#fff; 
-  font-family:Arial,sans-serif; 
-  min-height:100%; 
-  overflow-x:hidden 
-} 
- 
-button{ 
-  font:inherit; 
-  cursor:pointer 
-} 
- 
-.app{ 
-  min-height:100dvh; 
-  background:#000; 
-  padding-bottom:78px 
-} 
- 
-.header{ 
-  height:62px; 
-  display:flex; 
-  align-items:center; 
-  padding:0 14px; 
-  border-bottom:1px solid #181818; 
-  position:sticky; 
-  top:0; 
-  background:#000; 
-  z-index:20 
-} 
- 
-.back, 
-.headmore{ 
-  border:0; 
-  background:none; 
-  color:#fff 
-} 
- 
-.back{ 
-  font-size:28px; 
-  width:38px 
-} 
- 
-.title{ 
-  font-size:18px; 
-  font-weight:700 
-} 
- 
-.headmore{ 
-  margin-left:auto; 
-  font-size:25px; 
-  width:38px 
-} 
- 
-.profile{ 
-  width:100%; 
-  padding:18px 20px 0 
-} 
- 
-.top{ 
-  display:flex; 
-  gap:18px; 
-  align-items:center; 
-  max-width:900px 
-} 
- 
-.avatar{ 
-  width:68px; 
-  height:68px; 
-  border-radius:50%; 
-  background:#398bc4; 
-  display:grid; 
-  place-items:center; 
-  font-size:24px; 
-  overflow:hidden; 
-  flex:none 
-} 
- 
-.avatar img{ 
-  width:100%; 
-  height:100%; 
-  object-fit:cover 
-} 
- 
-.info{ 
-  min-width:0; 
-  flex:1 
-} 
- 
-.username{ 
-  font-size:20px; 
-  font-weight:700 
-} 
- 
-.verified{ 
-  color:#398bc4 
-} 
- 
-.display{ 
-  font-size:14px; 
-  margin-top:4px 
-} 
- 
-.bio{ 
-  color:#aaa; 
-  font-size:13px; 
-  line-height:1.35; 
-  margin-top:6px 
-} 
- 
-.stats{ 
-  display:flex; 
-  justify-content:flex-start; 
-  gap:42px; 
-  text-align:center; 
-  margin:18px 0 12px; 
-  max-width:500px 
-} 
- 
-.stat b{ 
-  display:block; 
-  font-size:16px 
-} 
- 
-.stat span{ 
-  font-size:11px; 
-  color:#aaa 
-} 
- 
-.actions{ 
-  display:flex; 
-  gap:8px; 
-  width:100%; 
-  max-width:100% 
-} 
- 
-.actions button{ 
-  flex:1; 
-  height:38px; 
-  border:1px solid #3a3a3a; 
-  background:#000; 
-  color:#fff; 
-  border-radius:8px; 
-  font-size:13px; 
-  font-weight:600 
-} 
- 
-.actions .primary{ 
-  background:#398bc4; 
-  border-color:#398bc4; 
-  color:#07131c 
-} 
- 
-.tabs{ 
-  display:flex; 
-  border-top:1px solid #222; 
-  border-bottom:1px solid #222; 
-  margin-top:18px 
-} 
- 
-.tab{ 
-  flex:1; 
-  height:44px; 
-  border:0; 
-  background:none; 
-  color:#777; 
-  font-size:22px 
-} 
- 
-.tab.active{ 
-  color:#fff; 
-  border-bottom:2px solid #fff 
-} 
- 
-.grid{ 
-  display:grid; 
-  grid-template-columns:repeat(3,1fr); 
-  gap:2px; 
-  margin-top:2px 
-} 
- 
-.tile{ 
-  aspect-ratio:1/1; 
-  background:#111; 
-  overflow:hidden; 
-  display:flex; 
-  align-items:center; 
-  justify-content:center 
-} 
- 
-.tile img{ 
-  width:100%; 
-  height:100%; 
-  object-fit:cover 
-} 
- 
-.tile .txt{ 
-  padding:10px; 
-  font-size:12px; 
-  color:#ccc 
-} 
- 
-.empty{ 
-  text-align:center; 
-  color:#777; 
-  padding:60px 20px; 
-  grid-column:1/-1 
-} 
- 
-.account-actions{ 
-  margin-top:2px 
-} 
- 
-.account-row{ 
-  display:flex; 
-  align-items:center; 
-  gap:10px; 
-  min-height:66px; 
-  padding:10px 4px; 
-  border-bottom:1px solid #181818 
-} 
- 
-.account-row .ico{ 
-  width:25px; 
-  text-align:center; 
-  font-size:18px 
-} 
- 
-.account-row .copy{ 
-  flex:1 
-} 
- 
-.account-row strong{ 
-  display:block; 
-  font-size:13px 
-} 
- 
-.account-row small{ 
-  display:block; 
-  color:#777; 
-  margin-top:3px; 
-  font-size:11px 
-} 
- 
-.account-row button{ 
-  border:0; 
-  background:none; 
-  color:#398bc4; 
-  font-size:12px 
-} 
- 
-.bottom{ 
-  position:fixed; 
-  left:0; 
-  right:0; 
-  bottom:0; 
-  height:76px; 
-  padding:5px 4px max(5px,env(safe-area-inset-bottom)); 
-  display:flex; 
-  background:#19171f; 
-  border-top:1px solid #25232c; 
-  z-index:30 
-} 
- 
-.nav{ 
-  flex:1; 
-  border:0; 
-  background:none; 
-  color:#ddd; 
-  font-size:9px; 
-  display:flex; 
-  flex-direction:column; 
-  align-items:center; 
-  justify-content:center; 
-  gap:4px 
-} 
- 
-.nav span{ 
-  font-size:22px 
-} 
- 
-.nav.active span{ 
-  background:#3b3450; 
-  border-radius:18px; 
-  padding:3px 13px 
-} 
- 
-.toast{ 
-  position:fixed; 
-  left:50%; 
-  bottom:88px; 
-  transform:translateX(-50%); 
-  background:#24222a; 
-  color:#fff; 
-  padding:10px 15px; 
-  border-radius:10px; 
-  font-size:12px; 
-  opacity:0; 
-  pointer-events:none; 
-  transition:.2s; 
-  z-index:100 
-} 
- 
-.toast.show{ 
-  opacity:1 
-} 
- 
-.modal{ 
-  position:fixed; 
-  inset:0; 
-  background:rgba(0,0,0,.68); 
-  display:none; 
-  align-items:center; 
-  justify-content:center; 
-  z-index:90; 
-  padding:20px 
-} 
- 
-.modal.open{ 
-  display:flex 
-} 
- 
-.dialog{ 
-  width:min(430px,100%); 
-  background:#17161b; 
-  border:1px solid #333; 
-  border-radius:16px; 
-  padding:18px 
-} 
- 
-.dialog h3{ 
-  margin:0 0 14px; 
-  font-size:19px 
-} 
- 
-.dialog input, 
-.dialog textarea{ 
-  width:100%; 
-  background:#0c0c0e; 
-  color:#fff; 
-  border:1px solid #444; 
-  border-radius:10px; 
-  padding:11px; 
-  outline:none; 
-  margin-bottom:10px 
-} 
- 
-.dialog textarea{ 
-  min-height:90px; 
-  resize:none 
-} 
- 
-.dialog-actions{ 
-  display:flex; 
-  justify-content:flex-end; 
-  gap:8px 
-} 
- 
-.dialog-actions button{ 
-  border:0; 
-  border-radius:9px; 
-  padding:9px 14px 
-} 
- 
-/* Mobil */ 
-@media(max-width:600px){ 
- 
-  .profile{ 
-    padding-left:14px; 
-    padding-right:14px 
-  } 
- 
-  .top{ 
-    gap:14px 
-  } 
- 
-  .avatar{ 
-    width:64px; 
-    height:64px 
-  } 
- 
-  .stats{ 
-    gap:28px 
-  } 
- 
-} 
-</style> 
-</head> 
- 
-<body> 
- 
-<div class="app"> 
- 
-<header class="header"> 
- 
-<button 
-  class="back" 
-  id="backBtn" 
-  aria-label="Geri" 
->‹</button> 
- 
-<div 
-  class="title" 
-  id="title" 
->Profil</div> 
- 
-<button 
-  class="headmore" 
-  id="menuBtn" 
-  aria-label="Menü" 
->☰</button> 
- 
-</header> 
- 
- 
-<main class="profile"> 
- 
-<section class="top"> 
- 
-<div 
-  id="avatar" 
-  class="avatar" 
->?</div> 
- 
-<div class="info"> 
- 
-<div 
-  id="username" 
-  class="username" 
->@yükleniyor</div> 
- 
-<div 
-  id="display" 
-  class="display" 
-></div> 
- 
-<div 
-  id="bio" 
-  class="bio" 
-></div> 
- 
-</div> 
- 
-</section> 
- 
- 
-<section class="stats"> 
- 
-<div class="stat"> 
-<b id="postCount">0</b> 
-<span>Gönderi</span> 
-</div> 
- 
-<div class="stat"> 
-<b id="followers">0</b> 
-<span>Takipçi</span> 
-</div> 
- 
-<div class="stat"> 
-<b id="following">0</b> 
-<span>Takip</span> 
-</div> 
- 
-</section> 
- 
- 
-<div class="actions"> 
- 
-<button 
-  id="editBtn" 
-  class="primary" 
-> 
-✎ &nbsp;Profil düzenle 
-</button> 
- 
-<button id="shareBtn"> 
-♧ &nbsp; Paylaş 
-</button> 
- 
-</div> 
- 
- 
-<section class="account-actions"> 
- 
-<div class="account-row"> 
- 
-<div class="ico">▧</div> 
- 
-<div class="copy"> 
- 
-<strong> 
-Fotoğrafları Paylaş 
-</strong> 
- 
-<small> 
-Paylaştığın fotoğraflar profilinde gözükür. 
-</small> 
- 
-</div> 
- 
-<button id="photoShareBtn"> 
-Paylaş 
-</button> 
- 
-</div> 
- 
- 
-<div class="account-row"> 
- 
-<div class="ico">⌕</div> 
- 
-<div class="copy"> 
- 
-<strong> 
-Telefon Numarası Ekle 
-</strong> 
- 
-<small> 
-Hesabını daha güvenli hale getir. 
-</small> 
- 
-</div> 
- 
-<button id="phoneBtn"> 
-Ekle 
-</button> 
- 
-</div> 
- 
-</section> 
- 
- 
-<div class="tabs"> 
- 
-<button 
-  class="tab active" 
-  id="postsTab" 
-> 
-▦ 
-</button> 
- 
-<button 
-  class="tab" 
-  id="likesTab" 
-> 
-♡ 
-</button> 
- 
-</div> 
- 
- 
-<section 
-  id="grid" 
-  class="grid" 
-></section> 
- 
-</main> 
- 
- 
-<nav class="bottom"> 
- 
-<button 
-  class="nav" 
-  id="homeNav" 
-> 
-<span>⌂</span> 
-Ana Sayfa 
-</button> 
- 
-<button 
-  class="nav" 
-  id="searchNav" 
-> 
-<span>⌕</span> 
-Ara 
-</button> 
- 
-<button 
-  class="nav" 
-  id="createNav" 
-> 
-<span>＋</span> 
-Oluştur 
-</button> 
- 
-<button 
-  class="nav" 
-  id="reelsNav" 
-> 
-<span>▣</span> 
-Reels 
-</button> 
- 
-<button 
-  class="nav active" 
-  id="profileNav" 
-> 
-<span>♙</span> 
-Profil 
-</button> 
- 
-</nav> 
- 
-</div> 
- 
- 
-<div 
-  id="toast" 
-  class="toast" 
-></div> 
- 
- 
-<!-- PROFİL DÜZENLE --> 
- 
-<div 
-  id="editModal" 
-  class="modal" 
-  aria-hidden="true" 
-> 
- 
-<div 
-  class="dialog" 
-  role="dialog" 
-  aria-modal="true" 
-> 
- 
-<h3> 
-Profili düzenle 
-</h3> 
- 
-<input 
-  id="nameInput" 
-  maxlength="50" 
-  placeholder="Görünen ad" 
-> 
- 
-<textarea 
-  id="bioInput" 
-  maxlength="160" 
-  placeholder="Biyografi" 
-></textarea> 
- 
-<div class="dialog-actions"> 
- 
-<button id="editCancel"> 
-İptal 
-</button> 
- 
-<button id="editSave"> 
-Kaydet 
-</button> 
- 
-</div> 
- 
-</div> 
- 
-</div> 
- 
- 
-<!-- MENÜ --> 
- 
-<div 
-  id="menuModal" 
-  class="modal" 
-  aria-hidden="true" 
-> 
- 
-<div class="dialog"> 
- 
-<h3> 
-Profil menüsü 
-</h3> 
- 
-<div class="dialog-actions"> 
- 
-<button id="menuClose"> 
-Kapat 
-</button> 
- 
-<button id="menuLogout"> 
-Çıkış yap 
-</button> 
- 
-</div> 
- 
-</div> 
- 
-</div> 
- 
- 
-<script> 
- 
-/* ========================================================= 
-   MINEGRAM PROFİL 
-   GERÇEK OTURUM KULLANICISINI BUL 
-========================================================= */ 
- 
- 
-/* Token */ 
- 
-const token = 
-  localStorage.getItem('minegram_token') || 
-  localStorage.getItem('token'); 
- 
- 
-/* URL'den başka profil açılmış mı? */ 
- 
-const params = 
-  new URLSearchParams(location.search); 
- 
-const target = 
-  params.get('username'); 
- 
- 
-let me = null; 
- 
-let currentProfile = null; 
- 
- 
-/* ========================================================= 
-   TOAST 
-========================================================= */ 
- 
-function toast(msg){ 
- 
-  const el = 
-    document.getElementById('toast'); 
- 
-  el.textContent = 
-    msg; 
- 
-  el.classList.add('show'); 
- 
-  clearTimeout(window.__toast); 
- 
-  window.__toast = 
-    setTimeout( 
-      ()=>{ 
-        el.classList.remove('show'); 
-      }, 
-      2200 
-    ); 
- 
-} 
- 
- 
-/* ========================================================= 
-   API 
-========================================================= */ 
- 
-async function api(url,opt={}){ 
- 
-  opt.headers = { 
-    ...(opt.headers || {}), 
-    ...(token 
-      ? { 
-          Authorization: 
-            'Bearer ' + token 
-        } 
-      : {}) 
-  }; 
- 
- 
-  if( 
-    opt.body && 
-    typeof opt.body !== 'string' 
-  ){ 
- 
-    opt.headers['Content-Type'] = 
-      'application/json'; 
- 
-    opt.body = 
-      JSON.stringify(opt.body); 
- 
-  } 
- 
- 
-  const r = 
-    await fetch( 
-      url, 
-      opt 
-    ); 
- 
- 
-  if(!r.ok){ 
- 
-    const j = 
-      await r 
-        .json() 
-        .catch( 
-          ()=>({}) 
-        ); 
- 
- 
-    throw new Error( 
-      j.error || 
-      j.message || 
-      'İşlem başarısız' 
-    ); 
- 
-  } 
- 
- 
-  return r.json(); 
- 
-} 
- 
- 
-/* ========================================================= 
-   GÜVENLİ HTML 
-========================================================= */ 
- 
-function escapeHtml(s){ 
- 
-  return String(s ?? '') 
-    .replace( 
-      /[&<>"']/g, 
-      c=>({ 
-        '&':'&amp;', 
-        '<':'&lt;', 
-        '>':'&gt;', 
-        '"':'&quot;', 
-        "'":'&#39;' 
-      }[c]) 
-    ); 
- 
-} 
- 
- 
-/* ========================================================= 
-   LOCAL STORAGE KULLANICI BİLGİSİ 
-========================================================= */ 
- 
-function getStoredUser(){ 
- 
-  try{ 
- 
-    const raw = 
-      localStorage.getItem( 
-        'minegram_user' 
-      ); 
- 
-    if(!raw){ 
-      return null; 
-    } 
- 
-    return JSON.parse(raw); 
- 
-  }catch(e){ 
- 
-    console.warn( 
-      'minegram_user okunamadı:', 
-      e 
-    ); 
- 
-    return null; 
- 
-  } 
- 
-} 
- 
- 
-/* ========================================================= 
-   KULLANICI ADINI BUL 
-========================================================= */ 
- 
-function getLocalUsername(){ 
- 
-  const storedUser = 
-    getStoredUser(); 
- 
- 
-  const candidates = [ 
- 
-    localStorage.getItem( 
-      'minegram_username' 
-    ), 
- 
-    storedUser?.username, 
- 
-    storedUser?.user?.username, 
- 
-    localStorage.getItem( 
-      'minegram_register_username' 
-    ) 
- 
-  ]; 
- 
- 
-  for( 
-    const value of candidates 
-  ){ 
- 
-    if( 
-      value && 
-      String(value).trim() 
-    ){ 
- 
-      return String(value).trim(); 
- 
-    } 
- 
-  } 
- 
- 
-  return ''; 
- 
-} 
- 
- 
-/* ========================================================= 
-   PROFİL YÜKLE 
-========================================================= */ 
- 
-async function load(){ 
- 
-  /* Token yoksa girişe gönder */ 
- 
-  if(!token){ 
- 
-    location.href = 
-      'index.html'; 
- 
-    return; 
- 
-  } 
- 
- 
-  const grid = 
-    document.getElementById( 
-      'grid' 
-    ); 
- 
- 
-  try{ 
- 
-    grid.innerHTML = 
-      '<div class="empty">Profil yükleniyor...</div>'; 
- 
- 
-    /* ----------------------------------------------------- 
-       ÖNCE SUNUCUDAN GERÇEK GİRİŞ YAPAN KULLANICI 
-    ----------------------------------------------------- */ 
- 
-    try{ 
- 
-      me = 
-        await api( 
-          '/api/me' 
-        ); 
- 
-    }catch(meError){ 
- 
-      console.warn( 
-        'API /api/me okunamadı:', 
-        meError 
-      ); 
- 
-      me = null; 
- 
-    } 
- 
- 
-    /* ----------------------------------------------------- 
-       KULLANICI ADINI GÜVENLİ SIRAYLA BUL 
- 
-       1. URL username 
-       2. /api/me username 
-       3. minegram_user username 
-       4. minegram_username 
-       5. kayıt sırasında tutulan username 
-    ----------------------------------------------------- */ 
- 
-    const storedUser = 
-      getStoredUser(); 
- 
- 
-    const username = 
-      ( 
-        target || 
-        me?.username || 
-        me?.user?.username || 
-        storedUser?.username || 
-        storedUser?.user?.username || 
-        localStorage.getItem( 
-          'minegram_username' 
-        ) || 
-        localStorage.getItem( 
-          'minegram_register_username' 
-        ) || 
-        '' 
-      ).toString().trim(); 
- 
- 
-    console.log( 
-      '[MINEGRAM] /api/me:', 
-      me 
-    ); 
- 
-    console.log( 
-      '[MINEGRAM] Bulunan kullanıcı adı:', 
-      username 
-    ); 
- 
- 
-    /* Kullanıcı adı hâlâ bulunamadı */ 
- 
-    if(!username){ 
- 
-      throw new Error( 
-        'Giriş yapan hesabın kullanıcı adı bulunamadı. Lütfen çıkış yapıp tekrar giriş yap.' 
-      ); 
- 
-    } 
- 
- 
-    /* ----------------------------------------------------- 
-       PROFİLİ SUNUCUDAN AL 
-    ----------------------------------------------------- */ 
- 
-    currentProfile = 
-      await api( 
-        '/api/users/' + 
-        encodeURIComponent( 
-          username 
-        ) 
-      ); 
- 
- 
-    if(!currentProfile){ 
- 
-      throw new Error( 
-        'Profil bilgileri bulunamadı.' 
-      ); 
- 
-    } 
- 
- 
-    console.log( 
-      '[MINEGRAM] Profil:', 
-      currentProfile 
-    ); 
- 
- 
-    /* ----------------------------------------------------- 
-       BULUNAN GERÇEK KULLANICI ADINI LOCAL STORAGE'A YAZ 
-    ----------------------------------------------------- */ 
- 
-    if( 
-      currentProfile.username 
-    ){ 
- 
-      localStorage.setItem( 
-        'minegram_username', 
-        String( 
-          currentProfile.username 
-        ) 
-      ); 
- 
-    } 
- 
- 
-    if( 
-      currentProfile.id 
-    ){ 
- 
-      localStorage.setItem( 
-        'minegram_user_id', 
-        String( 
-          currentProfile.id 
-        ) 
-      ); 
- 
-    } 
- 
- 
-    /* ----------------------------------------------------- 
-       USER OBJECT'İNİ DE GÜNCELLE 
-    ----------------------------------------------------- */ 
- 
-    try{ 
- 
-      const oldUser = 
-        getStoredUser() || {}; 
- 
- 
-      const newUser = { 
-        ...oldUser, 
-        ...(me || {}), 
-        username: 
-          currentProfile.username || 
-          username, 
-        id: 
-          currentProfile.id || 
-          me?.id || 
-          oldUser?.id 
-      }; 
- 
- 
-      localStorage.setItem( 
-        'minegram_user', 
-        JSON.stringify( 
-          newUser 
-        ) 
-      ); 
- 
-    }catch(e){ 
- 
-      console.warn( 
-        'minegram_user güncellenemedi:', 
-        e 
-      ); 
- 
-    } 
- 
- 
-    /* ----------------------------------------------------- 
-       PROFİL ADI 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'title' 
-    ).textContent = 
-      'Profil'; 
- 
- 
-    document.getElementById( 
-      'username' 
-    ).innerHTML = 
-      '@' + 
-      escapeHtml( 
-        currentProfile.username || 
-        username 
-      ) + 
-      ( 
-        currentProfile.verified 
-          ? ' <span class="verified">✓</span>' 
-          : '' 
-      ); 
- 
- 
-    /* ----------------------------------------------------- 
-       GÖRÜNEN AD 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'display' 
-    ).textContent = 
-      currentProfile.displayName || 
-      currentProfile.display_name || 
-      ''; 
- 
- 
-    /* ----------------------------------------------------- 
-       BİYOGRAFİ 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'bio' 
-    ).textContent = 
-      currentProfile.bio || 
-      ''; 
- 
- 
-    /* ----------------------------------------------------- 
-       GÖNDERİ SAYISI 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'postCount' 
-    ).textContent = 
-      currentProfile.postCount ?? 
-      currentProfile.post_count ?? 
-      0; 
- 
- 
-    /* ----------------------------------------------------- 
-       TAKİPÇİ 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'followers' 
-    ).textContent = 
-      currentProfile.followers ?? 
-      currentProfile.followerCount ?? 
-      currentProfile.follower_count ?? 
-      0; 
- 
- 
-    /* ----------------------------------------------------- 
-       TAKİP 
-    ----------------------------------------------------- */ 
- 
-    document.getElementById( 
-      'following' 
-    ).textContent = 
-      currentProfile.following ?? 
-      currentProfile.followingCount ?? 
-      currentProfile.following_count ?? 
-      0; 
- 
- 
-    /* ----------------------------------------------------- 
-       KENDİ PROFİLİ Mİ? 
-    ----------------------------------------------------- */ 
- 
-    const currentId = 
-      currentProfile.id ?? 
-      currentProfile.auth_user_id ?? 
-      ''; 
- 
- 
-    const myId = 
-      me?.id ?? 
-      me?.user?.id ?? 
-      storedUser?.id ?? 
-      ''; 
- 
- 
-    const mine = 
-      String(currentId) === 
-      String(myId); 
- 
- 
-    console.log( 
-      '[MINEGRAM] Profil sahibi ID:', 
-      currentId 
-    ); 
- 
-    console.log( 
-      '[MINEGRAM] Giriş yapan ID:', 
-      myId 
-    ); 
- 
-    console.log( 
-      '[MINEGRAM] Kendi profilim:', 
-      mine 
-    ); 
- 
- 
-    /* ----------------------------------------------------- 
-       DÜZENLE / TAKİP BUTONU 
-    ----------------------------------------------------- */ 
- 
-    const edit = 
-      document.getElementById( 
-        'editBtn' 
-      ); 
- 
- 
-    edit.textContent = 
-      mine 
-        ? '✎  Profil düzenle' 
-        : ( 
-            currentProfile.followingByMe 
-              ? 'Takibi Bırak' 
-              : 'Takip Et' 
-          ); 
- 
- 
-    edit.classList.toggle( 
-      'primary', 
-      mine || 
-      !currentProfile.followingByMe 
-    ); 
- 
- 
-    /* ----------------------------------------------------- 
-       AVATAR 
-    ----------------------------------------------------- */ 
- 
-    const av = 
-      document.getElementById( 
-        'avatar' 
-      ); 
- 
- 
-    const avatarUrl = 
-      currentProfile.avatar || 
-      currentProfile.avatar_url || 
-      ''; 
- 
- 
-    if(avatarUrl){ 
- 
-      av.innerHTML = 
-        '<img src="' + 
-        escapeHtml( 
-          avatarUrl 
-        ) + 
-        '" alt="Profil fotoğrafı">'; 
- 
-    }else{ 
- 
-      const avatarText = 
-        ( 
-          currentProfile.displayName || 
-          currentProfile.display_name || 
-          currentProfile.username || 
-          username || 
-          'M' 
-        ).trim(); 
- 
- 
-      av.textContent = 
-        avatarText 
-          ? avatarText[0].toUpperCase() 
-          : 'M'; 
- 
-    } 
- 
- 
-    /* ----------------------------------------------------- 
-       GÖNDERİLER 
-    ----------------------------------------------------- */ 
- 
-    const posts = 
-      await api( 
-        '/api/users/' + 
-        encodeURIComponent( 
-          username 
-        ) + 
-        '/posts' 
-      ); 
- 
- 
-    renderPosts( 
-      Array.isArray(posts) 
-        ? posts 
-        : [] 
-    ); 
- 
- 
-  }catch(e){ 
- 
-    console.error( 
-      '[Minegram] Profil yükleme hatası:', 
-      e 
-    ); 
- 
- 
-    grid.innerHTML = 
-      '<div class="empty">' + 
-      'Profil yüklenemedi.<br><br>' + 
-      escapeHtml( 
-        e.message || 
-        'Bilinmeyen hata' 
-      ) + 
-      '</div>'; 
- 
- 
-    toast( 
-      e.message || 
-      'Profil yüklenemedi' 
-    ); 
- 
-  } 
- 
-} 
- 
- 
-/* ========================================================= 
-   GÖNDERİLERİ RENDER 
-========================================================= */ 
- 
-function renderPosts(posts){ 
- 
-  const grid = 
-    document.getElementById( 
-      'grid' 
-    ); 
- 
- 
-  if( 
-    !Array.isArray(posts) || 
-    posts.length === 0 
-  ){ 
- 
-    grid.innerHTML = 
-      '<div class="empty">Henüz gönderi yok</div>'; 
- 
-    return; 
- 
-  } 
- 
- 
-  grid.innerHTML = 
-    posts.map( 
-      x=>{ 
- 
-        const media = 
-          x.media || 
-          x.image || 
-          x.image_url || 
-          x.media_url || 
-          ''; 
- 
- 
-        if(media){ 
- 
-          return ( 
-            '<div class="tile">' + 
-            '<img src="' + 
-            escapeHtml( 
-              media 
-            ) + 
-            '" loading="lazy" alt="Gönderi">' + 
-            '</div>' 
-          ); 
- 
-        } 
- 
- 
-        return ( 
-          '<div class="tile">' + 
-          '<div class="txt">' + 
-          escapeHtml( 
-            x.caption || 
-            x.text || 
-            '' 
-          ) + 
-          '</div>' + 
-          '</div>' 
-        ); 
- 
-      } 
-    ).join(''); 
- 
-} 
- 
- 
-/* ========================================================= 
-   GERİ 
-========================================================= */ 
- 
-document 
-  .getElementById('backBtn') 
-  .addEventListener( 
-    'click', 
-    ()=>{ 
-      if( 
-        history.length > 1 
-      ){ 
- 
-        history.back(); 
- 
-      }else{ 
- 
-        location.href = 
-          'index.html'; 
- 
-      } 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   PROFİL DÜZENLE / TAKİP 
-========================================================= */ 
- 
-document 
-  .getElementById('editBtn') 
-  .addEventListener( 
-    'click', 
-    async()=>{ 
- 
-      if(!currentProfile){ 
-        return; 
-      } 
- 
- 
-      const currentId = 
-        currentProfile.id ?? 
-        currentProfile.auth_user_id ?? 
-        ''; 
- 
- 
-      const myId = 
-        me?.id ?? 
-        me?.user?.id ?? 
-        localStorage.getItem( 
-          'minegram_user_id' 
-        ) || 
-        ''; 
- 
- 
-      const mine = 
-        String(currentId) === 
-        String(myId); 
- 
- 
-      /* Başka kullanıcının profili */ 
- 
-      if(!mine){ 
- 
-        try{ 
- 
-          await api( 
-            '/api/users/' + 
-            encodeURIComponent( 
-              currentProfile.username 
-            ) + 
-            '/follow', 
-            { 
-              method:'POST' 
-            } 
-          ); 
- 
- 
-          await load(); 
- 
-        }catch(e){ 
- 
-          toast( 
-            e.message 
-          ); 
- 
-        } 
- 
-        return; 
- 
-      } 
- 
- 
-      /* Kendi profilimiz */ 
- 
-      document.getElementById( 
-        'nameInput' 
-      ).value = 
-        currentProfile.displayName || 
-        currentProfile.display_name || 
-        ''; 
- 
- 
-      document.getElementById( 
-        'bioInput' 
-      ).value = 
-        currentProfile.bio || 
-        ''; 
- 
- 
-      openModal( 
-        'editModal' 
-      ); 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   MODAL AÇ 
-========================================================= */ 
- 
-function openModal(id){ 
- 
-  const m = 
-    document.getElementById( 
-      id 
-    ); 
- 
- 
-  if(!m){ 
-    return; 
-  } 
- 
- 
-  m.classList.add( 
-    'open' 
-  ); 
- 
- 
-  m.setAttribute( 
-    'aria-hidden', 
-    'false' 
-  ); 
- 
-} 
- 
- 
-/* ========================================================= 
-   MODAL KAPAT 
-========================================================= */ 
- 
-function closeModal(id){ 
- 
-  const m = 
-    document.getElementById( 
-      id 
-    ); 
- 
- 
-  if(!m){ 
-    return; 
-  } 
- 
- 
-  m.classList.remove( 
-    'open' 
-  ); 
- 
- 
-  m.setAttribute( 
-    'aria-hidden', 
-    'true' 
-  ); 
- 
-} 
- 
- 
-/* ========================================================= 
-   DÜZENLE İPTAL 
-========================================================= */ 
- 
-document 
-  .getElementById('editCancel') 
-  .addEventListener( 
-    'click', 
-    ()=>{ 
-      closeModal( 
-        'editModal' 
-      ); 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   PROFİL KAYDET 
-========================================================= */ 
- 
-document 
-  .getElementById('editSave') 
-  .addEventListener( 
-    'click', 
-    async()=>{ 
- 
-      try{ 
- 
-        await api( 
-          '/api/me', 
-          { 
-            method:'PATCH', 
-            body:{ 
-              displayName: 
-                document 
-                  .getElementById( 
-                    'nameInput' 
-                  ) 
-                  .value 
-                  .trim(), 
- 
-              bio: 
-                document 
-                  .getElementById( 
-                    'bioInput' 
-                  ) 
-                  .value 
-                  .trim() 
-            } 
-          } 
-        ); 
- 
- 
-        closeModal( 
-          'editModal' 
-        ); 
- 
- 
-        toast( 
-          'Profil güncellendi' 
-        ); 
- 
- 
-        await load(); 
- 
-      }catch(e){ 
- 
-        toast( 
-          e.message 
-        ); 
- 
-      } 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   PROFİL PAYLAŞ 
-========================================================= */ 
- 
-document 
-  .getElementById('shareBtn') 
-  .addEventListener( 
-    'click', 
-    async()=>{ 
- 
-      if(!currentProfile){ 
- 
-        toast( 
-          'Profil henüz yüklenmedi' 
-        ); 
- 
-        return; 
- 
-      } 
- 
- 
-      const url = 
-        location.href; 
- 
- 
-      try{ 
- 
-        if( 
-          navigator.share 
-        ){ 
- 
-          await navigator.share( 
-            { 
-              title: 
-                'Minegram profili', 
- 
-              text: 
-                '@' + 
-                currentProfile.username, 
- 
-              url 
-            } 
-          ); 
- 
-        }else{ 
- 
-          await navigator.clipboard.writeText( 
-            url 
-          ); 
- 
- 
-          toast( 
-            'Profil bağlantısı kopyalandı' 
-          ); 
- 
-        } 
- 
-      }catch(e){ 
- 
-        if( 
-          e.name !== 
-          'AbortError' 
-        ){ 
- 
-          toast( 
-            'Paylaşım başarısız' 
-          ); 
- 
-        } 
- 
-      } 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   FOTOĞRAF PAYLAŞ 
-========================================================= */ 
- 
-document 
-  .getElementById('photoShareBtn') 
-  .addEventListener( 
-    'click', 
-    async()=>{ 
- 
-      const url = 
-        location.href + 
-        '#photos'; 
- 
- 
-      try{ 
- 
-        if( 
-          navigator.share 
-        ){ 
- 
-          await navigator.share( 
-            { 
-              title: 
-                'Minegram fotoğrafları', 
- 
-              url 
-            } 
-          ); 
- 
-        }else{ 
- 
-          await navigator.clipboard.writeText( 
-            url 
-          ); 
- 
- 
-          toast( 
-            'Fotoğraf bağlantısı kopyalandı' 
-          ); 
- 
-        } 
- 
-      }catch(e){ 
- 
-        if( 
-          e.name !== 
-          'AbortError' 
-        ){ 
- 
-          toast( 
-            'Paylaşım başarısız' 
-          ); 
- 
-        } 
- 
-      } 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   TELEFON EKLE 
-========================================================= */ 
- 
-document 
-  .getElementById('phoneBtn') 
-  .addEventListener( 
-    'click', 
-    async()=>{ 
- 
-      const phone = 
-        prompt( 
-          'Telefon numaranı gir:' 
-        ); 
- 
- 
-      if(phone === null){ 
-        return; 
-      } 
- 
- 
-      if(!phone.trim()){ 
- 
-        toast( 
-          'Telefon numarası boş bırakılamaz' 
-        ); 
- 
-        return; 
- 
-      } 
- 
- 
-      try{ 
- 
-        await api( 
-          '/api/me', 
-          { 
-            method:'PATCH', 
-            body:{ 
-              phone: 
-                phone.trim() 
-            } 
-          } 
-        ); 
- 
- 
-        toast( 
-          'Telefon numarası kaydedildi' 
-        ); 
- 
-      }catch(e){ 
- 
-        toast( 
-          e.message 
-        ); 
- 
-      } 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   MENÜ 
-========================================================= */ 
- 
-document 
-  .getElementById('menuBtn') 
-  .addEventListener( 
-    'click', 
-    ()=>{ 
-      openModal( 
-        'menuModal' 
-      ); 
-    } 
-  ); 
- 
- 
-document 
-  .getElementById('menuClose') 
-  .addEventListener( 
-    'click', 
-    ()=>{ 
-      closeModal( 
-        'menuModal' 
-      ); 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   ÇIKIŞ 
-========================================================= */ 
- 
-document 
-  .getElementById('menuLogout') 
-  .addEventListener( 
-    'click', 
-    ()=>{ 
- 
-      localStorage.removeItem( 
-        'minegram_token' 
-      ); 
- 
-      localStorage.removeItem( 
-        'token' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_username' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_user_id' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_user' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_register_username' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_register_email' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_register_phone' 
-      ); 
- 
-      localStorage.removeItem( 
-        'minegram_register_displayName' 
-      ); 
- 
-      location.href = 
-        'index.html'; 
- 
-    } 
-  ); 
- 
- 
-/* ========================================================= 
-   MODAL DIŞINA TIKLAYINCA KAPAT 
-========================================================= */ 
- 
-[ 
-  'editModal', 
-  'menuModal' 
-].forEach( 
-  id=>{ 
- 
-    document 
-      .getElementById(id) 
-      .addEventListener( 
-        'click', 
-        e=>{ 
- 
-          if( 
-            e.target.id === id 
-          ){ 
- 
-            closeModal( 
-              id 
-            ); 
- 
-          } 
- 
-        } 
-      ); 
- 
-  } 
-); 
- 
- 
-/* ========================================================= 
-   ESC 
-========================================================= */ 
- 
-document.addEventListener( 
-  'keydown', 
-  e=>{ 
- 
-    if( 
-      e.key === 
-      'Escape' 
-    ){ 
- 
-      closeModal( 
-        'editModal' 
-      ); 
- 
-      closeModal( 
-        'menuModal' 
-      ); 
- 
-    } 
- 
-  } 
-); 
- 
- 
-/* ========================================================= 
-   ALT MENÜ 
-========================================================= */ 
- 
-document 
-  .getElementById('homeNav') 
-  .onclick = 
-    ()=>{ 
-      location.href = 
-        'index.html'; 
-    }; 
- 
- 
-document 
-  .getElementById('searchNav') 
-  .onclick = 
-    ()=>{ 
-      location.href = 
-        'index.html#search'; 
-    }; 
- 
- 
-document 
-  .getElementById('createNav') 
-  .onclick = 
-    ()=>{ 
-      location.href = 
-        'index.html#create'; 
-    }; 
- 
- 
-document 
-  .getElementById('reelsNav') 
-  .onclick = 
-    ()=>{ 
-      location.href = 
-        'index.html#reels'; 
-    }; 
- 
- 
-document 
-  .getElementById('profileNav') 
-  .onclick = 
-    ()=>{ 
-      location.href = 
-        'profile.html'; 
-    }; 
- 
- 
-/* ========================================================= 
-   GÖNDERİLER SEKME 
-========================================================= */ 
- 
-document 
-  .getElementById('postsTab') 
-  .onclick = 
-    async()=>{ 
- 
-      document 
-        .getElementById( 
-          'postsTab' 
-        ) 
-        .classList 
-        .add('active'); 
- 
- 
-      document 
-        .getElementById( 
-          'likesTab' 
-        ) 
-        .classList 
-        .remove('active'); 
- 
- 
-      await load(); 
- 
-    }; 
- 
- 
-/* ========================================================= 
-   BEĞENİLER SEKME 
-========================================================= */ 
- 
-document 
-  .getElementById('likesTab') 
-  .onclick = 
-    ()=>{ 
- 
-      document 
-        .getElementById( 
-          'likesTab' 
-        ) 
-        .classList 
-        .add('active'); 
- 
- 
-      document 
-        .getElementById( 
-          'postsTab' 
-        ) 
-        .classList 
-        .remove('active'); 
- 
- 
-      toast( 
-        'Beğenilen gönderiler bölümü hazır' 
-      ); 
- 
-    }; 
- 
- 
-/* ========================================================= 
-   BAŞLAT 
-========================================================= */ 
- 
-load(); 
- 
-</script> 
- 
-</body> 
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000">
+<title>Minegram • Profil</title>
+
+<style>
+*{
+  box-sizing:border-box
+}
+
+html,
+body{
+  margin:0;
+  background:#000;
+  color:#fff;
+  font-family:Arial,sans-serif;
+  min-height:100%;
+  overflow-x:hidden
+}
+
+button{
+  font:inherit;
+  cursor:pointer
+}
+
+.app{
+  min-height:100dvh;
+  background:#000;
+  padding-bottom:78px
+}
+
+.header{
+  height:62px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  border-bottom:1px solid #181818;
+  position:sticky;
+  top:0;
+  background:#000;
+  z-index:20
+}
+
+.back,
+.headmore{
+  border:0;
+  background:none;
+  color:#fff
+}
+
+.back{
+  font-size:28px;
+  width:38px
+}
+
+.title{
+  font-size:18px;
+  font-weight:700
+}
+
+.headmore{
+  margin-left:auto;
+  font-size:25px;
+  width:38px
+}
+
+.profile{
+  width:100%;
+  padding:18px 20px 0
+}
+
+.top{
+  display:flex;
+  gap:18px;
+  align-items:center;
+  max-width:900px
+}
+
+.avatar{
+  width:68px;
+  height:68px;
+  border-radius:50%;
+  background:#398bc4;
+  display:grid;
+  place-items:center;
+  font-size:24px;
+  overflow:hidden;
+  flex:none
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.info{
+  min-width:0;
+  flex:1
+}
+
+.username{
+  font-size:20px;
+  font-weight:700
+}
+
+.verified{
+  color:#398bc4
+}
+
+.display{
+  font-size:14px;
+  margin-top:4px
+}
+
+.bio{
+  color:#aaa;
+  font-size:13px;
+  line-height:1.35;
+  margin-top:6px
+}
+
+.stats{
+  display:flex;
+  justify-content:flex-start;
+  gap:42px;
+  text-align:center;
+  margin:18px 0 12px;
+  max-width:500px
+}
+
+.stat b{
+  display:block;
+  font-size:16px
+}
+
+.stat span{
+  font-size:11px;
+  color:#aaa
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  width:100%;
+  max-width:100%
+}
+
+.actions button{
+  flex:1;
+  height:38px;
+  border:1px solid #3a3a3a;
+  background:#000;
+  color:#fff;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600
+}
+
+.actions .primary{
+  background:#398bc4;
+  border-color:#398bc4;
+  color:#07131c
+}
+
+.tabs{
+  display:flex;
+  border-top:1px solid #222;
+  border-bottom:1px solid #222;
+  margin-top:18px
+}
+
+.tab{
+  flex:1;
+  height:44px;
+  border:0;
+  background:none;
+  color:#777;
+  font-size:22px
+}
+
+.tab.active{
+  color:#fff;
+  border-bottom:2px solid #fff
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2px;
+  margin-top:2px
+}
+
+.tile{
+  aspect-ratio:1/1;
+  background:#111;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+
+.tile img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.tile .txt{
+  padding:10px;
+  font-size:12px;
+  color:#ccc
+}
+
+.empty{
+  text-align:center;
+  color:#777;
+  padding:60px 20px;
+  grid-column:1/-1
+}
+
+.account-actions{
+  margin-top:2px
+}
+
+.account-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:66px;
+  padding:10px 4px;
+  border-bottom:1px solid #181818
+}
+
+.account-row .ico{
+  width:25px;
+  text-align:center;
+  font-size:18px
+}
+
+.account-row .copy{
+  flex:1
+}
+
+.account-row strong{
+  display:block;
+  font-size:13px
+}
+
+.account-row small{
+  display:block;
+  color:#777;
+  margin-top:3px;
+  font-size:11px
+}
+
+.account-row button{
+  border:0;
+  background:none;
+  color:#398bc4;
+  font-size:12px
+}
+
+.bottom{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:76px;
+  padding:5px 4px max(5px,env(safe-area-inset-bottom));
+  display:flex;
+  background:#19171f;
+  border-top:1px solid #25232c;
+  z-index:30
+}
+
+.nav{
+  flex:1;
+  border:0;
+  background:none;
+  color:#ddd;
+  font-size:9px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px
+}
+
+.nav span{
+  font-size:22px
+}
+
+.nav.active span{
+  background:#3b3450;
+  border-radius:18px;
+  padding:3px 13px
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:88px;
+  transform:translateX(-50%);
+  background:#24222a;
+  color:#fff;
+  padding:10px 15px;
+  border-radius:10px;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+  z-index:100
+}
+
+.toast.show{
+  opacity:1
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.68);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:90;
+  padding:20px
+}
+
+.modal.open{
+  display:flex
+}
+
+.dialog{
+  width:min(430px,100%);
+  background:#17161b;
+  border:1px solid #333;
+  border-radius:16px;
+  padding:18px
+}
+
+.dialog h3{
+  margin:0 0 14px;
+  font-size:19px
+}
+
+.dialog input,
+.dialog textarea{
+  width:100%;
+  background:#0c0c0e;
+  color:#fff;
+  border:1px solid #444;
+  border-radius:10px;
+  padding:11px;
+  outline:none;
+  margin-bottom:10px
+}
+
+.dialog textarea{
+  min-height:90px;
+  resize:none
+}
+
+.dialog-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px
+}
+
+.dialog-actions button{
+  border:0;
+  border-radius:9px;
+  padding:9px 14px
+}
+
+/* Mobil */
+@media(max-width:600px){
+
+  .profile{
+    padding-left:14px;
+    padding-right:14px
+  }
+
+  .top{
+    gap:14px
+  }
+
+  .avatar{
+    width:64px;
+    height:64px
+  }
+
+  .stats{
+    gap:28px
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+<button
+  class="back"
+  id="backBtn"
+  aria-label="Geri"
+>‹</button>
+
+<div
+  class="title"
+  id="title"
+>Profil</div>
+
+<button
+  class="headmore"
+  id="menuBtn"
+  aria-label="Menü"
+>☰</button>
+
+</header>
+
+
+<main class="profile">
+
+<section class="top">
+
+<div
+  id="avatar"
+  class="avatar"
+>?</div>
+
+<div class="info">
+
+<div
+  id="username"
+  class="username"
+>@yükleniyor</div>
+
+<div
+  id="display"
+  class="display"
+></div>
+
+<div
+  id="bio"
+  class="bio"
+></div>
+
+</div>
+
+</section>
+
+
+<section class="stats">
+
+<div class="stat">
+<b id="postCount">0</b>
+<span>Gönderi</span>
+</div>
+
+<div class="stat">
+<b id="followers">0</b>
+<span>Takipçi</span>
+</div>
+
+<div class="stat">
+<b id="following">0</b>
+<span>Takip</span>
+</div>
+
+</section>
+
+
+<div class="actions">
+
+<button
+  id="editBtn"
+  class="primary"
+>
+✎ &nbsp;Profil düzenle
+</button>
+
+<button id="shareBtn">
+♧ &nbsp; Paylaş
+</button>
+
+</div>
+
+
+<section class="account-actions">
+
+<div class="account-row">
+
+<div class="ico">▧</div>
+
+<div class="copy">
+
+<strong>
+Fotoğrafları Paylaş
+</strong>
+
+<small>
+Paylaştığın fotoğraflar profilinde gözükür.
+</small>
+
+</div>
+
+<button id="photoShareBtn">
+Paylaş
+</button>
+
+</div>
+
+
+<div class="account-row">
+
+<div class="ico">⌕</div>
+
+<div class="copy">
+
+<strong>
+Telefon Numarası Ekle
+</strong>
+
+<small>
+Hesabını daha güvenli hale getir.
+</small>
+
+</div>
+
+<button id="phoneBtn">
+Ekle
+</button>
+
+</div>
+
+</section>
+
+
+<div class="tabs">
+
+<button
+  class="tab active"
+  id="postsTab"
+>
+▦
+</button>
+
+<button
+  class="tab"
+  id="likesTab"
+>
+♡
+</button>
+
+</div>
+
+
+<section
+  id="grid"
+  class="grid"
+></section>
+
+</main>
+
+
+<nav class="bottom">
+
+<button
+  class="nav"
+  id="homeNav"
+>
+<span>⌂</span>
+Ana Sayfa
+</button>
+
+<button
+  class="nav"
+  id="searchNav"
+>
+<span>⌕</span>
+Ara
+</button>
+
+<button
+  class="nav"
+  id="createNav"
+>
+<span>＋</span>
+Oluştur
+</button>
+
+<button
+  class="nav"
+  id="reelsNav"
+>
+<span>▣</span>
+Reels
+</button>
+
+<button
+  class="nav active"
+  id="profileNav"
+>
+<span>♙</span>
+Profil
+</button>
+
+</nav>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<!-- PROFİL DÜZENLE -->
+
+<div
+  id="editModal"
+  class="modal"
+  aria-hidden="true"
+>
+
+<div
+  class="dialog"
+  role="dialog"
+  aria-modal="true"
+>
+
+<h3>
+Profili düzenle
+</h3>
+
+<input
+  id="nameInput"
+  maxlength="50"
+  placeholder="Görünen ad"
+>
+
+<textarea
+  id="bioInput"
+  maxlength="160"
+  placeholder="Biyografi"
+></textarea>
+
+<div class="dialog-actions">
+
+<button id="editCancel">
+İptal
+</button>
+
+<button id="editSave">
+Kaydet
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- MENÜ -->
+
+<div
+  id="menuModal"
+  class="modal"
+  aria-hidden="true"
+>
+
+<div class="dialog">
+
+<h3>
+Profil menüsü
+</h3>
+
+<div class="dialog-actions">
+
+<button id="menuClose">
+Kapat
+</button>
+
+<button id="menuLogout">
+Çıkış yap
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   MINEGRAM PROFİL
+   GERÇEK OTURUM KULLANICISINI BUL
+========================================================= */
+
+
+/* Token */
+
+const token =
+  localStorage.getItem('minegram_token') ||
+  localStorage.getItem('token');
+
+
+/* URL'den başka profil açılmış mı? */
+
+const params =
+  new URLSearchParams(location.search);
+
+const target =
+  params.get('username');
+
+
+let me = null;
+
+let currentProfile = null;
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function toast(msg){
+
+  const el =
+    document.getElementById('toast');
+
+  el.textContent =
+    msg;
+
+  el.classList.add('show');
+
+  clearTimeout(window.__toast);
+
+  window.__toast =
+    setTimeout(
+      ()=>{
+        el.classList.remove('show');
+      },
+      2200
+    );
+
+}
+
+
+/* =========================================================
+   API
+========================================================= */
+
+async function api(url,opt={}){
+
+  opt.headers = {
+    ...(opt.headers || {}),
+    ...(token
+      ? {
+          Authorization:
+            'Bearer ' + token
+        }
+      : {})
+  };
+
+
+  if(
+    opt.body &&
+    typeof opt.body !== 'string'
+  ){
+
+    opt.headers['Content-Type'] =
+      'application/json';
+
+    opt.body =
+      JSON.stringify(opt.body);
+
+  }
+
+
+  const r =
+    await fetch(
+      url,
+      opt
+    );
+
+
+  if(!r.ok){
+
+    const j =
+      await r
+        .json()
+        .catch(
+          ()=>({})
+        );
+
+
+    throw new Error(
+      j.error ||
+      j.message ||
+      'İşlem başarısız'
+    );
+
+  }
+
+
+  return r.json();
+
+}
+
+
+/* =========================================================
+   GÜVENLİ HTML
+========================================================= */
+
+function escapeHtml(s){
+
+  return String(s ?? '')
+    .replace(
+      /[&<>"']/g,
+      c=>({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[c])
+    );
+
+}
+
+
+/* =========================================================
+   LOCAL STORAGE KULLANICI BİLGİSİ
+========================================================= */
+
+function getStoredUser(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        'minegram_user'
+      );
+
+    if(!raw){
+      return null;
+    }
+
+    return JSON.parse(raw);
+
+  }catch(e){
+
+    console.warn(
+      'minegram_user okunamadı:',
+      e
+    );
+
+    return null;
+
+  }
+
+}
+
+
+/* =========================================================
+   KULLANICI ADINI BUL
+========================================================= */
+
+function getLocalUsername(){
+
+  const storedUser =
+    getStoredUser();
+
+
+  const candidates = [
+
+    localStorage.getItem(
+      'minegram_username'
+    ),
+
+    storedUser?.username,
+
+    storedUser?.user?.username,
+
+    localStorage.getItem(
+      'minegram_register_username'
+    )
+
+  ];
+
+
+  for(
+    const value of candidates
+  ){
+
+    if(
+      value &&
+      String(value).trim()
+    ){
+
+      return String(value).trim();
+
+    }
+
+  }
+
+
+  return '';
+
+}
+
+
+/* =========================================================
+   PROFİL YÜKLE
+========================================================= */
+
+async function load(){
+
+  /* Token yoksa girişe gönder */
+
+  if(!token){
+
+    location.href =
+      'index.html';
+
+    return;
+
+  }
+
+
+  const grid =
+    document.getElementById(
+      'grid'
+    );
+
+
+  try{
+
+    grid.innerHTML =
+      '<div class="empty">Profil yükleniyor...</div>';
+
+
+    /* -----------------------------------------------------
+       ÖNCE SUNUCUDAN GERÇEK GİRİŞ YAPAN KULLANICI
+    ----------------------------------------------------- */
+
+    try{
+
+      me =
+        await api(
+          '/api/me'
+        );
+
+    }catch(meError){
+
+      console.warn(
+        'API /api/me okunamadı:',
+        meError
+      );
+
+      me = null;
+
+    }
+
+
+    /* -----------------------------------------------------
+       KULLANICI ADINI GÜVENLİ SIRAYLA BUL
+
+       1. URL username
+       2. /api/me username
+       3. minegram_user username
+       4. minegram_username
+       5. kayıt sırasında tutulan username
+    ----------------------------------------------------- */
+
+    const storedUser =
+      getStoredUser();
+
+
+    const username =
+      (
+        target ||
+        me?.username ||
+        me?.user?.username ||
+        storedUser?.username ||
+        storedUser?.user?.username ||
+        localStorage.getItem(
+          'minegram_username'
+        ) ||
+        localStorage.getItem(
+          'minegram_register_username'
+        ) ||
+        ''
+      ).toString().trim();
+
+
+    console.log(
+      '[MINEGRAM] /api/me:',
+      me
+    );
+
+    console.log(
+      '[MINEGRAM] Bulunan kullanıcı adı:',
+      username
+    );
+
+
+    /* Kullanıcı adı hâlâ bulunamadı */
+
+    if(!username){
+
+      throw new Error(
+        'Giriş yapan hesabın kullanıcı adı bulunamadı. Lütfen çıkış yapıp tekrar giriş yap.'
+      );
+
+    }
+
+
+    /* -----------------------------------------------------
+       PROFİLİ SUNUCUDAN AL
+    ----------------------------------------------------- */
+
+    currentProfile =
+      await api(
+        '/api/users/' +
+        encodeURIComponent(
+          username
+        )
+      );
+
+
+    if(!currentProfile){
+
+      throw new Error(
+        'Profil bilgileri bulunamadı.'
+      );
+
+    }
+
+
+    console.log(
+      '[MINEGRAM] Profil:',
+      currentProfile
+    );
+
+
+    /* -----------------------------------------------------
+       BULUNAN GERÇEK KULLANICI ADINI LOCAL STORAGE'A YAZ
+    ----------------------------------------------------- */
+
+    if(
+      currentProfile.username
+    ){
+
+      localStorage.setItem(
+        'minegram_username',
+        String(
+          currentProfile.username
+        )
+      );
+
+    }
+
+
+    if(
+      currentProfile.id
+    ){
+
+      localStorage.setItem(
+        'minegram_user_id',
+        String(
+          currentProfile.id
+        )
+      );
+
+    }
+
+
+    /* -----------------------------------------------------
+       USER OBJECT'İNİ DE GÜNCELLE
+    ----------------------------------------------------- */
+
+    try{
+
+      const oldUser =
+        getStoredUser() || {};
+
+
+      const newUser = {
+        ...oldUser,
+        ...(me || {}),
+        username:
+          currentProfile.username ||
+          username,
+        id:
+          currentProfile.id ||
+          me?.id ||
+          oldUser?.id
+      };
+
+
+      localStorage.setItem(
+        'minegram_user',
+        JSON.stringify(
+          newUser
+        )
+      );
+
+    }catch(e){
+
+      console.warn(
+        'minegram_user güncellenemedi:',
+        e
+      );
+
+    }
+
+
+    /* -----------------------------------------------------
+       PROFİL ADI
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'title'
+    ).textContent =
+      'Profil';
+
+
+    document.getElementById(
+      'username'
+    ).innerHTML =
+      '@' +
+      escapeHtml(
+        currentProfile.username ||
+        username
+      ) +
+      (
+        currentProfile.verified
+          ? ' <span class="verified">✓</span>'
+          : ''
+      );
+
+
+    /* -----------------------------------------------------
+       GÖRÜNEN AD
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'display'
+    ).textContent =
+      currentProfile.displayName ||
+      currentProfile.display_name ||
+      '';
+
+
+    /* -----------------------------------------------------
+       BİYOGRAFİ
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'bio'
+    ).textContent =
+      currentProfile.bio ||
+      '';
+
+
+    /* -----------------------------------------------------
+       GÖNDERİ SAYISI
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'postCount'
+    ).textContent =
+      currentProfile.postCount ??
+      currentProfile.post_count ??
+      0;
+
+
+    /* -----------------------------------------------------
+       TAKİPÇİ
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'followers'
+    ).textContent =
+      currentProfile.followers ??
+      currentProfile.followerCount ??
+      currentProfile.follower_count ??
+      0;
+
+
+    /* -----------------------------------------------------
+       TAKİP
+    ----------------------------------------------------- */
+
+    document.getElementById(
+      'following'
+    ).textContent =
+      currentProfile.following ??
+      currentProfile.followingCount ??
+      currentProfile.following_count ??
+      0;
+
+
+    /* -----------------------------------------------------
+       KENDİ PROFİLİ Mİ?
+    ----------------------------------------------------- */
+
+    const currentId =
+      currentProfile.id ??
+      currentProfile.auth_user_id ??
+      '';
+
+
+    const myId =
+      me?.id ??
+      me?.user?.id ??
+      storedUser?.id ??
+      '';
+
+
+    const mine =
+      String(currentId) ===
+      String(myId);
+
+
+    console.log(
+      '[MINEGRAM] Profil sahibi ID:',
+      currentId
+    );
+
+    console.log(
+      '[MINEGRAM] Giriş yapan ID:',
+      myId
+    );
+
+    console.log(
+      '[MINEGRAM] Kendi profilim:',
+      mine
+    );
+
+
+    /* -----------------------------------------------------
+       DÜZENLE / TAKİP BUTONU
+    ----------------------------------------------------- */
+
+    const edit =
+      document.getElementById(
+        'editBtn'
+      );
+
+
+    edit.textContent =
+      mine
+        ? '✎  Profil düzenle'
+        : (
+            currentProfile.followingByMe
+              ? 'Takibi Bırak'
+              : 'Takip Et'
+          );
+
+
+    edit.classList.toggle(
+      'primary',
+      mine ||
+      !currentProfile.followingByMe
+    );
+
+
+    /* -----------------------------------------------------
+       AVATAR
+    ----------------------------------------------------- */
+
+    const av =
+      document.getElementById(
+        'avatar'
+      );
+
+
+    const avatarUrl =
+      currentProfile.avatar ||
+      currentProfile.avatar_url ||
+      '';
+
+
+    if(avatarUrl){
+
+      av.innerHTML =
+        '<img src="' +
+        escapeHtml(
+          avatarUrl
+        ) +
+        '" alt="Profil fotoğrafı">';
+
+    }else{
+
+      const avatarText =
+        (
+          currentProfile.displayName ||
+          currentProfile.display_name ||
+          currentProfile.username ||
+          username ||
+          'M'
+        ).trim();
+
+
+      av.textContent =
+        avatarText
+          ? avatarText[0].toUpperCase()
+          : 'M';
+
+    }
+
+
+    /* -----------------------------------------------------
+       GÖNDERİLER
+    ----------------------------------------------------- */
+
+    const posts =
+      await api(
+        '/api/users/' +
+        encodeURIComponent(
+          username
+        ) +
+        '/posts'
+      );
+
+
+    renderPosts(
+      Array.isArray(posts)
+        ? posts
+        : []
+    );
+
+
+  }catch(e){
+
+    console.error(
+      '[Minegram] Profil yükleme hatası:',
+      e
+    );
+
+
+    grid.innerHTML =
+      '<div class="empty">' +
+      'Profil yüklenemedi.<br><br>' +
+      escapeHtml(
+        e.message ||
+        'Bilinmeyen hata'
+      ) +
+      '</div>';
+
+
+    toast(
+      e.message ||
+      'Profil yüklenemedi'
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   GÖNDERİLERİ RENDER
+========================================================= */
+
+function renderPosts(posts){
+
+  const grid =
+    document.getElementById(
+      'grid'
+    );
+
+
+  if(
+    !Array.isArray(posts) ||
+    posts.length === 0
+  ){
+
+    grid.innerHTML =
+      '<div class="empty">Henüz gönderi yok</div>';
+
+    return;
+
+  }
+
+
+  grid.innerHTML =
+    posts.map(
+      x=>{
+
+        const media =
+          x.media ||
+          x.image ||
+          x.image_url ||
+          x.media_url ||
+          '';
+
+
+        if(media){
+
+          return (
+            '<div class="tile">' +
+            '<img src="' +
+            escapeHtml(
+              media
+            ) +
+            '" loading="lazy" alt="Gönderi">' +
+            '</div>'
+          );
+
+        }
+
+
+        return (
+          '<div class="tile">' +
+          '<div class="txt">' +
+          escapeHtml(
+            x.caption ||
+            x.text ||
+            ''
+          ) +
+          '</div>' +
+          '</div>'
+        );
+
+      }
+    ).join('');
+
+}
+
+
+/* =========================================================
+   GERİ
+========================================================= */
+
+document
+  .getElementById('backBtn')
+  .addEventListener(
+    'click',
+    ()=>{
+      if(
+        history.length > 1
+      ){
+
+        history.back();
+
+      }else{
+
+        location.href =
+          'index.html';
+
+      }
+    }
+  );
+
+
+/* =========================================================
+   PROFİL DÜZENLE / TAKİP
+========================================================= */
+
+document
+  .getElementById('editBtn')
+  .addEventListener(
+    'click',
+    async()=>{
+
+      if(!currentProfile){
+        return;
+      }
+
+
+      const currentId =
+        currentProfile.id ??
+        currentProfile.auth_user_id ??
+        '';
+
+
+      const myId =
+        me?.id ??
+        me?.user?.id ??
+        localStorage.getItem(
+          'minegram_user_id'
+        ) ||
+        '';
+
+
+      const mine =
+        String(currentId) ===
+        String(myId);
+
+
+      /* Başka kullanıcının profili */
+
+      if(!mine){
+
+        try{
+
+          await api(
+            '/api/users/' +
+            encodeURIComponent(
+              currentProfile.username
+            ) +
+            '/follow',
+            {
+              method:'POST'
+            }
+          );
+
+
+          await load();
+
+        }catch(e){
+
+          toast(
+            e.message
+          );
+
+        }
+
+        return;
+
+      }
+
+
+      /* Kendi profilimiz */
+
+      document.getElementById(
+        'nameInput'
+      ).value =
+        currentProfile.displayName ||
+        currentProfile.display_name ||
+        '';
+
+
+      document.getElementById(
+        'bioInput'
+      ).value =
+        currentProfile.bio ||
+        '';
+
+
+      openModal(
+        'editModal'
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   MODAL AÇ
+========================================================= */
+
+function openModal(id){
+
+  const m =
+    document.getElementById(
+      id
+    );
+
+
+  if(!m){
+    return;
+  }
+
+
+  m.classList.add(
+    'open'
+  );
+
+
+  m.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+
+}
+
+
+/* =========================================================
+   MODAL KAPAT
+========================================================= */
+
+function closeModal(id){
+
+  const m =
+    document.getElementById(
+      id
+    );
+
+
+  if(!m){
+    return;
+  }
+
+
+  m.classList.remove(
+    'open'
+  );
+
+
+  m.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+
+}
+
+
+/* =========================================================
+   DÜZENLE İPTAL
+========================================================= */
+
+document
+  .getElementById('editCancel')
+  .addEventListener(
+    'click',
+    ()=>{
+      closeModal(
+        'editModal'
+      );
+    }
+  );
+
+
+/* =========================================================
+   PROFİL KAYDET
+========================================================= */
+
+document
+  .getElementById('editSave')
+  .addEventListener(
+    'click',
+    async()=>{
+
+      try{
+
+        await api(
+          '/api/me',
+          {
+            method:'PATCH',
+            body:{
+              displayName:
+                document
+                  .getElementById(
+                    'nameInput'
+                  )
+                  .value
+                  .trim(),
+
+              bio:
+                document
+                  .getElementById(
+                    'bioInput'
+                  )
+                  .value
+                  .trim()
+            }
+          }
+        );
+
+
+        closeModal(
+          'editModal'
+        );
+
+
+        toast(
+          'Profil güncellendi'
+        );
+
+
+        await load();
+
+      }catch(e){
+
+        toast(
+          e.message
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   PROFİL PAYLAŞ
+========================================================= */
+
+document
+  .getElementById('shareBtn')
+  .addEventListener(
+    'click',
+    async()=>{
+
+      if(!currentProfile){
+
+        toast(
+          'Profil henüz yüklenmedi'
+        );
+
+        return;
+
+      }
+
+
+      const url =
+        location.href;
+
+
+      try{
+
+        if(
+          navigator.share
+        ){
+
+          await navigator.share(
+            {
+              title:
+                'Minegram profili',
+
+              text:
+                '@' +
+                currentProfile.username,
+
+              url
+            }
+          );
+
+        }else{
+
+          await navigator.clipboard.writeText(
+            url
+          );
+
+
+          toast(
+            'Profil bağlantısı kopyalandı'
+          );
+
+        }
+
+      }catch(e){
+
+        if(
+          e.name !==
+          'AbortError'
+        ){
+
+          toast(
+            'Paylaşım başarısız'
+          );
+
+        }
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   FOTOĞRAF PAYLAŞ
+========================================================= */
+
+document
+  .getElementById('photoShareBtn')
+  .addEventListener(
+    'click',
+    async()=>{
+
+      const url =
+        location.href +
+        '#photos';
+
+
+      try{
+
+        if(
+          navigator.share
+        ){
+
+          await navigator.share(
+            {
+              title:
+                'Minegram fotoğrafları',
+
+              url
+            }
+          );
+
+        }else{
+
+          await navigator.clipboard.writeText(
+            url
+          );
+
+
+          toast(
+            'Fotoğraf bağlantısı kopyalandı'
+          );
+
+        }
+
+      }catch(e){
+
+        if(
+          e.name !==
+          'AbortError'
+        ){
+
+          toast(
+            'Paylaşım başarısız'
+          );
+
+        }
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   TELEFON EKLE
+========================================================= */
+
+document
+  .getElementById('phoneBtn')
+  .addEventListener(
+    'click',
+    async()=>{
+
+      const phone =
+        prompt(
+          'Telefon numaranı gir:'
+        );
+
+
+      if(phone === null){
+        return;
+      }
+
+
+      if(!phone.trim()){
+
+        toast(
+          'Telefon numarası boş bırakılamaz'
+        );
+
+        return;
+
+      }
+
+
+      try{
+
+        await api(
+          '/api/me',
+          {
+            method:'PATCH',
+            body:{
+              phone:
+                phone.trim()
+            }
+          }
+        );
+
+
+        toast(
+          'Telefon numarası kaydedildi'
+        );
+
+      }catch(e){
+
+        toast(
+          e.message
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   MENÜ
+========================================================= */
+
+document
+  .getElementById('menuBtn')
+  .addEventListener(
+    'click',
+    ()=>{
+      openModal(
+        'menuModal'
+      );
+    }
+  );
+
+
+document
+  .getElementById('menuClose')
+  .addEventListener(
+    'click',
+    ()=>{
+      closeModal(
+        'menuModal'
+      );
+    }
+  );
+
+
+/* =========================================================
+   ÇIKIŞ
+========================================================= */
+
+document
+  .getElementById('menuLogout')
+  .addEventListener(
+    'click',
+    ()=>{
+
+      localStorage.removeItem(
+        'minegram_token'
+      );
+
+      localStorage.removeItem(
+        'token'
+      );
+
+      localStorage.removeItem(
+        'minegram_username'
+      );
+
+      localStorage.removeItem(
+        'minegram_user_id'
+      );
+
+      localStorage.removeItem(
+        'minegram_user'
+      );
+
+      localStorage.removeItem(
+        'minegram_register_username'
+      );
+
+      localStorage.removeItem(
+        'minegram_register_email'
+      );
+
+      localStorage.removeItem(
+        'minegram_register_phone'
+      );
+
+      localStorage.removeItem(
+        'minegram_register_displayName'
+      );
+
+      location.href =
+        'index.html';
+
+    }
+  );
+
+
+/* =========================================================
+   MODAL DIŞINA TIKLAYINCA KAPAT
+========================================================= */
+
+[
+  'editModal',
+  'menuModal'
+].forEach(
+  id=>{
+
+    document
+      .getElementById(id)
+      .addEventListener(
+        'click',
+        e=>{
+
+          if(
+            e.target.id === id
+          ){
+
+            closeModal(
+              id
+            );
+
+          }
+
+        }
+      );
+
+  }
+);
+
+
+/* =========================================================
+   ESC
+========================================================= */
+
+document.addEventListener(
+  'keydown',
+  e=>{
+
+    if(
+      e.key ===
+      'Escape'
+    ){
+
+      closeModal(
+        'editModal'
+      );
+
+      closeModal(
+        'menuModal'
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   ALT MENÜ
+========================================================= */
+
+document
+  .getElementById('homeNav')
+  .onclick =
+    ()=>{
+      location.href =
+        'index.html';
+    };
+
+
+document
+  .getElementById('searchNav')
+  .onclick =
+    ()=>{
+      location.href =
+        'index.html#search';
+    };
+
+
+document
+  .getElementById('createNav')
+  .onclick =
+    ()=>{
+      location.href =
+        'index.html#create';
+    };
+
+
+document
+  .getElementById('reelsNav')
+  .onclick =
+    ()=>{
+      location.href =
+        'index.html#reels';
+    };
+
+
+document
+  .getElementById('profileNav')
+  .onclick =
+    ()=>{
+      location.href =
+        'profile.html';
+    };
+
+
+/* =========================================================
+   GÖNDERİLER SEKME
+========================================================= */
+
+document
+  .getElementById('postsTab')
+  .onclick =
+    async()=>{
+
+      document
+        .getElementById(
+          'postsTab'
+        )
+        .classList
+        .add('active');
+
+
+      document
+        .getElementById(
+          'likesTab'
+        )
+        .classList
+        .remove('active');
+
+
+      await load();
+
+    };
+
+
+/* =========================================================
+   BEĞENİLER SEKME
+========================================================= */
+
+document
+  .getElementById('likesTab')
+  .onclick =
+    ()=>{
+
+      document
+        .getElementById(
+          'likesTab'
+        )
+        .classList
+        .add('active');
+
+
+      document
+        .getElementById(
+          'postsTab'
+        )
+        .classList
+        .remove('active');
+
+
+      toast(
+        'Beğenilen gönderiler bölümü hazır'
+      );
+
+    };
+
+
+/* =========================================================
+   BAŞLAT
+========================================================= */
+
+load();
+
+</script>
+
+</body>
 </html>
