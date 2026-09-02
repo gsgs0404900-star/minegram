@@ -911,36 +911,98 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
-      const {
-        data: profile,
-        error: profileError
-      } =
-        await admin
+      /* =====================================================
+         PROFİL OLUŞTUR
+         Şema farklılıklarına karşı güvenli/uyumlu ekleme.
+         Aynı e-posta ile birden fazla hesap açılabildiği için
+         profil kaydında e-posta benzersizliği kullanılmaz.
+      ===================================================== */
+      let profile = null;
+      let profileError = null;
+
+      const profileAttempts = [
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        },
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false
+        },
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName
+        }
+      ];
+
+      for (const profileData of profileAttempts) {
+        const result = await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .insert(profileData)
           .select("*")
           .single();
 
-      if (profileError) {
+        if (!result.error && result.data) {
+          profile = result.data;
+          profileError = null;
+          break;
+        }
+
+        profileError = result.error;
         console.error(
-          "PROFILE CREATE ERROR:",
+          "PROFILE CREATE ATTEMPT ERROR:",
+          profileError
+        );
+
+        /* Eğer kayıt zaten oluştuysa tekrar eklemeye çalışma. */
+        const existing = await admin
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", authUser.id)
+          .maybeSingle();
+
+        if (!existing.error && existing.data) {
+          profile = existing.data;
+          profileError = null;
+          break;
+        }
+      }
+
+      /* Eski şemalarda auth_user_id bulunmayabilir. */
+      if (!profile) {
+        const legacyResult = await admin
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (!legacyResult.error && legacyResult.data) {
+          profile = legacyResult.data;
+          profileError = null;
+        }
+      }
+
+      if (profileError || !profile) {
+        console.error(
+          "PROFILE CREATE FINAL ERROR:",
           profileError
         );
 
         try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
+          await admin.auth.admin.deleteUser(authUser.id);
         } catch (cleanupError) {
           console.error(
             "AUTH CLEANUP ERROR:",
@@ -953,7 +1015,9 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
+          error:
+            "Profil oluşturulamadı. Supabase profiles tablosunda gerekli alanlar eksik veya tablo yapısı uyumsuz.",
+          detail: profileError?.message || null
         });
       }
 
