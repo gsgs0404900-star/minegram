@@ -613,6 +613,58 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
+async function persistRegistrationCode(admin, entry) {
+  try {
+    await admin.auth.admin.updateUserById(entry.userId, {
+      user_metadata: {
+        username: entry.username,
+        display_name: entry.displayName,
+        minegram_registration_pending: true,
+        minegram_registration_code: entry.code,
+        minegram_registration_expires: entry.expires
+      }
+    });
+  } catch (e) {
+    console.error('REGISTRATION CODE PERSIST ERROR:', e);
+  }
+}
+
+function registrationEntryFromAuthUser(user) {
+  const meta = user?.user_metadata || {};
+  const code = String(meta.minegram_registration_code || '').trim();
+  const expires = Number(meta.minegram_registration_expires || 0);
+  if (!meta.minegram_registration_pending || !/^\d{6}$/.test(code) || !expires) return null;
+  return {
+    code,
+    userId: user.id,
+    email: normalizeEmail(user.email),
+    expires,
+    attempts: 0,
+    username: normalizeUsername(meta.username),
+    displayName: String(meta.display_name || meta.username || '').trim()
+  };
+}
+
+async function findPendingRegistration(admin, email) {
+  const wanted = normalizeEmail(email);
+  for (let page = 1; page <= 20; page++) {
+    const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (result?.error) throw result.error;
+    const users = result?.data?.users || [];
+    const user = users.find(u => normalizeEmail(u?.email) === wanted);
+    if (user) {
+      const entry = registrationEntryFromAuthUser(user);
+      if (entry) {
+        registrationCodes.set(registrationKey(wanted), entry);
+        return entry;
+      }
+      return null;
+    }
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -947,6 +999,8 @@ app.post(
         }
       );
 
+      await persistRegistrationCode(admin, registrationCodes.get(registrationKey(email)));
+
       registrationRate.set(
         registrationKey(email),
         Date.now()
@@ -1069,8 +1123,14 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      let entry = registrationCodes.get(key);
+
+      // Sunucu yeniden başladıysa Map sıfırlanır. Kodu Supabase Auth metadata
+      // içinden geri yükleyerek doğrulamayı bozmadan devam ettir.
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(400).json({
@@ -1144,6 +1204,18 @@ app.post(
       }
 
       registrationCodes.delete(key);
+
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            minegram_registration_pending: false,
+            minegram_registration_code: null,
+            minegram_registration_expires: null
+          }
+        });
+      } catch (metadataError) {
+        console.error('REGISTRATION METADATA CLEANUP ERROR:', metadataError);
+      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1235,14 +1307,20 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
-        registrationCodes.get(key);
+      let entry = registrationCodes.get(key);
+
+      // Render/Node yeniden başladıysa RAM'deki kayıt kaybolabilir.
+      // Supabase Auth metadata içinden bekleyen kaydı geri yükle.
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
           error:
-            "Bekleyen bir kayıt bulunamadı."
+            "Bekleyen bir kayıt bulunamadı. Bu e-posta ile yeniden kayıt başlat."
         });
       }
 
@@ -1298,6 +1376,8 @@ app.post(
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
 
+      await persistRegistrationCode(admin, entry);
+
       registrationRate.set(
         key,
         Date.now()
@@ -1336,234 +1416,238 @@ app.post(
    LOGIN
 ========================================================= */
 
-/* =========================================================
-   LOGIN - TEK VE TEMİZ SÜRÜM
-========================================================= */
 app.post(
   "/api/login",
   async (req, res) => {
     try {
-      const identifier = String(
-        req.body?.identifier ??
-        req.body?.username ??
-        req.body?.email ??
-        ""
-      ).trim();
+      const identifier =
+        String(
+          req.body?.username ??
+          req.body?.email ??
+          ""
+        ).trim();
 
-      const password = String(req.body?.password ?? "");
+      const password =
+        String(
+          req.body?.password ??
+          ""
+        );
 
-      console.log("======================================");
-      console.log("MINEGRAM LOGIN");
-      console.log("IDENTIFIER:", identifier);
-      console.log("PASSWORD:", password ? "VAR" : "YOK");
-
-      if (!identifier || !password) {
+      if (
+        !identifier ||
+        !password
+      ) {
         return res.status(400).json({
-          ok: false,
-          error: "Kullanıcı adı/e-posta ve şifre gerekli."
+          error:
+            "Kullanıcı adı/e-posta ve şifre gerekli."
         });
       }
 
       if (!CONFIG_OK) {
         return res.status(500).json({
-          ok: false,
-          error: "Supabase ortam değişkenleri eksik."
+          error:
+            "Supabase ortam değişkenleri eksik."
         });
       }
 
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
+      if (
+        !SUPABASE_SERVICE_ROLE_KEY
+      ) {
         return res.status(500).json({
-          ok: false,
-          error: "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
+          error:
+            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
         });
       }
 
-      const admin = adminClient();
-      let email = "";
-      let profile = null;
-      let authUser = null;
+      const admin =
+        adminClient();
 
-      /* E-POSTA */
-      if (identifier.includes("@")) {
-        email = normalizeEmail(identifier);
+      let email =
+        identifier.toLowerCase();
 
-        authUser = await findAuthUserByEmail(admin, email);
+      if (
+        !identifier.includes("@")
+      ) {
+        const username =
+          normalizeUsername(
+            identifier
+          );
 
-        if (!authUser) {
-          return res.status(401).json({
-            ok: false,
-            error: "Kullanıcı adı veya şifre yanlış."
-          });
-        }
-
-        console.log("AUTH USER:", authUser.id);
-        console.log("AUTH EMAIL:", authUser.email);
-
-        const byAuth = await admin
+        const {
+          data: profile,
+          error: pe
+        } = await admin
           .from("profiles")
           .select("*")
-          .eq("auth_user_id", authUser.id)
+          .eq(
+            "username",
+            username
+          )
           .maybeSingle();
 
-        if (byAuth.error) console.error("PROFILE AUTH ERROR:", byAuth.error);
-        profile = byAuth.data || null;
-
-        if (!profile) {
-          const byId = await admin
-            .from("profiles")
-            .select("*")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-          if (byId.error) console.error("PROFILE ID ERROR:", byId.error);
-          profile = byId.data || null;
-        }
-      }
-      /* KULLANICI ADI */
-      else {
-        const username = normalizeUsername(identifier);
-
-        const result = await admin
-          .from("profiles")
-          .select("*")
-          .eq("username", username)
-          .maybeSingle();
-
-        if (result.error) {
-          console.error("USERNAME PROFILE ERROR:", result.error);
+        if (pe) {
           return res.status(500).json({
-            ok: false,
-            error: "Kullanıcı aranırken hata oluştu."
+            error: pe.message
           });
         }
-
-        profile = result.data || null;
 
         if (!profile) {
           return res.status(401).json({
-            ok: false,
-            error: "Kullanıcı adı veya şifre yanlış."
+            error:
+              "Kullanıcı adı veya şifre hatalı."
           });
         }
 
-        const authId = profile.auth_user_id || profile.id;
+        const authId =
+          profile.auth_user_id ||
+          profile.id;
 
-        if (!authId) {
+        const {
+          data: au,
+          error: ae
+        } =
+          await admin.auth.admin.getUserById(
+            authId
+          );
+
+        if (
+          ae ||
+          !au?.user?.email
+        ) {
           return res.status(401).json({
-            ok: false,
-            error: "Bu hesabın Supabase Auth bağlantısı bulunamadı."
+            error:
+              "Kullanıcı adı veya şifre hatalı."
           });
         }
 
-        const resultUser = await admin.auth.admin.getUserById(authId);
-
-        if (resultUser.error || !resultUser.data?.user) {
-          console.error("AUTH USER LOOKUP ERROR:", resultUser.error);
-          return res.status(401).json({
-            ok: false,
-            error: "Kullanıcı adı veya şifre yanlış."
-          });
-        }
-
-        authUser = resultUser.data.user;
-        email = normalizeEmail(authUser.email);
-
-        if (!email) {
-          return res.status(401).json({
-            ok: false,
-            error: "Bu hesabın e-posta adresi bulunamadı."
-          });
-        }
+        email =
+          au.user.email.toLowerCase();
       }
 
-      console.log("SUPABASE SIGN IN EMAIL:", email);
-      console.log("AUTH USER ID:", authUser.id);
+      const anon =
+        client();
 
-      /* GERÇEK SUPABASE PASSWORD LOGIN */
-      const anon = client();
-      const { data: sessionData, error: loginError } =
+      const {
+        data: sd,
+        error: le
+      } =
         await anon.auth.signInWithPassword({
           email,
           password
         });
 
-      if (loginError || !sessionData?.session || !sessionData?.user) {
-        console.error("SUPABASE LOGIN ERROR:", loginError);
-
-        const text = String(loginError?.message || "").toLowerCase();
-
-        if (text.includes("email not confirmed")) {
-          return res.status(401).json({
-            ok: false,
-            error: "E-posta adresiniz doğrulanmamış."
-          });
-        }
-
-        if (text.includes("too many requests")) {
-          return res.status(429).json({
-            ok: false,
-            error: "Çok fazla giriş denemesi yapıldı. Lütfen biraz bekleyin."
-          });
-        }
-
+      if (
+        le ||
+        !sd?.session ||
+        !sd?.user
+      ) {
         return res.status(401).json({
-          ok: false,
-          error: "Kullanıcı adı veya şifre yanlış."
+          error:
+            /invalid login credentials/i.test(
+              le?.message || ""
+            )
+              ? "Kullanıcı adı/e-posta veya şifre hatalı."
+              : (
+                  le?.message ||
+                  "Giriş başarısız."
+                )
         });
       }
 
-      const loggedUser = sessionData.user;
+      const authId =
+        sd.user.id;
 
-      /* Profil Auth ID ile tekrar kesinleştirilir. */
-      if (!profile) {
-        const r = await admin
-          .from("profiles")
-          .select("*")
-          .eq("auth_user_id", loggedUser.id)
-          .maybeSingle();
-        profile = r.data || null;
-      }
+      const {
+        data: profiles,
+        error: pe2
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .eq(
+          "auth_user_id",
+          authId
+        )
+        .order(
+          "created_at",
+          {
+            ascending: true
+          }
+        );
 
-      if (!profile) {
-        const r = await admin
-          .from("profiles")
-          .select("*")
-          .eq("id", loggedUser.id)
-          .maybeSingle();
-        profile = r.data || null;
-      }
-
-      if (!profile) {
+      if (pe2) {
         return res.status(500).json({
-          ok: false,
-          error: "Giriş başarılı fakat Minegram profili bulunamadı."
+          error: pe2.message
         });
       }
 
-      const safe = safeProfile(profile);
-      const accessToken = sessionData.session.access_token;
+      let list =
+        profiles || [];
 
-      console.log("SUPABASE LOGIN BAŞARILI");
-      console.log("PROFILE:", safe.username);
-      console.log("======================================");
+      if (!list.length) {
+        const {
+          data: legacy
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            authId
+          )
+          .maybeSingle();
+
+        if (legacy) {
+          list = [legacy];
+        }
+      }
+
+      if (!list.length) {
+        return res.status(404).json({
+          error:
+            "Bu hesap için Minegram profili bulunamadı."
+        });
+      }
+
+      const safe =
+        list.map(
+          safeProfile
+        );
+
+      const selected =
+        identifier.includes("@")
+          ? safe[0]
+          : (
+              safe.find(
+                x =>
+                  x.username ===
+                  normalizeUsername(
+                    identifier
+                  )
+              ) ||
+              safe[0]
+            );
 
       return res.json({
         ok: true,
-        message: "Giriş başarılı.",
-        token: accessToken,
-        access_token: accessToken,
-        supabaseAccessToken: accessToken,
-        refresh_token: sessionData.session.refresh_token,
-        profile: safe,
-        profiles: [safe],
-        user: safe,
-        multipleProfiles: false
+        multipleProfiles:
+          safe.length > 1,
+        profiles: safe,
+        profile: selected,
+        token:
+          sd.session
+            .access_token,
+        user: selected
       });
+
     } catch (e) {
-      console.error("MINEGRAM LOGIN FATAL ERROR:", e);
+      console.error(
+        "LOGIN ERROR:",
+        e
+      );
+
       return res.status(500).json({
-        ok: false,
-        error: e?.message || "Giriş sırasında sunucu hatası oluştu."
+        error:
+          e?.message ||
+          "Giriş başarısız."
       });
     }
   }
@@ -2238,6 +2322,16 @@ async function resolveRecoveryEmail(
       data || null;
   }
 
+  // E-posta ile kurtarmada gerçek Supabase Auth kullanıcısını çöz.
+  if (!authUser && profile && SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = adminClient();
+    const authId = profile.auth_user_id || profile.id;
+    const { data, error } = await admin.auth.admin.getUserById(authId);
+    if (error || !data?.user?.email) return null;
+    authUser = data.user;
+    email = data.user.email;
+  }
+
   return {
     email,
     profile,
@@ -2442,6 +2536,19 @@ async function sendResendEmail(
 const recoveryCodes =
   new Map();
 
+// 6 haneli kurtarma kodu doğrulandıktan sonra
+// yeni şifre belirlemek için kısa ömürlü tek kullanımlık anahtarlar.
+const passwordResetTokens = new Map();
+
+function cleanupPasswordResetTokens() {
+  const now = Date.now();
+  for (const [token, entry] of passwordResetTokens.entries()) {
+    if (!entry || entry.expires < now) {
+      passwordResetTokens.delete(token);
+    }
+  }
+}
+
 
 /* =========================================================
    FORGOT START
@@ -2482,7 +2589,8 @@ app.post(
             Date.now() +
             10 * 60 * 1000,
           profile:
-            found.profile
+            found.profile,
+        authUserId: found.authUser?.id || found.profile?.auth_user_id || found.profile?.id || null
         }
       );
 
@@ -2572,9 +2680,31 @@ app.post(
         });
       }
 
-      recoveryCodes.delete(
-        key
-      );
+      // Kod tek kullanımlık olsun. Doğrulama başarılı olduğunda
+      // şifre değiştirme için 10 dakikalık geçici anahtar üret.
+      recoveryCodes.delete(key);
+      cleanupPasswordResetTokens();
+
+      const authUserId =
+      found.authUser?.id ||
+      entry.authUserId ||
+      found.profile?.auth_user_id ||
+      found.profile?.id ||
+      null;
+
+    if (!authUserId) {
+      return res.status(400).json({
+        ok: false,
+        error: "Supabase hesap bilgisi bulunamadı. Lütfen kodu yeniden iste."
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    passwordResetTokens.set(resetToken, {
+      userId: authUserId,
+      email: found.email,
+      expires: Date.now() + 10 * 60 * 1000
+    });
 
       const p =
         entry.profile ||
@@ -2583,16 +2713,16 @@ app.post(
 
       res.json({
         ok: true,
-        email:
-          found.email,
+        verified: true,
+        resetToken,
+        email: found.email,
 
         account: {
           username:
             p.username ||
             "minegram",
 
-          email:
-            found.email,
+          email: found.email,
 
           displayName:
             p.display_name ||
@@ -2604,6 +2734,153 @@ app.post(
       res.status(400).json({
         error:
           e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   RESET PASSWORD - 6 HANELİ KOD SONRASI
+========================================================= */
+
+app.post(
+  "/api/forgot/reset-password",
+  async (req, res) => {
+    try {
+      const resetToken =
+        String(req.body?.resetToken || "").trim();
+
+      const password =
+        String(req.body?.password || "");
+
+      if (!resetToken) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama anahtarı gerekli."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre en az 6 karakter olmalı."
+        });
+      }
+
+      cleanupPasswordResetTokens();
+
+      const entry = passwordResetTokens.get(resetToken);
+
+      if (!entry || entry.expires < Date.now()) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş."
+        });
+      }
+
+      if (!entry.userId) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap bilgisi bulunamadı."
+        });
+      }
+
+      const admin = adminClient();
+
+      const { error } =
+        await admin.auth.admin.updateUserById(
+          entry.userId,
+          { password }
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      passwordResetTokens.delete(resetToken);
+
+      return res.json({
+        ok: true,
+        message: "Şifren başarıyla değiştirildi. Şimdi giriş yapabilirsin.",
+        email: entry.email
+      });
+    } catch (e) {
+      console.error("RESET PASSWORD ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Şifre değiştirilemedi."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   FORGOT CODE RESEND
+========================================================= */
+
+app.post(
+  "/api/forgot/resend",
+  async (req, res) => {
+    try {
+      const found =
+        await resolveRecoveryEmail(
+          req.body?.identifier,
+          req.body?.mode || "email"
+        );
+
+      if (!found?.email) {
+        return res.status(404).json({
+          ok: false,
+          error: "Hesap bulunamadı."
+        });
+      }
+
+      const key = found.email.toLowerCase();
+      const previous = recoveryCodes.get(key);
+
+      if (previous?.sentAt && Date.now() - previous.sentAt < 60 * 1000) {
+        return res.status(429).json({
+          ok: false,
+          error: "Yeni kod göndermek için 60 saniye bekle."
+        });
+      }
+
+      const code = crypto.randomInt(100000, 1000000).toString();
+
+      recoveryCodes.set(key, {
+        code,
+        expires: Date.now() + 10 * 60 * 1000,
+        sentAt: Date.now(),
+        profile: found.profile,
+        authUserId: found.authUser?.id || null
+      });
+
+      await sendResendEmail(
+        found.email,
+        "Minegram doğrulama kodun",
+        `<div style="font-family:Arial,sans-serif">
+          <h2>Minegram</h2>
+          <p>Şifre sıfırlama doğrulama kodun:</p>
+          <div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div>
+          <p>Bu kod 10 dakika geçerlidir.</p>
+        </div>`,
+        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      );
+
+      return res.json({
+        ok: true,
+        email: found.email,
+        maskedEmail: maskEmail(found.email)
+      });
+    } catch (e) {
+      console.error("FORGOT RESEND ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "Kod gönderilemedi."
       });
     }
   }
