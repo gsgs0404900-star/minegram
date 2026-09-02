@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+
+<title>Şifremi unuttum • Minegram</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    min-height:100dvh;
+}
+
+.page{
+    width:100%;
+    min-height:100vh;
+    min-height:100dvh;
+    background:#000;
+    padding:
+        max(18px,env(safe-area-inset-top))
+        22px
+        calc(28px + env(safe-area-inset-bottom));
+}
+
+/* ÜST BAR */
+.header{
+    height:72px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.back{
+    width:38px;
+    height:38px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+}
+
+.back svg{
+    width:32px;
+    height:32px;
+    stroke:currentColor;
+    stroke-width:3;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.header-title{
+    font-size:29px;
+    line-height:1;
+    font-weight:700;
+    letter-spacing:-.6px;
+}
+
+/* ANA İÇERİK */
+.content{
+    width:100%;
+    max-width:720px;
+    margin:125px auto 0;
+}
+
+h1{
+    margin:0;
+    text-align:center;
+    font-size:46px;
+    line-height:1.12;
+    font-weight:750;
+    letter-spacing:-1.5px;
+}
+
+.subtitle{
+    margin:32px auto 42px;
+    max-width:680px;
+    color:#b7b7b7;
+    font-size:26px;
+    line-height:1.42;
+    text-align:left;
+}
+
+/* HESAPLAR */
+.accounts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.account{
+    width:100%;
+    min-height:145px;
+    padding:27px 30px;
+
+    border:2px solid transparent;
+    border-radius:25px;
+
+    background:#121212;
+    color:#fff;
+
+    text-align:left;
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    transition:
+        background .15s ease,
+        border-color .15s ease,
+        transform .1s ease;
+}
+
+.account:hover{
+    background:#171717;
+}
+
+.account:active{
+    transform:scale(.99);
+}
+
+.account.selected{
+    border-color:#0095f6;
+    background:#141414;
+}
+
+.account-info{
+    min-width:0;
+    flex:1;
+}
+
+.username{
+    font-size:31px;
+    font-weight:750;
+    line-height:1.2;
+    margin-bottom:12px;
+}
+
+.email{
+    color:#b6b6b6;
+    font-size:26px;
+    line-height:1.2;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+/* SEÇİM DAİRESİ */
+.radio{
+    flex:0 0 auto;
+    width:48px;
+    height:48px;
+    margin-left:18px;
+
+    border:3px solid #555;
+    border-radius:50%;
+    background:transparent;
+    position:relative;
+}
+
+.account.selected .radio{
+    border-color:#0095f6;
+}
+
+.account.selected .radio::after{
+    content:"";
+
+    position:absolute;
+
+    width:24px;
+    height:24px;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    border-radius:50%;
+    background:#0095f6;
+}
+
+/* =====================================================
+   BUTONLAR
+   HER ZAMAN İKİ HESABIN ALTINDA
+   ===================================================== */
+
+.actions{
+    display:none;
+    flex-direction:column;
+    gap:12px;
+    margin-top:16px;
+
+    animation:showButtons .18s ease;
+}
+
+.actions.show{
+    display:flex;
+}
+
+@keyframes showButtons{
+
+    from{
+        opacity:0;
+        transform:translateY(-5px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+/* BUTON */
+.action-btn{
+    width:100%;
+    min-height:58px;
+
+    border:0;
+    border-radius:15px;
+
+    padding:15px 18px;
+
+    font-size:18px;
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:
+        opacity .15s ease,
+        transform .1s ease;
+}
+
+.action-btn:hover{
+    opacity:.92;
+}
+
+.action-btn:active{
+    transform:scale(.99);
+}
+
+/* MAVİ */
+.primary{
+    background:#0095f6;
+    color:#fff;
+}
+
+.secondary{
+    background:#0095f6;
+    color:#fff;
+}
+
+/* DURUM */
+.status{
+    display:none;
+
+    margin-top:18px;
+    padding:14px 16px;
+
+    border-radius:14px;
+
+    background:#171717;
+    color:#cfcfcf;
+
+    font-size:15px;
+    line-height:1.4;
+}
+
+.status.show{
+    display:block;
+}
+
+/* MOBİL */
+@media(max-width:600px){
+
+    .page{
+        padding-left:20px;
+        padding-right:20px;
+    }
+
+    .header{
+        height:62px;
+        gap:16px;
+    }
+
+    .header-title{
+        font-size:27px;
+    }
+
+    .content{
+        margin-top:112px;
+    }
+
+    h1{
+        font-size:43px;
+    }
+
+    .subtitle{
+        margin-top:30px;
+        margin-bottom:38px;
+        font-size:24px;
+        line-height:1.45;
+    }
+
+    .account{
+        min-height:145px;
+        padding:25px;
+        border-radius:24px;
+    }
+
+    .username{
+        font-size:29px;
+    }
+
+    .email{
+        font-size:24px;
+    }
+
+    .radio{
+        width:45px;
+        height:45px;
+    }
+
+    .account.selected .radio::after{
+        width:22px;
+        height:22px;
+    }
+
+    .action-btn{
+        min-height:57px;
+        font-size:17px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <!-- ÜST BAR -->
+    <header class="header">
+
+        <button
+            class="back"
+            type="button"
+            onclick="history.back()"
+            aria-label="Geri">
+
+            <svg viewBox="0 0 32 32">
+                <path d="M20 5 L9 16 L20 27"></path>
+                <path d="M10 16 H27"></path>
+            </svg>
+
+        </button>
+
+        <div class="header-title">
+            Şifremi unuttum
+        </div>
+
+    </header>
+
+
+    <main class="content">
+
+        <h1>
+            Hesaplarını bulduk
+        </h1>
+
+        <div class="subtitle">
+            Kayıtlı hesaplarından devam etmek istediğini seç.
+        </div>
+
+
+        <!-- HESAPLAR -->
+        <section class="accounts">
+
+            <!-- HESAP 1 -->
+            <button
+                class="account"
+                type="button"
+                data-username="@minegram"
+                data-email="gsgs04900@gmail.com"
+                onclick="selectAccount(this)"
+            >
+
+                <div class="account-info">
+
+                    <div class="username">
+                        @minegram
+                    </div>
+
+                    <div class="email">
+                        gsgs04900@gmail.com
+                    </div>
+
+                </div>
+
+                <div class="radio"></div>
+
+            </button>
+
+
+            <!-- HESAP 2 -->
+            <button
+                class="account"
+                type="button"
+                data-username="@test"
+                data-email="gsgs04900@gmail.com"
+                onclick="selectAccount(this)"
+            >
+
+                <div class="account-info">
+
+                    <div class="username">
+                        @test
+                    </div>
+
+                    <div class="email">
+                        gsgs04900@gmail.com
+                    </div>
+
+                </div>
+
+                <div class="radio"></div>
+
+            </button>
+
+        </section>
+
+
+        <!-- =================================================
+             BUTONLAR
+             HER ZAMAN İKİ HESABIN ALTINDA
+             ================================================= -->
+
+        <div
+            class="actions"
+            id="actions"
+        >
+
+            <button
+                class="action-btn primary"
+                type="button"
+                onclick="directLogin(event)"
+            >
+                Direkt giriş yap
+            </button>
+
+            <button
+                class="action-btn secondary"
+                type="button"
+                onclick="sendReset(event)"
+            >
+                Şifre değiştirme bağlantısı gönder
+            </button>
+
+        </div>
+
+
+        <!-- DURUM -->
+        <div
+            class="status"
+            id="status">
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+let selectedAccount = null;
+
+
+/* =====================================================
+   HESAP SEÇ
+   ===================================================== */
+
+function selectAccount(button){
+
+    /* Bütün seçimleri kaldır */
+    document
+        .querySelectorAll(".account")
+        .forEach(account => {
+
+            account.classList.remove("selected");
+
+        });
+
+
+    /* Tıklanan hesabı seç */
+    button.classList.add("selected");
+
+
+    /* Hesap bilgilerini kaydet */
+    selectedAccount = {
+
+        username:
+            button.dataset.username,
+
+        email:
+            button.dataset.email
+
+    };
+
+
+    /* BUTONLARI EN ALTTA GÖSTER */
+    const actions =
+        document.getElementById("actions");
+
+    actions.classList.add("show");
+
+
+    /* Eski durum mesajını temizle */
+    const status =
+        document.getElementById("status");
+
+    status.classList.remove("show");
+    status.textContent = "";
+
+}
+
+
+/* =====================================================
+   DİREKT GİRİŞ
+   ===================================================== */
+
+function directLogin(event){
+
+    event.stopPropagation();
+
+    if(!selectedAccount){
+        return;
+    }
+
+
+    const params =
+        new URLSearchParams({
+
+            username:
+                selectedAccount.username
+                    .replace(/^@/, ""),
+
+            email:
+                selectedAccount.email
+
+        });
+
+
+    window.location.href =
+        "giris.html?" +
+        params.toString();
+
+}
+
+
+/* =====================================================
+   ŞİFRE DEĞİŞTİRME BAĞLANTISI
+   ===================================================== */
+
+async function sendReset(event){
+
+    event.stopPropagation();
+
+    if(!selectedAccount){
+        return;
+    }
+
+
+    const status =
+        document.getElementById("status");
+
+
+    status.classList.add("show");
+
+    status.textContent =
+        "Şifre değiştirme bağlantısı gönderiliyor...";
+
+
+    try{
+
+        const response =
+            await fetch(
+                "/api/forgot/send-reset",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        email:
+                            selectedAccount.email
+
+                    })
+                }
+            );
+
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+
+        if(
+            !response.ok ||
+            data.ok === false
+        ){
+
+            throw new Error(
+                data.error ||
+                "Bağlantı gönderilemedi."
+            );
+
+        }
+
+
+        status.textContent =
+            selectedAccount.email +
+            " adresine şifre değiştirme bağlantısı gönderildi.";
+
+
+    }catch(error){
+
+        status.textContent =
+            error.message ||
+            "Bir hata oluştu.";
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
