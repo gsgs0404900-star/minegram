@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="tr">
 <head>
 
@@ -8,13 +7,11 @@
 <meta
 name="viewport"
 content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-
 >
 
 <meta
 name="theme-color"
 content="#000000"
-
 >
 
 <title>Hesabını doğrula - Minegram</title>
@@ -245,6 +242,7 @@ body{
     .status{
         font-size:12px;
     }
+
 }
 
 </style>
@@ -270,19 +268,22 @@ body{
 </div>
 
 <div class="header-title">
-    Kayıt ol
+    Şifre değiştirme
 </div>
 
 </header>
+
 
 <h1 class="title">
     Hesabını doğrula
 </h1>
 
+
 <p class="description">
     E-posta adresine gönderilen 6 haneli<br>
     doğrulama kodunu aşağıya yaz.
 </p>
+
 
 <div
     id="emailBox"
@@ -291,16 +292,17 @@ body{
     E-posta yükleniyor...
 </div>
 
-<input
-id="codeInput"
-class="code-box"
-type="text"
-inputmode="numeric"
-autocomplete="one-time-code"
-maxlength="6"
-placeholder="6 haneli kod"
 
+<input
+    id="codeInput"
+    class="code-box"
+    type="text"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    maxlength="6"
+    placeholder="6 haneli kod"
 >
+
 
 <div
     id="status"
@@ -309,53 +311,43 @@ placeholder="6 haneli kod"
     Doğrulama hazırlanıyor...
 </div>
 
+
 <div class="bottom">
 
 <button
-id="changeButton"
-class="action back-btn"
-type="button"
-
+    id="changeButton"
+    class="action back-btn"
+    type="button"
 >
-
-```
-İletişim bilgini değiştir
-```
-
+    Hesabı değiştir
 </button>
+
 
 <button
-id="verifyButton"
-class="action verify"
-type="button"
-disabled
-
+    id="verifyButton"
+    class="action verify"
+    type="button"
+    disabled
 >
-
-```
-Kontrol et
-```
-
+    Kontrol et
 </button>
 
 </div>
+
 
 <button
-id="resendButton"
-class="resend"
-type="button"
-disabled
-
+    id="resendButton"
+    class="resend"
+    type="button"
+    disabled
 >
-
-```
-Doğrulama kodunu tekrar gönder
-```
-
+    Doğrulama kodunu tekrar gönder
 </button>
 
+
 </div>
 </div>
+
 
 <script>
 
@@ -389,7 +381,7 @@ const backButton =
 
 
 /* =====================================================
-   URL
+   URL PARAMETRELERİ
 ===================================================== */
 
 const params =
@@ -399,19 +391,32 @@ const params =
 
 
 /* =====================================================
-   KAYIT BİLGİLERİ
+   HESAP BİLGİLERİ
 ===================================================== */
 
-const username =
+const identifier =
     (
+        params.get("identifier") ||
         params.get("username") ||
         sessionStorage.getItem(
-            "minegram_register_username"
+            "minegram_recovery_identifier"
         ) ||
         ""
     )
     .trim()
-    .replace(/^@/,"")
+    .replace(/^@/, "")
+    .toLowerCase();
+
+
+const mode =
+    (
+        params.get("mode") ||
+        sessionStorage.getItem(
+            "minegram_recovery_mode"
+        ) ||
+        "username"
+    )
+    .trim()
     .toLowerCase();
 
 
@@ -419,15 +424,40 @@ const email =
     (
         params.get("email") ||
         sessionStorage.getItem(
-            "minegram_register_email"
-        ) ||
-        sessionStorage.getItem(
-            "minegram_otp_email"
+            "minegram_recovery_email"
         ) ||
         ""
     )
     .trim()
     .toLowerCase();
+
+
+/* =====================================================
+   BİLGİLERİ SESSION'A KAYDET
+===================================================== */
+
+if(identifier){
+
+    sessionStorage.setItem(
+        "minegram_recovery_identifier",
+        identifier
+    );
+
+}
+
+if(email){
+
+    sessionStorage.setItem(
+        "minegram_recovery_email",
+        email
+    );
+
+}
+
+sessionStorage.setItem(
+    "minegram_recovery_mode",
+    mode
+);
 
 
 /* =====================================================
@@ -474,26 +504,93 @@ function showStatus(
 
 
 /* =====================================================
+   API
+===================================================== */
+
+async function api(
+    url,
+    options = {}
+){
+
+    try{
+
+        const response =
+            await fetch(
+                url,
+                {
+                    ...options,
+
+                    headers:{
+                        "Content-Type":
+                            "application/json",
+
+                        ...(options.headers || {})
+                    }
+                }
+            );
+
+
+        const text =
+            await response.text();
+
+
+        let data = {};
+
+
+        try{
+
+            data =
+                text
+                    ? JSON.parse(text)
+                    : {};
+
+        }catch{
+
+            data = {};
+
+        }
+
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Sunucu hatası."
+            );
+
+        }
+
+
+        return data;
+
+    }catch(error){
+
+        if(
+            error instanceof TypeError
+        ){
+
+            throw new Error(
+                "Sunucuya bağlanılamadı. İnternet bağlantını ve Minegram sunucusunu kontrol et."
+            );
+
+        }
+
+        throw error;
+
+    }
+
+}
+
+
+/* =====================================================
    GERİ
 ===================================================== */
 
 function goBack(){
 
-    let url =
-        "./iletisim-bilgileri.html";
-
-    if(username){
-
-        url +=
-            "?username=" +
-            encodeURIComponent(
-                username
-            );
-
-    }
-
     window.location.href =
-        url;
+        "./sifremi-unuttum.html";
 
 }
 
@@ -542,72 +639,12 @@ codeInput.addEventListener(
                 .replace(/\D/g,"")
                 .slice(0,6);
 
+
         verifyButton.disabled =
             this.value.length !== 6;
 
     }
 );
-
-
-/* =====================================================
-   API
-===================================================== */
-
-async function api(
-    url,
-    options = {}
-){
-
-    const response =
-        await fetch(
-            url,
-            {
-                ...options,
-
-                headers:{
-                    "Content-Type":
-                        "application/json",
-
-                    ...(options.headers || {})
-                }
-            }
-        );
-
-
-    const text =
-        await response.text();
-
-
-    let data = {};
-
-    try{
-
-        data =
-            text
-                ? JSON.parse(text)
-                : {};
-
-    }catch{
-
-        data = {};
-
-    }
-
-
-    if(!response.ok){
-
-        throw new Error(
-            data.error ||
-            data.message ||
-            "Sunucu hatası."
-        );
-
-    }
-
-
-    return data;
-
-}
 
 
 /* =====================================================
@@ -681,15 +718,15 @@ function startResendTimer(){
 
 
 /* =====================================================
-   KOD GÖNDER
+   KURTARMA KODU GÖNDER
 ===================================================== */
 
-async function sendCode(){
+async function sendRecoveryCode(){
 
-    if(!email){
+    if(!identifier){
 
         showStatus(
-            "E-posta adresi bulunamadı."
+            "Hesap bilgisi bulunamadı. Lütfen şifre yenileme işlemini yeniden başlat."
         );
 
         return false;
@@ -714,14 +751,19 @@ async function sendCode(){
 
         const result =
             await api(
-                "/api/register/resend",
+                "/api/forgot/start",
                 {
                     method:"POST",
 
                     body:
                         JSON.stringify({
-                            email:email,
-                            username:username
+
+                            identifier:
+                                identifier,
+
+                            mode:
+                                mode
+
                         })
                 }
             );
@@ -740,17 +782,48 @@ async function sendCode(){
         }
 
 
+        if(result?.email){
+
+            sessionStorage.setItem(
+                "minegram_recovery_email",
+                String(
+                    result.email
+                )
+                .trim()
+                .toLowerCase()
+            );
+
+
+            emailBox.textContent =
+                String(
+                    result.email
+                )
+                .trim()
+                .toLowerCase();
+
+        }
+
+
+        sessionStorage.setItem(
+            "minegram_recovery_started",
+            "true"
+        );
+
+
         showStatus(
             "6 haneli doğrulama kodu e-posta adresine gönderildi.",
             "success"
         );
 
 
+        startResendTimer();
+
+
         verifyButton.disabled =
             codeInput.value.length !== 6;
 
 
-        startResendTimer();
+        codeInput.focus();
 
 
         return true;
@@ -759,7 +832,7 @@ async function sendCode(){
     catch(error){
 
         console.error(
-            "[MINEGRAM] OTP gönderme hatası:",
+            "[MINEGRAM] Şifre kurtarma kodu gönderme hatası:",
             error
         );
 
@@ -772,6 +845,7 @@ async function sendCode(){
 
         resendButton.disabled =
             false;
+
 
         resendButton.textContent =
             "Doğrulama kodunu tekrar gönder";
@@ -797,7 +871,19 @@ verifyButton.addEventListener(
 
 
         if(
-            !email ||
+            !identifier
+        ){
+
+            showStatus(
+                "Hesap bilgisi bulunamadı."
+            );
+
+            return;
+
+        }
+
+
+        if(
             code.length !== 6
         ){
 
@@ -829,17 +915,35 @@ verifyButton.addEventListener(
 
         try{
 
+            /*
+             * ÖNEMLİ:
+             * Bu artık register/verify DEĞİL.
+             *
+             * Şifre kurtarma doğrulaması:
+             * /api/forgot/verify
+             */
+
             const result =
                 await api(
-                    "/api/register/verify",
+                    "/api/forgot/verify",
                     {
                         method:"POST",
 
                         body:
                             JSON.stringify({
-                                email:email,
-                                code:code,
-                                username:username
+
+                                identifier:
+                                    identifier,
+
+                                email:
+                                    email,
+
+                                mode:
+                                    mode,
+
+                                code:
+                                    code
+
                             })
                     }
                 );
@@ -847,41 +951,69 @@ verifyButton.addEventListener(
 
             if(
                 !result ||
-                result.ok !== true ||
-                result.verified !== true
+                result.ok !== true
             ){
 
                 throw new Error(
                     result?.error ||
-                    "Doğrulama kodu yanlış."
+                    "Doğrulama kodu yanlış veya süresi dolmuş."
                 );
 
             }
 
 
-            /* =========================================
-               DOĞRULAMA BAŞARILI
-            ========================================= */
+            /*
+             * SERVER TARAFINDAN ÜRETİLEN
+             * RESET TOKEN
+             */
+
+            const resetToken =
+                result.resetToken ||
+                result.token ||
+                "";
+
+
+            if(!resetToken){
+
+                throw new Error(
+                    "Kod doğrulandı ancak şifre yenileme anahtarı alınamadı. Lütfen tekrar kod iste."
+                );
+
+            }
+
+
+            /*
+             * TOKEN'I SESSION'A DA KAYDET
+             */
 
             sessionStorage.setItem(
-                "minegram_email_verified",
+                "minegram_password_reset_token",
+                resetToken
+            );
+
+
+            if(result.email){
+
+                sessionStorage.setItem(
+                    "minegram_recovery_email",
+                    String(
+                        result.email
+                    )
+                    .trim()
+                    .toLowerCase()
+                );
+
+            }
+
+
+            sessionStorage.setItem(
+                "minegram_recovery_verified",
                 "true"
             );
 
 
-            sessionStorage.setItem(
-                "minegram_register_verified_email",
-                email
-            );
-
-
-            sessionStorage.removeItem(
-                "minegram_otp_pending"
-            );
-
-
             showStatus(
-                "E-posta adresin doğrulandı. Minegram'a giriyorsun...",
+                "Kod doğrulandı. Yeni şifreni oluşturabilirsin.",
                 "success"
             );
 
@@ -890,21 +1022,63 @@ verifyButton.addEventListener(
                 "Doğrulandı";
 
 
+            /*
+             * YENİ ŞİFRE SAYFASINA GİT
+             */
+
             setTimeout(
                 function(){
 
+                    const nextParams =
+                        new URLSearchParams();
+
+
+                    nextParams.set(
+                        "token",
+                        resetToken
+                    );
+
+
+                    if(identifier){
+
+                        nextParams.set(
+                            "identifier",
+                            identifier
+                        );
+
+                    }
+
+
+                    if(result.email){
+
+                        nextParams.set(
+                            "email",
+                            result.email
+                        );
+
+                    }else if(email){
+
+                        nextParams.set(
+                            "email",
+                            email
+                        );
+
+                    }
+
+
                     window.location.href =
-                        "./index.html";
+                        "./yeni-sifre.html?" +
+                        nextParams.toString();
 
                 },
-                800
+                700
             );
 
         }
         catch(error){
 
             console.error(
-                "[MINEGRAM] OTP doğrulama hatası:",
+                "[MINEGRAM] Şifre kurtarma doğrulama hatası:",
                 error
             );
 
@@ -940,7 +1114,7 @@ resendButton.addEventListener(
     "click",
     async function(){
 
-        await sendCode();
+        await sendRecoveryCode();
 
     }
 );
@@ -976,12 +1150,17 @@ codeInput.addEventListener(
 async function start(){
 
     console.log(
-        "[MINEGRAM] hesap-doğrulama.html başladı."
+        "[MINEGRAM] sifremi-unuttum-dogrulama.html başladı."
     );
 
     console.log(
-        "[MINEGRAM] Username:",
-        username
+        "[MINEGRAM] Identifier:",
+        identifier
+    );
+
+    console.log(
+        "[MINEGRAM] Mode:",
+        mode
     );
 
     console.log(
@@ -990,17 +1169,20 @@ async function start(){
     );
 
 
-    if(!email){
+    if(!identifier){
 
         showStatus(
-            "E-posta adresi bulunamadı."
+            "Hesap bilgisi bulunamadı. Şifre değiştirme işlemini yeniden başlat."
         );
+
 
         verifyButton.disabled =
             true;
 
+
         resendButton.disabled =
             true;
+
 
         return;
 
@@ -1008,30 +1190,24 @@ async function start(){
 
 
     /*
-     * iletisim-bilgileri.html
-     * kodu zaten gönderdiyse burada
-     * TEKRAR göndermiyoruz.
-     *
-     * Böylece kullanıcı aynı anda
-     * iki farklı OTP almaz.
+     * ŞİFRE KURTARMA SAYFASINDAN GELDİYSE
+     * KOD ZATEN GÖNDERİLMİŞ OLABİLİR.
      */
 
-    const otpPending =
+    const recoveryStarted =
         sessionStorage.getItem(
-            "minegram_otp_pending"
+            "minegram_recovery_started"
         );
 
 
-    if(otpPending === "true"){
+    if(
+        recoveryStarted === "true"
+    ){
 
         showStatus(
             "E-postana gönderilen 6 haneli kodu gir.",
             "success"
         );
-
-
-        resendButton.disabled =
-            true;
 
 
         startResendTimer();
@@ -1046,14 +1222,18 @@ async function start(){
 
 
     /*
-     * Eğer sayfa doğrudan açıldıysa
-     * kod gönder.
+     * SAYFA DOĞRUDAN AÇILDIYSA
+     * KOD GÖNDER
      */
 
-    await sendCode();
+    await sendRecoveryCode();
 
 }
 
+
+/* =====================================================
+   BAŞLAT
+===================================================== */
 
 start();
 
