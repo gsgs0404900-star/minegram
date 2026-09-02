@@ -116,9 +116,13 @@ h1{
     transition:.15s;
 }
 
-.account:hover{background:#0b0b0b}
+.account:hover{
+    background:#0b0b0b;
+}
 
-.account:active{transform:scale(.99)}
+.account:active{
+    transform:scale(.99);
+}
 
 .account.selected{
     border-color:#2677b5;
@@ -159,7 +163,9 @@ h1{
     position:relative;
 }
 
-.account.selected .radio{border-color:#2677b5}
+.account.selected .radio{
+    border-color:#2677b5;
+}
 
 .account.selected .radio:after{
     content:"";
@@ -180,7 +186,9 @@ h1{
     margin-top:10px;
 }
 
-.actions.show{display:flex}
+.actions.show{
+    display:flex;
+}
 
 .action-btn{
     width:100%;
@@ -194,9 +202,13 @@ h1{
     transition:.15s;
 }
 
-.action-btn:hover{opacity:.92}
+.action-btn:hover{
+    opacity:.92;
+}
 
-.action-btn:active{transform:scale(.99)}
+.action-btn:active{
+    transform:scale(.99);
+}
 
 .action-btn:disabled{
     opacity:.55;
@@ -217,9 +229,17 @@ h1{
     line-height:1.4;
 }
 
-.status.show{display:block}
-.status.error{color:#ff5c5c}
-.status.success{color:#63e6be}
+.status.show{
+    display:block;
+}
+
+.status.error{
+    color:#ff5c5c;
+}
+
+.status.success{
+    color:#63e6be;
+}
 
 .loading-box{
     width:100%;
@@ -245,7 +265,9 @@ h1{
 }
 
 @keyframes spin{
-    to{transform:rotate(360deg)}
+    to{
+        transform:rotate(360deg);
+    }
 }
 
 .empty{
@@ -304,7 +326,9 @@ h1{
         line-height:1.5;
     }
 
-    .accounts{gap:12px}
+    .accounts{
+        gap:12px;
+    }
 
     .account{
         min-height:68px;
@@ -317,7 +341,9 @@ h1{
         margin-bottom:6px;
     }
 
-    .email{font-size:15px}
+    .email{
+        font-size:15px;
+    }
 
     .radio{
         width:24px;
@@ -341,7 +367,9 @@ h1{
         font-size:20px;
     }
 
-    .status{font-size:14px}
+    .status{
+        font-size:14px;
+    }
 
     .loading-box{
         min-height:68px;
@@ -363,17 +391,26 @@ h1{
         margin-top:65px;
     }
 
-    h1{font-size:38px}
+    h1{
+        font-size:38px;
+    }
 
-    .subtitle{font-size:20px}
+    .subtitle{
+        font-size:20px;
+    }
 
     .account{
         min-height:65px;
         padding:13px 15px;
     }
 
-    .username{font-size:17px}
-    .email{font-size:14px}
+    .username{
+        font-size:17px;
+    }
+
+    .email{
+        font-size:14px;
+    }
 
     .action-btn{
         height:55px;
@@ -429,58 +466,14 @@ Direkt giriş yap
 </button>
 
 <button
-class="action-btn primary"
-id="loginButton"
+class="action-btn secondary"
+id="resetButton"
 type="button"
-onclick="directLogin(event)"
+onclick="startPasswordReset(event)"
 >
-Direkt giriş yap
+Şifre değiştirmeye devam et
 </button>
 
-<button
-    class="action-btn secondary"
-    id="resetButton"
-    type="button"
-    onclick="startPasswordReset(event)"
->
-    Şifre değiştirmeye devam et
-</button>
-
-<script>
-function startPasswordReset(event) {
-    if (event) event.preventDefault();
-
-    if (!window.selectedAccount) {
-        alert("Lütfen bir hesap seç.");
-        return;
-    }
-
-    localStorage.setItem(
-        "minegram_recovery_username",
-        window.selectedAccount.username || ""
-    );
-
-    localStorage.setItem(
-        "minegram_recovery_identifier",
-        window.selectedAccount.username || ""
-    );
-
-    localStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
-
-    window.location.href = "yeni-sifre.html";
-}
-</script>
-</div>
-
-<div class="status" id="status"></div>
-
-</main>
-</div>
-
-<script>
 </div>
 
 <div class="status" id="status"></div>
@@ -502,56 +495,74 @@ let recoveryIdentifier = (
     params.get("username") ||
     sessionStorage.getItem("minegram_recovery_identifier") ||
     sessionStorage.getItem("minegram_recovery_username") ||
+    localStorage.getItem("minegram_recovery_identifier") ||
+    localStorage.getItem("minegram_recovery_username") ||
     ""
 ).trim().replace(/^@/,"").toLowerCase();
 
 let recoveryMode = (
     params.get("mode") ||
     sessionStorage.getItem("minegram_recovery_mode") ||
+    localStorage.getItem("minegram_recovery_mode") ||
     ""
 ).trim().toLowerCase();
 
 let recoveryEmail = (
     params.get("email") ||
     sessionStorage.getItem("minegram_recovery_email") ||
+    localStorage.getItem("minegram_recovery_email") ||
     ""
 ).trim().toLowerCase();
 
+
 function goBack(){
+
     if(history.length > 1){
         history.back();
     }else{
         window.location.href = "giris.html";
     }
+
 }
 
+
 function showStatus(text,type=""){
-    const el=document.getElementById("status");
+
+    const el = document.getElementById("status");
 
     if(!el)return;
 
-    el.className="status";
+    el.className = "status";
 
     if(text){
-        el.textContent=text;
+
+        el.textContent = text;
         el.classList.add("show");
 
         if(type){
             el.classList.add(type);
         }
+
     }else{
-        el.textContent="";
+
+        el.textContent = "";
+
     }
+
 }
 
+
 function escapeHtml(value){
+
     return String(value ?? "")
         .replace(/&/g,"&amp;")
         .replace(/</g,"&lt;")
         .replace(/>/g,"&gt;")
         .replace(/"/g,"&quot;")
         .replace(/'/g,"&#039;");
+
 }
+
 
 function selectAccount(button){
 
@@ -561,19 +572,33 @@ function selectAccount(button){
 
     button.classList.add("selected");
 
-    selectedAccount={
-        id:String(button.dataset.id || "").trim(),
-        username:String(button.dataset.username || "")
-            .trim().replace(/^@/,"").toLowerCase(),
-        email:String(button.dataset.email || "")
-            .trim().toLowerCase(),
-        displayName:String(button.dataset.displayName || "").trim(),
-        avatar:String(button.dataset.avatar || "").trim()
+    selectedAccount = {
+
+        id:String(
+            button.dataset.id || ""
+        ).trim(),
+
+        username:String(
+            button.dataset.username || ""
+        ).trim().replace(/^@/,"").toLowerCase(),
+
+        email:String(
+            button.dataset.email || ""
+        ).trim().toLowerCase(),
+
+        displayName:String(
+            button.dataset.displayName || ""
+        ).trim(),
+
+        avatar:String(
+            button.dataset.avatar || ""
+        ).trim()
+
     };
 
-    recoveryIdentifier=selectedAccount.username;
-    recoveryMode="username";
-    recoveryEmail=selectedAccount.email;
+    recoveryIdentifier = selectedAccount.username;
+    recoveryMode = "username";
+    recoveryEmail = selectedAccount.email;
 
     sessionStorage.setItem(
         "minegram_recovery_identifier",
@@ -590,80 +615,128 @@ function selectAccount(button){
         "username"
     );
 
+    localStorage.setItem(
+        "minegram_recovery_identifier",
+        recoveryIdentifier
+    );
+
+    localStorage.setItem(
+        "minegram_recovery_username",
+        recoveryIdentifier
+    );
+
+    localStorage.setItem(
+        "minegram_recovery_mode",
+        "username"
+    );
+
     if(recoveryEmail){
+
         sessionStorage.setItem(
             "minegram_recovery_email",
             recoveryEmail
         );
+
+        localStorage.setItem(
+            "minegram_recovery_email",
+            recoveryEmail
+        );
+
     }
 
-    document.getElementById("actions").classList.add("show");
+    document
+        .getElementById("actions")
+        .classList.add("show");
+
     showStatus("");
+
 }
+
 
 function createAccountCard(account){
 
-    const username=String(
+    const username = String(
         account?.username || ""
     ).trim().replace(/^@/,"").toLowerCase();
 
-    const email=String(
+    const email = String(
         account?.email || ""
     ).trim().toLowerCase();
 
-    if(!username && !email)return null;
+    if(!username && !email){
+        return null;
+    }
 
-    const button=document.createElement("button");
+    const button = document.createElement("button");
 
-    button.type="button";
-    button.className="account";
+    button.type = "button";
+    button.className = "account";
 
-    button.dataset.id=String(account.id || "");
-    button.dataset.username=username;
-    button.dataset.email=email;
-    button.dataset.displayName=
+    button.dataset.id =
+        String(account.id || "");
+
+    button.dataset.username =
+        username;
+
+    button.dataset.email =
+        email;
+
+    button.dataset.displayName =
         String(
             account.displayName ||
             account.display_name ||
             username
         );
 
-    button.dataset.avatar=
+    button.dataset.avatar =
         String(
             account.avatar ||
             account.avatar_url ||
             ""
         );
 
-    button.innerHTML=`
+    button.innerHTML = `
         <div class="account-info">
             <div class="username">
                 @${escapeHtml(username || "minegram")}
             </div>
+
             <div class="email">
-                ${escapeHtml(email || "E-posta adresi bulunamadı")}
+                ${escapeHtml(
+                    email ||
+                    "E-posta adresi bulunamadı"
+                )}
             </div>
         </div>
 
         <div class="radio"></div>
     `;
 
-    button.addEventListener("click",()=>{
-        selectAccount(button);
-    });
+    button.addEventListener(
+        "click",
+        ()=>{
+            selectAccount(button);
+        }
+    );
 
     return button;
+
 }
+
 
 function renderAccounts(accounts){
 
-    const container=document.getElementById("accounts");
+    const container =
+        document.getElementById("accounts");
 
-    container.innerHTML="";
+    container.innerHTML = "";
 
-    if(!Array.isArray(accounts) || !accounts.length){
+    if(
+        !Array.isArray(accounts) ||
+        !accounts.length
+    ){
 
-        container.innerHTML=`
+        container.innerHTML = `
             <div class="empty">
                 Bu bilgilerle eşleşen Minegram hesabı bulunamadı.
             </div>
@@ -674,7 +747,8 @@ function renderAccounts(accounts){
 
     accounts.forEach(account=>{
 
-        const card=createAccountCard(account);
+        const card =
+            createAccountCard(account);
 
         if(card){
             container.appendChild(card);
@@ -682,11 +756,12 @@ function renderAccounts(accounts){
 
     });
 
-    const cards=container.querySelectorAll(".account");
+    const cards =
+        container.querySelectorAll(".account");
 
     if(!cards.length){
 
-        container.innerHTML=`
+        container.innerHTML = `
             <div class="empty">
                 Hesap bilgileri yüklenemedi.
             </div>
@@ -703,87 +778,142 @@ function renderAccounts(accounts){
                 card.dataset.username.toLowerCase() ===
                 recoveryIdentifier.toLowerCase()
             ){
+
                 selectAccount(card);
+
             }
 
         });
+
     }
+
 }
+
 
 async function findAccount(){
 
-    const container=document.getElementById("accounts");
+    const container =
+        document.getElementById("accounts");
 
     try{
 
-        let identifier=recoveryIdentifier;
-        let mode=recoveryMode;
+        let identifier =
+            recoveryIdentifier;
+
+        let mode =
+            recoveryMode;
 
         if(!identifier && recoveryEmail){
-            identifier=recoveryEmail;
-            mode="email";
+
+            identifier =
+                recoveryEmail;
+
+            mode = "email";
+
         }
 
         if(!identifier){
+
             throw new Error(
                 "Hesap bilgisi bulunamadı. Lütfen işlemi baştan başlat."
             );
+
         }
 
-        const response=await fetch(
-            API + "/forgot-password/find-account",
-            {
-                method:"POST",
-                headers:{
-                    "Content-Type":"application/json",
-                    "Accept":"application/json"
-                },
-                body:JSON.stringify({
-                    identifier:identifier,
-                    mode:
-                        mode ||
-                        (
-                            identifier.includes("@")
-                                ? "email"
-                                : "username"
-                        )
-                }),
-                cache:"no-store"
-            }
-        );
+        const response =
+            await fetch(
+                API + "/forgot-password/find-account",
+                {
+                    method:"POST",
 
-        const data=await response.json().catch(()=>({}));
+                    headers:{
+                        "Content-Type":
+                            "application/json",
 
-        if(!response.ok || data.ok===false){
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        identifier:
+                            identifier,
+
+                        mode:
+                            mode ||
+                            (
+                                identifier.includes("@")
+                                    ? "email"
+                                    : "username"
+                            )
+
+                    }),
+
+                    cache:"no-store"
+                }
+            );
+
+        const data =
+            await response
+                .json()
+                .catch(()=>({}));
+
+        if(
+            !response.ok ||
+            data.ok === false
+        ){
+
             throw new Error(
                 data.error ||
                 data.message ||
                 "Hesap bulunamadı."
             );
+
         }
 
         if(data.account){
-            renderAccounts([data.account]);
+
+            renderAccounts(
+                [data.account]
+            );
+
             return;
         }
 
-        if(Array.isArray(data.accounts)){
-            renderAccounts(data.accounts);
+        if(
+            Array.isArray(
+                data.accounts
+            )
+        ){
+
+            renderAccounts(
+                data.accounts
+            );
+
             return;
         }
 
         if(data.profile){
-            renderAccounts([data.profile]);
+
+            renderAccounts(
+                [data.profile]
+            );
+
             return;
         }
 
-        throw new Error("Hesap bilgileri alınamadı.");
+        throw new Error(
+            "Hesap bilgileri alınamadı."
+        );
 
     }catch(error){
 
-        console.error("[MINEGRAM FIND ACCOUNT]",error);
+        console.error(
+            "[MINEGRAM FIND ACCOUNT]",
+            error
+        );
 
-        container.innerHTML=`
+        container.innerHTML = `
             <div class="empty">
                 ${escapeHtml(
                     error.message ||
@@ -793,152 +923,154 @@ async function findAccount(){
         `;
 
         showStatus(
-            error.message || "Hesap bulunamadı.",
+            error.message ||
+            "Hesap bulunamadı.",
             "error"
         );
+
     }
+
 }
+
 
 function directLogin(event){
 
-    event?.stopPropagation();
+    if(event){
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
     if(!selectedAccount){
-        showStatus("Önce bir hesap seç.","error");
+
+        showStatus(
+            "Önce bir hesap seç.",
+            "error"
+        );
+
         return;
     }
 
-    const p=new URLSearchParams();
+    const p =
+        new URLSearchParams();
 
     if(selectedAccount.username){
-        p.set("username",selectedAccount.username);
+
+        p.set(
+            "username",
+            selectedAccount.username
+        );
+
     }
 
     if(selectedAccount.email){
-        p.set("email",selectedAccount.email);
+
+        p.set(
+            "email",
+            selectedAccount.email
+        );
+
     }
 
-    window.location.href="giris.html?"+p.toString();
+    window.location.href =
+        "giris.html?" +
+        p.toString();
+
 }
 
-async function startPasswordReset(event){
 
-    event?.stopPropagation();
+function startPasswordReset(event){
+
+    if(event){
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
     if(!selectedAccount){
-        showStatus("Önce bir hesap seç.","error");
+
+        showStatus(
+            "Önce bir hesap seç.",
+            "error"
+        );
+
         return;
     }
 
-    const button=document.getElementById("resetButton");
+    /*
+       Hesap bilgilerini sakla.
+       Bu sayede yeni-sifre.html
+       gerekli kullanıcı bilgisini okuyabilir.
+    */
 
-    button.disabled=true;
-    button.textContent="Kod gönderiliyor...";
+    const username =
+        selectedAccount.username || "";
 
-    showStatus(
-        (
-            selectedAccount.email ||
-            "E-posta adresine"
-        ) +
-        " doğrulama kodu gönderiliyor..."
+    const email =
+        selectedAccount.email || "";
+
+    localStorage.setItem(
+        "minegram_recovery_username",
+        username
     );
 
-    try{
+    localStorage.setItem(
+        "minegram_recovery_identifier",
+        username
+    );
 
-        const response=await fetch(
-            API + "/forgot/start",
-            {
-                method:"POST",
-                headers:{
-                    "Content-Type":"application/json",
-                    "Accept":"application/json"
-                },
-                body:JSON.stringify({
-                    identifier:selectedAccount.username,
-                    mode:"username"
-                }),
-                cache:"no-store"
-            }
-        );
+    localStorage.setItem(
+        "minegram_recovery_mode",
+        "username"
+    );
 
-        const data=await response.json().catch(()=>({}));
+    sessionStorage.setItem(
+        "minegram_recovery_username",
+        username
+    );
 
-        if(!response.ok || data.ok===false){
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Doğrulama kodu gönderilemedi."
-            );
-        }
+    sessionStorage.setItem(
+        "minegram_recovery_identifier",
+        username
+    );
 
-        const email=(
-            data.email ||
-            selectedAccount.email ||
-            ""
-        ).trim().toLowerCase();
+    sessionStorage.setItem(
+        "minegram_recovery_mode",
+        "username"
+    );
 
-        sessionStorage.setItem(
-            "minegram_recovery_identifier",
-            selectedAccount.username
+    if(email){
+
+        localStorage.setItem(
+            "minegram_recovery_email",
+            email
         );
 
         sessionStorage.setItem(
-            "minegram_recovery_username",
-            selectedAccount.username
+            "minegram_recovery_email",
+            email
         );
 
-        sessionStorage.setItem(
-            "minegram_recovery_mode",
-            "username"
-        );
-
-        if(email){
-            sessionStorage.setItem(
-                "minegram_recovery_email",
-                email
-            );
-        }
-
-        const next=new URLSearchParams();
-
-        next.set(
-            "identifier",
-            selectedAccount.username
-        );
-
-        next.set("mode","username");
-
-        if(email){
-            next.set("email",email);
-        }
-
-        window.location.href=
-            "sifremi-unuttum-dogrulama.html?" +
-            next.toString();
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM RESET START]",
-            error
-        );
-
-        button.disabled=false;
-        button.textContent=
-            "Şifre değiştirmeye devam et";
-
-        showStatus(
-            error.message ||
-            "Bir hata oluştu. Lütfen tekrar deneyin.",
-            "error"
-        );
     }
+
+    /*
+       İSTEDİĞİN KISIM:
+       Şifre değiştirmeye devam et
+       butonuna basınca direkt
+       yeni-sifre.html açılır.
+    */
+
+    window.location.href =
+        "yeni-sifre.html";
+
 }
+
 
 document.addEventListener(
     "DOMContentLoaded",
-    findAccount
+    ()=>{
+        findAccount();
+    }
 );
+
 </script>
 
 </body>
