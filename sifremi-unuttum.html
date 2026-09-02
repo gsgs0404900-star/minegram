@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
 <title>Şifremi unuttum - Minegram</title>
 
 <style>
@@ -12,8 +12,7 @@
     -webkit-tap-highlight-color:transparent;
 }
 
-html,
-body{
+html,body{
     margin:0;
     padding:0;
     width:100%;
@@ -34,7 +33,6 @@ body{
     background:#000;
 }
 
-/* ÜST BAŞLIK */
 .topbar{
     width:100%;
     height:60px;
@@ -64,13 +62,11 @@ body{
     color:#fff;
 }
 
-/* ANA FORM */
 .content{
     width:317px;
     margin:115px auto 0;
 }
 
-/* BAŞLIK */
 .title{
     text-align:center;
     font-size:30px;
@@ -80,7 +76,6 @@ body{
     color:#fff;
 }
 
-/* AÇIKLAMA */
 .description{
     font-size:18px;
     line-height:1.45;
@@ -88,7 +83,6 @@ body{
     margin:0 0 65px;
 }
 
-/* INPUT */
 .input,
 .phone-input{
     display:block;
@@ -115,7 +109,6 @@ body{
     border-color:#555;
 }
 
-/* DEVAM */
 .continue-btn{
     display:block;
     width:100%;
@@ -139,7 +132,6 @@ body{
     cursor:not-allowed;
 }
 
-/* ALT LİNK */
 .other-method{
     display:block;
     width:100%;
@@ -157,12 +149,10 @@ body{
     text-decoration:underline;
 }
 
-/* TELEFON EKRANI */
 .phone-screen{
     display:none;
 }
 
-/* MESAJ */
 .message{
     min-height:18px;
     margin-top:12px;
@@ -176,7 +166,6 @@ body{
     color:#55b8ff;
 }
 
-/* MOBİL */
 @media(max-width:600px){
 
     .topbar{
@@ -240,7 +229,6 @@ body{
     }
 }
 
-/* KÜÇÜK TELEFON */
 @media(max-width:430px){
 
     .content{
@@ -257,34 +245,28 @@ body{
     }
 }
 </style>
-
 </head>
 
 <body>
 
 <div class="page">
 
-<!-- ÜST -->
 <div class="topbar">
-
     <div
         class="back"
         onclick="goBack()"
         aria-label="Geri"
-    >
-        ‹
-    </div>
+    >‹</div>
 
     <div class="top-title">
         Şifremi unuttum
     </div>
-
 </div>
 
 
-<!-- ========================================= -->
+<!-- ============================= -->
 <!-- E-POSTA / KULLANICI ADI -->
-<!-- ========================================= -->
+<!-- ============================= -->
 
 <main
     class="content"
@@ -307,14 +289,12 @@ body{
         autocomplete="username"
         autocapitalize="none"
         spellcheck="false"
-        onkeydown="if(event.key==='Enter') continueEmail()"
     >
 
     <button
         type="button"
         id="emailContinue"
         class="continue-btn"
-        onclick="continueEmail()"
     >
         Devam
     </button>
@@ -327,7 +307,7 @@ body{
     <a
         href="javascript:void(0)"
         class="other-method"
-        onclick="showPhoneScreen()"
+        id="phoneMethod"
     >
         Cep telefonu numarasıyla bul
     </a>
@@ -343,9 +323,9 @@ body{
 </main>
 
 
-<!-- ========================================= -->
+<!-- ============================= -->
 <!-- TELEFON -->
-<!-- ========================================= -->
+<!-- ============================= -->
 
 <main
     class="content phone-screen"
@@ -366,14 +346,12 @@ body{
         class="phone-input"
         placeholder="Cep telefonu numarası"
         autocomplete="tel"
-        onkeydown="if(event.key==='Enter') continuePhone()"
     >
 
     <button
         type="button"
         id="phoneContinue"
         class="continue-btn"
-        onclick="continuePhone()"
     >
         Devam
     </button>
@@ -386,7 +364,7 @@ body{
     <a
         href="javascript:void(0)"
         class="other-method"
-        onclick="showEmailScreen()"
+        id="emailMethod"
     >
         E-posta adresi veya kullanıcı adıyla bul
     </a>
@@ -395,93 +373,40 @@ body{
 
 </div>
 
-<script>
 
+<script>
 "use strict";
 
-/* =========================================
-   GERİ
-========================================= */
-
-function goBack(){
-
-    const phoneScreen =
-        document.getElementById("phoneScreen");
-
-    if(
-        phoneScreen &&
-        phoneScreen.style.display === "block"
-    ){
-        showEmailScreen();
-        return;
-    }
-
-    window.location.href = "giris.html";
-}
+const API = "/api";
 
 
 /* =========================================
-   E-POSTA EKRANI
+   ELEMENTLER
 ========================================= */
 
-function showEmailScreen(){
+const emailScreen =
+    document.getElementById("emailScreen");
 
-    const emailScreen =
-        document.getElementById("emailScreen");
+const phoneScreen =
+    document.getElementById("phoneScreen");
 
-    const phoneScreen =
-        document.getElementById("phoneScreen");
+const emailUsername =
+    document.getElementById("emailUsername");
 
-    if(!emailScreen || !phoneScreen){
-        return;
-    }
+const phoneNumber =
+    document.getElementById("phoneNumber");
 
-    phoneScreen.style.display = "none";
-    emailScreen.style.display = "block";
+const emailContinue =
+    document.getElementById("emailContinue");
 
-    clearMessage("phoneMessage");
+const phoneContinue =
+    document.getElementById("phoneContinue");
 
-    const input =
-        document.getElementById("emailUsername");
+const phoneMethod =
+    document.getElementById("phoneMethod");
 
-    if(input){
-        setTimeout(function(){
-            input.focus();
-        },100);
-    }
-}
-
-
-/* =========================================
-   TELEFON EKRANI
-========================================= */
-
-function showPhoneScreen(){
-
-    const emailScreen =
-        document.getElementById("emailScreen");
-
-    const phoneScreen =
-        document.getElementById("phoneScreen");
-
-    if(!emailScreen || !phoneScreen){
-        return;
-    }
-
-    emailScreen.style.display = "none";
-    phoneScreen.style.display = "block";
-
-    clearMessage("emailMessage");
-
-    const input =
-        document.getElementById("phoneNumber");
-
-    if(input){
-        setTimeout(function(){
-            input.focus();
-        },100);
-    }
-}
+const emailMethod =
+    document.getElementById("emailMethod");
 
 
 /* =========================================
@@ -497,7 +422,8 @@ function showMessage(id,text,type){
         return;
     }
 
-    el.textContent = text || "";
+    el.textContent =
+        String(text || "");
 
     el.className =
         "message" +
@@ -520,22 +446,132 @@ function clearMessage(id){
 
 
 /* =========================================
+   GERİ
+========================================= */
+
+function goBack(){
+
+    if(
+        phoneScreen &&
+        phoneScreen.style.display === "block"
+    ){
+
+        showEmailScreen();
+
+        return;
+    }
+
+    window.location.href =
+        "giris.html";
+}
+
+
+/* =========================================
+   E-POSTA EKRANI
+========================================= */
+
+function showEmailScreen(){
+
+    if(!emailScreen || !phoneScreen){
+        return;
+    }
+
+    phoneScreen.style.display =
+        "none";
+
+    emailScreen.style.display =
+        "block";
+
+    clearMessage(
+        "phoneMessage"
+    );
+
+    setTimeout(function(){
+
+        if(emailUsername){
+            emailUsername.focus();
+        }
+
+    },100);
+}
+
+
+/* =========================================
+   TELEFON EKRANI
+========================================= */
+
+function showPhoneScreen(){
+
+    if(!emailScreen || !phoneScreen){
+        return;
+    }
+
+    emailScreen.style.display =
+        "none";
+
+    phoneScreen.style.display =
+        "block";
+
+    clearMessage(
+        "emailMessage"
+    );
+
+    setTimeout(function(){
+
+        if(phoneNumber){
+            phoneNumber.focus();
+        }
+
+    },100);
+}
+
+
+/* =========================================
+   JSON CEVABI
+========================================= */
+
+async function readResponse(response){
+
+    const raw =
+        await response.text();
+
+    let data = {};
+
+    try{
+
+        data =
+            raw
+                ? JSON.parse(raw)
+                : {};
+
+    }catch{
+
+        data = {
+            error:
+                raw ||
+                "Sunucudan geçersiz cevap geldi."
+        };
+
+    }
+
+    return data;
+}
+
+
+/* =========================================
    E-POSTA / KULLANICI ADI
 ========================================= */
 
 async function continueEmail(){
 
-    const input =
-        document.getElementById("emailUsername");
-
-    const button =
-        document.getElementById("emailContinue");
-
     const value =
-        input.value.trim();
+        String(
+            emailUsername?.value || ""
+        ).trim();
 
-    clearMessage("emailMessage");
-
+    clearMessage(
+        "emailMessage"
+    );
 
     if(!value){
 
@@ -545,30 +581,32 @@ async function continueEmail(){
             "error"
         );
 
-        input.focus();
+        emailUsername?.focus();
 
         return;
     }
 
+    emailContinue.disabled =
+        true;
 
-    button.disabled = true;
-    button.textContent = "Kontrol ediliyor...";
+    emailContinue.textContent =
+        "Kontrol ediliyor...";
 
 
     try{
 
         /*
-         * SERVER.JS'DE GERÇEK ENDPOINT:
+         * SERVER:
          *
          * POST /api/forgot/start
          *
-         * Kullanıcı adı veya e-posta
-         * resolveRecoveryEmail() tarafından bulunur.
+         * identifier
+         * mode=email
          */
 
         const response =
             await fetch(
-                "/api/forgot/start",
+                API + "/forgot/start",
                 {
                     method:"POST",
 
@@ -588,17 +626,17 @@ async function continueEmail(){
 
                     }),
 
-                    cache:"no-store"
+                    cache:"no-store",
+
+                    credentials:"same-origin"
                 }
             );
 
 
         const data =
-            await response
-                .json()
-                .catch(function(){
-                    return {};
-                });
+            await readResponse(
+                response
+            );
 
 
         console.log(
@@ -607,7 +645,10 @@ async function continueEmail(){
         );
 
 
-        if(!response.ok){
+        if(
+            !response.ok ||
+            !data.ok
+        ){
 
             throw new Error(
                 data.error ||
@@ -616,49 +657,44 @@ async function continueEmail(){
         }
 
 
-        if(data.ok){
-
-            showMessage(
-                "emailMessage",
-                "Doğrulama kodu e-posta adresine gönderildi.",
-                "success"
-            );
-
-
-            /*
-             * Doğrulama sayfasına:
-             *
-             * identifier
-             * email
-             *
-             * gönderiyoruz.
-             */
-
-            const email =
-                data.email || value;
-
-
-            setTimeout(function(){
-
-                window.location.href =
-                    "sifremi-unuttum-dogrulama.html?email=" +
-                    encodeURIComponent(email);
-
-            },700);
-
-
-            return;
-        }
-
-
-        throw new Error(
-            data.error ||
-            "Bu bilgilerle eşleşen hesap bulunamadı."
+        showMessage(
+            "emailMessage",
+            "Doğrulama kodu e-posta adresine gönderildi.",
+            "success"
         );
 
 
-    }
-    catch(error){
+        /*
+         * ÖNEMLİ:
+         *
+         * Doğrulama sayfasına sadece email
+         * göndermiyoruz.
+         *
+         * identifier + mode + email
+         * birlikte taşınıyor.
+         */
+
+        const target =
+            "sifremi-unuttum-dogrulama.html" +
+            "?identifier=" +
+            encodeURIComponent(value) +
+            "&mode=email" +
+            "&email=" +
+            encodeURIComponent(
+                data.email || ""
+            );
+
+
+        setTimeout(function(){
+
+            window.location.replace(
+                target
+            );
+
+        },700);
+
+
+    }catch(error){
 
         console.error(
             "[MINEGRAM FORGOT EMAIL ERROR]",
@@ -667,17 +703,18 @@ async function continueEmail(){
 
         showMessage(
             "emailMessage",
-            error.message ||
+            error?.message ||
             "Bir hata oluştu. Lütfen tekrar dene.",
             "error"
         );
 
-    }
-    finally{
+    }finally{
 
-        button.disabled = false;
-        button.textContent = "Devam";
+        emailContinue.disabled =
+            false;
 
+        emailContinue.textContent =
+            "Devam";
     }
 }
 
@@ -688,17 +725,14 @@ async function continueEmail(){
 
 async function continuePhone(){
 
-    const input =
-        document.getElementById("phoneNumber");
-
-    const button =
-        document.getElementById("phoneContinue");
-
     const value =
-        input.value.trim();
+        String(
+            phoneNumber?.value || ""
+        ).trim();
 
-    clearMessage("phoneMessage");
-
+    clearMessage(
+        "phoneMessage"
+    );
 
     if(!value){
 
@@ -708,36 +742,32 @@ async function continuePhone(){
             "error"
         );
 
-        input.focus();
+        phoneNumber?.focus();
 
         return;
     }
 
+    phoneContinue.disabled =
+        true;
 
-    button.disabled = true;
-    button.textContent = "Kontrol ediliyor...";
+    phoneContinue.textContent =
+        "Kontrol ediliyor...";
 
 
     try{
 
         /*
-         * SERVER.JS'DE TELEFON İÇİN DE
-         * AYNI ENDPOINT KULLANILIYOR:
+         * SERVER:
          *
          * POST /api/forgot/start
          *
-         * mode: "phone"
-         *
-         * Böylece server.js içerisindeki:
-         *
-         * findUserByPhone()
-         *
-         * çalışır.
+         * identifier
+         * mode=phone
          */
 
         const response =
             await fetch(
-                "/api/forgot/start",
+                API + "/forgot/start",
                 {
                     method:"POST",
 
@@ -757,17 +787,17 @@ async function continuePhone(){
 
                     }),
 
-                    cache:"no-store"
+                    cache:"no-store",
+
+                    credentials:"same-origin"
                 }
             );
 
 
         const data =
-            await response
-                .json()
-                .catch(function(){
-                    return {};
-                });
+            await readResponse(
+                response
+            );
 
 
         console.log(
@@ -776,7 +806,10 @@ async function continuePhone(){
         );
 
 
-        if(!response.ok){
+        if(
+            !response.ok ||
+            !data.ok
+        ){
 
             throw new Error(
                 data.error ||
@@ -785,44 +818,42 @@ async function continuePhone(){
         }
 
 
-        if(data.ok){
-
-            showMessage(
-                "phoneMessage",
-                "Doğrulama kodu e-posta adresine gönderildi.",
-                "success"
-            );
-
-
-            /*
-             * Telefon numarasını doğrulama sayfasına taşı.
-             */
-
-            const phone =
-                value;
-
-
-            setTimeout(function(){
-
-                window.location.href =
-                    "sifremi-unuttum-dogrulama.html?phone=" +
-                    encodeURIComponent(phone);
-
-            },700);
-
-
-            return;
-        }
-
-
-        throw new Error(
-            data.error ||
-            "Bu telefon numarasıyla eşleşen hesap bulunamadı."
+        showMessage(
+            "phoneMessage",
+            "Doğrulama kodu e-posta adresine gönderildi.",
+            "success"
         );
 
 
-    }
-    catch(error){
+        /*
+         * Telefon doğrulama sayfasına:
+         *
+         * identifier
+         * mode
+         * email
+         */
+
+        const target =
+            "sifremi-unuttum-dogrulama.html" +
+            "?identifier=" +
+            encodeURIComponent(value) +
+            "&mode=phone" +
+            "&email=" +
+            encodeURIComponent(
+                data.email || ""
+            );
+
+
+        setTimeout(function(){
+
+            window.location.replace(
+                target
+            );
+
+        },700);
+
+
+    }catch(error){
 
         console.error(
             "[MINEGRAM FORGOT PHONE ERROR]",
@@ -831,19 +862,87 @@ async function continuePhone(){
 
         showMessage(
             "phoneMessage",
-            error.message ||
+            error?.message ||
             "Bir hata oluştu. Lütfen tekrar dene.",
             "error"
         );
 
-    }
-    finally{
+    }finally{
 
-        button.disabled = false;
-        button.textContent = "Devam";
+        phoneContinue.disabled =
+            false;
 
+        phoneContinue.textContent =
+            "Devam";
     }
 }
+
+
+/* =========================================
+   EVENTLER
+========================================= */
+
+emailContinue.addEventListener(
+    "click",
+    continueEmail
+);
+
+phoneContinue.addEventListener(
+    "click",
+    continuePhone
+);
+
+phoneMethod.addEventListener(
+    "click",
+    function(){
+
+        showPhoneScreen();
+
+    }
+);
+
+emailMethod.addEventListener(
+    "click",
+    function(){
+
+        showEmailScreen();
+
+    }
+);
+
+
+emailUsername.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Enter"
+        ){
+
+            event.preventDefault();
+
+            continueEmail();
+        }
+
+    }
+);
+
+
+phoneNumber.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Enter"
+        ){
+
+            event.preventDefault();
+
+            continuePhone();
+        }
+
+    }
+);
 
 
 /* =========================================
@@ -857,7 +956,7 @@ document.addEventListener(
         showEmailScreen();
 
         console.log(
-            "[MINEGRAM] Şifre sıfırlama sayfası hazır."
+            "[MINEGRAM] Şifre sıfırlama sistemi hazır."
         );
 
     }
