@@ -776,12 +776,13 @@ async function findPendingRegistration(admin, email, username = "") {
   return null;
 }
 
-function registrationAllowed(email) {
-  const key = registrationKey(email);
+function registrationAllowed(email, username = "") {
+  const key = registrationKey(email, username);
   const now = Date.now();
   const last = registrationRate.get(key) || 0;
 
-  // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
+  // Aynı e-posta + kullanıcı adı için 60 saniyede
+  // birden fazla doğrulama kodu gönderilmesini engelle.
   return now - last >= 60 * 1000;
 }
 
@@ -1367,40 +1368,43 @@ app.post(
        */
       const anon = client();
 
-      const {
-        data: loginData,
-        error: loginError
-      } =
-        await anon.auth.signInWithPassword({
-          email: entry.authEmail || entry.email,
-          password: String(
-            req.body?.password || ""
-          )
-        });
+const password =
+  String(req.body?.password || "");
 
-      /*
-       * Şifre frontend tarafından gönderilmiyorsa
-       * doğrulama yine başarılı sayılır; frontend normal
-       * giriş ekranından devam edebilir.
-       */
-      if (
-        loginError ||
-        !loginData?.session
-      ) {
-        return res.json({
-          ok: true,
-          verified: true,
-          needsLogin: true,
-          message:
-            "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
-          user: {
-            id: updated?.user?.id || entry.userId,
-            email: entry.email,
-            username: entry.username,
-            displayName: entry.displayName
-          }
-        });
-      }
+if (!password) {
+  return res.status(400).json({
+    ok: false,
+    code: "PASSWORD_REQUIRED",
+    error: "Oturum başlatmak için şifre gerekli."
+  });
+}
+
+const {
+  data: loginData,
+  error: loginError
+} =
+  await anon.auth.signInWithPassword({
+    email: entry.authEmail || entry.email,
+    password
+  });
+
+if (
+  loginError ||
+  !loginData?.session
+) {
+  console.error(
+    "REGISTER AUTO LOGIN ERROR:",
+    loginError
+  );
+
+  return res.status(401).json({
+    ok: false,
+    code: "AUTO_LOGIN_FAILED",
+    error:
+      loginError?.message ||
+      "Hesap doğrulandı ancak otomatik giriş yapılamadı. Lütfen giriş yap."
+  });
+}
 
       return res.json({
         ok: true,
