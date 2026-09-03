@@ -2627,52 +2627,115 @@ app.post(
 
 /* =========================================================
    FORGOT VERIFY
+   6 HANELİ KOD → ŞİFRE SIFIRLAMA ANAHTARI
 ========================================================= */
 
 app.post(
   "/api/forgot/verify",
   async (req, res) => {
+
     try {
+
       const found =
         await resolveRecoveryEmail(
           req.body?.identifier,
-          req.body?.mode ||
-            "email"
+          req.body?.mode || "email"
         );
 
       if (!found) {
         return res.status(400).json({
-          error:
-            "Hesap bulunamadı."
+          ok: false,
+          error: "Hesap bulunamadı."
         });
       }
 
       const key =
-        found.email.toLowerCase();
+        String(found.email || "")
+          .trim()
+          .toLowerCase();
 
       const entry =
-        recoveryCodes.get(
-          key
-        );
+        recoveryCodes.get(key);
 
       if (
         !entry ||
-        entry.expires <
-          Date.now() ||
-        entry.code !==
-          String(
-            req.body?.code ||
-            ""
-          ).trim()
+        entry.expires < Date.now()
       ) {
         return res.status(400).json({
+          ok: false,
           error:
             "Kod yanlış veya süresi dolmuş."
         });
       }
 
-      recoveryCodes.delete(
-        key
+      const enteredCode =
+        String(
+          req.body?.code || ""
+        ).trim();
+
+      if (
+        entry.code !== enteredCode
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Kod yanlış veya süresi dolmuş."
+        });
+      }
+
+      /* -----------------------------------------------------
+         KOD ARTIK KULLANILDI
+      ----------------------------------------------------- */
+
+      recoveryCodes.delete(key);
+
+      /* -----------------------------------------------------
+         KULLANICI ID'SİNİ BUL
+      ----------------------------------------------------- */
+
+      const authUserId =
+        found.authUser?.id ||
+        entry.authUserId ||
+        found.profile?.auth_user_id ||
+        found.profile?.id ||
+        null;
+
+      if (!authUserId) {
+
+        console.error(
+          "[MINEGRAM] Şifre sıfırlama için kullanıcı ID bulunamadı."
+        );
+
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Hesap bulundu ancak şifre sıfırlama oturumu oluşturulamadı."
+        });
+      }
+
+      /* -----------------------------------------------------
+         ŞİFRE SIFIRLAMA TOKENI OLUŞTUR
+      ----------------------------------------------------- */
+
+      const resetToken =
+        crypto
+          .randomBytes(32)
+          .toString("hex");
+
+      /* -----------------------------------------------------
+         TOKENI 10 DAKİKA GEÇERLİ OLACAK ŞEKİLDE SAKLA
+      ----------------------------------------------------- */
+
+      passwordResetTokens.set(
+        resetToken,
+        {
+          userId: authUserId,
+          email: found.email,
+          createdAt: Date.now(),
+          expires:
+            Date.now() +
+            10 * 60 * 1000
+        }
       );
 
       const p =
@@ -2680,12 +2743,37 @@ app.post(
         found.profile ||
         {};
 
-      res.json({
+      console.log(
+        "[MINEGRAM] ŞİFRE SIFIRLAMA TOKENI OLUŞTURULDU"
+      );
+
+      /* -----------------------------------------------------
+         FRONTEND'E TOKENI GÖNDER
+      ----------------------------------------------------- */
+
+      return res.json({
+
         ok: true,
+
+        verified: true,
+
+        resetToken:
+          resetToken,
+
+        reset_token:
+          resetToken,
+
+        token:
+          resetToken,
+
         email:
           found.email,
 
         account: {
+
+          id:
+            authUserId,
+
           username:
             p.username ||
             "minegram",
@@ -2696,13 +2784,23 @@ app.post(
           displayName:
             p.display_name ||
             p.displayName ||
+            p.username ||
             ""
         }
       });
+
     } catch (e) {
-      res.status(400).json({
+
+      console.error(
+        "FORGOT VERIFY ERROR:",
+        e
+      );
+
+      return res.status(400).json({
+        ok: false,
         error:
-          e.message
+          e?.message ||
+          "Kod doğrulanamadı."
       });
     }
   }
