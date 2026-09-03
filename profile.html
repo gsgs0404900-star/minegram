@@ -3395,7 +3395,174 @@ function renderHighlights() {
 
   if (!section || !box) return;
 
-  section.hidden = !mine;
+  function renderHighlights() {
+
+  const section =
+    $('highlightsSection');
+
+  const box =
+    $('highlights');
+
+  if (!section || !box) {
+    return;
+  }
+
+  /*
+   * API'den gelen Highlights
+   */
+  const apiItems =
+    currentProfile &&
+    Array.isArray(currentProfile.highlights)
+      ? currentProfile.highlights
+      : [];
+
+  /*
+   * Eski local Highlights
+   */
+  const localItems =
+    typeof getHighlights === 'function'
+      ? getHighlights()
+      : [];
+
+  /*
+   * API varsa API kullan.
+   * API boşsa eski sistem çalışmaya devam etsin.
+   */
+  const items =
+    apiItems.length > 0
+      ? apiItems
+      : localItems;
+
+  box.innerHTML = '';
+
+  /*
+   * KENDİ PROFİLİMİZDE YENİ BUTONU
+   */
+  const mine =
+    currentProfile &&
+    me &&
+    currentProfile.id === me.id;
+
+  if (mine) {
+
+    const add =
+      document.createElement('button');
+
+    add.className =
+      'highlight add-highlight';
+
+    add.type =
+      'button';
+
+    add.innerHTML =
+      '<span class="highlight-cover">＋</span>' +
+      '<span class="highlight-title">Yeni</span>';
+
+    add.addEventListener(
+      'click',
+      addHighlight
+    );
+
+    box.appendChild(add);
+  }
+
+  /*
+   * HIGHLIGHTS
+   */
+  items.forEach(
+    (item, i) => {
+
+      const b =
+        document.createElement('button');
+
+      b.className =
+        'highlight';
+
+      b.type =
+        'button';
+
+      const image =
+        item.media_url ||
+        item.mediaUrl ||
+        item.image ||
+        '';
+
+      const title =
+        item.title ||
+        'Öne çıkan';
+
+      b.innerHTML =
+        '<span class="highlight-cover">' +
+
+        (
+          image
+            ? '<img src="' +
+              escapeHtml(image) +
+              '" alt="Öne çıkan">'
+            : '★'
+        ) +
+
+        '</span>' +
+
+        '<span class="highlight-title">' +
+        escapeHtml(title) +
+        '</span>';
+
+      b.addEventListener(
+        'click',
+        () => {
+
+          /*
+           * Mevcut görüntüleme sistemi
+           * local format bekliyorsa uyumla.
+           */
+          if (
+            typeof saveHighlights === 'function'
+          ) {
+
+            const normalized =
+              items.map(
+                x => ({
+                  image:
+                    x.media_url ||
+                    x.mediaUrl ||
+                    x.image ||
+                    '',
+
+                  title:
+                    x.title ||
+                    'Öne çıkan'
+                })
+              );
+
+            saveHighlights(
+              normalized
+            );
+          }
+
+          if (
+            typeof openHighlightView ===
+            'function'
+          ) {
+
+            openHighlightView(i);
+          }
+        }
+      );
+
+      box.appendChild(b);
+    }
+  );
+
+  /*
+   * Highlight yoksa bölüm gizli.
+   * Varsa göster.
+   */
+  section.hidden =
+    !mine &&
+    items.length === 0;
+
+}
 
   if (!mine) return;
 
