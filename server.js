@@ -883,90 +883,60 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
-      let profile = null;
-      let profileError = null;
+/* =========================================================
+   PROFİL OLUŞTUR
+========================================================= */
 
-      /*
-       * Önce mevcut Minegram şemasını aynen kullan.
-       * Eğer profiles tablosunda yeni/opsiyonel bir kolon yoksa
-       * kayıt tamamen bozulmasın diye daha uyumlu şemalar sırayla denenir.
-       */
-      const profileVariants = [
-        {
-          id: authUser.id,
-          auth_user_id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        },
-        {
-          id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        },
-        {
-          id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: ""
-        }
-      ];
+let profile = null;
+let profileError = null;
 
-      for (const profileData of profileVariants) {
-        const result = await admin
-          .from("profiles")
-          .insert(profileData)
-          .select("*")
-          .single();
+const profileData = {
+  id: authUser.id,
+  auth_user_id: authUser.id,
+  username,
+  display_name: displayName,
+  bio: "",
+  avatar_url: null,
+  verified: false,
+  settings: {}
+};
 
-        if (!result.error && result.data) {
-          profile = result.data;
-          profileError = null;
-          break;
-        }
+const profileResult = await admin
+  .from("profiles")
+  .insert(profileData)
+  .select("*")
+  .single();
 
-        profileError = result.error;
-        console.error(
-          "PROFILE CREATE ATTEMPT ERROR:",
-          profileError
-        );
-      }
+profile = profileResult.data || null;
+profileError = profileResult.error || null;
 
-      if (profileError || !profile) {
-        console.error(
-          "PROFILE CREATE ERROR:",
-          profileError
-        );
+if (profileError || !profile) {
+  console.error(
+    "PROFILE CREATE ERROR:",
+    profileError
+  );
 
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
+  try {
+    await admin.auth.admin.deleteUser(
+      authUser.id
+    );
+  } catch (cleanupError) {
+    console.error(
+      "AUTH CLEANUP ERROR:",
+      cleanupError
+    );
+  }
 
-        createdAuthUserId = null;
+  createdAuthUserId = null;
 
-        return res.status(500).json({
-          ok: false,
-          code: "PROFILE_CREATE_ERROR",
-          error:
-            profileError?.message ||
-            "Profil oluşturulamadı."
-        });
-      }
+  return res.status(500).json({
+    ok: false,
+    code: "PROFILE_CREATE_ERROR",
+    error:
+      profileError?.message ||
+      "Profil oluşturulamadı."
+  });
+}
 
       /*
        * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
