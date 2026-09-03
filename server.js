@@ -2169,6 +2169,41 @@ function normalizeRecoveryMode(mode) {
   return "email";
 }
 
+async function findAuthUserByEmailExact(email) {
+  const wanted = String(email || "").trim().toLowerCase();
+  if (!wanted || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+
+  /* Supabase Admin REST: SDK sürümünden bağımsız kesin arama. */
+  for (let page = 1; page <= 20; page++) {
+    const url = `${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/users?page=${page}&per_page=1000`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        `Supabase Auth kullanıcıları alınamadı (${response.status}): ${data?.msg || data?.message || data?.error_description || "Bilinmeyen hata"}`
+      );
+    }
+
+    const users = Array.isArray(data?.users) ? data.users : [];
+    const match = users.find(
+      user => String(user?.email || "").trim().toLowerCase() === wanted
+    );
+
+    if (match?.id) return match;
+    if (users.length < 1000) break;
+  }
+
+  return null;
+}
+
+
 async function resolveRecoveryEmail(
   identifier,
   mode = "email"
@@ -2230,6 +2265,15 @@ async function resolveRecoveryEmail(
       }
     } catch (e) {
       console.log("RECOVERY AUTH E-POSTA HATASI:", e?.message || e);
+    }
+
+    /* SDK başarısız olsa bile doğrudan Supabase Auth REST ile ara. */
+    if (!authUser) {
+      try {
+        authUser = await findAuthUserByEmailExact(email);
+      } catch (e) {
+        console.log("RECOVERY AUTH REST E-POSTA HATASI:", e?.message || e);
+      }
     }
 
     /* Auth'ta bulunamazsa profiles'tan da kontrol et. */
@@ -2779,6 +2823,15 @@ app.post(
           }
         } catch (e) {
           console.log("RECOVERY AUTH LIST EXCEPTION:", e?.message || e);
+        }
+      }
+
+      if (!authUserId && email.includes("@")) {
+        try {
+          const restUser = await findAuthUserByEmailExact(email);
+          authUserId = restUser?.id || null;
+        } catch (e) {
+          console.log("RECOVERY VERIFY AUTH REST HATASI:", e?.message || e);
         }
       }
 
