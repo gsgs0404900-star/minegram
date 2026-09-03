@@ -613,6 +613,61 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
+// Kayıt oturumunu Supabase Auth metadata içinde de tut.
+// Render/Node yeniden başlasa bile doğrulama kodu kaybolmasın.
+async function persistRegistrationCode(admin, entry) {
+  try {
+    await admin.auth.admin.updateUserById(entry.userId, {
+      user_metadata: {
+        username: entry.username,
+        display_name: entry.displayName,
+        minegram_registration_pending: true,
+        minegram_registration_code: entry.code,
+        minegram_registration_expires: entry.expires
+      }
+    });
+  } catch (e) {
+    console.error('REGISTRATION CODE PERSIST ERROR:', e);
+  }
+}
+
+function registrationEntryFromAuthUser(user) {
+  const meta = user?.user_metadata || {};
+  const code = String(meta.minegram_registration_code || '').trim();
+  const expires = Number(meta.minegram_registration_expires || 0);
+  if (!meta.minegram_registration_pending || !/^\d{6}$/.test(code) || !expires) return null;
+  return {
+    code,
+    userId: user.id,
+    email: normalizeEmail(user.email),
+    expires,
+    attempts: 0,
+    username: normalizeUsername(meta.username),
+    displayName: String(meta.display_name || meta.username || '').trim(),
+    password: ''
+  };
+}
+
+async function findPendingRegistration(admin, email) {
+  const wanted = normalizeEmail(email);
+  for (let page = 1; page <= 20; page++) {
+    const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (result?.error) throw result.error;
+    const users = result?.data?.users || [];
+    const user = users.find(u => normalizeEmail(u?.email) === wanted);
+    if (user) {
+      const entry = registrationEntryFromAuthUser(user);
+      if (entry) {
+        registrationCodes.set(registrationKey(wanted), entry);
+        return entry;
+      }
+      return null;
+    }
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -890,16 +945,19 @@ app.post(
       } =
         await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .upsert(
+            {
+              id: authUser.id,
+              auth_user_id: authUser.id,
+              username,
+              display_name: displayName,
+              bio: "",
+              avatar_url: null,
+              verified: false,
+              settings: {}
+            },
+            { onConflict: "id" }
+          )
           .select("*")
           .single();
 
@@ -943,8 +1001,14 @@ app.post(
           expires: Date.now() + 10 * 60 * 1000,
           attempts: 0,
           username,
-          displayName
+          displayName,
+          password: String(password)
         }
+      );
+
+      await persistRegistrationCode(
+        admin,
+        registrationCodes.get(registrationKey(email))
       );
 
       registrationRate.set(
@@ -1069,14 +1133,20 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
+      let entry =
         registrationCodes.get(key);
+
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
+          code: "REGISTRATION_SESSION_NOT_FOUND",
           error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
+            "Kayıt oturumu bulunamadı. Lütfen kayıt işlemine yeniden başla."
         });
       }
 
@@ -1145,6 +1215,21 @@ app.post(
 
       registrationCodes.delete(key);
 
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            minegram_registration_pending: false,
+            minegram_registration_code: null,
+            minegram_registration_expires: null
+          }
+        });
+      } catch (metadataError) {
+        console.error(
+          "REGISTRATION METADATA CLEANUP ERROR:",
+          metadataError
+        );
+      }
+
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
        */
@@ -1157,7 +1242,9 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            entry.password ||
+            req.body?.password ||
+            ""
           )
         });
 
@@ -1235,14 +1322,20 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
+      let entry =
         registrationCodes.get(key);
+
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
+          code: "REGISTRATION_SESSION_NOT_FOUND",
           error:
-            "Bekleyen bir kayıt bulunamadı."
+            "Kayıt oturumu bulunamadı. Lütfen kayıt işlemine yeniden başla."
         });
       }
 
@@ -1297,6 +1390,8 @@ app.post(
       entry.expires =
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
+
+      await persistRegistrationCode(admin, entry);
 
       registrationRate.set(
         key,
@@ -2725,269 +2820,6 @@ app.get(
       res.status(500).json({
         error:
           e.message
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   HIGHLIGHTS
-   Android + Web ortak Öne Çıkanlar sistemi
-========================================================= */
-
-app.get(
-  "/api/users/:username/highlights",
-  auth,
-  async (req, res) => {
-    try {
-      const target = await findProfile(
-        req.sb,
-        req.params.username
-      );
-
-      if (!target) {
-        return res.status(404).json({
-          error: "Kullanıcı bulunamadı"
-        });
-      }
-
-      const { data, error } = await req.sb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", target.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      res.json(
-        (data || []).map(h => ({
-          id: h.id,
-          userId: h.user_id,
-          media: h.media_url,
-          mediaUrl: h.media_url,
-          mediaType: h.media_type || "",
-          title: h.title || "Öne çıkan",
-          sortOrder: h.sort_order ?? 0,
-          createdAt: h.created_at
-        }))
-      );
-    } catch (e) {
-      console.error("HIGHLIGHTS GET ERROR:", e);
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.get(
-  "/api/highlights",
-  auth,
-  async (req, res) => {
-    try {
-      const { data, error } = await req.sb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", req.user.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      res.json(data || []);
-    } catch (e) {
-      console.error("MY HIGHLIGHTS ERROR:", e);
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.post(
-  "/api/highlights",
-  auth,
-  upload.single("media"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          error: "Öne çıkan için medya dosyası seçilmedi"
-        });
-      }
-
-      const ext =
-        path.extname(req.file.originalname).toLowerCase() || ".bin";
-
-      const objectPath =
-        `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
-
-      const { error: uploadError } =
-        await req.sb.storage
-          .from(BUCKET)
-          .upload(
-            objectPath,
-            req.file.buffer,
-            {
-              contentType: req.file.mimetype,
-              upsert: false
-            }
-          );
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: publicData } =
-        req.sb.storage
-          .from(BUCKET)
-          .getPublicUrl(objectPath);
-
-      const title =
-        String(req.body?.title || "Öne çıkan").trim().slice(0, 80) ||
-        "Öne çıkan";
-
-      const requestedSort = Number(req.body?.sortOrder);
-      const sortOrder = Number.isFinite(requestedSort)
-        ? requestedSort
-        : 0;
-
-      const { data, error } =
-        await req.sb
-          .from("highlights")
-          .insert({
-            user_id: req.user.id,
-            media_url: publicData.publicUrl,
-            media_type: req.file.mimetype,
-            title,
-            sort_order: sortOrder
-          })
-          .select("*")
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        id: data.id,
-        userId: data.user_id,
-        media: data.media_url,
-        mediaUrl: data.media_url,
-        mediaType: data.media_type,
-        title: data.title,
-        sortOrder: data.sort_order ?? 0,
-        createdAt: data.created_at
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT CREATE ERROR:", e);
-      res.status(400).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.patch(
-  "/api/highlights/:id",
-  auth,
-  async (req, res) => {
-    try {
-      const patch = {};
-
-      if (req.body?.title !== undefined) {
-        patch.title =
-          String(req.body.title).trim().slice(0, 80) || "Öne çıkan";
-      }
-
-      if (req.body?.sortOrder !== undefined) {
-        const sortOrder = Number(req.body.sortOrder);
-        if (Number.isFinite(sortOrder)) {
-          patch.sort_order = sortOrder;
-        }
-      }
-
-      if (!Object.keys(patch).length) {
-        return res.status(400).json({
-          error: "Güncellenecek bilgi yok"
-        });
-      }
-
-      const { data, error } =
-        await req.sb
-          .from("highlights")
-          .update(patch)
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id)
-          .select("*")
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        ...data
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT UPDATE ERROR:", e);
-      res.status(400).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.delete(
-  "/api/highlights/:id",
-  auth,
-  async (req, res) => {
-    try {
-      const { data: existing, error: findError } =
-        await req.sb
-          .from("highlights")
-          .select("id,media_url")
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id)
-          .maybeSingle();
-
-      if (findError) {
-        throw findError;
-      }
-
-      if (!existing) {
-        return res.status(404).json({
-          error: "Öne çıkan bulunamadı"
-        });
-      }
-
-      const { error } =
-        await req.sb
-          .from("highlights")
-          .delete()
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id);
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        id: req.params.id
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT DELETE ERROR:", e);
-      res.status(400).json({
-        error: e.message
       });
     }
   }
