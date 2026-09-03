@@ -946,7 +946,8 @@ app.post(
           expires: Date.now() + 10 * 60 * 1000,
           attempts: 0,
           username,
-          displayName
+          displayName,
+          password: String(password)
         }
       );
 
@@ -1160,7 +1161,9 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            entry.password ||
+            req.body?.password ||
+            ""
           )
         });
 
