@@ -3399,9 +3399,28 @@ function renderHighlights() {
 
   if (!mine) return;
 
-  const items = getHighlights();
+  /*
+   * Önce API'den gelen Highlights kullanılır.
+   * API yoksa eski local kayıtlar kullanılır.
+   */
+  const apiItems =
+    Array.isArray(currentProfile.highlights)
+      ? currentProfile.highlights
+      : [];
+
+  const localItems =
+    getHighlights();
+
+  const items =
+    apiItems.length
+      ? apiItems
+      : localItems;
 
   box.innerHTML = '';
+
+  /* =========================================================
+     YENİ HIGHLIGHT BUTONU
+     ========================================================= */
 
   const add =
     document.createElement('button');
@@ -3409,7 +3428,8 @@ function renderHighlights() {
   add.className =
     'highlight add-highlight';
 
-  add.type = 'button';
+  add.type =
+    'button';
 
   add.innerHTML =
     '<span class="highlight-cover">＋</span>' +
@@ -3422,40 +3442,109 @@ function renderHighlights() {
 
   box.appendChild(add);
 
-  items.forEach((item, i) => {
+  /* =========================================================
+     HIGHLIGHTS
+     ========================================================= */
 
-    const b =
-      document.createElement('button');
+  items.forEach(
+    (item, i) => {
 
-    b.className = 'highlight';
-    b.type = 'button';
+      const b =
+        document.createElement('button');
 
-    b.innerHTML =
-      '<span class="highlight-cover">' +
-      (
-        item.image
-          ? '<img src="' +
-            escapeHtml(item.image) +
-            '" alt="">'
-          : '★'
-      ) +
-      '</span>' +
+      b.className =
+        'highlight';
 
-      '<span class="highlight-title">' +
-      escapeHtml(
-        item.title || 'Öne çıkan'
-      ) +
-      '</span>';
+      b.type =
+        'button';
 
-    b.addEventListener(
-      'click',
-      () => openHighlightView(i)
-    );
+      /*
+       * Android / Supabase API:
+       * media_url
+       *
+       * Eski local sistem:
+       * image
+       */
+      const image =
+        item.media_url ||
+        item.image ||
+        item.mediaUrl ||
+        '';
 
-    box.appendChild(b);
-  });
+      const title =
+        item.title ||
+        'Öne çıkan';
+
+      b.innerHTML =
+        '<span class="highlight-cover">' +
+        (
+          image
+            ? '<img src="' +
+              escapeHtml(image) +
+              '" alt="">'
+            : '★'
+        ) +
+        '</span>' +
+
+        '<span class="highlight-title">' +
+        escapeHtml(title) +
+        '</span>';
+
+      b.addEventListener(
+        'click',
+        () => {
+
+          /*
+           * API verisiyle açılış
+           */
+          if (
+            Array.isArray(
+              currentProfile.highlights
+            ) &&
+            currentProfile.highlights.length
+          ) {
+
+            highlightMenuIndex =
+              i;
+
+            /*
+             * Mevcut görüntüleme fonksiyonu
+             * local yapı bekliyorsa geçici olarak
+             * API verisini uyumlu hale getir.
+             */
+            const normalized =
+              items.map(
+                x => ({
+                  ...x,
+                  image:
+                    x.media_url ||
+                    x.image ||
+                    x.mediaUrl ||
+                    '',
+                  title:
+                    x.title ||
+                    'Öne çıkan'
+                })
+              );
+
+            /*
+             * Mevcut local fonksiyonların
+             * çalışmasını bozmamak için
+             * local kayıtları güncelle.
+             */
+            saveHighlights(
+              normalized
+            );
+          }
+
+          openHighlightView(i);
+        }
+      );
+
+      box.appendChild(b);
+    }
+  );
 }
-
 
 async function addHighlight() {
 
