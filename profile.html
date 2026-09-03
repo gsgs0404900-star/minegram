@@ -5900,7 +5900,11 @@ body{
 <span class="menu-arrow">›</span>
 </button>
 
-
+<button class="menu-item" id="aboutMenu">
+<span class="menu-icon">ⓘ</span>
+<span class="menu-label">Hakkında</span>
+<span class="menu-arrow">›</span>
+</button>
 
 <button class="menu-item" id="logoutMenu">
 <span class="menu-icon">⇥</span>
@@ -5929,7 +5933,11 @@ aria-hidden="true">
 
 <div class="settings-list">
 
-
+<button class="settings-item" id="settingsAccountBtn">
+<span class="settings-icon">▮</span>
+<span class="settings-label">Hesap</span>
+<span class="settings-arrow">›</span>
+</button>
 
 <button class="settings-item" id="settingsEditProfileBtn">
 <span class="settings-icon">✎</span>
@@ -5937,11 +5945,23 @@ aria-hidden="true">
 <span class="settings-arrow">›</span>
 </button>
 
+<button class="settings-item" id="settingsPrivacyBtn">
+<span class="settings-icon">⚙</span>
+<span class="settings-label">Gizlilik</span>
+<span class="settings-arrow">›</span>
+</button>
 
+<button class="settings-item" id="settingsNotificationsBtn">
+<span class="settings-icon">♧</span>
+<span class="settings-label">Bildirimler</span>
+<span class="settings-arrow">›</span>
+</button>
 
-
-
-
+<button class="settings-item" id="settingsAboutBtn">
+<span class="settings-icon">ⓘ</span>
+<span class="settings-label">Hakkında</span>
+<span class="settings-arrow">›</span>
+</button>
 
 <button class="settings-item" id="settingsLogoutBtn">
 <span class="settings-icon">⇥</span>
@@ -5954,11 +5974,151 @@ aria-hidden="true">
 
 <!-- HESAP -->
 
+<div id="settingsAccountScreen"
+class="settings-sub-screen"
+aria-hidden="true">
+
+<div class="settings-head">
+
+<button class="settings-back"
+data-close-settings="account">‹</button>
+
+<div class="settings-title">Hesap</div>
+
+</div>
+
+<div class="settings-info-list">
+
+<div class="settings-info-row">
+<div class="settings-info-title">Kullanıcı adı</div>
+<div id="settingsUsernameValue" class="settings-info-value">—</div>
+</div>
+
+<div class="settings-info-row">
+<div class="settings-info-title">E-posta</div>
+<div id="settingsEmailValue" class="settings-info-value">—</div>
+</div>
+
+<div class="settings-info-row">
+<div class="settings-info-title">Telefon</div>
+<div id="settingsPhoneValue" class="settings-info-value">—</div>
+</div>
+
+<div class="settings-info-row">
+<div class="settings-info-title">Görünen ad</div>
+<div id="settingsDisplayNameValue" class="settings-info-value">—</div>
+</div>
+
+</div>
+</div>
+
 <!-- GİZLİLİK -->
+
+<div id="settingsPrivacyScreen"
+class="settings-sub-screen"
+aria-hidden="true">
+
+<div class="settings-head">
+
+<button class="settings-back"
+data-close-settings="privacy">‹</button>
+
+<div class="settings-title">Gizlilik</div>
+
+</div>
+
+<div class="settings-info-list">
+
+<div class="settings-toggle-row"
+id="privateAccountToggle">
+
+<div class="settings-toggle-copy">
+
+<div class="settings-toggle-title">
+Gizli hesap
+</div>
+
+<div class="settings-toggle-help">
+Hesabını gizli yaptığında gönderilerini yalnızca onayladığın kişiler görebilir.
+</div>
+
+</div>
+
+<div id="privateAccountSwitch"
+class="settings-switch"></div>
+
+</div>
+
+</div>
+</div>
 
 <!-- BİLDİRİMLER -->
 
+<div id="settingsNotificationsScreen"
+class="settings-sub-screen"
+aria-hidden="true">
+
+<div class="settings-head">
+
+<button class="settings-back"
+data-close-settings="notifications">‹</button>
+
+<div class="settings-title">Bildirimler</div>
+
+</div>
+
+<div class="settings-info-list">
+
+<div class="settings-toggle-row"
+id="notificationsToggle">
+
+<div class="settings-toggle-copy">
+
+<div class="settings-toggle-title">
+Bildirimler
+</div>
+
+<div class="settings-toggle-help">
+Minegram bildirimlerini aç veya kapat.
+</div>
+
+</div>
+
+<div id="notificationsSwitch"
+class="settings-switch on"></div>
+
+</div>
+
+</div>
+</div>
+
 <!-- HAKKINDA -->
+
+<div id="settingsAboutScreen"
+class="settings-sub-screen"
+aria-hidden="true">
+
+<div class="settings-head">
+
+<button class="settings-back"
+data-close-settings="about">‹</button>
+
+<div class="settings-title">Hakkında</div>
+
+</div>
+
+<div class="settings-about">
+
+<strong>Minegram</strong>
+
+<p>Sosyal medya uygulaması</p>
+
+<p>Profil, gönderiler, takipçiler, mesajlaşma ve daha fazlası.</p>
+
+<p>Minegram</p>
+
+</div>
+</div>
 
 <script>
 
@@ -7645,10 +7805,10 @@ function openSettingsSub(type){
  }
 
  const ids={
-
-
-
-
+   account:'settingsAccountScreen',
+   privacy:'settingsPrivacyScreen',
+   notifications:'settingsNotificationsScreen',
+   about:'settingsAboutScreen'
  };
 
  const id=ids[type];
@@ -7671,15 +7831,24 @@ function openSettingsSub(type){
 
  document.body.style.overflow='hidden';
 
+ if(type==='account')
+ updateSettingsAccountInfo();
+
+ if(type==='privacy')
+ updatePrivacyToggle();
+
+ if(type==='notifications')
+ updateNotificationsToggle();
+
 }
 
 function closeSettingsSub(type){
 
  const ids={
-
-
-
-
+   account:'settingsAccountScreen',
+   privacy:'settingsPrivacyScreen',
+   notifications:'settingsNotificationsScreen',
+   about:'settingsAboutScreen'
  };
 
  const id=ids[type];
@@ -7704,12 +7873,116 @@ function closeSettingsSub(type){
 
 }
 
+function updateSettingsAccountInfo(){
+
+ if(!currentProfile)return;
+
+ const id=currentProfile.id;
+
+ const email=
+ (me&&me.email)||
+ localStorage.getItem('minegram_email')||
+ localStorage.getItem('minegram_contact_email')||
+ '';
+
+ const phone=
+ (me&&me.phone)||
+ localStorage.getItem('minegram_phone_'+id)||
+ '';
+
+ document.getElementById(
+   'settingsUsernameValue'
+ ).textContent=
+ '@'+
+ (currentProfile.username||'minegram');
+
+ document.getElementById(
+   'settingsEmailValue'
+ ).textContent=
+ email||'Eklenmemiş';
+
+ document.getElementById(
+   'settingsPhoneValue'
+ ).textContent=
+ phone||'Eklenmemiş';
+
+ document.getElementById(
+   'settingsDisplayNameValue'
+ ).textContent=
+ currentProfile.displayName||'Eklenmemiş';
+
+}
+
+function updatePrivacyToggle(){
+
+ const value=
+ localStorage.getItem(
+   settingsKey('private')
+ )==='1';
+
+ document.getElementById(
+   'privateAccountSwitch'
+ ).classList.toggle(
+   'on',
+   value
+ );
+
+}
+
+function updateNotificationsToggle(){
+
+ const key=
+ settingsKey('notifications');
+
+ let value=
+ localStorage.getItem(key);
+
+ if(value===null){
+
+   value='1';
+
+   localStorage.setItem(
+     key,
+     value
+   );
+
+ }
+
+ document.getElementById(
+   'notificationsSwitch'
+ ).classList.toggle(
+   'on',
+   value==='1'
+ );
+
+}
+
 /* AYARLAR BUTONLARI */
 
 document.getElementById('settingsMenu')
 .onclick=()=>{
   location.href='ayarlar.html';
  openProfileSettings();
+};
+
+document.getElementById('aboutMenu')
+.onclick=()=>{
+
+ closeMenu();
+
+ openProfileSettings();
+
+ setTimeout(()=>{
+
+   openSettingsSub('about');
+
+ },50);
+
+};
+
+document.getElementById('settingsAccountBtn')
+.onclick=()=>{
+ openSettingsSub('account');
 };
 
 document.getElementById('settingsEditProfileBtn')
@@ -7719,6 +7992,21 @@ document.getElementById('settingsEditProfileBtn')
 
  openEditProfileScreen();
 
+};
+
+document.getElementById('settingsPrivacyBtn')
+.onclick=()=>{
+ openSettingsSub('privacy');
+};
+
+document.getElementById('settingsNotificationsBtn')
+.onclick=()=>{
+ openSettingsSub('notifications');
+};
+
+document.getElementById('settingsAboutBtn')
+.onclick=()=>{
+ openSettingsSub('about');
 };
 
 document.getElementById('settingsLogoutBtn')
@@ -7856,7 +8144,12 @@ document.addEventListener('keydown',e=>{
  closeModal('usersModal');
  closeMenu();
 
- [].forEach(id=>{
+ [
+   'settingsAccountScreen',
+   'settingsPrivacyScreen',
+   'settingsNotificationsScreen',
+   'settingsAboutScreen'
+ ].forEach(id=>{
 
    const el=
    document.getElementById(id);
