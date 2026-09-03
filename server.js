@@ -689,7 +689,7 @@ app.post(
         });
       }
 
-      if (password.length < 6) {
+      if (password.length < 6 || !password.trim()) {
         return res.status(400).json({
           ok: false,
           code: "PASSWORD_TOO_SHORT",
@@ -1157,7 +1157,10 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            req.body?.password ??
+            req.body?.sifre ??
+            req.body?.pass ??
+            ""
           )
         });
 
@@ -1350,6 +1353,8 @@ app.post(
       const password =
         String(
           req.body?.password ??
+          req.body?.sifre ??
+          req.body?.pass ??
           ""
         );
 
@@ -1461,6 +1466,11 @@ app.post(
         !sd?.session ||
         !sd?.user
       ) {
+        console.error("LOGIN AUTH FAILED:", {
+          identifier,
+          email,
+          message: le?.message || "No session"
+        });
         return res.status(401).json({
           error:
             /invalid login credentials/i.test(
@@ -2732,269 +2742,6 @@ app.get(
 
 
 /* =========================================================
-   HIGHLIGHTS
-   Android + Web ortak Öne Çıkanlar sistemi
-========================================================= */
-
-app.get(
-  "/api/users/:username/highlights",
-  auth,
-  async (req, res) => {
-    try {
-      const target = await findProfile(
-        req.sb,
-        req.params.username
-      );
-
-      if (!target) {
-        return res.status(404).json({
-          error: "Kullanıcı bulunamadı"
-        });
-      }
-
-      const { data, error } = await req.sb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", target.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      res.json(
-        (data || []).map(h => ({
-          id: h.id,
-          userId: h.user_id,
-          media: h.media_url,
-          mediaUrl: h.media_url,
-          mediaType: h.media_type || "",
-          title: h.title || "Öne çıkan",
-          sortOrder: h.sort_order ?? 0,
-          createdAt: h.created_at
-        }))
-      );
-    } catch (e) {
-      console.error("HIGHLIGHTS GET ERROR:", e);
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.get(
-  "/api/highlights",
-  auth,
-  async (req, res) => {
-    try {
-      const { data, error } = await req.sb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", req.user.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      res.json(data || []);
-    } catch (e) {
-      console.error("MY HIGHLIGHTS ERROR:", e);
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.post(
-  "/api/highlights",
-  auth,
-  upload.single("media"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          error: "Öne çıkan için medya dosyası seçilmedi"
-        });
-      }
-
-      const ext =
-        path.extname(req.file.originalname).toLowerCase() || ".bin";
-
-      const objectPath =
-        `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
-
-      const { error: uploadError } =
-        await req.sb.storage
-          .from(BUCKET)
-          .upload(
-            objectPath,
-            req.file.buffer,
-            {
-              contentType: req.file.mimetype,
-              upsert: false
-            }
-          );
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: publicData } =
-        req.sb.storage
-          .from(BUCKET)
-          .getPublicUrl(objectPath);
-
-      const title =
-        String(req.body?.title || "Öne çıkan").trim().slice(0, 80) ||
-        "Öne çıkan";
-
-      const requestedSort = Number(req.body?.sortOrder);
-      const sortOrder = Number.isFinite(requestedSort)
-        ? requestedSort
-        : 0;
-
-      const { data, error } =
-        await req.sb
-          .from("highlights")
-          .insert({
-            user_id: req.user.id,
-            media_url: publicData.publicUrl,
-            media_type: req.file.mimetype,
-            title,
-            sort_order: sortOrder
-          })
-          .select("*")
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        id: data.id,
-        userId: data.user_id,
-        media: data.media_url,
-        mediaUrl: data.media_url,
-        mediaType: data.media_type,
-        title: data.title,
-        sortOrder: data.sort_order ?? 0,
-        createdAt: data.created_at
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT CREATE ERROR:", e);
-      res.status(400).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.patch(
-  "/api/highlights/:id",
-  auth,
-  async (req, res) => {
-    try {
-      const patch = {};
-
-      if (req.body?.title !== undefined) {
-        patch.title =
-          String(req.body.title).trim().slice(0, 80) || "Öne çıkan";
-      }
-
-      if (req.body?.sortOrder !== undefined) {
-        const sortOrder = Number(req.body.sortOrder);
-        if (Number.isFinite(sortOrder)) {
-          patch.sort_order = sortOrder;
-        }
-      }
-
-      if (!Object.keys(patch).length) {
-        return res.status(400).json({
-          error: "Güncellenecek bilgi yok"
-        });
-      }
-
-      const { data, error } =
-        await req.sb
-          .from("highlights")
-          .update(patch)
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id)
-          .select("*")
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        ...data
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT UPDATE ERROR:", e);
-      res.status(400).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-app.delete(
-  "/api/highlights/:id",
-  auth,
-  async (req, res) => {
-    try {
-      const { data: existing, error: findError } =
-        await req.sb
-          .from("highlights")
-          .select("id,media_url")
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id)
-          .maybeSingle();
-
-      if (findError) {
-        throw findError;
-      }
-
-      if (!existing) {
-        return res.status(404).json({
-          error: "Öne çıkan bulunamadı"
-        });
-      }
-
-      const { error } =
-        await req.sb
-          .from("highlights")
-          .delete()
-          .eq("id", req.params.id)
-          .eq("user_id", req.user.id);
-
-      if (error) {
-        throw error;
-      }
-
-      res.json({
-        ok: true,
-        id: req.params.id
-      });
-    } catch (e) {
-      console.error("HIGHLIGHT DELETE ERROR:", e);
-      res.status(400).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-
-/* =========================================================
    CREATE POST
 ========================================================= */
 
@@ -3847,6 +3594,67 @@ app.post(
 
 
 /* =========================================================
+   PROFİL GÖNDERİLERİ GÜVENİLİR EK ROUTE
+   Mevcut route silinmedi. Bu route önce çalışır ve RLS'den
+   etkilenmemesi için service-role client kullanır.
+========================================================= */
+app.get("/api/users/:username/posts", auth, async (req, res, next) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const admin = adminClient();
+    const { data, error } = await admin
+      .from("posts")
+      .select("*")
+      .eq("user_id", target.id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const rows = data || [];
+    let hydrated = rows;
+    try { hydrated = await hydratePosts(admin, rows, req.user.id); } catch (_) {}
+    return res.json(Array.isArray(hydrated) ? hydrated : rows);
+  } catch (e) {
+    console.error("PROFILE POSTS EXTRA ROUTE ERROR:", e?.message || e);
+    return next();
+  }
+});
+
+/* =========================================================
+   PROFİL BİLGİSİ GÜVENİLİR EK ROUTE
+   Kullanıcı adı ve gönderi/takipçi/takip sayıları burada
+   doğrudan profiles/posts/follows tablolarından alınır.
+========================================================= */
+app.get("/api/users/:username", auth, async (req, res, next) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+    const admin = adminClient();
+    const [pc, fc, fg, mf] = await Promise.all([
+      admin.from("posts").select("id", { count: "exact", head: true }).eq("user_id", target.id),
+      admin.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", target.id),
+      admin.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", target.id),
+      admin.from("follows").select("follower_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle()
+    ]);
+    if (pc.error || fc.error || fg.error) throw pc.error || fc.error || fg.error;
+    const username = target.username || target.user_name || target.handle || normalizeUsername(req.params.username);
+    return res.json({
+      ...safeUser(target),
+      username,
+      displayName: target.display_name ?? target.displayName ?? target.full_name ?? username,
+      postCount: Number(pc.count || 0),
+      followers: Number(fc.count || 0),
+      following: Number(fg.count || 0),
+      followingByMe: !!mf.data
+    });
+  } catch (e) {
+    console.error("PROFILE USER EXTRA ROUTE ERROR:", e?.message || e);
+    return next();
+  }
+});
+
+/* =========================================================
    USER POSTS
 ========================================================= */
 
@@ -3908,6 +3716,120 @@ app.get(
   }
 );
 
+
+/* =========================================================
+   USER PROFILE EK GÜVENİLİR SAYI/LİSTE ROUTELARI
+   Mevcut USER PROFILE kodu silinmedi; bu blok onun önünde
+   çalışarak profil sayılarını service-role ile doğrular.
+========================================================= */
+app.get(
+  "/api/users/:username",
+  auth,
+  async (req, res, next) => {
+    try {
+      const target = await findProfile(req.sb, req.params.username);
+      if (!target) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      const admin = adminClient();
+
+      const [postsR, followersR, followingR, meFollowR] = await Promise.all([
+        admin.from("posts").select("id", { count: "exact", head: true }).eq("user_id", target.id),
+        admin.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", target.id),
+        admin.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", target.id),
+        admin.from("follows").select("follower_id").eq("follower_id", req.user.id).eq("following_id", target.id).maybeSingle()
+      ]);
+
+      if (postsR.error || followersR.error || followingR.error) {
+        throw postsR.error || followersR.error || followingR.error;
+      }
+
+      return res.json({
+        ...safeUser(target),
+        postCount: Number(postsR.count || 0),
+        followers: Number(followersR.count || 0),
+        following: Number(followingR.count || 0),
+        followingByMe: !!meFollowR.data
+      });
+    } catch (e) {
+      console.error("PROFILE COUNTS EXTRA ROUTE ERROR:", e?.message || e);
+      return next();
+    }
+  }
+);
+
+/* Takipçi listesi — mevcut kodlara ek */
+app.get(
+  "/api/users/:username/followers",
+  auth,
+  async (req, res) => {
+    try {
+      const target = await findProfile(req.sb, req.params.username);
+      if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+      const admin = adminClient();
+      const { data: rows, error } = await admin
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", target.id);
+      if (error) throw error;
+
+      const ids = [...new Set((rows || []).map(x => x.follower_id).filter(Boolean))];
+      if (!ids.length) return res.json({ count: 0, followers: [] });
+
+      const { data: profiles, error: pe } = await admin
+        .from("profiles")
+        .select("id,username,display_name,bio,avatar_url,verified")
+        .in("id", ids);
+      if (pe) throw pe;
+
+      return res.json({
+        count: profiles?.length || 0,
+        followers: (profiles || []).map(safeUser)
+      });
+    } catch (e) {
+      console.error("FOLLOWERS LIST ERROR:", e?.message || e);
+      return res.status(500).json({ error: e?.message || "Takipçiler alınamadı." });
+    }
+  }
+);
+
+/* Takip edilen listesi — mevcut kodlara ek */
+app.get(
+  "/api/users/:username/following",
+  auth,
+  async (req, res) => {
+    try {
+      const target = await findProfile(req.sb, req.params.username);
+      if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+      const admin = adminClient();
+      const { data: rows, error } = await admin
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", target.id);
+      if (error) throw error;
+
+      const ids = [...new Set((rows || []).map(x => x.following_id).filter(Boolean))];
+      if (!ids.length) return res.json({ count: 0, following: [] });
+
+      const { data: profiles, error: pe } = await admin
+        .from("profiles")
+        .select("id,username,display_name,bio,avatar_url,verified")
+        .in("id", ids);
+      if (pe) throw pe;
+
+      return res.json({
+        count: profiles?.length || 0,
+        following: (profiles || []).map(safeUser)
+      });
+    } catch (e) {
+      console.error("FOLLOWING LIST ERROR:", e?.message || e);
+      return res.status(500).json({ error: e?.message || "Takip edilenler alınamadı." });
+    }
+  }
+);
 
 /* =========================================================
    USER PROFILE
