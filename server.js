@@ -2540,6 +2540,7 @@ async function sendResendEmail(
 
 const recoveryCodes =
   new Map();
+const passwordResetTokens = new Map();
 
 
 /* =========================================================
