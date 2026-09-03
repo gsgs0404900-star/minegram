@@ -1,2767 +1,3334 @@
 <!doctype html>
 <html lang="tr">
+
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+name="theme-color"
+content="#000"
+>
+
 <title>Minegram • Profil</title>
 
 <style>
-*{box-sizing:border-box}
 
-html,body{
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,sans-serif;
-  min-height:100%;
-  overflow-x:hidden
+*{
+box-sizing:border-box
+}
+
+html,
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Arial,sans-serif;
+min-height:100%;
+overflow-x:hidden
 }
 
 button{
-  font:inherit;
-  cursor:pointer
+font:inherit;
+cursor:pointer
 }
 
 .app{
-  min-height:100dvh;
-  background:#000;
-  padding-bottom:78px
+min-height:100dvh;
+background:#000;
+padding-bottom:78px
 }
 
 .header{
-  height:62px;
-  display:flex;
-  align-items:center;
-  padding:0 14px;
-  border-bottom:1px solid #181818;
-  position:sticky;
-  top:0;
-  background:#000;
-  z-index:20
+height:62px;
+display:flex;
+align-items:center;
+padding:0 14px;
+border-bottom:1px solid #181818;
+position:sticky;
+top:0;
+background:#000;
+z-index:20
 }
 
-.back,.headmore{
-  border:0;
-  background:none;
-  color:#fff
+.back,
+.headmore{
+border:0;
+background:none;
+color:#fff
 }
 
 .back{
-  font-size:28px;
-  width:38px
+font-size:28px;
+width:38px
 }
 
 .title{
-  font-size:18px;
-  font-weight:700
+font-size:18px;
+font-weight:700
 }
 
 .headmore{
-  margin-left:auto;
-  font-size:25px;
-  width:38px
+margin-left:auto;
+font-size:25px;
+width:38px
 }
 
 .profile{
-  width:100%;
-  padding:18px 20px 0
+width:100%;
+padding:18px 20px 0
 }
 
 .top{
-  display:flex;
-  gap:18px;
-  align-items:center;
-  max-width:900px
+display:flex;
+gap:18px;
+align-items:center;
+max-width:900px
 }
 
 .avatar{
-  width:68px;
-  height:68px;
-  border-radius:50%;
-  background:#398bc4;
-  display:grid;
-  place-items:center;
-  font-size:24px;
-  overflow:hidden;
-  flex:none
+width:68px;
+height:68px;
+border-radius:50%;
+background:#398bc4;
+display:grid;
+place-items:center;
+font-size:24px;
+overflow:hidden;
+flex:none
 }
 
 .avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover
+width:100%;
+height:100%;
+object-fit:cover
 }
 
 .info{
-  min-width:0;
-  flex:1
+min-width:0;
+flex:1
 }
 
 .username{
-  font-size:20px;
-  font-weight:700
+font-size:20px;
+font-weight:700
 }
 
 .verified{
-  color:#398bc4
+color:#398bc4
 }
 
 .display{
-  font-size:14px;
-  margin-top:4px
+font-size:14px;
+margin-top:4px
 }
 
 .bio{
-  color:#aaa;
-  font-size:13px;
-  line-height:1.35;
-  margin-top:6px
+color:#aaa;
+font-size:13px;
+line-height:1.35;
+margin-top:6px
 }
 
 .stats{
-  display:flex;
-  justify-content:flex-start;
-  gap:42px;
-  text-align:center;
-  margin:18px 0 12px;
-  max-width:500px
+display:flex;
+justify-content:flex-start;
+gap:42px;
+text-align:center;
+margin:18px 0 12px;
+max-width:500px
 }
 
 .stat b{
-  display:block;
-  font-size:16px
+display:block;
+font-size:16px
 }
 
 .stat span{
-  font-size:11px;
-  color:#aaa
+font-size:11px;
+color:#aaa
 }
 
 .actions{
-  display:flex;
-  gap:8px;
-  width:100%;
-  max-width:100%
+display:flex;
+gap:8px;
+width:100%;
+max-width:100%
 }
 
 .actions button{
-  flex:1;
-  height:38px;
-  border:1px solid #3a3a3a;
-  background:#000;
-  color:#fff;
-  border-radius:8px;
-  font-size:13px;
-  font-weight:600
+flex:1;
+height:38px;
+border:1px solid #3a3a3a;
+background:#000;
+color:#fff;
+border-radius:8px;
+font-size:13px;
+font-weight:600
 }
 
 .actions .primary{
-  background:#398bc4;
-  border-color:#398bc4;
-  color:#07131c
+background:#398bc4;
+border-color:#398bc4;
+color:#07131c
 }
 
-/* =========================
-   HIGHLIGHTS
-   ========================= */
+
+/* =========================================================
+   ÖNE ÇIKANLAR
+========================================================= */
 
 .highlights-section{
-  margin-top:16px;
-  margin-bottom:4px
+margin-top:18px;
+margin-bottom:4px
 }
 
 .highlights-section[hidden]{
-  display:none!important
+display:none !important
 }
 
-.highlights-title{
-  margin:0 0 10px;
-  font-size:18px;
-  font-weight:700
+.highlights-section h2{
+margin:0 0 10px;
+font-size:16px;
+font-weight:700
 }
 
 .highlights{
-  display:flex;
-  gap:18px;
-  overflow-x:auto;
-  padding:4px 0 12px;
-  scrollbar-width:none
+display:flex;
+gap:18px;
+overflow-x:auto;
+padding:4px 0 12px;
+scrollbar-width:none
 }
 
 .highlights::-webkit-scrollbar{
-  display:none
+display:none
 }
 
 .highlight{
-  flex:0 0 82px;
-  width:82px;
-  text-align:center;
-  border:0;
-  background:none;
-  color:#fff;
-  padding:0
+flex:0 0 82px;
+text-align:center;
+border:0;
+background:none;
+color:#fff;
+padding:0
 }
 
 .highlight-cover{
-  width:76px;
-  height:76px;
-  border-radius:50%;
-  border:1.5px solid #aaa;
-  overflow:hidden;
-  background:#000;
-  margin:auto;
-  display:grid;
-  place-items:center;
-  font-size:30px
+width:76px;
+height:76px;
+border-radius:50%;
+border:1.5px solid #aaa;
+overflow:hidden;
+background:#000;
+margin:auto;
+display:grid;
+place-items:center;
+font-size:28px
 }
 
 .highlight-cover img{
-  width:100%;
-  height:100%;
-  object-fit:cover
+width:100%;
+height:100%;
+object-fit:cover
 }
 
 .highlight-title{
-  display:block;
-  margin-top:7px;
-  font-size:12px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis
-}
-
-.add-highlight .highlight-cover{
-  border:1.5px solid #555;
-  color:#fff;
-  font-size:30px
-}
-
-/* =========================
-   HIGHLIGHT VIEWER
-   ========================= */
-
-.highlight-viewer{
-  position:fixed;
-  inset:0;
-  background:#000;
-  z-index:200;
-  display:none;
-  align-items:center;
-  justify-content:center
-}
-
-.highlight-viewer.open{
-  display:flex
-}
-
-.highlight-viewer-media{
-  width:100%;
-  height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center
-}
-
-.highlight-viewer-media img,
-.highlight-viewer-media video{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  background:#000
-}
-
-.highlight-viewer-top{
-  position:absolute;
-  top:0;
-  left:0;
-  right:0;
-  padding:14px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  background:linear-gradient(rgba(0,0,0,.7),transparent);
-  z-index:2
-}
-
-.highlight-viewer-title{
-  flex:1;
-  font-size:14px;
-  font-weight:700
-}
-
-.highlight-viewer-close{
-  border:0;
-  background:none;
-  color:#fff;
-  font-size:30px;
-  width:40px;
-  height:40px
-}
-
-.highlight-prev,
-.highlight-next{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  border:0;
-  background:rgba(0,0,0,.25);
-  color:#fff;
-  width:50px;
-  height:80px;
-  font-size:35px;
-  z-index:3
-}
-
-.highlight-prev{
-  left:0
-}
-
-.highlight-next{
-  right:0
+display:block;
+margin-top:7px;
+font-size:12px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
 }
 
 .highlight-empty{
-  color:#777;
-  font-size:13px;
-  padding:8px 0
+color:#777;
+font-size:12px;
+padding:4px 0 10px
 }
 
-.account-actions{
-  margin-top:2px
-}
 
-.account-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-height:66px;
-  padding:10px 4px;
-  border-bottom:1px solid #181818
-}
-
-.account-row .ico{
-  width:25px;
-  text-align:center;
-  font-size:18px
-}
-
-.account-row .copy{
-  flex:1
-}
-
-.account-row strong{
-  display:block;
-  font-size:13px
-}
-
-.account-row small{
-  display:block;
-  color:#777;
-  margin-top:3px;
-  font-size:11px
-}
-
-.account-row button{
-  border:0;
-  background:none;
-  color:#398bc4;
-  font-size:12px
-}
+/* =========================================================
+   TABS
+========================================================= */
 
 .tabs{
-  display:flex;
-  border-top:1px solid #222;
-  border-bottom:1px solid #222;
-  margin-top:18px
+display:flex;
+border-top:1px solid #222;
+border-bottom:1px solid #222;
+margin-top:18px
 }
 
 .tab{
-  flex:1;
-  height:44px;
-  border:0;
-  background:none;
-  color:#777;
-  font-size:22px
+flex:1;
+height:44px;
+border:0;
+background:none;
+color:#777;
+font-size:22px
 }
 
 .tab.active{
-  color:#fff;
-  border-bottom:2px solid #fff
+color:#fff;
+border-bottom:2px solid #fff
 }
 
+
+/* =========================================================
+   GRID
+========================================================= */
+
 .grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:2px;
-  margin-top:2px
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:2px;
+margin-top:2px
 }
 
 .tile{
-  aspect-ratio:1/1;
-  background:#111;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center
+aspect-ratio:1/1;
+background:#111;
+overflow:hidden;
+display:flex;
+align-items:center;
+justify-content:center
 }
 
 .tile img{
-  width:100%;
-  height:100%;
-  object-fit:cover
+width:100%;
+height:100%;
+object-fit:cover
 }
 
 .tile .txt{
-  padding:10px;
-  font-size:12px;
-  color:#ccc
+padding:10px;
+font-size:12px;
+color:#ccc
 }
 
 .empty{
-  text-align:center;
-  color:#777;
-  padding:60px 20px;
-  grid-column:1/-1
+text-align:center;
+color:#777;
+padding:60px 20px;
+grid-column:1/-1
 }
 
+
+/* =========================================================
+   ACCOUNT
+========================================================= */
+
+.account-actions{
+margin-top:2px
+}
+
+.account-row{
+display:flex;
+align-items:center;
+gap:10px;
+min-height:66px;
+padding:10px 4px;
+border-bottom:1px solid #181818
+}
+
+.account-row .ico{
+width:25px;
+text-align:center;
+font-size:18px
+}
+
+.account-row .copy{
+flex:1
+}
+
+.account-row strong{
+display:block;
+font-size:13px
+}
+
+.account-row small{
+display:block;
+color:#777;
+margin-top:3px;
+font-size:11px
+}
+
+.account-row button{
+border:0;
+background:none;
+color:#398bc4;
+font-size:12px
+}
+
+
+/* =========================================================
+   ALT MENÜ
+========================================================= */
+
 .bottom{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  height:76px;
-  padding:5px 4px max(5px,env(safe-area-inset-bottom));
-  display:flex;
-  background:#19171f;
-  border-top:1px solid #25232c;
-  z-index:30
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+height:76px;
+padding:5px 4px max(5px,env(safe-area-inset-bottom));
+display:flex;
+background:#19171f;
+border-top:1px solid #25232c;
+z-index:30
 }
 
 .nav{
-  flex:1;
-  border:0;
-  background:none;
-  color:#ddd;
-  font-size:9px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px
+flex:1;
+border:0;
+background:none;
+color:#ddd;
+font-size:9px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:4px
 }
 
 .nav span{
-  font-size:22px
+font-size:22px
 }
 
 .nav.active span{
-  background:#3b3450;
-  border-radius:18px;
-  padding:3px 13px
+background:#3b3450;
+border-radius:18px;
+padding:3px 13px
 }
 
+
+/* =========================================================
+   TOAST
+========================================================= */
+
 .toast{
-  position:fixed;
-  left:50%;
-  bottom:88px;
-  transform:translateX(-50%);
-  background:#24222a;
-  color:#fff;
-  padding:10px 15px;
-  border-radius:10px;
-  font-size:12px;
-  opacity:0;
-  pointer-events:none;
-  transition:.2s;
-  z-index:300
+position:fixed;
+left:50%;
+bottom:88px;
+transform:translateX(-50%);
+background:#24222a;
+color:#fff;
+padding:10px 15px;
+border-radius:10px;
+font-size:12px;
+opacity:0;
+pointer-events:none;
+transition:.2s;
+z-index:100
 }
 
 .toast.show{
-  opacity:1
+opacity:1
 }
 
+
+/* =========================================================
+   MODAL
+========================================================= */
+
 .modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.68);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:90;
-  padding:20px
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.68);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:90;
+padding:20px
 }
 
 .modal.open{
-  display:flex
+display:flex
 }
 
 .dialog{
-  width:min(430px,100%);
-  background:#17161b;
-  border:1px solid #333;
-  border-radius:16px;
-  padding:18px
+width:min(430px,100%);
+background:#17161b;
+border:1px solid #333;
+border-radius:16px;
+padding:18px
 }
 
 .dialog h3{
-  margin:0 0 14px;
-  font-size:19px
+margin:0 0 14px;
+font-size:19px
 }
 
 .dialog input,
 .dialog textarea{
-  width:100%;
-  background:#0c0c0e;
-  color:#fff;
-  border:1px solid #444;
-  border-radius:10px;
-  padding:11px;
-  outline:none;
-  margin-bottom:10px
+width:100%;
+background:#0c0c0e;
+color:#fff;
+border:1px solid #444;
+border-radius:10px;
+padding:11px;
+outline:none;
+margin-bottom:10px
 }
 
 .dialog textarea{
-  min-height:90px;
-  resize:none
+min-height:90px;
+resize:none
 }
 
 .dialog-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:8px
+display:flex;
+justify-content:flex-end;
+gap:8px
 }
 
 .dialog-actions button{
-  border:0;
-  border-radius:9px;
-  padding:9px 14px
+border:0;
+border-radius:9px;
+padding:9px 14px
 }
 
-@media(max-width:480px){
-  .profile{
-    padding-left:14px;
-    padding-right:14px
-  }
 
-  .stats{
-    gap:30px
-  }
+/* =========================================================
+   HIGHLIGHT VIEWER
+========================================================= */
+
+.highlight-viewer{
+position:fixed;
+inset:0;
+background:#000;
+z-index:200;
+display:none;
+align-items:center;
+justify-content:center
 }
+
+.highlight-viewer.open{
+display:flex
+}
+
+.highlight-viewer img{
+max-width:100%;
+max-height:100%;
+object-fit:contain
+}
+
+.highlight-viewer-close{
+position:absolute;
+top:16px;
+right:16px;
+width:42px;
+height:42px;
+border:0;
+border-radius:50%;
+background:rgba(255,255,255,.12);
+color:#fff;
+font-size:24px;
+z-index:3
+}
+
+.highlight-viewer-title{
+position:absolute;
+left:20px;
+right:20px;
+bottom:24px;
+text-align:center;
+font-size:15px;
+font-weight:600;
+z-index:3
+}
+
+.highlight-viewer-prev,
+.highlight-viewer-next{
+position:absolute;
+top:50%;
+transform:translateY(-50%);
+width:44px;
+height:70px;
+border:0;
+background:rgba(0,0,0,.35);
+color:#fff;
+font-size:30px;
+z-index:3
+}
+
+.highlight-viewer-prev{
+left:0
+}
+
+.highlight-viewer-next{
+right:0
+}
+
 </style>
+
 </head>
+
 
 <body>
 
 <div class="app">
 
+
 <header class="header">
-  <button class="back" id="backBtn" aria-label="Geri">‹</button>
-  <div class="title" id="title">Profil</div>
-  <button class="headmore" id="menuBtn" aria-label="Menü">☰</button>
+
+<button
+class="back"
+id="backBtn"
+aria-label="Geri"
+>
+‹
+</button>
+
+<div
+class="title"
+id="title"
+>
+Profil
+</div>
+
+<button
+class="headmore"
+id="menuBtn"
+aria-label="Menü"
+>
+☰
+</button>
+
 </header>
+
 
 <main class="profile">
 
+
 <section class="top">
-  <div id="avatar" class="avatar">M</div>
 
-  <div class="info">
-    <div id="username" class="username">
-      @minegram
-      <span class="verified">✓</span>
-    </div>
-
-    <div id="display" class="display"></div>
-    <div id="bio" class="bio"></div>
-  </div>
-</section>
-
-<section class="stats">
-  <div class="stat">
-    <b id="postCount">0</b>
-    <span>Gönderi</span>
-  </div>
-
-  <div class="stat">
-    <b id="followers">0</b>
-    <span>Takipçi</span>
-  </div>
-
-  <div class="stat">
-    <b id="following">0</b>
-    <span>Takip</span>
-  </div>
-</section>
-
-<div class="actions">
-  <button id="editBtn" class="primary">
-    ✎ &nbsp;Profil düzenle
-  </button>
-
-  <button id="shareBtn">
-    ♧ &nbsp; Paylaş
-  </button>
+<div
+id="avatar"
+class="avatar"
+>
+M
 </div>
 
 
+<div class="info">
+
+<div
+id="username"
+class="username"
+>
+@minegram
+<span class="verified">✓</span>
+</div>
+
+<div
+id="display"
+class="display"
+></div>
+
+<div
+id="bio"
+class="bio"
+></div>
+
+</div>
+
+</section>
+
+
+
+<section class="stats">
+
+<div class="stat">
+
+<b id="postCount">
+0
+</b>
+
+<span>
+Gönderi
+</span>
+
+</div>
+
+
+<div class="stat">
+
+<b id="followers">
+0
+</b>
+
+<span>
+Takipçi
+</span>
+
+</div>
+
+
+<div class="stat">
+
+<b id="following">
+0
+</b>
+
+<span>
+Takip
+</span>
+
+</div>
+
+</section>
+
+
+
+<div class="actions">
+
+<button
+id="editBtn"
+class="primary"
+>
+✎ &nbsp;Profil düzenle
+</button>
+
+<button
+id="shareBtn"
+>
+♧ &nbsp; Paylaş
+</button>
+
+</div>
+
+
+
 <!-- =====================================================
-     MINEGRAM ÖNE ÇIKANLAR
-     Android + Supabase/server tarafından gelen veriler
-     buraya otomatik olarak basılır.
+     ÖNE ÇIKANLAR
 ===================================================== -->
 
 <section
-  id="highlightsSection"
-  class="highlights-section"
-  hidden
+id="highlightsSection"
+class="highlights-section"
+hidden
 >
 
-  <h2 class="highlights-title">Öne Çıkanlar</h2>
+<h2>
+Öne Çıkanlar
+</h2>
 
-  <div
-    id="highlights"
-    class="highlights"
-  ></div>
+<div
+id="highlights"
+class="highlights"
+></div>
 
 </section>
+
 
 
 <section class="account-actions">
 
-  <div class="account-row">
-    <div class="ico">▧</div>
 
-    <div class="copy">
-      <strong>Fotoğrafları Paylaş</strong>
-      <small>
-        Paylaştığın fotoğraflar profilinde gözükür.
-      </small>
-    </div>
+<div class="account-row">
 
-    <button id="photoShareBtn">
-      Paylaş
-    </button>
-  </div>
+<div class="ico">
+▧
+</div>
+
+<div class="copy">
+
+<strong>
+Fotoğrafları Paylaş
+</strong>
+
+<small>
+Paylaştığın fotoğraflar profilinde gözükür.
+</small>
+
+</div>
+
+<button
+id="photoShareBtn"
+>
+Paylaş
+</button>
+
+</div>
 
 
-  <div class="account-row">
-    <div class="ico">⌕</div>
 
-    <div class="copy">
-      <strong>Telefon Numarası Ekle</strong>
-      <small>
-        Hesabını daha güvenli hale getir.
-      </small>
-    </div>
+<div class="account-row">
 
-    <button id="phoneBtn">
-      Ekle
-    </button>
-  </div>
+<div class="ico">
+⌕
+</div>
+
+<div class="copy">
+
+<strong>
+Telefon Numarası Ekle
+</strong>
+
+<small>
+Hesabını daha güvenli hale getir.
+</small>
+
+</div>
+
+<button
+id="phoneBtn"
+>
+Ekle
+</button>
+
+</div>
+
 
 </section>
 
 
+
 <div class="tabs">
 
-  <button
-    class="tab active"
-    id="postsTab"
-  >
-    ▦
-  </button>
+<button
+class="tab active"
+id="postsTab"
+>
+▦
+</button>
 
-  <button
-    class="tab"
-    id="likesTab"
-  >
-    ♡
-  </button>
+<button
+class="tab"
+id="likesTab"
+>
+♡
+</button>
 
 </div>
 
 
+
 <section
-  id="grid"
-  class="grid"
+id="grid"
+class="grid"
 ></section>
+
 
 </main>
 
 
+
 <nav class="bottom">
 
-  <button
-    class="nav"
-    id="homeNav"
-  >
-    <span>⌂</span>
-    Ana Sayfa
-  </button>
+<button
+class="nav"
+id="homeNav"
+>
+<span>⌂</span>
+Ana Sayfa
+</button>
 
-  <button
-    class="nav"
-    id="searchNav"
-  >
-    <span>⌕</span>
-    Ara
-  </button>
 
-  <button
-    class="nav"
-    id="createNav"
-  >
-    <span>＋</span>
-    Oluştur
-  </button>
+<button
+class="nav"
+id="searchNav"
+>
+<span>⌕</span>
+Ara
+</button>
 
-  <button
-    class="nav"
-    id="reelsNav"
-  >
-    <span>▣</span>
-    Reels
-  </button>
 
-  <button
-    class="nav active"
-    id="profileNav"
-  >
-    <span>♙</span>
-    Profil
-  </button>
+<button
+class="nav"
+id="createNav"
+>
+<span>＋</span>
+Oluştur
+</button>
+
+
+<button
+class="nav"
+id="reelsNav"
+>
+<span>▣</span>
+Reels
+</button>
+
+
+<button
+class="nav active"
+id="profileNav"
+>
+<span>♙</span>
+Profil
+</button>
 
 </nav>
 
+
 </div>
 
 
+
 <div
-  id="toast"
-  class="toast"
+id="toast"
+class="toast"
 ></div>
 
 
-<!-- PROFİL DÜZENLE -->
-
-<div
-  id="editModal"
-  class="modal"
-  aria-hidden="true"
->
-
-  <div
-    class="dialog"
-    role="dialog"
-    aria-modal="true"
-  >
-
-    <h3>Profili düzenle</h3>
-
-    <input
-      id="nameInput"
-      maxlength="50"
-      placeholder="Görünen ad"
-    >
-
-    <textarea
-      id="bioInput"
-      maxlength="160"
-      placeholder="Biyografi"
-    ></textarea>
-
-    <div class="dialog-actions">
-
-      <button id="editCancel">
-        İptal
-      </button>
-
-      <button id="editSave">
-        Kaydet
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-
-
-<!-- MENÜ -->
-
-<div
-  id="menuModal"
-  class="modal"
-  aria-hidden="true"
->
-
-  <div class="dialog">
-
-    <h3>Profil menüsü</h3>
-
-    <div class="dialog-actions">
-
-      <button id="menuClose">
-        Kapat
-      </button>
-
-      <button id="menuLogout">
-        Çıkış yap
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-
 
 <!-- =====================================================
-     HIGHLIGHT GÖRÜNTÜLEYİCİ
+     PROFİL DÜZENLE MODAL
 ===================================================== -->
 
 <div
-  id="highlightViewer"
-  class="highlight-viewer"
-  aria-hidden="true"
+id="editModal"
+class="modal"
+aria-hidden="true"
 >
 
-  <div class="highlight-viewer-top">
+<div
+class="dialog"
+role="dialog"
+aria-modal="true"
+>
 
-    <div
-      id="highlightViewerTitle"
-      class="highlight-viewer-title"
-    >
-      Öne Çıkan
-    </div>
+<h3>
+Profili düzenle
+</h3>
 
-    <button
-      id="highlightViewerClose"
-      class="highlight-viewer-close"
-    >
-      ×
-    </button>
+<input
+id="nameInput"
+maxlength="50"
+placeholder="Görünen ad"
+>
 
-  </div>
+<textarea
+id="bioInput"
+maxlength="160"
+placeholder="Biyografi"
+></textarea>
 
-  <button
-    id="highlightPrev"
-    class="highlight-prev"
-  >
-    ‹
-  </button>
+<div class="dialog-actions">
 
-  <div
-    id="highlightViewerMedia"
-    class="highlight-viewer-media"
-  ></div>
+<button
+id="editCancel"
+>
+İptal
+</button>
 
-  <button
-    id="highlightNext"
-    class="highlight-next"
-  >
-    ›
-  </button>
+<button
+id="editSave"
+>
+Kaydet
+</button>
 
 </div>
+
+</div>
+
+</div>
+
+
+
+<!-- =====================================================
+     MENÜ MODAL
+===================================================== -->
+
+<div
+id="menuModal"
+class="modal"
+aria-hidden="true"
+>
+
+<div class="dialog">
+
+<h3>
+Profil menüsü
+</h3>
+
+<div class="dialog-actions">
+
+<button
+id="menuClose"
+>
+Kapat
+</button>
+
+<button
+id="menuLogout"
+>
+Çıkış yap
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- =====================================================
+     HIGHLIGHT VIEWER
+===================================================== -->
+
+<div
+id="highlightViewer"
+class="highlight-viewer"
+aria-hidden="true"
+>
+
+<button
+id="highlightViewerClose"
+class="highlight-viewer-close"
+>
+×
+</button>
+
+<button
+id="highlightViewerPrev"
+class="highlight-viewer-prev"
+>
+‹
+</button>
+
+<img
+id="highlightViewerImage"
+src=""
+alt="Öne çıkan"
+>
+
+<button
+id="highlightViewerNext"
+class="highlight-viewer-next"
+>
+›
+</button>
+
+<div
+id="highlightViewerTitle"
+class="highlight-viewer-title"
+></div>
+
+</div>
+
 
 
 <script>
 
-/* =====================================================
-   OTURUM
-===================================================== */
 
-const params = new URLSearchParams(location.search);
+/* =========================================================
+   TEMEL DEĞİŞKENLER
+========================================================= */
 
-const target = (
-  params.get('username') ||
-  params.get('user') ||
-  ''
-).trim();
+const params =
+new URLSearchParams(location.search);
+
+const target =
+(params.get('username') ||
+ params.get('user') ||
+ '').trim();
+
 
 let me = null;
+
 let currentProfile = null;
 
 let highlightItems = [];
-let openedHighlightIndex = -1;
+
+let openedHighlightIndex = 0;
 
 
-/* =====================================================
+/* =========================================================
    TOKEN
-===================================================== */
+========================================================= */
 
 function getToken(){
 
-  const keys = [
-    'minegram_token',
-    'minegram_access_token',
-    'minegram_supabase_token',
-    'access_token',
-    'token'
-  ];
+const keys = [
+'minegram_token',
+'minegram_access_token',
+'minegram_supabase_token',
+'access_token',
+'token'
+];
 
-  for(const k of keys){
+for(const k of keys){
 
-    const v = localStorage.getItem(k);
+const v =
+localStorage.getItem(k);
 
-    if(
-      v &&
-      v !== 'null' &&
-      v !== 'undefined'
-    ){
-      return v;
-    }
-  }
+if(
+v &&
+v !== 'null' &&
+v !== 'undefined'
+){
+return v;
+}
 
-  return '';
+}
+
+return '';
+
 }
 
 
-/* =====================================================
-   USER
-===================================================== */
+/* =========================================================
+   USER NORMALIZE
+========================================================= */
 
 function unwrapUser(data){
 
-  return (
-    data?.user ||
-    data?.profile ||
-    data?.data?.user ||
-    data?.data?.profile ||
-    data?.data ||
-    data ||
-    {}
-  );
+return (
+data?.user ||
+data?.profile ||
+data?.data?.user ||
+data?.data?.profile ||
+data?.data ||
+data ||
+{}
+);
 
 }
 
 
 function cleanUsername(v){
 
-  return String(v || '')
-    .trim()
-    .replace(/^@+/,'');
+return String(v || '')
+.trim()
+.replace(/^@+/,'');
 }
 
 
 function normalizeUser(data){
 
-  const u = unwrapUser(data);
+const u =
+unwrapUser(data);
 
-  return {
-    ...u,
+return {
+...u,
 
-    id:
-      u.id ||
-      u.user_id ||
-      u.auth_user_id ||
-      '',
+id:
+u.id ||
+u.user_id ||
+u.auth_user_id ||
+'',
 
-    username:
-      cleanUsername(
-        u.username ||
-        u.user_name ||
-        u.handle ||
-        ''
-      ),
+username:
+cleanUsername(
+u.username ||
+u.user_name ||
+u.handle ||
+''
+),
 
-    displayName:
-      u.displayName ||
-      u.display_name ||
-      u.full_name ||
-      '',
+displayName:
+u.displayName ||
+u.display_name ||
+u.full_name ||
+'',
 
-    bio:
-      u.bio ||
-      '',
+bio:
+u.bio ||
+'',
 
-    avatar:
-      u.avatar ||
-      u.avatar_url ||
-      u.avatarUrl ||
-      ''
-  };
+avatar:
+u.avatar ||
+u.avatar_url ||
+u.avatarUrl ||
+''
+};
 
 }
 
 
+/* =========================================================
+   LOCAL SESSION
+========================================================= */
+
 function getSavedUser(){
 
-  const keys = [
-    'minegram_user',
-    'minegram_current_user',
-    'currentUser',
-    'user'
-  ];
+const keys = [
+'minegram_user',
+'minegram_current_user',
+'currentUser',
+'user'
+];
 
-  for(const k of keys){
+for(const k of keys){
 
-    try{
+try{
 
-      const x =
-        JSON.parse(
-          localStorage.getItem(k) || 'null'
-        );
+const x =
+JSON.parse(
+localStorage.getItem(k) || 'null'
+);
 
-      const u =
-        normalizeUser(x);
+const u =
+normalizeUser(x);
 
-      if(
-        u.username ||
-        u.id
-      ){
-        return u;
-      }
+if(
+u.username ||
+u.id
+){
+return u;
+}
 
-    }catch(e){}
+}catch(e){}
 
-  }
+}
 
-  return normalizeUser({
 
-    username:
-      localStorage.getItem(
-        'minegram_register_username'
-      ) ||
-      localStorage.getItem(
-        'minegram_username'
-      ) ||
-      localStorage.getItem(
-        'username'
-      ) ||
-      '',
+return normalizeUser({
 
-    displayName:
-      localStorage.getItem(
-        'minegram_display_name'
-      ) || '',
+username:
+localStorage.getItem(
+'minegram_register_username'
+) ||
+localStorage.getItem(
+'minegram_username'
+) ||
+localStorage.getItem(
+'username'
+) ||
+'',
 
-    bio:
-      localStorage.getItem(
-        'minegram_bio'
-      ) || '',
+displayName:
+localStorage.getItem(
+'minegram_display_name'
+) ||
+'',
 
-    avatar:
-      localStorage.getItem(
-        'minegram_avatar'
-      ) || ''
+bio:
+localStorage.getItem(
+'minegram_bio'
+) ||
+'',
 
-  });
+avatar:
+localStorage.getItem(
+'minegram_avatar'
+) ||
+''
+
+});
 
 }
 
 
 function saveCurrentSessionUser(data){
 
-  const u =
-    normalizeUser(data);
+const u =
+normalizeUser(data);
 
-  if(
-    !u.username &&
-    !u.id
-  ){
-    return;
-  }
+if(
+!u.username &&
+!u.id
+){
+return;
+}
 
-  localStorage.setItem(
-    'minegram_user',
-    JSON.stringify(u)
-  );
+localStorage.setItem(
+'minegram_user',
+JSON.stringify(u)
+);
 
-  if(u.username){
+if(u.username){
 
-    localStorage.setItem(
-      'minegram_username',
-      u.username
-    );
+localStorage.setItem(
+'minegram_username',
+u.username
+);
 
-    localStorage.setItem(
-      'minegram_register_username',
-      u.username
-    );
+localStorage.setItem(
+'minegram_register_username',
+u.username
+);
 
-  }
+}
 
-  if(u.id){
+if(u.id){
 
-    localStorage.setItem(
-      'minegram_user_id',
-      String(u.id)
-    );
+localStorage.setItem(
+'minegram_user_id',
+String(u.id)
+);
 
-  }
+}
 
 }
 
 
-/* =====================================================
+/* =========================================================
    TOAST
-===================================================== */
+========================================================= */
 
 function toast(msg){
 
-  const el =
-    document.getElementById('toast');
+const el =
+document.getElementById('toast');
 
-  el.textContent = msg;
+if(!el){
+return;
+}
 
-  el.classList.add('show');
+el.textContent =
+String(msg || '');
 
-  clearTimeout(
-    window.__toast
-  );
+el.classList.add('show');
 
-  window.__toast =
-    setTimeout(
-      () => el.classList.remove('show'),
-      2200
-    );
+clearTimeout(
+window.__toast
+);
+
+window.__toast =
+setTimeout(
+()=>{
+el.classList.remove('show');
+},
+2200
+);
 
 }
 
 
-/* =====================================================
+/* =========================================================
    API
-===================================================== */
+========================================================= */
 
 async function api(url,opt={}){
 
-  const token =
-    getToken();
+const token =
+getToken();
 
-  opt.headers = {
-    ...(opt.headers || {}),
-    ...(token
-      ? {
-          Authorization:
-            'Bearer ' + token
-        }
-      : {})
-  };
+const headers =
+{
+...(opt.headers || {})
+};
 
-  if(
-    opt.body &&
-    typeof opt.body !== 'string'
-  ){
+if(token){
 
-    opt.headers['Content-Type'] =
-      'application/json';
+headers.Authorization =
+'Bearer ' + token;
 
-    opt.body =
-      JSON.stringify(opt.body);
+}
 
-  }
+if(
+opt.body &&
+typeof opt.body !== 'string'
+){
 
-  const r =
-    await fetch(url,opt);
+headers['Content-Type'] =
+'application/json';
 
-  if(!r.ok){
+opt.body =
+JSON.stringify(opt.body);
 
-    const j =
-      await r.json()
-        .catch(() => ({}));
+}
 
-    const err =
-      new Error(
-        j.error ||
-        j.message ||
-        'İşlem başarısız'
-      );
+const r =
+await fetch(
+url,
+{
+...opt,
+headers
+}
+);
 
-    err.status =
-      r.status;
 
-    throw err;
-  }
+if(!r.ok){
 
-  return r.json();
+let j = {};
+
+try{
+j = await r.json();
+}catch(e){}
+
+const error =
+new Error(
+j.error ||
+j.message ||
+'İşlem başarısız'
+);
+
+error.status =
+r.status;
+
+throw error;
 
 }
 
 
-/* =====================================================
-   HTML ESCAPE
-===================================================== */
+const text =
+await r.text();
+
+if(!text){
+return {};
+}
+
+try{
+
+return JSON.parse(text);
+
+}catch(e){
+
+return {
+data:text
+};
+
+}
+
+}
+
+
+/* =========================================================
+   HTML GÜVENLİ
+========================================================= */
 
 function escapeHtml(s){
 
-  return String(s ?? '')
-    .replace(
-      /[&<>"']/g,
-      c => ({
-        '&':'&amp;',
-        '<':'&lt;',
-        '>':'&gt;',
-        '"':'&quot;',
-        "'":'&#39;'
-      }[c])
-    );
+return String(s ?? '')
+.replace(
+/[&<>"']/g,
+c =>
+({
+'&':'&amp;',
+'<':'&lt;',
+'>':'&gt;',
+'"':'&quot;',
+"'":'&#39;'
+}[c])
+);
 
 }
 
 
-/* =====================================================
+/* =========================================================
    MODAL
-===================================================== */
+========================================================= */
 
 function openModal(id){
 
-  const m =
-    document.getElementById(id);
+const m =
+document.getElementById(id);
 
-  if(!m)return;
+if(!m){
+return;
+}
 
-  m.classList.add('open');
+m.classList.add('open');
 
-  m.setAttribute(
-    'aria-hidden',
-    'false'
-  );
+m.setAttribute(
+'aria-hidden',
+'false'
+);
 
 }
 
 
 function closeModal(id){
 
-  const m =
-    document.getElementById(id);
+const m =
+document.getElementById(id);
 
-  if(!m)return;
+if(!m){
+return;
+}
 
-  m.classList.remove('open');
+m.classList.remove('open');
 
-  m.setAttribute(
-    'aria-hidden',
-    'true'
-  );
+m.setAttribute(
+'aria-hidden',
+'true'
+);
 
 }
 
 
-/* =====================================================
-   HIGHLIGHTS VERİSİNİ NORMALLEŞTİR
-===================================================== */
-
-function normalizeHighlights(data){
-
-  if(Array.isArray(data)){
-    return data;
-  }
-
-  if(
-    data &&
-    Array.isArray(data.highlights)
-  ){
-    return data.highlights;
-  }
-
-  if(
-    data &&
-    Array.isArray(data.data)
-  ){
-    return data.data;
-  }
-
-  if(
-    data &&
-    data.data &&
-    Array.isArray(data.data.highlights)
-  ){
-    return data.data.highlights;
-  }
-
-  return [];
-
-}
-
-
-/* =====================================================
-   HIGHLIGHT RESİM ADRESİ
-===================================================== */
-
-function getHighlightMedia(item){
-
-  if(!item)return '';
-
-  return (
-    item.media_url ||
-    item.mediaUrl ||
-    item.image ||
-    item.media ||
-    item.url ||
-    ''
-  );
-
-}
-
-
-/* =====================================================
-   HIGHLIGHT BAŞLIĞI
-===================================================== */
-
-function getHighlightTitle(item){
-
-  if(!item)return 'Öne çıkan';
-
-  return (
-    item.title ||
-    item.name ||
-    'Öne çıkan'
-  );
-
-}
-
-
-/* =====================================================
-   HIGHLIGHTS RENDER
-===================================================== */
-
-function renderHighlights(){
-
-  const section =
-    document.getElementById(
-      'highlightsSection'
-    );
-
-  const box =
-    document.getElementById(
-      'highlights'
-    );
-
-  if(!section || !box){
-    return;
-  }
-
-  const items =
-    Array.isArray(highlightItems)
-      ? highlightItems
-      : [];
-
-  box.innerHTML = '';
-
-  /*
-     Kendi profilimizde Yeni butonu
-   */
-
-  const mine =
-    !!(
-      currentProfile &&
-      me &&
-      String(currentProfile.id) ===
-      String(me.id)
-    );
-
-  if(mine){
-
-    const add =
-      document.createElement(
-        'button'
-      );
-
-    add.className =
-      'highlight add-highlight';
-
-    add.type = 'button';
-
-    add.innerHTML =
-      '<span class="highlight-cover">＋</span>' +
-      '<span class="highlight-title">Yeni</span>';
-
-    add.addEventListener(
-      'click',
-      () => {
-
-        toast(
-          'Öne çıkan eklemek için uygulamadaki Highlights bölümünü kullan.'
-        );
-
-      }
-    );
-
-    box.appendChild(add);
-
-  }
-
-
-  /*
-     Server / Supabase Highlights
-   */
-
-  items.forEach(
-    (item,index) => {
-
-      const button =
-        document.createElement(
-          'button'
-        );
-
-      button.className =
-        'highlight';
-
-      button.type =
-        'button';
-
-      const media =
-        getHighlightMedia(item);
-
-      const title =
-        getHighlightTitle(item);
-
-      let cover =
-        '<span class="highlight-cover">★</span>';
-
-      if(media){
-
-        cover =
-          '<span class="highlight-cover">' +
-          '<img src="' +
-          escapeHtml(media) +
-          '" alt="' +
-          escapeHtml(title) +
-          '" loading="lazy">' +
-          '</span>';
-
-      }
-
-      button.innerHTML =
-        cover +
-        '<span class="highlight-title">' +
-        escapeHtml(title) +
-        '</span>';
-
-      button.addEventListener(
-        'click',
-        () => openHighlightView(index)
-      );
-
-      box.appendChild(button);
-
-    }
-  );
-
-
-  /*
-     Sadece veri varsa veya kendi profilimizse
-     bölüm görünür.
-   */
-
-  section.hidden =
-    !(mine || items.length > 0);
-
-}
-
-
-/* =====================================================
-   HIGHLIGHTS API'DEN YÜKLE
-===================================================== */
+/* =========================================================
+   HIGHLIGHTS API
+========================================================= */
 
 async function loadHighlights(username){
 
-  try{
+const section =
+document.getElementById(
+'highlightsSection'
+);
 
-    const raw =
-      await api(
-        '/api/users/' +
-        encodeURIComponent(username) +
-        '/highlights'
-      );
+const box =
+document.getElementById(
+'highlights'
+);
 
-    console.log(
-      'MINEGRAM HIGHLIGHTS:',
-      raw
-    );
+if(!section || !box){
+return;
+}
 
-    highlightItems =
-      normalizeHighlights(raw);
 
-    /*
-       Profil nesnesinde de tutuyoruz.
-       Böylece diğer fonksiyonlar da kullanabilir.
-    */
+/*
+   Önce temizle.
+*/
 
-    if(currentProfile){
+highlightItems = [];
 
-      currentProfile.highlights =
-        highlightItems;
+box.innerHTML = '';
 
-    }
+section.hidden = true;
 
-    renderHighlights();
 
-  }catch(error){
+if(!username){
+return;
+}
 
-    console.error(
-      'HIGHLIGHTS LOAD ERROR:',
-      error
-    );
 
-    highlightItems = [];
+try{
 
-    if(currentProfile){
+const raw =
+await api(
+'/api/users/' +
+encodeURIComponent(username) +
+'/highlights'
+);
 
-      currentProfile.highlights =
-        [];
 
-    }
+console.log(
+'[MINEGRAM HIGHLIGHTS]',
+raw
+);
 
-    renderHighlights();
 
-  }
+let items = [];
+
+
+if(Array.isArray(raw)){
+
+items = raw;
+
+}else if(
+raw &&
+Array.isArray(raw.highlights)
+){
+
+items =
+raw.highlights;
+
+}else if(
+raw &&
+Array.isArray(raw.data)
+){
+
+items =
+raw.data;
+
+}else if(
+raw &&
+raw.data &&
+Array.isArray(raw.data.highlights)
+){
+
+items =
+raw.data.highlights;
 
 }
 
 
-/* =====================================================
-   HIGHLIGHT GÖRÜNTÜLE
-===================================================== */
+highlightItems =
+items.filter(
+item =>
+item &&
+(
+item.media_url ||
+item.media ||
+item.image ||
+item.url
+)
+);
+
+
+renderHighlights();
+
+
+}catch(e){
+
+console.warn(
+'[HIGHLIGHTS LOAD]',
+e
+);
+
+highlightItems = [];
+
+renderHighlights();
+
+}
+
+}
+
+
+/* =========================================================
+   HIGHLIGHTS RENDER
+========================================================= */
+
+function getHighlightImage(item){
+
+return (
+item?.media_url ||
+item?.media ||
+item?.image ||
+item?.url ||
+''
+);
+
+}
+
+
+function getHighlightTitle(item){
+
+return (
+item?.title ||
+item?.name ||
+'Öne çıkan'
+);
+
+}
+
+
+function renderHighlights(){
+
+const section =
+document.getElementById(
+'highlightsSection'
+);
+
+const box =
+document.getElementById(
+'highlights'
+);
+
+if(!section || !box){
+return;
+}
+
+
+box.innerHTML = '';
+
+
+if(
+!Array.isArray(highlightItems) ||
+highlightItems.length === 0
+){
+
+section.hidden = true;
+
+return;
+
+}
+
+
+section.hidden = false;
+
+
+highlightItems.forEach(
+(item,index)=>{
+
+const button =
+document.createElement(
+'button'
+);
+
+button.type =
+'button';
+
+button.className =
+'highlight';
+
+
+const image =
+getHighlightImage(item);
+
+const title =
+getHighlightTitle(item);
+
+
+button.innerHTML =
+'<span class="highlight-cover">' +
+
+(
+image
+?
+'<img src="' +
+escapeHtml(image) +
+'" alt="' +
+escapeHtml(title) +
+'">'
+:
+'★'
+)
+
++
+
+'</span>' +
+
+'<span class="highlight-title">' +
+escapeHtml(title) +
+'</span>';
+
+
+button.addEventListener(
+'click',
+()=>openHighlightView(index)
+);
+
+
+box.appendChild(
+button
+);
+
+}
+
+);
+
+}
+
+
+/* =========================================================
+   HIGHLIGHT VIEW
+========================================================= */
 
 function openHighlightView(index){
 
-  if(
-    !Array.isArray(highlightItems) ||
-    !highlightItems.length
-  ){
-    return;
-  }
+if(
+!highlightItems.length
+){
+return;
+}
 
-  if(
-    index < 0 ||
-    index >= highlightItems.length
-  ){
-    return;
-  }
 
-  openedHighlightIndex =
-    index;
+if(index < 0){
+index = 0;
+}
 
-  renderHighlightViewer();
+if(
+index >= highlightItems.length
+){
+index =
+highlightItems.length - 1;
+}
+
+
+openedHighlightIndex =
+index;
+
+
+const item =
+highlightItems[index];
+
+const image =
+getHighlightImage(item);
+
+const title =
+getHighlightTitle(item);
+
+
+const viewer =
+document.getElementById(
+'highlightViewer'
+);
+
+const imageEl =
+document.getElementById(
+'highlightViewerImage'
+);
+
+const titleEl =
+document.getElementById(
+'highlightViewerTitle'
+);
+
+
+if(!viewer || !imageEl){
+return;
+}
+
+
+imageEl.src =
+image || '';
+
+
+imageEl.alt =
+title;
+
+
+if(titleEl){
+
+titleEl.textContent =
+title;
 
 }
 
 
-/* =====================================================
-   HIGHLIGHT VIEWER
-===================================================== */
+viewer.classList.add(
+'open'
+);
 
-function renderHighlightViewer(){
-
-  const viewer =
-    document.getElementById(
-      'highlightViewer'
-    );
-
-  const mediaBox =
-    document.getElementById(
-      'highlightViewerMedia'
-    );
-
-  const titleBox =
-    document.getElementById(
-      'highlightViewerTitle'
-    );
-
-  if(!viewer || !mediaBox){
-    return;
-  }
-
-  const item =
-    highlightItems[
-      openedHighlightIndex
-    ];
-
-  if(!item){
-    closeHighlightViewer();
-    return;
-  }
-
-  const media =
-    getHighlightMedia(item);
-
-  const title =
-    getHighlightTitle(item);
-
-  titleBox.textContent =
-    title;
-
-  mediaBox.innerHTML = '';
-
-  if(!media){
-
-    mediaBox.innerHTML =
-      '<div class="highlight-empty">' +
-      'Bu öne çıkan için medya bulunamadı.' +
-      '</div>';
-
-  }else{
-
-    const isVideo =
-      String(
-        item.media_type ||
-        item.mediaType ||
-        ''
-      ).toLowerCase() === 'video' ||
-      /\.(mp4|webm|mov|m4v)(\?|$)/i.test(media);
-
-    if(isVideo){
-
-      const video =
-        document.createElement(
-          'video'
-        );
-
-      video.src =
-        media;
-
-      video.controls =
-        true;
-
-      video.autoplay =
-        true;
-
-      video.playsInline =
-        true;
-
-      mediaBox.appendChild(
-        video
-      );
-
-    }else{
-
-      const img =
-        document.createElement(
-          'img'
-        );
-
-      img.src =
-        media;
-
-      img.alt =
-        title;
-
-      mediaBox.appendChild(
-        img
-      );
-
-    }
-
-  }
-
-  viewer.classList.add(
-    'open'
-  );
-
-  viewer.setAttribute(
-    'aria-hidden',
-    'false'
-  );
+viewer.setAttribute(
+'aria-hidden',
+'false'
+);
 
 }
 
 
-function closeHighlightViewer(){
+function closeHighlightView(){
 
-  const viewer =
-    document.getElementById(
-      'highlightViewer'
-    );
+const viewer =
+document.getElementById(
+'highlightViewer'
+);
 
-  const mediaBox =
-    document.getElementById(
-      'highlightViewerMedia'
-    );
+if(!viewer){
+return;
+}
 
-  if(!viewer)return;
+viewer.classList.remove(
+'open'
+);
 
-  viewer.classList.remove(
-    'open'
-  );
+viewer.setAttribute(
+'aria-hidden',
+'true'
+);
 
-  viewer.setAttribute(
-    'aria-hidden',
-    'true'
-  );
+const imageEl =
+document.getElementById(
+'highlightViewerImage'
+);
 
-  if(mediaBox){
+if(imageEl){
 
-    mediaBox.innerHTML =
-      '';
-
-  }
-
-  openedHighlightIndex =
-    -1;
+imageEl.src = '';
 
 }
 
+}
 
-/* =====================================================
-   HIGHLIGHT NAVİGASYON
-===================================================== */
 
 function previousHighlight(){
 
-  if(!highlightItems.length){
-    return;
-  }
+if(
+!highlightItems.length
+){
+return;
+}
 
-  if(openedHighlightIndex <= 0){
+openedHighlightIndex--;
 
-    openedHighlightIndex =
-      highlightItems.length - 1;
+if(
+openedHighlightIndex < 0
+){
 
-  }else{
+openedHighlightIndex =
+highlightItems.length - 1;
 
-    openedHighlightIndex--;
+}
 
-  }
-
-  renderHighlightViewer();
+openHighlightView(
+openedHighlightIndex
+);
 
 }
 
 
 function nextHighlight(){
 
-  if(!highlightItems.length){
-    return;
-  }
+if(
+!highlightItems.length
+){
+return;
+}
 
-  if(
-    openedHighlightIndex >=
-    highlightItems.length - 1
-  ){
+openedHighlightIndex++;
 
-    openedHighlightIndex =
-      0;
+if(
+openedHighlightIndex >=
+highlightItems.length
+){
 
-  }else{
+openedHighlightIndex = 0;
 
-    openedHighlightIndex++;
+}
 
-  }
-
-  renderHighlightViewer();
+openHighlightView(
+openedHighlightIndex
+);
 
 }
 
 
-/* =====================================================
-   PROFİL YÜKLE
-===================================================== */
-
-async function load(){
-
-  const token =
-    getToken();
-
-  if(!token){
-
-    const saved =
-      getSavedUser();
-
-    if(saved.username){
-
-      me =
-        saved;
-
-      const username =
-        cleanUsername(
-          target
-        ) ||
-        saved.username;
-
-      currentProfile = {
-        ...saved,
-        username
-      };
-
-      document.getElementById(
-        'username'
-      ).textContent =
-        '@' + username;
-
-      document.getElementById(
-        'display'
-      ).textContent =
-        saved.displayName || '';
-
-      document.getElementById(
-        'bio'
-      ).textContent =
-        saved.bio || '';
-
-      const av =
-        document.getElementById(
-          'avatar'
-        );
-
-      if(saved.avatar){
-
-        av.innerHTML =
-          '<img src="' +
-          escapeHtml(saved.avatar) +
-          '" alt="Profil fotoğrafı">';
-
-      }else{
-
-        av.textContent =
-          (
-            saved.displayName ||
-            username ||
-            'M'
-          )[0].toUpperCase();
-
-      }
-
-      highlightItems = [];
-
-      renderHighlights();
-
-      renderPosts([]);
-
-      return;
-
-    }
-
-    location.replace(
-      'giris.html'
-    );
-
-    return;
-
-  }
-
-
-  try{
-
-    /*
-       Oturum kullanıcısı
-    */
-
-    const meRaw =
-      await api(
-        '/api/me'
-      );
-
-    me =
-      normalizeUser(
-        meRaw
-      );
-
-    if(!me.username){
-
-      const saved =
-        getSavedUser();
-
-      if(saved.username){
-
-        me = {
-          ...saved,
-          ...me
-        };
-
-      }
-
-    }
-
-    if(!me.username){
-
-      throw new Error(
-        'Oturum kullanıcısı bulunamadı.'
-      );
-
-    }
-
-    saveCurrentSessionUser(
-      me
-    );
-
-
-    /*
-       Profil
-    */
-
-    const username =
-      cleanUsername(
-        target
-      ) ||
-      me.username;
-
-    const profileRaw =
-      await api(
-        '/api/users/' +
-        encodeURIComponent(username)
-      );
-
-    currentProfile =
-      normalizeUser(
-        profileRaw
-      );
-
-    currentProfile.username =
-      currentProfile.username ||
-      username;
-
-
-    /*
-       Profil bilgileri
-    */
-
-    document.getElementById(
-      'title'
-    ).textContent =
-      'Profil';
-
-    document.getElementById(
-      'username'
-    ).innerHTML =
-      '@' +
-      escapeHtml(
-        currentProfile.username
-      ) +
-      (
-        currentProfile.verified
-          ? ' <span class="verified">✓</span>'
-          : ''
-      );
-
-    document.getElementById(
-      'display'
-    ).textContent =
-      currentProfile.displayName ||
-      '';
-
-    document.getElementById(
-      'bio'
-    ).textContent =
-      currentProfile.bio ||
-      '';
-
-    document.getElementById(
-      'postCount'
-    ).textContent =
-      currentProfile.postCount ??
-      currentProfile.post_count ??
-      0;
-
-    document.getElementById(
-      'followers'
-    ).textContent =
-      currentProfile.followers ??
-      currentProfile.followerCount ??
-      0;
-
-    document.getElementById(
-      'following'
-    ).textContent =
-      currentProfile.following ??
-      currentProfile.followingCount ??
-      0;
-
-
-    /*
-       Benim profilim / başka profil
-    */
-
-    const mine =
-      String(
-        currentProfile.id || ''
-      ) ===
-      String(
-        me.id || ''
-      );
-
-    const edit =
-      document.getElementById(
-        'editBtn'
-      );
-
-    edit.textContent =
-      mine
-        ? '✎  Profil düzenle'
-        : (
-            currentProfile.followingByMe
-              ? 'Takibi Bırak'
-              : 'Takip Et'
-          );
-
-    edit.classList.toggle(
-      'primary',
-      mine ||
-      !currentProfile.followingByMe
-    );
-
-
-    /*
-       Avatar
-    */
-
-    const av =
-      document.getElementById(
-        'avatar'
-      );
-
-    const avatar =
-      currentProfile.avatar ||
-      currentProfile.avatar_url ||
-      '';
-
-    if(avatar){
-
-      av.innerHTML =
-        '<img src="' +
-        escapeHtml(avatar) +
-        '" alt="Profil fotoğrafı">';
-
-    }else{
-
-      av.textContent =
-        (
-          currentProfile.displayName ||
-          currentProfile.username ||
-          'M'
-        )[0].toUpperCase();
-
-    }
-
-
-    /*
-       ÖNEMLİ:
-       Önce Highlights API'den çekiliyor.
-    */
-
-    await loadHighlights(
-      username
-    );
-
-
-    /*
-       Gönderiler
-    */
-
-    try{
-
-      const postsRaw =
-        await api(
-          '/api/users/' +
-          encodeURIComponent(username) +
-          '/posts'
-        );
-
-      renderPosts(
-        Array.isArray(postsRaw)
-          ? postsRaw
-          : (
-              postsRaw.posts ||
-              postsRaw.data ||
-              []
-            )
-      );
-
-    }catch(e){
-
-      console.error(
-        'POSTS LOAD ERROR:',
-        e
-      );
-
-      renderPosts([]);
-
-    }
-
-
-  }catch(e){
-
-    console.error(e);
-
-    if(
-      e.status === 401 ||
-      /401|unauthorized|oturum/i.test(
-        String(
-          e.message || ''
-        )
-      )
-    ){
-
-      [
-        'minegram_token',
-        'minegram_access_token',
-        'minegram_supabase_token',
-        'access_token',
-        'token'
-      ].forEach(
-        k =>
-          localStorage.removeItem(k)
-      );
-
-      location.replace(
-        'giris.html'
-      );
-
-      return;
-
-    }
-
-    document.getElementById(
-      'grid'
-    ).innerHTML =
-      '<div class="empty">' +
-      'Profil yüklenemedi.' +
-      '</div>';
-
-    toast(
-      e.message ||
-      'Profil yüklenemedi.'
-    );
-
-  }
-
-}
-
-
-/* =====================================================
+/* =========================================================
    GÖNDERİLER
-===================================================== */
+========================================================= */
 
 function renderPosts(posts){
 
-  const grid =
-    document.getElementById(
-      'grid'
-    );
+const grid =
+document.getElementById(
+'grid'
+);
 
-  if(!Array.isArray(posts)){
-    posts = [];
-  }
+if(!grid){
+return;
+}
 
-  grid.innerHTML =
-    posts.length
 
-      ? posts.map(
-          x => {
+const list =
+Array.isArray(posts)
+?
+posts
+:
+[];
 
-            if(x.media){
 
-              return (
-                '<div class="tile">' +
-                '<img src="' +
-                escapeHtml(x.media) +
-                '" loading="lazy" alt="Gönderi">' +
-                '</div>'
-              );
+grid.innerHTML =
+list.length
 
-            }
+?
 
-            return (
-              '<div class="tile">' +
-              '<div class="txt">' +
-              escapeHtml(
-                x.caption || ''
-              ) +
-              '</div>' +
-              '</div>'
-            );
+list.map(
+x=>{
 
-          }
-        ).join('')
+const media =
+x?.media ||
+x?.media_url ||
+x?.image ||
+x?.image_url ||
+'';
 
-      : '<div class="empty">Henüz gönderi yok</div>';
+
+if(media){
+
+return (
+
+'<div class="tile">' +
+
+'<img src="' +
+escapeHtml(media) +
+'" loading="lazy" alt="Gönderi">' +
+
+'</div>'
+
+);
 
 }
 
 
-/* =====================================================
-   GERİ
-===================================================== */
-
-document
-  .getElementById('backBtn')
-  .addEventListener(
-    'click',
-    () =>
-      history.length > 1
-        ? history.back()
-        : location.href = 'index.html'
-  );
-
-
-/* =====================================================
-   PROFİL DÜZENLE / TAKİP
-===================================================== */
-
-document
-  .getElementById('editBtn')
-  .addEventListener(
-    'click',
-    async () => {
-
-      if(!currentProfile){
-        return;
-      }
-
-      if(
-        String(currentProfile.id) !==
-        String(me.id)
-      ){
-
-        try{
-
-          await api(
-            '/api/users/' +
-            encodeURIComponent(
-              currentProfile.username
-            ) +
-            '/follow',
-            {
-              method:'POST'
-            }
-          );
-
-          await load();
-
-        }catch(e){
-
-          toast(
-            e.message
-          );
-
-        }
+return (
 
-        return;
+'<div class="tile">' +
 
-      }
+'<div class="txt">' +
 
-      document.getElementById(
-        'nameInput'
-      ).value =
-        currentProfile.displayName ||
-        '';
-
-      document.getElementById(
-        'bioInput'
-      ).value =
-        currentProfile.bio ||
-        '';
-
-      openModal(
-        'editModal'
-      );
-
-    }
-  );
-
-
-document
-  .getElementById('editCancel')
-  .addEventListener(
-    'click',
-    () =>
-      closeModal(
-        'editModal'
-      )
-  );
-
-
-document
-  .getElementById('editSave')
-  .addEventListener(
-    'click',
-    async () => {
+escapeHtml(
+x?.caption ||
+x?.text ||
+''
+)
 
-      try{
++
 
-        await api(
-          '/api/me',
-          {
-            method:'PATCH',
+'</div>' +
 
-            body:{
-              displayName:
-                document.getElementById(
-                  'nameInput'
-                ).value.trim(),
+'</div>'
 
-              bio:
-                document.getElementById(
-                  'bioInput'
-                ).value.trim()
-            }
-          }
-        );
+);
 
-        closeModal(
-          'editModal'
-        );
+}
+).join('')
 
-        toast(
-          'Profil güncellendi'
-        );
+:
 
-        await load();
+'<div class="empty">Henüz gönderi yok</div>';
 
-      }catch(e){
+}
 
-        toast(
-          e.message
-        );
 
-      }
+/* =========================================================
+   PROFİL YÜKLE
+========================================================= */
 
-    }
-  );
+async function load(){
 
+const token =
+getToken();
 
-/* =====================================================
-   PROFİL PAYLAŞ
-===================================================== */
 
-document
-  .getElementById('shareBtn')
-  .addEventListener(
-    'click',
-    async () => {
+/*
+   TOKEN YOKSA LOCAL SESSION
+*/
 
-      const url =
-        location.href;
+if(!token){
 
-      try{
+const saved =
+getSavedUser();
 
-        if(navigator.share){
 
-          await navigator.share({
-            title:'Minegram profili',
-            text:
-              '@' +
-              (
-                currentProfile?.username ||
-                ''
-              ),
-            url
-          });
+if(saved.username){
 
-        }else{
+me = saved;
 
-          await navigator.clipboard.writeText(
-            url
-          );
 
-          toast(
-            'Profil bağlantısı kopyalandı'
-          );
+const username =
+cleanUsername(target) ||
+saved.username;
 
-        }
 
-      }catch(e){
+currentProfile = {
+...saved,
+username
+};
 
-        if(
-          e.name !==
-          'AbortError'
-        ){
 
-          toast(
-            'Paylaşım başarısız'
-          );
+const usernameEl =
+document.getElementById(
+'username'
+);
 
-        }
+const displayEl =
+document.getElementById(
+'display'
+);
 
-      }
+const bioEl =
+document.getElementById(
+'bio'
+);
 
-    }
-  );
+const avatarEl =
+document.getElementById(
+'avatar'
+);
 
 
-/* =====================================================
-   FOTOĞRAF PAYLAŞ
-===================================================== */
+if(usernameEl){
 
-document
-  .getElementById('photoShareBtn')
-  .addEventListener(
-    'click',
-    async () => {
+usernameEl.textContent =
+'@' + username;
 
-      const url =
-        location.href +
-        '#photos';
+}
 
-      try{
 
-        if(navigator.share){
+if(displayEl){
 
-          await navigator.share({
-            title:
-              'Minegram fotoğrafları',
-            url
-          });
+displayEl.textContent =
+saved.displayName || '';
 
-        }else{
+}
 
-          await navigator.clipboard.writeText(
-            url
-          );
 
-          toast(
-            'Fotoğraf bağlantısı kopyalandı'
-          );
+if(bioEl){
 
-        }
+bioEl.textContent =
+saved.bio || '';
 
-      }catch(e){
+}
 
-        if(
-          e.name !==
-          'AbortError'
-        ){
 
-          toast(
-            'Paylaşım başarısız'
-          );
+if(avatarEl){
 
-        }
+if(saved.avatar){
 
-      }
+avatarEl.innerHTML =
+'<img src="' +
+escapeHtml(saved.avatar) +
+'" alt="Profil fotoğrafı">';
 
-    }
-  );
+}else{
 
+avatarEl.textContent =
+(
+saved.displayName ||
+username ||
+'M'
+)[0].toUpperCase();
 
-/* =====================================================
-   TELEFON
-===================================================== */
+}
 
-document
-  .getElementById('phoneBtn')
-  .addEventListener(
-    'click',
-    async () => {
+}
 
-      const phone =
-        prompt(
-          'Telefon numaranı gir:'
-        );
 
-      if(phone === null){
-        return;
-      }
+renderPosts([]);
 
-      if(!phone.trim()){
+await loadHighlights(
+username
+);
 
-        toast(
-          'Telefon numarası boş bırakılamaz'
-        );
+return;
 
-        return;
+}
 
-      }
 
-      try{
+location.replace(
+'giris.html'
+);
 
-        await api(
-          '/api/me',
-          {
-            method:'PATCH',
-            body:{
-              phone:
-                phone.trim()
-            }
-          }
-        );
+return;
 
-        toast(
-          'Telefon numarası kaydedildi'
-        );
+}
 
-      }catch(e){
 
-        toast(
-          e.message
-        );
+/* =========================================================
+   GERÇEK API
+========================================================= */
 
-      }
+try{
 
-    }
-  );
+const meRaw =
+await api('/api/me');
 
 
-/* =====================================================
-   MENÜ
-===================================================== */
+me =
+normalizeUser(meRaw);
 
-document
-  .getElementById('menuBtn')
-  .addEventListener(
-    'click',
-    () =>
-      openModal(
-        'menuModal'
-      )
-  );
 
+if(!me.username){
 
-document
-  .getElementById('menuClose')
-  .addEventListener(
-    'click',
-    () =>
-      closeModal(
-        'menuModal'
-      )
-  );
+const saved =
+getSavedUser();
 
+if(saved.username){
 
-document
-  .getElementById('menuLogout')
-  .addEventListener(
-    'click',
-    () => {
+me = {
+...saved,
+...me
+};
 
-      [
-        'minegram_token',
-        'minegram_access_token',
-        'minegram_supabase_token',
-        'access_token',
-        'token'
-      ].forEach(
-        k =>
-          localStorage.removeItem(k)
-      );
+}
 
-      localStorage.removeItem(
-        'minegram_register_verified'
-      );
+}
 
-      location.href =
-        'giris.html';
 
-    }
-  );
+if(!me.username){
 
+throw new Error(
+'Oturum kullanıcısı bulunamadı.'
+);
 
-/* =====================================================
-   MODAL DIŞINA TIKLAMA
-===================================================== */
+}
+
+
+saveCurrentSessionUser(me);
+
+
+const username =
+cleanUsername(target) ||
+me.username;
+
+
+/*
+   PROFİL
+*/
+
+const profileRaw =
+await api(
+'/api/users/' +
+encodeURIComponent(username)
+);
+
+
+currentProfile =
+normalizeUser(profileRaw);
+
+
+currentProfile.username =
+currentProfile.username ||
+username;
+
+
+/*
+   PROFİL BİLGİLERİ
+*/
+
+const usernameEl =
+document.getElementById(
+'username'
+);
+
+const displayEl =
+document.getElementById(
+'display'
+);
+
+const bioEl =
+document.getElementById(
+'bio'
+);
+
+const postCountEl =
+document.getElementById(
+'postCount'
+);
+
+const followersEl =
+document.getElementById(
+'followers'
+);
+
+const followingEl =
+document.getElementById(
+'following'
+);
+
+
+if(usernameEl){
+
+usernameEl.innerHTML =
+'@' +
+escapeHtml(
+currentProfile.username
+) +
+
+(
+currentProfile.verified
+?
+' <span class="verified">✓</span>'
+:
+''
+);
+
+}
+
+
+if(displayEl){
+
+displayEl.textContent =
+currentProfile.displayName || '';
+
+}
+
+
+if(bioEl){
+
+bioEl.textContent =
+currentProfile.bio || '';
+
+}
+
+
+if(postCountEl){
+
+postCountEl.textContent =
+currentProfile.postCount ??
+currentProfile.post_count ??
+0;
+
+}
+
+
+if(followersEl){
+
+followersEl.textContent =
+currentProfile.followers ??
+currentProfile.followerCount ??
+0;
+
+}
+
+
+if(followingEl){
+
+followingEl.textContent =
+currentProfile.following ??
+currentProfile.followingCount ??
+0;
+
+}
+
+
+/*
+   BENİM PROFİLİM Mİ?
+*/
+
+const mine =
+String(currentProfile.id || '') ===
+String(me.id || '');
+
+
+const edit =
+document.getElementById(
+'editBtn'
+);
+
+
+if(edit){
+
+if(mine){
+
+edit.textContent =
+'✎  Profil düzenle';
+
+}else{
+
+edit.textContent =
+currentProfile.followingByMe
+?
+'Takibi Bırak'
+:
+'Takip Et';
+
+}
+
+edit.classList.toggle(
+'primary',
+mine ||
+!currentProfile.followingByMe
+);
+
+}
+
+
+/*
+   AVATAR
+*/
+
+const avatarEl =
+document.getElementById(
+'avatar'
+);
+
+const avatar =
+currentProfile.avatar ||
+currentProfile.avatar_url ||
+currentProfile.avatarUrl ||
+'';
+
+
+if(avatarEl){
+
+if(avatar){
+
+avatarEl.innerHTML =
+'<img src="' +
+escapeHtml(avatar) +
+'" alt="Profil fotoğrafı">';
+
+}else{
+
+avatarEl.textContent =
+(
+currentProfile.displayName ||
+currentProfile.username ||
+'M'
+)[0].toUpperCase();
+
+}
+
+}
+
+
+/*
+   HIGHLIGHTS
+   Profil verisinden bağımsız yükleniyor.
+   Bu nedenle Highlights API hata verse bile
+   gönderiler ve diğer butonlar çalışmaya devam eder.
+*/
+
+await loadHighlights(
+username
+);
+
+
+/*
+   GÖNDERİLER
+*/
+
+try{
+
+const postsRaw =
+await api(
+'/api/users/' +
+encodeURIComponent(username) +
+'/posts'
+);
+
+
+const posts =
+Array.isArray(postsRaw)
+?
+postsRaw
+:
+(
+postsRaw?.posts ||
+postsRaw?.data ||
+[]
+);
+
+
+renderPosts(posts);
+
+
+}catch(e){
+
+console.warn(
+'[POSTS]',
+e
+);
+
+renderPosts([]);
+
+}
+
+
+}catch(e){
+
+console.error(
+'[PROFILE]',
+e
+);
+
+
+if(
+e.status === 401 ||
+/401|unauthorized|oturum/i.test(
+String(e.message || '')
+)
+){
 
 [
-  'editModal',
-  'menuModal'
-].forEach(
-  id => {
+'minegram_token',
+'minegram_access_token',
+'minegram_supabase_token',
+'access_token',
+'token'
+]
+.forEach(
+k =>
+localStorage.removeItem(k)
+);
 
-    document
-      .getElementById(id)
-      .addEventListener(
-        'click',
-        e => {
+location.replace(
+'giris.html'
+);
 
-          if(
-            e.target.id === id
-          ){
+return;
 
-            closeModal(id);
+}
 
-          }
 
-        }
-      );
+const grid =
+document.getElementById(
+'grid'
+);
 
-  }
+if(grid){
+
+grid.innerHTML =
+'<div class="empty">Profil yüklenemedi.</div>';
+
+}
+
+
+toast(
+e.message ||
+'Profil yüklenemedi.'
+);
+
+}
+
+}
+
+
+/* =========================================================
+   GERİ
+========================================================= */
+
+const backBtn =
+document.getElementById(
+'backBtn'
+);
+
+if(backBtn){
+
+backBtn.addEventListener(
+'click',
+()=>{
+
+if(
+history.length > 1
+){
+
+history.back();
+
+}else{
+
+location.href =
+'index.html';
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   PROFİL DÜZENLE / TAKİP
+========================================================= */
+
+const editBtn =
+document.getElementById(
+'editBtn'
+);
+
+if(editBtn){
+
+editBtn.addEventListener(
+'click',
+async()=>{
+
+if(
+!currentProfile ||
+!me
+){
+return;
+}
+
+
+const mine =
+String(currentProfile.id || '') ===
+String(me.id || '');
+
+
+/*
+   BAŞKA KULLANICI
+*/
+
+if(!mine){
+
+try{
+
+await api(
+'/api/users/' +
+encodeURIComponent(
+currentProfile.username
+) +
+'/follow',
+{
+method:'POST'
+}
+);
+
+toast(
+currentProfile.followingByMe
+?
+'Takip bırakıldı'
+:
+'Takip edildi'
+);
+
+await load();
+
+}catch(e){
+
+toast(
+e.message ||
+'İşlem başarısız'
+);
+
+}
+
+return;
+
+}
+
+
+/*
+   KENDİ PROFİLİM
+*/
+
+const nameInput =
+document.getElementById(
+'nameInput'
+);
+
+const bioInput =
+document.getElementById(
+'bioInput'
 );
 
 
-/* =====================================================
+if(nameInput){
+
+nameInput.value =
+currentProfile.displayName || '';
+
+}
+
+
+if(bioInput){
+
+bioInput.value =
+currentProfile.bio || '';
+
+}
+
+
+openModal(
+'editModal'
+);
+
+}
+);
+
+}
+
+
+/* =========================================================
+   DÜZENLE İPTAL
+========================================================= */
+
+const editCancel =
+document.getElementById(
+'editCancel'
+);
+
+if(editCancel){
+
+editCancel.addEventListener(
+'click',
+()=>closeModal(
+'editModal'
+)
+);
+
+}
+
+
+/* =========================================================
+   DÜZENLE KAYDET
+========================================================= */
+
+const editSave =
+document.getElementById(
+'editSave'
+);
+
+if(editSave){
+
+editSave.addEventListener(
+'click',
+async()=>{
+
+try{
+
+const nameInput =
+document.getElementById(
+'nameInput'
+);
+
+const bioInput =
+document.getElementById(
+'bioInput'
+);
+
+
+await api(
+'/api/me',
+{
+method:'PATCH',
+
+body:{
+displayName:
+nameInput
+?
+nameInput.value.trim()
+:
+'',
+
+bio:
+bioInput
+?
+bioInput.value.trim()
+:
+''
+}
+
+}
+);
+
+
+closeModal(
+'editModal'
+);
+
+toast(
+'Profil güncellendi'
+);
+
+await load();
+
+
+}catch(e){
+
+toast(
+e.message ||
+'Profil güncellenemedi'
+);
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   PROFİL PAYLAŞ
+========================================================= */
+
+const shareBtn =
+document.getElementById(
+'shareBtn'
+);
+
+if(shareBtn){
+
+shareBtn.addEventListener(
+'click',
+async()=>{
+
+if(!currentProfile){
+
+toast(
+'Profil henüz yüklenmedi'
+);
+
+return;
+
+}
+
+
+const url =
+location.href;
+
+
+try{
+
+if(
+navigator.share
+){
+
+await navigator.share(
+{
+title:
+'Minegram profili',
+
+text:
+'@' +
+currentProfile.username,
+
+url
+}
+);
+
+}else{
+
+await navigator.clipboard.writeText(
+url
+);
+
+toast(
+'Profil bağlantısı kopyalandı'
+);
+
+}
+
+}catch(e){
+
+if(
+e.name !== 'AbortError'
+){
+
+toast(
+'Paylaşım başarısız'
+);
+
+}
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   FOTOĞRAFLARI PAYLAŞ
+========================================================= */
+
+const photoShareBtn =
+document.getElementById(
+'photoShareBtn'
+);
+
+if(photoShareBtn){
+
+photoShareBtn.addEventListener(
+'click',
+async()=>{
+
+const url =
+location.href +
+'#photos';
+
+
+try{
+
+if(
+navigator.share
+){
+
+await navigator.share(
+{
+title:
+'Minegram fotoğrafları',
+
+url
+}
+);
+
+}else{
+
+await navigator.clipboard.writeText(
+url
+);
+
+toast(
+'Fotoğraf bağlantısı kopyalandı'
+);
+
+}
+
+}catch(e){
+
+if(
+e.name !== 'AbortError'
+){
+
+toast(
+'Paylaşım başarısız'
+);
+
+}
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   TELEFON
+========================================================= */
+
+const phoneBtn =
+document.getElementById(
+'phoneBtn'
+);
+
+if(phoneBtn){
+
+phoneBtn.addEventListener(
+'click',
+async()=>{
+
+const phone =
+prompt(
+'Telefon numaranı gir:'
+);
+
+
+if(phone === null){
+return;
+}
+
+
+if(!phone.trim()){
+
+toast(
+'Telefon numarası boş bırakılamaz'
+);
+
+return;
+
+}
+
+
+try{
+
+await api(
+'/api/me',
+{
+method:'PATCH',
+
+body:{
+phone:
+phone.trim()
+}
+
+}
+);
+
+
+toast(
+'Telefon numarası kaydedildi'
+);
+
+
+}catch(e){
+
+toast(
+e.message ||
+'Telefon kaydedilemedi'
+);
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   MENÜ
+========================================================= */
+
+const menuBtn =
+document.getElementById(
+'menuBtn'
+);
+
+if(menuBtn){
+
+menuBtn.addEventListener(
+'click',
+()=>openModal(
+'menuModal'
+)
+);
+
+}
+
+
+const menuClose =
+document.getElementById(
+'menuClose'
+);
+
+if(menuClose){
+
+menuClose.addEventListener(
+'click',
+()=>closeModal(
+'menuModal'
+)
+);
+
+}
+
+
+/* =========================================================
+   ÇIKIŞ
+========================================================= */
+
+const menuLogout =
+document.getElementById(
+'menuLogout'
+);
+
+if(menuLogout){
+
+menuLogout.addEventListener(
+'click',
+()=>{
+
+[
+'minegram_token',
+'minegram_access_token',
+'minegram_supabase_token',
+'access_token',
+'token'
+]
+.forEach(
+k =>
+localStorage.removeItem(k)
+);
+
+
+localStorage.removeItem(
+'minegram_register_verified'
+);
+
+
+location.href =
+'giris.html';
+
+}
+);
+
+}
+
+
+/* =========================================================
+   MODAL DIŞINA TIKLAMA
+========================================================= */
+
+[
+'editModal',
+'menuModal'
+]
+.forEach(
+id=>{
+
+const el =
+document.getElementById(id);
+
+if(!el){
+return;
+}
+
+el.addEventListener(
+'click',
+e=>{
+
+if(
+e.target.id === id
+){
+
+closeModal(id);
+
+}
+
+}
+);
+
+}
+);
+
+
+/* =========================================================
    ESC
-===================================================== */
+========================================================= */
 
 document.addEventListener(
-  'keydown',
-  e => {
+'keydown',
+e=>{
 
-    if(
-      e.key === 'Escape'
-    ){
+if(
+e.key === 'Escape'
+){
 
-      closeModal(
-        'editModal'
-      );
+closeModal(
+'editModal'
+);
 
-      closeModal(
-        'menuModal'
-      );
+closeModal(
+'menuModal'
+);
 
-      closeHighlightViewer();
+closeHighlightView();
 
-    }
+}
 
-  }
+}
 );
 
 
-/* =====================================================
-   NAV
-===================================================== */
+/* =========================================================
+   ALT MENÜ
+========================================================= */
 
-document
-  .getElementById('homeNav')
-  .onclick =
-    () =>
-      location.href =
-        'index.html';
+const homeNav =
+document.getElementById(
+'homeNav'
+);
 
+if(homeNav){
 
-document
-  .getElementById('searchNav')
-  .onclick =
-    () =>
-      location.href =
-        'index.html#search';
+homeNav.onclick =
+()=>{
+location.href =
+'index.html';
+};
 
-
-document
-  .getElementById('createNav')
-  .onclick =
-    () =>
-      location.href =
-        'index.html#create';
+}
 
 
-document
-  .getElementById('reelsNav')
-  .onclick =
-    () =>
-      location.href =
-        'index.html#reels';
+const searchNav =
+document.getElementById(
+'searchNav'
+);
+
+if(searchNav){
+
+searchNav.onclick =
+()=>{
+location.href =
+'index.html#search';
+};
+
+}
 
 
-document
-  .getElementById('profileNav')
-  .onclick =
-    () =>
-      location.href =
-        'profile.html';
+const createNav =
+document.getElementById(
+'createNav'
+);
+
+if(createNav){
+
+createNav.onclick =
+()=>{
+location.href =
+'index.html#create';
+};
+
+}
 
 
-/* =====================================================
-   SEKME
-===================================================== */
+const reelsNav =
+document.getElementById(
+'reelsNav'
+);
 
-document
-  .getElementById('postsTab')
-  .onclick =
-    async () => {
+if(reelsNav){
 
-      document
-        .getElementById(
-          'postsTab'
-        )
-        .classList.add(
-          'active'
-        );
+reelsNav.onclick =
+()=>{
+location.href =
+'index.html#reels';
+};
 
-      document
-        .getElementById(
-          'likesTab'
-        )
-        .classList.remove(
-          'active'
-        );
-
-      await load();
-
-    };
+}
 
 
-document
-  .getElementById('likesTab')
-  .onclick =
-    () => {
+const profileNav =
+document.getElementById(
+'profileNav'
+);
 
-      document
-        .getElementById(
-          'likesTab'
-        )
-        .classList.add(
-          'active'
-        );
+if(profileNav){
 
-      document
-        .getElementById(
-          'postsTab'
-        )
-        .classList.remove(
-          'active'
-        );
+profileNav.onclick =
+()=>{
+location.href =
+'profile.html';
+};
 
-      toast(
-        'Beğenilen gönderiler bölümü hazır'
-      );
-
-    };
+}
 
 
-/* =====================================================
-   HIGHLIGHT BUTONLARI
-===================================================== */
+/* =========================================================
+   GÖNDERİLER SEKME
+========================================================= */
 
-document
-  .getElementById(
-    'highlightViewerClose'
-  )
-  .addEventListener(
-    'click',
-    closeHighlightViewer
-  );
+const postsTab =
+document.getElementById(
+'postsTab'
+);
 
+if(postsTab){
 
-document
-  .getElementById(
-    'highlightPrev'
-  )
-  .addEventListener(
-    'click',
-    previousHighlight
-  );
+postsTab.onclick =
+async()=>{
 
+postsTab.classList.add(
+'active'
+);
 
-document
-  .getElementById(
-    'highlightNext'
-  )
-  .addEventListener(
-    'click',
-    nextHighlight
-  );
+const likesTab =
+document.getElementById(
+'likesTab'
+);
 
+if(likesTab){
 
-/* =====================================================
-   VIEWER TIKLAMA
-===================================================== */
+likesTab.classList.remove(
+'active'
+);
 
-document
-  .getElementById(
-    'highlightViewer'
-  )
-  .addEventListener(
-    'click',
-    e => {
+}
 
-      if(
-        e.target.id ===
-        'highlightViewer'
-      ){
+await load();
 
-        closeHighlightViewer();
+};
 
-      }
-
-    }
-  );
+}
 
 
-/* =====================================================
+/* =========================================================
+   BEĞENİLENLER
+========================================================= */
+
+const likesTab =
+document.getElementById(
+'likesTab'
+);
+
+if(likesTab){
+
+likesTab.onclick =
+()=>{
+
+likesTab.classList.add(
+'active'
+);
+
+const postsTab =
+document.getElementById(
+'postsTab'
+);
+
+if(postsTab){
+
+postsTab.classList.remove(
+'active'
+);
+
+}
+
+toast(
+'Beğenilen gönderiler bölümü hazır'
+);
+
+};
+
+}
+
+
+/* =========================================================
+   HIGHLIGHT VIEWER BUTONLARI
+========================================================= */
+
+const highlightViewerClose =
+document.getElementById(
+'highlightViewerClose'
+);
+
+if(highlightViewerClose){
+
+highlightViewerClose.onclick =
+closeHighlightView;
+
+}
+
+
+const highlightViewerPrev =
+document.getElementById(
+'highlightViewerPrev'
+);
+
+if(highlightViewerPrev){
+
+highlightViewerPrev.onclick =
+previousHighlight;
+
+}
+
+
+const highlightViewerNext =
+document.getElementById(
+'highlightViewerNext'
+);
+
+if(highlightViewerNext){
+
+highlightViewerNext.onclick =
+nextHighlight;
+
+}
+
+
+const highlightViewer =
+document.getElementById(
+'highlightViewer'
+);
+
+if(highlightViewer){
+
+highlightViewer.addEventListener(
+'click',
+e=>{
+
+if(
+e.target === highlightViewer
+){
+
+closeHighlightView();
+
+}
+
+}
+);
+
+}
+
+
+/* =========================================================
+   HIGHLIGHT KLAVYE
+========================================================= */
+
+document.addEventListener(
+'keydown',
+e=>{
+
+const viewer =
+document.getElementById(
+'highlightViewer'
+);
+
+if(
+!viewer ||
+!viewer.classList.contains('open')
+){
+return;
+}
+
+
+if(
+e.key === 'ArrowLeft'
+){
+
+previousHighlight();
+
+}
+
+
+if(
+e.key === 'ArrowRight'
+){
+
+nextHighlight();
+
+}
+
+}
+);
+
+
+/* =========================================================
    BAŞLAT
-===================================================== */
+========================================================= */
 
 load();
 
