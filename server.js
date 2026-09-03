@@ -613,6 +613,61 @@ function registrationKey(email) {
   return normalizeEmail(email);
 }
 
+// Kayıt oturumunu Supabase Auth metadata içinde de tut.
+// Render/Node yeniden başlasa bile doğrulama kodu kaybolmasın.
+async function persistRegistrationCode(admin, entry) {
+  try {
+    await admin.auth.admin.updateUserById(entry.userId, {
+      user_metadata: {
+        username: entry.username,
+        display_name: entry.displayName,
+        minegram_registration_pending: true,
+        minegram_registration_code: entry.code,
+        minegram_registration_expires: entry.expires
+      }
+    });
+  } catch (e) {
+    console.error('REGISTRATION CODE PERSIST ERROR:', e);
+  }
+}
+
+function registrationEntryFromAuthUser(user) {
+  const meta = user?.user_metadata || {};
+  const code = String(meta.minegram_registration_code || '').trim();
+  const expires = Number(meta.minegram_registration_expires || 0);
+  if (!meta.minegram_registration_pending || !/^\d{6}$/.test(code) || !expires) return null;
+  return {
+    code,
+    userId: user.id,
+    email: normalizeEmail(user.email),
+    expires,
+    attempts: 0,
+    username: normalizeUsername(meta.username),
+    displayName: String(meta.display_name || meta.username || '').trim(),
+    password: ''
+  };
+}
+
+async function findPendingRegistration(admin, email) {
+  const wanted = normalizeEmail(email);
+  for (let page = 1; page <= 20; page++) {
+    const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (result?.error) throw result.error;
+    const users = result?.data?.users || [];
+    const user = users.find(u => normalizeEmail(u?.email) === wanted);
+    if (user) {
+      const entry = registrationEntryFromAuthUser(user);
+      if (entry) {
+        registrationCodes.set(registrationKey(wanted), entry);
+        return entry;
+      }
+      return null;
+    }
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
 function registrationAllowed(email) {
   const key = registrationKey(email);
   const now = Date.now();
@@ -951,6 +1006,11 @@ app.post(
         }
       );
 
+      await persistRegistrationCode(
+        admin,
+        registrationCodes.get(registrationKey(email))
+      );
+
       registrationRate.set(
         registrationKey(email),
         Date.now()
@@ -1073,14 +1133,20 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
+      let entry =
         registrationCodes.get(key);
+
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
+          code: "REGISTRATION_SESSION_NOT_FOUND",
           error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
+            "Kayıt oturumu bulunamadı. Lütfen kayıt işlemine yeniden başla."
         });
       }
 
@@ -1148,6 +1214,21 @@ app.post(
       }
 
       registrationCodes.delete(key);
+
+      try {
+        await admin.auth.admin.updateUserById(entry.userId, {
+          user_metadata: {
+            minegram_registration_pending: false,
+            minegram_registration_code: null,
+            minegram_registration_expires: null
+          }
+        });
+      } catch (metadataError) {
+        console.error(
+          "REGISTRATION METADATA CLEANUP ERROR:",
+          metadataError
+        );
+      }
 
       /*
        * Doğrulama tamamlandıktan sonra otomatik giriş.
@@ -1241,14 +1322,20 @@ app.post(
       const key =
         registrationKey(email);
 
-      const entry =
+      let entry =
         registrationCodes.get(key);
+
+      if (!entry) {
+        const admin = adminClient();
+        entry = await findPendingRegistration(admin, email);
+      }
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
+          code: "REGISTRATION_SESSION_NOT_FOUND",
           error:
-            "Bekleyen bir kayıt bulunamadı."
+            "Kayıt oturumu bulunamadı. Lütfen kayıt işlemine yeniden başla."
         });
       }
 
@@ -1303,6 +1390,8 @@ app.post(
       entry.expires =
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
+
+      await persistRegistrationCode(admin, entry);
 
       registrationRate.set(
         key,
