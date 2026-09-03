@@ -263,7 +263,7 @@ body{
 
 
     <p class="sub">
-      Hesabını tamamlamak için e-posta
+      Hesabını bulmak için e-posta
       adresine gönderdiğimiz 6 haneli
       doğrulama kodunu gir.
     </p>
@@ -302,7 +302,7 @@ body{
       id="verifyBtn"
       type="button"
     >
-      Doğrula ve profile git
+      Doğrula
     </button>
 
 
@@ -343,86 +343,25 @@ body{
   ===================================================== */
 
   const codeInput =
-    document.getElementById(
-      "codeInput"
-    );
+    document.getElementById("codeInput");
 
   const verifyBtn =
-    document.getElementById(
-      "verifyBtn"
-    );
+    document.getElementById("verifyBtn");
 
   const resendBtn =
-    document.getElementById(
-      "resendBtn"
-    );
+    document.getElementById("resendBtn");
 
   const message =
-    document.getElementById(
-      "message"
-    );
+    document.getElementById("message");
 
   const emailValue =
-    document.getElementById(
-      "emailValue"
-    );
+    document.getElementById("emailValue");
 
   const timer =
-    document.getElementById(
-      "timer"
-    );
+    document.getElementById("timer");
 
   const backBtn =
-    document.getElementById(
-      "backBtn"
-    );
-
-
-  /* =====================================================
-     LOCAL STORAGE
-  ===================================================== */
-
-  function get(key){
-
-    try{
-
-      return (
-        localStorage.getItem(key) ||
-        ""
-      );
-
-    }catch{
-
-      return "";
-
-    }
-
-  }
-
-
-  function set(key,value){
-
-    try{
-
-      localStorage.setItem(
-        key,
-        String(value ?? "")
-      );
-
-    }catch{}
-
-  }
-
-
-  function removeLocal(key){
-
-    try{
-
-      localStorage.removeItem(key);
-
-    }catch{}
-
-  }
+    document.getElementById("backBtn");
 
 
   /* =====================================================
@@ -473,7 +412,36 @@ body{
 
 
   /* =====================================================
-     DEĞER SEÇ
+     LOCAL STORAGE
+  ===================================================== */
+
+  function setLocal(key,value){
+
+    try{
+
+      localStorage.setItem(
+        key,
+        String(value ?? "")
+      );
+
+    }catch{}
+
+  }
+
+
+  function removeLocal(key){
+
+    try{
+
+      localStorage.removeItem(key);
+
+    }catch{}
+
+  }
+
+
+  /* =====================================================
+     FIRST
   ===================================================== */
 
   function first(...values){
@@ -489,7 +457,7 @@ body{
 
 
   /* =====================================================
-     URL PARAMETRELERİ
+     URL
   ===================================================== */
 
   const params =
@@ -499,8 +467,37 @@ body{
 
 
   /* =====================================================
-     EMAIL
+     RECOVERY BİLGİLERİ
   ===================================================== */
+
+  const identifier =
+    first(
+
+      params.get("identifier"),
+
+      getSession(
+        "minegram_recovery_identifier"
+      )
+
+    )
+    .trim()
+    .replace(/^@/,"");
+
+
+  const mode =
+    first(
+
+      params.get("mode"),
+
+      getSession(
+        "minegram_recovery_mode"
+      ),
+
+      "email"
+
+    )
+    .trim();
+
 
   const email =
     first(
@@ -508,123 +505,38 @@ body{
       params.get("email"),
 
       getSession(
-        "minegram_register_email"
-      ),
-
-      getSession(
-        "minegram_otp_email"
-      ),
-
-      get(
-        "minegram_register_email"
-      ),
-
-      get(
-        "minegram_email"
-      ),
-
-      get(
-        "register_email"
-      ),
-
-      get(
-        "pending_email"
+        "minegram_recovery_email"
       )
 
     )
     .trim()
     .toLowerCase();
-
-
-  /* =====================================================
-     USERNAME
-  ===================================================== */
-
-  const username =
-    first(
-
-      params.get("username"),
-
-      getSession(
-        "minegram_register_username"
-      ),
-
-      get(
-        "minegram_register_username"
-      ),
-
-      get(
-        "minegram_username"
-      ),
-
-      get(
-        "register_username"
-      )
-
-    )
-    .trim()
-    .replace(/^@/,"")
-    .toLowerCase();
-
-
-  /* =====================================================
-     ŞİFRE
-     
-     BURADA ŞİFREYİ YAZMIYORUZ.
-     SADECE KAYIT SAYFASINDAN OKUYORUZ.
-  ===================================================== */
-
-  const password =
-    first(
-
-      getSession(
-        "minegram_register_password"
-      ),
-
-      getSession(
-        "minegram_password"
-      )
-
-    );
 
 
   /* =====================================================
      EMAIL GÖSTER
   ===================================================== */
 
-  if(email){
-
-    emailValue.textContent =
-      email;
-
-  }else{
-
-    emailValue.textContent =
-      "E-posta adresi bulunamadı.";
-
-  }
+  emailValue.textContent =
+    email ||
+    "E-posta adresi";
 
 
   /* =====================================================
      MESAJ
   ===================================================== */
 
-  function show(
-    text,
-    type = ""
-  ){
+  function show(text,type=""){
 
     message.textContent =
-      text || "";
+      String(text || "");
 
     message.className =
       "msg";
 
     if(type){
 
-      message.classList.add(
-        type
-      );
+      message.classList.add(type);
 
     }
 
@@ -637,7 +549,7 @@ body{
 
   async function api(
     path,
-    options = {}
+    options={}
   ){
 
     const response =
@@ -669,7 +581,7 @@ body{
       );
 
 
-    const text =
+    const raw =
       await response.text();
 
 
@@ -679,19 +591,25 @@ body{
     try{
 
       data =
-        text
-          ? JSON.parse(text)
+        raw
+          ? JSON.parse(raw)
           : {};
 
     }catch{
 
-      data = {};
+      data = {
+
+        error:
+          raw ||
+          "Sunucudan geçersiz cevap geldi."
+
+      };
 
     }
 
 
     console.log(
-      "[MINEGRAM API]",
+      "[MINEGRAM RECOVERY API]",
       path,
       response.status,
       data
@@ -717,23 +635,21 @@ body{
 
 
   /* =====================================================
-     TOKEN KAYDET
+     RESET TOKEN KAYDET
   ===================================================== */
 
-  function saveToken(data){
+  function saveResetToken(data){
 
     const token =
       first(
 
-        data?.access_token,
+        data?.resetToken,
+
+        data?.reset_token,
 
         data?.token,
 
-        data?.supabaseAccessToken,
-
-        data?.session?.access_token,
-
-        data?.session?.accessToken
+        data?.recoveryToken
 
       ).trim();
 
@@ -741,278 +657,69 @@ body{
     if(!token){
 
       console.error(
-        "[MINEGRAM] TOKEN BULUNAMADI",
+        "[MINEGRAM] RESET TOKEN BULUNAMADI",
         data
       );
 
-      return false;
+      return "";
 
     }
 
 
-    /*
-     * Eski bozuk tokenları temizle.
-     */
-
-    removeLocal(
-      "minegram_needs_login"
-    );
-
-
-    set(
-      "minegram_token",
-      token
-    );
-
-    set(
-      "token",
-      token
-    );
-
-    set(
-      "access_token",
-      token
-    );
-
-    set(
-      "supabaseAccessToken",
-      token
-    );
-
-
-    /*
-     * Bazı Minegram sayfaları sessionStorage
-     * üzerinden de token okuyabiliyor.
-     */
-
     setSession(
-      "minegram_token",
+      "minegram_password_reset_token",
       token
     );
 
     setSession(
-      "token",
+      "minegram_reset_token",
       token
     );
 
     setSession(
-      "access_token",
+      "resetToken",
       token
     );
 
 
-    console.log(
-      "[MINEGRAM] TOKEN KAYDEDİLDİ"
+    setLocal(
+      "minegram_password_reset_token",
+      token
+    );
+
+    setLocal(
+      "minegram_reset_token",
+      token
     );
 
 
-    return true;
+    return token;
 
   }
 
 
   /* =====================================================
-     KULLANICI KAYDET
+     YENİ ŞİFRE SAYFASINA GİT
   ===================================================== */
 
-  function saveUser(data){
+  function goNewPassword(token){
 
-    const user =
-      data?.user ||
-      data?.profile ||
-      {};
+    if(!token){
 
-
-    const finalUsername =
-      first(
-
-        user?.username,
-
-        data?.username,
-
-        username
-
-      )
-      .replace(/^@/,"")
-      .toLowerCase();
-
-
-    const finalDisplayName =
-      first(
-
-        user?.displayName,
-
-        user?.display_name,
-
-        data?.displayName,
-
-        finalUsername
-
+      show(
+        "Şifre sıfırlama oturumu oluşturulamadı.",
+        "error"
       );
-
-
-    const finalEmail =
-      first(
-
-        user?.email,
-
-        email
-
-      )
-      .trim()
-      .toLowerCase();
-
-
-    const sessionUser = {
-
-      id:
-        first(
-          user?.id,
-          data?.id
-        ),
-
-      username:
-        finalUsername,
-
-      displayName:
-        finalDisplayName,
-
-      email:
-        finalEmail,
-
-      avatar:
-        first(
-          user?.avatar,
-          user?.avatar_url,
-          ""
-        ),
-
-      bio:
-        first(
-          user?.bio,
-          ""
-        )
-
-    };
-
-
-    /*
-     * LocalStorage
-     */
-
-    try{
-
-      localStorage.setItem(
-        "minegram_user",
-        JSON.stringify(
-          sessionUser
-        )
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(
-          sessionUser
-        )
-      );
-
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify(
-          sessionUser
-        )
-      );
-
-    }catch{}
-
-
-    /*
-     * Kullanıcı bilgileri
-     */
-
-    if(finalUsername){
-
-      set(
-        "minegram_username",
-        finalUsername
-      );
-
-      set(
-        "username",
-        finalUsername
-      );
-
-      set(
-        "minegram_register_username",
-        finalUsername
-      );
-
-    }
-
-
-    if(finalEmail){
-
-      set(
-        "minegram_email",
-        finalEmail
-      );
-
-      set(
-        "minegram_register_email",
-        finalEmail
-      );
-
-    }
-
-
-    set(
-      "minegram_logged_in",
-      "1"
-    );
-
-
-    set(
-      "minegram_register_verified",
-      "1"
-    );
-
-
-    setSession(
-      "minegram_email_verified",
-      "true"
-    );
-
-
-    setSession(
-      "minegram_register_verified_email",
-      finalEmail
-    );
-
-
-    return sessionUser;
-
-  }
-
-
-  /* =====================================================
-     BAŞARILI YÖNLENDİRME
-  ===================================================== */
-
-  let redirecting =
-    false;
-
-
-  function goProfile(){
-
-    if(redirecting){
 
       return;
 
     }
 
 
-    redirecting =
-      true;
+    show(
+      "Kod doğrulandı. Yeni şifre ekranına gidiyorsun...",
+      "success"
+    );
 
 
     verifyBtn.disabled =
@@ -1022,43 +729,48 @@ body{
       true;
 
 
-    show(
-      "Hesabın doğrulandı. Minegram'a giriyorsun...",
-      "success"
+    const url =
+      new URL(
+        "./yeni-sifre.html",
+        window.location.href
+      );
+
+
+    url.searchParams.set(
+      "token",
+      token
     );
 
 
-    verifyBtn.textContent =
-      "Doğrulandı";
+    if(identifier){
+
+      url.searchParams.set(
+        "identifier",
+        identifier
+      );
+
+    }
 
 
-    /*
-     * Şifre artık gerekli değil.
-     */
+    if(email){
 
-    removeSession(
-      "minegram_register_password"
-    );
+      url.searchParams.set(
+        "email",
+        email
+      );
 
-    removeSession(
-      "minegram_password"
-    );
-
-
-    removeSession(
-      "minegram_otp_pending"
-    );
+    }
 
 
     setTimeout(
-      () => {
+      function(){
 
         window.location.replace(
-          "./profile.html"
+          url.href
         );
 
       },
-      600
+      500
     );
 
   }
@@ -1082,14 +794,10 @@ body{
       code;
 
 
-    /* ---------------------------------------------
-       EMAIL
-    --------------------------------------------- */
-
-    if(!email){
+    if(!identifier && !email){
 
       show(
-        "E-posta bilgisi bulunamadı. Kayıt işlemine geri dön.",
+        "Şifre sıfırlama bilgileri bulunamadı. Lütfen işlemi yeniden başlat.",
         "error"
       );
 
@@ -1097,26 +805,6 @@ body{
 
     }
 
-
-    /* ---------------------------------------------
-       USERNAME
-    --------------------------------------------- */
-
-    if(!username){
-
-      show(
-        "Kullanıcı adı bulunamadı. Kayıt işlemine geri dön.",
-        "error"
-      );
-
-      return;
-
-    }
-
-
-    /* ---------------------------------------------
-       KOD
-    --------------------------------------------- */
 
     if(!/^\d{6}$/.test(code)){
 
@@ -1126,22 +814,6 @@ body{
       );
 
       codeInput.focus();
-
-      return;
-
-    }
-
-
-    /* ---------------------------------------------
-       ŞİFRE
-    --------------------------------------------- */
-
-    if(!password){
-
-      show(
-        "Kayıt şifresi bulunamadı. Lütfen kayıt işlemine yeniden başla.",
-        "error"
-      );
 
       return;
 
@@ -1160,20 +832,24 @@ body{
 
 
     show(
-      "Doğrulama kodu kontrol ediliyor...",
-      ""
+      "Doğrulama kodu kontrol ediliyor..."
     );
 
 
     try{
 
-      /* =========================================
-         SERVER
-      ========================================= */
+      /*
+       * ÇOK ÖNEMLİ:
+       *
+       * ARTIK register/verify YOK.
+       *
+       * Şifre kurtarma:
+       * /api/forgot/verify
+       */
 
       const data =
         await api(
-          "/api/register/verify",
+          "/api/forgot/verify",
           {
 
             method:
@@ -1182,17 +858,17 @@ body{
             body:
               JSON.stringify({
 
-                username:
-                  username,
+                identifier:
+                  identifier,
 
                 email:
                   email,
 
-                code:
-                  code,
+                mode:
+                  mode,
 
-                password:
-                  password
+                code:
+                  code
 
               })
 
@@ -1201,19 +877,14 @@ body{
 
 
       console.log(
-        "[MINEGRAM REGISTER VERIFY RESULT]",
+        "[MINEGRAM FORGOT VERIFY RESULT]",
         data
       );
 
 
-      /* =========================================
-         SUNUCU CEVABI
-      ========================================= */
-
       if(
         !data ||
-        data.ok !== true ||
-        data.verified !== true
+        data.ok !== true
       ){
 
         throw new Error(
@@ -1227,70 +898,34 @@ body{
       }
 
 
-      /* =========================================
-         TOKEN
-      ========================================= */
-
-      const tokenOK =
-        saveToken(
+      const resetToken =
+        saveResetToken(
           data
         );
 
 
-      if(!tokenOK){
+      if(!resetToken){
 
         throw new Error(
-          "Hesabın doğrulandı ancak oturum başlatılamadı. Lütfen tekrar dene."
+          "Kod doğrulandı ancak şifre sıfırlama anahtarı alınamadı."
         );
 
       }
 
 
-      /* =========================================
-         USER
-      ========================================= */
+      /*
+       * Yeni şifre sayfasına git.
+       */
 
-      saveUser(
-        data
+      goNewPassword(
+        resetToken
       );
-
-
-      /* =========================================
-         DOĞRULAMA FLAGLERİ
-      ========================================= */
-
-      set(
-        "minegram_register_verified",
-        "true"
-      );
-
-      set(
-        "minegram_email_verified",
-        "true"
-      );
-
-      setSession(
-        "minegram_register_verified",
-        "true"
-      );
-
-      setSession(
-        "minegram_email_verified",
-        "true"
-      );
-
-
-      /* =========================================
-         BAŞARILI
-      ========================================= */
-
-      goProfile();
 
     }
     catch(error){
 
       console.error(
-        "[MINEGRAM VERIFY ERROR]",
+        "[MINEGRAM FORGOT VERIFY ERROR]",
         error
       );
 
@@ -1298,7 +933,7 @@ body{
       show(
 
         error?.message ||
-        "Doğrulama başarısız. Lütfen tekrar dene.",
+        "Kod doğrulanamadı. Lütfen tekrar dene.",
 
         "error"
 
@@ -1311,9 +946,8 @@ body{
       resendBtn.disabled =
         false;
 
-
       verifyBtn.textContent =
-        "Doğrula ve profile git";
+        "Doğrula";
 
     }
 
@@ -1324,19 +958,17 @@ body{
      YENİDEN GÖNDER SAYACI
   ===================================================== */
 
-  let resendLocked =
-    false;
-
   let remaining =
-    0;
+    60;
 
   let timerId =
     null;
 
+  let resendLocked =
+    true;
 
-  function startTimer(
-    seconds = 60
-  ){
+
+  function startTimer(seconds=60){
 
     remaining =
       Number(seconds);
@@ -1363,26 +995,20 @@ body{
           timerId
         );
 
-
         timerId =
           null;
-
 
         resendLocked =
           false;
 
-
         resendBtn.disabled =
           false;
-
 
         resendBtn.textContent =
           "Kodu yeniden gönder";
 
-
         timer.textContent =
           "";
-
 
         return;
 
@@ -1426,7 +1052,7 @@ body{
 
     if(
       resendLocked ||
-      !email
+      (!identifier && !email)
     ){
 
       return;
@@ -1437,18 +1063,15 @@ body{
     resendLocked =
       true;
 
-
     resendBtn.disabled =
       true;
-
 
     resendBtn.textContent =
       "Gönderiliyor...";
 
 
     show(
-      "Yeni doğrulama kodu gönderiliyor...",
-      ""
+      "Yeni doğrulama kodu gönderiliyor..."
     );
 
 
@@ -1456,7 +1079,7 @@ body{
 
       const data =
         await api(
-          "/api/register/resend",
+          "/api/forgot/start",
           {
 
             method:
@@ -1465,14 +1088,14 @@ body{
             body:
               JSON.stringify({
 
+                identifier:
+                  identifier || email,
+
                 email:
                   email,
 
-                username:
-                  username,
-
                 mode:
-                  "email"
+                  mode || "email"
 
               })
 
@@ -1480,13 +1103,52 @@ body{
         );
 
 
-      show(
+      if(
+        !data ||
+        data.ok !== true
+      ){
 
+        throw new Error(
+
+          data?.error ||
+          "Yeni kod gönderilemedi."
+
+        );
+
+      }
+
+
+      /*
+       * Sunucu farklı email döndürürse
+       * session'a güncelle.
+       */
+
+      const newEmail =
+        first(
+          data?.email,
+          email
+        )
+        .trim()
+        .toLowerCase();
+
+
+      if(newEmail){
+
+        setSession(
+          "minegram_recovery_email",
+          newEmail
+        );
+
+        emailValue.textContent =
+          newEmail;
+
+      }
+
+
+      show(
         data?.message ||
         "Yeni doğrulama kodu gönderildi.",
-
         "success"
-
       );
 
 
@@ -1504,7 +1166,7 @@ body{
     catch(error){
 
       console.error(
-        "[MINEGRAM RESEND ERROR]",
+        "[MINEGRAM RECOVERY RESEND ERROR]",
         error
       );
 
@@ -1522,10 +1184,8 @@ body{
       resendLocked =
         false;
 
-
       resendBtn.disabled =
         false;
-
 
       resendBtn.textContent =
         "Kodu yeniden gönder";
@@ -1544,14 +1204,30 @@ body{
     function(){
 
       window.location.href =
-        "./iletisim-bilgileri.html";
+        "./hesaplarini-bulduk.html";
 
     }
   );
 
 
   /* =====================================================
-     KOD GİRİŞİ
+     BUTON
+  ===================================================== */
+
+  verifyBtn.addEventListener(
+    "click",
+    verify
+  );
+
+
+  resendBtn.addEventListener(
+    "click",
+    resend
+  );
+
+
+  /* =====================================================
+     INPUT
   ===================================================== */
 
   codeInput.addEventListener(
@@ -1564,12 +1240,9 @@ body{
           .slice(0,6);
 
 
-      /*
-       * 6 hane tamamlanınca otomatik doğrulama.
-       */
-
       if(
-        this.value.length === 6
+        this.value.length === 6 &&
+        !verifyBtn.disabled
       ){
 
         verify();
@@ -1595,7 +1268,8 @@ body{
         event.preventDefault();
 
         if(
-          this.value.length === 6
+          this.value.length === 6 &&
+          !verifyBtn.disabled
         ){
 
           verify();
@@ -1615,12 +1289,12 @@ body{
   function start(){
 
     console.log(
-      "[MINEGRAM] hesap-doğrulama.html başladı"
+      "[MINEGRAM] ŞİFRE KURTARMA DOĞRULAMASI BAŞLADI"
     );
 
     console.log(
-      "[MINEGRAM] username:",
-      username
+      "[MINEGRAM] identifier:",
+      identifier
     );
 
     console.log(
@@ -1628,55 +1302,28 @@ body{
       email
     );
 
-
-    if(!email){
-
-      show(
-        "E-posta bilgisi bulunamadı. Kayıt işlemine geri dön.",
-        "error"
-      );
-
-
-      verifyBtn.disabled =
-        true;
-
-      resendBtn.disabled =
-        true;
-
-
-      return;
-
-    }
-
-
-    if(!username){
-
-      show(
-        "Kullanıcı adı bulunamadı. Kayıt işlemine geri dön.",
-        "error"
-      );
-
-
-      verifyBtn.disabled =
-        true;
-
-      resendBtn.disabled =
-        true;
-
-
-      return;
-
-    }
+    console.log(
+      "[MINEGRAM] mode:",
+      mode
+    );
 
 
     /*
-     * Şifre yoksa burada kullanıcıya açık hata göster.
+     * Burada artık:
+     *
+     * minegram_register_password
+     *
+     * KESİNLİKLE ARANMIYOR.
      */
 
-    if(!password){
+
+    if(
+      !identifier &&
+      !email
+    ){
 
       show(
-        "Kayıt oturumu bulunamadı. Lütfen kayıt işlemine yeniden başla.",
+        "Şifre sıfırlama bilgileri bulunamadı. Lütfen işlemi yeniden başlat.",
         "error"
       );
 
@@ -1684,6 +1331,8 @@ body{
       verifyBtn.disabled =
         true;
 
+      resendBtn.disabled =
+        true;
 
       return;
 
@@ -1705,10 +1354,6 @@ body{
 
   }
 
-
-  /* =====================================================
-     ÇALIŞTIR
-  ===================================================== */
 
   start();
 
