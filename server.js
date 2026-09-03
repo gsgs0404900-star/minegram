@@ -2921,11 +2921,12 @@ app.post(
         });
       }
 
-      const email = String(found.email)
+      let email = String(found.email)
         .trim()
         .toLowerCase();
 
-      const entry = recoveryCodes.get(email);
+      const recoveryEmailKey = email;
+      const entry = recoveryCodes.get(recoveryEmailKey);
 
       if (!entry) {
         return res.status(400).json({
@@ -2936,7 +2937,7 @@ app.post(
       }
 
       if (entry.expires <= Date.now()) {
-        recoveryCodes.delete(email);
+        recoveryCodes.delete(recoveryEmailKey);
 
         return res.status(400).json({
           ok: false,
@@ -2949,7 +2950,7 @@ app.post(
         Number(entry.attempts || 0) + 1;
 
       if (entry.attempts > 5) {
-        recoveryCodes.delete(email);
+        recoveryCodes.delete(recoveryEmailKey);
 
         return res.status(429).json({
           ok: false,
@@ -3008,7 +3009,7 @@ app.post(
       }
 
       if (!authUserId || !verifiedAuthUser?.email) {
-        recoveryCodes.delete(email);
+        recoveryCodes.delete(recoveryEmailKey);
 
         return res.status(400).json({
           ok: false,
@@ -3020,7 +3021,7 @@ app.post(
       email = verifiedAuthUser.email.toLowerCase();
 
       /* Kod tek kullanımlık. */
-      recoveryCodes.delete(email);
+      recoveryCodes.delete(recoveryEmailKey);
 
       const resetToken =
         createPasswordResetToken();
