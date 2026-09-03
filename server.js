@@ -1020,7 +1020,11 @@ app.post(
           expires: Date.now() + 10 * 60 * 1000,
           attempts: 0,
           username,
-          displayName
+          displayName,
+          // Kayıt doğrulaması tamamlandığında otomatik giriş yapabilmek için
+          // şifreyi yalnızca bu kısa süreli RAM kaydında tutuyoruz.
+          // Kodun süresi dolunca kayıt zaten temizlenir.
+          password
         }
       );
 
@@ -1234,7 +1238,11 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            req.body?.password || ""
+            entry.password ||
+            req.body?.password ||
+            req.body?.sifre ||
+            req.body?.pass ||
+            ""
           )
         });
 
