@@ -125,13 +125,6 @@ h1{
     border-color:#2677b5;
 }
 
-.code{
-    letter-spacing:8px;
-    text-align:center;
-    font-size:20px;
-    font-weight:700;
-}
-
 .field{
     margin-bottom:18px;
 }
@@ -180,22 +173,6 @@ h1{
 
 .main-button:disabled{
     opacity:.55;
-    cursor:not-allowed;
-}
-
-.resend{
-    width:100%;
-    border:0;
-    background:transparent;
-    color:#2677b5;
-    font-size:13px;
-    font-weight:700;
-    margin-top:18px;
-    cursor:pointer;
-}
-
-.resend:disabled{
-    color:#666;
     cursor:not-allowed;
 }
 
@@ -289,20 +266,10 @@ h1{
         font-size:18px;
     }
 
-    .code{
-        font-size:23px;
-        letter-spacing:10px;
-    }
-
     .main-button{
         height:58px;
         border-radius:32px;
         font-size:20px;
-    }
-
-    .resend{
-        font-size:15px;
-        margin-top:20px;
     }
 
     .status{
@@ -364,32 +331,14 @@ h1{
 <h1>Yeni şifreni oluştur</h1>
 
 <div class="subtitle">
-E-posta adresine gönderdiğimiz 6 haneli doğrulama kodunu gir ve yeni şifreni oluştur.
+Hesabını doğruladın. Şimdi yeni şifreni oluşturabilirsin.
 </div>
 
 <div class="email-box" id="emailBox">
-Doğrulama kodu e-posta adresine gönderildi.
+Şifre sıfırlama oturumu doğrulandı.
 </div>
 
 <form class="form" id="resetForm">
-
-<div class="field">
-
-<div class="label">
-6 haneli doğrulama kodu
-</div>
-
-<input
-class="input code"
-id="code"
-type="text"
-inputmode="numeric"
-autocomplete="one-time-code"
-maxlength="6"
-placeholder="000000"
->
-
-</div>
 
 <div class="field">
 
@@ -455,15 +404,6 @@ type="submit"
 Şifreyi değiştir
 </button>
 
-<button
-class="resend"
-id="resendButton"
-type="button"
-onclick="resendCode()"
->
-Kodu yeniden gönder
-</button>
-
 <div class="status" id="status"></div>
 
 </form>
@@ -474,156 +414,212 @@ Kodu yeniden gönder
 <script>
 "use strict";
 
+/* =========================================================
+   MINEGRAM - YENİ ŞİFRE
+   AKIŞ:
+
+   hesap-doğrulama.html
+          ↓
+      /api/forgot/verify
+          ↓
+       resetToken
+          ↓
+      yeni-sifre.html
+          ↓
+   /api/forgot/reset-password
+========================================================= */
+
 const API="/api";
 
-const params=
+const params =
     new URLSearchParams(
         window.location.search
     );
 
-let recoveryId=(
-    params.get("recoveryId") ||
-    params.get("recovery_id") ||
-    sessionStorage.getItem("minegram_recovery_id") ||
-    sessionStorage.getItem("recoveryId") ||
-    sessionStorage.getItem("recovery_id") ||
-    ""
-).trim();
+/* =========================================================
+   RESET TOKEN BUL
+========================================================= */
 
-let identifier=(
-    params.get("identifier") ||
-    params.get("username") ||
-    sessionStorage.getItem("minegram_recovery_identifier") ||
-    sessionStorage.getItem("minegram_recovery_username") ||
-    ""
-).trim()
-.replace(/^@/,"")
-.toLowerCase();
+let resetToken =
+    (
+        params.get("token") ||
+        params.get("resetToken") ||
+        params.get("reset_token") ||
+        params.get("recoveryToken") ||
+        sessionStorage.getItem("minegram_password_reset_token") ||
+        sessionStorage.getItem("minegram_reset_token") ||
+        sessionStorage.getItem("resetToken") ||
+        localStorage.getItem("minegram_password_reset_token") ||
+        localStorage.getItem("minegram_reset_token") ||
+        ""
+    ).trim();
 
-let email=(
-    params.get("email") ||
-    sessionStorage.getItem("minegram_recovery_email") ||
-    ""
-).trim()
-.toLowerCase();
+/* =========================================================
+   EMAIL
+========================================================= */
 
-const codeInput=
-    document.getElementById("code");
+let email =
+    (
+        params.get("email") ||
+        sessionStorage.getItem("minegram_recovery_email") ||
+        ""
+    )
+    .trim()
+    .toLowerCase();
 
-const passwordInput=
-    document.getElementById("password");
+/* =========================================================
+   ELEMENTLER
+========================================================= */
 
-const confirmInput=
-    document.getElementById("confirmPassword");
+const passwordInput =
+    document.getElementById(
+        "password"
+    );
 
-const submitButton=
-    document.getElementById("submitButton");
+const confirmInput =
+    document.getElementById(
+        "confirmPassword"
+    );
 
-const resendButton=
-    document.getElementById("resendButton");
+const submitButton =
+    document.getElementById(
+        "submitButton"
+    );
 
-const status=
-    document.getElementById("status");
+const status =
+    document.getElementById(
+        "status"
+    );
 
-const emailBox=
-    document.getElementById("emailBox");
+const emailBox =
+    document.getElementById(
+        "emailBox"
+    );
+
+/* =========================================================
+   GERİ
+========================================================= */
 
 function goBack(){
 
-    if(history.length>1){
+    if(history.length > 1){
 
         history.back();
 
     }else{
 
-        window.location.href=
-            "hesaplarini-bulduk.html";
+        window.location.href =
+            "giris.html";
     }
 }
+
+/* =========================================================
+   STATUS
+========================================================= */
 
 function showStatus(
     text,
     type=""
 ){
 
-    status.className="status";
+    status.className =
+        "status";
 
-    status.textContent=text || "";
+    status.textContent =
+        text || "";
 
     if(text){
 
-        status.classList.add("show");
+        status.classList.add(
+            "show"
+        );
 
         if(type){
-            status.classList.add(type);
+
+            status.classList.add(
+                type
+            );
         }
     }
 }
+
+/* =========================================================
+   ŞİFRE GÖSTER / GİZLE
+========================================================= */
 
 function togglePassword(
     id,
     button
 ){
 
-    const input=
-        document.getElementById(id);
+    const input =
+        document.getElementById(
+            id
+        );
 
-    if(input.type==="password"){
+    if(
+        input.type ===
+        "password"
+    ){
 
-        input.type="text";
+        input.type =
+            "text";
 
-        button.textContent=
+        button.textContent =
             "Gizle";
 
     }else{
 
-        input.type="password";
+        input.type =
+            "password";
 
-        button.textContent=
+        button.textContent =
             "Göster";
     }
 }
+
+/* =========================================================
+   EMAIL KUTUSU
+========================================================= */
 
 function updateEmailBox(){
 
     if(email){
 
-        emailBox.textContent=
-            "Doğrulama kodu şu e-posta adresine gönderildi: "+
+        emailBox.textContent =
+            "Hesabın doğrulandı: " +
             email;
 
     }else{
 
-        emailBox.textContent=
-            "Doğrulama kodu kayıtlı e-posta adresine gönderildi.";
+        emailBox.textContent =
+            "Hesabın doğrulandı. Yeni şifreni oluşturabilirsin.";
     }
 }
 
-codeInput.addEventListener(
-    "input",
-    ()=>{
-        codeInput.value=
-            codeInput.value
-            .replace(/\D/g,"")
-            .slice(0,6);
-
-        showStatus("");
-    }
-);
+/* =========================================================
+   ŞİFRE INPUT
+========================================================= */
 
 passwordInput.addEventListener(
     "input",
-    ()=>{
+    function(){
+
         showStatus("");
     }
 );
 
 confirmInput.addEventListener(
     "input",
-    ()=>{
+    function(){
+
         showStatus("");
     }
 );
+
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
 
 document
 .getElementById("resetForm")
@@ -635,38 +631,31 @@ document
 
         showStatus("");
 
-        const code=
-            codeInput.value.trim();
-
-        const password=
+        const password =
             passwordInput.value;
 
-        const confirmPassword=
+        const confirmPassword =
             confirmInput.value;
 
-        if(!recoveryId){
+        /* -------------------------------------------------
+           TOKEN KONTROLÜ
+        ------------------------------------------------- */
+
+        if(!resetToken){
 
             showStatus(
-                "Şifre sıfırlama oturumu bulunamadı. Lütfen işlemi baştan başlat.",
+                "Şifre sıfırlama oturumu bulunamadı. Lütfen işlemi yeniden başlat.",
                 "error"
             );
 
             return;
         }
 
-        if(!/^\d{6}$/.test(code)){
+        /* -------------------------------------------------
+           ŞİFRE KONTROLÜ
+        ------------------------------------------------- */
 
-            showStatus(
-                "6 haneli doğrulama kodunu gir.",
-                "error"
-            );
-
-            codeInput.focus();
-
-            return;
-        }
-
-        if(password.length<6){
+        if(password.length < 6){
 
             showStatus(
                 "Yeni şifre en az 6 karakter olmalı.",
@@ -678,7 +667,7 @@ document
             return;
         }
 
-        if(password!==confirmPassword){
+        if(password !== confirmPassword){
 
             showStatus(
                 "Şifreler aynı değil.",
@@ -690,16 +679,22 @@ document
             return;
         }
 
-        submitButton.disabled=true;
+        /* -------------------------------------------------
+           BUTON
+        ------------------------------------------------- */
 
-        submitButton.textContent=
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
             "Şifre değiştiriliyor...";
 
         try{
 
-            const response=
+            const response =
                 await fetch(
-                    API+"/forgot/reset-password",
+                    API +
+                    "/forgot/reset-password",
                     {
                         method:"POST",
 
@@ -711,45 +706,50 @@ document
                                 "application/json"
                         },
 
-                        body:JSON.stringify({
+                        body:
+                            JSON.stringify({
 
-                            recoveryId:
-                                recoveryId,
+                                resetToken:
+                                    resetToken,
 
-                            recovery_id:
-                                recoveryId,
+                                reset_token:
+                                    resetToken,
 
-                            code:
-                                code,
+                                token:
+                                    resetToken,
 
-                            identifier:
-                                identifier,
+                                recoveryToken:
+                                    resetToken,
 
-                            email:
-                                email,
+                                password:
+                                    password,
 
-                            password:
-                                password,
+                                newPassword:
+                                    password,
 
-                            newPassword:
-                                password,
+                                confirmPassword:
+                                    confirmPassword
+                            }),
 
-                            confirmPassword:
-                                confirmPassword
-                        }),
-
-                        cache:"no-store"
+                        cache:
+                            "no-store"
                     }
                 );
 
-            const data=
+            const data =
                 await response
                 .json()
-                .catch(()=>({}));
+                .catch(
+                    () => ({})
+                );
+
+            /* -------------------------------------------------
+               HATA
+            ------------------------------------------------- */
 
             if(
                 !response.ok ||
-                data.ok===false
+                data.ok === false
             ){
 
                 throw new Error(
@@ -759,10 +759,40 @@ document
                 );
             }
 
+            /* -------------------------------------------------
+               BAŞARILI
+            ------------------------------------------------- */
+
             showStatus(
                 "Şifren başarıyla değiştirildi. Giriş sayfasına yönlendiriliyorsun...",
                 "success"
             );
+
+            /* -------------------------------------------------
+               TOKEN TEMİZLE
+            ------------------------------------------------- */
+
+            sessionStorage.removeItem(
+                "minegram_password_reset_token"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_reset_token"
+            );
+
+            sessionStorage.removeItem(
+                "resetToken"
+            );
+
+            localStorage.removeItem(
+                "minegram_password_reset_token"
+            );
+
+            localStorage.removeItem(
+                "minegram_reset_token"
+            );
+
+            /* Recovery bilgilerini de temizle */
 
             sessionStorage.removeItem(
                 "minegram_recovery_id"
@@ -792,10 +822,16 @@ document
                 "minegram_recovery_email"
             );
 
+            /* -------------------------------------------------
+               GİRİŞ SAYFASINA GİT
+            ------------------------------------------------- */
+
             setTimeout(
-                ()=>{
-                    window.location.href=
-                        "index.html";
+                function(){
+
+                    window.location.href =
+                        "giris.html";
+
                 },
                 1200
             );
@@ -813,211 +849,29 @@ document
                 "error"
             );
 
-            submitButton.disabled=false;
+            submitButton.disabled =
+                false;
 
-            submitButton.textContent=
+            submitButton.textContent =
                 "Şifreyi değiştir";
         }
     }
 );
 
-let resendLocked=false;
-
-async function resendCode(){
-
-    if(resendLocked){
-        return;
-    }
-
-    if(!identifier){
-
-        showStatus(
-            "Hesap bilgisi bulunamadı. Lütfen işlemi baştan başlat.",
-            "error"
-        );
-
-        return;
-    }
-
-    resendLocked=true;
-
-    resendButton.disabled=true;
-
-    let seconds=60;
-
-    resendButton.textContent=
-        "Tekrar gönder ("+
-        seconds+
-        ")";
-
-    const timer=setInterval(
-        ()=>{
-            seconds--;
-
-            if(seconds<=0){
-
-                clearInterval(timer);
-
-                resendLocked=false;
-
-                resendButton.disabled=false;
-
-                resendButton.textContent=
-                    "Kodu yeniden gönder";
-
-            }else{
-
-                resendButton.textContent=
-                    "Tekrar gönder ("+
-                    seconds+
-                    ")";
-            }
-        },
-        1000
-    );
-
-    try{
-
-        const response=
-            await fetch(
-                API+"/forgot/resend",
-                {
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json",
-
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body:JSON.stringify({
-
-                        identifier:
-                            identifier,
-
-                        mode:"username",
-
-                        email:
-                            email
-                    }),
-
-                    cache:"no-store"
-                }
-            );
-
-        const data=
-            await response
-            .json()
-            .catch(()=>({}));
-
-        if(
-            !response.ok ||
-            data.ok===false
-        ){
-
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Yeni kod gönderilemedi."
-            );
-        }
-
-        const newRecoveryId=
-            String(
-                data.recoveryId ||
-                data.recovery_id ||
-                ""
-            ).trim();
-
-        if(newRecoveryId){
-
-            recoveryId=
-                newRecoveryId;
-
-            sessionStorage.setItem(
-                "minegram_recovery_id",
-                recoveryId
-            );
-
-            sessionStorage.setItem(
-                "recoveryId",
-                recoveryId
-            );
-
-            sessionStorage.setItem(
-                "recovery_id",
-                recoveryId
-            );
-
-            const url=
-                new URL(
-                    window.location.href
-                );
-
-            url.searchParams.set(
-                "recoveryId",
-                recoveryId
-            );
-
-            window.history.replaceState(
-                {},
-                "",
-                url.toString()
-            );
-        }
-
-        if(data.email){
-
-            email=
-                String(data.email)
-                .trim()
-                .toLowerCase();
-
-            sessionStorage.setItem(
-                "minegram_recovery_email",
-                email
-            );
-
-            updateEmailBox();
-        }
-
-        showStatus(
-            "Yeni doğrulama kodu gönderildi.",
-            "success"
-        );
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM RESEND]",
-            error
-        );
-
-        showStatus(
-            error.message ||
-            "Yeni kod gönderilemedi.",
-            "error"
-        );
-
-        clearInterval(timer);
-
-        resendLocked=false;
-
-        resendButton.disabled=false;
-
-        resendButton.textContent=
-            "Kodu yeniden gönder";
-    }
-}
+/* =========================================================
+   SAYFA AÇILINCA
+========================================================= */
 
 updateEmailBox();
 
-if(!recoveryId){
+/*
+   Token yoksa kullanıcıya açık hata göster.
+*/
+
+if(!resetToken){
 
     showStatus(
-        "Şifre sıfırlama oturumu bulunamadı. Lütfen işlemi baştan başlat.",
+        "Şifre sıfırlama anahtarı bulunamadı. Lütfen şifre sıfırlama işlemini baştan başlat.",
         "error"
     );
 }
