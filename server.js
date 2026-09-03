@@ -327,9 +327,10 @@ app.get(
         throw error;
       }
 
-      return res.json(
-        (data || []).map(safeUser)
-      );
+      return res.json({
+        ok: true,
+        users: (data || []).map(safeUser)
+      });
     } catch (e) {
       console.error("PUBLIC SEARCH ERROR:", e);
       return res.status(500).json({
@@ -945,27 +946,68 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
-      const {
-        data: profile,
-        error: profileError
-      } =
-        await admin
+      /*
+       * Profil oluştur.
+       * Eski Minegram Supabase şemalarında auth_user_id / settings / verified
+       * gibi sütunlar bulunmayabiliyor. Bu yüzden önce temel şema ile dener,
+       * eksik sütun hatasında daha sade kayıtla tekrar deneriz.
+       */
+      let profile = null;
+      let profileError = null;
+
+      const profilePayloads = [
+        {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        },
+        {
+          id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false
+        },
+        {
+          id: authUser.id,
+          username,
+          display_name: displayName
+        }
+      ];
+
+      for (const payload of profilePayloads) {
+        const result = await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .insert(payload)
           .select("*")
           .single();
 
-      if (profileError) {
+        profile = result.data || null;
+        profileError = result.error || null;
+
+        if (!profileError) break;
+
+        console.error(
+          "PROFILE CREATE ATTEMPT ERROR:",
+          profileError
+        );
+
+        const msg = String(profileError.message || "").toLowerCase();
+        const missingColumn =
+          profileError.code === "42703" ||
+          /column .* does not exist/.test(msg) ||
+          /could not find the .* column/.test(msg);
+
+        if (!missingColumn) break;
+      }
+
+      if (profileError || !profile) {
         console.error(
           "PROFILE CREATE ERROR:",
           profileError
@@ -987,7 +1029,7 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
+          error: profileError?.message || "Profil oluşturulamadı."
         });
       }
 
