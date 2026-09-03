@@ -2647,24 +2647,43 @@ app.post(
         found.profile ||
         {};
 
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const userId =
+        found.authUser?.id ||
+        p.auth_user_id ||
+        p.id;
+
+      if (!userId) {
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap doğrulandı ancak kullanıcı kimliği bulunamadı."
+        });
+      }
+
+      const account = {
+        username:
+          p.username ||
+          "minegram",
+        email:
+          found.email,
+        displayName:
+          p.display_name ||
+          p.displayName ||
+          ""
+      };
+
+      passwordResetChallenges.set(resetToken, {
+        userId,
+        account,
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
       res.json({
         ok: true,
         email:
           found.email,
-
-        account: {
-          username:
-            p.username ||
-            "minegram",
-
-          email:
-            found.email,
-
-          displayName:
-            p.display_name ||
-            p.displayName ||
-            ""
-        }
+        resetToken,
+        account
       });
     } catch (e) {
       res.status(400).json({
@@ -2679,6 +2698,75 @@ app.post(
 /* =========================================================
    SEND RESET
 ========================================================= */
+
+
+/* =========================================================
+   FORGOT RESET PASSWORD
+   Doğrulanan kod için tek kullanımlık reset token üretir.
+========================================================= */
+
+const passwordResetChallenges = new Map();
+
+app.post(
+  "/api/forgot/reset-password",
+  async (req, res) => {
+    try {
+      const token = String(req.body?.token || "").trim();
+      const password = String(
+        req.body?.password ??
+        req.body?.newPassword ??
+        ""
+      );
+
+      if (!token) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama oturumu bulunamadı."
+        });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre en az 8 karakter olmalı."
+        });
+      }
+
+      const challenge = passwordResetChallenges.get(token);
+      if (!challenge || challenge.expires < Date.now()) {
+        passwordResetChallenges.delete(token);
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama kodunun süresi dolmuş."
+        });
+      }
+
+      const admin = adminClient();
+      const { data, error } = await admin.auth.admin.updateUserById(
+        challenge.userId,
+        { password }
+      );
+
+      if (error || !data?.user) {
+        throw error || new Error("Şifre değiştirilemedi.");
+      }
+
+      passwordResetChallenges.delete(token);
+
+      return res.json({
+        ok: true,
+        message: "Şifren başarıyla değiştirildi.",
+        account: challenge.account || null
+      });
+    } catch (e) {
+      console.error("FORGOT RESET PASSWORD ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "Şifre değiştirilemedi."
+      });
+    }
+  }
+);
 
 app.post(
   "/api/forgot/send-reset",
