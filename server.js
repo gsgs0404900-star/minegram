@@ -279,69 +279,6 @@ async function findProfile(
   return data;
 }
 
-/* =========================================================
-   PUBLIC SEARCH
-   Mesaj ekranındaki kullanıcı araması için auth gerektirmeyen
-   güvenli arama endpoint'i. Sadece public profil alanları döner.
-========================================================= */
-
-app.get(
-  "/api/public/search",
-  async (req, res) => {
-    try {
-      const q = String(req.query.q || "")
-        .trim()
-        .toLowerCase();
-
-      if (!q) {
-        return res.json([]);
-      }
-
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({
-          ok: false,
-          error: "Supabase service role yapılandırması eksik."
-        });
-      }
-
-      const safeQ = q
-        .replace(/\\/g, "")
-        .replace(/,/g, "")
-        .replace(/\./g, "");
-
-      if (!safeQ) {
-        return res.json([]);
-      }
-
-      const admin = adminClient();
-
-      const { data, error } = await admin
-        .from("profiles")
-        .select("id,username,display_name,bio,avatar_url,verified")
-        .or(
-          `username.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`
-        )
-        .limit(30);
-
-      if (error) {
-        throw error;
-      }
-
-      return res.json({
-        ok: true,
-        users: (data || []).map(safeUser)
-      });
-    } catch (e) {
-      console.error("PUBLIC SEARCH ERROR:", e);
-      return res.status(500).json({
-        ok: false,
-        error: e?.message || "Kullanıcı araması yapılamadı."
-      });
-    }
-  }
-);
-
-
 async function addNotification({
   userId,
   type,
@@ -946,16 +883,16 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /*
-       * Profil oluştur.
-       * Eski Minegram Supabase şemalarında auth_user_id / settings / verified
-       * gibi sütunlar bulunmayabiliyor. Bu yüzden önce temel şema ile dener,
-       * eksik sütun hatasında daha sade kayıtla tekrar deneriz.
-       */
+      /* Profil oluştur */
       let profile = null;
       let profileError = null;
 
-      const profilePayloads = [
+      /*
+       * Önce mevcut Minegram şemasını aynen kullan.
+       * Eğer profiles tablosunda yeni/opsiyonel bir kolon yoksa
+       * kayıt tamamen bozulmasın diye daha uyumlu şemalar sırayla denenir.
+       */
+      const profileVariants = [
         {
           id: authUser.id,
           auth_user_id: authUser.id,
@@ -972,39 +909,35 @@ app.post(
           display_name: displayName,
           bio: "",
           avatar_url: null,
-          verified: false
+          verified: false,
+          settings: {}
         },
         {
           id: authUser.id,
           username,
-          display_name: displayName
+          display_name: displayName,
+          bio: ""
         }
       ];
 
-      for (const payload of profilePayloads) {
+      for (const profileData of profileVariants) {
         const result = await admin
           .from("profiles")
-          .insert(payload)
+          .insert(profileData)
           .select("*")
           .single();
 
-        profile = result.data || null;
-        profileError = result.error || null;
+        if (!result.error && result.data) {
+          profile = result.data;
+          profileError = null;
+          break;
+        }
 
-        if (!profileError) break;
-
+        profileError = result.error;
         console.error(
           "PROFILE CREATE ATTEMPT ERROR:",
           profileError
         );
-
-        const msg = String(profileError.message || "").toLowerCase();
-        const missingColumn =
-          profileError.code === "42703" ||
-          /column .* does not exist/.test(msg) ||
-          /could not find the .* column/.test(msg);
-
-        if (!missingColumn) break;
       }
 
       if (profileError || !profile) {
@@ -1029,7 +962,9 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: profileError?.message || "Profil oluşturulamadı."
+          error:
+            profileError?.message ||
+            "Profil oluşturulamadı."
         });
       }
 
@@ -2689,43 +2624,24 @@ app.post(
         found.profile ||
         {};
 
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      const userId =
-        found.authUser?.id ||
-        p.auth_user_id ||
-        p.id;
-
-      if (!userId) {
-        return res.status(400).json({
-          ok: false,
-          error: "Hesap doğrulandı ancak kullanıcı kimliği bulunamadı."
-        });
-      }
-
-      const account = {
-        username:
-          p.username ||
-          "minegram",
-        email:
-          found.email,
-        displayName:
-          p.display_name ||
-          p.displayName ||
-          ""
-      };
-
-      passwordResetChallenges.set(resetToken, {
-        userId,
-        account,
-        expires: Date.now() + 10 * 60 * 1000
-      });
-
       res.json({
         ok: true,
         email:
           found.email,
-        resetToken,
-        account
+
+        account: {
+          username:
+            p.username ||
+            "minegram",
+
+          email:
+            found.email,
+
+          displayName:
+            p.display_name ||
+            p.displayName ||
+            ""
+        }
       });
     } catch (e) {
       res.status(400).json({
@@ -2740,75 +2656,6 @@ app.post(
 /* =========================================================
    SEND RESET
 ========================================================= */
-
-
-/* =========================================================
-   FORGOT RESET PASSWORD
-   Doğrulanan kod için tek kullanımlık reset token üretir.
-========================================================= */
-
-const passwordResetChallenges = new Map();
-
-app.post(
-  "/api/forgot/reset-password",
-  async (req, res) => {
-    try {
-      const token = String(req.body?.token || "").trim();
-      const password = String(
-        req.body?.password ??
-        req.body?.newPassword ??
-        ""
-      );
-
-      if (!token) {
-        return res.status(400).json({
-          ok: false,
-          error: "Şifre sıfırlama oturumu bulunamadı."
-        });
-      }
-
-      if (password.length < 8) {
-        return res.status(400).json({
-          ok: false,
-          error: "Yeni şifre en az 8 karakter olmalı."
-        });
-      }
-
-      const challenge = passwordResetChallenges.get(token);
-      if (!challenge || challenge.expires < Date.now()) {
-        passwordResetChallenges.delete(token);
-        return res.status(400).json({
-          ok: false,
-          error: "Şifre sıfırlama kodunun süresi dolmuş."
-        });
-      }
-
-      const admin = adminClient();
-      const { data, error } = await admin.auth.admin.updateUserById(
-        challenge.userId,
-        { password }
-      );
-
-      if (error || !data?.user) {
-        throw error || new Error("Şifre değiştirilemedi.");
-      }
-
-      passwordResetChallenges.delete(token);
-
-      return res.json({
-        ok: true,
-        message: "Şifren başarıyla değiştirildi.",
-        account: challenge.account || null
-      });
-    } catch (e) {
-      console.error("FORGOT RESET PASSWORD ERROR:", e);
-      return res.status(500).json({
-        ok: false,
-        error: e?.message || "Şifre değiştirilemedi."
-      });
-    }
-  }
-);
 
 app.post(
   "/api/forgot/send-reset",
