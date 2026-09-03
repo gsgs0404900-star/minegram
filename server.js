@@ -2587,6 +2587,75 @@ async function sendResendEmail(
 const recoveryCodes =
   new Map();
 
+/* =========================================================
+   RECOVERY CODE PERSISTENCE
+   Kodlar artık sadece RAM'de tutulmaz. Node yeniden başlasa bile
+   10 dakikalık aktif doğrulama kodu kaybolmaz.
+========================================================= */
+const recoveryCodesFile = path.join(__dirname, "minegram-recovery-codes.json");
+
+function loadRecoveryCodes() {
+  try {
+    if (!fs.existsSync(recoveryCodesFile)) return;
+
+    const raw = fs.readFileSync(recoveryCodesFile, "utf8");
+    const data = JSON.parse(raw);
+
+    recoveryCodes.clear();
+
+    if (data && typeof data === "object") {
+      for (const [email, entry] of Object.entries(data)) {
+        if (entry && entry.expires > Date.now()) {
+          recoveryCodes.set(email, entry);
+        }
+      }
+    }
+
+    saveRecoveryCodes();
+  } catch (e) {
+    console.error("RECOVERY CODE LOAD ERROR:", e?.message || e);
+  }
+}
+
+function saveRecoveryCodes() {
+  try {
+    const data = Object.fromEntries(recoveryCodes.entries());
+    fs.writeFileSync(
+      recoveryCodesFile,
+      JSON.stringify(data, null, 2),
+      "utf8"
+    );
+  } catch (e) {
+    console.error("RECOVERY CODE SAVE ERROR:", e?.message || e);
+  }
+}
+
+function setRecoveryCode(email, entry) {
+  recoveryCodes.set(String(email).trim().toLowerCase(), entry);
+  saveRecoveryCodes();
+}
+
+function deleteRecoveryCode(email) {
+  recoveryCodes.delete(String(email).trim().toLowerCase());
+  saveRecoveryCodes();
+}
+
+function cleanupRecoveryCodes() {
+  const now = Date.now();
+  let changed = false;
+
+  for (const [email, entry] of recoveryCodes.entries()) {
+    if (!entry?.expires || entry.expires <= now) {
+      recoveryCodes.delete(email);
+      changed = true;
+    }
+  }
+
+  if (changed) saveRecoveryCodes();
+}
+
+loadRecoveryCodes();
+
 
 /* =========================================================
    FORGOT START
@@ -2619,7 +2688,7 @@ app.post(
           )
         );
 
-      recoveryCodes.set(
+      setRecoveryCode(
         found.email.toLowerCase(),
         {
           code,
@@ -2743,6 +2812,7 @@ app.post(
       }
 
       const email = String(found.email).trim().toLowerCase();
+      cleanupRecoveryCodes();
       const entry = recoveryCodes.get(email);
 
       if (!entry) {
@@ -2753,7 +2823,7 @@ app.post(
       }
 
       if (!entry.expires || entry.expires <= Date.now()) {
-        recoveryCodes.delete(email);
+        deleteRecoveryCode(email);
         return res.status(400).json({
           ok: false,
           code: "CODE_EXPIRED",
@@ -2764,14 +2834,14 @@ app.post(
       if (entry.code !== code) {
         entry.attempts = Number(entry.attempts || 0) + 1;
         if (entry.attempts >= 5) {
-          recoveryCodes.delete(email);
+          deleteRecoveryCode(email);
           return res.status(429).json({
             ok: false,
             code: "TOO_MANY_ATTEMPTS",
             error: "Çok fazla yanlış kod girildi. Yeni kod iste."
           });
         }
-        recoveryCodes.set(email, entry);
+        setRecoveryCode(email, entry);
         return res.status(400).json({
           ok: false,
           code: "INVALID_CODE",
@@ -2887,7 +2957,7 @@ app.post(
         expires: Date.now() + 10 * 60 * 1000
       });
 
-      recoveryCodes.delete(email);
+      deleteRecoveryCode(email);
 
       const profile = entry.profile || found.profile || {};
 
