@@ -2162,6 +2162,13 @@ async function findUserByPhone(
    RECOVERY EMAIL RESOLVE
 ========================================================= */
 
+function normalizeRecoveryMode(mode) {
+  const m = String(mode || "email").trim().toLowerCase();
+  if (["phone", "tel", "telefon"].includes(m)) return "phone";
+  if (["username", "user", "kullanici", "kullanıcı"].includes(m)) return "username";
+  return "email";
+}
+
 async function resolveRecoveryEmail(
   identifier,
   mode = "email"
@@ -2169,7 +2176,7 @@ async function resolveRecoveryEmail(
   const raw = String(identifier || "").trim();
   if (!raw) return null;
 
-  const cleanMode = recoveryMode(mode);
+  const cleanMode = normalizeRecoveryMode(mode);
   const admin = adminClient();
 
   let email = raw;
