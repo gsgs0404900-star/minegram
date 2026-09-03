@@ -2583,7 +2583,12 @@ app.post(
             Date.now() +
             10 * 60 * 1000,
           profile:
-            found.profile
+            found.profile,
+          authUserId:
+            found.authUser?.id ||
+            found.profile?.auth_user_id ||
+            found.profile?.id ||
+            null
         }
       );
 
@@ -2730,17 +2735,59 @@ app.post(
         });
       }
 
-      const authUserId =
+      let authUserId =
         found.authUser?.id ||
         entry.authUserId ||
         found.profile?.auth_user_id ||
         found.profile?.id ||
         null;
 
+      // Son güvenli fallback: Auth kullanıcılarını service-role ile
+      // listeleyip doğrulanan e-posta ile eşleştir. Böylece profiles
+      // kaydı eksik/uyumsuz olsa bile gerçek Auth hesabı bulunur.
+      if (!authUserId && email.includes("@")) {
+        try {
+          let page = 1;
+          const perPage = 1000;
+          while (!authUserId && page <= 10) {
+            const { data, error } =
+              await admin.auth.admin.listUsers({
+                page,
+                perPage
+              });
+
+            if (error) {
+              console.log("RECOVERY AUTH LIST HATASI:", error.message || error);
+              break;
+            }
+
+            const users = Array.isArray(data?.users)
+              ? data.users
+              : [];
+
+            const match = users.find(
+              u => String(u?.email || "").trim().toLowerCase() === email
+            );
+
+            if (match?.id) {
+              authUserId = match.id;
+              break;
+            }
+
+            if (users.length < perPage) break;
+            page += 1;
+          }
+        } catch (e) {
+          console.log("RECOVERY AUTH LIST EXCEPTION:", e?.message || e);
+        }
+      }
+
       if (!authUserId) {
         return res.status(400).json({
           ok: false,
-          error: "Supabase hesap bilgisi bulunamadı."
+          code: "AUTH_USER_NOT_FOUND",
+          error: "Supabase hesap bilgisi bulunamadı.",
+          detail: "Doğrulanan e-posta için Supabase Auth kullanıcısı bulunamadı."
         });
       }
 
