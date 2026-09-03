@@ -1,1089 +1,927 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
-<title>Şifremi unuttum - Minegram</title>
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
+
+<meta
+name="theme-color"
+content="#000000"
+>
+
+<title>Minegram - Şifremi unuttum</title>
 
 <style>
-*{box-sizing:border-box}
 
-html,body{
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
     margin:0;
+    padding:0;
     width:100%;
     min-height:100%;
     background:#000;
     color:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    font-family:Arial,Helvetica,sans-serif;
 }
 
 body{
     min-height:100vh;
-    min-height:100dvh;
     overflow-x:hidden;
 }
-
-button{font-family:inherit}
 
 .page{
     width:100%;
     min-height:100vh;
-    min-height:100dvh;
-    background:#000;
-    padding:max(18px,env(safe-area-inset-top)) 0 calc(28px + env(safe-area-inset-bottom));
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+}
+
+.box{
+    width:365px;
+    margin-top:90px;
+    text-align:center;
 }
 
 .header{
-    width:100%;
-    height:60px;
     display:flex;
     align-items:center;
-    padding-left:38px;
+    justify-content:flex-start;
+    margin-bottom:25px;
 }
 
 .back{
-    width:25px;
-    height:35px;
-    border:0;
-    background:transparent;
-    color:#fff;
-    padding:0;
+    width:28px;
+    height:28px;
     display:flex;
     align-items:center;
     justify-content:center;
+    color:#fff;
+    font-size:30px;
+    line-height:1;
+    font-weight:300;
     cursor:pointer;
-}
-
-.back svg{
-    width:25px;
-    height:35px;
-    stroke:currentColor;
-    stroke-width:3;
-    fill:none;
-    stroke-linecap:round;
-    stroke-linejoin:round;
+    user-select:none;
+    margin-right:8px;
 }
 
 .header-title{
-    margin-left:15px;
-    font-size:20px;
-    line-height:1;
+    font-size:16px;
     font-weight:700;
-    letter-spacing:-.3px;
 }
 
-.content{
-    width:317px;
-    margin:115px auto 0;
-}
-
-h1{
-    margin:0 0 34px;
-    font-size:30px;
-    line-height:1.15;
+.title{
+    font-size:22px;
+    line-height:1.25;
     font-weight:700;
-    letter-spacing:-.5px;
+    margin:0 0 12px;
 }
 
-.subtitle{
-    margin:0 0 65px;
-    color:#bdbdbd;
-    font-size:18px;
+.description{
+    color:#777;
+    font-size:13px;
+    line-height:1.45;
+    margin:0 0 22px;
+}
+
+.tabs{
+    display:flex;
+    gap:9px;
+    width:100%;
+    margin-bottom:9px;
+}
+
+.tab{
+    width:50%;
+    height:44px;
+    border-radius:7px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.tab.email{
+    border:1px solid #554f67;
+    background:#554f67;
+    color:#eee8fa;
+}
+
+.tab.phone{
+    border:1px solid #292929;
+    background:#000;
+    color:#fff;
+}
+
+.input{
+    width:100%;
+    height:44px;
+    margin-bottom:9px;
+    padding:0 12px;
+    border:1px solid #292929;
+    border-radius:7px;
+    background:#000;
+    color:#fff;
+    outline:none;
+    font-size:12px;
+}
+
+.input::placeholder{
+    color:#777;
+}
+
+.input:focus{
+    border-color:#555;
+}
+
+.note{
+    min-height:20px;
+    margin:8px 0 0;
+    color:#777;
+    font-size:12px;
     line-height:1.45;
 }
 
-.accounts{
-    width:100%;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-}
-
-.account{
-    width:100%;
-    min-height:72px;
-    padding:12px 13px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
-    color:#fff;
-    text-align:left;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    transition:.15s;
-}
-
-.account:hover{
-    background:#0b0b0b;
-}
-
-.account:active{
-    transform:scale(.99);
-}
-
-.account.selected{
-    border-color:#2677b5;
-    background:#080808;
-}
-
-.account-info{
-    min-width:0;
-    flex:1;
-}
-
-.username{
-    font-size:15px;
-    font-weight:700;
-    line-height:1.25;
-    margin-bottom:5px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.email{
-    color:#b6b6b6;
-    font-size:12px;
-    line-height:1.25;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.radio{
-    flex:0 0 auto;
-    width:22px;
-    height:22px;
-    margin-left:12px;
-    border:2px solid #555;
-    border-radius:50%;
-    position:relative;
-}
-
-.account.selected .radio{
-    border-color:#2677b5;
-}
-
-.account.selected .radio:after{
-    content:"";
-    position:absolute;
-    width:10px;
-    height:10px;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    border-radius:50%;
-    background:#2677b5;
-}
-
-.actions{
-    display:none;
-    flex-direction:column;
-    gap:8px;
-    margin-top:10px;
-}
-
-.actions.show{
-    display:flex;
-}
-
-.action-btn{
-    width:100%;
-    height:37px;
-    border:0;
-    border-radius:22px;
-    padding:0 12px;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.15s;
-}
-
-.action-btn:hover{
-    opacity:.92;
-}
-
-.action-btn:active{
-    transform:scale(.99);
-}
-
-.action-btn:disabled{
-    opacity:.55;
-    cursor:not-allowed;
-}
-
-.primary{
-    background:#2677b5;
-    color:#000;
-}
-
-.secondary{
-    background:#2677b5;
-    color:#000;
-}
-
 .status{
-    display:none;
-    min-height:18px;
-    margin-top:12px;
-    font-size:11px;
-    line-height:1.4;
-}
-
-.status.show{
-    display:block;
-}
-
-.status.error{
-    color:#ff5c5c;
+    min-height:20px;
+    margin-top:10px;
+    font-size:12px;
+    color:#ff4d4d;
 }
 
 .status.success{
-    color:#63e6be;
+    color:#35c759;
 }
 
-.loading-box{
-    width:100%;
-    min-height:72px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
+.status.loading{
+    color:#aaa;
+}
+
+.bottom{
     display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#b7b7b7;
-    font-size:12px;
-}
-
-.spinner{
-    width:17px;
-    height:17px;
-    margin-right:9px;
-    border:2px solid #333;
-    border-top-color:#2677b5;
-    border-radius:50%;
-    animation:spin .8s linear infinite;
-}
-
-@keyframes spin{
-    to{transform:rotate(360deg)}
-}
-
-.empty{
+    gap:9px;
     width:100%;
-    padding:18px 14px;
-    border:1px solid #252525;
-    border-radius:9px;
-    background:#050505;
-    color:#b7b7b7;
-    text-align:center;
+    margin-top:25px;
+}
+
+.action{
+    width:50%;
+    height:42px;
+    border-radius:22px;
     font-size:12px;
-    line-height:1.5;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.back-btn{
+    background:#000;
+    border:1px solid #555;
+    color:#0095f6;
+}
+
+.next-btn{
+    background:#2d80bd;
+    border:0;
+    color:#000;
+}
+
+.next-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
 }
 
 @media(max-width:600px){
 
-    .page{
-        padding-left:28px;
-        padding-right:28px;
-    }
-
-    .header{
-        height:70px;
-        padding-left:0;
-    }
-
-    .back{
-        width:30px;
-        height:38px;
-    }
-
-    .back svg{
-        width:30px;
-        height:38px;
-    }
-
-    .header-title{
-        margin-left:15px;
-        font-size:21px;
-    }
-
-    .content{
-        width:calc(100% - 120px);
-        max-width:714px;
-        margin:105px auto 0;
-    }
-
-    h1{
-        margin-bottom:30px;
-        font-size:42px;
-    }
-
-    .subtitle{
-        margin-bottom:55px;
-        font-size:21px;
-        line-height:1.5;
-    }
-
-    .accounts{
-        gap:12px;
-    }
-
-    .account{
-        min-height:68px;
-        padding:14px 20px;
-        border:2px solid #252525;
-    }
-
-    .username{
-        font-size:18px;
-        margin-bottom:6px;
-    }
-
-    .email{
-        font-size:15px;
-    }
-
-    .radio{
-        width:24px;
-        height:24px;
-        margin-left:15px;
-    }
-
-    .account.selected .radio:after{
-        width:12px;
-        height:12px;
-    }
-
-    .actions{
-        gap:10px;
-        margin-top:12px;
-    }
-
-    .action-btn{
-        height:58px;
-        border-radius:32px;
-        font-size:20px;
-    }
-
-    .status{
-        font-size:14px;
-    }
-
-    .loading-box{
-        min-height:68px;
-        border:2px solid #252525;
-        font-size:14px;
-    }
-
-    .empty{
-        padding:20px;
-        border:2px solid #252525;
-        font-size:14px;
-    }
-}
-
-@media(max-width:430px){
-
-    .content{
+    .box{
         width:calc(100% - 40px);
-        margin-top:65px;
+        max-width:365px;
+        margin-top:60px;
     }
 
-    h1{
-        font-size:38px;
+    .title{
+        font-size:21px;
     }
 
-    .subtitle{
-        font-size:20px;
-    }
-
-    .account{
-        min-height:65px;
-        padding:13px 15px;
-    }
-
-    .username{
-        font-size:17px;
-    }
-
-    .email{
-        font-size:14px;
-    }
-
-    .action-btn{
-        height:55px;
-        font-size:18px;
+    .description{
+        font-size:12px;
     }
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div class="page">
 
-<header class="header">
+    <div class="box">
 
-<button class="back" type="button" onclick="goBack()" aria-label="Geri">
-<svg viewBox="0 0 32 32">
-<path d="M20 5 L9 16 L20 27"></path>
-<path d="M10 16 H27"></path>
-</svg>
-</button>
+        <div class="header">
 
-<div class="header-title">Şifremi unuttum</div>
+            <div
+                id="topBack"
+                class="back"
+                role="button"
+                tabindex="0"
+                aria-label="Geri"
+            >‹</div>
 
-</header>
+            <div class="header-title">
+                Şifremi unuttum
+            </div>
 
-<main class="content">
+        </div>
 
-<h1>Hesaplarını bulduk</h1>
+        <h1 class="title">
+            İletişim bilgini ekle
+        </h1>
 
-<div class="subtitle">
-Kayıtlı hesaplarından devam etmek istediğini seç.
-</div>
+        <p class="description">
+            Şifreni yenilemek için hesabındaki<br>
+            e-posta adresini kullan.
+        </p>
 
-<section class="accounts" id="accounts">
+        <div class="tabs">
 
-<div class="loading-box">
-<div class="spinner"></div>
-Hesapların aranıyor...
-</div>
+            <button
+                id="emailTab"
+                class="tab email"
+                type="button"
+            >
+                E-posta
+            </button>
 
-</section>
+            <button
+                id="phoneTab"
+                class="tab phone"
+                type="button"
+            >
+                Telefon
+            </button>
 
-<div class="actions" id="actions">
+        </div>
 
-<button
-class="action-btn primary"
-id="loginButton"
-type="button"
-onclick="directLogin(event)"
->
-Direkt giriş yap
-</button>
+        <input
+            id="contact"
+            class="input"
+            type="email"
+            autocomplete="email"
+            placeholder="E-posta adresi"
+            maxlength="254"
+        >
 
-<button
-class="action-btn secondary"
-id="resetButton"
-type="button"
-onclick="startPasswordReset(event)"
->
-Şifre değiştirmeye devam et
-</button>
+        <div id="note" class="note">
+            Devam ettiğinde e-posta adresine
+            6 haneli doğrulama kodu gönderilir.
+        </div>
 
-</div>
+        <div id="status" class="status"></div>
 
-<div class="status" id="status"></div>
+        <div class="bottom">
 
-</main>
+            <button
+                id="backBtn"
+                class="action back-btn"
+                type="button"
+            >
+                Geri
+            </button>
+
+            <button
+                id="nextBtn"
+                class="action next-btn"
+                type="button"
+            >
+                İleri
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 <script>
+
 "use strict";
 
-const API="/api";
+/* =========================================================
+   ELEMENTLER
+========================================================= */
 
-let selectedAccount=null;
+const emailTab =
+    document.getElementById("emailTab");
 
-const params=new URLSearchParams(window.location.search);
+const phoneTab =
+    document.getElementById("phoneTab");
 
-let recoveryIdentifier=(
-    params.get("identifier") ||
-    params.get("username") ||
-    sessionStorage.getItem("minegram_recovery_identifier") ||
-    sessionStorage.getItem("minegram_recovery_username") ||
-    ""
-).trim().replace(/^@/,"").toLowerCase();
+const contact =
+    document.getElementById("contact");
 
-let recoveryMode=(
-    params.get("mode") ||
-    sessionStorage.getItem("minegram_recovery_mode") ||
-    ""
-).trim().toLowerCase();
+const note =
+    document.getElementById("note");
 
-let recoveryEmail=(
-    params.get("email") ||
-    sessionStorage.getItem("minegram_recovery_email") ||
-    ""
-).trim().toLowerCase();
+const status =
+    document.getElementById("status");
 
-function goBack(){
+const nextBtn =
+    document.getElementById("nextBtn");
 
-    if(history.length>1){
-        history.back();
-    }else{
-        window.location.href="giris.html";
-    }
-}
+const backBtn =
+    document.getElementById("backBtn");
 
-function showStatus(text,type=""){
+const topBack =
+    document.getElementById("topBack");
 
-    const el=document.getElementById("status");
 
-    if(!el)return;
+/* =========================================================
+   DEĞİŞKENLER
+========================================================= */
 
-    el.className="status";
+let mode = "email";
+let busy = false;
 
-    if(text){
-        el.textContent=text;
-        el.classList.add("show");
 
-        if(type){
-            el.classList.add(type);
-        }
-    }else{
-        el.textContent="";
-    }
-}
+/* =========================================================
+   URL PARAMETRELERİ
+========================================================= */
 
-function escapeHtml(value){
-
-    return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-}
-
-function selectAccount(button){
-
-    document.querySelectorAll(".account").forEach(el=>{
-        el.classList.remove("selected");
-    });
-
-    button.classList.add("selected");
-
-    selectedAccount={
-        id:String(button.dataset.id || "").trim(),
-
-        username:String(button.dataset.username || "")
-            .trim()
-            .replace(/^@/,"")
-            .toLowerCase(),
-
-        email:String(button.dataset.email || "")
-            .trim()
-            .toLowerCase(),
-
-        displayName:String(button.dataset.displayName || "").trim(),
-
-        avatar:String(button.dataset.avatar || "").trim()
-    };
-
-    recoveryIdentifier=selectedAccount.username;
-    recoveryMode="username";
-    recoveryEmail=selectedAccount.email;
-
-    sessionStorage.setItem(
-        "minegram_recovery_identifier",
-        recoveryIdentifier
+const params =
+    new URLSearchParams(
+        window.location.search
     );
 
-    sessionStorage.setItem(
-        "minegram_recovery_username",
-        recoveryIdentifier
-    );
 
-    sessionStorage.setItem(
-        "minegram_recovery_mode",
-        "username"
-    );
+/* =========================================================
+   KAYITLI RECOVERY BİLGİSİ
+========================================================= */
 
-    if(recoveryEmail){
-
-        sessionStorage.setItem(
-            "minegram_recovery_email",
-            recoveryEmail
-        );
-    }
-
-    document.getElementById("actions").classList.add("show");
-
-    showStatus("");
-}
-
-function createAccountCard(account){
-
-    const username=String(
-        account?.username || ""
+let savedIdentifier =
+    (
+        params.get("identifier") ||
+        params.get("username") ||
+        sessionStorage.getItem(
+            "minegram_recovery_identifier"
+        ) ||
+        ""
     )
     .trim()
     .replace(/^@/,"")
     .toLowerCase();
 
-    const email=String(
-        account?.email || ""
+
+let savedEmail =
+    (
+        params.get("email") ||
+        sessionStorage.getItem(
+            "minegram_recovery_email"
+        ) ||
+        ""
     )
     .trim()
     .toLowerCase();
 
-    if(!username && !email){
-        return null;
-    }
 
-    const button=document.createElement("button");
+/* =========================================================
+   STATUS
+========================================================= */
 
-    button.type="button";
-    button.className="account";
+function showStatus(
+    text,
+    success = false,
+    loading = false
+){
 
-    button.dataset.id=String(account.id || "");
+    status.textContent =
+        text || "";
 
-    button.dataset.username=username;
+    if(loading){
 
-    button.dataset.email=email;
-
-    button.dataset.displayName=
-        String(
-            account.displayName ||
-            account.display_name ||
-            username
-        );
-
-    button.dataset.avatar=
-        String(
-            account.avatar ||
-            account.avatar_url ||
-            ""
-        );
-
-    button.innerHTML=`
-        <div class="account-info">
-
-            <div class="username">
-                @${escapeHtml(username || "minegram")}
-            </div>
-
-            <div class="email">
-                ${escapeHtml(
-                    email ||
-                    "E-posta adresi bulunamadı"
-                )}
-            </div>
-
-        </div>
-
-        <div class="radio"></div>
-    `;
-
-    button.addEventListener(
-        "click",
-        ()=>{
-            selectAccount(button);
-        }
-    );
-
-    return button;
-}
-
-function renderAccounts(accounts){
-
-    const container=
-        document.getElementById("accounts");
-
-    container.innerHTML="";
-
-    if(
-        !Array.isArray(accounts) ||
-        !accounts.length
-    ){
-
-        container.innerHTML=`
-            <div class="empty">
-                Bu bilgilerle eşleşen Minegram hesabı bulunamadı.
-            </div>
-        `;
+        status.className =
+            "status loading";
 
         return;
     }
 
-    accounts.forEach(account=>{
+    status.className =
+        success
+            ? "status success"
+            : "status";
+}
 
-        const card=createAccountCard(account);
 
-        if(card){
-            container.appendChild(card);
-        }
+/* =========================================================
+   E-POSTA
+========================================================= */
 
-    });
+function selectEmail(){
 
-    const cards=
-        container.querySelectorAll(".account");
+    mode = "email";
 
-    if(!cards.length){
+    emailTab.style.background =
+        "#554f67";
 
-        container.innerHTML=`
-            <div class="empty">
-                Hesap bilgileri yüklenemedi.
-            </div>
-        `;
+    emailTab.style.borderColor =
+        "#554f67";
 
-        return;
-    }
+    emailTab.style.color =
+        "#eee8fa";
 
-    if(recoveryIdentifier){
 
-        cards.forEach(card=>{
+    phoneTab.style.background =
+        "#000";
 
-            if(
-                card.dataset.username.toLowerCase() ===
-                recoveryIdentifier.toLowerCase()
-            ){
+    phoneTab.style.borderColor =
+        "#292929";
 
-                selectAccount(card);
-            }
+    phoneTab.style.color =
+        "#fff";
 
-        });
+
+    contact.type =
+        "email";
+
+    contact.autocomplete =
+        "email";
+
+    contact.placeholder =
+        "E-posta adresi";
+
+
+    note.textContent =
+        "Devam ettiğinde e-posta adresine 6 haneli doğrulama kodu gönderilir.";
+
+
+    showStatus("");
+
+
+    if(savedEmail){
+
+        contact.value =
+            savedEmail;
+
     }
 }
 
-async function findAccount(){
 
-    const container=
-        document.getElementById("accounts");
+emailTab.addEventListener(
+    "click",
+    selectEmail
+);
 
-    try{
 
-        let identifier=recoveryIdentifier;
-        let mode=recoveryMode;
+/* =========================================================
+   TELEFON
+========================================================= */
 
-        if(!identifier && recoveryEmail){
+phoneTab.addEventListener(
+    "click",
+    function(){
 
-            identifier=recoveryEmail;
-            mode="email";
-        }
+        selectEmail();
 
-        if(!identifier){
-
-            throw new Error(
-                "Hesap bilgisi bulunamadı. Lütfen işlemi baştan başlat."
-            );
-        }
-
-        const response=await fetch(
-            API+"/forgot-password/find-account",
-            {
-                method:"POST",
-
-                headers:{
-                    "Content-Type":"application/json",
-                    "Accept":"application/json"
-                },
-
-                body:JSON.stringify({
-                    identifier:identifier,
-
-                    mode:
-                        mode ||
-                        (
-                            identifier.includes("@")
-                                ? "email"
-                                : "username"
-                        )
-                }),
-
-                cache:"no-store"
-            }
+        showStatus(
+            "Şimdilik yalnızca e-posta ile şifre yenileme yapılabilir."
         );
 
-        const data=
-            await response.json().catch(()=>({}));
+        contact.focus();
+
+    }
+);
+
+
+/* =========================================================
+   GERİ
+========================================================= */
+
+function goBack(){
+
+    window.location.href =
+        "login.html";
+
+}
+
+
+topBack.addEventListener(
+    "click",
+    goBack
+);
+
+
+backBtn.addEventListener(
+    "click",
+    goBack
+);
+
+
+topBack.addEventListener(
+    "keydown",
+    function(event){
 
         if(
-            !response.ok ||
-            data.ok===false
+            event.key === "Enter" ||
+            event.key === " "
         ){
 
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Hesap bulunamadı."
-            );
+            event.preventDefault();
+
+            goBack();
+
         }
 
-        if(data.account){
-
-            renderAccounts([
-                data.account
-            ]);
-
-            return;
-        }
-
-        if(Array.isArray(data.accounts)){
-
-            renderAccounts(
-                data.accounts
-            );
-
-            return;
-        }
-
-        if(data.profile){
-
-            renderAccounts([
-                data.profile
-            ]);
-
-            return;
-        }
-
-        throw new Error(
-            "Hesap bilgileri alınamadı."
-        );
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM FIND ACCOUNT]",
-            error
-        );
-
-        container.innerHTML=`
-            <div class="empty">
-                ${escapeHtml(
-                    error.message ||
-                    "Hesap bulunamadı."
-                )}
-            </div>
-        `;
-
-        showStatus(
-            error.message ||
-            "Hesap bulunamadı.",
-            "error"
-        );
     }
-}
+);
 
-function directLogin(event){
 
-    event?.stopPropagation();
+/* =========================================================
+   EMAIL KONTROL
+========================================================= */
 
-    if(!selectedAccount){
+function validEmail(email){
 
-        showStatus(
-            "Önce bir hesap seç.",
-            "error"
-        );
-
-        return;
-    }
-
-    const p=new URLSearchParams();
-
-    if(selectedAccount.username){
-
-        p.set(
-            "username",
-            selectedAccount.username
-        );
-    }
-
-    if(selectedAccount.email){
-
-        p.set(
-            "email",
-            selectedAccount.email
-        );
-    }
-
-    window.location.href=
-        "giris.html?"+p.toString();
-}
-
-async function startPasswordReset(event){
-
-    event?.stopPropagation();
-
-    if(!selectedAccount){
-
-        showStatus(
-            "Önce bir hesap seç.",
-            "error"
-        );
-
-        return;
-    }
-
-    const button=
-        document.getElementById("resetButton");
-
-    button.disabled=true;
-
-    button.textContent=
-        "Kod gönderiliyor...";
-
-    showStatus(
-        (
-            selectedAccount.email ||
-            "E-posta adresine"
-        )+
-        " doğrulama kodu gönderiliyor..."
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
     );
 
-    try{
+}
 
-        const response=await fetch(
-            API+"/forgot/start",
+
+/* =========================================================
+   ŞİFRE KURTARMA KODU GÖNDER
+========================================================= */
+
+async function sendRecoveryCode(email){
+
+    const response =
+        await fetch(
+            "/api/forgot/start",
             {
                 method:"POST",
 
                 headers:{
-                    "Content-Type":"application/json",
-                    "Accept":"application/json"
+                    "Content-Type":
+                        "application/json",
+
+                    "Accept":
+                        "application/json"
                 },
 
                 body:JSON.stringify({
 
                     identifier:
-                        selectedAccount.username,
+                        email,
 
-                    mode:"username"
+                    email:
+                        email,
+
+                    mode:
+                        "email"
+
                 }),
 
                 cache:"no-store"
             }
         );
 
-        const data=
-            await response.json().catch(()=>({}));
 
-        if(
-            !response.ok ||
-            data.ok===false
-        ){
+    let result = {};
 
-            throw new Error(
-                data.error ||
-                data.message ||
-                "Doğrulama kodu gönderilemedi."
+    try{
+
+        result =
+            await response.json();
+
+    }
+    catch(error){
+
+        result = {};
+
+    }
+
+
+    console.log(
+        "[MINEGRAM FORGOT START]",
+        response.status,
+        result
+    );
+
+
+    if(!response.ok){
+
+        throw new Error(
+            result.error ||
+            result.message ||
+            "Doğrulama kodu gönderilemedi."
+        );
+
+    }
+
+
+    if(result.ok === false){
+
+        throw new Error(
+            result.error ||
+            result.message ||
+            "Doğrulama kodu gönderilemedi."
+        );
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   İLERİ
+========================================================= */
+
+async function goNext(){
+
+    if(busy){
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------------
+       MODE
+    ----------------------------------------------------- */
+
+    if(mode !== "email"){
+
+        selectEmail();
+
+    }
+
+
+    /* -----------------------------------------------------
+       EMAIL
+    ----------------------------------------------------- */
+
+    const email =
+        String(
+            contact.value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if(!email){
+
+        showStatus(
+            "Lütfen e-posta adresini gir."
+        );
+
+        contact.focus();
+
+        return;
+
+    }
+
+
+    if(!validEmail(email)){
+
+        showStatus(
+            "Geçerli bir e-posta adresi gir."
+        );
+
+        contact.focus();
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------------
+       SESSION
+    ----------------------------------------------------- */
+
+    sessionStorage.setItem(
+        "minegram_recovery_identifier",
+        email
+    );
+
+    sessionStorage.setItem(
+        "minegram_recovery_email",
+        email
+    );
+
+    sessionStorage.setItem(
+        "minegram_recovery_mode",
+        "email"
+    );
+
+
+    /* -----------------------------------------------------
+       BUTON
+    ----------------------------------------------------- */
+
+    busy = true;
+
+    nextBtn.disabled = true;
+
+    nextBtn.textContent =
+        "Gönderiliyor...";
+
+
+    showStatus(
+        "E-posta adresin kontrol ediliyor...",
+        false,
+        true
+    );
+
+
+    try{
+
+        /* -------------------------------------------------
+           ŞİFRE KURTARMA KODU
+        ------------------------------------------------- */
+
+        const result =
+            await sendRecoveryCode(
+                email
             );
-        }
 
-        /*
-         * GERÇEK ŞİFRE SIFIRLAMA ANAHTARI DEĞİL.
-         * Sadece 6 haneli kod ekranına geçiş için
-         * kısa süreli recovery challenge.
-         */
 
-        const recoveryId=
+        /* -------------------------------------------------
+           SERVER EMAIL
+        ------------------------------------------------- */
+
+        const serverEmail =
             String(
-                data.recoveryId ||
-                data.recovery_id ||
-                ""
-            ).trim();
+                result?.email ||
+                result?.account?.email ||
+                email
+            )
+            .trim()
+            .toLowerCase();
 
-        if(!recoveryId){
-
-            throw new Error(
-                "Şifre sıfırlama oturumu oluşturulamadı."
-            );
-        }
-
-        const email=(
-            data.email ||
-            selectedAccount.email ||
-            ""
-        ).trim().toLowerCase();
 
         sessionStorage.setItem(
-            "minegram_recovery_id",
-            recoveryId
-        );
-
-        sessionStorage.setItem(
-            "recoveryId",
-            recoveryId
-        );
-
-        sessionStorage.setItem(
-            "recovery_id",
-            recoveryId
+            "minegram_recovery_email",
+            serverEmail
         );
 
         sessionStorage.setItem(
             "minegram_recovery_identifier",
-            selectedAccount.username
-        );
-
-        sessionStorage.setItem(
-            "minegram_recovery_username",
-            selectedAccount.username
+            serverEmail
         );
 
         sessionStorage.setItem(
             "minegram_recovery_mode",
-            "username"
+            "email"
         );
 
-        if(email){
 
-            sessionStorage.setItem(
-                "minegram_recovery_email",
-                email
-            );
-        }
+        /* -------------------------------------------------
+           BAŞARILI
+        ------------------------------------------------- */
 
-        const next=
+        showStatus(
+            "Kod gönderildi. E-postanı kontrol et.",
+            true
+        );
+
+        nextBtn.textContent =
+            "Kod gönderildi";
+
+
+        /* -------------------------------------------------
+           KOD SAYFASI
+        ------------------------------------------------- */
+
+        const next =
             new URLSearchParams();
 
-        next.set(
-            "recoveryId",
-            recoveryId
-        );
 
         next.set(
             "identifier",
-            selectedAccount.username
+            serverEmail
         );
+
+
+        next.set(
+            "email",
+            serverEmail
+        );
+
 
         next.set(
             "mode",
-            "username"
+            "email"
         );
 
-        if(email){
 
-            next.set(
-                "email",
-                email
-            );
-        }
+        setTimeout(
+            function(){
 
-        window.location.href=
-            "yeni-sifre.html?"+
-            next.toString();
+                window.location.href =
+                    "./sifremi-unuttum.html?" +
+                    next.toString();
 
-    }catch(error){
+            },
+            700
+        );
+
+    }
+    catch(error){
 
         console.error(
-            "[MINEGRAM RESET START]",
+            "[MINEGRAM] ŞİFRE KURTARMA HATASI:",
             error
         );
 
-        button.disabled=false;
 
-        button.textContent=
-            "Şifre değiştirmeye devam et";
+        busy = false;
+
+        nextBtn.disabled =
+            false;
+
+        nextBtn.textContent =
+            "İleri";
+
 
         showStatus(
-            error.message ||
-            "Bir hata oluştu. Lütfen tekrar deneyin.",
-            "error"
+            error?.message ||
+            "Kod gönderilemedi. Lütfen tekrar dene."
         );
+
     }
+
 }
 
-document.addEventListener(
-    "DOMContentLoaded",
-    findAccount
+
+/* =========================================================
+   BUTON
+========================================================= */
+
+nextBtn.addEventListener(
+    "click",
+    goNext
 );
+
+
+/* =========================================================
+   ENTER
+========================================================= */
+
+contact.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            goNext();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   KAYITLI E-POSTA
+========================================================= */
+
+if(savedEmail){
+
+    contact.value =
+        savedEmail;
+
+}
+
+
+/* =========================================================
+   BAŞLANGIÇ
+========================================================= */
+
+selectEmail();
+
+
+console.log(
+    "[MINEGRAM] Şifre kurtarma iletişim ekranı hazır."
+);
+
+console.log(
+    "[MINEGRAM] Recovery email:",
+    savedEmail || "YOK"
+);
+
 </script>
 
 </body>
