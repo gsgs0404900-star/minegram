@@ -4348,69 +4348,102 @@ async function load() {
 
     renderHighlights();
 
-    const av =
-      $('avatar');
+/* =========================================================
+   HIGHLIGHTS YÜKLE
+   ========================================================= */
 
-    if (av) {
+try {
 
-      if (currentProfile.avatar) {
-
-        av.innerHTML =
-          '<img src="' +
-          escapeHtml(
-            currentProfile.avatar
-          ) +
-          '" alt="Profil fotoğrafı">';
-
-      } else {
-
-        const name =
-          currentProfile.displayName ||
-          currentProfile.username ||
-          'M';
-
-        av.textContent =
-          String(name)
-            .trim()
-            .charAt(0)
-            .toUpperCase() ||
-          'M';
-      }
-    }
-
-    const posts =
-      await api(
-        '/api/users/' +
-        encodeURIComponent(
-          username
-        ) +
-        '/posts'
-      );
-
-    renderPosts(posts);
-
-  } catch (e) {
-
-    console.error(
-      'PROFILE LOAD ERROR:',
-      e
+  const highlightsRaw =
+    await api(
+      '/api/users/' +
+      encodeURIComponent(username) +
+      '/highlights'
     );
 
-    const grid =
-      $('grid');
+  console.log(
+    'MINEGRAM HIGHLIGHTS:',
+    highlightsRaw
+  );
 
-    if (grid) {
+  if (Array.isArray(highlightsRaw)) {
 
-      grid.innerHTML =
-        '<div class="empty">Profil yüklenemedi.</div>';
-    }
+    currentProfile.highlights =
+      highlightsRaw;
 
-    toast(
-      e.message ||
-      'Profil yüklenemedi'
-    );
+  } else if (
+    highlightsRaw &&
+    Array.isArray(highlightsRaw.highlights)
+  ) {
+
+    currentProfile.highlights =
+      highlightsRaw.highlights;
+
+  } else if (
+    highlightsRaw &&
+    Array.isArray(highlightsRaw.data)
+  ) {
+
+    currentProfile.highlights =
+      highlightsRaw.data;
+
+  } else {
+
+    currentProfile.highlights = [];
+  }
+
+} catch (highlightError) {
+
+  console.error(
+    'HIGHLIGHTS LOAD ERROR:',
+    highlightError
+  );
+
+  currentProfile.highlights = [];
+}
+
+renderHighlights();
+
+const av =
+  $('avatar');
+
+if (av) {
+
+  if (currentProfile.avatar) {
+
+    av.innerHTML =
+      '<img src="' +
+      escapeHtml(
+        currentProfile.avatar
+      ) +
+      '" alt="Profil fotoğrafı">';
+
+  } else {
+
+    const name =
+      currentProfile.displayName ||
+      currentProfile.username ||
+      'M';
+
+    av.textContent =
+      String(name)
+        .trim()
+        .charAt(0)
+        .toUpperCase() ||
+      'M';
   }
 }
+
+const posts =
+  await api(
+    '/api/users/' +
+    encodeURIComponent(
+      username
+    ) +
+    '/posts'
+  );
+
+renderPosts(posts);
 
 
 /* =========================================================
