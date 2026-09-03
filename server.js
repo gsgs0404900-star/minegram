@@ -2844,6 +2844,34 @@ app.post(
         });
       }
 
+      // Resend ile gönderilen 6 haneli kod Minegram'ın e-posta doğrulamasıdır.
+      // Bu nedenle doğrulama başarılıysa Supabase Auth hesabını da doğrula.
+      try {
+        const { error: confirmError } =
+          await admin.auth.admin.updateUserById(
+            authUserId,
+            { email_confirm: true }
+          );
+
+        if (confirmError) {
+          console.error("RECOVERY EMAIL CONFIRM ERROR:", confirmError);
+          return res.status(400).json({
+            ok: false,
+            code: "EMAIL_CONFIRM_FAILED",
+            error: "E-posta doğrulaması Supabase üzerinde tamamlanamadı.",
+            detail: confirmError.message || String(confirmError)
+          });
+        }
+      } catch (confirmException) {
+        console.error("RECOVERY EMAIL CONFIRM EXCEPTION:", confirmException);
+        return res.status(400).json({
+          ok: false,
+          code: "EMAIL_CONFIRM_FAILED",
+          error: "E-posta doğrulaması Supabase üzerinde tamamlanamadı.",
+          detail: confirmException?.message || String(confirmException)
+        });
+      }
+
       const resetToken = createPasswordResetToken();
       passwordResetTokens.set(resetToken, {
         userId: authUserId,
@@ -2954,8 +2982,17 @@ app.post(
         });
       }
 
+      // Şifre sıfırlama kodu ile doğrulama yapıldığı için hesabın
+      // Supabase Auth e-posta doğrulamasını da tamamla. Böylece yeni
+      // şifreyle girişte "Email not confirmed" hatası oluşmaz.
       const { error: updateError } =
-        await admin.auth.admin.updateUserById(entry.userId, { password });
+        await admin.auth.admin.updateUserById(
+          entry.userId,
+          {
+            password,
+            email_confirm: true
+          }
+        );
 
       if (updateError) throw updateError;
 
