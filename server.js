@@ -279,68 +279,6 @@ async function findProfile(
   return data;
 }
 
-/* =========================================================
-   PUBLIC SEARCH
-   Mesaj ekranındaki kullanıcı araması için auth gerektirmeyen
-   güvenli arama endpoint'i. Sadece public profil alanları döner.
-========================================================= */
-
-app.get(
-  "/api/public/search",
-  async (req, res) => {
-    try {
-      const q = String(req.query.q || "")
-        .trim()
-        .toLowerCase();
-
-      if (!q) {
-        return res.json([]);
-      }
-
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({
-          ok: false,
-          error: "Supabase service role yapılandırması eksik."
-        });
-      }
-
-      const safeQ = q
-        .replace(/\\/g, "")
-        .replace(/,/g, "")
-        .replace(/\./g, "");
-
-      if (!safeQ) {
-        return res.json([]);
-      }
-
-      const admin = adminClient();
-
-      const { data, error } = await admin
-        .from("profiles")
-        .select("id,username,display_name,bio,avatar_url,verified")
-        .or(
-          `username.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`
-        )
-        .limit(30);
-
-      if (error) {
-        throw error;
-      }
-
-      return res.json(
-        (data || []).map(safeUser)
-      );
-    } catch (e) {
-      console.error("PUBLIC SEARCH ERROR:", e);
-      return res.status(500).json({
-        ok: false,
-        error: e?.message || "Kullanıcı araması yapılamadı."
-      });
-    }
-  }
-);
-
-
 async function addNotification({
   userId,
   type,
@@ -2787,6 +2725,269 @@ app.get(
       res.status(500).json({
         error:
           e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   HIGHLIGHTS
+   Android + Web ortak Öne Çıkanlar sistemi
+========================================================= */
+
+app.get(
+  "/api/users/:username/highlights",
+  auth,
+  async (req, res) => {
+    try {
+      const target = await findProfile(
+        req.sb,
+        req.params.username
+      );
+
+      if (!target) {
+        return res.status(404).json({
+          error: "Kullanıcı bulunamadı"
+        });
+      }
+
+      const { data, error } = await req.sb
+        .from("highlights")
+        .select("*")
+        .eq("user_id", target.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        (data || []).map(h => ({
+          id: h.id,
+          userId: h.user_id,
+          media: h.media_url,
+          mediaUrl: h.media_url,
+          mediaType: h.media_type || "",
+          title: h.title || "Öne çıkan",
+          sortOrder: h.sort_order ?? 0,
+          createdAt: h.created_at
+        }))
+      );
+    } catch (e) {
+      console.error("HIGHLIGHTS GET ERROR:", e);
+      res.status(500).json({
+        error: e.message
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/highlights",
+  auth,
+  async (req, res) => {
+    try {
+      const { data, error } = await req.sb
+        .from("highlights")
+        .select("*")
+        .eq("user_id", req.user.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(data || []);
+    } catch (e) {
+      console.error("MY HIGHLIGHTS ERROR:", e);
+      res.status(500).json({
+        error: e.message
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/highlights",
+  auth,
+  upload.single("media"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "Öne çıkan için medya dosyası seçilmedi"
+        });
+      }
+
+      const ext =
+        path.extname(req.file.originalname).toLowerCase() || ".bin";
+
+      const objectPath =
+        `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
+
+      const { error: uploadError } =
+        await req.sb.storage
+          .from(BUCKET)
+          .upload(
+            objectPath,
+            req.file.buffer,
+            {
+              contentType: req.file.mimetype,
+              upsert: false
+            }
+          );
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicData } =
+        req.sb.storage
+          .from(BUCKET)
+          .getPublicUrl(objectPath);
+
+      const title =
+        String(req.body?.title || "Öne çıkan").trim().slice(0, 80) ||
+        "Öne çıkan";
+
+      const requestedSort = Number(req.body?.sortOrder);
+      const sortOrder = Number.isFinite(requestedSort)
+        ? requestedSort
+        : 0;
+
+      const { data, error } =
+        await req.sb
+          .from("highlights")
+          .insert({
+            user_id: req.user.id,
+            media_url: publicData.publicUrl,
+            media_type: req.file.mimetype,
+            title,
+            sort_order: sortOrder
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        ok: true,
+        id: data.id,
+        userId: data.user_id,
+        media: data.media_url,
+        mediaUrl: data.media_url,
+        mediaType: data.media_type,
+        title: data.title,
+        sortOrder: data.sort_order ?? 0,
+        createdAt: data.created_at
+      });
+    } catch (e) {
+      console.error("HIGHLIGHT CREATE ERROR:", e);
+      res.status(400).json({
+        error: e.message
+      });
+    }
+  }
+);
+
+app.patch(
+  "/api/highlights/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const patch = {};
+
+      if (req.body?.title !== undefined) {
+        patch.title =
+          String(req.body.title).trim().slice(0, 80) || "Öne çıkan";
+      }
+
+      if (req.body?.sortOrder !== undefined) {
+        const sortOrder = Number(req.body.sortOrder);
+        if (Number.isFinite(sortOrder)) {
+          patch.sort_order = sortOrder;
+        }
+      }
+
+      if (!Object.keys(patch).length) {
+        return res.status(400).json({
+          error: "Güncellenecek bilgi yok"
+        });
+      }
+
+      const { data, error } =
+        await req.sb
+          .from("highlights")
+          .update(patch)
+          .eq("id", req.params.id)
+          .eq("user_id", req.user.id)
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        ok: true,
+        ...data
+      });
+    } catch (e) {
+      console.error("HIGHLIGHT UPDATE ERROR:", e);
+      res.status(400).json({
+        error: e.message
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/highlights/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const { data: existing, error: findError } =
+        await req.sb
+          .from("highlights")
+          .select("id,media_url")
+          .eq("id", req.params.id)
+          .eq("user_id", req.user.id)
+          .maybeSingle();
+
+      if (findError) {
+        throw findError;
+      }
+
+      if (!existing) {
+        return res.status(404).json({
+          error: "Öne çıkan bulunamadı"
+        });
+      }
+
+      const { error } =
+        await req.sb
+          .from("highlights")
+          .delete()
+          .eq("id", req.params.id)
+          .eq("user_id", req.user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        ok: true,
+        id: req.params.id
+      });
+    } catch (e) {
+      console.error("HIGHLIGHT DELETE ERROR:", e);
+      res.status(400).json({
+        error: e.message
       });
     }
   }
