@@ -2844,31 +2844,38 @@ app.post(
         });
       }
 
-      // Resend ile gönderilen 6 haneli kod Minegram'ın e-posta doğrulamasıdır.
-      // Bu nedenle doğrulama başarılıysa Supabase Auth hesabını da doğrula.
+      // Kullanıcı e-posta üzerinden 6 haneli kurtarma kodunu doğru
+      // girdiğine göre e-posta sahipliğini doğrulamış kabul edilir.
+      // Eski/yarım kalmış hesaplarda Supabase Auth tarafında
+      // email_confirmed_at boş kalmışsa girişte "Email not confirmed"
+      // hatası oluşmasını engellemek için burada da hesabı doğrula.
       try {
+        const admin = adminClient();
         const { error: confirmError } =
-          await admin.auth.admin.updateUserById(
-            authUserId,
-            { email_confirm: true }
-          );
+          await admin.auth.admin.updateUserById(authUserId, {
+            email_confirm: true
+          });
 
         if (confirmError) {
-          console.error("RECOVERY EMAIL CONFIRM ERROR:", confirmError);
-          return res.status(400).json({
+          console.error(
+            "RECOVERY EMAIL CONFIRM ERROR:",
+            confirmError?.message || confirmError
+          );
+          return res.status(500).json({
             ok: false,
             code: "EMAIL_CONFIRM_FAILED",
-            error: "E-posta doğrulaması Supabase üzerinde tamamlanamadı.",
-            detail: confirmError.message || String(confirmError)
+            error: "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
           });
         }
       } catch (confirmException) {
-        console.error("RECOVERY EMAIL CONFIRM EXCEPTION:", confirmException);
-        return res.status(400).json({
+        console.error(
+          "RECOVERY EMAIL CONFIRM EXCEPTION:",
+          confirmException?.message || confirmException
+        );
+        return res.status(500).json({
           ok: false,
           code: "EMAIL_CONFIRM_FAILED",
-          error: "E-posta doğrulaması Supabase üzerinde tamamlanamadı.",
-          detail: confirmException?.message || String(confirmException)
+          error: "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
         });
       }
 
@@ -2982,17 +2989,11 @@ app.post(
         });
       }
 
-      // Şifre sıfırlama kodu ile doğrulama yapıldığı için hesabın
-      // Supabase Auth e-posta doğrulamasını da tamamla. Böylece yeni
-      // şifreyle girişte "Email not confirmed" hatası oluşmaz.
       const { error: updateError } =
-        await admin.auth.admin.updateUserById(
-          entry.userId,
-          {
-            password,
-            email_confirm: true
-          }
-        );
+        await admin.auth.admin.updateUserById(entry.userId, {
+          password,
+          email_confirm: true
+        });
 
       if (updateError) throw updateError;
 
