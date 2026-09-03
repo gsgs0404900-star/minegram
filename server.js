@@ -887,25 +887,29 @@ app.post(
    PROFİL OLUŞTUR
 ========================================================= */
 
-let profile = null;
-let profileError = null;
-
-const profileData = {
-  id: authUser.id,
-  auth_user_id: authUser.id,
-  username,
-  display_name: displayName,
-  bio: "",
-  avatar_url: null,
-  verified: false,
-  settings: {}
-};
-
-const profileResult = await admin
-  .from("profiles")
-  .insert(profileData)
-  .select("*")
-  .single();
+const {
+  data: profile,
+  error: profileError
+} =
+  await admin
+    .from("profiles")
+    .upsert(
+      {
+        id: authUser.id,
+        auth_user_id: authUser.id,
+        username,
+        display_name: displayName,
+        bio: "",
+        avatar_url: null,
+        verified: false,
+        settings: {}
+      },
+      {
+        onConflict: "id"
+      }
+    )
+    .select("*")
+    .single();
 
 profile = profileResult.data || null;
 profileError = profileResult.error || null;
