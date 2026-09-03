@@ -166,51 +166,43 @@ async function auth(req, res, next) {
       throw error || new Error("Oturum gerekli");
     }
 
-    // Profil sorgusunu Service Role ile yap. RLS açık olsa bile /api/me
-    // profil bulabilsin. Normal client (req.sb) diğer işlemler için token ile çalışır.
-    const admin = adminClient();
-
     let {
       data: profile,
       error: pError
-    } = await admin
+    } = await sb
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (pError) {
-      console.error("AUTH PROFILE ID ERROR:", pError);
-    }
-
     if (!profile) {
-      const fallback = await admin
-        .from("profiles")
-        .select("*")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
+      const fallback =
+        await sb
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
 
-      profile = fallback.data || null;
-      pError = fallback.error || null;
+      profile =
+        fallback.data || null;
+
+      pError =
+        fallback.error || null;
     }
 
     if (pError || !profile) {
-      console.error("AUTH PROFILE NOT FOUND:", pError || user.id);
-      return res.status(404).json({
-        ok: false,
-        code: "PROFILE_NOT_FOUND",
-        error: "Bu hesap için Minegram profili bulunamadı."
-      });
+      throw (
+        pError ||
+        new Error("Profil bulunamadı")
+      );
     }
 
     req.token = token;
     req.sb = sb;
-    req.admin = admin;
     req.authUser = user;
     req.user = profile;
 
     next();
-
   } catch (e) {
     console.error(
       "AUTH ERROR:",
@@ -908,20 +900,6 @@ app.post(
         console.error("PROFILE LOOKUP ERROR:", existingProfileResult.error);
       }
 
-      if (!existingProfileResult.data) {
-        const authIdProfileResult = await admin
-          .from("profiles")
-          .select("*")
-          .eq("auth_user_id", authUser.id)
-          .maybeSingle();
-
-        if (authIdProfileResult.data) {
-          existingProfileResult.data = authIdProfileResult.data;
-        } else if (authIdProfileResult.error) {
-          console.error("PROFILE AUTH_ID LOOKUP ERROR:", authIdProfileResult.error);
-        }
-      }
-
       if (existingProfileResult.data) {
         const updateResult = await admin
           .from("profiles")
@@ -965,17 +943,6 @@ app.post(
           if (retryProfile.data) {
             profile = retryProfile.data;
             profileError = null;
-          } else {
-            const retryByAuthId = await admin
-              .from("profiles")
-              .select("*")
-              .eq("auth_user_id", authUser.id)
-              .maybeSingle();
-
-            if (retryByAuthId.data) {
-              profile = retryByAuthId.data;
-              profileError = null;
-            }
           }
         }
       }
@@ -1020,11 +987,7 @@ app.post(
           expires: Date.now() + 10 * 60 * 1000,
           attempts: 0,
           username,
-          displayName,
-          // Kayıt doğrulaması tamamlandığında otomatik giriş yapabilmek için
-          // şifreyi yalnızca bu kısa süreli RAM kaydında tutuyoruz.
-          // Kodun süresi dolunca kayıt zaten temizlenir.
-          password
+          displayName
         }
       );
 
@@ -1238,11 +1201,7 @@ app.post(
         await anon.auth.signInWithPassword({
           email: entry.email,
           password: String(
-            entry.password ||
-            req.body?.password ||
-            req.body?.sifre ||
-            req.body?.pass ||
-            ""
+            req.body?.password || ""
           )
         });
 
@@ -2616,6 +2575,24 @@ app.post(
 
 
 /* =========================================================
+   PASSWORD RESET TOKEN STORAGE
+========================================================= */
+const passwordResetTokens = new Map();
+
+function createPasswordResetToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function cleanupPasswordResetTokens() {
+  const now = Date.now();
+  for (const [token, entry] of passwordResetTokens.entries()) {
+    if (!entry?.expires || entry.expires <= now) {
+      passwordResetTokens.delete(token);
+    }
+  }
+}
+
+/* =========================================================
    FORGOT VERIFY
 ========================================================= */
 
@@ -2623,81 +2600,227 @@ app.post(
   "/api/forgot/verify",
   async (req, res) => {
     try {
-      const found =
-        await resolveRecoveryEmail(
-          req.body?.identifier,
-          req.body?.mode ||
-            "email"
-        );
+      cleanupPasswordResetTokens();
 
-      if (!found) {
+      const identifier = String(
+        req.body?.identifier ||
+        req.body?.email ||
+        req.body?.username ||
+        ""
+      ).trim();
+
+      const mode = String(
+        req.body?.mode || "email"
+      ).trim().toLowerCase();
+
+      const code = String(
+        req.body?.code || ""
+      ).replace(/\D/g, "").slice(0, 6);
+
+      if (!identifier) {
         return res.status(400).json({
-          error:
-            "Hesap bulunamadı."
+          ok: false,
+          error: "Hesap bilgisi gerekli."
         });
       }
 
-      const key =
-        found.email.toLowerCase();
-
-      const entry =
-        recoveryCodes.get(
-          key
-        );
-
-      if (
-        !entry ||
-        entry.expires <
-          Date.now() ||
-        entry.code !==
-          String(
-            req.body?.code ||
-            ""
-          ).trim()
-      ) {
+      if (!/^\d{6}$/.test(code)) {
         return res.status(400).json({
-          error:
-            "Kod yanlış veya süresi dolmuş."
+          ok: false,
+          error: "6 haneli doğrulama kodunu gir."
         });
       }
 
-      recoveryCodes.delete(
-        key
-      );
+      const found = await resolveRecoveryEmail(identifier, mode);
 
-      const p =
-        entry.profile ||
-        found.profile ||
-        {};
+      if (!found?.email) {
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap bulunamadı."
+        });
+      }
 
-      res.json({
+      const email = String(found.email).trim().toLowerCase();
+      const entry = recoveryCodes.get(email);
+
+      if (!entry) {
+        return res.status(400).json({
+          ok: false,
+          error: "Aktif doğrulama kodu bulunamadı. Yeni kod iste."
+        });
+      }
+
+      if (!entry.expires || entry.expires <= Date.now()) {
+        recoveryCodes.delete(email);
+        return res.status(400).json({
+          ok: false,
+          code: "CODE_EXPIRED",
+          error: "Kodun süresi dolmuş. Yeni kod iste."
+        });
+      }
+
+      if (entry.code !== code) {
+        entry.attempts = Number(entry.attempts || 0) + 1;
+        if (entry.attempts >= 5) {
+          recoveryCodes.delete(email);
+          return res.status(429).json({
+            ok: false,
+            code: "TOO_MANY_ATTEMPTS",
+            error: "Çok fazla yanlış kod girildi. Yeni kod iste."
+          });
+        }
+        recoveryCodes.set(email, entry);
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_CODE",
+          error: "Kod yanlış veya süresi dolmuş."
+        });
+      }
+
+      const authUserId =
+        found.authUser?.id ||
+        entry.authUserId ||
+        found.profile?.auth_user_id ||
+        found.profile?.id ||
+        null;
+
+      if (!authUserId) {
+        return res.status(400).json({
+          ok: false,
+          error: "Supabase hesap bilgisi bulunamadı."
+        });
+      }
+
+      const resetToken = createPasswordResetToken();
+      passwordResetTokens.set(resetToken, {
+        userId: authUserId,
+        email,
+        createdAt: Date.now(),
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
+      recoveryCodes.delete(email);
+
+      const profile = entry.profile || found.profile || {};
+
+      return res.json({
         ok: true,
-        email:
-          found.email,
-
+        verified: true,
+        resetToken,
+        reset_token: resetToken,
+        token: resetToken,
+        email,
         account: {
-          username:
-            p.username ||
-            "minegram",
-
-          email:
-            found.email,
-
+          id: authUserId,
+          username: profile.username || "minegram",
+          email,
           displayName:
-            p.display_name ||
-            p.displayName ||
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
             ""
         }
       });
     } catch (e) {
-      res.status(400).json({
-        error:
-          e.message
+      console.error("FORGOT VERIFY ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Kod doğrulanamadı."
       });
     }
   }
 );
 
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
+app.post(
+  "/api/forgot/reset-password",
+  async (req, res) => {
+    try {
+      cleanupPasswordResetTokens();
+
+      const resetToken = String(
+        req.body?.resetToken ||
+        req.body?.reset_token ||
+        req.body?.token ||
+        ""
+      ).trim();
+
+      const password = String(
+        req.body?.password ||
+        req.body?.newPassword ||
+        ""
+      );
+
+      const confirmPassword = String(
+        req.body?.confirmPassword ||
+        req.body?.passwordConfirm ||
+        password
+      );
+
+      if (!resetToken) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama anahtarı gerekli."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre en az 6 karakter olmalı."
+        });
+      }
+
+      if (password !== confirmPassword) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifreler eşleşmiyor."
+        });
+      }
+
+      const entry = passwordResetTokens.get(resetToken);
+      if (!entry || !entry.userId || entry.expires <= Date.now()) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş."
+        });
+      }
+
+      const admin = adminClient();
+      const { data: userData, error: userError } =
+        await admin.auth.admin.getUserById(entry.userId);
+
+      if (userError || !userData?.user) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Supabase hesabı bulunamadı."
+        });
+      }
+
+      const { error: updateError } =
+        await admin.auth.admin.updateUserById(entry.userId, { password });
+
+      if (updateError) throw updateError;
+
+      passwordResetTokens.delete(resetToken);
+
+      return res.json({
+        ok: true,
+        message: "Şifren başarıyla değiştirildi."
+      });
+    } catch (e) {
+      console.error("RESET PASSWORD ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Şifre değiştirilemedi."
+      });
+    }
+  }
+);
 
 /* =========================================================
    SEND RESET
@@ -4212,25 +4335,6 @@ app.get(
     );
   }
 );
-
-
-/* =========================================================
-   GLOBAL ERROR HANDLER
-========================================================= */
-
-app.use((err, req, res, next) => {
-  console.error("UNHANDLED SERVER ERROR:", err?.stack || err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
-
-  res.status(500).json({
-    ok: false,
-    code: "INTERNAL_SERVER_ERROR",
-    error: err?.message || "Internal Server Error"
-  });
-});
 
 
 /* =========================================================
