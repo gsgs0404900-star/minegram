@@ -214,6 +214,7 @@ body{
     .description{
         font-size:12px;
     }
+
 }
 
 </style>
@@ -242,14 +243,17 @@ body{
 
         </div>
 
+
         <h1 class="title">
             İletişim bilgini ekle
         </h1>
+
 
         <p class="description">
             Şifreni yenilemek için hesabındaki<br>
             e-posta adresini kullan.
         </p>
+
 
         <div class="tabs">
 
@@ -271,6 +275,7 @@ body{
 
         </div>
 
+
         <input
             id="contact"
             class="input"
@@ -280,12 +285,15 @@ body{
             maxlength="254"
         >
 
+
         <div id="note" class="note">
             Devam ettiğinde e-posta adresine
             6 haneli doğrulama kodu gönderilir.
         </div>
 
+
         <div id="status" class="status"></div>
+
 
         <div class="bottom">
 
@@ -311,20 +319,23 @@ body{
 
 </div>
 
+
 <script>
+
 "use strict";
 
-console.log("================================");
-console.log("MINEGRAM RECOVERY SAYFASI AKTİF");
-console.log("SAYFA:", window.location.href);
-console.log("================================");
 
-sessionStorage.removeItem("minegram_register_email");
-sessionStorage.removeItem("minegram_register_username");
-sessionStorage.removeItem("minegram_register_password");
-sessionStorage.removeItem("minegram_register_session");
-sessionStorage.removeItem("minegram_registration_email");
-sessionStorage.removeItem("minegram_registration_username");
+/* =========================================================
+   MINEGRAM ŞİFRE KURTARMA
+   BU SAYFA KAYIT SİSTEMİ DEĞİLDİR.
+   /api/register/* KULLANILMAZ.
+========================================================= */
+
+console.log("========================================");
+console.log("MINEGRAM ŞİFRE KURTARMA AKTİF");
+console.log("SAYFA:",window.location.href);
+console.log("========================================");
+
 
 /* =========================================================
    ELEMENTLER
@@ -360,11 +371,12 @@ const topBack =
 ========================================================= */
 
 let mode = "email";
+
 let busy = false;
 
 
 /* =========================================================
-   URL PARAMETRELERİ
+   URL
 ========================================================= */
 
 const params =
@@ -374,26 +386,13 @@ const params =
 
 
 /* =========================================================
-   KAYITLI RECOVERY BİLGİSİ
+   KAYITLI RECOVERY E-POSTASI
 ========================================================= */
 
-let savedIdentifier =
-    (
-        params.get("identifier") ||
-        params.get("username") ||
-        sessionStorage.getItem(
-            "minegram_recovery_identifier"
-        ) ||
-        ""
-    )
-    .trim()
-    .replace(/^@/,"")
-    .toLowerCase();
-
-
-let savedEmail =
-    (
+const savedEmail =
+    String(
         params.get("email") ||
+        params.get("identifier") ||
         sessionStorage.getItem(
             "minegram_recovery_email"
         ) ||
@@ -404,7 +403,7 @@ let savedEmail =
 
 
 /* =========================================================
-   STATUS
+   DURUM MESAJI
 ========================================================= */
 
 function showStatus(
@@ -432,12 +431,13 @@ function showStatus(
 
 
 /* =========================================================
-   E-POSTA
+   E-POSTA SEÇ
 ========================================================= */
 
 function selectEmail(){
 
     mode = "email";
+
 
     emailTab.style.background =
         "#554f67";
@@ -475,13 +475,6 @@ function selectEmail(){
 
     showStatus("");
 
-
-    if(savedEmail){
-
-        contact.value =
-            savedEmail;
-
-    }
 }
 
 
@@ -555,7 +548,7 @@ topBack.addEventListener(
 
 
 /* =========================================================
-   EMAIL KONTROL
+   E-POSTA KONTROL
 ========================================================= */
 
 function validEmail(email){
@@ -568,10 +561,16 @@ function validEmail(email){
 
 
 /* =========================================================
-   ŞİFRE KURTARMA KODU GÖNDER
+   ŞİFRE KURTARMA KODU
 ========================================================= */
 
 async function sendRecoveryCode(email){
+
+    console.log(
+        "[MINEGRAM] /api/forgot/start gönderiliyor:",
+        email
+    );
+
 
     const response =
         await fetch(
@@ -607,6 +606,7 @@ async function sendRecoveryCode(email){
 
     let result = {};
 
+
     try{
 
         result =
@@ -615,7 +615,10 @@ async function sendRecoveryCode(email){
     }
     catch(error){
 
-        result = {};
+        console.error(
+            "[MINEGRAM] JSON okunamadı:",
+            error
+        );
 
     }
 
@@ -632,7 +635,7 @@ async function sendRecoveryCode(email){
         throw new Error(
             result.error ||
             result.message ||
-            "Doğrulama kodu gönderilemedi."
+            "Hesap bulunamadı veya kod gönderilemedi."
         );
 
     }
@@ -643,7 +646,7 @@ async function sendRecoveryCode(email){
         throw new Error(
             result.error ||
             result.message ||
-            "Doğrulama kodu gönderilemedi."
+            "Kod gönderilemedi."
         );
 
     }
@@ -667,20 +670,12 @@ async function goNext(){
     }
 
 
-    /* -----------------------------------------------------
-       MODE
-    ----------------------------------------------------- */
-
     if(mode !== "email"){
 
         selectEmail();
 
     }
 
-
-    /* -----------------------------------------------------
-       EMAIL
-    ----------------------------------------------------- */
 
     const email =
         String(
@@ -717,7 +712,7 @@ async function goNext(){
 
 
     /* -----------------------------------------------------
-       SESSION
+       SADECE RECOVERY STORAGE
     ----------------------------------------------------- */
 
     sessionStorage.setItem(
@@ -758,7 +753,7 @@ async function goNext(){
     try{
 
         /* -------------------------------------------------
-           ŞİFRE KURTARMA KODU
+           SADECE /api/forgot/start
         ------------------------------------------------- */
 
         const result =
@@ -768,7 +763,7 @@ async function goNext(){
 
 
         /* -------------------------------------------------
-           SERVER EMAIL
+           SUNUCUDAN GELEN E-POSTA
         ------------------------------------------------- */
 
         const serverEmail =
@@ -806,12 +801,13 @@ async function goNext(){
             true
         );
 
+
         nextBtn.textContent =
             "Kod gönderildi";
 
 
         /* -------------------------------------------------
-           KOD SAYFASI
+           KOD SAYFASINA GİT
         ------------------------------------------------- */
 
         const next =
@@ -839,13 +835,15 @@ async function goNext(){
         setTimeout(
             function(){
 
-                window.location.href =
+                window.location.replace(
                     "./sifremi-unuttum.html?" +
-                    next.toString();
+                    next.toString()
+                );
 
             },
             700
         );
+
 
     }
     catch(error){
@@ -876,7 +874,7 @@ async function goNext(){
 
 
 /* =========================================================
-   BUTON
+   İLERİ BUTONU
 ========================================================= */
 
 nextBtn.addEventListener(
