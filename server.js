@@ -883,64 +883,54 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-/* =========================================================
-   PROFİL OLUŞTUR
-========================================================= */
+      /* Profil oluştur */
+      const {
+        data: profile,
+        error: profileError
+      } =
+        await admin
+          .from("profiles")
+          .upsert(
+            {
+              id: authUser.id,
+              auth_user_id: authUser.id,
+              username,
+              display_name: displayName,
+              bio: "",
+              avatar_url: null,
+              verified: false,
+              settings: {}
+            },
+            { onConflict: "id" }
+          )
+          .select("*")
+          .single();
 
-const {
-  data: profile,
-  error: profileError
-} =
-  await admin
-    .from("profiles")
-    .upsert(
-      {
-        id: authUser.id,
-        auth_user_id: authUser.id,
-        username,
-        display_name: displayName,
-        bio: "",
-        avatar_url: null,
-        verified: false,
-        settings: {}
-      },
-      {
-        onConflict: "id"
+      if (profileError) {
+        console.error(
+          "PROFILE CREATE ERROR:",
+          profileError
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+
+        createdAuthUserId = null;
+
+        return res.status(500).json({
+          ok: false,
+          code: "PROFILE_CREATE_ERROR",
+          error: "Profil oluşturulamadı."
+        });
       }
-    )
-    .select("*")
-    .single();
-
-profile = profileResult.data || null;
-profileError = profileResult.error || null;
-
-if (profileError || !profile) {
-  console.error(
-    "PROFILE CREATE ERROR:",
-    profileError
-  );
-
-  try {
-    await admin.auth.admin.deleteUser(
-      authUser.id
-    );
-  } catch (cleanupError) {
-    console.error(
-      "AUTH CLEANUP ERROR:",
-      cleanupError
-    );
-  }
-
-  createdAuthUserId = null;
-
-  return res.status(500).json({
-    ok: false,
-    code: "PROFILE_CREATE_ERROR",
-    error:
-      profileError?.message ||
-      "Profil oluşturulamadı."
-  });
-}
 
       /*
        * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
