@@ -2166,125 +2166,172 @@ async function resolveRecoveryEmail(
   identifier,
   mode = "email"
 ) {
-  const anon =
-    client();
+  const raw = String(identifier || "").trim();
+  if (!raw) return null;
 
-  const raw =
-    String(
-      identifier || ""
-    ).trim();
+  const cleanMode = recoveryMode(mode);
+  const admin = adminClient();
 
   let email = raw;
   let profile = null;
   let authUser = null;
 
-  if (
-    mode === "phone"
-  ) {
-    authUser =
-      await findUserByPhone(
-        raw
-      );
+  /* -------------------------------------------------------
+     1) TELEFON
+  ------------------------------------------------------- */
+  if (cleanMode === "phone") {
+    authUser = await findUserByPhone(raw);
 
-    if (
-      !authUser?.email
-    ) {
+    if (!authUser?.id || !authUser?.email) {
       return null;
     }
 
-    email =
-      authUser.email;
+    email = String(authUser.email).trim().toLowerCase();
 
-    const {
-      data
-    } =
-      await anon
+    try {
+      const { data } = await admin
         .from("profiles")
-        .select(
-          "id,auth_user_id,username,email,display_name"
-        )
-        .or(
-          `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
-        )
+        .select("*")
+        .or(`id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`)
+        .limit(1)
+        .maybeSingle();
+      profile = data || null;
+    } catch (e) {
+      console.log("RECOVERY PROFILE TELEFON HATASI:", e?.message || e);
+    }
+
+    return { email, profile, authUser };
+  }
+
+  /* -------------------------------------------------------
+     2) E-POSTA
+     Supabase Auth doğrudan e-posta ile aranır.
+     Böylece profiles RLS yüzünden boş dönse bile hesap bulunur.
+  ------------------------------------------------------- */
+  if (email.includes("@")) {
+    email = email.toLowerCase();
+
+    try {
+      const { data, error } =
+        await admin.auth.admin.getUserByEmail(email);
+
+      if (!error && data?.user?.id) {
+        authUser = data.user;
+        email = String(data.user.email || email)
+          .trim()
+          .toLowerCase();
+      }
+    } catch (e) {
+      console.log("RECOVERY AUTH E-POSTA HATASI:", e?.message || e);
+    }
+
+    /* Auth'ta bulunamazsa profiles'tan da kontrol et. */
+    if (!authUser) {
+      try {
+        const { data } = await admin
+          .from("profiles")
+          .select("*")
+          .eq("email", email)
+          .limit(1)
+          .maybeSingle();
+
+        profile = data || null;
+      } catch (e) {
+        console.log("RECOVERY PROFILE E-POSTA HATASI:", e?.message || e);
+      }
+    }
+  }
+
+  /* -------------------------------------------------------
+     3) KULLANICI ADI
+     Service-role ile profiles aranır; RLS engeline takılmaz.
+  ------------------------------------------------------- */
+  if (!authUser && !email.includes("@")) {
+    const username = normalizeUsername(raw);
+
+    try {
+      const { data, error } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("username", username)
         .limit(1)
         .maybeSingle();
 
-    profile =
-      data || null;
+      if (error) {
+        console.log("RECOVERY USERNAME PROFILE HATASI:", error.message || error);
+      } else {
+        profile = data || null;
+      }
+    } catch (e) {
+      console.log("RECOVERY USERNAME ARAMA HATASI:", e?.message || e);
+    }
 
-    return {
-      email,
-      profile,
-      authUser
-    };
+    if (!profile) return null;
+
+    const authId = profile.auth_user_id || profile.id || null;
+
+    if (authId) {
+      try {
+        const { data, error } =
+          await admin.auth.admin.getUserById(authId);
+
+        if (!error && data?.user?.id) {
+          authUser = data.user;
+          email = String(data.user.email || profile.email || "")
+            .trim()
+            .toLowerCase();
+        }
+      } catch (e) {
+        console.log("RECOVERY USERNAME AUTH HATASI:", e?.message || e);
+      }
+    }
+
+    /* auth_user_id/id çalışmadıysa profile e-postasıyla Auth'u bul. */
+    if (!authUser && profile.email) {
+      try {
+        const { data, error } =
+          await admin.auth.admin.getUserByEmail(
+            String(profile.email).trim().toLowerCase()
+          );
+
+        if (!error && data?.user?.id) {
+          authUser = data.user;
+          email = String(data.user.email || profile.email)
+            .trim()
+            .toLowerCase();
+        }
+      } catch (e) {
+        console.log("RECOVERY PROFILE EMAIL AUTH HATASI:", e?.message || e);
+      }
+    }
   }
 
-  if (
-    !email.includes("@")
-  ) {
-    profile =
-      await findProfile(
-        anon,
-        email
-      );
-
-    if (!profile) {
-      return null;
-    }
-
-    if (
-      !SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      return null;
-    }
-
-    const admin =
-      adminClient();
-
-    const authId =
-      profile.auth_user_id ||
-      profile.id;
-
-    const {
-      data,
-      error
-    } =
-      await admin.auth.admin.getUserById(
-        authId
-      );
-
-    if (
-      error ||
-      !data?.user?.email
-    ) {
-      return null;
-    }
-
-    email =
-      data.user.email;
-
-    authUser =
-      data.user;
-  }
-
-  if (!profile) {
-    const {
-      data
-    } =
-      await anon
+  /* -------------------------------------------------------
+     4) E-posta ile bulunduysa profile'i service-role ile getir.
+  ------------------------------------------------------- */
+  if (!profile && email.includes("@")) {
+    try {
+      const { data } = await admin
         .from("profiles")
-        .select(
-          "id,auth_user_id,username,email,display_name"
-        )
-        .eq(
-          "email",
-          email
-        )
+        .select("*")
+        .eq("email", email)
+        .limit(1)
         .maybeSingle();
-
-    profile =
-      data || null;
+      profile = data || null;
+    } catch (e) {
+      console.log("RECOVERY PROFILE SON ARAMA HATASI:", e?.message || e);
+    }
   }
+
+  /* Profile'dan Auth kullanıcısını son kez doğrula. */
+  if (!authUser && profile) {
+    authUser = await resolveAuthUserForProfile(profile, admin);
+    if (authUser?.email) {
+      email = String(authUser.email).trim().toLowerCase();
+    }
+  }
+
+  if (!email.includes("@")) return null;
 
   return {
     email,
@@ -2292,7 +2339,6 @@ async function resolveRecoveryEmail(
     authUser
   };
 }
-
 
 /* =========================================================
    FORGOT LEGACY
