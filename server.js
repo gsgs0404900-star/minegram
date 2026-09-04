@@ -1376,20 +1376,6 @@ app.post(
   }
 );
 
-async function listAllAuthUsers() {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return [];
-  const admin = adminClient();
-  const all = [];
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const users = Array.isArray(data?.users) ? data.users : [];
-    all.push(...users);
-    if (users.length < 1000) break;
-  }
-  return all;
-}
-
 /* =========================================================
    LOGIN
 ========================================================= */
@@ -1398,286 +1384,166 @@ app.post(
   "/api/login",
   async (req, res) => {
     try {
-      const identifier =
-        String(
-          req.body?.username ??
-          req.body?.email ??
-          ""
-        ).trim();
+      const identifier = String(
+        req.body?.username ?? req.body?.email ?? ""
+      ).trim();
+      const password = String(req.body?.password ?? "");
 
-      const password =
-        String(
-          req.body?.password ??
-          ""
-        );
-
-      if (
-        !identifier ||
-        !password
-      ) {
-        return res.status(400).json({
-          error:
-            "Kullanıcı adı/e-posta ve şifre gerekli."
-        });
+      if (!identifier || !password) {
+        return res.status(400).json({ error: "Kullanıcı adı/e-posta ve şifre gerekli." });
       }
-
       if (!CONFIG_OK) {
-        return res.status(500).json({
-          error:
-            "Supabase ortam değişkenleri eksik."
-        });
+        return res.status(500).json({ error: "Supabase ortam değişkenleri eksik." });
+      }
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli." });
       }
 
-      if (
-        !SUPABASE_SERVICE_ROLE_KEY
-      ) {
-        return res.status(500).json({
-          error:
-            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
-        });
-      }
+      const admin = adminClient();
+      let email = "";
+      let profile = null;
+      let authUser = null;
+      const cleanIdentifier = identifier.trim();
+      const lowerIdentifier = cleanIdentifier.toLowerCase();
 
-      const admin =
-        adminClient();
+      // E-posta ile giriş: doğrudan Auth kullanıcısını bul.
+      if (cleanIdentifier.includes("@")) {
+        try {
+          const { data, error } = await admin.auth.admin.getUserByEmail(lowerIdentifier);
+          if (!error && data?.user) authUser = data.user;
+        } catch (_) {}
 
-      let email =
-        identifier.toLowerCase();
-
-      /* Telefonla giriş: Auth telefonunu bulup gerçek Auth e-postasını kullan. */
-      const looksLikePhone = !identifier.includes("@") &&
-        /[0-9]/.test(identifier) &&
-        normalizeRecoveryPhone(identifier).length >= 10;
-
-      if (looksLikePhone) {
-        const phoneUser = await findUserByPhone(identifier);
-        if (!phoneUser?.email) {
-          return res.status(401).json({
-            error: "Kullanıcı adı, e-posta veya telefon ile eşleşen hesap bulunamadı."
-          });
-        }
-        email = String(phoneUser.email).trim().toLowerCase();
-      }
-
-      if (
-        !identifier.includes("@") && !looksLikePhone
-      ) {
-        const username =
-          normalizeUsername(
-            identifier
-          );
-
-        const {
-          data: profile,
-          error: pe
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .ilike(
-            "username",
-            username
-          )
-          .maybeSingle();
-
-        if (pe) {
-          return res.status(500).json({
-            error: pe.message
-          });
-        }
-
-        if (!profile) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı adı veya şifre hatalı."
-          });
-        }
-
-        let authUser = null;
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
-
-        if (authId) {
-          const {
-            data: au,
-            error: ae
-          } =
-            await admin.auth.admin.getUserById(
-              authId
-            );
-          if (!ae && au?.user?.email) {
-            authUser = au.user;
-          }
-        }
-
-        // Eski/uyumsuz profillerde auth_user_id farklı olabilir.
-        // Profilde kayıtlı e-posta varsa Auth kullanıcısını onunla bul.
-        if (!authUser && profile.email && String(profile.email).includes("@")) {
-          const { data: listed } = await admin.auth.admin.listUsers({
-            page: 1,
-            perPage: 1000
-          });
-          const wantedEmail = String(profile.email).trim().toLowerCase();
-          authUser = (listed?.users || []).find(
-            u => String(u?.email || "").trim().toLowerCase() === wantedEmail
-          ) || null;
-        }
-
-        /* Profil bağlantısı bozuksa kullanıcı adını Auth metadata'dan da çöz. */
-        if (!authUser?.email) {
+        if (!authUser) {
           try {
-            const wanted = normalizeUsername(identifier);
-            const listed = await listAllAuthUsers();
-            const metaMatch = (listed || []).find(u => {
-              const meta = u?.user_metadata || {};
-              return [meta.username, meta.userName, meta.usernameLower, meta.name]
-                .some(v => normalizeUsername(v) === wanted);
-            });
-            if (metaMatch?.email) authUser = metaMatch;
+            authUser = await findAuthUserByEmailExact(lowerIdentifier);
+          } catch (_) {}
+        }
+
+        email = String(authUser?.email || lowerIdentifier).trim().toLowerCase();
+
+        // Profil bilgisini de mümkünse bul.
+        try {
+          const { data } = await admin.from("profiles").select("*").ilike("email", email).limit(1).maybeSingle();
+          profile = data || null;
+        } catch (_) {}
+      } else {
+        // Kullanıcı adı ile giriş: önce profiles.
+        const username = normalizeUsername(cleanIdentifier);
+        try {
+          const { data, error } = await admin
+            .from("profiles")
+            .select("*")
+            .ilike("username", username)
+            .limit(1)
+            .maybeSingle();
+          if (!error) profile = data || null;
+        } catch (_) {}
+
+        // Profil bulunduysa tüm olası Auth bağlantılarını dene.
+        if (profile) {
+          const possibleAuthIds = [profile.auth_user_id, profile.id].filter(Boolean);
+          for (const authId of possibleAuthIds) {
+            try {
+              const { data } = await admin.auth.admin.getUserById(authId);
+              if (data?.user?.email) {
+                authUser = data.user;
+                break;
+              }
+            } catch (_) {}
+          }
+
+          // Profildeki e-posta ile Auth'u bul.
+          if (!authUser && profile.email && String(profile.email).includes("@")) {
+            try {
+              const { data } = await admin.auth.admin.getUserByEmail(String(profile.email).trim().toLowerCase());
+              if (data?.user?.email) authUser = data.user;
+            } catch (_) {}
+          }
+        }
+
+        // Son fallback: Auth kullanıcılarının metadata'sındaki username'i kontrol et.
+        // Böylece eski profillerde auth_user_id/id yanlış olsa bile giriş çalışır.
+        if (!authUser) {
+          try {
+            for (let page = 1; page <= 20 && !authUser; page++) {
+              const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+              if (error) break;
+              const users = data?.users || [];
+              authUser = users.find(u => {
+                const meta = u?.user_metadata || {};
+                const candidates = [
+                  meta.username,
+                  meta.userName,
+                  meta.usernameLower,
+                  meta.name,
+                  meta.displayName
+                ].filter(Boolean).map(v => normalizeUsername(v));
+                return candidates.includes(username);
+              }) || null;
+              if (users.length < 1000) break;
+            }
           } catch (e) {
-            console.log("LOGIN AUTH USERNAME FALLBACK HATASI:", e?.message || e);
+            console.error("LOGIN AUTH USERNAME FALLBACK ERROR:", e?.message || e);
           }
         }
 
         if (!authUser?.email) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı hesabının giriş bilgisi bulunamadı. Şifre sıfırlama ile hesabı yeniden etkinleştirin."
-          });
+          return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
         }
-
-        email =
-          String(authUser.email).trim().toLowerCase();
+        email = String(authUser.email).trim().toLowerCase();
       }
 
-      const anon =
-        client();
+      if (!email) {
+        return res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
+      }
 
-      const {
-        data: sd,
-        error: le
-      } =
-        await anon.auth.signInWithPassword({
-          email,
-          password
-        });
+      // Şifre kontrolü yalnızca Supabase Auth tarafından yapılır.
+      // Böylece hangi telefondan girildiği önemli değildir; aynı hesap + aynı şifre her cihazda çalışır.
+      const anon = client();
+      const { data: sd, error: le } = await anon.auth.signInWithPassword({ email, password });
 
-      if (
-        le ||
-        !sd?.session ||
-        !sd?.user
-      ) {
+      if (le || !sd?.session || !sd?.user) {
+        console.error("LOGIN AUTH ERROR:", le?.message || le);
         return res.status(401).json({
-          error:
-            /invalid login credentials/i.test(
-              le?.message || ""
-            )
-              ? "Kullanıcı adı/e-posta veya şifre hatalı."
-              : (
-                  le?.message ||
-                  "Giriş başarısız."
-                )
+          error: /invalid login credentials/i.test(le?.message || "")
+            ? "Kullanıcı adı/e-posta veya şifre hatalı."
+            : (le?.message || "Giriş başarısız.")
         });
       }
 
-      const authId =
-        sd.user.id;
-
-      const {
-        data: profiles,
-        error: pe2
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .eq(
-          "auth_user_id",
-          authId
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        );
-
-      if (pe2) {
-        return res.status(500).json({
-          error: pe2.message
-        });
+      const authId = sd.user.id;
+      if (!profile) {
+        try {
+          const { data } = await admin.from("profiles").select("*").eq("auth_user_id", authId).limit(1).maybeSingle();
+          profile = data || null;
+        } catch (_) {}
       }
-
-      let list =
-        profiles || [];
-
-      if (!list.length) {
-        const {
-          data: legacy
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .eq(
-            "id",
-            authId
-          )
-          .maybeSingle();
-
-        if (legacy) {
-          list = [legacy];
-        }
+      if (!profile) {
+        try {
+          const { data } = await admin.from("profiles").select("*").ilike("email", email).limit(1).maybeSingle();
+          profile = data || null;
+        } catch (_) {}
       }
-
-      if (!list.length) {
-        return res.status(404).json({
-          error:
-            "Bu hesap için Minegram profili bulunamadı."
-        });
-      }
-
-      const safe =
-        list.map(
-          safeProfile
-        );
-
-      const selected =
-        identifier.includes("@")
-          ? safe[0]
-          : (
-              safe.find(
-                x =>
-                  x.username ===
-                  normalizeUsername(
-                    identifier
-                  )
-              ) ||
-              safe[0]
-            );
 
       return res.json({
         ok: true,
-        multipleProfiles:
-          safe.length > 1,
-        profiles: safe,
-        profile: selected,
-        token:
-          sd.session
-            .access_token,
-        user: selected
+        token: sd.session.access_token,
+        access_token: sd.session.access_token,
+        refresh_token: sd.session.refresh_token,
+        expires_in: sd.session.expires_in,
+        user: sd.user,
+        profile: profile || {
+          id: authId,
+          username: sd.user.user_metadata?.username || email.split("@")[0],
+          email
+        }
       });
-
     } catch (e) {
-      console.error(
-        "LOGIN ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        error:
-          e?.message ||
-          "Giriş başarısız."
-      });
+      console.error("LOGIN ERROR:", e);
+      return res.status(500).json({ error: e?.message || "Giriş başarısız." });
     }
   }
 );
-
 
 /* =========================================================
    RECOVERY HELPERS
