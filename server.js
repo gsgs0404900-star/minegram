@@ -1376,6 +1376,20 @@ app.post(
   }
 );
 
+async function listAllAuthUsers() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return [];
+  const admin = adminClient();
+  const all = [];
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = Array.isArray(data?.users) ? data.users : [];
+    all.push(...users);
+    if (users.length < 1000) break;
+  }
+  return all;
+}
+
 /* =========================================================
    LOGIN
 ========================================================= */
@@ -1429,8 +1443,23 @@ app.post(
       let email =
         identifier.toLowerCase();
 
+      /* Telefonla giriş: Auth telefonunu bulup gerçek Auth e-postasını kullan. */
+      const looksLikePhone = !identifier.includes("@") &&
+        /[0-9]/.test(identifier) &&
+        normalizeRecoveryPhone(identifier).length >= 10;
+
+      if (looksLikePhone) {
+        const phoneUser = await findUserByPhone(identifier);
+        if (!phoneUser?.email) {
+          return res.status(401).json({
+            error: "Kullanıcı adı, e-posta veya telefon ile eşleşen hesap bulunamadı."
+          });
+        }
+        email = String(phoneUser.email).trim().toLowerCase();
+      }
+
       if (
-        !identifier.includes("@")
+        !identifier.includes("@") && !looksLikePhone
       ) {
         const username =
           normalizeUsername(
@@ -1491,6 +1520,22 @@ app.post(
           authUser = (listed?.users || []).find(
             u => String(u?.email || "").trim().toLowerCase() === wantedEmail
           ) || null;
+        }
+
+        /* Profil bağlantısı bozuksa kullanıcı adını Auth metadata'dan da çöz. */
+        if (!authUser?.email) {
+          try {
+            const wanted = normalizeUsername(identifier);
+            const listed = await listAllAuthUsers();
+            const metaMatch = (listed || []).find(u => {
+              const meta = u?.user_metadata || {};
+              return [meta.username, meta.userName, meta.usernameLower, meta.name]
+                .some(v => normalizeUsername(v) === wanted);
+            });
+            if (metaMatch?.email) authUser = metaMatch;
+          } catch (e) {
+            console.log("LOGIN AUTH USERNAME FALLBACK HATASI:", e?.message || e);
+          }
         }
 
         if (!authUser?.email) {
