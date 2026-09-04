@@ -2333,9 +2333,47 @@ async function resolveRecoveryEmail(
       console.log("RECOVERY USERNAME ARAMA HATASI:", e?.message || e);
     }
 
-    if (!profile) return null;
+    /* Eski hesaplarda kullanıcı adı profiles tablosunda bulunmayabilir.
+       Bu durumda Supabase Auth metadata içindeki username ile de ara. */
+    if (!profile) {
+      try {
+        const listed = await listAllAuthUsers();
+        const wanted = username;
+        const authMatch = (listed || []).find(u => {
+          const meta = u?.user_metadata || {};
+          return [meta.username, meta.userName, meta.usernameLower, meta.name]
+            .some(v => normalizeUsername(v) === wanted);
+        });
 
-    const authId = profile.auth_user_id || profile.id || null;
+        if (authMatch?.id) {
+          const { data: byAuth } = await admin
+            .from("profiles")
+            .select("*")
+            .or(`id.eq.${authMatch.id},auth_user_id.eq.${authMatch.id}`)
+            .limit(1)
+            .maybeSingle();
+
+          profile = byAuth || {
+            id: authMatch.id,
+            auth_user_id: authMatch.id,
+            username: username,
+            email: authMatch.email || "",
+            display_name: authMatch.user_metadata?.display_name || username,
+            avatar_url: authMatch.user_metadata?.avatar_url || null
+          };
+          authUser = authMatch;
+          email = String(authMatch.email || profile.email || "")
+            .trim()
+            .toLowerCase();
+        }
+      } catch (e) {
+        console.log("RECOVERY AUTH USERNAME FALLBACK HATASI:", e?.message || e);
+      }
+    }
+
+    if (!profile && !authUser) return null;
+
+    const authId = profile?.auth_user_id || profile?.id || authUser?.id || null;
 
     if (authId) {
       try {
