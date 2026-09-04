@@ -3211,9 +3211,14 @@ class="settings-switch on"></div>
 
 <script>
 
-const token=
+let token=
 localStorage.getItem('minegram_token')||
-localStorage.getItem('token');
+localStorage.getItem('minegram_access_token')||
+localStorage.getItem('minegram_supabase_token')||
+localStorage.getItem('access_token')||
+localStorage.getItem('token')||
+sessionStorage.getItem('minegram_token')||
+sessionStorage.getItem('token');
 
 const params=new URLSearchParams(location.search);
 const target=params.get('username');
@@ -4051,11 +4056,14 @@ async function load(){
    const username=
    target||me.username;
 
-   currentProfile=
-   await api(
-     '/api/users/'+
-     encodeURIComponent(username)
-   );
+   if(!target || String(username||'').toLowerCase()===String(me.username||'').toLowerCase()){
+     currentProfile=me;
+   }else{
+     currentProfile=await api(
+       '/api/users/'+
+       encodeURIComponent(username)
+     );
+   }
 
    document.getElementById('username')
    .innerHTML=
@@ -5048,8 +5056,7 @@ function updateNotificationsToggle(){
 
 document.getElementById('settingsMenu')
 .onclick=()=>{
-  location.href='ayarlar.html';
- openProfileSettings();
+  openProfileSettings();
 };
 
 
