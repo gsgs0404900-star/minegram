@@ -2767,7 +2767,7 @@ app.post(
         });
       }
 
-      const found = await resolveRecoveryEmail(identifier, mode);
+      const found = await resolveRecoveryEmail(identifier, normalizeRecoveryMode(mode));
 
       if (!found?.email) {
         return res.status(400).json({
