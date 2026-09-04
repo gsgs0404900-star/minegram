@@ -1443,7 +1443,7 @@ app.post(
         } = await admin
           .from("profiles")
           .select("*")
-          .eq(
+          .ilike(
             "username",
             username
           )
@@ -1462,30 +1462,46 @@ app.post(
           });
         }
 
+        let authUser = null;
         const authId =
           profile.auth_user_id ||
           profile.id;
 
-        const {
-          data: au,
-          error: ae
-        } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
+        if (authId) {
+          const {
+            data: au,
+            error: ae
+          } =
+            await admin.auth.admin.getUserById(
+              authId
+            );
+          if (!ae && au?.user?.email) {
+            authUser = au.user;
+          }
+        }
 
-        if (
-          ae ||
-          !au?.user?.email
-        ) {
+        // Eski/uyumsuz profillerde auth_user_id farklı olabilir.
+        // Profilde kayıtlı e-posta varsa Auth kullanıcısını onunla bul.
+        if (!authUser && profile.email && String(profile.email).includes("@")) {
+          const { data: listed } = await admin.auth.admin.listUsers({
+            page: 1,
+            perPage: 1000
+          });
+          const wantedEmail = String(profile.email).trim().toLowerCase();
+          authUser = (listed?.users || []).find(
+            u => String(u?.email || "").trim().toLowerCase() === wantedEmail
+          ) || null;
+        }
+
+        if (!authUser?.email) {
           return res.status(401).json({
             error:
-              "Kullanıcı adı veya şifre hatalı."
+              "Kullanıcı hesabının giriş bilgisi bulunamadı. Şifre sıfırlama ile hesabı yeniden etkinleştirin."
           });
         }
 
         email =
-          au.user.email.toLowerCase();
+          String(authUser.email).trim().toLowerCase();
       }
 
       const anon =
