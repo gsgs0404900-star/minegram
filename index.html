@@ -746,7 +746,11 @@ M
 
 </div>
 
-<input id="storyInput" type="file" accept="image/*,video/*" hidden>
+<input id="storyInput"
+       type="file"
+       accept="image/*,video/*"
+       multiple
+       hidden>
 
 </div>
 
@@ -1645,6 +1649,21 @@ onclick="sendComment()"
             myGroup
           );
 
+          const plusButton = myStory.querySelector(".plus");
+
+if(plusButton){
+
+  plusButton.onclick = function(e){
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    openPicker();
+
+  };
+
+}
+
         };
 
       if(label)
@@ -1703,7 +1722,7 @@ onclick="sendComment()"
      ANDROID / WEB -> SERVER STORY UPLOAD
   ======================================================= */
 
-  async function addStory(file){
+  async function addStory(file, autoOpen = true, silent = false){
 
     if(!file)
       return;
@@ -1798,9 +1817,9 @@ onclick="sendComment()"
 
         }catch(e){}
 
-        toast(
-          "Hikaye paylaşıldı."
-        );
+        if(!silent){
+  toast("Hikaye paylaşıldı.");
+}
 
 
         /*
@@ -2788,69 +2807,78 @@ onclick="sendComment()"
      BAŞLAT
   ======================================================= */
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    function(){
+ document.addEventListener("DOMContentLoaded", function(){
 
-      const input=
-        document.getElementById(
-          "storyInput"
-        );
+  const input = document.getElementById("storyInput");
 
-      const box=
-        document.getElementById(
-          "myStory"
-        );
+  if(input){
 
+    input.addEventListener("change", async function(){
 
-      /*
-        Input
-      */
+      const files = Array.from(this.files || [])
+        .filter(function(file){
+          return /^(image|video)\//i.test(file.type);
+        })
+        .slice(0, 50);
 
-      if(input){
+      // Aynı dosyayı tekrar seçebilmek için hemen temizle
+      this.value = "";
 
-        input.addEventListener(
-          "change",
-          function(){
+      if(!files.length) return;
 
-            const file=
-              this.files &&
-              this.files[0];
+      let uploadedCount = 0;
 
-            if(file)
-              addStory(file);
+      for(const file of files){
 
-            this.value="";
+        try{
 
+          const result = await addStory(file, false, true);
+
+          if(result){
+            uploadedCount++;
           }
+
+        }catch(error){
+
+          console.error("Story yükleme hatası:", error);
+
+        }
+
+      }
+
+      // Hepsi bittikten sonra sadece 1 kere yenile
+      cleanStories();
+      buildStoryGroups();
+      renderStoryBar();
+
+      try{
+        localStorage.setItem(
+          "minegram_story_v2",
+          JSON.stringify(stories)
+        );
+      }catch(e){}
+
+      if(uploadedCount > 0){
+
+        toast(
+          uploadedCount === 1
+            ? "Hikaye paylaşıldı."
+            : uploadedCount + " hikaye paylaşıldı."
         );
 
       }
 
+    });
 
-      /*
-        İlk Story yükleme
-      */
+  }
 
-      loadStories();
+  loadStories();
 
+  setInterval(function(){
+    loadStories();
+  }, 60000);
 
-      /*
-        60 saniyede bir
-        sunucudan yenile.
-      */
-
-      setInterval(
-        function(){
-
-          loadStories();
-
-        },
-        60000
-      );
-
-    }
-  );
+});
 
 
   /* =======================================================
