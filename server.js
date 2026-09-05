@@ -37,34 +37,6 @@ const SUPABASE_SERVICE_ROLE_KEY =
 
 const BUCKET = "media";
 
-let mediaBucketReady = false;
-let mediaBucketPromise = null;
-
-async function ensureMediaBucket() {
-  if (mediaBucketReady) return;
-  if (mediaBucketPromise) return mediaBucketPromise;
-  mediaBucketPromise = (async () => {
-    const admin = adminClient();
-    const { data: buckets, error: listError } = await admin.storage.listBuckets();
-    if (listError) throw listError;
-    const exists = Array.isArray(buckets) && buckets.some(b => b.name === BUCKET);
-    if (!exists) {
-      const { error: createError } = await admin.storage.createBucket(BUCKET, {
-        public: true,
-        fileSizeLimit: "100MB"
-      });
-      if (createError && !String(createError.message || "").toLowerCase().includes("already exists")) {
-        throw createError;
-      }
-    }
-    mediaBucketReady = true;
-  })().catch(error => {
-    mediaBucketPromise = null;
-    throw error;
-  });
-  return mediaBucketPromise;
-}
-
 const CONFIG_OK = Boolean(
   SUPABASE_URL && SUPABASE_KEY
 );
@@ -2856,10 +2828,8 @@ app.post(
       const objectPath =
         `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
-      await ensureMediaBucket();
-      const storage = adminClient().storage;
       const { error: uploadError } =
-        await storage
+        await req.sb.storage
           .from(BUCKET)
           .upload(
             objectPath,
@@ -2875,7 +2845,7 @@ app.post(
       }
 
       const { data: publicData } =
-        storage
+        req.sb.storage
           .from(BUCKET)
           .getPublicUrl(objectPath);
 
@@ -3291,9 +3261,27 @@ app.get(
         });
       }
 
-      res.json(
-        data || []
-      );
+      const stories = (data || []).map((story) => {
+        const profile = story?.profiles || {};
+        return {
+          ...story,
+          userId: story?.user_id || null,
+          media: story?.media_url || null,
+          mediaUrl: story?.media_url || null,
+          mediaType: story?.media_type || null,
+          createdAt: story?.created_at || null,
+          username: profile?.username || null,
+          displayName: profile?.display_name || null,
+          avatarUrl: profile?.avatar_url || null,
+          user: {
+            username: profile?.username || null,
+            display_name: profile?.display_name || null,
+            avatar_url: profile?.avatar_url || null
+          }
+        };
+      });
+
+      res.json(stories);
     } catch (e) {
       res.status(500).json({
         error:
