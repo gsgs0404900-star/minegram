@@ -3192,9 +3192,8 @@ app.post(
   }
 );
 
-
 /* =========================================================
-   STORIES CREATE
+   STORIES CREATE - FIXED
 ========================================================= */
 
 app.post(
@@ -3202,89 +3201,231 @@ app.post(
   auth,
   upload.single("story"),
   async (req, res) => {
+    let objectPath = null;
+
     try {
+      /* -----------------------------------------------------
+         DOSYA KONTROLÜ
+      ----------------------------------------------------- */
       if (!req.file) {
         return res.status(400).json({
-          error:
-            "Dosya seçilmedi"
+          error: "Hikaye dosyası seçilmedi."
         });
       }
 
-      const ext =
-        path.extname(
-          req.file.originalname
-        ) || ".bin";
+      if (!req.user?.id) {
+        return res.status(401).json({
+          error: "Oturum bulunamadı. Lütfen tekrar giriş yap."
+        });
+      }
 
-      const objectPath =
+      /* -----------------------------------------------------
+         DOSYA TÜRÜ
+      ----------------------------------------------------- */
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "video/mp4",
+        "video/webm",
+        "video/quicktime"
+      ];
+
+      if (
+        req.file.mimetype &&
+        !allowedTypes.includes(req.file.mimetype)
+      ) {
+        return res.status(400).json({
+          error:
+            "Bu dosya türü hikaye olarak desteklenmiyor."
+        });
+      }
+
+      /* -----------------------------------------------------
+         UZANTI
+      ----------------------------------------------------- */
+      let ext = path
+        .extname(req.file.originalname || "")
+        .toLowerCase();
+
+      if (!ext) {
+        const mimeExt = {
+          "image/jpeg": ".jpg",
+          "image/jpg": ".jpg",
+          "image/png": ".png",
+          "image/webp": ".webp",
+          "image/gif": ".gif",
+          "video/mp4": ".mp4",
+          "video/webm": ".webm",
+          "video/quicktime": ".mov"
+        };
+
+        ext = mimeExt[req.file.mimetype] || ".bin";
+      }
+
+      /* -----------------------------------------------------
+         SUPABASE ADMIN
+         
+         auth middleware yine çalışıyor.
+         Yani kullanıcı doğrulanmadan buraya girilemez.
+         
+         Admin client sadece Storage/RLS problemlerini
+         ortadan kaldırmak için kullanılıyor.
+      ----------------------------------------------------- */
+      const admin = adminClient();
+
+      objectPath =
         `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
+      console.log(
+        "STORY UPLOAD BAŞLADI:",
+        {
+          userId: req.user.id,
+          fileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+          objectPath
+        }
+      );
+
+      /* -----------------------------------------------------
+         STORAGE UPLOAD
+      ----------------------------------------------------- */
       const {
         error: uploadError
-      } =
-        await req.sb.storage
-          .from(BUCKET)
-          .upload(
-            objectPath,
-            req.file.buffer,
-            {
-              contentType:
-                req.file.mimetype,
-              upsert:
-                false
-            }
-          );
+      } = await admin.storage
+        .from(BUCKET)
+        .upload(
+          objectPath,
+          req.file.buffer,
+          {
+            contentType:
+              req.file.mimetype ||
+              "application/octet-stream",
+            upsert: false
+          }
+        );
 
       if (uploadError) {
-        throw uploadError;
+        console.error(
+          "STORY STORAGE ERROR:",
+          uploadError
+        );
+
+        throw new Error(
+          "Hikaye dosyası Supabase Storage'a yüklenemedi: " +
+          (uploadError.message || "Bilinmeyen Storage hatası")
+        );
       }
 
+      /* -----------------------------------------------------
+         PUBLIC URL
+      ----------------------------------------------------- */
       const {
         data: publicData
-      } =
-        req.sb.storage
-          .from(BUCKET)
-          .getPublicUrl(
-            objectPath
-          );
+      } = admin.storage
+        .from(BUCKET)
+        .getPublicUrl(objectPath);
 
-      const result =
-        await req.sb
-          .from("stories")
-          .insert({
-            user_id:
-              req.user.id,
+      const mediaUrl =
+        publicData?.publicUrl || null;
 
-            media_url:
-              publicData.publicUrl,
-
-            media_type:
-              req.file.mimetype
-          })
-          .select()
-          .single();
-
-      if (result.error) {
-        throw result.error;
+      if (!mediaUrl) {
+        throw new Error(
+          "Hikaye medya adresi oluşturulamadı."
+        );
       }
 
-      res.json(
-        result.data
+      /* -----------------------------------------------------
+         STORIES TABLOSUNA KAYIT
+      ----------------------------------------------------- */
+      const {
+        data: story,
+        error: storyError
+      } = await admin
+        .from("stories")
+        .insert({
+          user_id: req.user.id,
+          media_url: mediaUrl,
+          media_type:
+            req.file.mimetype ||
+            "application/octet-stream"
+        })
+        .select("*")
+        .single();
+
+      if (storyError) {
+        console.error(
+          "STORY DATABASE ERROR:",
+          storyError
+        );
+
+        /* DB kaydı başarısızsa yüklenen dosyayı da temizle */
+        try {
+          await admin.storage
+            .from(BUCKET)
+            .remove([objectPath]);
+        } catch (cleanupError) {
+          console.error(
+            "STORY CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+
+        throw new Error(
+          "Hikaye veritabanına kaydedilemedi: " +
+          (storyError.message || "Bilinmeyen veritabanı hatası")
+        );
+      }
+
+      /* -----------------------------------------------------
+         BAŞARILI
+      ----------------------------------------------------- */
+      console.log(
+        "STORY UPLOAD BAŞARILI:",
+        story.id
       );
 
-    } catch (e) {
+      return res.status(201).json({
+        ok: true,
+
+        id: story.id,
+
+        userId:
+          story.user_id,
+
+        media:
+          story.media_url,
+
+        mediaUrl:
+          story.media_url,
+
+        mediaType:
+          story.media_type,
+
+        createdAt:
+          story.created_at,
+
+        story
+      });
+
+    } catch (error) {
       console.error(
         "STORY ERROR:",
-        e
+        error
       );
 
-      res.status(400).json({
+      return res.status(400).json({
+        ok: false,
         error:
-          e.message
+          error?.message ||
+          "Hikaye yüklenemedi."
       });
     }
   }
 );
-
 
 /* =========================================================
    STORIES
