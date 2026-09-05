@@ -3449,6 +3449,11 @@ app.post(
               req.body?.caption ||
               "",
 
+            // Android tarafındaki yerel MinePost.id ile ortak kayıt eşleştirilir.
+            client_id: req.body?.client_id
+              ? Number(req.body.client_id)
+              : null,
+
             media_url:
               mediaUrl,
 
@@ -3503,48 +3508,100 @@ app.delete(
   auth,
   async (req, res) => {
     try {
-      const id = String(req.params.id || "").trim();
-      if (!id) {
+      const requestedId = String(req.params.id || "").trim();
+      const clientIdRaw = String(req.query?.client_id || "").trim();
+      const clientId = /^\d+$/.test(clientIdRaw)
+        ? Number(clientIdRaw)
+        : null;
+
+      if (!requestedId && clientId == null) {
         return res.status(400).json({ error: "Gönderi ID gerekli." });
       }
 
-      const { data: post, error: findError } = await req.sb
-        .from("posts")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", req.user.id)
-        .maybeSingle();
+      // DELETE işlemlerinde RLS nedeniyle normal istemci yerine
+      // service-role istemcisi kullanılır. Önce kullanıcı sahipliği doğrulanır.
+      const admin = adminClient();
+      let post = null;
+      let findError = null;
 
+      // Gerçek Supabase UUID ise önce posts.id üzerinden ara.
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId);
+      if (isUuid) {
+        const result = await admin
+          .from("posts")
+          .select("*")
+          .eq("id", requestedId)
+          .eq("user_id", req.user.id)
+          .maybeSingle();
+        post = result.data;
+        findError = result.error;
+      }
+
+      // Android'ın yerel MinePost.id değeri gönderilmişse client_id ile bul.
+      if (!post && clientId != null) {
+        const result = await admin
+          .from("posts")
+          .select("*")
+          .eq("client_id", clientId)
+          .eq("user_id", req.user.id)
+          .maybeSingle();
+        post = result.data;
+        if (result.error) findError = result.error;
+      }
+
+      // Eski kayıtlar için, UUID formatı dışında olsa bile son bir doğrudan
+      // sorgu yapılmaz; böylece PostgreSQL UUID cast hatası oluşmaz.
       if (findError) throw findError;
+
       if (!post) {
         return res.status(404).json({ error: "Gönderi bulunamadı." });
       }
 
-      // Storage'daki medya dosyasını da temizle.
+      const postId = String(post.id);
+
+      // Storage medya dosyasını service-role ile sil.
       if (post.media_url) {
         const marker = `/storage/v1/object/public/${BUCKET}/`;
         const mediaUrl = String(post.media_url);
         const pos = mediaUrl.indexOf(marker);
         if (pos >= 0) {
           const objectPath = mediaUrl.slice(pos + marker.length);
-          await req.sb.storage.from(BUCKET).remove([objectPath]).catch(() => {});
+          const { error: storageError } = await admin
+            .storage
+            .from(BUCKET)
+            .remove([objectPath]);
+          if (storageError) {
+            console.warn("POST MEDIA DELETE WARNING:", storageError.message);
+          }
         }
       }
 
-      // Önce ilişkili kayıtları temizlemeyi dene; FK CASCADE varsa hata vermeden devam et.
-      await req.sb.from("post_likes").delete().eq("post_id", id).catch(() => {});
-      await req.sb.from("comments").delete().eq("post_id", id).catch(() => {});
-      await req.sb.from("saves").delete().eq("post_id", id).catch(() => {});
+      // İlişkili kayıtları gerçek Supabase post ID'si ile temizle.
+      // Hataları yutmak yerine sadece FK/CASCADE kaynaklı durumlarda
+      // ana silme işleminin devam etmesine izin veriyoruz.
+      await admin.from("post_likes").delete().eq("post_id", postId);
+      await admin.from("comments").delete().eq("post_id", postId);
+      await admin.from("saves").delete().eq("post_id", postId);
 
-      const { error: deleteError } = await req.sb
+      const { data: deletedRows, error: deleteError } = await admin
         .from("posts")
         .delete()
-        .eq("id", id)
-        .eq("user_id", req.user.id);
+        .eq("id", postId)
+        .eq("user_id", req.user.id)
+        .select("id")
+        .limit(1);
 
       if (deleteError) throw deleteError;
 
-      return res.json({ ok: true, id });
+      if (!deletedRows || deletedRows.length === 0) {
+        return res.status(404).json({ error: "Gönderi silinemedi veya zaten silinmiş." });
+      }
+
+      return res.json({
+        ok: true,
+        id: postId,
+        client_id: post.client_id ?? null
+      });
     } catch (e) {
       console.error("DELETE POST ERROR:", e);
       return res.status(500).json({
