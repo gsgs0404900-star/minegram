@@ -1462,30 +1462,51 @@ app.post(
           });
         }
 
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
+        let authUser = null;
 
-        const {
-          data: au,
-          error: ae
-        } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
+        // Normal kayıt: profile -> auth_user_id üzerinden Auth kullanıcısını bul.
+        const authId = profile.auth_user_id || profile.id;
+        if (authId) {
+          const { data: au, error: ae } =
+            await admin.auth.admin.getUserById(authId);
+          if (!ae && au?.user?.email) {
+            authUser = au.user;
+          }
+        }
 
-        if (
-          ae ||
-          !au?.user?.email
-        ) {
+        // Eski cihaz/hesap kayıtlarında auth_user_id yanlış veya boş olabilir.
+        // Profildeki e-posta üzerinden gerçek Auth kullanıcısını da bul.
+        if (!authUser && profile.email) {
+          const wantedEmail = String(profile.email).trim().toLowerCase();
+          try {
+            const result = await admin.auth.admin.getUserByEmail(wantedEmail);
+            if (!result.error && result.data?.user?.email) {
+              authUser = result.data.user;
+            }
+          } catch (_) {}
+        }
+
+        // SDK sürümünde getUserByEmail yoksa son fallback: Auth listesinden ara.
+        if (!authUser && profile.email) {
+          const wantedEmail = String(profile.email).trim().toLowerCase();
+          for (let page = 1; page <= 20 && !authUser; page++) {
+            const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+            const users = result?.data?.users || [];
+            authUser = users.find(u =>
+              String(u?.email || '').trim().toLowerCase() === wantedEmail
+            ) || null;
+            if (users.length < 1000) break;
+          }
+        }
+
+        if (!authUser?.email) {
           return res.status(401).json({
             error:
               "Kullanıcı adı veya şifre hatalı."
           });
         }
 
-        email =
-          au.user.email.toLowerCase();
+        email = authUser.email.toLowerCase();
       }
 
       const anon =
@@ -3199,136 +3220,6 @@ app.get(
   }
 );
 
-
-/* =========================================================
-/* =========================================================
-   HIGHLIGHTS — ORTAK SUPABASE SENKRON
-   Android + Web aynı tablo ve Storage kaynağını kullanır.
-   ========================================================= */
-
-function highlightProfileId(profile) {
-  return profile?.auth_user_id || profile?.id || null;
-}
-
-app.get("/api/users/:username/highlights", async (req, res) => {
-  try {
-    const username = normalizeUsername(req.params.username);
-    if (!username) return res.status(400).json({ ok: false, error: "Kullanıcı adı gerekli." });
-
-    const admin = adminClient();
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .select("*")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (profileError) throw profileError;
-    if (!profile) return res.status(404).json({ ok: false, error: "Profil bulunamadı." });
-
-    const userId = highlightProfileId(profile);
-    if (!userId) return res.json({ ok: true, highlights: [] });
-
-    const { data, error } = await admin
-      .from("highlights")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(100);
-
-    if (error) throw error;
-    return res.json({ ok: true, highlights: data || [] });
-  } catch (e) {
-    console.error("GET HIGHLIGHTS ERROR:", e);
-    return res.status(500).json({ ok: false, error: e?.message || "Öne çıkanlar alınamadı." });
-  }
-});
-
-app.post(
-  "/api/highlights",
-  auth,
-  upload.single("media"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ ok: false, error: "Öne çıkan medyası gerekli." });
-      }
-
-      const title = String(req.body?.title || "Öne çıkan").trim().slice(0, 80) || "Öne çıkan";
-      const ext = path.extname(req.file.originalname || "").toLowerCase() ||
-        (req.file.mimetype?.startsWith("video/") ? ".mp4" : ".jpg");
-      const objectPath = `${req.user.id}/highlights/${crypto.randomUUID()}${ext}`;
-
-      const { error: uploadError } = await req.sb.storage
-        .from(BUCKET)
-        .upload(objectPath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = req.sb.storage
-        .from(BUCKET)
-        .getPublicUrl(objectPath);
-
-      const mediaUrl = publicData?.publicUrl || "";
-      if (!mediaUrl) throw new Error("Öne çıkan medya adresi oluşturulamadı.");
-
-      const { data, error } = await req.sb
-        .from("highlights")
-        .insert({
-          user_id: req.user.id,
-          title,
-          media_url: mediaUrl,
-          media_type: req.file.mimetype || "image/jpeg",
-          media_name: req.file.originalname || null
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      return res.status(201).json({ ok: true, highlight: data });
-    } catch (e) {
-      console.error("CREATE HIGHLIGHT ERROR:", e);
-      return res.status(500).json({ ok: false, error: e?.message || "Öne çıkan yüklenemedi." });
-    }
-  }
-);
-
-app.delete("/api/highlights/:id", auth, async (req, res) => {
-  try {
-    const id = String(req.params.id || "").trim();
-    if (!id) return res.status(400).json({ ok: false, error: "Öne çıkan ID gerekli." });
-
-    const { data: row, error: findError } = await req.sb
-      .from("highlights")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .maybeSingle();
-
-    if (findError) throw findError;
-    if (!row) return res.status(404).json({ ok: false, error: "Öne çıkan bulunamadı." });
-
-    if (row.media_url) {
-      const marker = `/storage/v1/object/public/${BUCKET}/`;
-      const index = String(row.media_url).indexOf(marker);
-      if (index >= 0) {
-        const objectPath = String(row.media_url).slice(index + marker.length);
-        await req.sb.storage.from(BUCKET).remove([objectPath]).catch(() => {});
-      }
-    }
-
-    const { error } = await req.sb.from("highlights").delete().eq("id", id).eq("user_id", req.user.id);
-    if (error) throw error;
-
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("DELETE HIGHLIGHT ERROR:", e);
-    return res.status(500).json({ ok: false, error: e?.message || "Öne çıkan silinemedi." });
-  }
-});
 
 /* =========================================================
    CREATE POST
