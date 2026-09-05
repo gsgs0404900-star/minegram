@@ -12,6 +12,78 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+/* =========================================================
+   SECURITY HEADERS
+========================================================= */
+
+app.disable("x-powered-by");
+
+app.use((req, res, next) => {
+  res.setHeader(
+    "X-Frame-Options",
+    "SAMEORIGIN"
+  );
+
+  res.setHeader(
+    "X-Content-Type-Options",
+    "nosniff"
+  );
+
+  res.setHeader(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin"
+  );
+
+  res.setHeader(
+    "Permissions-Policy",
+    [
+      "camera=(self)",
+      "microphone=()",
+      "geolocation=()",
+      "payment=()",
+      "usb=()"
+    ].join(", ")
+  );
+
+  /*
+    Minegram index.html içinde mevcut
+    onclick / onerror / onkeydown gibi
+    inline event'ler bulunduğu için
+    unsafe-inline korunuyor.
+  */
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self' https: data: blob:",
+      "script-src 'self' 'unsafe-inline' https:",
+      "style-src 'self' 'unsafe-inline' https:",
+      "img-src 'self' https: data: blob:",
+      "media-src 'self' https: data: blob:",
+      "font-src 'self' https: data:",
+      "connect-src 'self' https:",
+      "frame-src 'self' https:",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'"
+    ].join("; ")
+  );
+
+  res.setHeader(
+    "Cross-Origin-Opener-Policy",
+    "same-origin-allow-popups"
+  );
+
+  res.setHeader(
+    "Cross-Origin-Resource-Policy",
+    "same-origin"
+  );
+
+  next();
+});
+
 const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
