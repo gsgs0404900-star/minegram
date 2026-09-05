@@ -117,6 +117,16 @@ body{
 .story-progress{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:4px;z-index:4}
 .story-progress span{height:3px;flex:1;background:rgba(255,255,255,.35);border-radius:10px}.story-progress span.active{background:#fff}
 
+
+.story-more{position:absolute;top:18px;right:68px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer;z-index:5}
+.story-more-menu{display:none;position:absolute;top:68px;right:12px;width:280px;background:#111;border:1px solid #333;border-radius:12px;overflow:hidden;z-index:6;box-shadow:0 10px 35px rgba(0,0,0,.6)}
+.story-more-menu.open{display:block}
+.story-more-menu button{display:block;width:100%;padding:13px 15px;border:0;border-bottom:1px solid #242424;background:#111;color:#fff;text-align:left;font-size:14px;cursor:pointer}
+.story-more-menu button:last-child{border-bottom:0}
+.story-more-menu button:active{background:#222}
+.story-more-menu .danger{color:#ff5b5b}
+.story-viewer.story-paused .story-media{opacity:.98}
+
 .avatar.small{
   width:40px;
   height:40px;
@@ -805,10 +815,22 @@ Profil
 <div id="storyViewer" class="story-viewer" onclick="closeStory(event)">
   <div class="story-stage" onclick="event.stopPropagation()">
     <div id="storyProgress" class="story-progress"></div>
+    <button class="story-more" onclick="toggleStoryMore(event)" aria-label="Daha fazla">⋮</button>
     <button class="story-close" onclick="closeStory()" aria-label="Kapat">×</button>
     <button class="story-prev" onclick="previousStory()" aria-label="Önceki"></button>
     <div id="storyMediaWrap"></div>
     <button class="story-next" onclick="nextStory()" aria-label="Sonraki"></button>
+    <div id="storyMore" class="story-more-menu" onclick="event.stopPropagation()">
+      <button onclick="shareCurrentStory()">Gönder / Paylaş</button>
+      <button onclick="showStoryViewers()">Görüntüleyenler</button>
+      <button onclick="copyCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
+      <button onclick="downloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
+      <button onclick="highlightCurrentStory()">Öne çıkar</button>
+      <button onclick="toggleStoryComments()">Yorum yapmayı kapat</button>
+      <button onclick="goStorySettings()">Hikaye ayarlarına git</button>
+      <button onclick="hideCurrentStory()">Hikayeyi gizle</button>
+      <button class="danger" onclick="deleteCurrentStory()">Sil</button>
+    </div>
   </div>
 </div>
 
@@ -919,120 +941,91 @@ onclick="sendComment()"
 
 <script>
 /* =========================================================
-   MINEGRAM HİKAYE SİSTEMİ
+   MINEGRAM HİKAYE SİSTEMİ — Android StoryViewer uyarlaması
 ========================================================= */
 (function(){
-  const storyKey="minegram_story_v1";
+  const storyKey="minegram_story_v2";
   let stories=[];
   let storyIndex=0;
+  let storyTimer=null;
+  let storyVideo=null;
 
+  function cleanStories(){
+    const limit=Date.now()-24*60*60*1000;
+    stories=stories.filter(x=>Number(x.createdAt)>limit);
+  }
   function loadStories(){
-    try{
-      const raw=localStorage.getItem(storyKey);
-      stories=raw?JSON.parse(raw):[];
-      if(!Array.isArray(stories)) stories=[];
-    }catch(e){ stories=[]; }
-    renderStoryButton();
+    try{ stories=JSON.parse(localStorage.getItem(storyKey)||"[]"); if(!Array.isArray(stories))stories=[]; }
+    catch(e){stories=[];}
+    cleanStories(); saveStories(false); renderStoryButton();
   }
-
-  function saveStories(){
-    localStorage.setItem(storyKey,JSON.stringify(stories));
-    renderStoryButton();
+  function saveStories(render=true){
+    try{localStorage.setItem(storyKey,JSON.stringify(stories));}catch(e){}
+    if(render)renderStoryButton();
   }
-
   function renderStoryButton(){
-    const box=document.getElementById("myStory");
-    const avatar=document.getElementById("storyAvatar");
-    const label=document.getElementById("storyLabel");
+    const box=document.getElementById("myStory"), avatar=document.getElementById("storyAvatar"), label=document.getElementById("storyLabel");
     if(!box||!avatar)return;
     if(stories.length){
       box.classList.add("has-story");
       const last=stories[stories.length-1];
-      avatar.innerHTML=last.type.startsWith("video/")
-        ? '<span style="font-size:22px">▶</span><span class="plus">+</span>'
-        : '<img class="story-image" src="'+last.data+'" alt="Hikaye"><span class="plus">+</span>';
-      if(label) label.textContent="Hikayen";
-    }else{
-      box.classList.remove("has-story");
-      avatar.innerHTML='M<span class="plus">+</span>';
-      if(label) label.textContent="Hikayen";
-    }
+      avatar.innerHTML=last.type.startsWith("video/")?'<span style="font-size:22px">▶</span><span class="plus">+</span>':'<img class="story-image" src="'+last.data+'" alt="Hikaye"><span class="plus">+</span>';
+    }else{box.classList.remove("has-story");avatar.innerHTML='M<span class="plus">+</span>';}
+    if(label)label.textContent="Hikayen";
   }
-
-  function openPicker(){
-    const input=document.getElementById("storyInput");
-    if(input) input.click();
-  }
-
+  function openPicker(){document.getElementById("storyInput")?.click();}
   function addStory(file){
     if(!file)return;
+    if(!/^image\//.test(file.type)&&!/^video\//.test(file.type)){alert("Sadece fotoğraf veya video ekleyebilirsin.");return;}
     const reader=new FileReader();
     reader.onload=function(){
-      stories.push({type:file.type,data:reader.result,createdAt:Date.now()});
-      // Son 24 saatlik hikayeler
-      const limit=Date.now()-24*60*60*1000;
-      stories=stories.filter(x=>Number(x.createdAt)>limit);
-      try{saveStories();openStory(stories.length-1);}catch(e){alert("Hikaye kaydedilemedi. Dosya çok büyük olabilir.");}
+      stories.push({id:"story_"+Date.now()+"_"+Math.random().toString(36).slice(2),type:file.type,data:reader.result,createdAt:Date.now(),commentsEnabled:true});
+      cleanStories(); saveStories(); openStory(stories.length-1);
     };
     reader.readAsDataURL(file);
   }
-
+  function clearTimer(){if(storyTimer){clearTimeout(storyTimer);storyTimer=null;} if(storyVideo){storyVideo.pause();storyVideo=null;}}
   function renderViewer(){
-    const viewer=document.getElementById("storyViewer");
-    const wrap=document.getElementById("storyMediaWrap");
-    const progress=document.getElementById("storyProgress");
+    clearTimer();
+    const viewer=document.getElementById("storyViewer"),wrap=document.getElementById("storyMediaWrap"),progress=document.getElementById("storyProgress"),more=document.getElementById("storyMore");
     if(!viewer||!wrap||!progress||!stories.length)return;
-    viewer.classList.add("open");
-    progress.innerHTML=stories.map((_,i)=>'<span class="'+(i===storyIndex?'active':'')+'"></span>').join("");
-    const item=stories[storyIndex];
-    wrap.innerHTML="";
+    viewer.classList.add("open"); if(more)more.classList.remove("open");
+    progress.innerHTML=stories.map((_,i)=>'<span class="'+(i<storyIndex?'active':i===storyIndex?'active':'')+'"></span>').join("");
+    const item=stories[storyIndex]; wrap.innerHTML="";
+    const seenKey="minegram_story_viewers_"+item.id;
+    try{const a=JSON.parse(localStorage.getItem(seenKey)||"[]");const u=localStorage.getItem("minegram_username")||"me";if(!a.includes(u)){a.push(u);localStorage.setItem(seenKey,JSON.stringify(a));}}catch(e){}
     if(item.type.startsWith("video/")){
-      const v=document.createElement("video"); v.className="story-media"; v.src=item.data; v.controls=true; v.autoplay=true; v.playsInline=true; wrap.appendChild(v);
+      const v=document.createElement("video");v.className="story-media";v.src=item.data;v.autoplay=true;v.playsInline=true;v.controls=false;wrap.appendChild(v);storyVideo=v;
+      v.onended=()=>nextStory(); v.onerror=()=>nextStory(); v.play().catch(()=>{});
     }else{
-      const img=document.createElement("img"); img.className="story-media"; img.src=item.data; img.alt="Hikaye"; wrap.appendChild(img);
+      const img=document.createElement("img");img.className="story-media";img.src=item.data;img.alt="Hikaye";wrap.appendChild(img);
+      storyTimer=setTimeout(nextStory,5000);
     }
   }
-
-  function openStory(index){
-    if(!stories.length){openPicker();return;}
-    storyIndex=Math.max(0,Math.min(index,stories.length-1));
-    renderViewer();
-  }
-  window.closeStory=function(e){
-    if(e && e.target && e.target.id!=="storyViewer")return;
-    const v=document.getElementById("storyViewer"); if(v)v.classList.remove("open");
-  };
-  window.nextStory=function(){
-    if(storyIndex<stories.length-1){storyIndex++;renderViewer();}
-    else closeStory();
-  };
-  window.previousStory=function(){
-    if(storyIndex>0){storyIndex--;renderViewer();}
-  };
-
+  function openStory(index){cleanStories();if(!stories.length){openPicker();return;}storyIndex=Math.max(0,Math.min(index,stories.length-1));renderViewer();}
+  window.closeStory=function(e){if(e&&e.target&&e.target.id!=="storyViewer")return;clearTimer();document.getElementById("storyViewer")?.classList.remove("open");document.getElementById("storyMore")?.classList.remove("open");};
+  window.nextStory=function(){if(storyIndex<stories.length-1){storyIndex++;renderViewer();}else closeStory();};
+  window.previousStory=function(){if(storyIndex>0){storyIndex--;renderViewer();}};
+  window.toggleStoryMore=function(e){e?.stopPropagation();document.getElementById("storyMore")?.classList.toggle("open");};
+  function current(){return stories[storyIndex];}
+  window.shareCurrentStory=async function(){const x=current();if(!x)return;const text="Minegram hikayesi";try{if(navigator.share)await navigator.share({title:"Minegram",text:text,url:location.href});else await navigator.clipboard.writeText(location.href);alert(navigator.share?"Paylaşım açıldı.":"Bağlantı kopyalandı.");}catch(e){} };
+  window.copyCurrentStory=async function(){try{await navigator.clipboard.writeText(location.href);alert("Hikaye bağlantısı kopyalandı.");}catch(e){alert("Bağlantı kopyalanamadı.");}};
+  window.showStoryViewers=function(){const x=current();if(!x)return;let names=[];try{names=JSON.parse(localStorage.getItem("minegram_story_viewers_"+x.id)||"[]");}catch(e){}alert(names.length?"Görüntüleyenler ("+names.length+")\\n\\n"+names.map(n=>"@"+n).join("\\n"):"Henüz kimse görmedi.");};
+  window.downloadCurrentStory=function(){const x=current();if(!x)return;const a=document.createElement("a");a.href=x.data;a.download="minegram_story_"+x.createdAt+(x.type.startsWith("video/")?".mp4":".jpg");a.click();};
+  window.highlightCurrentStory=function(){const x=current();if(!x)return;localStorage.setItem("minegram_highlight_"+x.id,"1");alert("Hikaye öne çıkarıldı.");};
+  window.toggleStoryComments=function(){const x=current();if(!x)return;x.commentsEnabled=x.commentsEnabled===false;saveStories(false);alert(x.commentsEnabled?"Yorum yapma açıldı.":"Yorum yapma kapatıldı.");};
+  window.goStorySettings=function(){location.href="ayarlar.html";};
+  window.hideCurrentStory=function(){closeStory();localStorage.setItem("minegram_story_hidden","1");alert("Hikayen gizlendi.");};
+  window.deleteCurrentStory=function(){if(!confirm("Bu hikayeyi silmek istiyor musun?"))return;stories.splice(storyIndex,1);saveStories();closeStory();};
   document.addEventListener("DOMContentLoaded",function(){
-    const box=document.getElementById("myStory");
-    const input=document.getElementById("storyInput");
-    if(box) box.addEventListener("click",function(){
-      if(stories.length) openStory(0); else openPicker();
-    });
-    if(box) box.addEventListener("keydown",function(e){
-      if(e.key==="Enter"||e.key===" "){e.preventDefault();box.click();}
-    });
-    if(input) input.addEventListener("change",function(){addStory(this.files&&this.files[0]);this.value="";});
+    const box=document.getElementById("myStory"),input=document.getElementById("storyInput");
+    if(box)box.addEventListener("click",()=>stories.length?openStory(0):openPicker());
+    if(box)box.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();box.click();}});
+    if(input)input.addEventListener("change",function(){addStory(this.files?.[0]);this.value="";});
     loadStories();
   });
-
-  document.addEventListener("keydown",function(e){
-    const viewer=document.getElementById("storyViewer");
-    if(!viewer||!viewer.classList.contains("open"))return;
-    if(e.key==="Escape") closeStory();
-    if(e.key==="ArrowRight") nextStory();
-    if(e.key==="ArrowLeft") previousStory();
-  });
+  document.addEventListener("keydown",e=>{if(!document.getElementById("storyViewer")?.classList.contains("open"))return;if(e.key==="Escape")closeStory();if(e.key==="ArrowRight")nextStory();if(e.key==="ArrowLeft")previousStory();});
 })();
-
-
 
 "use strict";
 
