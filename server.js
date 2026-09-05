@@ -454,7 +454,10 @@ async function hydratePosts(
 
   return posts.map(p => ({
     id: p.id,
+    client_id: p.client_id ?? null,
     userId: p.user_id,
+    username: pmap.get(p.user_id)?.username || "user",
+    text: p.caption || "",
     caption: p.caption,
     media: p.media_url,
     mediaName:
@@ -3312,7 +3315,7 @@ app.patch("/api/highlights/:id", auth, async (req, res) => {
     if (!id) return res.status(400).json({ ok: false, error: "Öne çıkan ID gerekli." });
     if (!title) return res.status(400).json({ ok: false, error: "Başlık gerekli." });
 
-    const { data, error } = await req.sb
+    const { data, error } = await adminClient()
       .from("highlights")
       .update({ title })
       .eq("id", id)
@@ -3334,7 +3337,7 @@ app.delete("/api/highlights/:id", auth, async (req, res) => {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ ok: false, error: "Öne çıkan ID gerekli." });
 
-    const { data: row, error: findError } = await req.sb
+    const { data: row, error: findError } = await adminClient()
       .from("highlights")
       .select("*")
       .eq("id", id)
@@ -3349,11 +3352,11 @@ app.delete("/api/highlights/:id", auth, async (req, res) => {
       const pos = mediaUrl.indexOf(marker);
       if (pos >= 0) {
         const objectPath = mediaUrl.slice(pos + marker.length);
-        await req.sb.storage.from(BUCKET).remove([objectPath]).catch(() => {});
+        await adminClient().storage.from(BUCKET).remove([objectPath]).catch(() => {});
       }
     }
 
-    const { error } = await req.sb
+    const { error } = await adminClient()
       .from("highlights")
       .delete()
       .eq("id", id)
@@ -3399,7 +3402,7 @@ app.post(
         const {
           error: uploadError
         } =
-          await req.sb.storage
+          await adminClient().storage
             .from(BUCKET)
             .upload(
               objectPath,
@@ -3439,7 +3442,7 @@ app.post(
         data,
         error
       } =
-        await req.sb
+        await adminClient()
           .from("posts")
           .insert({
             user_id:
@@ -4398,6 +4401,53 @@ app.get(
   }
 );
 
+
+
+/* =========================================================
+   POSTS FEED / PROFILE SYNC
+========================================================= */
+
+app.get("/api/feed", auth, async (req, res) => {
+  try {
+    const admin = adminClient();
+    const { data, error } = await admin
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return res.json(await hydratePosts(admin, data || [], req.user.id));
+  } catch (e) {
+    console.error("GET FEED ERROR:", e);
+    return res.status(500).json({ error: e?.message || "Gönderiler alınamadı." });
+  }
+});
+
+app.get("/api/users/:username/posts", auth, async (req, res) => {
+  try {
+    const username = String(req.params.username || "").trim();
+    if (!username) return res.status(400).json({ error: "Kullanıcı adı gerekli." });
+    const admin = adminClient();
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("id,username")
+      .ilike("username", username)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile) return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+    const { data, error } = await admin
+      .from("posts")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return res.json(await hydratePosts(admin, data || [], req.user.id));
+  } catch (e) {
+    console.error("GET USER POSTS ERROR:", e);
+    return res.status(500).json({ error: e?.message || "Profil gönderileri alınamadı." });
+  }
+});
 
 /* =========================================================
    USER PROFILE
