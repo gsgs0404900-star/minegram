@@ -3495,6 +3495,66 @@ app.post(
 
 
 /* =========================================================
+   DELETE POST
+========================================================= */
+
+app.delete(
+  "/api/posts/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!id) {
+        return res.status(400).json({ error: "Gönderi ID gerekli." });
+      }
+
+      const { data: post, error: findError } = await req.sb
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+      if (findError) throw findError;
+      if (!post) {
+        return res.status(404).json({ error: "Gönderi bulunamadı." });
+      }
+
+      // Storage'daki medya dosyasını da temizle.
+      if (post.media_url) {
+        const marker = `/storage/v1/object/public/${BUCKET}/`;
+        const mediaUrl = String(post.media_url);
+        const pos = mediaUrl.indexOf(marker);
+        if (pos >= 0) {
+          const objectPath = mediaUrl.slice(pos + marker.length);
+          await req.sb.storage.from(BUCKET).remove([objectPath]).catch(() => {});
+        }
+      }
+
+      // Önce ilişkili kayıtları temizlemeyi dene; FK CASCADE varsa hata vermeden devam et.
+      await req.sb.from("post_likes").delete().eq("post_id", id).catch(() => {});
+      await req.sb.from("comments").delete().eq("post_id", id).catch(() => {});
+      await req.sb.from("saves").delete().eq("post_id", id).catch(() => {});
+
+      const { error: deleteError } = await req.sb
+        .from("posts")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", req.user.id);
+
+      if (deleteError) throw deleteError;
+
+      return res.json({ ok: true, id });
+    } catch (e) {
+      console.error("DELETE POST ERROR:", e);
+      return res.status(500).json({
+        error: e?.message || "Gönderi silinemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
    STORIES CREATE
 ========================================================= */
 
