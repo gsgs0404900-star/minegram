@@ -101,6 +101,22 @@ body{
   position:relative
 }
 
+/* Hikaye */
+.story{cursor:pointer;user-select:none}
+.story:active{transform:scale(.96)}
+.story.has-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #3f91cc}
+.story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
+
+.story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
+.story-viewer.open{display:flex}
+.story-stage{position:relative;width:min(100vw,520px);height:100vh;display:flex;align-items:center;justify-content:center}
+.story-media{max-width:100%;max-height:100%;object-fit:contain}
+.story-close{position:absolute;top:18px;right:18px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:30px;cursor:pointer;z-index:3}
+.story-prev,.story-next{position:absolute;top:0;bottom:0;width:35%;border:0;background:transparent;color:transparent;cursor:pointer;z-index:2}
+.story-prev{left:0}.story-next{right:0}
+.story-progress{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:4px;z-index:4}
+.story-progress span{height:3px;flex:1;background:rgba(255,255,255,.35);border-radius:10px}.story-progress span.active{background:#fff}
+
 .avatar.small{
   width:40px;
   height:40px;
@@ -691,16 +707,18 @@ aria-label="Mesajlar"
 
 <div class="stories">
 
-<div class="story">
+<div class="story" id="myStory" role="button" tabindex="0" aria-label="Hikaye ekle">
 
-<div class="avatar">
+<div class="avatar" id="storyAvatar">
 M
 <span class="plus">+</span>
 </div>
 
-<div>Hikayen</div>
+<div id="storyLabel">Hikayen</div>
 
 </div>
+
+<input id="storyInput" type="file" accept="image/*,video/*" hidden>
 
 </div>
 
@@ -782,6 +800,16 @@ Profil
 
 </nav>
 
+</div>
+
+<div id="storyViewer" class="story-viewer" onclick="closeStory(event)">
+  <div class="story-stage" onclick="event.stopPropagation()">
+    <div id="storyProgress" class="story-progress"></div>
+    <button class="story-close" onclick="closeStory()" aria-label="Kapat">×</button>
+    <button class="story-prev" onclick="previousStory()" aria-label="Önceki"></button>
+    <div id="storyMediaWrap"></div>
+    <button class="story-next" onclick="nextStory()" aria-label="Sonraki"></button>
+  </div>
 </div>
 
 <div id="menuBackdrop" class="menu-backdrop" onclick="closeMenu(event)">
@@ -890,6 +918,121 @@ onclick="sendComment()"
 <div id="toast" class="toast"></div>
 
 <script>
+/* =========================================================
+   MINEGRAM HİKAYE SİSTEMİ
+========================================================= */
+(function(){
+  const storyKey="minegram_story_v1";
+  let stories=[];
+  let storyIndex=0;
+
+  function loadStories(){
+    try{
+      const raw=localStorage.getItem(storyKey);
+      stories=raw?JSON.parse(raw):[];
+      if(!Array.isArray(stories)) stories=[];
+    }catch(e){ stories=[]; }
+    renderStoryButton();
+  }
+
+  function saveStories(){
+    localStorage.setItem(storyKey,JSON.stringify(stories));
+    renderStoryButton();
+  }
+
+  function renderStoryButton(){
+    const box=document.getElementById("myStory");
+    const avatar=document.getElementById("storyAvatar");
+    const label=document.getElementById("storyLabel");
+    if(!box||!avatar)return;
+    if(stories.length){
+      box.classList.add("has-story");
+      const last=stories[stories.length-1];
+      avatar.innerHTML=last.type.startsWith("video/")
+        ? '<span style="font-size:22px">▶</span><span class="plus">+</span>'
+        : '<img class="story-image" src="'+last.data+'" alt="Hikaye"><span class="plus">+</span>';
+      if(label) label.textContent="Hikayen";
+    }else{
+      box.classList.remove("has-story");
+      avatar.innerHTML='M<span class="plus">+</span>';
+      if(label) label.textContent="Hikayen";
+    }
+  }
+
+  function openPicker(){
+    const input=document.getElementById("storyInput");
+    if(input) input.click();
+  }
+
+  function addStory(file){
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(){
+      stories.push({type:file.type,data:reader.result,createdAt:Date.now()});
+      // Son 24 saatlik hikayeler
+      const limit=Date.now()-24*60*60*1000;
+      stories=stories.filter(x=>Number(x.createdAt)>limit);
+      try{saveStories();openStory(stories.length-1);}catch(e){alert("Hikaye kaydedilemedi. Dosya çok büyük olabilir.");}
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderViewer(){
+    const viewer=document.getElementById("storyViewer");
+    const wrap=document.getElementById("storyMediaWrap");
+    const progress=document.getElementById("storyProgress");
+    if(!viewer||!wrap||!progress||!stories.length)return;
+    viewer.classList.add("open");
+    progress.innerHTML=stories.map((_,i)=>'<span class="'+(i===storyIndex?'active':'')+'"></span>').join("");
+    const item=stories[storyIndex];
+    wrap.innerHTML="";
+    if(item.type.startsWith("video/")){
+      const v=document.createElement("video"); v.className="story-media"; v.src=item.data; v.controls=true; v.autoplay=true; v.playsInline=true; wrap.appendChild(v);
+    }else{
+      const img=document.createElement("img"); img.className="story-media"; img.src=item.data; img.alt="Hikaye"; wrap.appendChild(img);
+    }
+  }
+
+  function openStory(index){
+    if(!stories.length){openPicker();return;}
+    storyIndex=Math.max(0,Math.min(index,stories.length-1));
+    renderViewer();
+  }
+  window.closeStory=function(e){
+    if(e && e.target && e.target.id!=="storyViewer")return;
+    const v=document.getElementById("storyViewer"); if(v)v.classList.remove("open");
+  };
+  window.nextStory=function(){
+    if(storyIndex<stories.length-1){storyIndex++;renderViewer();}
+    else closeStory();
+  };
+  window.previousStory=function(){
+    if(storyIndex>0){storyIndex--;renderViewer();}
+  };
+
+  document.addEventListener("DOMContentLoaded",function(){
+    const box=document.getElementById("myStory");
+    const input=document.getElementById("storyInput");
+    if(box) box.addEventListener("click",function(){
+      if(stories.length) openStory(0); else openPicker();
+    });
+    if(box) box.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();box.click();}
+    });
+    if(input) input.addEventListener("change",function(){addStory(this.files&&this.files[0]);this.value="";});
+    loadStories();
+  });
+
+  document.addEventListener("keydown",function(e){
+    const viewer=document.getElementById("storyViewer");
+    if(!viewer||!viewer.classList.contains("open"))return;
+    if(e.key==="Escape") closeStory();
+    if(e.key==="ArrowRight") nextStory();
+    if(e.key==="ArrowLeft") previousStory();
+  });
+})();
+
+
 
 "use strict";
 
