@@ -3328,7 +3328,7 @@ app.delete("/api/highlights/:id", auth, async (req, res) => {
     console.error("DELETE HIGHLIGHT ERROR:", e);
     return res.status(500).json({ ok: false, error: e?.message || "Öne çıkan silinemedi." });
   }
-);
+});
 
    CREATE POST
 ========================================================= */
