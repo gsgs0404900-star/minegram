@@ -1,3538 +1,4679 @@
-<!doctype html>
+import "dotenv/config";
+import express from "express";
+import multer from "multer";
+import { createClient } from "@supabase/supabase-js";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+import fs from "fs";
 
-<html lang="tr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000">
-<title>Minegram • Ayarlar</title>
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
 
-<style>
-*{box-sizing:border-box}
-html,body{
-margin:0;padding:0;min-height:100%;
-background:#000;color:#fff;font-family:Arial,sans-serif
-}
-body{overflow-x:hidden}
-button,input,textarea{font:inherit}
-button{cursor:pointer}
+app.set("trust proxy", 1);
 
-.settings-app{min-height:100dvh;background:#000;color:#fff}
+const PORT = Number(process.env.PORT) || 3000;
 
-.settings-header,.sub-header{
-height:58px;display:flex;align-items:center;
-padding:0 18px;border-bottom:1px solid #303038;
-background:#000;position:sticky;top:0;z-index:50
-}
+function env(name) {
+  const value = process.env[name];
 
-.back-btn,.sub-back{
-width:36px;height:36px;border:0;background:#000!important;
-color:#fff!important;font-size:36px;line-height:1;padding:0;
-display:flex;align-items:center;justify-content:center;
-appearance:none;-webkit-appearance:none
+  if (value == null) {
+    return "";
+  }
+
+  return String(value)
+    .trim()
+    .replace(/^(["'])|(["'])$/g, "");
 }
 
-.settings-title{margin-left:10px;font-size:23px;font-weight:700}
+const SUPABASE_URL = env("SUPABASE_URL");
 
-.settings-list{width:100%;padding:28px 28px 35px}
+const SUPABASE_KEY =
+  env("SUPABASE_PUBLISHABLE_KEY") ||
+  env("SUPABASE_ANON_KEY");
 
-.setting-row{
-width:100%;min-height:67px;height:67px;display:flex;
-align-items:center;border:0;border-bottom:1px solid #34343b;
-background:#000!important;color:#fff!important;
-padding:0;text-align:left;appearance:none;-webkit-appearance:none
-}
+const SUPABASE_SERVICE_ROLE_KEY =
+  env("SUPABASE_SERVICE_ROLE_KEY");
 
-.setting-row:hover,.setting-row:focus,.setting-row:active{
-background:#000!important;color:#fff!important
-}
+const BUCKET = "media";
 
-.setting-label{flex:1;min-width:0;font-size:18px;line-height:1.2}
-.setting-arrow{width:28px;text-align:right;font-size:30px;line-height:1}
-
-.switch{
-width:82px;height:50px;border:0;border-radius:30px;
-background:#555!important;position:relative;flex:none;padding:0;
-transition:.2s;appearance:none;-webkit-appearance:none
-}
-
-.switch::after{
-content:"";position:absolute;width:40px;height:40px;
-top:5px;left:5px;border-radius:50%;background:#ddd;transition:.2s
-}
-
-.switch.on{background:#63b1ed!important}
-.switch.on::after{left:37px;background:#3b197e}
-
-.sub-screen{
-position:fixed;inset:0;background:#000!important;color:#fff!important;
-z-index:100;display:none;overflow-y:auto
-}
-
-.sub-screen.open{display:block}
-
-.sub-title{margin-left:10px;font-size:22px;font-weight:700;color:#fff}
-
-.sub-content{padding:22px 28px 40px;background:#000}
-
-.sub-content h2{font-size:20px;margin:0 0 16px;color:#fff}
-
-.sub-content p{
-color:#aaa;font-size:14px;line-height:1.6;margin:0 0 25px
-}
-
-.sub-row{
-min-height:58px;display:flex;align-items:center;
-border-bottom:1px solid #333;font-size:17px;
-background:#000!important;color:#fff!important
-}
-
-.sub-row span:first-child{flex:1;color:#fff!important}
-
-button.sub-row{
-width:100%;height:58px;min-height:58px;padding:0;margin:0;
-border:0;border-bottom:1px solid #333;background:#000!important;
-color:#fff!important;text-align:left;display:flex;align-items:center;
-appearance:none;-webkit-appearance:none;box-shadow:none;outline:none
-}
-
-button.sub-row:hover,button.sub-row:focus,button.sub-row:active{
-background:#000!important;color:#fff!important
-}
-
-button.sub-row span{color:#fff!important}
-button.sub-row .sub-arrow{
-color:#fff!important;margin-left:auto;font-size:30px
-}
-
-.info-card,.device-card,.security-info-box,.center-info,.help-info{
-background:#171717;border:1px solid #303030;border-radius:14px;
-padding:16px;margin-bottom:18px
-}
-
-.info-card-title,.security-info-title,.center-info-title,.help-info-title{
-font-size:17px;font-weight:700;margin-bottom:8px
-}
-
-.info-card-text,.security-info-text,.center-info-text,.help-info-text{
-font-size:14px;line-height:1.55;color:#999
-}
-
-.success-box{
-background:#102414;border:1px solid #28552e;color:#b9e8bf;
-border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
-margin-bottom:18px
-}
-
-.warning-box{
-background:#241b10;border:1px solid #59401e;color:#e8ca91;
-border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
-margin-bottom:18px
-}
-
-.danger-box{
-background:#241010;border:1px solid #542525;color:#efb0b0;
-border-radius:12px;padding:14px;font-size:14px;line-height:1.5;
-margin-bottom:18px
-}
-
-.form-group{margin-bottom:18px}
-
-.form-label{
-display:block;font-size:15px;font-weight:600;
-margin-bottom:8px;color:#fff
-}
-
-.form-input{
-width:100%;height:50px;border:1px solid #3a3a3a;
-border-radius:11px;background:#171717;color:#fff;
-padding:0 14px;outline:none
-}
-
-.form-input:focus{border-color:#63b1ed}
-
-.form-button{
-width:100%;height:50px;border:0;border-radius:11px;
-background:#63b1ed;color:#21104d;font-weight:700;margin-top:5px
-}
-
-.danger-button{
-width:100%;height:50px;border:0;border-radius:11px;
-background:#b72c2c;color:#fff;font-weight:700;margin-top:12px
-}
-
-.device-top{display:flex;align-items:center;gap:12px}
-
-.device-icon{
-width:42px;height:42px;border-radius:50%;background:#29272e;
-display:flex;align-items:center;justify-content:center;
-font-size:21px;flex:none
-}
-
-.device-name{font-size:16px;font-weight:700;color:#fff}
-
-.device-info{color:#999;font-size:13px;margin-top:4px;line-height:1.5}
-
-.current-device{
-display:inline-block;margin-top:9px;font-size:11px;padding:5px 8px;
-border-radius:7px;background:#63b1ed;color:#21104d;font-weight:700
-}
-
-.code-input{letter-spacing:8px;text-align:center;font-size:20px}
-
-.report-title{font-size:22px;font-weight:700;margin-bottom:8px}
-
-.report-info{
-color:#999;font-size:14px;line-height:1.5;margin-bottom:22px
-}
-
-.report-label{
-display:block;font-size:16px;font-weight:600;margin-bottom:9px
-}
-
-.report-textarea{
-width:100%;min-height:140px;resize:vertical;background:#171717;
-color:#fff;border:1px solid #3b3b3b;border-radius:12px;
-padding:14px;outline:none
-}
-
-.photo-section{margin-top:22px}
-
-.photo-button{
-width:100%;min-height:52px;border:1px solid #444;
-border-radius:12px;background:#171717!important;color:#fff!important;
-padding:12px
-}
-
-.photo-count{color:#999;font-size:13px;margin-top:8px}
-
-.preview-grid{
-display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px
-}
-
-.preview-item{
-position:relative;aspect-ratio:1/1;border-radius:12px;
-overflow:hidden;background:#151515;border:1px solid #333
-}
-
-.preview-item img{width:100%;height:100%;object-fit:cover}
-
-.remove-photo{
-position:absolute;top:7px;right:7px;width:30px;height:30px;
-border:0;border-radius:50%;background:rgba(0,0,0,.75)!important;
-color:#fff!important;font-size:18px;display:flex;
-align-items:center;justify-content:center
-}
-
-.send-report{
-width:100%;height:52px;margin-top:24px;border:0;
-border-radius:12px;background:#63b1ed;color:#21104d;font-weight:700
-}
-
-.dialog-bg{
-position:fixed;inset:0;background:rgba(0,0,0,.72);
-display:none;align-items:center;justify-content:center;
-padding:24px;z-index:500
-}
-
-.dialog-bg.open{display:flex}
-
-.dialog{
-width:min(430px,100%);background:#211f26;border-radius:17px;
-padding:24px;border:1px solid #444
-}
-
-.dialog h3{margin:0 0 15px;font-size:22px}
-
-.dialog p{color:#bbb;font-size:15px;line-height:1.5;margin:0 0 20px}
-
-.dialog-buttons{display:flex;justify-content:flex-end;gap:10px}
-
-.dialog-buttons button{
-border:0;border-radius:10px;padding:11px 18px;
-background:#444;color:#fff
-}
-
-.dialog-buttons .primary{
-background:#63b1ed;color:#2d176c
-}
-
-.toast{
-position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
-background:#29272e;color:#fff;padding:13px 19px;border-radius:12px;
-font-size:14px;opacity:0;pointer-events:none;transition:.2s;
-z-index:1000;white-space:nowrap;max-width:90%;text-align:center
-}
-
-.toast.show{opacity:1}
-
-/* TELEFON DOĞRULAMA */
-.recaptcha-area{
-min-height:1px;
-margin-top:10px;
-}
-
-.phone-status{
-font-size:13px;
-line-height:1.5;
-color:#999;
-margin-top:12px;
-}
-
-.phone-success{
-background:#102414;
-border:1px solid #28552e;
-color:#b9e8bf;
-border-radius:12px;
-padding:14px;
-font-size:14px;
-line-height:1.5;
-margin-top:18px;
-display:none;
-}
-
-@media(max-width:380px){
-.settings-list{padding-left:18px;padding-right:18px}
-.setting-row{min-height:62px;height:62px}
-.setting-label{font-size:17px}
-.switch{width:76px;height:46px}
-.switch::after{width:36px;height:36px;top:5px;left:5px}
-.switch.on::after{left:35px}
-.sub-content{padding-left:18px;padding-right:18px}
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="settings-app">
-
-<header class="settings-header">
-<button class="back-btn" id="backBtn" type="button">‹</button>
-<div class="settings-title">Ayarlar</div>
-</header>
-
-<main class="settings-list">
-
-<div class="setting-row">
-<div class="setting-label">Bildirimler</div>
-<button class="switch" id="notificationsSwitch" type="button"></button>
-</div>
-
-<div class="setting-row">
-<div class="setting-label">🔒 Gizli hesap</div>
-<button class="switch" id="privateSwitch" type="button"></button>
-</div>
-
-<div class="setting-row">
-<div class="setting-label">🖤 Siyah tema</div>
-<button class="switch" id="darkSwitch" type="button"></button>
-</div>
-
-<button class="setting-row" id="verifiedRow" type="button">
-<div class="setting-label">🔵 Mavi tik · Ücretli</div>
-<div class="setting-arrow">›</div>
-</button>
-
-<button class="setting-row" id="securityRow" type="button">
-<div class="setting-label">Şifre ve güvenlik</div>
-<div class="setting-arrow">›</div>
-</button>
-
-<button class="setting-row" id="privacyRow" type="button">
-<div class="setting-label">Gizlilik</div>
-<div class="setting-arrow">›</div>
-</button>
-
-<button class="setting-row" id="accountCenterRow" type="button">
-<div class="setting-label">Hesap Merkezi</div>
-<div class="setting-arrow">›</div>
-</button>
-
-<button class="setting-row" id="helpRow" type="button">
-<div class="setting-label">Yardım</div>
-<div class="setting-arrow">›</div>
-</button>
-
-<button class="setting-row" id="aboutRow" type="button">
-<div class="setting-label">Hakkında</div>
-<div class="setting-arrow">›</div>
-</button>
-
-</main>
-</div>
-
-<!-- MAVİ TİK -->
-
-<div class="sub-screen" id="verifiedScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="verifiedScreen" type="button">‹</button>
-<div class="sub-title">Mavi tik</div>
-</header>
-
-<div class="sub-content">
-
-<h2>🔵 Minegram Doğrulama</h2>
-
-<p>Hesabını doğrulayarak profilinde mavi tik gösterebilirsin.</p>
-
-<div class="sub-row">
-<span>Mavi tik üyeliği</span>
-<button class="switch" id="verifiedSwitch" type="button"></button>
-</div>
-
-</div>
-</div>
-
-<!-- ŞİFRE VE GÜVENLİK -->
-
-<div class="sub-screen" id="securityScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="securityScreen" type="button">‹</button>
-<div class="sub-title">Şifre ve güvenlik</div>
-</header>
-
-<div class="sub-content">
-
-<button class="sub-row" id="changePasswordRow" type="button">
-<span>Şifreyi değiştir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="loginActivityRow" type="button">
-<span>Giriş yaptığın yerler</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="twoFactorRow" type="button">
-<span>İki faktörlü kimlik doğrulama</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<div class="sub-row">
-<span>Giriş bilgilerini kaydet</span>
-<button class="switch" id="savedLoginSwitch" type="button"></button>
-</div>
-
-</div>
-</div>
-
-<!-- ŞİFRE DEĞİŞTİR -->
-
-<div class="sub-screen" id="changePasswordScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="changePasswordScreen" type="button">‹</button>
-<div class="sub-title">Şifreyi değiştir</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Şifreni değiştir</h2>
-<p>Hesabının güvenliği için mevcut şifreni ve yeni şifreni gir.</p>
-
-<div class="form-group">
-<label class="form-label">Mevcut şifre</label>
-<input type="password" class="form-input" id="oldPassword" placeholder="Mevcut şifren">
-</div>
-
-<div class="form-group">
-<label class="form-label">Yeni şifre</label>
-<input type="password" class="form-input" id="newPassword" placeholder="Yeni şifren">
-</div>
-
-<div class="form-group">
-<label class="form-label">Yeni şifre tekrar</label>
-<input type="password" class="form-input" id="newPasswordAgain" placeholder="Yeni şifreni tekrar yaz">
-</div>
-
-<button class="form-button" id="changePasswordButton" type="button">
-Şifreyi değiştir
-</button>
-
-</div>
-</div>
-
-<!-- GİRİŞ YAPTIĞIN YERLER -->
-
-<div class="sub-screen" id="loginActivityScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="loginActivityScreen" type="button">‹</button>
-<div class="sub-title">Giriş yaptığın yerler</div>
-</header>
-
-<div class="sub-content">
-<h2>Giriş yaptığın yerler</h2>
-<p>Minegram hesabında kullanılan cihaz ve son giriş bilgileri.</p>
-<div id="deviceList"></div>
-</div>
-</div>
-
-<!-- 2FA -->
-
-<div class="sub-screen" id="twoFactorScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="twoFactorScreen" type="button">‹</button>
-<div class="sub-title">İki faktörlü doğrulama</div>
-</header>
-
-<div class="sub-content">
-
-<div class="security-info-box">
-<div class="security-info-title">🔐 Hesabını daha güvenli yap</div>
-<div class="security-info-text">
-İki faktörlü kimlik doğrulamayı açtığında hesabına giriş sırasında ek bir doğrulama kodu istenir.
-</div>
-</div>
-
-<div class="sub-row">
-<span>İki faktörlü doğrulama</span>
-<button class="switch" id="twoFactorSwitch" type="button"></button>
-</div>
-
-<div id="twoFactorSetup" style="display:none;margin-top:22px;">
-
-<div class="form-group">
-
-<label class="form-label">Telefon numarası</label>
-
-<input
-type="tel"
-class="form-input"
-id="twoFactorPhone"
-placeholder="+90 5XX XXX XX XX"
-autocomplete="tel">
-
-</div>
-
-<div class="phone-status" id="phoneStatus">
-Telefon numaranı +90 5XX XXX XX XX biçiminde gir.
-</div>
-
-<div id="recaptcha-container" class="recaptcha-area"></div>
-
-<button class="form-button" id="sendTwoFactorCode" type="button">
-Kod gönder
-</button>
-
-<div id="twoFactorCodeArea" style="display:none;margin-top:20px;">
-
-<label class="form-label">SMS doğrulama kodu</label>
-
-<input
-class="form-input code-input"
-id="twoFactorCode"
-maxlength="6"
-inputmode="numeric"
-autocomplete="one-time-code"
-placeholder="000000">
-
-<button
-class="form-button"
-id="verifyTwoFactorButton"
-type="button"
-style="margin-top:15px;">
-Kodu doğrula </button>
-
-</div>
-
-<div id="phoneSuccess" class="phone-success">
-✓ Telefon numaran doğrulandı ve iki faktörlü doğrulama hesabına eklendi.
-</div>
-
-</div>
-
-</div>
-</div>
-
-<!-- GİZLİLİK -->
-
-<div class="sub-screen" id="privacyScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="privacyScreen" type="button">‹</button>
-<div class="sub-title">Gizlilik</div>
-</header>
-
-<div class="sub-content">
-
-<div class="sub-row">
-<span>Hesap gizliliği</span>
-<button class="switch" id="privacyPrivateSwitch" type="button"></button>
-</div>
-
-<div class="sub-row">
-<span>Hikaye gizliliği</span>
-<button class="switch" id="storyPrivacySwitch" type="button"></button>
-</div>
-
-<div class="sub-row">
-<span>Mesaj izinleri</span>
-<button class="switch" id="messagePermissionSwitch" type="button"></button>
-</div>
-
-<div class="sub-row">
-<span>Yorum ayarları</span>
-<button class="switch" id="commentSettingsSwitch" type="button"></button>
-</div>
-
-<div class="sub-row">
-<span>Etiketleme ayarları</span>
-<button class="switch" id="tagSettingsSwitch" type="button"></button>
-</div>
-
-</div>
-</div>
-
-<!-- HESAP MERKEZİ -->
-
-<div class="sub-screen" id="accountCenterScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="accountCenterScreen" type="button">‹</button>
-<div class="sub-title">Hesap Merkezi</div>
-</header>
-
-<div class="sub-content">
-
-<div class="info-card">
-<div class="info-card-title">Hesap Merkezi</div>
-<div class="info-card-text">
-Hesap bilgilerini, kişisel bilgilerini, hesap sahipliğini ve hesap bağlantılarını yönet.
-</div>
-</div>
-
-<button class="sub-row" id="accountInfoRow" type="button">
-<span>Hesap bilgileri</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="personalInfoRow" type="button">
-<span>Kişisel bilgiler</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="ownershipRow" type="button">
-<span>Hesap sahipliği</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="accountConnectionsRow" type="button">
-<span>Hesaplar arası bağlantılar</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- HESAP BİLGİLERİ -->
-
-<div class="sub-screen" id="accountInfoScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="accountInfoScreen" type="button">‹</button>
-<div class="sub-title">Hesap bilgileri</div>
-</header>
-
-<div class="sub-content">
-
-<div class="info-card">
-<div class="info-card-title">Hesap bilgilerin</div>
-<div class="info-card-text">
-Minegram hesabınla ilgili temel bilgileri buradan görebilirsin.
-</div>
-</div>
-
-<div class="sub-row">
-<span>Kullanıcı adı</span>
-<span id="accountUsername">Minegram</span>
-</div>
-
-<div class="sub-row">
-<span>E-posta</span>
-<span id="accountEmail">Hesap e-postası</span>
-</div>
-
-<div class="sub-row">
-<span>Hesap oluşturma tarihi</span>
-<span id="accountCreateDate">Bilgiler</span>
-</div>
-
-<button class="sub-row" id="editAccountInfoRow" type="button">
-<span>Hesap bilgilerini düzenle</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- HESAP BİLGİLERİNİ DÜZENLE -->
-
-<div class="sub-screen" id="editAccountInfoScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="editAccountInfoScreen" type="button">‹</button>
-<div class="sub-title">Hesap bilgilerini düzenle</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Hesap bilgilerini düzenle</h2>
-<p>Kullanıcı adı ve e-posta bilgilerini buradan düzenleyebilirsin.</p>
-
-<div class="form-group">
-<label class="form-label">Kullanıcı adı</label>
-<input type="text" class="form-input" id="editUsername" placeholder="Kullanıcı adın" autocomplete="username">
-</div>
-
-<div class="form-group">
-<label class="form-label">E-posta</label>
-<input type="email" class="form-input" id="editEmail" placeholder="E-posta adresin" autocomplete="email">
-</div>
-
-<button class="form-button" id="saveAccountInfoButton" type="button">
-Değişiklikleri kaydet
-</button>
-
-</div>
-</div>
-
-<!-- KİŞİSEL BİLGİLER -->
-
-<div class="sub-screen" id="personalInfoScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="personalInfoScreen" type="button">‹</button>
-<div class="sub-title">Kişisel bilgiler</div>
-</header>
-
-<div class="sub-content">
-
-<div class="info-card">
-<div class="info-card-title">Kişisel bilgilerin</div>
-<div class="info-card-text">
-Adın, kullanıcı adın ve e-posta gibi bilgilerini buradan yönetebilirsin.
-</div>
-</div>
-
-<div class="sub-row">
-<span>Ad</span>
-<span id="personalName">Minegram</span>
-</div>
-
-<div class="sub-row">
-<span>Kullanıcı adı</span>
-<span id="personalUsername">Hesabın</span>
-</div>
-
-<div class="sub-row">
-<span>E-posta</span>
-<span id="personalEmail">Hesap e-postası</span>
-</div>
-
-<button class="sub-row" id="editPersonalInfoRow" type="button">
-<span>Kişisel bilgileri düzenle</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- KİŞİSEL BİLGİLERİ DÜZENLE -->
-
-<div class="sub-screen" id="editPersonalInfoScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="editPersonalInfoScreen" type="button">‹</button>
-<div class="sub-title">Kişisel bilgileri düzenle</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Kişisel bilgileri düzenle</h2>
-
-<p>Adını, kullanıcı adını ve e-posta adresini buradan güncelleyebilirsin.</p>
-
-<div class="form-group">
-<label class="form-label">Ad</label>
-<input type="text" class="form-input" id="editPersonalName" placeholder="Adın" autocomplete="name">
-</div>
-
-<div class="form-group">
-<label class="form-label">Kullanıcı adı</label>
-<input type="text" class="form-input" id="editPersonalUsername" placeholder="Kullanıcı adın" autocomplete="username">
-</div>
-
-<div class="form-group">
-<label class="form-label">E-posta</label>
-<input type="email" class="form-input" id="editPersonalEmail" placeholder="E-posta adresin" autocomplete="email">
-</div>
-
-<button class="form-button" id="savePersonalInfoButton" type="button">
-Değişiklikleri kaydet
-</button>
-
-</div>
-</div>
-
-<!-- HESAP SAHİPLİĞİ -->
-
-<div class="sub-screen" id="ownershipScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="ownershipScreen" type="button">‹</button>
-<div class="sub-title">Hesap sahipliği</div>
-</header>
-
-<div class="sub-content">
-
-<div class="warning-box">
-Hesabını geçici olarak kapatabilir veya kalıcı olarak silme işlemini başlatabilirsin.
-</div>
-
-<button class="sub-row" id="deactivateAccountRow" type="button">
-<span>Hesabı geçici olarak devre dışı bırak</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="deleteAccountRow" type="button">
-<span>Hesabı sil</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- HESAPLAR ARASI BAĞLANTILAR -->
-
-<div class="sub-screen" id="accountConnectionsScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="accountConnectionsScreen" type="button">‹</button>
-<div class="sub-title">Hesaplar arası bağlantılar</div>
-</header>
-
-<div class="sub-content">
-
-<div class="info-card">
-<div class="info-card-title">Hesap bağlantıları</div>
-<div class="info-card-text">
-Minegram hesapların arasındaki bağlantıları ve hesap geçişlerini buradan yönetebilirsin.
-</div>
-</div>
-
-<button class="sub-row" id="linkedAccountsRow" type="button">
-<span>Bağlı hesaplar</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="accountSwitchRow" type="button">
-<span>Hesaplar arasında geçiş</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="addAccountRow" type="button">
-<span>Hesap ekle</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- YARDIM -->
-
-<div class="sub-screen" id="helpScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="helpScreen" type="button">‹</button>
-<div class="sub-title">Yardım</div>
-</header>
-
-<div class="sub-content">
-
-<button class="sub-row" id="faqRow" type="button">
-<span>Sık sorulan sorular</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="loginProblemsRow" type="button">
-<span>Giriş sorunları</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="accountProblemsRow" type="button">
-<span>Hesap sorunları</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="communityRulesHelpRow" type="button">
-<span>Topluluk kuralları</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="reportProblemRow" type="button">
-<span>Sorun bildir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- HESAP SORUNLARI -->
-
-<div class="sub-screen" id="accountProblemsScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="accountProblemsScreen" type="button">‹</button>
-<div class="sub-title">Hesap sorunları</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Hesap sorunları</h2>
-
-<p>
-Hesabınla ilgili karşılaştığın sorunlar için aşağıdaki seçeneklerden yardım alabilirsin.
-</p>
-
-<button class="sub-row" id="usernameProblemRow" type="button">
-<span>Kullanıcı adı sorunu</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="emailProblemRow" type="button">
-<span>E-posta sorunu</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="securityProblemRow" type="button">
-<span>Hesap güvenliği</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="lockedAccountRow" type="button">
-<span>Hesabım kilitlendi</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="accountNotWorkingRow" type="button">
-<span>Hesabım düzgün çalışmıyor</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="accountReportProblemRow" type="button">
-<span>Sorunu bildir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- KULLANICI ADI SORUNU -->
-
-<div class="sub-screen" id="usernameProblemScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="usernameProblemScreen" type="button">‹</button>
-<div class="sub-title">Kullanıcı adı sorunu</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Kullanıcı adı sorunu</h2>
-
-<div class="info-card">
-<div class="info-card-title">Kullanıcı adınla ilgili sorun mu var?</div>
-<div class="info-card-text">
-Kullanıcı adın değişmiyorsa yeni kullanıcı adının başka bir hesap tarafından kullanılmadığından emin ol.
-</div>
-</div>
-
-<div class="sub-row">
-<span>Başka kullanıcı adı dene</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<div class="sub-row">
-<span>Geçersiz karakterleri kaldır</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<div class="sub-row">
-<span>Tekrar giriş yap</span>
-<span class="sub-arrow">›</span>
-</div>
-
-</div>
-</div>
-
-<!-- E POSTA SORUNU -->
-
-<div class="sub-screen" id="emailProblemScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="emailProblemScreen" type="button">‹</button>
-<div class="sub-title">E-posta sorunu</div>
-</header>
-
-<div class="sub-content">
-
-<h2>E-posta sorunu</h2>
-
-<div class="info-card">
-<div class="info-card-title">E-posta adresinle ilgili sorun</div>
-<div class="info-card-text">
-E-posta adresinin doğru olduğundan emin ol. Doğrulama e-postası gelmiyorsa spam veya gereksiz klasörünü kontrol et.
-</div>
-</div>
-
-<div class="sub-row">
-<span>E-posta adresini kontrol et</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<div class="sub-row">
-<span>Spam klasörünü kontrol et</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<div class="sub-row">
-<span>Doğrulama e-postasını tekrar gönder</span>
-<span class="sub-arrow">›</span>
-</div>
-
-</div>
-</div>
-
-<!-- HESAP GÜVENLİĞİ -->
-
-<div class="sub-screen" id="securityProblemScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="securityProblemScreen" type="button">‹</button>
-<div class="sub-title">Hesap güvenliği</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Hesap güvenliği</h2>
-
-<div class="security-info-box">
-<div class="security-info-title">🔐 Hesabını koru</div>
-<div class="security-info-text">
-Güçlü bir şifre kullan ve giriş bilgilerini başkalarıyla paylaşma. İki faktörlü doğrulamayı açman hesabını daha güvenli hale getirir.
-</div>
-</div>
-
-<button class="sub-row" id="securityChangePasswordRow" type="button">
-<span>Şifremi değiştir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="securityTwoFactorRow" type="button">
-<span>İki faktörlü doğrulama</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- KİLİTLİ HESAP -->
-
-<div class="sub-screen" id="lockedAccountScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="lockedAccountScreen" type="button">‹</button>
-<div class="sub-title">Hesabım kilitlendi</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Hesabım kilitlendi</h2>
-
-<div class="warning-box">
-Hesabına erişemiyorsan önce giriş bilgilerini kontrol et.
-</div>
-
-<div class="info-card">
-<div class="info-card-title">Ne yapabilirsin?</div>
-<div class="info-card-text">
-Şifreni sıfırlamayı dene. Sorun devam ederse giriş sorunları bölümünü veya sorun bildirme bölümünü kullanabilirsin.
-</div>
-</div>
-
-<button class="sub-row" id="lockedLoginRow" type="button">
-<span>Giriş sorunları</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="lockedReportRow" type="button">
-<span>Sorunu bildir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- HESABIM ÇALIŞMIYOR -->
-
-<div class="sub-screen" id="accountNotWorkingScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="accountNotWorkingScreen" type="button">‹</button>
-<div class="sub-title">Hesabım düzgün çalışmıyor</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Hesabım düzgün çalışmıyor</h2>
-
-<div class="info-card">
-<div class="info-card-title">🛠 Sorunu çözmek için</div>
-<div class="info-card-text">
-Uygulamayı kapatıp yeniden açmayı ve internet bağlantını kontrol etmeyi dene.
-</div>
-</div>
-
-<div class="sub-row">
-<span>İnternet bağlantısını kontrol et</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<div class="sub-row">
-<span>Uygulamayı yeniden aç</span>
-<span class="sub-arrow">›</span>
-</div>
-
-<button class="sub-row" id="notWorkingReportRow" type="button">
-<span>Sorunu bildir</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- SIK SORULANLAR -->
-
-<div class="sub-screen" id="faqScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="faqScreen" type="button">‹</button>
-<div class="sub-title">Sık sorulan sorular</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Sık sorulan sorular</h2>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Hesap oluşturma','Minegram hesabı oluşturmak için kayıt ekranından gerekli bilgileri girerek hesabını oluşturabilirsin.')"> <span>Hesap nasıl oluşturulur?</span> <span class="sub-arrow">›</span> </button>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Şifre değiştirme','Ayarlar > Şifre ve güvenlik > Şifreyi değiştir bölümünden şifreni değiştirebilirsin.')"> <span>Şifremi nasıl değiştiririm?</span> <span class="sub-arrow">›</span> </button>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Gizli hesap','Gizlilik bölümündeki Hesap gizliliği seçeneğini açarak hesabını gizli yapabilirsin.')"> <span>Hesabımı nasıl gizli yaparım?</span> <span class="sub-arrow">›</span> </button>
-
-</div>
-</div>
-
-<!-- GİRİŞ SORUNLARI -->
-
-<div class="sub-screen" id="loginProblemsScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="loginProblemsScreen" type="button">‹</button>
-<div class="sub-title">Giriş sorunları</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Giriş sorunları</h2>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Şifremi unuttum','Şifreni sıfırlamak için giriş ekranındaki Şifremi unuttum seçeneğini kullanabilirsin.')"> <span>Şifremi unuttum</span> <span class="sub-arrow">›</span> </button>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Doğrulama kodu','Kod gelmiyorsa e-posta adresini veya telefon numaranı kontrol et ve tekrar dene.')"> <span>Doğrulama kodu gelmiyor</span> <span class="sub-arrow">›</span> </button>
-
-<button class="sub-row" type="button"
-onclick="showDialog('Giriş yapılamıyor','Kullanıcı adı ve şifreni kontrol et.')"> <span>Hesabıma giriş yapamıyorum</span> <span class="sub-arrow">›</span> </button>
-
-</div>
-</div>
-
-<!-- TOPLULUK -->
-
-<div class="sub-screen" id="communityRulesHelpScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="communityRulesHelpScreen" type="button">‹</button>
-<div class="sub-title">Topluluk kuralları</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Minegram Topluluk Kuralları</h2>
-
-<p>
-Minegram'i güvenli, saygılı ve herkes için kullanılabilir bir ortam olarak tutmak için topluluk kurallarına uyulması gerekir.
-</p>
-
-<div class="sub-row"><span>Saygılı davranış</span></div>
-<div class="sub-row"><span>Zararlı içerik</span></div>
-<div class="sub-row"><span>Spam ve kötüye kullanım</span></div>
-<div class="sub-row"><span>Gizlilik ve güvenlik</span></div>
-
-</div>
-</div>
-
-<!-- SORUN BİLDİR -->
-
-<div class="sub-screen" id="reportScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="reportScreen" type="button">‹</button>
-<div class="sub-title">Sorun bildir</div>
-</header>
-
-<div class="sub-content">
-
-<div class="report-title">Karşılaştığın sorunu bildir</div>
-
-<div class="report-info">
-Minegram'de yaşadığın problemi aşağıdaki alana yazabilir ve en fazla 2 fotoğraf ekleyebilirsin.
-</div>
-
-<label class="report-label">Sorun açıklaması</label>
-
-<textarea
-id="reportText"
-class="report-textarea"
-maxlength="2000"
-placeholder="Sorunu ayrıntılı olarak yaz..."></textarea>
-
-<div class="photo-section">
-
-<label class="report-label">Fotoğraf ekle</label>
-
-<button type="button" class="photo-button" id="photoButton">
-📷 Fotoğraf seç
-</button>
-
-<input type="file" id="photoInput" accept="image/*" multiple hidden>
-
-<div class="photo-count" id="photoCount">0 / 2 fotoğraf</div>
-
-<div class="preview-grid" id="previewGrid"></div>
-
-</div>
-
-<button type="button" class="send-report" id="sendReport">
-Gönder
-</button>
-
-</div>
-</div>
-
-<!-- HAKKINDA -->
-
-<div class="sub-screen" id="aboutScreen">
-
-<header class="sub-header">
-<button class="sub-back" data-close="aboutScreen" type="button">‹</button>
-<div class="sub-title">Hakkında</div>
-</header>
-
-<div class="sub-content">
-
-<h2>Minegram</h2>
-
-<p>Minegram sosyal medya uygulaması.</p>
-
-<div class="sub-row">
-<span>Minegram sürüm</span>
-<span>1.0</span>
-</div>
-
-<button class="sub-row" id="privacyPolicyRow" type="button">
-<span>Gizlilik politikası</span>
-<span class="sub-arrow">›</span>
-</button>
-
-<button class="sub-row" id="serviceTermsRow" type="button">
-<span>Kullanım koşulları</span>
-<span class="sub-arrow">›</span>
-</button>
-
-</div>
-</div>
-
-<!-- DİYALOG -->
-
-<div class="dialog-bg" id="dialogBg">
-
-<div class="dialog">
-
-<h3 id="dialogTitle">Minegram</h3>
-
-<p id="dialogText">İşlem</p>
-
-<div class="dialog-buttons">
-
-<button id="dialogCancel" type="button">Kapat</button>
-
-<button class="primary" id="dialogOk" type="button">Tamam</button>
-
-</div>
-
-</div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script type="module">
-
-/* =====================================================
-   FIREBASE IMPORT
-===================================================== */
-
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-import {
-getAuth,
-onAuthStateChanged,
-updatePassword,
-updateEmail,
-EmailAuthProvider,
-reauthenticateWithCredential,
-deleteUser,
-RecaptchaVerifier,
-PhoneAuthProvider,
-PhoneMultiFactorGenerator,
-multiFactor
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-import {
-getFirestore,
-doc,
-getDoc,
-setDoc,
-addDoc,
-collection,
-serverTimestamp,
-deleteDoc
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-import {
-getStorage,
-ref,
-uploadBytes,
-getDownloadURL
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
-
-
-/* =====================================================
-   FIREBASE CONFIG
-===================================================== */
-
-const firebaseConfig={
-apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-authDomain:"mim-ea133.firebaseapp.com",
-projectId:"mim-ea133",
-storageBucket:"mim-ea133.firebasestorage.app",
-messagingSenderId:"303525353436",
-appId:"1:303525353436:web:082fc090b5025e19942119",
-measurementId:"G-K962QE5P1R"
-};
-
-const app=initializeApp(firebaseConfig);
-
-const auth=getAuth(app);
-const db=getFirestore(app);
-const storage=getStorage(app);
-
-let currentUser=null;
-
-
-/* =====================================================
-   GERÇEK TELEFON MFA DEĞİŞKENLERİ
-===================================================== */
-
-let recaptchaVerifier=null;
-let verificationId=null;
-let phoneMfaSession=null;
-let phoneVerificationInProgress=false;
-
-
-/* =====================================================
-   ELEMENT
-===================================================== */
-
-function $(id){
-return document.getElementById(id);
-}
-
-
-/* =====================================================
-   TOAST
-===================================================== */
-
-function toast(message){
-
-const el=$("toast");
-
-if(!el)return;
-
-el.textContent=message;
-el.classList.add("show");
-
-clearTimeout(window.__toastTimer);
-
-window.__toastTimer=setTimeout(function(){
-el.classList.remove("show");
-},2500);
-
-}
-
-
-/* =====================================================
-   FIREBASE HATA
-===================================================== */
-
-function firebaseError(error){
-
-console.error("Firebase:",error);
-
-if(!error)
-return "Bir hata oluştu.";
-
-switch(error.code){
-
-case "auth/wrong-password":
-return "Mevcut şifre yanlış.";
-
-case "auth/invalid-credential":
-return "Mevcut şifre yanlış.";
-
-case "auth/email-already-in-use":
-return "Bu e-posta başka bir hesapta kullanılıyor.";
-
-case "auth/invalid-email":
-return "Geçerli bir e-posta adresi gir.";
-
-case "auth/requires-recent-login":
-return "Bu işlem için yeniden giriş yapman gerekiyor.";
-
-case "auth/weak-password":
-return "Şifre en az 6 karakter olmalı.";
-
-case "auth/network-request-failed":
-return "İnternet bağlantısını kontrol et.";
-
-case "auth/invalid-phone-number":
-return "Telefon numarası geçersiz.";
-
-case "auth/missing-phone-number":
-return "Telefon numarası gir.";
-
-case "auth/quota-exceeded":
-return "SMS gönderme limiti aşıldı. Daha sonra tekrar dene.";
-
-case "auth/too-many-requests":
-return "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.";
-
-case "auth/captcha-check-failed":
-return "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar dene.";
-
-case "auth/invalid-verification-code":
-return "SMS doğrulama kodu yanlış.";
-
-case "auth/code-expired":
-return "SMS doğrulama kodunun süresi dolmuş. Yeni kod gönder.";
-
-case "auth/second-factor-already-in-use":
-return "Bu telefon numarası zaten hesabında kullanılıyor.";
-
-case "auth/multi-factor-auth-required":
-return "Ek kimlik doğrulaması gerekiyor.";
-
-case "auth/operation-not-allowed":
-return "Firebase Console'da Telefon Authentication açık değil.";
-
-case "auth/invalid-verification-id":
-return "Doğrulama oturumu geçersiz. Yeni kod gönder.";
-
-case "auth/missing-or-invalid-nonce":
-return "Telefon doğrulama oturumu geçersiz.";
-
-case "permission-denied":
-return "Firebase erişim izni reddedildi.";
-
-default:
-return error.message||"İşlem başarısız.";
-
-}
-
-}
-
-
-/* =====================================================
-   EKRAN
-===================================================== */
-
-function openScreen(id){
-
-document.querySelectorAll(".sub-screen").forEach(
-function(screen){
-screen.classList.remove("open");
-}
+const CONFIG_OK = Boolean(
+  SUPABASE_URL && SUPABASE_KEY
 );
 
-const screen=$(id);
-
-if(screen){
-
-screen.classList.add("open");
-screen.scrollTop=0;
-
+if (!CONFIG_OK) {
+  console.error(
+    "Supabase ortam değişkenleri eksik: SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY veya SUPABASE_ANON_KEY gerekli."
+  );
 }
 
-}
-
-
-function closeScreen(id){
-
-const screen=$(id);
-
-if(screen)
-screen.classList.remove("open");
-
-}
-
-
-/* =====================================================
-   DİYALOG
-===================================================== */
-
-window.showDialog=function(title,text){
-
-$("dialogTitle").textContent=title;
-$("dialogText").textContent=text;
-$("dialogBg").classList.add("open");
-
-};
-
-
-function closeDialog(){
-$("dialogBg").classList.remove("open");
-}
-
-
-/* =====================================================
-   SWITCH
-===================================================== */
-
-function setSwitch(id,value){
-
-const el=$(id);
-
-if(!el)return;
-
-el.classList.toggle("on",!!value);
-
-}
-
-
-/* =====================================================
-   AYARLAR
-===================================================== */
-
-let notifications=true;
-let privateAccount=false;
-let darkTheme=true;
-let verified=false;
-let savedLogin=true;
-let twoFactor=false;
-let storyPrivacy=false;
-let messagePermission=true;
-let commentSettings=true;
-let tagSettings=true;
-
-
-/* =====================================================
-   USER REF
-===================================================== */
-
-function userRef(){
-
-if(!currentUser)
-return null;
-
-return doc(db,"users",currentUser.uid);
-
-}
-
-
-/* =====================================================
-   AYAR KAYDET
-===================================================== */
-
-async function saveFirebaseSetting(key,value){
-
-if(!currentUser)return;
-
-try{
-
-await setDoc(
-userRef(),
-{
-[key]:value,
-updatedAt:serverTimestamp()
-},
-{merge:true}
+app.use(
+  express.json({
+    limit: "2mb"
+  })
 );
 
-}catch(error){
+const publicDir = path.join(__dirname, "public");
+const rootIndex = path.join(__dirname, "giris.html");
 
-console.error(error);
+app.use((req, res, next) => {
+  if (
+    req.path.endsWith(".html") ||
+    req.path === "/"
+  ) {
+    res.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
 
-}
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
 
-}
-
-
-/* =====================================================
-   AYARLARI YÜKLE
-===================================================== */
-
-async function loadFirebaseSettings(){
-
-if(!currentUser)return;
-
-try{
-
-const snap=await getDoc(userRef());
-
-if(!snap.exists()){
-
-await setDoc(
-userRef(),
-{
-username:currentUser.displayName||"Minegram",
-email:currentUser.email||"",
-personalName:currentUser.displayName||"Minegram",
-
-notifications:true,
-privateAccount:false,
-darkTheme:true,
-verified:false,
-savedLogin:true,
-twoFactor:false,
-storyPrivacy:false,
-messagePermission:true,
-commentSettings:true,
-tagSettings:true,
-
-createDate:new Date().toLocaleDateString("tr-TR"),
-createdAt:serverTimestamp()
-},
-{merge:true}
-);
-
-}else{
-
-const data=snap.data();
-
-notifications=data.notifications??true;
-privateAccount=data.privateAccount??false;
-darkTheme=data.darkTheme??true;
-verified=data.verified??false;
-savedLogin=data.savedLogin??true;
-twoFactor=data.twoFactor??false;
-storyPrivacy=data.storyPrivacy??false;
-messagePermission=data.messagePermission??true;
-commentSettings=data.commentSettings??true;
-tagSettings=data.tagSettings??true;
-
-}
-
-setSwitch("notificationsSwitch",notifications);
-setSwitch("privateSwitch",privateAccount);
-setSwitch("darkSwitch",darkTheme);
-setSwitch("verifiedSwitch",verified);
-setSwitch("savedLoginSwitch",savedLogin);
-setSwitch("privacyPrivateSwitch",privateAccount);
-setSwitch("twoFactorSwitch",twoFactor);
-setSwitch("storyPrivacySwitch",storyPrivacy);
-setSwitch("messagePermissionSwitch",messagePermission);
-setSwitch("commentSettingsSwitch",commentSettings);
-setSwitch("tagSettingsSwitch",tagSettings);
-
-$("twoFactorSetup").style.display=
-twoFactor?"block":"none";
-
-await loadAccountData();
-
-}catch(error){
-
-console.error(error);
-
-}
-
-}
-
-
-/* =====================================================
-   BİLDİRİMLER
-===================================================== */
-
-$("notificationsSwitch").addEventListener("click",async function(e){
-
-e.stopPropagation();
-
-notifications=!notifications;
-
-setSwitch("notificationsSwitch",notifications);
-
-await saveFirebaseSetting("notifications",notifications);
-
-toast(
-notifications
-?"Bildirimler açıldı"
-:"Bildirimler kapatıldı"
-);
-
+  next();
 });
 
+app.use(express.static(publicDir));
+app.use(express.static(__dirname));
 
-/* =====================================================
-   GİZLİ HESAP
-===================================================== */
-
-async function togglePrivateAccount(e){
-
-if(e)e.stopPropagation();
-
-privateAccount=!privateAccount;
-
-setSwitch("privateSwitch",privateAccount);
-setSwitch("privacyPrivateSwitch",privateAccount);
-
-await saveFirebaseSetting("privateAccount",privateAccount);
-
-toast(
-privateAccount
-?"Gizli hesap açıldı"
-:"Gizli hesap kapatıldı"
-);
-
-}
-
-$("privateSwitch").addEventListener("click",togglePrivateAccount);
-$("privacyPrivateSwitch").addEventListener("click",togglePrivateAccount);
-
-
-/* =====================================================
-   SİYAH TEMA
-===================================================== */
-
-$("darkSwitch").addEventListener("click",async function(e){
-
-e.stopPropagation();
-
-darkTheme=!darkTheme;
-
-setSwitch("darkSwitch",darkTheme);
-
-await saveFirebaseSetting("darkTheme",darkTheme);
-
-toast(
-darkTheme
-?"Siyah tema açıldı"
-:"Siyah tema kapatıldı"
-);
-
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024
+  }
 });
 
-
-/* =====================================================
-   MAVİ TİK
-===================================================== */
-
-$("verifiedSwitch").addEventListener("click",async function(e){
-
-e.stopPropagation();
-
-verified=!verified;
-
-setSwitch("verifiedSwitch",verified);
-
-await saveFirebaseSetting("verified",verified);
-
-toast(
-verified
-?"Mavi tik etkinleştirildi"
-:"Mavi tik kapatıldı"
-);
-
-});
-
-
-/* =====================================================
-   KAYITLI GİRİŞ
-===================================================== */
-
-$("savedLoginSwitch").addEventListener("click",async function(e){
-
-e.stopPropagation();
-
-savedLogin=!savedLogin;
-
-setSwitch("savedLoginSwitch",savedLogin);
-
-await saveFirebaseSetting("savedLogin",savedLogin);
-
-toast(
-savedLogin
-?"Giriş bilgileri kaydedilecek"
-:"Giriş bilgileri kaydedilmeyecek"
-);
-
-});
-
-
-/* =====================================================
-   ANA MENÜ
-===================================================== */
-
-$("verifiedRow").addEventListener("click",()=>openScreen("verifiedScreen"));
-$("securityRow").addEventListener("click",()=>openScreen("securityScreen"));
-$("privacyRow").addEventListener("click",()=>openScreen("privacyScreen"));
-$("accountCenterRow").addEventListener("click",()=>openScreen("accountCenterScreen"));
-$("helpRow").addEventListener("click",()=>openScreen("helpScreen"));
-$("aboutRow").addEventListener("click",()=>openScreen("aboutScreen"));
-
-
-/* =====================================================
-   ŞİFRE GÜVENLİK
-===================================================== */
-
-$("changePasswordRow").addEventListener(
-"click",
-()=>openScreen("changePasswordScreen")
-);
-
-$("loginActivityRow").addEventListener(
-"click",
-function(){
-openScreen("loginActivityScreen");
-renderDevices();
-}
-);
-
-$("twoFactorRow").addEventListener(
-"click",
-async function(){
-
-openScreen("twoFactorScreen");
-
-if(twoFactor){
-
-$("twoFactorSetup").style.display="block";
-
-}
-
-}
-);
-
-
-/* =====================================================
-   GERÇEK ŞİFRE DEĞİŞTİRME
-===================================================== */
-
-$("changePasswordButton").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-toast("Önce hesabına giriş yapmalısın");
-return;
-}
-
-const oldPassword=$("oldPassword").value.trim();
-const newPassword=$("newPassword").value.trim();
-const again=$("newPasswordAgain").value.trim();
-
-if(!oldPassword){
-toast("Mevcut şifreni gir");
-return;
-}
-
-if(newPassword.length<6){
-toast("Yeni şifre en az 6 karakter olmalı");
-return;
-}
-
-if(newPassword!==again){
-toast("Yeni şifreler aynı değil");
-return;
-}
-
-if(!currentUser.email){
-toast("Bu hesap e-posta ile giriş yapmıyor");
-return;
-}
-
-try{
-
-const credential=EmailAuthProvider.credential(
-currentUser.email,
-oldPassword
-);
-
-await reauthenticateWithCredential(currentUser,credential);
-
-await updatePassword(currentUser,newPassword);
-
-$("oldPassword").value="";
-$("newPassword").value="";
-$("newPasswordAgain").value="";
-
-toast("Şifre başarıyla değiştirildi");
-
-}catch(error){
-
-toast(firebaseError(error));
-
-}
-
-}
-);
-
-
-/* =====================================================
-   CİHAZ
-===================================================== */
-
-function renderDevices(){
-
-const list=$("deviceList");
-
-if(!list)return;
-
-list.innerHTML="";
-
-const ua=navigator.userAgent.toLowerCase();
-
-let device="Bilgisayar";
-let icon="💻";
-
-if(ua.includes("android")){
-device="Android cihaz";
-icon="📱";
-}else if(ua.includes("iphone")){
-device="iPhone";
-icon="📱";
-}else if(ua.includes("ipad")){
-device="iPad";
-icon="📱";
-}
-
-let browser="Tarayıcı";
-
-if(ua.includes("edg"))
-browser="Microsoft Edge";
-else if(ua.includes("chrome"))
-browser="Google Chrome";
-else if(ua.includes("firefox"))
-browser="Firefox";
-else if(ua.includes("safari"))
-browser="Safari";
-
-const card=document.createElement("div");
-
-card.className="device-card";
-
-card.innerHTML=`
-
-<div class="device-top">
-
-<div class="device-icon">${icon}</div>
-
-<div>
-
-<div class="device-name">${device}</div>
-
-<div class="device-info">
-${browser}<br>
-Bu cihaz • Şu anda aktif
-</div>
-
-<span class="current-device">
-BU CİHAZ
-</span>
-
-</div>
-
-</div>
-
-`;
-
-list.appendChild(card);
-
-}
-
-
-/* =====================================================
-   RECAPTCHA OLUŞTUR
-===================================================== */
-
-function createRecaptcha(){
-
-if(recaptchaVerifier)
-return;
-
-try{
-
-recaptchaVerifier=new RecaptchaVerifier(
-auth,
-"recaptcha-container",
-{
-size:"invisible",
-callback:function(){
-console.log("reCAPTCHA doğrulandı");
-},
-"expired-callback":function(){
-
-console.log("reCAPTCHA süresi doldu");
-
-try{
-recaptchaVerifier.clear();
-}catch(e){}
-
-recaptchaVerifier=null;
-
-}
-}
-);
-
-}catch(error){
-
-console.error("reCAPTCHA oluşturulamadı:",error);
-
-recaptchaVerifier=null;
-
-}
-
-}
-
-
-/* =====================================================
-   TELEFON NUMARASI NORMALİZE
-===================================================== */
-
-function normalizePhone(phone){
-
-let value=String(phone||"").trim();
-
-if(!value)
-return "";
-
-value=value.replace(/[()\-\s]/g,"");
-
-if(value.startsWith("00")){
-value="+"+value.substring(2);
-}
-
-if(value.startsWith("05") && value.length===11){
-value="+90"+value.substring(1);
-}
-
-if(value.startsWith("5") && value.length===10){
-value="+90"+value;
-}
-
-if(value.startsWith("+90") && value.length===13){
-return value;
-}
-
-return value;
-
-}
-
-
-/* =====================================================
-   GERÇEK FIREBASE SMS KODU GÖNDER
-===================================================== */
-
-$("sendTwoFactorCode").addEventListener(
-"click",
-async function(){
-
-if(phoneVerificationInProgress){
-
-toast("SMS gönderiliyor, lütfen bekle");
-return;
-
-}
-
-if(!currentUser){
-
-toast("Önce hesabına giriş yapmalısın");
-return;
-
-}
-
-const rawPhone=$("twoFactorPhone").value.trim();
-
-if(!rawPhone){
-
-toast("Telefon numaranı gir");
-return;
-
-}
-
-const phoneNumber=normalizePhone(rawPhone);
-
-if(!/^\+90\d{10}$/.test(phoneNumber)){
-
-toast("Türkiye için geçerli numara gir. Örnek: +905551234567");
-return;
-
-}
-
-
-/*
-   Firebase MFA session
-*/
-
-try{
-
-phoneVerificationInProgress=true;
-
-$("sendTwoFactorCode").disabled=true;
-$("sendTwoFactorCode").textContent="SMS gönderiliyor...";
-
-$("phoneStatus").textContent=
-"Firebase güvenlik doğrulaması yapılıyor...";
-
-
-/*
-   Önceden doğrulanmış MFA numarası kontrolü
-*/
-
-const enrolledFactors=
-multiFactor(currentUser).enrolledFactors||[];
-
-const alreadyExists=
-enrolledFactors.some(
-factor=>factor.phoneNumber===phoneNumber
-);
-
-if(alreadyExists){
-
-toast("Bu telefon numarası zaten doğrulanmış.");
-
-$("phoneStatus").textContent=
-"Bu telefon numarası zaten iki faktörlü doğrulamada kayıtlı.";
-
-phoneVerificationInProgress=false;
-$("sendTwoFactorCode").disabled=false;
-$("sendTwoFactorCode").textContent="Kod gönder";
-
-return;
-
-}
-
-
-/*
-   reCAPTCHA
-*/
-
-createRecaptcha();
-
-if(!recaptchaVerifier){
-
-throw new Error(
-"reCAPTCHA başlatılamadı."
-);
-
-}
-
-
-/*
-   MFA SESSION
-*/
-
-phoneMfaSession=
-await multiFactor(currentUser).getSession();
-
-
-/*
-   PHONE PROVIDER
-*/
-
-const phoneProvider=
-new PhoneAuthProvider(auth);
-
-
-/*
-   GERÇEK SMS
-*/
-
-verificationId=
-await phoneProvider.verifyPhoneNumber(
-{
-phoneNumber:phoneNumber,
-session:phoneMfaSession
-},
-recaptchaVerifier
-);
-
-
-/*
-   Kod alanını aç
-*/
-
-$("twoFactorCodeArea").style.display="block";
-
-$("phoneStatus").textContent=
-"SMS gönderildi. Telefonuna gelen 6 haneli kodu gir.";
-
-$("twoFactorCode").focus();
-
-toast("SMS doğrulama kodu gönderildi.");
-
-}catch(error){
-
-console.error(
-"SMS gönderme hatası:",
-error
-);
-
-toast(firebaseError(error));
-
-$("phoneStatus").textContent=
-"SMS gönderilemedi. Tekrar dene.";
-
-try{
-
-if(recaptchaVerifier){
-
-recaptchaVerifier.clear();
-
-}
-
-}catch(e){}
-
-recaptchaVerifier=null;
-
-}finally{
-
-phoneVerificationInProgress=false;
-
-$("sendTwoFactorCode").disabled=false;
-$("sendTwoFactorCode").textContent="Kod gönder";
-
-}
-
-}
-);
-
-
-/* =====================================================
-   GERÇEK SMS KODU DOĞRULA + MFA'YA EKLE
-===================================================== */
-
-$("verifyTwoFactorButton").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-
-toast("Önce hesabına giriş yapmalısın");
-return;
-
-}
-
-if(!verificationId){
-
-toast("Önce telefonuna kod gönder");
-return;
-
-}
-
-const code=
-$("twoFactorCode").value.trim();
-
-if(!/^\d{6}$/.test(code)){
-
-toast("6 haneli doğrulama kodunu gir");
-return;
-
-}
-
-try{
-
-$("verifyTwoFactorButton").disabled=true;
-$("verifyTwoFactorButton").textContent=
-"Doğrulanıyor...";
-
-
-/*
-   SMS credential
-*/
-
-const phoneCredential=
-PhoneAuthProvider.credential(
-verificationId,
-code
-);
-
-
-/*
-   MFA assertion
-*/
-
-const multiFactorAssertion=
-PhoneMultiFactorGenerator.assertion(
-phoneCredential
-);
-
-
-/*
-   HESABA TELEFON MFA EKLE
-*/
-
-await multiFactor(currentUser).enroll(
-multiFactorAssertion,
-"Minegram telefon numarası"
-);
-
-
-/*
-   Firebase token güncelle
-*/
-
-await currentUser.getIdToken(true);
-
-
-/*
-   Yerel ayarı kaydet
-*/
-
-twoFactor=true;
-
-setSwitch(
-"twoFactorSwitch",
-true
-);
-
-await saveFirebaseSetting(
-"twoFactor",
-true
-);
-
-
-/*
-   Başarı
-*/
-
-$("phoneSuccess").style.display="block";
-
-$("phoneStatus").textContent=
-"Telefon numaran başarıyla doğrulandı.";
-
-$("twoFactorCodeArea").style.display="none";
-
-$("twoFactorPhone").disabled=true;
-$("sendTwoFactorCode").disabled=true;
-
-toast(
-"Telefon doğrulandı. 2FA aktif."
-);
-
-verificationId=null;
-phoneMfaSession=null;
-
-}catch(error){
-
-console.error(
-"SMS doğrulama hatası:",
-error
-);
-
-toast(firebaseError(error));
-
-$("phoneStatus").textContent=
-"Doğrulama başarısız oldu. Kodu kontrol edip tekrar dene.";
-
-}finally{
-
-$("verifyTwoFactorButton").disabled=false;
-$("verifyTwoFactorButton").textContent=
-"Kodu doğrula";
-
-}
-
-}
-);
-
-
-/* =====================================================
-   2FA SWITCH
-===================================================== */
-
-$("twoFactorSwitch").addEventListener(
-"click",
-async function(e){
-
-e.stopPropagation();
-
-if(!currentUser){
-
-toast("Önce hesabına giriş yapmalısın");
-return;
-
-}
-
-
-/*
-   KAPATMA
-*/
-
-if(twoFactor){
-
-try{
-
-const factors=
-multiFactor(currentUser).enrolledFactors||[];
-
-if(factors.length===0){
-
-twoFactor=false;
-
-setSwitch(
-"twoFactorSwitch",
-false
-);
-
-$("twoFactorSetup").style.display="none";
-
-await saveFirebaseSetting(
-"twoFactor",
-false
-);
-
-toast("İki faktörlü doğrulama kapatıldı");
-
-return;
-
-}
-
-
-/*
-   Son kayıtlı telefon faktörünü kaldır
-*/
-
-for(const factor of factors){
-
-await multiFactor(currentUser).unenroll(
-factor.uid
-);
-
-}
-
-twoFactor=false;
-
-setSwitch(
-"twoFactorSwitch",
-false
-);
-
-$("twoFactorSetup").style.display="none";
-
-$("twoFactorPhone").disabled=false;
-$("sendTwoFactorCode").disabled=false;
-$("phoneSuccess").style.display="none";
-
-await saveFirebaseSetting(
-"twoFactor",
-false
-);
-
-toast(
-"İki faktörlü doğrulama kapatıldı"
-);
-
-}catch(error){
-
-console.error(error);
-
-toast(firebaseError(error));
-
-}
-
-return;
-
-}
-
-
-/*
-   AÇMA
-*/
-
-twoFactor=true;
-
-setSwitch(
-"twoFactorSwitch",
-true
-);
-
-$("twoFactorSetup").style.display="block";
-
-$("twoFactorPhone").disabled=false;
-$("sendTwoFactorCode").disabled=false;
-$("phoneSuccess").style.display="none";
-
-await saveFirebaseSetting(
-"twoFactor",
-true
-);
-
-toast(
-"Telefon numaranı girerek SMS doğrulamasını başlat."
-);
-
-}
-);
-
-
-/* =====================================================
-   GİZLİLİK
-===================================================== */
-
-async function privacyToggle(
-key,
-switchId,
-onText,
-offText
-){
-
-if(key==="storyPrivacy")
-storyPrivacy=!storyPrivacy;
-
-if(key==="messagePermission")
-messagePermission=!messagePermission;
-
-if(key==="commentSettings")
-commentSettings=!commentSettings;
-
-if(key==="tagSettings")
-tagSettings=!tagSettings;
-
-const value=
-key==="storyPrivacy"
-?storyPrivacy
-:key==="messagePermission"
-?messagePermission
-:key==="commentSettings"
-?commentSettings
-:tagSettings;
-
-setSwitch(switchId,value);
-
-await saveFirebaseSetting(key,value);
-
-toast(value?onText:offText);
-
-}
-
-
-$("storyPrivacySwitch").addEventListener(
-"click",
-function(e){
-
-e.stopPropagation();
-
-privacyToggle(
-"storyPrivacy",
-"storyPrivacySwitch",
-"Hikaye gizliliği açıldı",
-"Hikaye gizliliği kapatıldı"
-);
-
-}
-);
-
-$("messagePermissionSwitch").addEventListener(
-"click",
-function(e){
-
-e.stopPropagation();
-
-privacyToggle(
-"messagePermission",
-"messagePermissionSwitch",
-"Mesaj izinleri açıldı",
-"Mesaj izinleri kapatıldı"
-);
-
-}
-);
-
-$("commentSettingsSwitch").addEventListener(
-"click",
-function(e){
-
-e.stopPropagation();
-
-privacyToggle(
-"commentSettings",
-"commentSettingsSwitch",
-"Yorum ayarları açıldı",
-"Yorum ayarları kapatıldı"
-);
-
-}
-);
-
-$("tagSettingsSwitch").addEventListener(
-"click",
-function(e){
-
-e.stopPropagation();
-
-privacyToggle(
-"tagSettings",
-"tagSettingsSwitch",
-"Etiketleme ayarları açıldı",
-"Etiketleme ayarları kapatıldı"
-);
-
-}
-);
-
-
-/* =====================================================
-   HESAP MERKEZİ
-===================================================== */
-
-$("accountInfoRow").addEventListener(
-"click",
-()=>openScreen("accountInfoScreen")
-);
-
-$("personalInfoRow").addEventListener(
-"click",
-()=>openScreen("personalInfoScreen")
-);
-
-$("ownershipRow").addEventListener(
-"click",
-()=>openScreen("ownershipScreen")
-);
-
-$("accountConnectionsRow").addEventListener(
-"click",
-()=>openScreen("accountConnectionsScreen")
-);
-
-
-/* =====================================================
-   HESAP BİLGİLERİ
-===================================================== */
-
-$("editAccountInfoRow").addEventListener(
-"click",
-function(){
-
-$("editUsername").value=
-$("accountUsername").textContent==="Minegram"
-?""
-:$("accountUsername").textContent;
-
-$("editEmail").value=
-$("accountEmail").textContent==="Hesap e-postası"
-?""
-:$("accountEmail").textContent;
-
-openScreen("editAccountInfoScreen");
-
-}
-);
-
-
-/* =====================================================
-   HESAP BİLGİLERİNİ KAYDET
-===================================================== */
-
-$("saveAccountInfoButton").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-
-toast("Hesabına giriş yapmalısın");
-return;
-
-}
-
-const username=$("editUsername").value.trim();
-const email=$("editEmail").value.trim();
-
-if(!username){
-
-toast("Kullanıcı adını gir");
-return;
-
-}
-
-if(!email){
-
-toast("E-posta adresini gir");
-return;
-
-}
-
-if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-
-toast("Geçerli bir e-posta gir");
-return;
-
-}
-
-try{
-
-if(currentUser.email!==email){
-
-await updateEmail(
-currentUser,
-email
-);
-
-}
-
-await setDoc(
-userRef(),
-{
-username:username,
-email:email,
-updatedAt:serverTimestamp()
-},
-{merge:true}
-);
-
-$("accountUsername").textContent=username;
-$("accountEmail").textContent=email;
-
-$("personalUsername").textContent=username;
-$("personalEmail").textContent=email;
-
-toast("Hesap bilgileri Firebase'e kaydedildi");
-
-openScreen("accountInfoScreen");
-
-}catch(error){
-
-toast(firebaseError(error));
-
-}
-
-}
-);
-
-
-/* =====================================================
-   KİŞİSEL BİLGİLER
-===================================================== */
-
-$("editPersonalInfoRow").addEventListener(
-"click",
-function(){
-
-$("editPersonalName").value=
-$("personalName").textContent==="Minegram"
-?""
-:$("personalName").textContent;
-
-$("editPersonalUsername").value=
-$("personalUsername").textContent==="Hesabın"
-?""
-:$("personalUsername").textContent;
-
-$("editPersonalEmail").value=
-$("personalEmail").textContent==="Hesap e-postası"
-?""
-:$("personalEmail").textContent;
-
-openScreen("editPersonalInfoScreen");
-
-}
-);
-
-$("savePersonalInfoButton").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-
-toast("Hesabına giriş yapmalısın");
-return;
-
-}
-
-const name=$("editPersonalName").value.trim();
-const username=$("editPersonalUsername").value.trim();
-const email=$("editPersonalEmail").value.trim();
-
-if(!name){
-
-toast("Adını gir");
-return;
-
-}
-
-if(!username){
-
-toast("Kullanıcı adını gir");
-return;
-
-}
-
-if(!email){
-
-toast("E-posta adresini gir");
-return;
-
-}
-
-if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-
-toast("Geçerli bir e-posta gir");
-return;
-
-}
-
-try{
-
-if(currentUser.email!==email){
-
-await updateEmail(
-currentUser,
-email
-);
-
-}
-
-await setDoc(
-userRef(),
-{
-personalName:name,
-username:username,
-email:email,
-updatedAt:serverTimestamp()
-},
-{merge:true}
-);
-
-$("personalName").textContent=name;
-$("personalUsername").textContent=username;
-$("personalEmail").textContent=email;
-
-$("accountUsername").textContent=username;
-$("accountEmail").textContent=email;
-
-toast("Kişisel bilgiler Firebase'e kaydedildi");
-
-openScreen("personalInfoScreen");
-
-}catch(error){
-
-toast(firebaseError(error));
-
-}
-
-}
-);
-
-
-/* =====================================================
-   HESAP SAHİPLİĞİ
-===================================================== */
-
-$("deactivateAccountRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Hesabı geçici olarak devre dışı bırak",
-"Hesabın geçici olarak devre dışı bırakılacak. Bu işlem için hesap yönetimi yapılabilir."
-);
-
-}
-);
-
-
-$("deleteAccountRow").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-
-toast("Hesabına giriş yapmalısın");
-return;
-
-}
-
-const confirmed=
-confirm(
-"Hesabını kalıcı olarak silmek istediğine emin misin?"
-);
-
-if(!confirmed)return;
-
-try{
-
-await deleteDoc(userRef());
-
-await deleteUser(currentUser);
-
-toast("Hesabın silindi");
-
-setTimeout(
-function(){
-window.location.href="index.html";
-},
-1200
-);
-
-}catch(error){
-
-toast(firebaseError(error));
-
-}
-
-}
-);
-
-
-/* =====================================================
-   HESAP BAĞLANTILARI
-===================================================== */
-
-$("linkedAccountsRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Bağlı hesaplar",
-"Şu anda bu Minegram hesabına bağlı başka bir hesap bulunmuyor."
-);
-
-}
-);
-
-$("accountSwitchRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Hesaplar arasında geçiş",
-"Bağlı hesap eklediğinde hesapların arasında hızlıca geçiş yapabilirsin."
-);
-
-}
-);
-
-$("addAccountRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Hesap ekle",
-"Yeni bir Minegram hesabı eklemek için giriş veya kayıt ekranına yönlendirilebilirsin."
-);
-
-}
-);
-
-
-/* =====================================================
-   YARDIM
-===================================================== */
-
-$("faqRow").addEventListener(
-"click",
-()=>openScreen("faqScreen")
-);
-
-$("loginProblemsRow").addEventListener(
-"click",
-()=>openScreen("loginProblemsScreen")
-);
-
-$("accountProblemsRow").addEventListener(
-"click",
-()=>openScreen("accountProblemsScreen")
+function client(token = null) {
+  if (!CONFIG_OK) {
+    throw new Error(
+      "Supabase yapılandırması eksik. Render Environment Variables bölümünde SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY değerlerini kontrol et."
+    );
+  }
+
+  const options = {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  };
+
+  if (token) {
+    options.global = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  }
+
+  return createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    options
+  );
+}
+
+function adminClient() {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    throw new Error(
+      "SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY eksik."
+    );
+  }
+
+  return createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+}
+
+function bearer(req) {
+  const h =
+    req.headers.authorization || "";
+
+  return h.startsWith("Bearer ")
+    ? h.slice(7)
+    : null;
+}
+
+async function auth(req, res, next) {
+  try {
+    const token = bearer(req);
+
+    if (!token) {
+      throw new Error("Oturum gerekli");
+    }
+
+    const sb = client(token);
+
+    const {
+      data: {
+        user
+      },
+      error
+    } = await sb.auth.getUser(token);
+
+    if (error || !user) {
+      throw error || new Error("Oturum gerekli");
+    }
+
+    let {
+      data: profile,
+      error: pError
+    } = await sb
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const fallback =
+        await sb
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+
+      profile =
+        fallback.data || null;
+
+      pError =
+        fallback.error || null;
+    }
+
+    if (pError || !profile) {
+      throw (
+        pError ||
+        new Error("Profil bulunamadı")
+      );
+    }
+
+    req.token = token;
+    req.sb = sb;
+    req.authUser = user;
+    req.user = profile;
+
+    next();
+  } catch (e) {
+    console.error(
+      "AUTH ERROR:",
+      e?.message || e
+    );
+
+    res.status(401).json({
+      error: "Oturum gerekli"
+    });
+  }
+}
+
+function safeUser(u) {
+  if (!u) {
+    return {
+      id: null,
+      username: "user",
+      displayName: "user",
+      bio: "",
+      avatar: null,
+      verified: false,
+      settings: {}
+    };
+  }
+
+  return {
+    id: u.id,
+    username: u.username,
+    displayName:
+      u.display_name ??
+      u.displayName ??
+      u.username,
+    bio: u.bio || "",
+    avatar:
+      u.avatar_url ??
+      u.avatar ??
+      null,
+    verified: !!u.verified,
+    settings: u.settings || {}
+  };
+}
+
+function safeProfile(u) {
+  return safeUser(u);
+}
+
+function normalizeUsername(x) {
+  return String(x || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+async function findProfile(
+  sb,
+  username
+) {
+  const q =
+    normalizeUsername(username);
+
+  const {
+    data,
+    error
+  } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("username", q)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function addNotification({
+  userId,
+  type,
+  fromUserId,
+  postId = null,
+  text
+}) {
+  if (userId === fromUserId) {
+    return;
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return;
+  }
+
+  const admin =
+    adminClient();
+
+  await admin
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type,
+      from_user_id: fromUserId,
+      post_id: postId,
+      text
+    });
+}
+
+async function hydratePosts(
+  sb,
+  posts,
+  userId
+) {
+  if (!posts.length) {
+    return [];
+  }
+
+  const userIds = [
+    ...new Set(
+      posts.map(
+        p => p.user_id
+      )
+    )
+  ];
+
+  const postIds =
+    posts.map(p => p.id);
+
+  const [
+    profilesResult,
+    likesResult,
+    commentsResult,
+    savesResult
+  ] = await Promise.all([
+    sb
+      .from("profiles")
+      .select(
+        "id,username,display_name,bio,avatar_url,verified"
+      )
+      .in("id", userIds),
+
+    sb
+      .from("post_likes")
+      .select(
+        "post_id,user_id"
+      )
+      .in("post_id", postIds),
+
+    sb
+      .from("comments")
+      .select(
+        "id,post_id,user_id,text,created_at,profiles(username,display_name)"
+      )
+      .in("post_id", postIds)
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      ),
+
+    sb
+      .from("saves")
+      .select(
+        "post_id,user_id"
+      )
+      .eq(
+        "user_id",
+        userId
+      )
+      .in(
+        "post_id",
+        postIds
+      )
+  ]);
+
+  const profiles =
+    profilesResult.data || [];
+
+  const likes =
+    likesResult.data || [];
+
+  const comments =
+    commentsResult.data || [];
+
+  const saves =
+    savesResult.data || [];
+
+  const pmap =
+    new Map(
+      profiles.map(
+        p => [p.id, p]
+      )
+    );
+
+  const likeMap =
+    new Map();
+
+  for (const l of likes) {
+    likeMap.set(
+      l.post_id,
+      (likeMap.get(l.post_id) || 0) + 1
+    );
+  }
+
+  const liked =
+    new Set(
+      likes
+        .filter(
+          x => x.user_id === userId
+        )
+        .map(
+          x => x.post_id
+        )
+    );
+
+  const saved =
+    new Set(
+      saves.map(
+        x => x.post_id
+      )
+    );
+
+  const commentsMap =
+    new Map();
+
+  for (const c of comments) {
+    if (
+      !commentsMap.has(
+        c.post_id
+      )
+    ) {
+      commentsMap.set(
+        c.post_id,
+        []
+      );
+    }
+
+    commentsMap
+      .get(c.post_id)
+      .push({
+        id: c.id,
+        userId: c.user_id,
+        text: c.text,
+        createdAt:
+          c.created_at,
+        username:
+          c.profiles?.username ||
+          ""
+      });
+  }
+
+  return posts.map(p => ({
+    id: p.id,
+    userId: p.user_id,
+    caption: p.caption,
+    media: p.media_url,
+    mediaName:
+      p.media_name,
+    mediaType:
+      p.media_type,
+    createdAt:
+      p.created_at,
+
+    likes: Array(
+      likeMap.get(p.id) || 0
+    ).fill(null),
+
+    comments:
+      commentsMap.get(p.id) || [],
+
+    likedByMe:
+      liked.has(p.id),
+
+    savedByMe:
+      saved.has(p.id),
+
+    user: safeUser(
+      pmap.get(p.user_id) || {
+        id: p.user_id,
+        username: "user"
+      }
+    )
+  }));
+}
+
+/* =========================================================
+   USERNAME CHECK
+========================================================= */
+
+app.get(
+  "/api/check-username",
+  async (req, res) => {
+    try {
+      const username =
+        normalizeUsername(
+          req.query?.username
+        );
+
+      if (!username) {
+        return res.json({
+          ok: true,
+          available: false,
+          error: "Kullanıcı adı gerekli."
+        });
+      }
+
+      if (
+        !/^[a-z0-9._]{3,30}$/.test(
+          username
+        )
+      ) {
+        return res.json({
+          ok: true,
+          available: false,
+          error:
+            "3-30 karakter kullan. Harf, sayı, _ veya . kullanabilirsin."
+        });
+      }
+
+      if (!SUPABASE_URL) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "SUPABASE_URL eksik."
+        });
+      }
+
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      const admin =
+        adminClient();
+
+      const {
+        data,
+        error
+      } =
+        await admin
+          .from("profiles")
+          .select("id")
+          .eq(
+            "username",
+            username
+          )
+          .limit(1);
+
+      if (error) {
+        console.error(
+          "CHECK USERNAME ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+          ok: false,
+          error:
+            "Kullanıcı adı kontrol edilemedi."
+        });
+      }
+
+      const taken =
+        Array.isArray(data) &&
+        data.length > 0;
+
+      return res.json({
+        ok: true,
+
+        available:
+          !taken,
+
+        username
+      });
+
+    } catch (e) {
+      console.error(
+        "CHECK USERNAME EXCEPTION:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Kullanıcı adı kontrol edilemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   REGISTER + 6 HANELİ E-POSTA DOĞRULAMA
+   ========================================================= */
+
+const registrationCodes = new Map();
+const registrationRate = new Map();
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function createVerificationCode() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+function registrationKey(email) {
+  return normalizeEmail(email);
+}
+
+function registrationAllowed(email) {
+  const key = registrationKey(email);
+  const now = Date.now();
+  const last = registrationRate.get(key) || 0;
+
+  // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
+  return now - last >= 60 * 1000;
+}
+
+async function sendRegistrationCode(email, code) {
+  await sendResendEmail(
+    email,
+    "Minegram e-posta doğrulama kodun",
+    `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
+        <h2 style="margin:0 0 16px">Minegram</h2>
+        <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
+        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
+          ${code}
+        </div>
+        <p style="color:#666">Bu kod 10 dakika geçerlidir.</p>
+        <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
+      </div>
+    `,
+    `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+  );
+}
+
+app.post(
+  "/api/register",
+  async (req, res) => {
+    let createdAuthUserId = null;
+
+    try {
+      const username =
+        normalizeUsername(req.body?.username);
+
+      const email =
+        normalizeEmail(req.body?.email);
+
+      const password =
+        String(req.body?.password || "");
+
+      const displayName =
+        String(
+          req.body?.displayName || username
+        )
+          .trim()
+          .slice(0, 80);
+
+      if (!username) {
+        return res.status(400).json({
+          ok: false,
+          code: "USERNAME_REQUIRED",
+          error: "Kullanıcı adı gerekli."
+        });
+      }
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          code: "EMAIL_REQUIRED",
+          error: "E-posta gerekli."
+        });
+      }
+
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      ) {
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_EMAIL",
+          error: "Geçerli bir e-posta adresi gir."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          code: "PASSWORD_TOO_SHORT",
+          error: "Şifre en az 6 karakter olmalı."
+        });
+      }
+
+      if (
+        !/^[a-z0-9._]{3,30}$/.test(username)
+      ) {
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_USERNAME",
+          error:
+            "Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan."
+        });
+      }
+
+      if (!CONFIG_OK) {
+        return res.status(500).json({
+          ok: false,
+          code: "SUPABASE_CONFIG_ERROR",
+          error: "Supabase yapılandırması eksik."
+        });
+      }
+
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          ok: false,
+          code: "SERVICE_ROLE_MISSING",
+          error: "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      if (!registrationAllowed(email)) {
+        return res.status(429).json({
+          ok: false,
+          code: "CODE_RATE_LIMIT",
+          error:
+            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle."
+        });
+      }
+
+      const admin = adminClient();
+
+      /* Kullanıcı adı kontrolü */
+      const {
+        data: existingProfile,
+        error: usernameCheckError
+      } = await admin
+        .from("profiles")
+        .select("id,username,auth_user_id")
+        .eq("username", username)
+        .limit(1)
+        .maybeSingle();
+
+      if (usernameCheckError) {
+        console.error(
+          "USERNAME CHECK ERROR:",
+          usernameCheckError
+        );
+
+        return res.status(500).json({
+          ok: false,
+          code: "USERNAME_CHECK_ERROR",
+          error:
+            "Kullanıcı adı kontrol edilirken hata oluştu."
+        });
+      }
+
+      if (existingProfile) {
+        return res.status(409).json({
+          ok: false,
+          code: "USERNAME_TAKEN",
+          error: "Bu kullanıcı adı zaten alınmış."
+        });
+      }
+
+      /* E-posta kontrolü */
+      try {
+        let emailAlreadyExists = false;
+
+        for (let page = 1; page <= 20; page++) {
+          const result =
+            await admin.auth.admin.listUsers({
+              page,
+              perPage: 1000
+            });
+
+          const users =
+            result?.data?.users || [];
+
+          if (result?.error) {
+            console.error(
+              "EMAIL CHECK ERROR:",
+              result.error
+            );
+            break;
+          }
+
+          if (
+            users.some(
+              u =>
+                normalizeEmail(u?.email) === email
+            )
+          ) {
+            emailAlreadyExists = true;
+            break;
+          }
+
+          if (users.length < 1000) {
+            break;
+          }
+        }
+
+        if (emailAlreadyExists) {
+          return res.status(409).json({
+            ok: false,
+            code: "EMAIL_TAKEN",
+            error:
+              "Bu e-posta adresi zaten kullanılıyor."
+          });
+        }
+      } catch (emailCheckError) {
+        console.error(
+          "EMAIL PRECHECK ERROR:",
+          emailCheckError?.message ||
+            emailCheckError
+        );
+      }
+
+      /*
+       * ÖNEMLİ:
+       * Supabase'in kendi confirmation mailini kullanmıyoruz.
+       * Hesabı email_confirm:false olarak oluşturuyoruz.
+       * 6 haneli kodu Resend ile biz gönderiyoruz.
+       */
+      const {
+        data: created,
+        error: createError
+      } =
+        await admin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: false,
+          user_metadata: {
+            username,
+            display_name: displayName
+          }
+        });
+
+      if (createError) {
+        console.error(
+          "AUTH CREATE ERROR:",
+          createError
+        );
+
+        const message =
+          String(createError.message || "");
+
+        if (
+          /already registered/i.test(message) ||
+          /already exists/i.test(message) ||
+          /user already registered/i.test(message)
+        ) {
+          return res.status(409).json({
+            ok: false,
+            code: "EMAIL_TAKEN",
+            error:
+              "Bu e-posta adresi zaten kullanılıyor."
+          });
+        }
+
+        return res.status(400).json({
+          ok: false,
+          code: "SIGNUP_ERROR",
+          error:
+            message || "Kayıt başarısız."
+        });
+      }
+
+      const authUser = created?.user;
+
+      if (!authUser?.id) {
+        return res.status(400).json({
+          ok: false,
+          code: "USER_CREATE_FAILED",
+          error: "Kullanıcı oluşturulamadı."
+        });
+      }
+
+      createdAuthUserId = authUser.id;
+
+      /* Profil oluştur / mevcut trigger profilini kullan */
+      let profile = null;
+      let profileError = null;
+
+      // Bazı Minegram Supabase projelerinde Auth kullanıcısı oluşunca
+      // profiles satırı trigger ile otomatik oluşturuluyor. Böyle bir satır
+      // varsa ikinci kez INSERT yapıp 23505 almamak için önce buluyoruz.
+      const existingProfileResult = await admin
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
+      if (existingProfileResult.error) {
+        console.error("PROFILE LOOKUP ERROR:", existingProfileResult.error);
+      }
+
+      if (existingProfileResult.data) {
+        const updateResult = await admin
+          .from("profiles")
+          .update({
+            username,
+            display_name: displayName
+          })
+          .eq("id", authUser.id)
+          .select("*")
+          .single();
+
+        profile = updateResult.data;
+        profileError = updateResult.error;
+      } else {
+        const insertResult = await admin
+          .from("profiles")
+          .insert({
+            id: authUser.id,
+            auth_user_id: authUser.id,
+            username,
+            display_name: displayName,
+            bio: "",
+            avatar_url: null,
+            verified: false,
+            settings: {}
+          })
+          .select("*")
+          .single();
+
+        profile = insertResult.data;
+        profileError = insertResult.error;
+
+        // Aynı anda bir DB trigger satırı oluşturduysa tekrar okuyup devam et.
+        if (profileError?.code === "23505") {
+          const retryProfile = await admin
+            .from("profiles")
+            .select("*")
+            .eq("id", authUser.id)
+            .maybeSingle();
+
+          if (retryProfile.data) {
+            profile = retryProfile.data;
+            profileError = null;
+          }
+        }
+      }
+
+      if (profileError) {
+        console.error(
+          "PROFILE CREATE ERROR:",
+          profileError
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+
+        createdAuthUserId = null;
+
+        return res.status(500).json({
+          ok: false,
+          code: "PROFILE_CREATE_ERROR",
+          error: "Profil oluşturulamadı."
+        });
+      }
+
+      /*
+       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
+       */
+      const code = createVerificationCode();
+
+      registrationCodes.set(
+        registrationKey(email),
+        {
+          code,
+          userId: authUser.id,
+          email,
+          expires: Date.now() + 10 * 60 * 1000,
+          attempts: 0,
+          username,
+          displayName
+        }
+      );
+
+      registrationRate.set(
+        registrationKey(email),
+        Date.now()
+      );
+
+      try {
+        await sendRegistrationCode(
+          email,
+          code
+        );
+      } catch (mailError) {
+        console.error(
+          "REGISTRATION EMAIL ERROR:",
+          mailError
+        );
+
+        registrationCodes.delete(
+          registrationKey(email)
+        );
+
+        try {
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
+        } catch (cleanupError) {
+          console.error(
+            "AUTH CLEANUP AFTER MAIL ERROR:",
+            cleanupError
+          );
+        }
+
+        return res.status(500).json({
+          ok: false,
+          code: "EMAIL_SEND_ERROR",
+          error:
+            mailError?.message ||
+            "Doğrulama e-postası gönderilemedi."
+        });
+      }
+
+      createdAuthUserId = null;
+
+      return res.json({
+        ok: true,
+        needsEmailVerification: true,
+        message:
+          "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.",
+        maskedEmail: maskEmail(email),
+        email,
+        user: {
+          id: authUser.id,
+          email: authUser.email,
+          username,
+          displayName
+        }
+      });
+
+    } catch (e) {
+      console.error(
+        "REGISTER ERROR:",
+        e
+      );
+
+      if (createdAuthUserId) {
+        try {
+          await adminClient()
+            .auth.admin.deleteUser(
+              createdAuthUserId
+            );
+        } catch (cleanupError) {
+          console.error(
+            "FINAL AUTH CLEANUP ERROR:",
+            cleanupError
+          );
+        }
+      }
+
+      return res.status(500).json({
+        ok: false,
+        code: "REGISTER_ERROR",
+        error:
+          e?.message ||
+          "Kayıt başarısız."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   REGISTER VERIFY
+   ========================================================= */
+
+app.post(
+  "/api/register/verify",
+  async (req, res) => {
+    try {
+      const email =
+        normalizeEmail(req.body?.email);
+
+      const code =
+        String(req.body?.code || "")
+          .replace(/\D/g, "")
+          .slice(0, 6);
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          error: "E-posta gerekli."
+        });
+      }
+
+      if (!/^\d{6}$/.test(code)) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "6 haneli doğrulama kodunu gir."
+        });
+      }
+
+      const key =
+        registrationKey(email);
+
+      const entry =
+        registrationCodes.get(key);
+
+      if (!entry) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Doğrulama kodu bulunamadı. Yeni kod iste."
+        });
+      }
+
+      if (entry.expires < Date.now()) {
+        registrationCodes.delete(key);
+
+        return res.status(400).json({
+          ok: false,
+          code: "CODE_EXPIRED",
+          error:
+            "Kodun süresi dolmuş. Yeni kod iste."
+        });
+      }
+
+      if (entry.attempts >= 5) {
+        registrationCodes.delete(key);
+
+        return res.status(429).json({
+          ok: false,
+          code: "TOO_MANY_ATTEMPTS",
+          error:
+            "Çok fazla yanlış kod girildi. Yeni kod iste."
+        });
+      }
+
+      if (entry.code !== code) {
+        entry.attempts += 1;
+
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_CODE",
+          error:
+            "Kod yanlış. Lütfen tekrar kontrol et."
+        });
+      }
+
+      const admin = adminClient();
+
+      /*
+       * Kod doğru:
+       * Supabase Auth kullanıcısının e-postasını doğrula.
+       */
+      const {
+        data: updated,
+        error: updateError
+      } =
+        await admin.auth.admin.updateUserById(
+          entry.userId,
+          {
+            email_confirm: true
+          }
+        );
+
+      if (updateError) {
+        console.error(
+          "EMAIL CONFIRM ERROR:",
+          updateError
+        );
+
+        return res.status(500).json({
+          ok: false,
+          error:
+            "E-posta doğrulanamadı. Lütfen tekrar deneyin."
+        });
+      }
+
+      registrationCodes.delete(key);
+
+      /*
+       * Doğrulama tamamlandıktan sonra otomatik giriş.
+       */
+      const anon = client();
+
+      const {
+        data: loginData,
+        error: loginError
+      } =
+        await anon.auth.signInWithPassword({
+          email: entry.email,
+          password: String(
+            req.body?.password || ""
+          )
+        });
+
+      /*
+       * Şifre frontend tarafından gönderilmiyorsa
+       * doğrulama yine başarılı sayılır; frontend normal
+       * giriş ekranından devam edebilir.
+       */
+      if (
+        loginError ||
+        !loginData?.session
+      ) {
+        return res.json({
+          ok: true,
+          verified: true,
+          needsLogin: true,
+          message:
+            "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
+          user: {
+            id: updated?.user?.id || entry.userId,
+            email: entry.email,
+            username: entry.username,
+            displayName: entry.displayName
+          }
+        });
+      }
+
+      return res.json({
+        ok: true,
+        verified: true,
+        token:
+          loginData.session.access_token,
+        user: {
+          id: updated?.user?.id || entry.userId,
+          email: entry.email,
+          username: entry.username,
+          displayName: entry.displayName
+        }
+      });
+
+    } catch (e) {
+      console.error(
+        "REGISTER VERIFY ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Doğrulama başarısız."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   REGISTER RESEND
+   ========================================================= */
+
+app.post(
+  "/api/register/resend",
+  async (req, res) => {
+    try {
+      const email =
+        normalizeEmail(req.body?.email);
+
+      if (!email) {
+        return res.status(400).json({
+          ok: false,
+          error: "E-posta gerekli."
+        });
+      }
+
+      const key =
+        registrationKey(email);
+
+      const entry =
+        registrationCodes.get(key);
+
+      if (!entry) {
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Bekleyen bir kayıt bulunamadı."
+        });
+      }
+
+      if (!registrationAllowed(email)) {
+        return res.status(429).json({
+          ok: false,
+          error:
+            "Yeni kod göndermek için 60 saniye bekle."
+        });
+      }
+
+      const admin = adminClient();
+
+      const {
+        data: authData,
+        error: authError
+      } =
+        await admin.auth.admin.getUserById(
+          entry.userId
+        );
+
+      if (
+        authError ||
+        !authData?.user
+      ) {
+        registrationCodes.delete(key);
+
+        return res.status(404).json({
+          ok: false,
+          error:
+            "Kayıt bulunamadı. Lütfen yeniden kayıt ol."
+        });
+      }
+
+      if (
+        authData.user.email_confirmed_at
+      ) {
+        registrationCodes.delete(key);
+
+        return res.json({
+          ok: true,
+          verified: true,
+          message:
+            "E-posta zaten doğrulanmış."
+        });
+      }
+
+      const code =
+        createVerificationCode();
+
+      entry.code = code;
+      entry.expires =
+        Date.now() + 10 * 60 * 1000;
+      entry.attempts = 0;
+
+      registrationRate.set(
+        key,
+        Date.now()
+      );
+
+      await sendRegistrationCode(
+        email,
+        code
+      );
+
+      return res.json({
+        ok: true,
+        message:
+          "Yeni 6 haneli doğrulama kodu gönderildi.",
+        maskedEmail:
+          maskEmail(email)
+      });
+
+    } catch (e) {
+      console.error(
+        "REGISTER RESEND ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Yeni kod gönderilemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+app.post(
+  "/api/login",
+  async (req, res) => {
+    try {
+      const identifier =
+        String(
+          req.body?.username ??
+          req.body?.email ??
+          ""
+        ).trim();
+
+      const password =
+        String(
+          req.body?.password ??
+          ""
+        );
+
+      if (
+        !identifier ||
+        !password
+      ) {
+        return res.status(400).json({
+          error:
+            "Kullanıcı adı/e-posta ve şifre gerekli."
+        });
+      }
+
+      if (!CONFIG_OK) {
+        return res.status(500).json({
+          error:
+            "Supabase ortam değişkenleri eksik."
+        });
+      }
+
+      if (
+        !SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        return res.status(500).json({
+          error:
+            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
+        });
+      }
+
+      const admin =
+        adminClient();
+
+      let email =
+        identifier.toLowerCase();
+
+      if (
+        !identifier.includes("@")
+      ) {
+        const username =
+          normalizeUsername(
+            identifier
+          );
+
+        const {
+          data: profile,
+          error: pe
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "username",
+            username
+          )
+          .maybeSingle();
+
+        if (pe) {
+          return res.status(500).json({
+            error: pe.message
+          });
+        }
+
+        if (!profile) {
+          return res.status(401).json({
+            error:
+              "Kullanıcı adı veya şifre hatalı."
+          });
+        }
+
+        let authUser = null;
+
+        // Normal kayıt: profile -> auth_user_id üzerinden Auth kullanıcısını bul.
+        const authId = profile.auth_user_id || profile.id;
+        if (authId) {
+          const { data: au, error: ae } =
+            await admin.auth.admin.getUserById(authId);
+          if (!ae && au?.user?.email) {
+            authUser = au.user;
+          }
+        }
+
+        // Eski cihaz/hesap kayıtlarında auth_user_id yanlış veya boş olabilir.
+        // Profildeki e-posta üzerinden gerçek Auth kullanıcısını da bul.
+        if (!authUser && profile.email) {
+          const wantedEmail = String(profile.email).trim().toLowerCase();
+          try {
+            const result = await admin.auth.admin.getUserByEmail(wantedEmail);
+            if (!result.error && result.data?.user?.email) {
+              authUser = result.data.user;
+            }
+          } catch (_) {}
+        }
+
+        // SDK sürümünde getUserByEmail yoksa son fallback: Auth listesinden ara.
+        if (!authUser && profile.email) {
+          const wantedEmail = String(profile.email).trim().toLowerCase();
+          for (let page = 1; page <= 20 && !authUser; page++) {
+            const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+            const users = result?.data?.users || [];
+            authUser = users.find(u =>
+              String(u?.email || '').trim().toLowerCase() === wantedEmail
+            ) || null;
+            if (users.length < 1000) break;
+          }
+        }
+
+        if (!authUser?.email) {
+          return res.status(401).json({
+            error:
+              "Kullanıcı adı veya şifre hatalı."
+          });
+        }
+
+        email = authUser.email.toLowerCase();
+      }
+
+      const anon =
+        client();
+
+      const {
+        data: sd,
+        error: le
+      } =
+        await anon.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (
+        le ||
+        !sd?.session ||
+        !sd?.user
+      ) {
+        return res.status(401).json({
+          error:
+            /invalid login credentials/i.test(
+              le?.message || ""
+            )
+              ? "Kullanıcı adı/e-posta veya şifre hatalı."
+              : (
+                  le?.message ||
+                  "Giriş başarısız."
+                )
+        });
+      }
+
+      const authId =
+        sd.user.id;
+
+      const {
+        data: profiles,
+        error: pe2
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .eq(
+          "auth_user_id",
+          authId
+        )
+        .order(
+          "created_at",
+          {
+            ascending: true
+          }
+        );
+
+      if (pe2) {
+        return res.status(500).json({
+          error: pe2.message
+        });
+      }
+
+      let list =
+        profiles || [];
+
+      if (!list.length) {
+        const {
+          data: legacy
+        } = await admin
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            authId
+          )
+          .maybeSingle();
+
+        if (legacy) {
+          list = [legacy];
+        }
+      }
+
+      if (!list.length) {
+        return res.status(404).json({
+          error:
+            "Bu hesap için Minegram profili bulunamadı."
+        });
+      }
+
+      const safe =
+        list.map(
+          safeProfile
+        );
+
+      const selected =
+        identifier.includes("@")
+          ? safe[0]
+          : (
+              safe.find(
+                x =>
+                  x.username ===
+                  normalizeUsername(
+                    identifier
+                  )
+              ) ||
+              safe[0]
+            );
+
+      return res.json({
+        ok: true,
+        multipleProfiles:
+          safe.length > 1,
+        profiles: safe,
+        profile: selected,
+        token:
+          sd.session
+            .access_token,
+        user: selected
+      });
+
+    } catch (e) {
+      console.error(
+        "LOGIN ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        error:
+          e?.message ||
+          "Giriş başarısız."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   RECOVERY HELPERS
+========================================================= */
+
+function publicOrigin(req) {
+  const proto =
+    req.headers[
+      "x-forwarded-proto"
+    ] ||
+    req.protocol ||
+    "http";
+
+  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
+}
+
+function maskEmail(email) {
+  const [
+    u,
+    d
+  ] =
+    String(email).split("@");
+
+  if (!u || !d) {
+    return email;
+  }
+
+  const shown =
+    u.length <= 2
+      ? u[0] + "*"
+      : u.slice(0, 2) +
+        "*".repeat(
+          Math.max(
+            1,
+            u.length - 2
+          )
+        );
+
+  return `${shown}@${d}`;
+}
+
+function normalizeRecoveryPhone(
+  value
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  const digits =
+    String(value)
+      .replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length >= 10) {
+    return digits.slice(-10);
+  }
+
+  return digits;
+}
+
+
+/* =========================================================
+   FORGOT PASSWORD - FIND ACCOUNT
+========================================================= */
+
+app.post(
+  "/api/forgot-password/find-account",
+  async (req, res) => {
+    try {
+      const identifier =
+        String(
+          req.body?.identifier ??
+          req.body?.email ??
+          req.body?.username ??
+          req.body?.phone ??
+          ""
+        ).trim();
+
+      const mode =
+        String(
+          req.body?.mode ??
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (!identifier) {
+        return res.status(400).json({
+          ok: false,
+          error: "E-posta, kullanıcı adı veya telefon numarası gerekli."
+        });
+      }
+
+      /*
+       * Frontend mode gönderiyorsa onu kullanıyoruz.
+       * Göndermiyorsa identifier'a göre otomatik belirliyoruz.
+       */
+      let recoveryMode = mode;
+
+      if (!recoveryMode) {
+        if (identifier.includes("@")) {
+          recoveryMode = "email";
+        } else if (
+          /[\d\s()+\-]/.test(identifier) &&
+          normalizeRecoveryPhone(identifier).length >= 10
+        ) {
+          recoveryMode = "phone";
+        } else {
+          recoveryMode = "username";
+        }
+      }
+
+      let found = null;
+
+      /*
+       * -----------------------------------------------------
+       * 1) TELEFON
+       * -----------------------------------------------------
+       */
+
+      if (
+        recoveryMode === "phone" ||
+        recoveryMode === "tel" ||
+        recoveryMode === "telefon"
+      ) {
+        const authUser =
+          await findUserByPhone(
+            identifier
+          );
+
+        if (authUser?.email) {
+          const admin =
+            adminClient();
+
+          let profile = null;
+
+          const {
+            data: profileById
+          } =
+            await admin
+              .from("profiles")
+              .select(
+                "id,auth_user_id,username,email,display_name,avatar_url"
+              )
+              .or(
+                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
+              )
+              .limit(1)
+              .maybeSingle();
+
+          profile =
+            profileById || null;
+
+          found = {
+            email:
+              authUser.email,
+            profile,
+            authUser
+          };
+        }
+      }
+
+      /*
+       * -----------------------------------------------------
+       * 2) E-POSTA / KULLANICI ADI
+       * -----------------------------------------------------
+       */
+
+      if (!found) {
+        found =
+          await resolveRecoveryEmail(
+            identifier,
+            recoveryMode === "username"
+              ? "email"
+              : recoveryMode
+          );
+      }
+
+      /*
+       * -----------------------------------------------------
+       * HESAP YOK
+       * -----------------------------------------------------
+       */
+
+      if (!found?.email) {
+        return res.status(404).json({
+          ok: false,
+          error: "Bu bilgilerle eşleşen bir hesap bulunamadı."
+        });
+      }
+
+      const profile =
+        found.profile || {};
+
+      /*
+       * -----------------------------------------------------
+       * FRONTEND'E GÖNDERİLECEK HESAP BİLGİSİ
+       * -----------------------------------------------------
+       */
+
+      return res.json({
+        ok: true,
+
+        account: {
+          id:
+            profile.id ||
+            found.authUser?.id ||
+            null,
+
+          username:
+            profile.username ||
+            "",
+
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            "",
+
+          email:
+            found.email,
+
+          maskedEmail:
+            maskEmail(
+              found.email
+            ),
+
+          avatar:
+            profile.avatar_url ||
+            null
+        },
+
+        /*
+         * Frontend'in sonraki adımda kullanabilmesi
+         * için normalize edilmiş değerler.
+         */
+        identifier,
+        mode: recoveryMode
+      });
+
+    } catch (e) {
+      console.error(
+        "FIND ACCOUNT ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Hesap aranırken bir hata oluştu."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   TEK VE TEMİZ findUserByPhone
+========================================================= */
+
+async function findUserByPhone(
+  phone
+) {
+  if (!SUPABASE_URL) {
+    console.error(
+      "SUPABASE_URL EKSİK"
+    );
+
+    return null;
+  }
+
+  if (
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    console.error(
+      "SUPABASE_SERVICE_ROLE_KEY EKSİK"
+    );
+
+    return null;
+  }
+
+  const admin =
+    adminClient();
+
+  const wanted =
+    normalizeRecoveryPhone(
+      phone
+    );
+
+  console.log(
+    "======================================"
+  );
+
+  console.log(
+    "MINEGRAM TELEFON HESAP ARAMA"
+  );
+
+  console.log(
+    "Gelen telefon:",
+    phone
+  );
+
+  console.log(
+    "Normalize telefon:",
+    wanted
+  );
+
+  console.log(
+    "======================================"
+  );
+
+  if (
+    !wanted ||
+    wanted.length !== 10
+  ) {
+    console.log(
+      "GEÇERSİZ TELEFON:",
+      wanted
+    );
+
+    return null;
+  }
+
+
+  /* -------------------------------------------------------
+     1) SUPABASE AUTH TELEFON
+  ------------------------------------------------------- */
+
+  try {
+    for (
+      let page = 1;
+      page <= 20;
+      page++
+    ) {
+      const result =
+        await admin.auth.admin.listUsers({
+          page,
+          perPage: 1000
+        });
+
+      const users =
+        result?.data?.users ||
+        [];
+
+      const error =
+        result?.error;
+
+      if (error) {
+        console.error(
+          "AUTH KULLANICILARI ALINAMADI:",
+          error
+        );
+
+        break;
+      }
+
+      console.log(
+        `AUTH SAYFA ${page}: ${users.length} kullanıcı`
+      );
+
+      for (const user of users) {
+        if (!user?.phone) {
+          continue;
+        }
+
+        const normalizedUserPhone =
+          normalizeRecoveryPhone(
+            user.phone
+          );
+
+        console.log(
+          "AUTH TELEFON KONTROL:",
+          user.phone,
+          "=>",
+          normalizedUserPhone
+        );
+
+        if (
+          normalizedUserPhone ===
+          wanted
+        ) {
+          console.log(
+            "TELEFON AUTH'TA BULUNDU!",
+            user.id,
+            user.email
+          );
+
+          return user;
+        }
+      }
+
+      if (
+        users.length < 1000
+      ) {
+        break;
+      }
+    }
+  } catch (error) {
+    console.error(
+      "AUTH TELEFON ARAMA HATASI:",
+      error?.message ||
+        error
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     2) PROFILES TELEFON
+  ------------------------------------------------------- */
+
+  const possibleColumns = [
+    "phone",
+    "phone_number",
+    "phoneNumber",
+    "telefon",
+    "telefon_numarasi",
+    "telefon_numarası",
+    "mobile",
+    "mobile_phone",
+    "gsm",
+    "gsm_number"
+  ];
+
+  for (
+    const column of
+    possibleColumns
+  ) {
+    try {
+      const {
+        data,
+        error
+      } =
+        await admin
+          .from("profiles")
+          .select("*")
+          .not(
+            column,
+            "is",
+            null
+          );
+
+      if (error) {
+        console.log(
+          `PROFILES KOLONU KULLANILAMIYOR: ${column}`
+        );
+
+        continue;
+      }
+
+      for (
+        const profile of
+        data || []
+      ) {
+        const profilePhone =
+          normalizeRecoveryPhone(
+            profile?.[column]
+          );
+
+        if (
+          !profilePhone
+        ) {
+          continue;
+        }
+
+        if (
+          profilePhone !==
+          wanted
+        ) {
+          continue;
+        }
+
+        console.log(
+          "TELEFON PROFILES'TA BULUNDU:",
+          profile.id,
+          profile.username,
+          column
+        );
+
+        const possibleAuthIds = [
+          profile.auth_user_id,
+          profile.id
+        ].filter(Boolean);
+
+        for (
+          const authId of
+          possibleAuthIds
+        ) {
+          try {
+            const {
+              data: authData,
+              error: authError
+            } =
+              await admin.auth.admin.getUserById(
+                authId
+              );
+
+            if (
+              !authError &&
+              authData?.user
+            ) {
+              console.log(
+                "AUTH KULLANICISI BULUNDU:",
+                authData.user.id
+              );
+
+              return authData.user;
+            }
+          } catch (error) {
+            console.log(
+              "AUTH ID KONTROL HATASI:",
+              authId,
+              error?.message ||
+                error
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.log(
+        `PROFILE TELEFON ARAMA HATASI [${column}]:`,
+        error?.message ||
+          error
+      );
+    }
+  }
+
+  console.log(
+    "TELEFONLA HESAP BULUNAMADI:",
+    wanted
+  );
+
+  return null;
+}
+
+
+/* =========================================================
+   RECOVERY EMAIL RESOLVE
+========================================================= */
+
+function normalizeRecoveryMode(mode) {
+  const m = String(mode || "email").trim().toLowerCase();
+  if (["phone", "tel", "telefon"].includes(m)) return "phone";
+  if (["username", "user", "kullanici", "kullanıcı"].includes(m)) return "username";
+  return "email";
+}
+
+async function findAuthUserByEmailExact(email) {
+  const wanted = String(email || "").trim().toLowerCase();
+  if (!wanted || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+
+  /* Supabase Admin REST: SDK sürümünden bağımsız kesin arama. */
+  for (let page = 1; page <= 20; page++) {
+    const url = `${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/users?page=${page}&per_page=1000`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        `Supabase Auth kullanıcıları alınamadı (${response.status}): ${data?.msg || data?.message || data?.error_description || "Bilinmeyen hata"}`
+      );
+    }
+
+    const users = Array.isArray(data?.users) ? data.users : [];
+    const match = users.find(
+      user => String(user?.email || "").trim().toLowerCase() === wanted
+    );
+
+    if (match?.id) return match;
+    if (users.length < 1000) break;
+  }
+
+  return null;
+}
+
+
+async function resolveRecoveryEmail(
+  identifier,
+  mode = "email"
+) {
+  const raw = String(identifier || "").trim();
+  if (!raw) return null;
+
+  const cleanMode = normalizeRecoveryMode(mode);
+  const admin = adminClient();
+
+  let email = raw;
+  let profile = null;
+  let authUser = null;
+
+  /* -------------------------------------------------------
+     1) TELEFON
+  ------------------------------------------------------- */
+  if (cleanMode === "phone") {
+    authUser = await findUserByPhone(raw);
+
+    if (!authUser?.id || !authUser?.email) {
+      return null;
+    }
+
+    email = String(authUser.email).trim().toLowerCase();
+
+    try {
+      const { data } = await admin
+        .from("profiles")
+        .select("*")
+        .or(`id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`)
+        .limit(1)
+        .maybeSingle();
+      profile = data || null;
+    } catch (e) {
+      console.log("RECOVERY PROFILE TELEFON HATASI:", e?.message || e);
+    }
+
+    return { email, profile, authUser };
+  }
+
+  /* -------------------------------------------------------
+     2) E-POSTA
+     Supabase Auth doğrudan e-posta ile aranır.
+     Böylece profiles RLS yüzünden boş dönse bile hesap bulunur.
+  ------------------------------------------------------- */
+  if (email.includes("@")) {
+    email = email.toLowerCase();
+
+    try {
+      const { data, error } =
+        await admin.auth.admin.getUserByEmail(email);
+
+      if (!error && data?.user?.id) {
+        authUser = data.user;
+        email = String(data.user.email || email)
+          .trim()
+          .toLowerCase();
+      }
+    } catch (e) {
+      console.log("RECOVERY AUTH E-POSTA HATASI:", e?.message || e);
+    }
+
+    /* SDK başarısız olsa bile doğrudan Supabase Auth REST ile ara. */
+    if (!authUser) {
+      try {
+        authUser = await findAuthUserByEmailExact(email);
+      } catch (e) {
+        console.log("RECOVERY AUTH REST E-POSTA HATASI:", e?.message || e);
+      }
+    }
+
+    /* Auth'ta bulunamazsa profiles'tan da kontrol et. */
+    if (!authUser) {
+      try {
+        const { data } = await admin
+          .from("profiles")
+          .select("*")
+          .eq("email", email)
+          .limit(1)
+          .maybeSingle();
+
+        profile = data || null;
+      } catch (e) {
+        console.log("RECOVERY PROFILE E-POSTA HATASI:", e?.message || e);
+      }
+    }
+  }
+
+  /* -------------------------------------------------------
+     3) KULLANICI ADI
+     Service-role ile profiles aranır; RLS engeline takılmaz.
+  ------------------------------------------------------- */
+  if (!authUser && !email.includes("@")) {
+    const username = normalizeUsername(raw);
+
+    try {
+      const { data, error } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("username", username)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.log("RECOVERY USERNAME PROFILE HATASI:", error.message || error);
+      } else {
+        profile = data || null;
+      }
+    } catch (e) {
+      console.log("RECOVERY USERNAME ARAMA HATASI:", e?.message || e);
+    }
+
+    if (!profile) return null;
+
+    const authId = profile.auth_user_id || profile.id || null;
+
+    if (authId) {
+      try {
+        const { data, error } =
+          await admin.auth.admin.getUserById(authId);
+
+        if (!error && data?.user?.id) {
+          authUser = data.user;
+          email = String(data.user.email || profile.email || "")
+            .trim()
+            .toLowerCase();
+        }
+      } catch (e) {
+        console.log("RECOVERY USERNAME AUTH HATASI:", e?.message || e);
+      }
+    }
+
+    /* auth_user_id/id çalışmadıysa profile e-postasıyla Auth'u bul. */
+    if (!authUser && profile.email) {
+      try {
+        const { data, error } =
+          await admin.auth.admin.getUserByEmail(
+            String(profile.email).trim().toLowerCase()
+          );
+
+        if (!error && data?.user?.id) {
+          authUser = data.user;
+          email = String(data.user.email || profile.email)
+            .trim()
+            .toLowerCase();
+        }
+      } catch (e) {
+        console.log("RECOVERY PROFILE EMAIL AUTH HATASI:", e?.message || e);
+      }
+    }
+  }
+
+  /* -------------------------------------------------------
+     4) E-posta ile bulunduysa profile'i service-role ile getir.
+  ------------------------------------------------------- */
+  if (!profile && email.includes("@")) {
+    try {
+      const { data } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("email", email)
+        .limit(1)
+        .maybeSingle();
+      profile = data || null;
+    } catch (e) {
+      console.log("RECOVERY PROFILE SON ARAMA HATASI:", e?.message || e);
+    }
+  }
+
+  /* Profile'dan Auth kullanıcısını son kez doğrula. */
+  if (!authUser && profile) {
+    authUser = await resolveAuthUserForProfile(profile, admin);
+    if (authUser?.email) {
+      email = String(authUser.email).trim().toLowerCase();
+    }
+  }
+
+  if (!email.includes("@")) return null;
+
+  return {
+    email,
+    profile,
+    authUser
+  };
+}
+
+/* =========================================================
+   FORGOT LEGACY
+========================================================= */
+
+app.post(
+  "/api/forgot",
+  async (req, res) => {
+    try {
+      const identifier =
+        String(
+          req.body?.identifier ||
+          ""
+        ).trim();
+
+      const anon =
+        client();
+
+      let email =
+        identifier;
+
+      if (
+        !identifier.includes("@")
+      ) {
+        if (
+          !SUPABASE_SERVICE_ROLE_KEY
+        ) {
+          return res.json({
+            ok: true
+          });
+        }
+
+        const profile =
+          await findProfile(
+            anon,
+            identifier
+          );
+
+        if (!profile) {
+          return res.json({
+            ok: true
+          });
+        }
+
+        const admin =
+          adminClient();
+
+        const authId =
+          profile.auth_user_id ||
+          profile.id;
+
+        const {
+          data,
+          error
+        } =
+          await admin.auth.admin.getUserById(
+            authId
+          );
+
+        if (
+          error ||
+          !data?.user?.email
+        ) {
+          return res.json({
+            ok: true
+          });
+        }
+
+        email =
+          data.user.email;
+      }
+
+      const {
+        error
+      } =
+        await anon.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo:
+              `${publicOrigin(req)}/`
+          }
+        );
+
+      if (error) {
+        return res.status(400).json({
+          error:
+            error.message
+        });
+      }
+
+      res.json({
+        ok: true
+      });
+    } catch {
+      res.json({
+        ok: true
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   AUTH CONFIG
+========================================================= */
+
+app.get(
+  "/api/auth-config",
+  (req, res) => {
+    if (!CONFIG_OK) {
+      return res.status(500).json({
+        error:
+          "Supabase yapılandırması eksik."
+      });
+    }
+
+    res.json({
+      url:
+        SUPABASE_URL,
+      key:
+        SUPABASE_KEY
+    });
+  }
+);
+
+
+/* =========================================================
+   RESEND
+========================================================= */
+
+async function sendResendEmail(
+  to,
+  subject,
+  html,
+  text
+) {
+  const key =
+    String(
+      process.env.RESEND_API_KEY ||
+      ""
+    ).trim();
+
+  if (!key) {
+    throw new Error(
+      "RESEND_API_KEY eksik."
+    );
+  }
+
+  const from =
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
+
+  const r =
+    await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${key}`,
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text
+        })
+      }
+    );
+
+  const j =
+    await r
+      .json()
+      .catch(
+        () => ({})
+      );
+
+  if (!r.ok) {
+    throw new Error(
+      j.message ||
+      "E-posta gönderilemedi."
+    );
+  }
+
+  return j;
+}
+
+const recoveryCodes =
+  new Map();
+
+/* =========================================================
+   RECOVERY CODE PERSISTENCE
+   Kodlar artık sadece RAM'de tutulmaz. Node yeniden başlasa bile
+   10 dakikalık aktif doğrulama kodu kaybolmaz.
+========================================================= */
+const recoveryCodesFile = path.join(__dirname, "minegram-recovery-codes.json");
+
+function loadRecoveryCodes() {
+  try {
+    if (!fs.existsSync(recoveryCodesFile)) return;
+
+    const raw = fs.readFileSync(recoveryCodesFile, "utf8");
+    const data = JSON.parse(raw);
+
+    recoveryCodes.clear();
+
+    if (data && typeof data === "object") {
+      for (const [email, entry] of Object.entries(data)) {
+        if (entry && entry.expires > Date.now()) {
+          recoveryCodes.set(email, entry);
+        }
+      }
+    }
+
+    saveRecoveryCodes();
+  } catch (e) {
+    console.error("RECOVERY CODE LOAD ERROR:", e?.message || e);
+  }
+}
+
+function saveRecoveryCodes() {
+  try {
+    const data = Object.fromEntries(recoveryCodes.entries());
+    fs.writeFileSync(
+      recoveryCodesFile,
+      JSON.stringify(data, null, 2),
+      "utf8"
+    );
+  } catch (e) {
+    console.error("RECOVERY CODE SAVE ERROR:", e?.message || e);
+  }
+}
+
+function setRecoveryCode(email, entry) {
+  recoveryCodes.set(String(email).trim().toLowerCase(), entry);
+  saveRecoveryCodes();
+}
+
+function deleteRecoveryCode(email) {
+  recoveryCodes.delete(String(email).trim().toLowerCase());
+  saveRecoveryCodes();
+}
+
+function cleanupRecoveryCodes() {
+  const now = Date.now();
+  let changed = false;
+
+  for (const [email, entry] of recoveryCodes.entries()) {
+    if (!entry?.expires || entry.expires <= now) {
+      recoveryCodes.delete(email);
+      changed = true;
+    }
+  }
+
+  if (changed) saveRecoveryCodes();
+}
+
+loadRecoveryCodes();
+
+
+/* =========================================================
+   FORGOT START
+========================================================= */
+
+app.post(
+  "/api/forgot/start",
+  async (req, res) => {
+    try {
+      const found =
+        await resolveRecoveryEmail(
+          req.body?.identifier,
+          req.body?.mode ||
+            "email"
+        );
+
+      if (!found) {
+        return res.status(404).json({
+          error:
+            "Hesap bulunamadı."
+        });
+      }
+
+      const code =
+        String(
+          Math.floor(
+            100000 +
+            Math.random() *
+              900000
+          )
+        );
+
+      setRecoveryCode(
+        found.email.toLowerCase(),
+        {
+          code,
+          expires:
+            Date.now() +
+            10 * 60 * 1000,
+          profile:
+            found.profile,
+          authUserId:
+            found.authUser?.id ||
+            found.profile?.auth_user_id ||
+            found.profile?.id ||
+            null
+        }
+      );
+
+      await sendResendEmail(
+        found.email,
+        "Minegram doğrulama kodun",
+
+        `<div style="font-family:Arial,sans-serif">
+          <h2>Minegram</h2>
+          <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
+          <div style="font-size:32px;font-weight:700;letter-spacing:8px">
+            ${code}
+          </div>
+          <p>Bu kod 10 dakika geçerlidir.</p>
+        </div>`,
+
+        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      );
+
+      res.json({
+        ok: true,
+        email:
+          found.email,
+        maskedEmail:
+          maskEmail(
+            found.email
+          )
+      });
+    } catch (e) {
+      console.error(
+        "FORGOT START ERROR:",
+        e
+      );
+
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   PASSWORD RESET TOKEN STORAGE
+========================================================= */
+const passwordResetTokens = new Map();
+
+function createPasswordResetToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function cleanupPasswordResetTokens() {
+  const now = Date.now();
+  for (const [token, entry] of passwordResetTokens.entries()) {
+    if (!entry?.expires || entry.expires <= now) {
+      passwordResetTokens.delete(token);
+    }
+  }
+}
+
+/* =========================================================
+   FORGOT VERIFY
+========================================================= */
+
+app.post(
+  "/api/forgot/verify",
+  async (req, res) => {
+    try {
+      cleanupPasswordResetTokens();
+
+      const identifier = String(
+        req.body?.identifier ||
+        req.body?.email ||
+        req.body?.username ||
+        ""
+      ).trim();
+
+      const mode = String(
+        req.body?.mode || "email"
+      ).trim().toLowerCase();
+
+      const code = String(
+        req.body?.code || ""
+      ).replace(/\D/g, "").slice(0, 6);
+
+      if (!identifier) {
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap bilgisi gerekli."
+        });
+      }
+
+      if (!/^\d{6}$/.test(code)) {
+        return res.status(400).json({
+          ok: false,
+          error: "6 haneli doğrulama kodunu gir."
+        });
+      }
+
+      const found = await resolveRecoveryEmail(identifier, mode);
+
+      if (!found?.email) {
+        return res.status(400).json({
+          ok: false,
+          error: "Hesap bulunamadı."
+        });
+      }
+
+      const email = String(found.email).trim().toLowerCase();
+      cleanupRecoveryCodes();
+      const entry = recoveryCodes.get(email);
+
+      if (!entry) {
+        return res.status(400).json({
+          ok: false,
+          error: "Aktif doğrulama kodu bulunamadı. Yeni kod iste."
+        });
+      }
+
+      if (!entry.expires || entry.expires <= Date.now()) {
+        deleteRecoveryCode(email);
+        return res.status(400).json({
+          ok: false,
+          code: "CODE_EXPIRED",
+          error: "Kodun süresi dolmuş. Yeni kod iste."
+        });
+      }
+
+      if (entry.code !== code) {
+        entry.attempts = Number(entry.attempts || 0) + 1;
+        if (entry.attempts >= 5) {
+          deleteRecoveryCode(email);
+          return res.status(429).json({
+            ok: false,
+            code: "TOO_MANY_ATTEMPTS",
+            error: "Çok fazla yanlış kod girildi. Yeni kod iste."
+          });
+        }
+        setRecoveryCode(email, entry);
+        return res.status(400).json({
+          ok: false,
+          code: "INVALID_CODE",
+          error: "Kod yanlış veya süresi dolmuş."
+        });
+      }
+
+      let authUserId =
+        found.authUser?.id ||
+        entry.authUserId ||
+        found.profile?.auth_user_id ||
+        found.profile?.id ||
+        null;
+
+      // Son güvenli fallback: Auth kullanıcılarını service-role ile
+      // listeleyip doğrulanan e-posta ile eşleştir. Böylece profiles
+      // kaydı eksik/uyumsuz olsa bile gerçek Auth hesabı bulunur.
+      if (!authUserId && email.includes("@")) {
+        try {
+          let page = 1;
+          const perPage = 1000;
+          while (!authUserId && page <= 10) {
+            const { data, error } =
+              await admin.auth.admin.listUsers({
+                page,
+                perPage
+              });
+
+            if (error) {
+              console.log("RECOVERY AUTH LIST HATASI:", error.message || error);
+              break;
+            }
+
+            const users = Array.isArray(data?.users)
+              ? data.users
+              : [];
+
+            const match = users.find(
+              u => String(u?.email || "").trim().toLowerCase() === email
+            );
+
+            if (match?.id) {
+              authUserId = match.id;
+              break;
+            }
+
+            if (users.length < perPage) break;
+            page += 1;
+          }
+        } catch (e) {
+          console.log("RECOVERY AUTH LIST EXCEPTION:", e?.message || e);
+        }
+      }
+
+      if (!authUserId && email.includes("@")) {
+        try {
+          const restUser = await findAuthUserByEmailExact(email);
+          authUserId = restUser?.id || null;
+        } catch (e) {
+          console.log("RECOVERY VERIFY AUTH REST HATASI:", e?.message || e);
+        }
+      }
+
+      if (!authUserId) {
+        return res.status(400).json({
+          ok: false,
+          code: "AUTH_USER_NOT_FOUND",
+          error: "Supabase hesap bilgisi bulunamadı.",
+          detail: "Doğrulanan e-posta için Supabase Auth kullanıcısı bulunamadı."
+        });
+      }
+
+      // Kullanıcı e-posta üzerinden 6 haneli kurtarma kodunu doğru
+      // girdiğine göre e-posta sahipliğini doğrulamış kabul edilir.
+      // Eski/yarım kalmış hesaplarda Supabase Auth tarafında
+      // email_confirmed_at boş kalmışsa girişte "Email not confirmed"
+      // hatası oluşmasını engellemek için burada da hesabı doğrula.
+      try {
+        const admin = adminClient();
+        const { error: confirmError } =
+          await admin.auth.admin.updateUserById(authUserId, {
+            email_confirm: true
+          });
+
+        if (confirmError) {
+          console.error(
+            "RECOVERY EMAIL CONFIRM ERROR:",
+            confirmError?.message || confirmError
+          );
+          return res.status(500).json({
+            ok: false,
+            code: "EMAIL_CONFIRM_FAILED",
+            error: "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
+          });
+        }
+      } catch (confirmException) {
+        console.error(
+          "RECOVERY EMAIL CONFIRM EXCEPTION:",
+          confirmException?.message || confirmException
+        );
+        return res.status(500).json({
+          ok: false,
+          code: "EMAIL_CONFIRM_FAILED",
+          error: "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
+        });
+      }
+
+      const resetToken = createPasswordResetToken();
+      passwordResetTokens.set(resetToken, {
+        userId: authUserId,
+        email,
+        createdAt: Date.now(),
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
+      deleteRecoveryCode(email);
+
+      const profile = entry.profile || found.profile || {};
+
+      return res.json({
+        ok: true,
+        verified: true,
+        resetToken,
+        reset_token: resetToken,
+        token: resetToken,
+        email,
+        account: {
+          id: authUserId,
+          username: profile.username || "minegram",
+          email,
+          displayName:
+            profile.display_name ||
+            profile.displayName ||
+            profile.username ||
+            ""
+        }
+      });
+    } catch (e) {
+      console.error("FORGOT VERIFY ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Kod doğrulanamadı."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
+app.post(
+  "/api/forgot/reset-password",
+  async (req, res) => {
+    try {
+      cleanupPasswordResetTokens();
+
+      const resetToken = String(
+        req.body?.resetToken ||
+        req.body?.reset_token ||
+        req.body?.token ||
+        ""
+      ).trim();
+
+      const password = String(
+        req.body?.password ||
+        req.body?.newPassword ||
+        ""
+      );
+
+      const confirmPassword = String(
+        req.body?.confirmPassword ||
+        req.body?.passwordConfirm ||
+        password
+      );
+
+      if (!resetToken) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama anahtarı gerekli."
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          ok: false,
+          error: "Yeni şifre en az 6 karakter olmalı."
+        });
+      }
+
+      if (password !== confirmPassword) {
+        return res.status(400).json({
+          ok: false,
+          error: "Şifreler eşleşmiyor."
+        });
+      }
+
+      const entry = passwordResetTokens.get(resetToken);
+      if (!entry || !entry.userId || entry.expires <= Date.now()) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Şifre sıfırlama oturumu geçersiz veya süresi dolmuş."
+        });
+      }
+
+      const admin = adminClient();
+      const { data: userData, error: userError } =
+        await admin.auth.admin.getUserById(entry.userId);
+
+      if (userError || !userData?.user) {
+        passwordResetTokens.delete(resetToken);
+        return res.status(400).json({
+          ok: false,
+          error: "Supabase hesabı bulunamadı."
+        });
+      }
+
+      const { error: updateError } =
+        await admin.auth.admin.updateUserById(entry.userId, {
+          password,
+          email_confirm: true
+        });
+
+      if (updateError) throw updateError;
+
+      passwordResetTokens.delete(resetToken);
+
+      return res.json({
+        ok: true,
+        message: "Şifren başarıyla değiştirildi."
+      });
+    } catch (e) {
+      console.error("RESET PASSWORD ERROR:", e);
+      return res.status(400).json({
+        ok: false,
+        error: e?.message || "Şifre değiştirilemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   SEND RESET
+========================================================= */
+
+app.post(
+  "/api/forgot/send-reset",
+  async (req, res) => {
+    try {
+      const email =
+        String(
+          req.body?.email ||
+          ""
+        ).trim();
+
+      if (!email) {
+        return res.status(400).json({
+          error:
+            "E-posta gerekli."
+        });
+      }
+
+      const anon =
+        client();
+
+      const {
+        error
+      } =
+        await anon.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo:
+              `${publicOrigin(req)}/`
+          }
+        );
+
+      if (error) {
+        return res.status(400).json({
+          error:
+            error.message
+        });
+      }
+
+      res.json({
+        ok: true
+      });
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   ME
+========================================================= */
+
+app.get(
+  "/api/me",
+  auth,
+  (req, res) => {
+    res.json(
+      safeUser(
+        req.user
+      )
+    );
+  }
+);
+
+
+/* =========================================================
+   FEED
+========================================================= */
+
+app.get(
+  "/api/feed",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("posts")
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          )
+          .limit(100);
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        await hydratePosts(
+          req.sb,
+          data || [],
+          req.user.id
+        )
+      );
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   CREATE POST
+========================================================= */
+
+app.post(
+  "/api/posts",
+  auth,
+  upload.single("media"),
+  async (req, res) => {
+    try {
+      let mediaUrl =
+        null;
+
+      let mediaName =
+        null;
+
+      let mediaType =
+        null;
+
+      if (req.file) {
+        const ext =
+          path.extname(
+            req.file.originalname
+          ).toLowerCase() ||
+          ".bin";
+
+        const objectPath =
+          `${req.user.id}/${crypto.randomUUID()}${ext}`;
+
+        const {
+          error: uploadError
+        } =
+          await req.sb.storage
+            .from(BUCKET)
+            .upload(
+              objectPath,
+              req.file.buffer,
+              {
+                contentType:
+                  req.file.mimetype,
+                upsert:
+                  false
+              }
+            );
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const {
+          data: publicData
+        } =
+          req.sb.storage
+            .from(BUCKET)
+            .getPublicUrl(
+              objectPath
+            );
+
+        mediaUrl =
+          publicData.publicUrl;
+
+        mediaName =
+          req.file.originalname;
+
+        mediaType =
+          req.file.mimetype;
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("posts")
+          .insert({
+            user_id:
+              req.user.id,
+
+            caption:
+              req.body?.caption ||
+              "",
+
+            media_url:
+              mediaUrl,
+
+            media_name:
+              mediaName,
+
+            media_type:
+              mediaType
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        ...data,
+
+        id:
+          data.id,
+
+        userId:
+          data.user_id,
+
+        media:
+          data.media_url,
+
+        mediaName:
+          data.media_name,
+
+        createdAt:
+          data.created_at
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   STORIES CREATE
+========================================================= */
+
+app.post(
+  "/api/stories",
+  auth,
+  upload.single("story"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error:
+            "Dosya seçilmedi"
+        });
+      }
+
+      const ext =
+        path.extname(
+          req.file.originalname
+        ) || ".bin";
+
+      const objectPath =
+        `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
+
+      const {
+        error: uploadError
+      } =
+        await req.sb.storage
+          .from(BUCKET)
+          .upload(
+            objectPath,
+            req.file.buffer,
+            {
+              contentType:
+                req.file.mimetype,
+              upsert:
+                false
+            }
+          );
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const {
+        data: publicData
+      } =
+        req.sb.storage
+          .from(BUCKET)
+          .getPublicUrl(
+            objectPath
+          );
+
+      const result =
+        await req.sb
+          .from("stories")
+          .insert({
+            user_id:
+              req.user.id,
+
+            media_url:
+              publicData.publicUrl,
+
+            media_type:
+              req.file.mimetype
+          })
+          .select()
+          .single();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      res.json(
+        result.data
+      );
+
+    } catch (e) {
+      console.error(
+        "STORY ERROR:",
+        e
+      );
+
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   STORIES
+========================================================= */
+
+app.get(
+  "/api/stories",
+  auth,
+  async (req, res) => {
+    try {
+      const yesterday =
+        new Date(
+          Date.now() -
+          86400000
+        ).toISOString();
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("stories")
+          .select(`
+            *,
+            profiles(
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .gte(
+            "created_at",
+            yesterday
+          )
+          .order(
+            "created_at",
+            {
+              ascending: true
+            }
+          );
+
+      if (error) {
+        return res.status(400).json({
+          error:
+            error.message
+        });
+      }
+
+      res.json(
+        data || []
+      );
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   LIKE
+========================================================= */
+
+app.post(
+  "/api/posts/:id/like",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data: existing
+      } =
+        await req.sb
+          .from("post_likes")
+          .select("post_id")
+          .eq(
+            "post_id",
+            req.params.id
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .maybeSingle();
+
+      if (existing) {
+        await req.sb
+          .from("post_likes")
+          .delete()
+          .eq(
+            "post_id",
+            req.params.id
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          );
+
+        return res.json({
+          liked: false
+        });
+      }
+
+      const {
+        error
+      } =
+        await req.sb
+          .from("post_likes")
+          .insert({
+            post_id:
+              req.params.id,
+
+            user_id:
+              req.user.id
+          });
+
+      if (error) {
+        throw error;
+      }
+
+      const {
+        data: post
+      } =
+        await req.sb
+          .from("posts")
+          .select("user_id")
+          .eq(
+            "id",
+            req.params.id
+          )
+          .single();
+
+      if (post) {
+        await addNotification({
+          userId:
+            post.user_id,
+
+          fromUserId:
+            req.user.id,
+
+          type:
+            "like",
+
+          postId:
+            req.params.id,
+
+          text:
+            `@${req.user.username} beğendi`
+        });
+      }
+
+      res.json({
+        liked: true
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   COMMENTS
+========================================================= */
+
+app.post(
+  "/api/posts/:id/comments",
+  auth,
+  async (req, res) => {
+    try {
+      const text =
+        String(
+          req.body?.text ||
+          ""
+        ).trim();
+
+      if (!text) {
+        return res.status(400).json({
+          error:
+            "Yorum boş olamaz"
+        });
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("comments")
+          .insert({
+            post_id:
+              req.params.id,
+
+            user_id:
+              req.user.id,
+
+            text
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const {
+        data: post
+      } =
+        await req.sb
+          .from("posts")
+          .select("user_id")
+          .eq(
+            "id",
+            req.params.id
+          )
+          .single();
+
+      if (post) {
+        await addNotification({
+          userId:
+            post.user_id,
+
+          fromUserId:
+            req.user.id,
+
+          type:
+            "comment",
+
+          postId:
+            req.params.id,
+
+          text:
+            `@${req.user.username} yorum yaptı`
+        });
+      }
+
+      res.json({
+        id:
+          data.id,
+
+        userId:
+          data.user_id,
+
+        text:
+          data.text,
+
+        createdAt:
+          data.created_at,
+
+        username:
+          req.user.username
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+app.post(
+  "/api/posts/:id/save",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data: existing
+      } =
+        await req.sb
+          .from("saves")
+          .select("post_id")
+          .eq(
+            "post_id",
+            req.params.id
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .maybeSingle();
+
+      if (existing) {
+        await req.sb
+          .from("saves")
+          .delete()
+          .eq(
+            "post_id",
+            req.params.id
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          );
+
+        return res.json({
+          saved: false
+        });
+      }
+
+      const {
+        error
+      } =
+        await req.sb
+          .from("saves")
+          .insert({
+            post_id:
+              req.params.id,
+
+            user_id:
+              req.user.id
+          });
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        saved: true
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   SAVED
+========================================================= */
+
+app.get(
+  "/api/saved",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data: saves,
+        error
+      } =
+        await req.sb
+          .from("saves")
+          .select(
+            "post_id,created_at"
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      const ids =
+        (saves || [])
+          .map(
+            x => x.post_id
+          );
+
+      if (!ids.length) {
+        return res.json([]);
+      }
+
+      const {
+        data: posts,
+        error: pError
+      } =
+        await req.sb
+          .from("posts")
+          .select("*")
+          .in(
+            "id",
+            ids
+          );
+
+      if (pError) {
+        throw pError;
+      }
+
+      const hydrated =
+        await hydratePosts(
+          req.sb,
+          posts || [],
+          req.user.id
+        );
+
+      res.json(
+        hydrated.sort(
+          (a, b) =>
+            ids.indexOf(a.id) -
+            ids.indexOf(b.id)
+        )
+      );
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+app.get(
+  "/api/notifications",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("notifications")
+          .select("*")
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          )
+          .limit(50);
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        (data || []).map(
+          n => ({
+            id:
+              n.id,
+
+            type:
+              n.type,
+
+            text:
+              n.text,
+
+            read:
+              n.read,
+
+            createdAt:
+              n.created_at
+          })
+        )
+      );
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/notifications/read",
+  auth,
+  async (req, res) => {
+    try {
+      await req.sb
+        .from("notifications")
+        .update({
+          read: true
+        })
+        .eq(
+          "user_id",
+          req.user.id
+        );
+
+      res.json({
+        ok: true
+      });
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   FOLLOW
+========================================================= */
+
+app.post(
+  "/api/users/:username/follow",
+  auth,
+  async (req, res) => {
+    try {
+      const target =
+        await findProfile(
+          req.sb,
+          req.params.username
+        );
+
+      if (!target) {
+        return res.status(404).json({
+          error:
+            "Kullanıcı bulunamadı"
+        });
+      }
+
+      if (
+        target.id ===
+        req.user.id
+      ) {
+        return res.status(400).json({
+          error:
+            "Kendini takip edemezsin"
+        });
+      }
+
+      const {
+        data: existing
+      } =
+        await req.sb
+          .from("follows")
+          .select(
+            "follower_id,following_id"
+          )
+          .eq(
+            "follower_id",
+            req.user.id
+          )
+          .eq(
+            "following_id",
+            target.id
+          )
+          .maybeSingle();
+
+      if (existing) {
+        await req.sb
+          .from("follows")
+          .delete()
+          .eq(
+            "follower_id",
+            req.user.id
+          )
+          .eq(
+            "following_id",
+            target.id
+          );
+
+        return res.json({
+          following:
+            false
+        });
+      }
+
+      const {
+        error
+      } =
+        await req.sb
+          .from("follows")
+          .insert({
+            follower_id:
+              req.user.id,
+
+            following_id:
+              target.id
+          });
+
+      if (error) {
+        throw error;
+      }
+
+      await addNotification({
+        userId:
+          target.id,
+
+        fromUserId:
+          req.user.id,
+
+        type:
+          "follow",
+
+        text:
+          `@${req.user.username} seni takip etti`
+      });
+
+      res.json({
+        following:
+          true
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   USER POSTS
+========================================================= */
+
+app.get(
+  "/api/users/:username/posts",
+  auth,
+  async (req, res) => {
+    try {
+      const target =
+        await findProfile(
+          req.sb,
+          req.params.username
+        );
+
+      if (!target) {
+        return res.status(404).json({
+          error:
+            "Kullanıcı bulunamadı"
+        });
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("posts")
+          .select("*")
+          .eq(
+            "user_id",
+            target.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        await hydratePosts(
+          req.sb,
+          data || [],
+          req.user.id
+        )
+      );
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   USER PROFILE
+========================================================= */
+
+app.get(
+  "/api/users/:username",
+  auth,
+  async (req, res) => {
+    try {
+      const target =
+        await findProfile(
+          req.sb,
+          req.params.username
+        );
+
+      if (!target) {
+        return res.status(404).json({
+          error:
+            "Kullanıcı bulunamadı"
+        });
+      }
+
+      const [
+        postCountResult,
+        followersResult,
+        followingResult,
+        followingByMeResult
+      ] =
+        await Promise.all([
+          req.sb
+            .from("posts")
+            .select(
+              "id",
+              {
+                count:
+                  "exact",
+                head:
+                  true
+              }
+            )
+            .eq(
+              "user_id",
+              target.id
+            ),
+
+          req.sb
+            .from("follows")
+            .select(
+              "follower_id",
+              {
+                count:
+                  "exact",
+                head:
+                  true
+              }
+            )
+            .eq(
+              "following_id",
+              target.id
+            ),
+
+          req.sb
+            .from("follows")
+            .select(
+              "following_id",
+              {
+                count:
+                  "exact",
+                head:
+                  true
+              }
+            )
+            .eq(
+              "follower_id",
+              target.id
+            ),
+
+          req.sb
+            .from("follows")
+            .select(
+              "follower_id"
+            )
+            .eq(
+              "follower_id",
+              req.user.id
+            )
+            .eq(
+              "following_id",
+              target.id
+            )
+            .maybeSingle()
+        ]);
+
+      res.json({
+        ...safeUser(target),
+
+        postCount:
+          postCountResult.count ||
+          0,
+
+        followers:
+          followersResult.count ||
+          0,
+
+        following:
+          followingResult.count ||
+          0,
+
+        followingByMe:
+          !!followingByMeResult.data
+      });
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+app.get(
+  "/api/search",
+  auth,
+  async (req, res) => {
+    try {
+      const q =
+        String(
+          req.query.q || ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (!q) {
+        return res.json([]);
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("profiles")
+          .select(
+            "id,username,display_name,bio,avatar_url,verified"
+          )
+          .or(
+            `username.ilike.%${q}%,display_name.ilike.%${q}%`
+          )
+          .limit(20);
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        (data || []).map(
+          safeUser
+        )
+      );
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+app.get(
+  "/api/messages",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("messages")
+          .select(
+            "*,profiles:sender_id(username,display_name)"
+          )
+          .or(
+            `sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                true
+            }
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        (data || []).map(
+          m => ({
+            id:
+              m.id,
+
+            from:
+              m.sender_id,
+
+            to:
+              m.recipient_id,
+
+            text:
+              m.text,
+
+            createdAt:
+              m.created_at,
+
+            username:
+              m.profiles?.username ||
+              ""
+          })
+        )
+      );
+
+    } catch (e) {
+      res.status(500).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/messages",
+  auth,
+  async (req, res) => {
+    try {
+      const target =
+        await findProfile(
+          req.sb,
+          req.body?.to
+        );
+
+      const text =
+        String(
+          req.body?.text ||
+          ""
+        ).trim();
+
+      if (!target) {
+        return res.status(404).json({
+          error:
+            "Kullanıcı bulunamadı"
+        });
+      }
+
+      if (!text) {
+        return res.status(400).json({
+          error:
+            "Mesaj boş olamaz"
+        });
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("messages")
+          .insert({
+            sender_id:
+              req.user.id,
+
+            recipient_id:
+              target.id,
+
+            text
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      res.json({
+        id:
+          data.id,
+
+        from:
+          data.sender_id,
+
+        to:
+          data.recipient_id,
+
+        text:
+          data.text,
+
+        createdAt:
+          data.created_at
+      });
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   UPDATE PROFILE
+========================================================= */
+
+app.patch(
+  "/api/me",
+  auth,
+  async (req, res) => {
+    try {
+      const patch =
+        {};
+
+      if (
+        req.body?.displayName !==
+        undefined
+      ) {
+        patch.display_name =
+          String(
+            req.body.displayName
+          ).slice(0, 80);
+      }
+
+      if (
+        req.body?.bio !==
+        undefined
+      ) {
+        patch.bio =
+          String(
+            req.body.bio
+          ).slice(0, 300);
+      }
+
+      if (
+        Object.keys(
+          patch
+        ).length
+      ) {
+        const {
+          error
+        } =
+          await req.sb
+            .from("profiles")
+            .update(patch)
+            .eq(
+              "id",
+              req.user.id
+            );
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      const {
+        data,
+        error
+      } =
+        await req.sb
+          .from("profiles")
+          .select("*")
+          .eq(
+            "id",
+            req.user.id
+          )
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        safeUser(data)
+      );
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+app.patch(
+  "/api/settings",
+  auth,
+  async (req, res) => {
+    try {
+      const next =
+        {
+          ...(req.user.settings ||
+            {}),
+          ...(req.body || {})
+        };
+
+      const {
+        error
+      } =
+        await req.sb
+          .from("profiles")
+          .update({
+            settings:
+              next
+          })
+          .eq(
+            "id",
+            req.user.id
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      res.json(
+        next
+      );
+
+    } catch (e) {
+      res.status(400).json({
+        error:
+          e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   MESAJ PAGE
+========================================================= */
+
+app.get(
+  "/mesaj",
+  (req, res) => {
+    const file =
+      path.join(
+        publicDir,
+        "mesaj.html"
+      );
+
+    if (
+      fs.existsSync(file)
+    ) {
+      return res.sendFile(
+        file
+      );
+    }
+
+    res.status(404).send(
+      "mesaj.html bulunamadı."
+    );
+  }
+);
+
+
+/* =========================================================
+   FALLBACK
+========================================================= */
+
+app.use(
+  (req, res) => {
+    const publicGiris =
+      path.join(
+        publicDir,
+        "giris.html"
+      );
+
+    const rootGiris =
+      path.join(
+        __dirname,
+        "giris.html"
+      );
+
+    if (
+      fs.existsSync(
+        publicGiris
+      )
+    ) {
+      return res.sendFile(
+        publicGiris
+      );
+    }
+
+    if (
+      fs.existsSync(
+        rootGiris
+      )
+    ) {
+      return res.sendFile(
+        rootGiris
+      );
+    }
+
+    res.status(404).send(
+      "Minegram sayfası bulunamadı."
+    );
+  }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+    console.log(
+      `Minegram server çalışıyor. PORT=${PORT}`
+    );
+  }
 );
-
-$("communityRulesHelpRow").addEventListener(
-"click",
-()=>openScreen("communityRulesHelpScreen")
-);
-
-$("reportProblemRow").addEventListener(
-"click",
-()=>openScreen("reportScreen")
-);
-
-
-/* =====================================================
-   HESAP SORUNLARI
-===================================================== */
-
-$("usernameProblemRow").addEventListener(
-"click",
-()=>openScreen("usernameProblemScreen")
-);
-
-$("emailProblemRow").addEventListener(
-"click",
-()=>openScreen("emailProblemScreen")
-);
-
-$("securityProblemRow").addEventListener(
-"click",
-()=>openScreen("securityProblemScreen")
-);
-
-$("lockedAccountRow").addEventListener(
-"click",
-()=>openScreen("lockedAccountScreen")
-);
-
-$("accountNotWorkingRow").addEventListener(
-"click",
-()=>openScreen("accountNotWorkingScreen")
-);
-
-$("accountReportProblemRow").addEventListener(
-"click",
-function(){
-
-openScreen("reportScreen");
-
-$("reportText").value="Hesap sorunu: ";
-
-}
-);
-
-
-/* =====================================================
-   GÜVENLİK GEÇİŞLERİ
-===================================================== */
-
-$("securityChangePasswordRow").addEventListener(
-"click",
-()=>openScreen("changePasswordScreen")
-);
-
-$("securityTwoFactorRow").addEventListener(
-"click",
-()=>openScreen("twoFactorScreen")
-);
-
-
-/* =====================================================
-   KİLİTLİ HESAP
-===================================================== */
-
-$("lockedLoginRow").addEventListener(
-"click",
-()=>openScreen("loginProblemsScreen")
-);
-
-$("lockedReportRow").addEventListener(
-"click",
-()=>openScreen("reportScreen")
-);
-
-
-/* =====================================================
-   ÇALIŞMAYAN HESAP
-===================================================== */
-
-$("notWorkingReportRow").addEventListener(
-"click",
-function(){
-
-openScreen("reportScreen");
-
-$("reportText").value=
-"Hesabım düzgün çalışmıyor: ";
-
-}
-);
-
-
-/* =====================================================
-   SORUN BİLDİR + STORAGE
-===================================================== */
-
-const photoInput=$("photoInput");
-const photoButton=$("photoButton");
-const previewGrid=$("previewGrid");
-const photoCount=$("photoCount");
-
-let selectedPhotos=[];
-
-photoButton.addEventListener(
-"click",
-function(){
-photoInput.click();
-}
-);
-
-photoInput.addEventListener(
-"change",
-function(event){
-
-const files=Array.from(event.target.files);
-
-for(const file of files){
-
-if(selectedPhotos.length>=2){
-
-toast("En fazla 2 fotoğraf ekleyebilirsin");
-break;
-
-}
-
-if(!file.type.startsWith("image/")){
-
-toast("Sadece fotoğraf seçebilirsin");
-continue;
-
-}
-
-selectedPhotos.push(file);
-
-}
-
-photoInput.value="";
-
-renderPreviews();
-
-}
-);
-
-
-function renderPreviews(){
-
-previewGrid.innerHTML="";
-
-photoCount.textContent=
-selectedPhotos.length+" / 2 fotoğraf";
-
-selectedPhotos.forEach(
-function(file,index){
-
-const item=document.createElement("div");
-
-item.className="preview-item";
-
-const img=document.createElement("img");
-
-const remove=document.createElement("button");
-
-remove.className="remove-photo";
-remove.type="button";
-remove.textContent="×";
-
-const url=URL.createObjectURL(file);
-
-img.src=url;
-
-img.onload=function(){
-URL.revokeObjectURL(url);
-};
-
-remove.addEventListener(
-"click",
-function(){
-
-selectedPhotos.splice(index,1);
-
-renderPreviews();
-
-}
-);
-
-item.appendChild(img);
-item.appendChild(remove);
-
-previewGrid.appendChild(item);
-
-}
-);
-
-}
-
-
-/* =====================================================
-   GERÇEK FIREBASE SORUN BİLDİR
-===================================================== */
-
-$("sendReport").addEventListener(
-"click",
-async function(){
-
-if(!currentUser){
-
-toast("Hesabına giriş yapmalısın");
-
-return;
-
-}
-
-const text=$("reportText").value.trim();
-
-if(!text){
-
-toast("Lütfen sorunu açıklayın");
-
-return;
-
-}
-
-try{
-
-let photoUrls=[];
-
-for(let i=0;i<selectedPhotos.length;i++){
-
-const file=selectedPhotos[i];
-
-const fileName=
-"reports/"+
-currentUser.uid+"/"+
-Date.now()+
-"_"+i+
-"_"+file.name;
-
-const storageRef=ref(storage,fileName);
-
-await uploadBytes(storageRef,file);
-
-const url=
-await getDownloadURL(storageRef);
-
-photoUrls.push(url);
-
-}
-
-await addDoc(
-collection(db,"reports"),
-{
-uid:currentUser.uid,
-email:currentUser.email||"",
-text:text,
-photos:photoUrls,
-createdAt:serverTimestamp(),
-status:"new"
-}
-);
-
-showDialog(
-"Sorun bildirildi",
-"Sorun bildirimin Firebase'e başarıyla gönderildi."
-);
-
-$("reportText").value="";
-
-selectedPhotos=[];
-
-renderPreviews();
-
-}catch(error){
-
-console.error(error);
-
-toast(firebaseError(error));
-
-}
-
-}
-);
-
-
-/* =====================================================
-   HAKKINDA
-===================================================== */
-
-$("privacyPolicyRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Gizlilik politikası",
-"Minegram, kullanıcı hesapları ve uygulama kullanımına ilişkin bilgileri güvenli şekilde yönetmeyi amaçlar."
-);
-
-}
-);
-
-$("serviceTermsRow").addEventListener(
-"click",
-function(){
-
-showDialog(
-"Kullanım koşulları",
-"Minegram sosyal medya hizmetini kullanırken topluluk kurallarına, güvenlik kurallarına ve diğer kullanıcıların haklarına uyman gerekir."
-);
-
-}
-);
-
-
-/* =====================================================
-   DİYALOG
-===================================================== */
-
-$("dialogCancel").addEventListener(
-"click",
-closeDialog
-);
-
-$("dialogOk").addEventListener(
-"click",
-closeDialog
-);
-
-$("dialogBg").addEventListener(
-"click",
-function(e){
-
-if(e.target===$("dialogBg"))
-closeDialog();
-
-}
-);
-
-
-/* =====================================================
-   ALT SAYFA GERİ
-===================================================== */
-
-document.querySelectorAll("[data-close]").forEach(
-function(button){
-
-button.addEventListener(
-"click",
-function(e){
-
-e.preventDefault();
-e.stopPropagation();
-
-closeScreen(
-button.getAttribute("data-close")
-);
-
-}
-);
-
-}
-);
-
-
-/* =====================================================
-   ANA GERİ
-===================================================== */
-
-$("backBtn").addEventListener(
-"click",
-function(){
-
-window.location.href="profile.html";
-
-}
-);
-
-
-/* =====================================================
-   ESC
-===================================================== */
-
-document.addEventListener(
-"keydown",
-function(e){
-
-if(e.key==="Escape"){
-
-document.querySelectorAll(
-".sub-screen.open"
-).forEach(
-function(screen){
-screen.classList.remove("open");
-}
-);
-
-$("dialogBg").classList.remove("open");
-
-}
-
-}
-);
-
-
-/* =====================================================
-   HESAP BİLGİLERİNİ YÜKLE
-===================================================== */
-
-async function loadAccountData(){
-
-if(!currentUser)return;
-
-try{
-
-const snap=await getDoc(userRef());
-
-const data=snap.exists()?snap.data():{};
-
-const username=
-data.username||
-currentUser.displayName||
-"Minegram";
-
-const email=
-currentUser.email||
-data.email||
-"Hesap e-postası";
-
-const name=
-data.personalName||
-currentUser.displayName||
-"Minegram";
-
-let createDate=data.createDate||"";
-
-$("accountUsername").textContent=username;
-$("personalUsername").textContent=username;
-
-$("accountEmail").textContent=email;
-$("personalEmail").textContent=email;
-
-$("personalName").textContent=name;
-
-if(!createDate){
-
-createDate=
-new Date().toLocaleDateString("tr-TR");
-
-await setDoc(
-userRef(),
-{
-createDate:createDate
-},
-{merge:true}
-);
-
-}
-
-$("accountCreateDate").textContent=createDate;
-
-}catch(error){
-
-console.error(error);
-
-}
-
-}
-
-
-/* =====================================================
-   AUTH
-===================================================== */
-
-onAuthStateChanged(
-auth,
-async function(user){
-
-currentUser=user;
-
-if(!user){
-
-toast("Hesabına giriş yapılmamış");
-return;
-
-}
-
-await loadFirebaseSettings();
-
-await loadAccountData();
-
-
-/*
-   Kullanıcının Firebase MFA durumu
-   Firestore'daki değerden bağımsız gerçek kontrol.
-*/
-
-try{
-
-const factors=
-multiFactor(currentUser).enrolledFactors||[];
-
-if(factors.length>0){
-
-twoFactor=true;
-
-setSwitch(
-"twoFactorSwitch",
-true
-);
-
-$("twoFactorSetup").style.display="block";
-
-$("phoneSuccess").style.display="block";
-
-$("phoneStatus").textContent=
-"Bu hesapta telefon doğrulaması aktif.";
-
-}else{
-
-twoFactor=false;
-
-setSwitch(
-"twoFactorSwitch",
-false
-);
-
-}
-
-}catch(error){
-
-console.error(
-"MFA durumu okunamadı:",
-error
-);
-
-}
-
-}
-);
-
-</script>
-
-</body>
-</html>
