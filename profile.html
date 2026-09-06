@@ -3213,6 +3213,38 @@ function highlightsKey(){
 
 }
 
+function highlightsOwnerKey(){
+ return 'minegram_highlights_owner_'+
+   String(currentProfile?.username||'').toLowerCase();
+}
+
+function currentHighlightsOwnerId(){
+ return String(
+   me?.id||currentProfile?.id||''
+ ).trim();
+}
+
+function prepareFreshHighlightsAccount(){
+ const owner=currentHighlightsOwnerId();
+ const ownerKey=highlightsOwnerKey();
+ const previous=String(localStorage.getItem(ownerKey)||'').trim();
+
+ /* Aynı kullanıcı adıyla yeni hesap açıldıysa eski yerel
+    öne çıkanlar kesinlikle yeni hesaba taşınmasın. */
+ if(owner && previous && previous!==owner){
+   localStorage.removeItem(highlightsKey());
+   localStorage.setItem(ownerKey,owner);
+   return true;
+ }
+
+ if(owner && !previous && localStorage.getItem(highlightsKey())!==null){
+   /* Eski sürümden gelen veriyi mevcut hesap için sahiplen.
+      Böylece sonraki hesap değişiminde ayırt edilebilir. */
+   localStorage.setItem(ownerKey,owner);
+ }
+ return false;
+}
+
 function getHighlights(){
 
  try{
@@ -3235,6 +3267,8 @@ function saveHighlights(a){
    highlightsKey(),
    JSON.stringify(a)
  );
+ const owner=currentHighlightsOwnerId();
+ if(owner) localStorage.setItem(highlightsOwnerKey(),owner);
 
 }
 
@@ -3570,6 +3604,14 @@ async function firebaseUserDocument(username){
  ].filter(Boolean).some(v=>String(v).toLowerCase()===wanted))||null;
 }
 
+async function clearFirebaseHighlights(username){
+ const found=await firebaseUserDocument(username);
+ if(!found?.doc?.name)return;
+ const url='https://firestore.googleapis.com/v1/'+found.doc.name+'?updateMask.fieldPaths=highlights';
+ const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{highlights:{arrayValue:{values:[]}}}})});
+ if(!r.ok)throw new Error('Firebase eski öne çıkanlar temizlenemedi');
+}
+
 async function loadFirebaseHighlights(username){
  try{
   const found=await firebaseUserDocument(username);
@@ -3595,17 +3637,20 @@ async function saveFirebaseHighlights(items){
  if(!username)return;
  const found=await firebaseUserDocument(username);
  if(!found?.doc?.name)return;
+ const owner=currentHighlightsOwnerId();
  const clean=items.map(x=>({
   mapValue:{fields:{
    title:{stringValue:String(x.title||'Öne çıkan')},
    image:{stringValue:String(x.image||'')},
    type:{stringValue:String(x.type||'image')},
-   createdAt:{stringValue:String(x.createdAt||new Date().toISOString())}
+   createdAt:{stringValue:String(x.createdAt||new Date().toISOString())},
+   ownerId:{stringValue:owner}
   }}
  }));
  const url='https://firestore.googleapis.com/v1/'+found.doc.name+'?updateMask.fieldPaths=highlights';
  const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{highlights:{arrayValue:{values:clean}}}})});
  if(!r.ok)throw new Error('Firebase öne çıkanlar kaydedilemedi');
+ localStorage.setItem(highlightsOwnerKey(),owner);
 }
 
 async function renderHighlights(){
@@ -3614,9 +3659,17 @@ async function renderHighlights(){
  const box=document.getElementById('highlights');
  section.hidden=!mine;
  if(!mine)return;
- const local=getHighlights();
+
+ const ownerChanged=prepareFreshHighlightsAccount();
  let remote=[];
- try{ remote=await loadFirebaseHighlights(currentProfile.username); }catch(e){}
+ if(ownerChanged){
+   /* Aynı kullanıcı adıyla yeniden kayıt: eski Firebase
+      öne çıkanlarını da sil. */
+   try{ await clearFirebaseHighlights(currentProfile.username); }catch(e){ console.warn('[PROFILE] Eski Firebase öne çıkanları temizlenemedi',e); }
+ }else{
+   try{ remote=await loadFirebaseHighlights(currentProfile.username); }catch(e){}
+ }
+ const local=getHighlights();
  const merged=[...remote,...local];
  const seen=new Set();
  const items=merged.filter(x=>{
@@ -4074,7 +4127,7 @@ async function load(){
    document.getElementById('completeProfileRow')
    .style.display=mine?'':'none';
 
-   renderHighlights();
+   await renderHighlights();
 
    const av=
    document.getElementById('avatar');
