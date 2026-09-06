@@ -3923,6 +3923,39 @@ function renderProfileExtra(){
 
 }
 
+async function loadFirebasePublicPosts(username,userId){
+  const url="https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/minegramPublicPosts?pageSize=300";
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok)throw new Error("Firebase gönderileri okunamadı");
+  const d=await r.json();
+  const val=v=>{
+    if(v==null)return null;
+    if(v.stringValue!==undefined)return v.stringValue;
+    if(v.integerValue!==undefined)return Number(v.integerValue);
+    if(v.doubleValue!==undefined)return Number(v.doubleValue);
+    if(v.booleanValue!==undefined)return v.booleanValue;
+    if(v.timestampValue!==undefined)return v.timestampValue;
+    if(v.arrayValue)return (v.arrayValue.values||[]).map(val);
+    if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
+    return null;
+  };
+  return (d.documents||[]).map(doc=>{
+    const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
+    x.id=x.id||doc.name.split("/").pop();return x;
+  }).filter(x=>String(x.type||"")==="public_post"||!x.type).filter(x=>{
+    const ns=[x.username,x.userName,x.handle,x.authorUsername,x.ownerUsername].filter(Boolean).map(v=>String(v).toLowerCase());
+    const ids=[x.userId,x.uid,x.authorId,x.ownerId,x.userUid].filter(v=>v!=null).map(String);
+    return ns.includes(String(username||"").toLowerCase())||(userId!=null&&ids.includes(String(userId)));
+  }).map(x=>{
+    let m=x.media||x.mediaUrl||x.image||x.imageUrl||x.photo||x.photoUrl||x.base64||x.mediaBase64||"";
+    if(m&&!/^https?:\/\//i.test(m)&&!/^data:/i.test(m)&&String(m).length>100){
+      const mt=x.mediaType||x.mimeType||"image/jpeg";
+      m="data:"+mt+";base64,"+m;
+    }
+    return {...x,media:m};
+  });
+}
+
 async function load(){
 
  if(!token){
@@ -4029,116 +4062,28 @@ async function load(){
 
    }
 
-   const postsResponse=
-  await api(
-    '/api/users/'+
-    encodeURIComponent(username)+
-    '/posts'
-  );
-
-let posts=
-  Array.isArray(postsResponse)
-    ?postsResponse
-    :(
-      Array.isArray(postsResponse?.posts)
-        ?postsResponse.posts
-        :(
-          Array.isArray(postsResponse?.data)
-            ?postsResponse.data
-            :[]
-        )
-    );
-
-/*
- * Site üzerinden /api/posts ile oluşturulan son gönderiyi
- * profil API'si henüz listelemiyorsa da profilde göster.
- * Böylece Oluştur > Paylaş sonrasında gönderi kaybolmaz.
- */
-try{
-  const raw=localStorage.getItem('minegram_last_created_post');
-  if(raw){
-    const saved=JSON.parse(raw);
-    const candidate=
-      saved?.post ||
-      saved?.data?.post ||
-      saved?.data ||
-      saved;
-
-    if(candidate && typeof candidate==='object'){
-      const savedUsername=String(
-        candidate.username ||
-        candidate.user?.username ||
-        ''
-      ).trim().toLowerCase();
-
-      const wantedUsername=String(username||'')
-        .trim().toLowerCase();
-
-      if(savedUsername && savedUsername===wantedUsername){
-
-        const savedId=String(
-          candidate.id ??
-          candidate.postId ??
-          candidate._id ??
-          ''
-        );
-
-        const exists=posts.some(p=>
-          String(
-            p?.id ??
-            p?.postId ??
-            p?._id ??
-            ''
-          )===savedId && savedId
-        );
-
-        if(!exists){
-
-          const normalized={
-            ...candidate,
-            id:candidate.id ??
-               candidate.postId ??
-               candidate._id ??
-               ('local-'+Date.now()),
-            username:candidate.username ||
-                     candidate.user?.username ||
-                     username,
-            media:candidate.media ||
-                  candidate.mediaUrl ||
-                  candidate.image ||
-                  candidate.imageUrl ||
-                  candidate.photo ||
-                  candidate.photoUrl ||
-                  '',
-            caption:candidate.caption ||
-                    candidate.text ||
-                    candidate.description ||
-                    '',
-            createdAt:candidate.createdAt ||
-                      candidate.created_at ||
-                      Date.now()
-          };
-
-          posts=[normalized,...posts];
-        }
-      }
-    }
-  }
-}catch(e){
-  console.warn('[PROFILE] Son oluşturulan gönderi okunamadı',e);
-}
-
-posts.sort((a,b)=>
-  (Number(b?.createdAt)||0)-
-  (Number(a?.createdAt)||0)
+   const postsResponse=await api(
+  '/api/users/'+encodeURIComponent(username)+'/posts'
 );
 
+const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
+
+let firebasePosts=[];
+try{
+  firebasePosts=await loadFirebasePublicPosts(username,currentProfile.id);
+}catch(firebaseError){
+  console.warn('[PROFILE] Firebase gönderileri okunamadı',firebaseError);
+}
+
+const merged=[...apiPosts,...firebasePosts];
+const seen=new Set();
+const posts=merged.filter(p=>{
+  const key=String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
+  if(seen.has(key))return false;seen.add(key);return true;
+}).sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
+
 currentPosts=posts;
-
-document.getElementById('postCount')
-  .textContent=
-    String(posts.length);
-
+document.getElementById('postCount').textContent=String(posts.length);
 renderPosts(posts);
  }catch(e){
 
