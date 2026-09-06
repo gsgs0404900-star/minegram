@@ -3426,39 +3426,38 @@ function openHighlightView(index){
  v.querySelector('.story-more.bottom')
  .onclick=()=>menu.classList.toggle('open');
 
- v.querySelector('#removeStory').onclick=()=>{
+ v.querySelector('#removeStory').onclick=async()=>{
 
-   let a=getHighlights();
-
-   a.splice(index,1);
-
-   saveHighlights(a);
-
-   closeStoryViewer();
-
-   renderHighlights();
+   const item=storyItems[index];
+   try{
+     if(item?._api&&item.id){
+       await api('/api/highlights/'+encodeURIComponent(item.id),{method:'DELETE'});
+     }else{
+       const a=getHighlights();
+       a.splice(index,1);
+       saveHighlights(a);
+     }
+     closeStoryViewer();
+     await renderHighlights();
+   }catch(e){ toast(e.message||'Öne çıkan silinemedi'); }
 
  };
 
- v.querySelector('#editStory').onclick=()=>{
+ v.querySelector('#editStory').onclick=async()=>{
 
-   let a=getHighlights();
-
-   let n=prompt(
-     'Öne çıkan adı',
-     a[index]?.title||''
-   );
-
+   const item=storyItems[index];
+   const n=prompt('Öne çıkan adı',item?.title||'');
    if(n){
-
-     a[index].title=n;
-
-     saveHighlights(a);
-
-     renderHighlights();
-
+     try{
+       if(item?._api&&item.id){
+         await api('/api/highlights/'+encodeURIComponent(item.id),{method:'PATCH',body:{title:n}});
+       }else{
+         const a=getHighlights();
+         if(a[index]){ a[index].title=n; saveHighlights(a); }
+       }
+       await renderHighlights();
+     }catch(e){ toast(e.message||'Öne çıkan güncellenemedi'); }
    }
-
    closeStoryViewer();
 
  };
@@ -3579,7 +3578,7 @@ async function loadFirebaseHighlights(username){
    if(typeof item==='string')return {title:'Öne çıkan '+(i+1),image:item,type:'image',createdAt:new Date().toISOString()};
    if(!item||typeof item!=='object')return null;
    let image=item.image||item.media||item.mediaUrl||item.url||item.base64||item.mediaBase64||'';
-   if(image&&!/^https?:\\/\\//i.test(image)&&!/^data:/i.test(image)&&String(image).length>100){
+   if(image&&!/^https?:\/\//i.test(image)&&!/^data:/i.test(image)&&String(image).length>100){
     image='data:'+(item.mediaType||item.mimeType||'image/jpeg')+';base64,'+image;
    }
    return {...item,image,title:item.title||('Öne çıkan '+(i+1)),type:item.type||'image',createdAt:item.createdAt||new Date().toISOString(),_firebase:true};
@@ -3614,15 +3613,23 @@ async function renderHighlights(){
  const box=document.getElementById('highlights');
  section.hidden=!mine;
  if(!mine)return;
- const local=getHighlights();
- let remote=[];
- try{ remote=await loadFirebaseHighlights(currentProfile.username); }catch(e){}
- const merged=[...remote,...local];
- const seen=new Set();
- const items=merged.filter(x=>{
-  const key=String(x?.image||'')+'|'+String(x?.title||'');
-  if(seen.has(key))return false;seen.add(key);return true;
- });
+
+ let items=[];
+ try{
+  const remote=await api('/api/highlights');
+  items=Array.isArray(remote)?remote.map(x=>({
+   id:x.id,
+   title:x.title||'Öne çıkan',
+   image:x.mediaUrl||x.media_url||x.media||'',
+   type:(x.mediaType||x.media_type||'image').startsWith('video')?'video':'image',
+   createdAt:x.createdAt||x.created_at||new Date().toISOString(),
+   _api:true
+  })).filter(x=>x.image):[];
+ }catch(e){
+  console.warn('[PROFILE] API öne çıkanlar okunamadı',e);
+  items=getHighlights();
+ }
+
  box.innerHTML='';
  const add=document.createElement('button');
  add.className='highlight add-highlight';
@@ -3639,56 +3646,32 @@ async function renderHighlights(){
 }
 
 async function addHighlight(){
-
  const input=document.createElement('input');
-
  input.type='file';
  input.accept='image/*,video/*';
  input.multiple=false;
  input.style.display='none';
-
- input.onchange=()=>{
-
-   if(input.files&&input.files.length){
-
-     const file=input.files[0];
-
-     const reader=new FileReader();
-
-     reader.onload=()=>{
-
-       const items=getHighlights();
-
-       items.push({
-
-         title:'Öne çıkan '+(items.length+1),
-         image:reader.result,
-         type:file.type.startsWith('video')
-         ?'video'
-         :'image',
-         createdAt:new Date().toISOString()
-
-       });
-
-       saveHighlights(items);
-       try{ await saveFirebaseHighlights(items); }catch(e){ console.warn('[PROFILE] Öne çıkan Firebase kaydı başarısız',e); }
-       await renderHighlights();
-       toast('Öne çıkan eklendi');
-
-     };
-
-     reader.readAsDataURL(file);
-
-   }
-
+ input.onchange=async()=>{
+  try{
+   if(!input.files||!input.files.length)return;
+   const file=input.files[0];
+   const form=new FormData();
+   form.append('media',file,file.name);
+   form.append('title','Öne çıkan');
+   const r=await fetch('/api/highlights',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:form});
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(j.error||'Öne çıkan eklenemedi');
+   await renderHighlights();
+   toast('Öne çıkan eklendi');
+  }catch(e){
+   console.error('[PROFILE] Öne çıkan ekleme hatası',e);
+   toast(e.message||'Öne çıkan eklenemedi');
+  }finally{
    input.remove();
-
+  }
  };
-
  document.body.appendChild(input);
-
  input.click();
-
 }
 
 function renderPosts(posts){
@@ -4921,31 +4904,22 @@ document.getElementById('removeHighlightBtn');
 
 if(removeHighlightBtn){
 
- removeHighlightBtn.onclick=()=>{
+ removeHighlightBtn.onclick=async()=>{
 
-   let a=getHighlights();
+   const item=storyItems[highlightMenuIndex];
+   try{
+     if(item?._api&&item.id){
+       await api('/api/highlights/'+encodeURIComponent(item.id),{method:'DELETE'});
+     }else{
+       let a=getHighlights();
+       if(highlightMenuIndex>=0&&highlightMenuIndex<a.length) a.splice(highlightMenuIndex,1);
+       saveHighlights(a);
+     }
+   }catch(e){ toast(e.message||'Öne çıkan silinemedi'); }
 
-   if(
-     highlightMenuIndex>=0&&
-     highlightMenuIndex<a.length
-   ){
-
-     a.splice(
-       highlightMenuIndex,
-       1
-     );
-
-   }
-
-   saveHighlights(a);
-
-   const menu=
-   document.getElementById('highlightMenu');
-
-   if(menu)
-   menu.classList.remove('open');
-
-   renderHighlights();
+   const menu=document.getElementById('highlightMenu');
+   if(menu)menu.classList.remove('open');
+   await renderHighlights();
 
  };
 
@@ -4956,33 +4930,23 @@ document.getElementById('editHighlightBtn');
 
 if(editHighlightBtn){
 
- editHighlightBtn.onclick=()=>{
+ editHighlightBtn.onclick=async()=>{
 
-   let a=getHighlights();
-
-   let n=prompt(
-     'Öne çıkan adı',
-     a[highlightMenuIndex]?.title||''
-   );
-
-   if(
-     n&&
-     a[highlightMenuIndex]
-   ){
-
-     a[highlightMenuIndex].title=n;
-
-     saveHighlights(a);
-
-     renderHighlights();
-
-   }
-
-   const menu=
-   document.getElementById('highlightMenu');
-
-   if(menu)
-   menu.classList.remove('open');
+ const item=storyItems[highlightMenuIndex];
+ const n=prompt('Öne çıkan adı',item?.title||'');
+ if(n){
+   try{
+     if(item?._api&&item.id){
+       await api('/api/highlights/'+encodeURIComponent(item.id),{method:'PATCH',body:{title:n}});
+     }else{
+       let a=getHighlights();
+       if(a[highlightMenuIndex]){ a[highlightMenuIndex].title=n; saveHighlights(a); }
+     }
+     await renderHighlights();
+   }catch(e){ toast(e.message||'Öne çıkan güncellenemedi'); }
+ }
+ const menu=document.getElementById('highlightMenu');
+ if(menu)menu.classList.remove('open');
 
  };
 
