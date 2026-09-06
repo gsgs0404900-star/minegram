@@ -2946,13 +2946,15 @@ app.post(
         const fallbackUserId = recoveryEntry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id;
         if (!fallbackUserId) return res.status(400).json({ error: "Hesap doğrulanamadı." });
         const admin = adminClient();
-        const { data: updatedData, error } = await admin.auth.admin.updateUserById(fallbackUserId, { password: newPassword });
+        const { data: updatedData, error } = await admin.auth.admin.updateUserById(fallbackUserId, { password: newPassword, email_confirm: true });
         if (error || !updatedData?.user?.id) return res.status(400).json({ error: error?.message || "Şifre değiştirilemedi." });
+        const authCheck = await admin.auth.admin.getUserById(fallbackUserId);
+        const actualEmail = authCheck?.data?.user?.email || found.email;
         const verifyClient = client();
-        const { data: loginData, error: loginError } = await verifyClient.auth.signInWithPassword({ email: found.email, password: newPassword });
+        const { data: loginData, error: loginError } = await verifyClient.auth.signInWithPassword({ email: actualEmail, password: newPassword });
         if (loginError || loginData?.user?.id !== fallbackUserId) return res.status(400).json({ error: loginError?.message || "Yeni şifreyle giriş doğrulanamadı." });
         recoveryCodes.delete(recoveryKey);
-        return res.json({ ok: true, passwordChanged: true, loginVerified: true, email: found.email, userId: fallbackUserId });
+        return res.json({ ok: true, passwordChanged: true, loginVerified: true, email: actualEmail, userId: fallbackUserId });
       }
 
       const entry = recoveryResetKeys.get(resetKey);
@@ -2964,7 +2966,7 @@ app.post(
       const admin = adminClient();
       const { data: updatedData, error } = await admin.auth.admin.updateUserById(
         entry.userId,
-        { password: newPassword }
+        { password: newPassword, email_confirm: true }
       );
       if (error || !updatedData?.user?.id) {
         return res.status(400).json({
@@ -2975,10 +2977,12 @@ app.post(
       // Şifrenin gerçekten giriş yapılabilir olduğunu hemen doğrula.
       // Böylece yanlış auth kullanıcı ID'sine şifre yazılması veya Supabase
       // tarafındaki bir senkronizasyon problemi kullanıcıya başarılı gibi dönmez.
+      const authCheck = await admin.auth.admin.getUserById(entry.userId);
+      const actualEmail = authCheck?.data?.user?.email || entry.email;
       const verifyClient = client();
       const { data: loginData, error: loginError } =
         await verifyClient.auth.signInWithPassword({
-          email: entry.email,
+          email: actualEmail,
           password: newPassword
         });
 
@@ -2994,7 +2998,7 @@ app.post(
         ok: true,
         passwordChanged: true,
         loginVerified: true,
-        email: entry.email,
+        email: actualEmail,
         userId: entry.userId
       });
     } catch (e) {
