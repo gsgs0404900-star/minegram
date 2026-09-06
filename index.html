@@ -1053,7 +1053,7 @@ onclick="sendComment()"
   /* =======================================================
      FIREBASE STORY SİSTEMİ
      Android uygulaması ile aynı Firestore yapısı:
-     users/{username}/stories/{storyId}
+     users/{storyId}
 
      Android'in yazdığı alanlar:
        id, username, usernameLower, base64, mediaType, createdAt
@@ -1313,32 +1313,13 @@ onclick="sendComment()"
   }
 
 
-  function firestoreStoryUrl(
-    username,
-    storyId=""
-  ){
-
+  function firestoreStoryUrl(username, storyId=""){
     const base =
-      "https://firestore.googleapis.com/v1/projects/" +
-      encodeURIComponent(
-        MINEGRAM_FIREBASE_PROJECT
-      ) +
-      "/databases/" +
-      encodeURIComponent(
-        MINEGRAM_FIREBASE_DB
-      ) +
-      "/documents/users/" +
-      encodeURIComponent(
-        String(username).toLowerCase()
-      ) +
-      "/stories";
-
-    return storyId
-      ? base + "/" +
-        encodeURIComponent(storyId)
-      : base;
+      "https://firestore.googleapis.com/v1/projects/" + encodeURIComponent(MINEGRAM_FIREBASE_PROJECT) +
+      "/databases/" + encodeURIComponent(MINEGRAM_FIREBASE_DB) +
+      "/documents/users";
+    return storyId ? base + "/" + encodeURIComponent(storyId) : base;
   }
-
 
   function firestoreStoryToMineStory(
     doc,
@@ -1576,69 +1557,19 @@ onclick="sendComment()"
 
 
   async function firebaseLoadMinegramStories(){
-
-    const me =
-      getLocalUsername();
-
-    if(!me)
-      return [];
-
-    /*
-      Uygulamadaki sistem ile aynı:
-      kendi hikayelerin + takip ettiğin
-      kullanıcıların hikayeleri.
-    */
-    const usernames =
-      [
-        me,
-        ...(await firebaseGetFollowingUsers())
-      ]
-      .map(
-        name =>
-          String(name||"")
-            .replace(/^@/,"")
-            .trim()
-      )
-      .filter(Boolean);
-
-    const uniqueUsers =
-      [
-        ...new Map(
-          usernames.map(
-            name=>[
-              name.toLowerCase(),
-              name
-            ]
-          )
-        ).values()
-      ];
-
-    const results =
-      await Promise.all(
-        uniqueUsers.map(
-          name =>
-            firebaseListStoriesForUser(
-              name
-            ).catch(error=>{
-              console.warn(
-                "STORY USER LOAD:",
-                name,
-                error
-              );
-              return [];
-            })
-        )
-      );
-
-    return results
-      .flat()
-      .filter(Boolean)
-      .sort(
-        (a,b)=>
-          a.createdAt-b.createdAt
-      );
+    const url = firestoreStoryUrl("") + "?pageSize=500";
+    const json = await firebaseStoryRequest(url, {method:"GET"});
+    const docs = Array.isArray(json?.documents) ? json.documents : [];
+    const now = Date.now();
+    return docs.map(doc => {
+      const fields = doc.fields || {};
+      const type = firestoreField(fields,"type") || "";
+      if(type !== "public_story") return null;
+      const story = firestoreStoryToMineStory(doc, firestoreField(fields,"username") || "");
+      if(!story || now - Number(story.createdAt) >= MINEGRAM_STORY_MAX_AGE) return null;
+      return story;
+    }).filter(Boolean).sort((a,b)=>Number(a.createdAt)-Number(b.createdAt));
   }
-
 
   function makeStoryId(
     username
@@ -2269,7 +2200,7 @@ onclick="sendComment()"
       /*
         Öncelik doğrudan Firebase:
         Android uygulamasının yazdığı aynı
-        users/{username}/stories koleksiyonu.
+        users koleksiyonu içindeki public_story kayıtları.
       */
       const firebaseStories =
         await firebaseLoadMinegramStories();
