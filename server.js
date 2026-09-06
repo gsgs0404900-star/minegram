@@ -12,78 +12,6 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-/* =========================================================
-   SECURITY HEADERS
-========================================================= */
-
-app.disable("x-powered-by");
-
-app.use((req, res, next) => {
-  res.setHeader(
-    "X-Frame-Options",
-    "SAMEORIGIN"
-  );
-
-  res.setHeader(
-    "X-Content-Type-Options",
-    "nosniff"
-  );
-
-  res.setHeader(
-    "Referrer-Policy",
-    "strict-origin-when-cross-origin"
-  );
-
-  res.setHeader(
-    "Permissions-Policy",
-    [
-      "camera=(self)",
-      "microphone=()",
-      "geolocation=()",
-      "payment=()",
-      "usb=()"
-    ].join(", ")
-  );
-
-  /*
-    Minegram index.html içinde mevcut
-    onclick / onerror / onkeydown gibi
-    inline event'ler bulunduğu için
-    unsafe-inline korunuyor.
-  */
-  res.setHeader(
-    "Content-Security-Policy",
-    [
-      "default-src 'self' https: data: blob:",
-      "script-src 'self' 'unsafe-inline' https:",
-      "style-src 'self' 'unsafe-inline' https:",
-      "img-src 'self' https: data: blob:",
-      "media-src 'self' https: data: blob:",
-      "font-src 'self' https: data:",
-      "connect-src 'self' https:",
-      "frame-src 'self' https:",
-      "worker-src 'self' blob:",
-      "manifest-src 'self'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'self'"
-    ].join("; ")
-  );
-
-  res.setHeader(
-    "Cross-Origin-Opener-Policy",
-    "same-origin-allow-popups"
-  );
-
-  res.setHeader(
-    "Cross-Origin-Resource-Policy",
-    "same-origin"
-  );
-
-  next();
-});
-
 const PORT = Number(process.env.PORT) || 3000;
 
 function env(name) {
@@ -2772,16 +2700,17 @@ app.get(
       const {
         data,
         error
-      } = await admin
-        .from("posts")
-        .select("*")
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        )
-        .limit(100);
+      } =
+        await admin
+          .from("posts")
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          )
+          .limit(100);
 
       if (error) {
         throw error;
@@ -2794,13 +2723,7 @@ app.get(
           req.user.id
         )
       );
-
     } catch (e) {
-      console.error(
-        "FEED ERROR:",
-        e
-      );
-
       res.status(500).json({
         error:
           e.message
@@ -2808,6 +2731,7 @@ app.get(
     }
   }
 );
+
 
 /* =========================================================
    HIGHLIGHTS
@@ -3101,10 +3025,12 @@ app.post(
         const objectPath =
           `${req.user.id}/${crypto.randomUUID()}${ext}`;
 
+        const admin = adminClient();
+
         const {
           error: uploadError
         } =
-          await req.sb.storage
+          await admin.storage
             .from(BUCKET)
             .upload(
               objectPath,
@@ -3124,7 +3050,7 @@ app.post(
         const {
           data: publicData
         } =
-          req.sb.storage
+          admin.storage
             .from(BUCKET)
             .getPublicUrl(
               objectPath
@@ -3140,11 +3066,13 @@ app.post(
           req.file.mimetype;
       }
 
+      const admin = adminClient();
+
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("posts")
           .insert({
             user_id:
@@ -3169,6 +3097,15 @@ app.post(
       if (error) {
         throw error;
       }
+
+      console.log(
+        "MINEGRAM POST CREATE OK:",
+        {
+          postId: data.id,
+          userId: data.user_id,
+          mediaUrl: data.media_url
+        }
+      );
 
       res.json({
         ...data,
@@ -3198,293 +3135,9 @@ app.post(
   }
 );
 
-/* =========================================================
-   DELETE POST - TAM SENKRON
-   Profil + Ana Sayfa + Gönderi
-   post_likes + comments + saves + notifications
-========================================================= */
-
-app.delete(
-  "/api/posts/:id",
-  auth,
-  async (req, res) => {
-    const postId =
-      String(
-        req.params.id || ""
-      ).trim();
-
-    if (!postId) {
-      return res.status(400).json({
-        error:
-          "Gönderi ID gerekli."
-      });
-    }
-
-    try {
-
-      /* -----------------------------------------------------
-         ADMIN CLIENT
-         Silme işlemi RLS'ye takılmasın.
-      ----------------------------------------------------- */
-
-      const admin =
-        adminClient();
-
-      /* -----------------------------------------------------
-         1) GÖNDERİYİ BUL
-         Önce sahibini kontrol ediyoruz.
-      ----------------------------------------------------- */
-
-      const {
-        data: post,
-        error: postFindError
-      } =
-        await admin
-          .from("posts")
-          .select(
-            "id,user_id,media_url"
-          )
-          .eq(
-            "id",
-            postId
-          )
-          .maybeSingle();
-
-      if (postFindError) {
-        console.error(
-          "POST BULMA ERROR:",
-          postFindError
-        );
-
-        throw postFindError;
-      }
-
-      if (!post) {
-        return res.status(404).json({
-          error:
-            "Gönderi bulunamadı."
-        });
-      }
-
-      /* -----------------------------------------------------
-         2) SAHİPLİK KONTROLÜ
-      ----------------------------------------------------- */
-
-      if (
-        String(post.user_id) !==
-        String(req.user.id)
-      ) {
-        return res.status(403).json({
-          error:
-            "Bu gönderiyi silme yetkin yok."
-        });
-      }
-
-      /* -----------------------------------------------------
-         3) BEĞENİLERİ SİL
-      ----------------------------------------------------- */
-
-      const {
-        error: likesError
-      } =
-        await admin
-          .from("post_likes")
-          .delete()
-          .eq(
-            "post_id",
-            postId
-          );
-
-      if (likesError) {
-        console.error(
-          "POST LIKES DELETE ERROR:",
-          likesError
-        );
-
-        throw likesError;
-      }
-
-      /* -----------------------------------------------------
-         4) YORUMLARI SİL
-      ----------------------------------------------------- */
-
-      const {
-        error: commentsError
-      } =
-        await admin
-          .from("comments")
-          .delete()
-          .eq(
-            "post_id",
-            postId
-          );
-
-      if (commentsError) {
-        console.error(
-          "COMMENTS DELETE ERROR:",
-          commentsError
-        );
-
-        throw commentsError;
-      }
-
-      /* -----------------------------------------------------
-         5) KAYITLARI SİL
-      ----------------------------------------------------- */
-
-      const {
-        error: savesError
-      } =
-        await admin
-          .from("saves")
-          .delete()
-          .eq(
-            "post_id",
-            postId
-          );
-
-      if (savesError) {
-        console.error(
-          "SAVES DELETE ERROR:",
-          savesError
-        );
-
-        throw savesError;
-      }
-
-      /* -----------------------------------------------------
-         6) GÖNDERİYLE İLGİLİ BİLDİRİMLERİ TEMİZLE
-         
-         notifications tablosunda post_id varsa silinir.
-         Kolon yoksa ana gönderi silme işlemini bozmasın.
-      ----------------------------------------------------- */
-
-      try {
-
-        const {
-          error:
-            notificationsError
-        } =
-          await admin
-            .from("notifications")
-            .delete()
-            .eq(
-              "post_id",
-              postId
-            );
-
-        if (
-          notificationsError
-        ) {
-          console.log(
-            "NOTIFICATIONS POST_ID TEMİZLEME ATLANDI:",
-            notificationsError.message
-          );
-        }
-
-      } catch (
-        notificationError
-      ) {
-
-        console.log(
-          "NOTIFICATION TEMİZLEME ATLANDI:",
-          notificationError?.message ||
-            notificationError
-        );
-
-      }
-
-      /* -----------------------------------------------------
-         7) ANA POSTS KAYDINI SİL
-      ----------------------------------------------------- */
-
-      const {
-        data: deletedPost,
-        error: deleteError
-      } =
-        await admin
-          .from("posts")
-          .delete()
-          .eq(
-            "id",
-            postId
-          )
-          .eq(
-            "user_id",
-            req.user.id
-          )
-          .select(
-            "id"
-          )
-          .maybeSingle();
-
-      if (deleteError) {
-        console.error(
-          "POST DELETE ERROR:",
-          deleteError
-        );
-
-        throw deleteError;
-      }
-
-      if (!deletedPost) {
-        return res.status(404).json({
-          error:
-            "Gönderi silinemedi veya zaten silinmiş."
-        });
-      }
-
-      /* -----------------------------------------------------
-         8) BAŞARILI
-      ----------------------------------------------------- */
-
-      console.log(
-        "======================================"
-      );
-
-      console.log(
-        "MINEGRAM POST SİLİNDİ"
-      );
-
-      console.log(
-        "Post ID:",
-        postId
-      );
-
-      console.log(
-        "Sahip:",
-        req.user.id
-      );
-
-      console.log(
-        "======================================"
-      );
-
-      return res.json({
-        ok: true,
-        deleted: true,
-        id: postId
-      });
-
-    } catch (e) {
-
-      console.error(
-        "DELETE POST ERROR:",
-        e
-      );
-
-      return res.status(400).json({
-        error:
-          e?.message ||
-          "Gönderi silinemedi."
-      });
-    }
-  }
-);
-
 
 /* =========================================================
-   STORIES CREATE - FIXED
+   STORIES CREATE
 ========================================================= */
 
 app.post(
@@ -3492,231 +3145,89 @@ app.post(
   auth,
   upload.single("story"),
   async (req, res) => {
-    let objectPath = null;
-
     try {
-      /* -----------------------------------------------------
-         DOSYA KONTROLÜ
-      ----------------------------------------------------- */
       if (!req.file) {
         return res.status(400).json({
-          error: "Hikaye dosyası seçilmedi."
-        });
-      }
-
-      if (!req.user?.id) {
-        return res.status(401).json({
-          error: "Oturum bulunamadı. Lütfen tekrar giriş yap."
-        });
-      }
-
-      /* -----------------------------------------------------
-         DOSYA TÜRÜ
-      ----------------------------------------------------- */
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-        "video/mp4",
-        "video/webm",
-        "video/quicktime"
-      ];
-
-      if (
-        req.file.mimetype &&
-        !allowedTypes.includes(req.file.mimetype)
-      ) {
-        return res.status(400).json({
           error:
-            "Bu dosya türü hikaye olarak desteklenmiyor."
+            "Dosya seçilmedi"
         });
       }
 
-      /* -----------------------------------------------------
-         UZANTI
-      ----------------------------------------------------- */
-      let ext = path
-        .extname(req.file.originalname || "")
-        .toLowerCase();
+      const ext =
+        path.extname(
+          req.file.originalname
+        ) || ".bin";
 
-      if (!ext) {
-        const mimeExt = {
-          "image/jpeg": ".jpg",
-          "image/jpg": ".jpg",
-          "image/png": ".png",
-          "image/webp": ".webp",
-          "image/gif": ".gif",
-          "video/mp4": ".mp4",
-          "video/webm": ".webm",
-          "video/quicktime": ".mov"
-        };
-
-        ext = mimeExt[req.file.mimetype] || ".bin";
-      }
-
-      /* -----------------------------------------------------
-         SUPABASE ADMIN
-         
-         auth middleware yine çalışıyor.
-         Yani kullanıcı doğrulanmadan buraya girilemez.
-         
-         Admin client sadece Storage/RLS problemlerini
-         ortadan kaldırmak için kullanılıyor.
-      ----------------------------------------------------- */
-      const admin = adminClient();
-
-      objectPath =
+      const objectPath =
         `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
-      console.log(
-        "STORY UPLOAD BAŞLADI:",
-        {
-          userId: req.user.id,
-          fileName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
-          objectPath
-        }
-      );
-
-      /* -----------------------------------------------------
-         STORAGE UPLOAD
-      ----------------------------------------------------- */
       const {
         error: uploadError
-      } = await admin.storage
-        .from(BUCKET)
-        .upload(
-          objectPath,
-          req.file.buffer,
-          {
-            contentType:
-              req.file.mimetype ||
-              "application/octet-stream",
-            upsert: false
-          }
-        );
+      } =
+        await req.sb.storage
+          .from(BUCKET)
+          .upload(
+            objectPath,
+            req.file.buffer,
+            {
+              contentType:
+                req.file.mimetype,
+              upsert:
+                false
+            }
+          );
 
       if (uploadError) {
-        console.error(
-          "STORY STORAGE ERROR:",
-          uploadError
-        );
-
-        throw new Error(
-          "Hikaye dosyası Supabase Storage'a yüklenemedi: " +
-          (uploadError.message || "Bilinmeyen Storage hatası")
-        );
+        throw uploadError;
       }
 
-      /* -----------------------------------------------------
-         PUBLIC URL
-      ----------------------------------------------------- */
       const {
         data: publicData
-      } = admin.storage
-        .from(BUCKET)
-        .getPublicUrl(objectPath);
-
-      const mediaUrl =
-        publicData?.publicUrl || null;
-
-      if (!mediaUrl) {
-        throw new Error(
-          "Hikaye medya adresi oluşturulamadı."
-        );
-      }
-
-      /* -----------------------------------------------------
-         STORIES TABLOSUNA KAYIT
-      ----------------------------------------------------- */
-      const {
-        data: story,
-        error: storyError
-      } = await admin
-        .from("stories")
-        .insert({
-          user_id: req.user.id,
-          media_url: mediaUrl,
-          media_type:
-            req.file.mimetype ||
-            "application/octet-stream"
-        })
-        .select("*")
-        .single();
-
-      if (storyError) {
-        console.error(
-          "STORY DATABASE ERROR:",
-          storyError
-        );
-
-        /* DB kaydı başarısızsa yüklenen dosyayı da temizle */
-        try {
-          await admin.storage
-            .from(BUCKET)
-            .remove([objectPath]);
-        } catch (cleanupError) {
-          console.error(
-            "STORY CLEANUP ERROR:",
-            cleanupError
+      } =
+        req.sb.storage
+          .from(BUCKET)
+          .getPublicUrl(
+            objectPath
           );
-        }
 
-        throw new Error(
-          "Hikaye veritabanına kaydedilemedi: " +
-          (storyError.message || "Bilinmeyen veritabanı hatası")
-        );
+      const result =
+        await req.sb
+          .from("stories")
+          .insert({
+            user_id:
+              req.user.id,
+
+            media_url:
+              publicData.publicUrl,
+
+            media_type:
+              req.file.mimetype
+          })
+          .select()
+          .single();
+
+      if (result.error) {
+        throw result.error;
       }
 
-      /* -----------------------------------------------------
-         BAŞARILI
-      ----------------------------------------------------- */
-      console.log(
-        "STORY UPLOAD BAŞARILI:",
-        story.id
+      res.json(
+        result.data
       );
 
-      return res.status(201).json({
-        ok: true,
-
-        id: story.id,
-
-        userId:
-          story.user_id,
-
-        media:
-          story.media_url,
-
-        mediaUrl:
-          story.media_url,
-
-        mediaType:
-          story.media_type,
-
-        createdAt:
-          story.created_at,
-
-        story
-      });
-
-    } catch (error) {
+    } catch (e) {
       console.error(
         "STORY ERROR:",
-        error
+        e
       );
 
-      return res.status(400).json({
-        ok: false,
+      res.status(400).json({
         error:
-          error?.message ||
-          "Hikaye yüklenemedi."
+          e.message
       });
     }
   }
 );
+
 
 /* =========================================================
    STORIES
@@ -3765,31 +3276,153 @@ app.get(
         });
       }
 
-      const stories = (data || []).map((story) => {
-        const profile = story?.profiles || {};
-        return {
-          ...story,
-          userId: story?.user_id || null,
-          media: story?.media_url || null,
-          mediaUrl: story?.media_url || null,
-          mediaType: story?.media_type || null,
-          createdAt: story?.created_at || null,
-          username: profile?.username || null,
-          displayName: profile?.display_name || null,
-          avatarUrl: profile?.avatar_url || null,
-          user: {
-            username: profile?.username || null,
-            display_name: profile?.display_name || null,
-            avatar_url: profile?.avatar_url || null
-          }
-        };
-      });
-
-      res.json(stories);
+      res.json(
+        data || []
+      );
     } catch (e) {
       res.status(500).json({
         error:
           e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   POST DELETE
+   Profil + Ana Sayfa + Gönderi detay ortak silme sistemi
+========================================================= */
+
+app.delete(
+  "/api/posts/:id",
+  auth,
+  async (req, res) => {
+    const postId = String(req.params.id || "").trim();
+
+    if (!postId) {
+      return res.status(400).json({
+        error: "Gönderi ID gerekli"
+      });
+    }
+
+    try {
+      /*
+       * Önce gönderinin gerçekten mevcut olduğunu ve
+       * silmek isteyen kullanıcının sahibi olduğunu kontrol et.
+       */
+      const {
+        data: post,
+        error: postFindError
+      } = await req.sb
+        .from("posts")
+        .select("id,user_id,media_url")
+        .eq("id", postId)
+        .maybeSingle();
+
+      if (postFindError) {
+        throw postFindError;
+      }
+
+      if (!post) {
+        return res.status(404).json({
+          error: "Gönderi bulunamadı"
+        });
+      }
+
+      if (String(post.user_id) !== String(req.user.id)) {
+        return res.status(403).json({
+          error: "Bu gönderiyi silme yetkiniz yok"
+        });
+      }
+
+      /*
+       * Service-role ile temizlik yapıyoruz. Böylece RLS
+       * nedeniyle ilişkili kayıtların silinememesi önlenir.
+       */
+      const admin = adminClient();
+
+      /* Beğeniler */
+      const { error: likesError } = await admin
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId);
+
+      if (likesError) {
+        throw likesError;
+      }
+
+      /* Yorumlar */
+      const { error: commentsError } = await admin
+        .from("comments")
+        .delete()
+        .eq("post_id", postId);
+
+      if (commentsError) {
+        throw commentsError;
+      }
+
+      /* Kaydedilenler */
+      const { error: savesError } = await admin
+        .from("saves")
+        .delete()
+        .eq("post_id", postId);
+
+      if (savesError) {
+        throw savesError;
+      }
+
+      /* Bu gönderiye ait bildirimleri de temizle. */
+      const { error: notificationsError } = await admin
+        .from("notifications")
+        .delete()
+        .eq("post_id", postId);
+
+      if (notificationsError) {
+        throw notificationsError;
+      }
+
+      /* En son ana gönderiyi sil. */
+      const {
+        data: deletedPost,
+        error: deletePostError
+      } = await admin
+        .from("posts")
+        .delete()
+        .eq("id", postId)
+        .eq("user_id", req.user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (deletePostError) {
+        throw deletePostError;
+      }
+
+      if (!deletedPost) {
+        return res.status(404).json({
+          error: "Gönderi silinemedi veya zaten silinmiş"
+        });
+      }
+
+      console.log(
+        `[POST DELETE] ${postId} -> user ${req.user.id}`
+      );
+
+      return res.json({
+        ok: true,
+        deleted: true,
+        id: postId
+      });
+    } catch (e) {
+      console.error(
+        "POST DELETE ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        error:
+          e?.message ||
+          "Gönderi silinemedi"
       });
     }
   }
@@ -4390,11 +4023,13 @@ app.get(
         });
       }
 
+      const admin = adminClient();
+
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("posts")
           .select("*")
           .eq(
@@ -4415,7 +4050,7 @@ app.get(
 
       res.json(
         await hydratePosts(
-          req.sb,
+          admin,
           data || [],
           req.user.id
         )
@@ -4453,6 +4088,8 @@ app.get(
         });
       }
 
+      const admin = adminClient();
+
       const [
         postCountResult,
         followersResult,
@@ -4460,7 +4097,7 @@ app.get(
         followingByMeResult
       ] =
         await Promise.all([
-          req.sb
+          admin
             .from("posts")
             .select(
               "id",
