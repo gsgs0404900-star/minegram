@@ -1937,6 +1937,53 @@ onclick="sendComment()"
 
   let loadingStories=false;
 
+  /* =======================================================
+     SİLİNMİŞ HESAPLARIN HİKAYELERİNİ GÖSTERME
+     Firebase eski users belgelerini tutabildiği için,
+     hikayeyi göstermeden önce Minegram API üzerinden
+     hesabın hâlâ aktif olduğunu doğrula.
+  ======================================================= */
+  const activeStoryOwnerCache = new Map();
+  const ACTIVE_OWNER_CACHE_MS = 30000;
+
+  async function isActiveStoryOwner(username){
+    const clean=String(username||'').replace(/^@/,'').trim();
+    if(!clean)return false;
+
+    const cached=activeStoryOwnerCache.get(clean.toLowerCase());
+    if(cached && Date.now()-cached.time<ACTIVE_OWNER_CACHE_MS){
+      return cached.active;
+    }
+
+    try{
+      const result=await api(
+        '/users/'+encodeURIComponent(clean)
+      );
+      const active=!!result;
+      activeStoryOwnerCache.set(clean.toLowerCase(),{active,time:Date.now()});
+      return active;
+    }catch(e){
+      /* Hesap doğrulanamıyorsa hikâyeyi güvenli tarafta tutma. */
+      activeStoryOwnerCache.set(clean.toLowerCase(),{active:false,time:Date.now()});
+      return false;
+    }
+  }
+
+  async function filterDeletedAccountStories(list){
+    if(!Array.isArray(list) || !list.length)return [];
+    const names=[...new Set(
+      list.map(s=>String(s?.username||'').replace(/^@/,'').trim().toLowerCase()).filter(Boolean)
+    )];
+    const active=new Set();
+    await Promise.all(names.map(async name=>{
+      if(await isActiveStoryOwner(name))active.add(name);
+    }));
+    return list.filter(s=>{
+      const name=String(s?.username||'').replace(/^@/,'').trim().toLowerCase();
+      return name && active.has(name);
+    });
+  }
+
   const STORY_AGE=24*60*60*1000;
 
 
@@ -2228,7 +2275,7 @@ onclick="sendComment()"
       ){
 
         stories =
-          firebaseStories;
+          await filterDeletedAccountStories(firebaseStories);
 
         cleanStories();
         buildStoryGroups();
@@ -2276,11 +2323,13 @@ onclick="sendComment()"
               );
 
         stories =
-          list
-            .map(
-              normalizeStory
-            )
-            .filter(Boolean);
+          await filterDeletedAccountStories(
+            list
+              .map(
+                normalizeStory
+              )
+              .filter(Boolean)
+          );
 
         cleanStories();
         buildStoryGroups();
@@ -2325,11 +2374,13 @@ onclick="sendComment()"
       ){
 
         stories =
-          local
-            .map(
-              normalizeStory
-            )
-            .filter(Boolean);
+          await filterDeletedAccountStories(
+            local
+              .map(
+                normalizeStory
+              )
+              .filter(Boolean)
+          );
 
         cleanStories();
         buildStoryGroups();
