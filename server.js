@@ -2935,11 +2935,42 @@ app.post(
         return res.status(400).json({ error: "Şifre sıfırlama anahtarı geçersiz veya süresi dolmuş." });
       }
 
-      const { error } = await adminClient().auth.admin.updateUserById(entry.userId, { password: newPassword });
-      if (error) return res.status(400).json({ error: error.message });
+      const admin = adminClient();
+      const { data: updatedData, error } = await admin.auth.admin.updateUserById(
+        entry.userId,
+        { password: newPassword }
+      );
+      if (error || !updatedData?.user?.id) {
+        return res.status(400).json({
+          error: error?.message || "Şifre değiştirilemedi."
+        });
+      }
+
+      // Şifrenin gerçekten giriş yapılabilir olduğunu hemen doğrula.
+      // Böylece yanlış auth kullanıcı ID'sine şifre yazılması veya Supabase
+      // tarafındaki bir senkronizasyon problemi kullanıcıya başarılı gibi dönmez.
+      const verifyClient = client();
+      const { data: loginData, error: loginError } =
+        await verifyClient.auth.signInWithPassword({
+          email: entry.email,
+          password: newPassword
+        });
+
+      if (loginError || !loginData?.user?.id || loginData.user.id !== entry.userId) {
+        return res.status(400).json({
+          error: loginError?.message ||
+            "Şifre değiştirildi ancak yeni şifreyle giriş doğrulanamadı. Lütfen tekrar dene."
+        });
+      }
 
       recoveryResetKeys.delete(resetKey);
-      return res.json({ ok: true, passwordChanged: true, email: entry.email });
+      return res.json({
+        ok: true,
+        passwordChanged: true,
+        loginVerified: true,
+        email: entry.email,
+        userId: entry.userId
+      });
     } catch (e) {
       return res.status(500).json({ error: e?.message || "Şifre değiştirilemedi." });
     }
