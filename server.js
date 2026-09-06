@@ -166,35 +166,29 @@ async function auth(req, res, next) {
       throw error || new Error("Oturum gerekli");
     }
 
+    /* Profil sorgusu ADMIN ile yapılır; böylece RLS yüzünden Android/Web oturumu bozulmaz. */
+    const admin = adminClient();
     let {
       data: profile,
       error: pError
-    } = await sb
+    } = await admin
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("auth_user_id", user.id)
       .maybeSingle();
 
     if (!profile) {
-      const fallback =
-        await sb
-          .from("profiles")
-          .select("*")
-          .eq("auth_user_id", user.id)
-          .maybeSingle();
-
-      profile =
-        fallback.data || null;
-
-      pError =
-        fallback.error || null;
+      const fallback = await admin
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = fallback.data || null;
+      pError = fallback.error || null;
     }
 
     if (pError || !profile) {
-      throw (
-        pError ||
-        new Error("Profil bulunamadı")
-      );
+      throw pError || new Error("Profil bulunamadı");
     }
 
     req.token = token;
