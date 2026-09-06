@@ -3658,134 +3658,200 @@ async function addHighlight(){
 
 function renderPosts(posts){
 
- currentPosts=
- Array.isArray(posts)?posts:[];
+  const grid=document.getElementById('grid');
 
- const grid=document.getElementById('grid');
+  if(!grid)return;
 
- const eyeIcon=
- '<svg viewBox="0 0 24 24" aria-hidden="true">'+
- '<path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path>'+
- '<circle cx="12" cy="12" r="2.8"></circle>'+
- '</svg>';
+  currentPosts=
+    Array.isArray(posts)
+      ?posts
+      :(
+        Array.isArray(posts?.posts)
+          ?posts.posts
+          :(
+            Array.isArray(posts?.data)
+              ?posts.data
+              :[]
+          )
+      );
 
- const formatViews=v=>{
+  const eyeIcon=
+    '<svg viewBox="0 0 24 24" aria-hidden="true">'+
+    '<path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path>'+
+    '<circle cx="12" cy="12" r="2.8"></circle>'+
+    '</svg>';
 
-   const n=Number(v||0);
+  const formatViews=v=>{
 
-   if(!Number.isFinite(n))return'0';
+    const n=Number(v??0);
 
-   if(n>=1000000)
-   return(
-     n/1000000
-   ).toFixed(
-     n%1000000?1:0
-   ).replace('.0','')+' mn';
+    if(!Number.isFinite(n))return'0';
 
-   if(n>=10000)
-   return(
-     n/1000
-   ).toFixed(
-     n%1000?1:0
-   ).replace('.0','')+' bin';
+    if(n>=1000000)
+      return(
+        n/1000000
+      ).toFixed(
+        n%1000000?1:0
+      ).replace('.0','')+' mn';
 
-   return n.toLocaleString('tr-TR');
+    if(n>=10000)
+      return(
+        n/1000
+      ).toFixed(
+        n%1000?1:0
+      ).replace('.0','')+' bin';
 
- };
+    return n.toLocaleString('tr-TR');
+  };
 
- grid.innerHTML=
- currentPosts.length
- ?
- currentPosts.map(x=>{
+  if(!currentPosts.length){
 
-   const views=
-   x.views??
-   x.viewCount??
-   x.viewsCount??
-   x.impressions??
-   0;
+    grid.innerHTML=
+      '<div class="empty">Henüz gönderi yok</div>';
 
-   const viewHtml=
-   '<span class="tile-views">'+
-   eyeIcon+
-   '<span>'+
-   escapeHtml(formatViews(views))+
-   '</span>'+
-   '</span>';
+    document.getElementById('postCount')
+      .textContent='0';
 
-   const postJson=
-   encodeURIComponent(
-     JSON.stringify(x)
-   );
+    renderPrompts([]);
 
-   return x.media
+    return;
+  }
 
-   ?
-   '<button class="tile post-tile" data-post="'+
-   postJson+
-   '">'+
-   '<img src="'+
-   escapeHtml(x.media)+
-   '" loading="lazy" alt="Gönderi">'+
-   viewHtml+
-   '</button>'
+  document.getElementById('postCount')
+    .textContent=
+      String(currentPosts.length);
 
-   :
+  grid.innerHTML=
+    currentPosts.map((x,index)=>{
 
-   '<button class="tile post-tile" data-post="'+
-   postJson+
-   '">'+
-   '<div class="txt">'+
-   escapeHtml(x.caption||'')+
-   '</div>'+
-   viewHtml+
-   '</button>';
+      if(!x)return'';
 
- }).join('')
+      const media=
+        x.media||
+        x.mediaUrl||
+        x.image||
+        x.imageUrl||
+        x.photo||
+        x.photoUrl||
+        '';
 
- :
+      const caption=
+        x.caption||
+        x.text||
+        x.description||
+        '';
 
- '<div class="empty">Henüz gönderi yok</div>';
+      const views=
+        x.views??
+        x.viewCount??
+        x.viewsCount??
+        x.impressions??
+        0;
 
- renderPrompts(currentPosts);
+      const viewHtml=
+        '<span class="tile-views">'+
+        eyeIcon+
+        '<span>'+
+        escapeHtml(formatViews(views))+
+        '</span>'+
+        '</span>';
 
- grid.querySelectorAll('.post-tile')
- .forEach(tile=>{
+      let postJson='';
 
-   tile.onclick=()=>{
+      try{
 
-     try{
+        postJson=encodeURIComponent(
+          JSON.stringify(x)
+        );
 
-       const post=
-       JSON.parse(
-         decodeURIComponent(
-           tile.dataset.post||''
-         )
-       );
+      }catch(e){
 
-       sessionStorage.setItem(
-         'minegram_selected_post',
-         JSON.stringify(post)
-       );
+        postJson='';
+      }
 
-       sessionStorage.setItem(
-         'minegram_selected_profile',
-         JSON.stringify(
-           currentProfile||{}
-         )
-       );
+      if(media){
 
-       location.href='post.html';
+        return(
+          '<button class="tile post-tile" '+
+          'data-index="'+index+'" '+
+          'data-post="'+postJson+'">'+
+          '<img src="'+
+          escapeHtml(media)+
+          '" loading="lazy" alt="Gönderi">'+
+          viewHtml+
+          '</button>'
+        );
 
-     }catch(e){
+      }
 
-       toast('Gönderi açılamadı');
+      return(
+        '<button class="tile post-tile" '+
+        'data-index="'+index+'" '+
+        'data-post="'+postJson+'">'+
+        '<div class="txt">'+
+        escapeHtml(caption)+
+        '</div>'+
+        viewHtml+
+        '</button>'
+      );
 
-     }
+    }).join('');
 
-   };
+  renderPrompts(currentPosts);
 
- });
+  grid.querySelectorAll('.post-tile')
+    .forEach(tile=>{
+
+      tile.onclick=()=>{
+
+        try{
+
+          const index=
+            Number(tile.dataset.index);
+
+          let post=null;
+
+          if(
+            Number.isInteger(index)&&
+            currentPosts[index]
+          ){
+
+            post=currentPosts[index];
+
+          }else{
+
+            post=JSON.parse(
+              decodeURIComponent(
+                tile.dataset.post||''
+              )
+            );
+
+          }
+
+          sessionStorage.setItem(
+            'minegram_selected_post',
+            JSON.stringify(post)
+          );
+
+          sessionStorage.setItem(
+            'minegram_selected_profile',
+            JSON.stringify(
+              currentProfile||{}
+            )
+          );
+
+          location.href='post.html';
+
+        }catch(e){
+
+          console.error(e);
+
+          toast('Gönderi açılamadı');
+        }
+
+      };
+
+    });
 
 }
 
@@ -3963,15 +4029,33 @@ async function load(){
 
    }
 
-   const posts=
-   await api(
-     '/api/users/'+
-     encodeURIComponent(username)+
-     '/posts'
-   );
+   const postsResponse=
+  await api(
+    '/api/users/'+
+    encodeURIComponent(username)+
+    '/posts'
+  );
 
-   renderPosts(posts);
+const posts=
+  Array.isArray(postsResponse)
+    ?postsResponse
+    :(
+      Array.isArray(postsResponse?.posts)
+        ?postsResponse.posts
+        :(
+          Array.isArray(postsResponse?.data)
+            ?postsResponse.data
+            :[]
+        )
+    );
 
+currentPosts=posts;
+
+document.getElementById('postCount')
+  .textContent=
+    String(posts.length);
+
+renderPosts(posts);
  }catch(e){
 
    console.error(e);
@@ -4726,6 +4810,16 @@ document.getElementById('postsTab')
 .onclick=()=>load();
 
 load();
+
+window.addEventListener('pageshow',()=>{
+  load();
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    load();
+  }
+});
 
 let highlightMenuIndex=-1;
 
