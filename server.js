@@ -1748,13 +1748,12 @@ app.post(
         } = await admin
           .from("profiles")
           .select("*")
-          .eq(
-            "username",
-            username
-          )
+          .eq("username", username)
+          .limit(1)
           .maybeSingle();
 
         if (pe) {
+          console.error("LOGIN PROFILE LOOKUP ERROR:", pe);
           return res.status(500).json({
             error: pe.message
           });
@@ -1763,34 +1762,57 @@ app.post(
         if (!profile) {
           return res.status(401).json({
             error:
-              "Kullanıcı adı veya şifre hatalı."
+              "Kullanıcı adı/e-posta veya şifre hatalı."
           });
         }
 
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
+        let authUser = null;
 
-        const {
-          data: au,
-          error: ae
-        } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
+        // Önce profiles.auth_user_id / profiles.id ile bul.
+        const possibleAuthIds = [
+          profile.auth_user_id,
+          profile.id
+        ].filter(Boolean);
 
-        if (
-          ae ||
-          !au?.user?.email
-        ) {
+        for (const authId of possibleAuthIds) {
+          try {
+            const { data: au, error: ae } =
+              await admin.auth.admin.getUserById(authId);
+            if (!ae && au?.user?.email) {
+              authUser = au.user;
+              break;
+            }
+          } catch (_) {}
+        }
+
+        // Eski hesaplarda auth_user_id yanlış/boş olabiliyor.
+        // Kayıt sırasında username user_metadata içine de yazıldığı için
+        // Auth kullanıcıları içinde username ile ikinci bir güvenli arama yap.
+        if (!authUser) {
+          try {
+            for (let page = 1; page <= 20 && !authUser; page++) {
+              const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+              if (result?.error) break;
+              const users = result?.data?.users || [];
+              authUser = users.find(u =>
+                normalizeUsername(u?.user_metadata?.username) === username &&
+                u?.email
+              ) || null;
+              if (users.length < 1000) break;
+            }
+          } catch (lookupError) {
+            console.error("LOGIN AUTH USERNAME FALLBACK ERROR:", lookupError?.message || lookupError);
+          }
+        }
+
+        if (!authUser?.email) {
           return res.status(401).json({
             error:
-              "Kullanıcı adı veya şifre hatalı."
+              "Kullanıcı adı/e-posta veya şifre hatalı."
           });
         }
 
-        email =
-          au.user.email.toLowerCase();
+        email = authUser.email.toLowerCase();
       }
 
       const anon =
@@ -1810,6 +1832,11 @@ app.post(
         !sd?.session ||
         !sd?.user
       ) {
+        console.error("LOGIN AUTH FAILED:", {
+          identifier,
+          email,
+          message: le?.message || "no session"
+        });
         return res.status(401).json({
           error:
             /invalid login credentials/i.test(
