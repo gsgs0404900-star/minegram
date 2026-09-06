@@ -3654,94 +3654,92 @@ async function saveFirebaseHighlights(items){
 }
 
 async function renderHighlights(){
- const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
- const section=document.getElementById('highlightsSection');
- const box=document.getElementById('highlights');
- section.hidden=!mine;
- if(!mine)return;
+  const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
+  const section=document.getElementById('highlightsSection');
+  const box=document.getElementById('highlights');
+  section.hidden=!mine;
+  if(!mine)return;
 
- const ownerChanged=prepareFreshHighlightsAccount();
- let remote=[];
- if(ownerChanged){
-   /* Aynı kullanıcı adıyla yeniden kayıt: eski Firebase
-      öne çıkanlarını da sil. */
-   try{ await clearFirebaseHighlights(currentProfile.username); }catch(e){ console.warn('[PROFILE] Eski Firebase öne çıkanları temizlenemedi',e); }
- }else{
-   try{ remote=await loadFirebaseHighlights(currentProfile.username); }catch(e){}
- }
- const local=getHighlights();
- const merged=[...remote,...local];
- const seen=new Set();
- const items=merged.filter(x=>{
-  const key=String(x?.image||'')+'|'+String(x?.title||'');
-  if(seen.has(key))return false;seen.add(key);return true;
- });
- box.innerHTML='';
- const add=document.createElement('button');
- add.className='highlight add-highlight';
- add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
- add.onclick=addHighlight;
- box.appendChild(add);
- items.forEach((item,i)=>{
-  const b=document.createElement('button'); b.className='highlight';
-  b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
-  b.onclick=()=>openHighlightView(i);
-  box.appendChild(b);
- });
- storyItems=items;
+  const ownerChanged=prepareFreshHighlightsAccount();
+  let remote=[];
+  try{
+    const data=await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/highlights?ts='+Date.now());
+    if(Array.isArray(data)){
+      remote=data.map((h,i)=>({
+        id:h.id,
+        title:h.title||('Öne çıkan '+(i+1)),
+        image:h.mediaUrl||h.media||h.media_url||'',
+        type:String(h.mediaType||h.media_type||'').startsWith('video')?'video':'image',
+        createdAt:h.createdAt||new Date().toISOString(),
+        _server:true
+      })).filter(x=>x.image);
+    }
+  }catch(e){
+    console.warn('[PROFILE] Sunucu öne çıkanları okunamadı',e);
+  }
+
+  if(ownerChanged){
+    try{ await clearFirebaseHighlights(currentProfile.username); }catch(e){}
+  }
+
+  const local=getHighlights();
+  const merged=[...remote,...local];
+  const seen=new Set();
+  const items=merged.filter(x=>{
+    const key=String(x?.image||'')+'|'+String(x?.title||'');
+    if(seen.has(key))return false;seen.add(key);return true;
+  });
+
+  box.innerHTML='';
+  const add=document.createElement('button');
+  add.className='highlight add-highlight';
+  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+  add.onclick=addHighlight;
+  box.appendChild(add);
+
+  items.forEach((item,i)=>{
+    const b=document.createElement('button'); b.className='highlight';
+    b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
+    b.onclick=()=>openHighlightView(i);
+    box.appendChild(b);
+  });
+  storyItems=items;
 }
 
 async function addHighlight(){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='image/*,video/*';
+  input.multiple=false;
+  input.style.display='none';
 
- const input=document.createElement('input');
+  input.onchange=async()=>{
+    if(!(input.files&&input.files.length)){ input.remove(); return; }
+    const file=input.files[0];
+    try{
+      const fd=new FormData();
+      fd.append('media',file,file.name);
+      fd.append('title','Öne çıkan');
+      fd.append('sortOrder','0');
+      const r=await fetch('/api/highlights',{
+        method:'POST',
+        headers: token ? {Authorization:'Bearer '+token} : {},
+        body:fd
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error||'Öne çıkan yüklenemedi');
+      await renderHighlights();
+      toast('Öne çıkan eklendi');
+    }catch(e){
+      console.error('[PROFILE] Öne çıkan yükleme hatası',e);
+      toast(e.message||'Öne çıkan yüklenemedi');
+    }finally{
+      input.remove();
+    }
+  };
 
- input.type='file';
- input.accept='image/*,video/*';
- input.multiple=false;
- input.style.display='none';
-
- input.onchange=()=>{
-
-   if(input.files&&input.files.length){
-
-     const file=input.files[0];
-
-     const reader=new FileReader();
-
-     reader.onload=async()=>{
-
-       const items=getHighlights();
-
-       items.push({
-
-         title:'Öne çıkan '+(items.length+1),
-         image:reader.result,
-         type:file.type.startsWith('video')
-         ?'video'
-         :'image',
-         createdAt:new Date().toISOString()
-
-       });
-
-       saveHighlights(items);
-       try{ await saveFirebaseHighlights(items); }catch(e){ console.warn('[PROFILE] Öne çıkan Firebase kaydı başarısız',e); }
-       await renderHighlights();
-       toast('Öne çıkan eklendi');
-
-     };
-
-     reader.readAsDataURL(file);
-
-   }
-
-   input.remove();
-
- };
-
- document.body.appendChild(input);
-
- input.click();
-
+  document.body.appendChild(input);
+  input.click();
 }
 
 function renderPosts(posts){
