@@ -107,7 +107,13 @@ async function readFirebaseCollection(collection, limit = 1000) {
 }
 
 async function getFirebasePublicPosts() {
-  const docs = await readFirebaseCollection("minegramPublicPosts", 1000);
+  let docs = [];
+  try {
+    docs = await readFirebaseCollection("minegramPublicPosts", 1000);
+  } catch (e) {
+    console.warn("MINEGRAM FIREBASE POSTS READ SKIPPED:", e?.message || e);
+    return [];
+  }
   return docs.map(doc => {
     const x = {};
     for (const [k, v] of Object.entries(doc.fields || {})) x[k] = firebaseValue(v);
@@ -128,7 +134,13 @@ async function getFirebasePublicPosts() {
 }
 
 async function getFirebasePublicStories() {
-  const docs = await readFirebaseCollection("users", 1000);
+  let docs = [];
+  try {
+    docs = await readFirebaseCollection("users", 1000);
+  } catch (e) {
+    console.warn("MINEGRAM FIREBASE STORIES READ SKIPPED:", e?.message || e);
+    return [];
+  }
   return docs.map(doc => {
     const x = {};
     for (const [k, v] of Object.entries(doc.fields || {})) x[k] = firebaseValue(v);
@@ -224,7 +236,13 @@ async function deletePostFromFirebase(postId, profile) {
 
 async function getFirebaseHighlightsForUser(username) {
   const wanted = String(username || "").trim().toLowerCase();
-  const docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+  let docs = [];
+  try {
+    docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+  } catch (e) {
+    console.warn("MINEGRAM FIREBASE HIGHLIGHTS READ SKIPPED:", e?.message || e);
+    return [];
+  }
   const out = [];
   for (const doc of docs) {
     const x = {};
@@ -291,7 +309,13 @@ async function deleteHighlightFromFirebase(highlightId, profile) {
       return;
     }
     const username = String(profile?.username || "").trim().toLowerCase();
-    const docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+    let docs = [];
+  try {
+    docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+  } catch (e) {
+    console.warn("MINEGRAM FIREBASE HIGHLIGHTS READ SKIPPED:", e?.message || e);
+    return [];
+  }
     for (const doc of docs) {
       const f = doc.fields || {};
       const u = f.usernameLower?.stringValue?.toLowerCase() || f.username?.stringValue?.toLowerCase();
@@ -2978,7 +3002,12 @@ app.get(
         throw error;
       }
 
-      const firebasePosts = await getFirebasePublicPosts();
+      let firebasePosts = [];
+      try {
+        firebasePosts = await getFirebasePublicPosts();
+      } catch (firebaseError) {
+        console.warn("MINEGRAM FIREBASE FEED READ SKIPPED:", firebaseError?.message || firebaseError);
+      }
       const merged = [...(data || []), ...firebasePosts];
       const seen = new Set();
       const unique = merged.filter(p => {
@@ -3570,7 +3599,12 @@ app.get(
         });
       }
 
-      const firebaseStories = await getFirebasePublicStories();
+      let firebaseStories = [];
+      try {
+        firebaseStories = await getFirebasePublicStories();
+      } catch (firebaseError) {
+        console.warn("MINEGRAM FIREBASE STORY READ SKIPPED:", firebaseError?.message || firebaseError);
+      }
       const merged = [...(data || []), ...firebaseStories];
       const seen = new Set();
       res.json(merged.filter(x => {
@@ -4347,7 +4381,12 @@ app.get(
       }
 
       const username = req.params.username;
-      const firebasePosts = (await getFirebasePublicPosts()).filter(p => String(p.username || "").toLowerCase() === String(username).toLowerCase());
+      let firebasePosts = [];
+      try {
+        firebasePosts = (await getFirebasePublicPosts()).filter(p => String(p.username || "").toLowerCase() === String(username).toLowerCase());
+      } catch (firebaseError) {
+        console.warn("MINEGRAM FIREBASE POST READ SKIPPED:", firebaseError?.message || firebaseError);
+      }
       const supaPosts = await hydratePosts(req.sb, data || [], req.user.id);
       const merged = [...supaPosts, ...firebasePosts.map(p => ({
         id:p.id, user_id:p.user_id, username:p.username, caption:p.caption, text:p.text,
