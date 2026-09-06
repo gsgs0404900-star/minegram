@@ -470,7 +470,9 @@ async function minegramPublishPublicPost(post){
   const data={postId:Number(id)||Date.now(),username,usernameLower:username.toLowerCase(),ownerUid:"web",text:String(post.caption||post.text||""),likes:Number(post.likes||0),mediaUri:/^https?:\/\//i.test(media)?media:"",mediaType:String(post.mediaType||"image/jpeg"),music:"",commentCount:0,createdAt:Date.now(),type:"public_post",sender:username,recipient:"__minegram_public_posts__",conversationKey:"__minegram_public_posts__"};
   if(mediaBase64 && mediaBase64.length<=900000)data.mediaBase64=mediaBase64;
   const docId="public_post_"+username.toLowerCase()+"_"+(Number(id)||Date.now());
-  return minegramFirestore(minegramFirestoreCollection("minegramPublicPosts")+"/"+encodeURIComponent(docId),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fsFields(data)})});
+  const url=minegramFirestoreCollection("minegramPublicPosts")+"/"+encodeURIComponent(docId);
+  try{return await minegramFirestore(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fsFields(data)})});}
+  catch(e){sessionStorage.removeItem("minegram_public_post_firebase_token");return minegramFirestore(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fsFields(data)})});}
 }
 
 
