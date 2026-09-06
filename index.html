@@ -119,12 +119,17 @@ body{
 
 
 .story-more{position:absolute;top:18px;right:68px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer;z-index:5}
-.story-more-menu{display:none;position:absolute;top:68px;right:12px;width:280px;background:#111;border:1px solid #333;border-radius:12px;overflow:hidden;z-index:6;box-shadow:0 10px 35px rgba(0,0,0,.6)}
+.story-more-menu{display:none;position:absolute;left:0;right:0;bottom:0;width:100%;max-height:78vh;overflow-y:auto;background:#000;border-top:1px solid #2a2a2a;border-radius:18px 18px 0 0;padding:14px;z-index:20;box-shadow:0 -12px 35px rgba(0,0,0,.65)}
 .story-more-menu.open{display:block}
-.story-more-menu button{display:block;width:100%;padding:13px 15px;border:0;border-bottom:1px solid #242424;background:#111;color:#fff;text-align:left;font-size:14px;cursor:pointer}
-.story-more-menu button:last-child{border-bottom:0}
-.story-more-menu button:active{background:#222}
+.story-more-menu:before{content:"";display:block;width:42px;height:4px;margin:0 auto 14px;border-radius:99px;background:#555}
+.story-more-menu button{display:block;width:100%;min-height:48px;margin:0 0 8px;padding:12px 15px;border-radius:10px;font-size:14px;font-weight:500;text-align:left;cursor:pointer;transition:.15s}
+.story-more-menu button:last-child{margin-bottom:0}
+.story-more-menu button:active{transform:scale(.99);opacity:.9}
+.story-menu-primary{border:1px solid #fff;background:#fff;color:#000}
+.story-menu-outline{border:1px solid #555;background:transparent;color:#fff}
+.story-menu-text{border:0;background:transparent;color:#fff}
 .story-more-menu .danger{color:#ff5b5b}
+.story-more-menu .danger:active{background:#1b0808}
 .story-viewer.story-paused .story-media{opacity:.98}
 
 .avatar.small{
@@ -843,15 +848,16 @@ Profil
     <div id="storyMediaWrap"></div>
     <button class="story-next" onclick="nextStory()" aria-label="Sonraki"></button>
     <div id="storyMore" class="story-more-menu" onclick="event.stopPropagation()">
-      <button onclick="shareCurrentStory()">Gönder / Paylaş</button>
-      <button onclick="showStoryViewers()">Görüntüleyenler</button>
-      <button onclick="copyCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
-      <button onclick="downloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
-      <button onclick="highlightCurrentStory()">Öne çıkar</button>
-      <button onclick="toggleStoryComments()">Yorum yapmayı kapat</button>
-      <button onclick="goStorySettings()">Hikaye ayarlarına git</button>
-      <button onclick="hideCurrentStory()">Hikayeyi gizle</button>
-      <button class="danger" onclick="deleteCurrentStory()">Sil</button>
+      <button class="story-menu-primary" onclick="shareCurrentStory()">Gönder / Paylaş</button>
+      <button class="story-menu-outline" onclick="showStoryViewers()">Görüntüleyenler</button>
+      <button class="story-menu-outline" onclick="copyCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
+      <button class="story-menu-outline" onclick="closeStoryMore()">Daha fazla</button>
+      <button class="story-menu-text" onclick="downloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
+      <button class="story-menu-text" onclick="highlightCurrentStory()">Öne çıkar</button>
+      <button class="story-menu-text" onclick="toggleStoryComments()">Yorum yapmayı kapat</button>
+      <button class="story-menu-text" onclick="goStorySettings()">Hikaye ayarlarına git</button>
+      <button class="story-menu-text" onclick="hideCurrentStory()">Hikayeyi gizle</button>
+      <button id="storyDeleteButton" class="story-menu-text danger" onclick="deleteCurrentStory()">Sil</button>
     </div>
   </div>
 </div>
@@ -2976,6 +2982,10 @@ if(plusButton){
         "open"
       );
 
+    const deleteButton=document.getElementById("storyDeleteButton");
+    if(deleteButton){
+      deleteButton.style.display=isMyStory(item) ? "block" : "none";
+    }
 
     renderProgress();
 
@@ -3338,16 +3348,15 @@ if(plusButton){
       if(e)
         e.stopPropagation();
 
+      const menu=document.getElementById("storyMore");
+      if(!menu) return;
+      menu.classList.toggle("open");
 
-      document
-        .getElementById(
-          "storyMore"
-        )
-        ?.classList
-        .toggle(
-          "open"
-        );
+    };
 
+  window.closeStoryMore=
+    function(){
+      document.getElementById("storyMore")?.classList.remove("open");
     };
 
 
