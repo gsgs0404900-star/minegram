@@ -1187,11 +1187,10 @@ app.post(
 
       createdAuthUserId = authUser.id;
 
-      /* Profil oluştur */
-      // Bazı Minegram veritabanı sürümlerinde profiles tablosunda email
-      // alanı zorunlu. Önce email ile oluşturmayı deniyoruz; eski şemada
-      // email kolonu yoksa aynı kaydı eski şemayla tekrar deniyoruz.
-      // profiles tablosunda email kolonu yok; sadece mevcut alanları gönder.
+      /* Profil oluştur / mevcut otomatik profili kullan */
+      // Bazı veritabanlarında Auth kullanıcısı oluşturulunca profiles kaydı
+      // trigger ile otomatik oluşabiliyor. Bu durumda INSERT primary-key
+      // çakışması üretmek yerine mevcut kaydı güncelliyoruz.
       const profilePayload = {
         id: authUser.id,
         auth_user_id: authUser.id,
@@ -1206,35 +1205,11 @@ app.post(
       let {
         data: profile,
         error: profileError
-      } =
-        await admin
-          .from("profiles")
-          .insert(profilePayload)
-          .select("*")
-          .single();
-
-      // Eski profiles şemasında email kolonu olmayabilir.
-      if (profileError && /column .*email.* does not exist|schema cache.*email/i.test(String(profileError.message || ""))) {
-        const fallbackPayload = {
-          id: authUser.id,
-          auth_user_id: authUser.id,
-          username,
-          display_name: displayName,
-          bio: "",
-          avatar_url: null,
-          verified: false,
-          settings: {}
-        };
-
-        ({
-          data: profile,
-          error: profileError
-        } = await admin
-          .from("profiles")
-          .insert(fallbackPayload)
-          .select("*")
-          .single());
-      }
+      } = await admin
+        .from("profiles")
+        .upsert(profilePayload, { onConflict: "id" })
+        .select("*")
+        .single();
 
       if (profileError) {
         console.error(
