@@ -3528,26 +3528,33 @@ document.getElementById('highlightViewBack')
 .onclick=closeHighlightView;
 
 document.getElementById('highlightDeleteBtn')
-.onclick=()=>{
+.onclick=async()=>{
 
  if(openedHighlightIndex<0)return;
 
+ const item=storyItems[openedHighlightIndex];
  const items=getHighlights();
-
- items.splice(openedHighlightIndex,1);
-
+ const localIndex=items.findIndex(x=>String(x?.id||'')===String(item?.id||''));
+ try{
+  if(item?.id && !String(item.id).startsWith('firebase:')){
+   await api('/api/highlights/'+encodeURIComponent(item.id),{method:'DELETE'});
+  }else if(item?.id && String(item.id).startsWith('firebase:')){
+   const r=await fetch('https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/minegramPublicHighlights/'+encodeURIComponent(String(item.id).replace(/^firebase:/,'')),{method:'DELETE'});
+   if(!r.ok)throw new Error('Firebase öne çıkan silinemedi');
+  }
+ }catch(e){ toast(e.message||'Silinemedi'); return; }
+ if(localIndex>=0)items.splice(localIndex,1);
  saveHighlights(items);
-
  closeHighlightView();
-
- renderHighlights();
+ await renderHighlights();
 
 };
 
-async function firebaseUserDocument(username){
- const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
+async function loadFirebaseHighlights(username){
+ const wanted=String(username||'').trim().toLowerCase();
+ const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/minegramPublicHighlights?pageSize=300';
  const r=await fetch(url,{cache:'no-store'});
- if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
+ if(!r.ok)throw new Error('Firebase öne çıkanlar okunamadı');
  const d=await r.json();
  const val=v=>{
   if(!v)return null;
@@ -3560,51 +3567,20 @@ async function firebaseUserDocument(username){
   if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
   return null;
  };
- const wanted=String(username||'').toLowerCase();
  return (d.documents||[]).map(doc=>{
   const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
-  return {doc,x};
- }).find(({x})=>[
-  x.username,x.userName,x.handle,x.emailUsername
- ].filter(Boolean).some(v=>String(v).toLowerCase()===wanted))||null;
-}
-
-async function loadFirebaseHighlights(username){
- try{
-  const found=await firebaseUserDocument(username);
-  const raw=found?.x?.highlights;
-  if(!Array.isArray(raw))return [];
-  return raw.map((item,i)=>{
-   if(typeof item==='string')return {title:'Öne çıkan '+(i+1),image:item,type:'image',createdAt:new Date().toISOString()};
-   if(!item||typeof item!=='object')return null;
-   let image=item.image||item.media||item.mediaUrl||item.url||item.base64||item.mediaBase64||'';
-   if(image&&!/^https?:\/\//i.test(image)&&!/^data:/i.test(image)&&String(image).length>100){
-    image='data:'+(item.mediaType||item.mimeType||'image/jpeg')+';base64,'+image;
-   }
-   return {...item,image,title:item.title||('Öne çıkan '+(i+1)),type:item.type||'image',createdAt:item.createdAt||new Date().toISOString(),_firebase:true};
-  }).filter(x=>x&&x.image);
- }catch(e){
-  console.warn('[PROFILE] Firebase öne çıkanlar okunamadı',e);
-  return [];
- }
+  let image=x.image||x.mediaUrl||x.media||x.uri||x.base64||x.mediaBase64||'';
+  if(image&&!/^https?:\/\//i.test(image)&&!/^data:/i.test(image)&&String(image).length>100){
+   image='data:'+(x.mediaType||x.type||'image/jpeg')+';base64,'+image;
+  }
+  return {...x,id:'firebase:'+doc.name.split('/').pop(),image,media:image,_firebase:true};
+ }).filter(x=>String(x.usernameLower||x.username||'').toLowerCase()===wanted && x.image);
 }
 
 async function saveFirebaseHighlights(items){
- const username=String(currentProfile?.username||'');
- if(!username)return;
- const found=await firebaseUserDocument(username);
- if(!found?.doc?.name)return;
- const clean=items.map(x=>({
-  mapValue:{fields:{
-   title:{stringValue:String(x.title||'Öne çıkan')},
-   image:{stringValue:String(x.image||'')},
-   type:{stringValue:String(x.type||'image')},
-   createdAt:{stringValue:String(x.createdAt||new Date().toISOString())}
-  }}
- }));
- const url='https://firestore.googleapis.com/v1/'+found.doc.name+'?updateMask.fieldPaths=highlights';
- const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{highlights:{arrayValue:{values:clean}}}})});
- if(!r.ok)throw new Error('Firebase öne çıkanlar kaydedilemedi');
+ // Eski kullanıcı-belgesi highlights sistemi kullanılmıyor. Web tarafı /api/highlights
+ // üzerinden Supabase'e yazar; sunucu aynı kaydı ortak Firebase koleksiyonuna aynalar.
+ return true;
 }
 
 async function renderHighlights(){
@@ -3655,16 +3631,29 @@ async function addHighlight(){
   try{
    if(!input.files||!input.files.length)return;
    const file=input.files[0];
-   const form=new FormData();
-   form.append('media',file,file.name);
-   form.append('title','Öne çıkan');
-   const r=await fetch('/api/highlights',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:form});
-   const j=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(j.error||'Öne çıkan eklenemedi');
+   const localReader=new FileReader();
+   localReader.onload=()=>{
+    const items=getHighlights();
+    items.push({title:'Öne çıkan '+(items.length+1),image:localReader.result,type:file.type.startsWith('video')?'video':'image',createdAt:new Date().toISOString()});
+    saveHighlights(items);
+   };
+   localReader.readAsDataURL(file);
+
+   const fd=new FormData();
+   fd.append('media',file,file.name);
+   const result=await api('/api/highlights',{method:'POST',body:fd});
+   const items=getHighlights();
+   const local=items[items.length-1];
+   if(local&&result){
+    local.id=result.id;
+    local.media=result.media_url||result.mediaUrl||result.media||local.image;
+    local.mediaUrl=local.media;
+    local.image=local.media;
+    saveHighlights(items);
+   }
    await renderHighlights();
    toast('Öne çıkan eklendi');
   }catch(e){
-   console.error('[PROFILE] Öne çıkan ekleme hatası',e);
    toast(e.message||'Öne çıkan eklenemedi');
   }finally{
    input.remove();
@@ -3672,273 +3661,6 @@ async function addHighlight(){
  };
  document.body.appendChild(input);
  input.click();
-}
-
-function renderPosts(posts){
-
-  const grid=document.getElementById('grid');
-
-  if(!grid)return;
-
-  currentPosts=
-    Array.isArray(posts)
-      ?posts
-      :(
-        Array.isArray(posts?.posts)
-          ?posts.posts
-          :(
-            Array.isArray(posts?.data)
-              ?posts.data
-              :[]
-          )
-      );
-
-  const eyeIcon=
-    '<svg viewBox="0 0 24 24" aria-hidden="true">'+
-    '<path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path>'+
-    '<circle cx="12" cy="12" r="2.8"></circle>'+
-    '</svg>';
-
-  const formatViews=v=>{
-
-    const n=Number(v??0);
-
-    if(!Number.isFinite(n))return'0';
-
-    if(n>=1000000)
-      return(
-        n/1000000
-      ).toFixed(
-        n%1000000?1:0
-      ).replace('.0','')+' mn';
-
-    if(n>=10000)
-      return(
-        n/1000
-      ).toFixed(
-        n%1000?1:0
-      ).replace('.0','')+' bin';
-
-    return n.toLocaleString('tr-TR');
-  };
-
-  if(!currentPosts.length){
-
-    grid.innerHTML=
-      '<div class="empty">Henüz gönderi yok</div>';
-
-    document.getElementById('postCount')
-      .textContent='0';
-
-    renderPrompts([]);
-
-    return;
-  }
-
-  document.getElementById('postCount')
-    .textContent=
-      String(currentPosts.length);
-
-  grid.innerHTML=
-    currentPosts.map((x,index)=>{
-
-      if(!x)return'';
-
-      const media=
-        x.media||
-        x.mediaUrl||
-        x.image||
-        x.imageUrl||
-        x.photo||
-        x.photoUrl||
-        '';
-
-      const caption=
-        x.caption||
-        x.text||
-        x.description||
-        '';
-
-      const views=
-        x.views??
-        x.viewCount??
-        x.viewsCount??
-        x.impressions??
-        0;
-
-      const viewHtml=
-        '<span class="tile-views">'+
-        eyeIcon+
-        '<span>'+
-        escapeHtml(formatViews(views))+
-        '</span>'+
-        '</span>';
-
-      let postJson='';
-
-      try{
-
-        postJson=encodeURIComponent(
-          JSON.stringify(x)
-        );
-
-      }catch(e){
-
-        postJson='';
-      }
-
-      if(media){
-
-        return(
-          '<button class="tile post-tile" '+
-          'data-index="'+index+'" '+
-          'data-post="'+postJson+'">'+
-          '<img src="'+
-          escapeHtml(media)+
-          '" loading="lazy" alt="Gönderi">'+
-          viewHtml+
-          '</button>'
-        );
-
-      }
-
-      return(
-        '<button class="tile post-tile" '+
-        'data-index="'+index+'" '+
-        'data-post="'+postJson+'">'+
-        '<div class="txt">'+
-        escapeHtml(caption)+
-        '</div>'+
-        viewHtml+
-        '</button>'
-      );
-
-    }).join('');
-
-  renderPrompts(currentPosts);
-
-  grid.querySelectorAll('.post-tile')
-    .forEach(tile=>{
-
-      tile.onclick=()=>{
-
-        try{
-
-          const index=
-            Number(tile.dataset.index);
-
-          let post=null;
-
-          if(
-            Number.isInteger(index)&&
-            currentPosts[index]
-          ){
-
-            post=currentPosts[index];
-
-          }else{
-
-            post=JSON.parse(
-              decodeURIComponent(
-                tile.dataset.post||''
-              )
-            );
-
-          }
-
-          sessionStorage.setItem(
-            'minegram_selected_post',
-            JSON.stringify(post)
-          );
-
-          sessionStorage.setItem(
-            'minegram_selected_profile',
-            JSON.stringify(
-              currentProfile||{}
-            )
-          );
-
-          location.href='post.html';
-
-        }catch(e){
-
-          console.error(e);
-
-          toast('Gönderi açılamadı');
-        }
-
-      };
-
-    });
-
-}
-
-function renderProfileExtra(){
-
- if(!currentProfile)return;
-
- const id=currentProfile.id;
-
- const pronouns=
- localStorage.getItem(
-   'minegram_pronouns_'+id
- )||'';
-
- const link=
- localStorage.getItem(
-   'minegram_profile_link_'+id
- )||'';
-
- const gender=
- localStorage.getItem(
-   'minegram_gender_'+id
- )||'';
-
- const box=
- document.getElementById('profileExtra');
-
- const p=
- document.getElementById('profilePronounsDisplay');
-
- const a=
- document.getElementById('profileLinkDisplay');
-
- const g=
- document.getElementById('profileGenderDisplay');
-
- p.textContent=pronouns;
- p.style.display=pronouns?'':'none';
-
- g.textContent=gender;
- g.style.display=gender?'':'none';
-
- if(link){
-
-   a.href=
-   /^https?:\/\//i.test(link)
-   ?link
-   :'https://'+link;
-
-   a.textContent=
-   link
-   .replace(/^https?:\/\//i,'')
-   .replace(/\/$/,'');
-
-   a.style.display='';
-
- }else{
-
-   a.style.display='none';
-   a.textContent='';
-   a.removeAttribute('href');
-
- }
-
- box.style.display=
- (pronouns||link||gender)
- ?'flex'
- :'none';
-
 }
 
 async function loadFirebasePublicPosts(username,userId){
@@ -4840,6 +4562,12 @@ document.addEventListener('visibilitychange',()=>{
     load();
   }
 });
+
+// Ortak veri deposunu kısa aralıklarla yenile: diğer cihazdan gelen/silinen
+// gönderi ve öne çıkanlar açık profil ekranında da gecikmeden görünür.
+setInterval(()=>{
+  if(!document.hidden && token){ load().catch(()=>{}); }
+},5000);
 
 let highlightMenuIndex=-1;
 
