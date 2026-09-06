@@ -151,70 +151,83 @@ async function deletePostFromFirebase(postId, profile) {
   }
 }
 
-async function deleteHighlightFromFirebase(highlightId, profile) {
-  try {
-    const username = String(profile?.username || "").trim().toLowerCase();
-    if (!username || !highlightId) return;
-    // Android stores the user's shared highlights in users/{usernameLower}.
-    // Never depend on username fields existing in that document.
-    const path = `users/${encodeURIComponent(username)}`;
-    const found = await firebaseRest(path, { method: "GET" });
-    const existing = found?.fields?.highlights?.arrayValue?.values || [];
-    const filtered = existing.filter(v => {
-      const f = v?.mapValue?.fields || {};
-      const id = f.id?.stringValue ?? f.highlightId?.stringValue ?? "";
-      return String(id) !== String(highlightId);
+async function getFirebaseHighlightsForUser(username) {
+  const wanted = String(username || "").trim().toLowerCase();
+  const docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+  const out = [];
+  for (const doc of docs) {
+    const x = {};
+    for (const [k, v] of Object.entries(doc.fields || {})) x[k] = await firebaseValue(v);
+    if (String(x.usernameLower || x.username || "").toLowerCase() !== wanted) continue;
+    let media = x.mediaUrl || x.image || x.media || x.uri || x.base64 || x.mediaBase64 || "";
+    if (media && !/^https?:\/\//i.test(String(media)) && !/^data:/i.test(String(media)) && String(media).length > 100) {
+      media = `data:${x.mediaType || x.type || "image/jpeg"};base64,${media}`;
+    }
+    if (!media) continue;
+    out.push({
+      id: `firebase:${doc.name.split("/").pop()}`,
+      user_id: null,
+      media, media_url: media, mediaUrl: media,
+      media_type: x.mediaType || x.type || "image",
+      title: x.title || "Öne çıkan",
+      sort_order: Number(x.sortOrder || 0),
+      created_at: x.createdAt || new Date().toISOString(),
+      _firebase: true
     });
-    await firebaseRest(`${path}?updateMask.fieldPaths=highlights`, {
-      method: "PATCH",
-      body: JSON.stringify({ fields: { highlights: { arrayValue: { values: filtered } } } })
-    });
-  } catch (e) {
-    console.error("MINEGRAM FIREBASE HIGHLIGHT DELETE ERROR:", e?.message || e);
   }
+  return out;
 }
 
 async function mirrorHighlightToFirebase(highlight, profile) {
   try {
     const username = String(profile?.username || "").trim();
     if (!username || !highlight?.id) return;
-    // Canonical Android document: users/{usernameLower}.
-    // The previous implementation searched up to 300 user documents and
-    // silently did nothing when the Android-created user document had no
-    // username field. That was the main Web -> Android highlight mismatch.
-    const path = `users/${encodeURIComponent(username.toLowerCase())}`;
-    let found = null;
-    try { found = await firebaseRest(path, { method: "GET" }); } catch (_) {}
-
-    const existing = found?.fields?.highlights?.arrayValue?.values || [];
-    const mediaUrl = String(highlight.media_url || highlight.mediaUrl || "");
-    const item = { mapValue: { fields: {
-      id: fsString(String(highlight.id)),
+    const documentId = `highlight_${username.toLowerCase()}_${String(highlight.id).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+    const fields = {
+      id: fsString(documentId),
       highlightId: fsString(String(highlight.id)),
+      username: fsString(username), usernameLower: fsString(username.toLowerCase()),
       title: fsString(highlight.title || "Öne çıkan"),
-      image: fsString(mediaUrl),
-      uri: fsString(mediaUrl),
-      media: fsString(mediaUrl),
-      mediaUrl: fsString(mediaUrl),
-      type: fsString(highlight.media_type || "image"),
-      mediaType: fsString(highlight.media_type || "image"),
-      createdAt: fsString(highlight.created_at || new Date().toISOString())
-    }}};
-    const merged = existing.filter(v => {
-      const f = v?.mapValue?.fields || {};
-      const id = f.id?.stringValue ?? f.highlightId?.stringValue ?? "";
-      return String(id) !== String(highlight.id);
+      image: fsString(highlight.media_url || ""), uri: fsString(highlight.media_url || ""),
+      media: fsString(highlight.media_url || ""), mediaUrl: fsString(highlight.media_url || ""),
+      type: fsString(highlight.media_type || "image"), mediaType: fsString(highlight.media_type || "image"),
+      createdAt: fsString(highlight.created_at || new Date().toISOString()),
+      sortOrder: fsInt(highlight.sort_order || 0)
+    };
+    await firebaseRest(`minegramPublicHighlights/${encodeURIComponent(documentId)}`, {
+      method: "PATCH", body: JSON.stringify({ fields })
     });
-    merged.push(item);
+  } catch (e) { console.error("MINEGRAM FIREBASE HIGHLIGHT MIRROR ERROR:", e?.message || e); }
+}
 
-    await firebaseRest(`${path}?updateMask.fieldPaths=highlights`, {
-      method: "PATCH",
-      body: JSON.stringify({ fields: { highlights: { arrayValue: { values: merged.slice(-20) } } } })
-    });
-    console.log("MINEGRAM FIREBASE HIGHLIGHT MIRROR OK:", highlight.id);
-  } catch (e) {
-    console.error("MINEGRAM FIREBASE HIGHLIGHT MIRROR ERROR:", e?.message || e);
-  }
+async function updateFirebaseHighlightDocument(syntheticId, patch = {}) {
+  const id = String(syntheticId || "").replace(/^firebase:/, "");
+  if (!id) return false;
+  const fields = {};
+  if (patch.title !== undefined) fields.title = fsString(String(patch.title).trim().slice(0,80) || "Öne çıkan");
+  if (!Object.keys(fields).length) return false;
+  await firebaseRest(`minegramPublicHighlights/${encodeURIComponent(id)}`, {
+    method: "PATCH", body: JSON.stringify({ fields })
+  });
+  return true;
+}
+
+async function deleteHighlightFromFirebase(highlightId, profile) {
+  try {
+    const id = String(highlightId || "");
+    if (id.startsWith("firebase:")) {
+      await firebaseRest(`minegramPublicHighlights/${encodeURIComponent(id.replace(/^firebase:/, ""))}`, { method: "DELETE" });
+      return;
+    }
+    const username = String(profile?.username || "").trim().toLowerCase();
+    const docs = await readFirebaseCollection("minegramPublicHighlights", 1000);
+    for (const doc of docs) {
+      const f = doc.fields || {};
+      const u = f.usernameLower?.stringValue?.toLowerCase() || f.username?.stringValue?.toLowerCase();
+      const hid = f.highlightId?.stringValue;
+      if (u === username && hid === id) await firebaseRest(`minegramPublicHighlights/${encodeURIComponent(doc.name.split("/").pop())}`, { method: "DELETE" });
+    }
+  } catch (e) { console.error("MINEGRAM FIREBASE HIGHLIGHT DELETE ERROR:", e?.message || e); }
 }
 
 const CONFIG_OK = Boolean(
@@ -2896,13 +2909,22 @@ app.get(
         throw error;
       }
 
-      res.json(
-        await hydratePosts(
-          admin,
-          data || [],
-          req.user.id
-        )
-      );
+      const firebasePosts = await getFirebasePublicPosts();
+      const merged = [...(data || []), ...firebasePosts];
+      const seen = new Set();
+      const unique = merged.filter(p => {
+        const key = `${String(p.username || p.user_id || "").toLowerCase()}_${String(p.id)}`;
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      }).sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0)).slice(0, 100);
+      const supa = unique.filter(p => !p._firebase);
+      const fb = unique.filter(p => p._firebase).map(p => ({
+        id: p.id, user_id: p.user_id, caption: p.caption, text: p.text,
+        media_url: p.media_url, media_type: p.media_type, likes: p.likes,
+        comment_count: p.comment_count, created_at: p.created_at,
+        username: p.username
+      }));
+      res.json([...(await hydratePosts(admin, supa, req.user.id)), ...fb]);
     } catch (e) {
       res.status(500).json({
         error:
@@ -2945,18 +2967,15 @@ app.get(
         throw error;
       }
 
-      res.json(
-        (data || []).map(h => ({
-          id: h.id,
-          userId: h.user_id,
-          media: h.media_url,
-          mediaUrl: h.media_url,
-          mediaType: h.media_type || "",
-          title: h.title || "Öne çıkan",
-          sortOrder: h.sort_order ?? 0,
-          createdAt: h.created_at
-        }))
-      );
+      const supaItems = (data || []).map(h => ({
+        id: h.id, userId: h.user_id, media: h.media_url, mediaUrl: h.media_url,
+        mediaType: h.media_type || "", title: h.title || "Öne çıkan",
+        sortOrder: h.sort_order ?? 0, createdAt: h.created_at
+      }));
+      const firebaseItems = await getFirebaseHighlightsForUser(target.username);
+      const all = [...supaItems, ...firebaseItems];
+      const seen = new Set();
+      res.json(all.filter(x => { const k = String(x.mediaUrl || x.media_url || x.media || ""); if (k && seen.has(k)) return false; if (k) seen.add(k); return true; }));
     } catch (e) {
       console.error("HIGHLIGHTS GET ERROR:", e);
       res.status(500).json({
@@ -2983,7 +3002,11 @@ app.get(
         throw error;
       }
 
-      res.json(data || []);
+      const firebaseItems = await getFirebaseHighlightsForUser(req.user.username || req.user.email?.split("@")[0] || "");
+      const supaItems = data || [];
+      const merged = [...supaItems, ...firebaseItems];
+      const seen = new Set();
+      res.json(merged.filter(x => { const k = String(x.mediaUrl || x.media_url || x.media || ""); if (k && seen.has(k)) return false; if (k) seen.add(k); return true; }));
     } catch (e) {
       console.error("MY HIGHLIGHTS ERROR:", e);
       res.status(500).json({
@@ -3087,6 +3110,11 @@ app.patch(
   auth,
   async (req, res) => {
     try {
+      if (String(req.params.id || "").startsWith("firebase:")) {
+        const ok = await updateFirebaseHighlightDocument(req.params.id, { title: req.body?.title });
+        if (!ok) return res.status(404).json({ error: "Öne çıkan bulunamadı" });
+        return res.json({ ok: true, id: req.params.id });
+      }
       const patch = {};
 
       if (req.body?.title !== undefined) {
@@ -3140,6 +3168,11 @@ app.delete(
   auth,
   async (req, res) => {
     try {
+      if (String(req.params.id || "").startsWith("firebase:")) {
+        const ok = await (await deleteHighlightFromFirebase(req.params.id, req.user), true);
+        if (!ok) return res.status(404).json({ error: "Öne çıkan bulunamadı" });
+        return res.json({ ok: true, id: req.params.id });
+      }
       const { data: existing, error: findError } =
         await req.sb
           .from("highlights")
@@ -3472,9 +3505,13 @@ app.get(
         });
       }
 
-      res.json(
-        data || []
-      );
+      const firebaseStories = await getFirebasePublicStories();
+      const merged = [...(data || []), ...firebaseStories];
+      const seen = new Set();
+      res.json(merged.filter(x => {
+        const k = `${String(x.username || x.user_id || "").toLowerCase()}_${String(x.id)}`;
+        if (seen.has(k)) return false; seen.add(k); return true;
+      }).sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0)));
     } catch (e) {
       res.status(500).json({
         error:
@@ -4246,13 +4283,16 @@ app.get(
         throw error;
       }
 
-      res.json(
-        await hydratePosts(
-          admin,
-          data || [],
-          req.user.id
-        )
-      );
+      const username = req.params.username;
+      const firebasePosts = (await getFirebasePublicPosts()).filter(p => String(p.username || "").toLowerCase() === String(username).toLowerCase());
+      const supaPosts = await hydratePosts(admin, data || [], req.user.id);
+      const merged = [...supaPosts, ...firebasePosts.map(p => ({
+        id:p.id, user_id:p.user_id, username:p.username, caption:p.caption, text:p.text,
+        media_url:p.media_url, media_type:p.media_type, likes:p.likes,
+        comment_count:p.comment_count, created_at:p.created_at
+      }))];
+      const seen = new Set();
+      res.json(merged.filter(p => { const k=String(p.username||username).toLowerCase()+"_"+String(p.id); if(seen.has(k)) return false; seen.add(k); return true; }));
 
     } catch (e) {
       res.status(500).json({
