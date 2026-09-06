@@ -166,29 +166,35 @@ async function auth(req, res, next) {
       throw error || new Error("Oturum gerekli");
     }
 
-    /* Profil sorgusu ADMIN ile yapılır; böylece RLS yüzünden Android/Web oturumu bozulmaz. */
-    const admin = adminClient();
     let {
       data: profile,
       error: pError
-    } = await admin
+    } = await sb
       .from("profiles")
       .select("*")
-      .eq("auth_user_id", user.id)
+      .eq("id", user.id)
       .maybeSingle();
 
     if (!profile) {
-      const fallback = await admin
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      profile = fallback.data || null;
-      pError = fallback.error || null;
+      const fallback =
+        await sb
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+
+      profile =
+        fallback.data || null;
+
+      pError =
+        fallback.error || null;
     }
 
     if (pError || !profile) {
-      throw pError || new Error("Profil bulunamadı");
+      throw (
+        pError ||
+        new Error("Profil bulunamadı")
+      );
     }
 
     req.token = token;
@@ -2785,7 +2791,8 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const { data, error } = await req.sb
+      const admin = adminClient();
+      const { data, error } = await admin
         .from("highlights")
         .select("*")
         .eq("user_id", req.user.id)
@@ -2818,6 +2825,8 @@ app.post(
         });
       }
 
+      const admin = adminClient();
+
       const ext =
         path.extname(req.file.originalname).toLowerCase() || ".bin";
 
@@ -2825,7 +2834,7 @@ app.post(
         `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
       const { error: uploadError } =
-        await req.sb.storage
+        await admin.storage
           .from(BUCKET)
           .upload(
             objectPath,
@@ -2841,7 +2850,7 @@ app.post(
       }
 
       const { data: publicData } =
-        req.sb.storage
+        admin.storage
           .from(BUCKET)
           .getPublicUrl(objectPath);
 
@@ -2855,7 +2864,7 @@ app.post(
         : 0;
 
       const { data, error } =
-        await req.sb
+        await admin
           .from("highlights")
           .insert({
             user_id: req.user.id,
@@ -3137,10 +3146,11 @@ app.post(
 app.post(
   "/api/stories",
   auth,
-  upload.single("story"),
+  upload.fields([{ name: "story", maxCount: 1 }, { name: "media", maxCount: 1 }]),
   async (req, res) => {
     try {
-      if (!req.file) {
+      const reqFile = reqFiles?.story?.[0] || reqFiles?.media?.[0] || null;
+      if (!reqFile) {
         return res.status(400).json({
           error:
             "Dosya seçilmedi"
@@ -3149,7 +3159,7 @@ app.post(
 
       const ext =
         path.extname(
-          req.file.originalname
+          reqFile.originalname
         ) || ".bin";
 
       const objectPath =
@@ -3158,14 +3168,14 @@ app.post(
       const {
         error: uploadError
       } =
-        await req.sb.storage
+        await admin.storage
           .from(BUCKET)
           .upload(
             objectPath,
-            req.file.buffer,
+            reqFile.buffer,
             {
               contentType:
-                req.file.mimetype,
+                reqFile.mimetype,
               upsert:
                 false
             }
@@ -3185,7 +3195,7 @@ app.post(
           );
 
       const result =
-        await req.sb
+        await admin
           .from("stories")
           .insert({
             user_id:
@@ -3195,7 +3205,7 @@ app.post(
               publicData.publicUrl,
 
             media_type:
-              req.file.mimetype
+              reqFile.mimetype
           })
           .select()
           .single();
@@ -3238,11 +3248,12 @@ app.get(
           86400000
         ).toISOString();
 
+      const admin = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("stories")
           .select(`
             *,
