@@ -2795,6 +2795,8 @@ async function sendResendEmail(
 const recoveryCodes =
   new Map();
 
+const recoveryResetKeys = new Map();
+
 
 /* =========================================================
    FORGOT START
@@ -2929,6 +2931,13 @@ app.post(
         key
       );
 
+      const resetKey = crypto.randomBytes(32).toString("hex");
+      recoveryResetKeys.set(resetKey, {
+        userId: found.authUser?.id || entry.userId || found.profile?.auth_user_id || found.profile?.id,
+        email: found.email,
+        expires: Date.now() + 10 * 60 * 1000
+      });
+
       const p =
         entry.profile ||
         found.profile ||
@@ -2936,21 +2945,14 @@ app.post(
 
       res.json({
         ok: true,
-        email:
-          found.email,
-
+        verified: true,
+        email: found.email,
+        resetKey,
+        key: resetKey,
         account: {
-          username:
-            p.username ||
-            "minegram",
-
-          email:
-            found.email,
-
-          displayName:
-            p.display_name ||
-            p.displayName ||
-            ""
+          username: p.username || "minegram",
+          email: found.email,
+          displayName: p.display_name || p.displayName || ""
         }
       });
     } catch (e) {
@@ -2958,6 +2960,38 @@ app.post(
         error:
           e.message
       });
+    }
+  }
+);
+
+
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
+
+app.post(
+  "/api/forgot/reset",
+  async (req, res) => {
+    try {
+      const resetKey = String(req.body?.resetKey || req.body?.key || "").trim();
+      const newPassword = String(req.body?.newPassword || req.body?.password || "");
+
+      if (!resetKey) return res.status(400).json({ error: "Şifre sıfırlama anahtarı gerekli." });
+      if (newPassword.length < 6) return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı." });
+
+      const entry = recoveryResetKeys.get(resetKey);
+      if (!entry || entry.expires < Date.now() || !entry.userId) {
+        recoveryResetKeys.delete(resetKey);
+        return res.status(400).json({ error: "Şifre sıfırlama anahtarı geçersiz veya süresi dolmuş." });
+      }
+
+      const { error } = await adminClient().auth.admin.updateUserById(entry.userId, { password: newPassword });
+      if (error) return res.status(400).json({ error: error.message });
+
+      recoveryResetKeys.delete(resetKey);
+      return res.json({ ok: true, passwordChanged: true, email: entry.email });
+    } catch (e) {
+      return res.status(500).json({ error: e?.message || "Şifre değiştirilemedi." });
     }
   }
 );
