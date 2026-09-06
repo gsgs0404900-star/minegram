@@ -1262,6 +1262,24 @@ onclick="sendComment()"
       createdAt:
         firestoreInteger(
           data.createdAt
+        ),
+
+      type:
+        firestoreString(
+          data.type ||
+          "public_story"
+        ),
+
+      sender:
+        firestoreString(
+          data.sender ||
+          data.username
+        ),
+
+      recipient:
+        firestoreString(
+          data.recipient ||
+          "__minegram_public_stories__"
         )
     };
   }
@@ -1845,15 +1863,7 @@ onclick="sendComment()"
           prepared.base64,
         mediaType:
           prepared.mediaType,
-        createdAt,
-        type:
-          "public_story",
-        sender:
-          username,
-        recipient:
-          "__minegram_public_stories__",
-        usernameLower:
-          String(username).toLowerCase()
+        createdAt
       });
 
     const url =
