@@ -2730,6 +2730,7 @@ const recoveryCodes =
   new Map();
 
 const recoveryResetKeys = new Map();
+const verifiedRecoveryAccounts = new Map();
 
 
 /* =========================================================
@@ -2865,16 +2866,24 @@ app.post(
         });
       }
 
-      recoveryCodes.delete(
-        key
-      );
+      const verifiedUserId = entry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id;
+      const verifiedEmail = entry.email || found.email;
+      verifiedRecoveryAccounts.set(key, {
+        userId: verifiedUserId,
+        email: verifiedEmail,
+        profile: entry.profile || found.profile || {},
+        expires: Date.now() + 10 * 60 * 1000
+      });
 
       const resetKey = crypto.randomBytes(32).toString("hex");
       recoveryResetKeys.set(resetKey, {
-        userId: entry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id,
-        email: entry.email || found.email,
+        userId: verifiedUserId,
+        email: verifiedEmail,
         expires: Date.now() + 10 * 60 * 1000
       });
+      // Kod doğrulandı; eski kod artık tekrar kullanılamaz. Doğrulanmış hesap
+      // kaydı reset işlemi tamamlanana kadar 10 dakika tutulur.
+      recoveryCodes.delete(key);
 
       const p =
         entry.profile ||
@@ -2939,11 +2948,14 @@ app.post(
         const suppliedCode = String(req.body?.code || req.body?.verificationCode || "").trim();
         const found = await resolveRecoveryEmail(identifier, req.body?.mode || "email");
         const recoveryKey = found?.email?.toLowerCase();
+        const verifiedEntry = recoveryKey ? verifiedRecoveryAccounts.get(recoveryKey) : null;
         const recoveryEntry = recoveryKey ? recoveryCodes.get(recoveryKey) : null;
-        if (!found || !recoveryEntry || recoveryEntry.expires < Date.now() || recoveryEntry.code !== suppliedCode) {
-          return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
+        const verifiedStillValid = verifiedEntry && verifiedEntry.expires >= Date.now();
+        const codeStillValid = recoveryEntry && recoveryEntry.expires >= Date.now() && recoveryEntry.code === suppliedCode;
+        if (!found || (!verifiedStillValid && !codeStillValid)) {
+          return res.status(400).json({ error: "Kod doğrulaması bulunamadı veya süresi dolmuş. Lütfen tekrar kod iste." });
         }
-        const fallbackUserId = recoveryEntry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id;
+        const fallbackUserId = (verifiedStillValid ? verifiedEntry.userId : recoveryEntry.userId) || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id;
         if (!fallbackUserId) return res.status(400).json({ error: "Hesap doğrulanamadı." });
         const admin = adminClient();
         const { data: updatedData, error } = await admin.auth.admin.updateUserById(fallbackUserId, { password: newPassword, email_confirm: true });
@@ -2954,6 +2966,7 @@ app.post(
         const { data: loginData, error: loginError } = await verifyClient.auth.signInWithPassword({ email: actualEmail, password: newPassword });
         if (loginError || loginData?.user?.id !== fallbackUserId) return res.status(400).json({ error: loginError?.message || "Yeni şifreyle giriş doğrulanamadı." });
         recoveryCodes.delete(recoveryKey);
+        verifiedRecoveryAccounts.delete(recoveryKey);
         return res.json({ ok: true, passwordChanged: true, loginVerified: true, email: actualEmail, userId: fallbackUserId });
       }
 
@@ -2994,6 +3007,9 @@ app.post(
       }
 
       recoveryResetKeys.delete(resetKey);
+      for (const [emailKey, verified] of verifiedRecoveryAccounts.entries()) {
+        if (verified?.userId === entry.userId) verifiedRecoveryAccounts.delete(emailKey);
+      }
       return res.json({
         ok: true,
         passwordChanged: true,
