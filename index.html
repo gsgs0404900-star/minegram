@@ -988,20 +988,31 @@ onclick="sendComment()"
 
     if(!s)return null;
 
-    const profile=
-      s.profiles ||
-      s.profile ||
-      {};
+    /*
+      Android uygulamasının /api/stories cevabıyla aynı yapıları
+      destekle: story, data, result veya doğrudan story nesnesi.
+    */
+    if(s.story && typeof s.story === "object") s=s.story;
+    else if(s.data && !Array.isArray(s.data) && typeof s.data === "object") s=s.data;
+    else if(s.result && typeof s.result === "object") s=s.result;
 
-    const user=
-      s.user ||
-      {};
+    const profile=s.profiles || s.profile || {};
+    const user=s.user || {};
 
     const media=
       s.media_url ||
       s.mediaUrl ||
       s.media ||
       s.url ||
+      s.image_url ||
+      s.imageUrl ||
+      s.video_url ||
+      s.videoUrl ||
+      s.file_url ||
+      s.fileUrl ||
+      s.storage_url ||
+      s.storageUrl ||
+      s.path ||
       "";
 
     if(!media)return null;
@@ -1012,6 +1023,7 @@ onclick="sendComment()"
       user.username ||
       user.user_name ||
       s.username ||
+      s.user_name ||
       "minegram";
 
     const displayName=
@@ -1032,62 +1044,54 @@ onclick="sendComment()"
       s.avatarUrl ||
       "";
 
-    const createdAt=
-      new Date(
-        s.created_at ||
-        s.createdAt ||
-        Date.now()
-      ).getTime();
+    let rawCreated=
+      s.created_at ??
+      s.createdAt ??
+      s.timestamp ??
+      Date.now();
+
+    let createdAt=
+      typeof rawCreated === "number"
+        ? rawCreated
+        : new Date(rawCreated).getTime();
+
+    /* Unix timestamp saniye olarak geldiyse milisaniyeye çevir. */
+    if(createdAt>0 && createdAt<100000000000) createdAt*=1000;
+    if(!Number.isFinite(createdAt) || createdAt<=0) createdAt=Date.now();
+
+    let mediaUrl=String(media).trim();
 
     return {
-
-      id:
+      id:String(
         s.id ||
-        (
-          "story_" +
-          Date.now() +
-          "_" +
-          Math.random()
-            .toString(36)
-            .slice(2)
-        ),
-
-      userId:
+        s.story_id ||
+        ("story_"+Date.now()+"_"+Math.random().toString(36).slice(2))
+      ),
+      userId:String(
         s.user_id ||
         s.userId ||
+        s.ownerUid ||
+        s.owner_uid ||
         profile.id ||
         user.id ||
-        "",
-
-      username:
-        String(username)
-          .replace(/^@/,"")
-          .trim(),
-
-      displayName:
-        displayName,
-
-      avatar:
-        avatar,
-
-      media:
-        media,
-
-      type:
+        user.uid ||
+        ""
+      ),
+      username:String(username).replace(/^@/,"").trim(),
+      displayName:String(displayName),
+      avatar:String(avatar || ""),
+      media:mediaUrl,
+      type:String(
         s.media_type ||
         s.mediaType ||
         s.type ||
-        "",
-
-      createdAt:
-        createdAt,
-
+        ""
+      ),
+      createdAt:createdAt,
       commentsEnabled:
         s.comments_enabled !== false &&
         s.commentsEnabled !== false
-
     };
-
   }
 
 
@@ -1249,91 +1253,65 @@ onclick="sendComment()"
   async function loadStories(){
 
     if(loadingStories)return;
-
     loadingStories=true;
 
     try{
+      const result=await api("/stories");
 
-      const result=
-        await api("/stories");
+      /* Android uygulamasının kabul ettiği tüm cevap biçimleri. */
+      let list=[];
 
-      const list=
-        Array.isArray(result)
-          ? result
-          : (
-              Array.isArray(result?.stories)
-                ? result.stories
-                : []
-            );
+      if(Array.isArray(result)){
+        list=result;
+      }else if(Array.isArray(result?.stories)){
+        list=result.stories;
+      }else if(Array.isArray(result?.data)){
+        list=result.data;
+      }else if(Array.isArray(result?.results)){
+        list=result.results;
+      }else if(Array.isArray(result?.items)){
+        list=result.items;
+      }else if(result?.story && typeof result.story === "object"){
+        list=[result.story];
+      }else if(result && typeof result === "object" && (
+        result.media_url || result.mediaUrl || result.media || result.url ||
+        result.image_url || result.imageUrl || result.video_url || result.videoUrl
+      )){
+        list=[result];
+      }
 
-      stories=
-        list
-          .map(normalizeStory)
-          .filter(Boolean);
+      const normalized=list.map(normalizeStory).filter(Boolean);
 
+      stories=normalized;
       cleanStories();
-
       buildStoryGroups();
-
       renderStoryBar();
 
       try{
-
-        localStorage.setItem(
-          "minegram_story_v2",
-          JSON.stringify(stories)
-        );
-
+        localStorage.setItem("minegram_story_v2",JSON.stringify(stories));
       }catch(e){}
 
+      return stories;
+
     }catch(error){
+      console.error("STORY LOAD ERROR:",error);
 
-      console.error(
-        "STORY LOAD ERROR:",
-        error
-      );
-
-      /*
-        Sunucu geçici olarak cevap vermezse
-        eski local kayıtları göster.
-      */
-
+      /* Sunucu geçici olarak cevap vermezse son çalışan listeyi koru. */
       try{
-
-        const local=
-          JSON.parse(
-            localStorage.getItem(
-              "minegram_story_v2"
-            ) || "[]"
-          );
-
+        const local=JSON.parse(localStorage.getItem("minegram_story_v2")||"[]");
         if(Array.isArray(local)){
-
-          stories=
-            local
-              .map(normalizeStory)
-              .filter(Boolean);
-
+          stories=local.map(normalizeStory).filter(Boolean);
           cleanStories();
-
           buildStoryGroups();
-
           renderStoryBar();
-
         }
+      }catch(e){}
 
-      }catch(e){
-
-        stories=[];
-
-      }
+      return stories;
 
     }finally{
-
       loadingStories=false;
-
     }
-
   }
 
 
@@ -1848,6 +1826,8 @@ if(plusButton){
           );
 
         }
+
+        return uploaded;
 
       }else{
 
@@ -2846,7 +2826,9 @@ if(plusButton){
 
       }
 
-      // Hepsi bittikten sonra sadece 1 kere yenile
+      // Hepsi bittikten sonra sunucudaki gerçek listeyi çek.
+      // Böylece Android uygulaması ile web aynı story kaynağını kullanır.
+      await loadStories();
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
