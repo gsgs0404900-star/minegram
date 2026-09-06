@@ -2767,20 +2767,21 @@ app.get(
   auth,
   async (req, res) => {
     try {
+      const admin = adminClient();
+
       const {
         data,
         error
-      } =
-        await req.sb
-          .from("posts")
-          .select("*")
-          .order(
-            "created_at",
-            {
-              ascending: false
-            }
-          )
-          .limit(100);
+      } = await admin
+        .from("posts")
+        .select("*")
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        )
+        .limit(100);
 
       if (error) {
         throw error;
@@ -2788,12 +2789,18 @@ app.get(
 
       res.json(
         await hydratePosts(
-          req.sb,
+          admin,
           data || [],
           req.user.id
         )
       );
+
     } catch (e) {
+      console.error(
+        "FEED ERROR:",
+        e
+      );
+
       res.status(500).json({
         error:
           e.message
@@ -2801,7 +2808,6 @@ app.get(
     }
   }
 );
-
 
 /* =========================================================
    HIGHLIGHTS
@@ -3475,6 +3481,7 @@ app.delete(
     }
   }
 );
+
 
 /* =========================================================
    STORIES CREATE - FIXED
