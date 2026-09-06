@@ -331,6 +331,15 @@ async function findProfile(
     throw error;
   }
 
+  // profiles tablosunda eski hesap kaydı kalmış olsa bile,
+  // Supabase Auth hesabı silinmişse bu profil artık sitede görünmemeli.
+  if (!data) return null;
+
+  const authId = data.auth_user_id || data.id;
+  if (!authId || !(await isAuthUserActive(authId))) {
+    return null;
+  }
+
   return data;
 }
 
