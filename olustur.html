@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -8,9 +7,7 @@
 <title>Oluştur - Minegram</title>
 
 <style>
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 html,body{
   margin:0;
@@ -31,10 +28,6 @@ body{
   min-height:100vh;
   background:#000;
 }
-
-/* =========================
-   ÜST BAR
-========================= */
 
 .top{
   height:70px;
@@ -66,19 +59,11 @@ body{
   padding:0;
 }
 
-/* =========================
-   SAYFA
-========================= */
-
 .page{
   width:min(680px,100%);
   margin:0 auto;
   padding:22px 20px 40px;
 }
-
-/* =========================
-   DOSYA SEÇME
-========================= */
 
 .picker{
   width:100%;
@@ -114,10 +99,6 @@ body{
   color:#888;
 }
 
-/* =========================
-   ÖNİZLEME
-========================= */
-
 .preview{
   width:100%;
   height:100%;
@@ -127,10 +108,6 @@ body{
   object-fit:contain;
   display:block;
 }
-
-/* =========================
-   AÇIKLAMA
-========================= */
 
 .field{
   width:100%;
@@ -155,10 +132,6 @@ body{
   border-color:#4b99d2;
 }
 
-/* =========================
-   PAYLAŞ
-========================= */
-
 .btn{
   width:100%;
   height:48px;
@@ -180,28 +153,18 @@ body{
   cursor:not-allowed;
 }
 
-/* =========================
-   ALT MENÜ
-   ARA.HTML İLE AYNI
-========================= */
-
 .nav{
   position:fixed;
   left:0;
   right:0;
   bottom:0;
-
   width:100%;
   height:76px;
-
   background:#121018;
   border-top:1px solid #201d27;
-
   display:flex;
   align-items:stretch;
-
   z-index:9999;
-
   padding:
     5px
     max(8px, calc((100% - 760px) / 2))
@@ -210,35 +173,25 @@ body{
 
 .nav a{
   flex:1 1 0;
-
   height:66px;
-
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-
   gap:3px;
-
   color:#ddd;
   text-decoration:none;
-
   font-size:9px;
-
   min-width:0;
-
   -webkit-tap-highlight-color:transparent;
 }
 
 .nav-icon{
   width:45px;
   height:32px;
-
   border-radius:18px;
-
   display:grid;
   place-items:center;
-
   flex:none;
 }
 
@@ -249,7 +202,6 @@ body{
 .svg{
   width:21px;
   height:21px;
-
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
@@ -257,9 +209,25 @@ body{
   stroke-linejoin:round;
 }
 
-/* =========================
-   MOBİL
-========================= */
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:92px;
+  transform:translateX(-50%);
+  background:#25232a;
+  color:#fff;
+  padding:10px 16px;
+  border-radius:20px;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+  z-index:10000;
+  white-space:nowrap;
+  max-width:90%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
 @media(max-width:699px){
 
@@ -275,7 +243,6 @@ body{
 
   .nav{
     height:76px;
-
     padding:
       5px
       8px
@@ -296,302 +263,157 @@ body{
   }
 }
 </style>
-
 </head>
 
 <body>
 
 <div class="app">
 
-  <!-- =========================
-       ÜST BAR
-  ========================== -->
+<header class="top">
 
-  <header class="top">
+  <button
+    class="back"
+    type="button"
+    onclick="goBack()"
+  >
+    ‹
+  </button>
 
-    <button
-      class="back"
-      type="button"
-      onclick="location.href='index.html'"
-    >
-      ‹
-    </button>
+  <b>Yeni Gönderi</b>
 
-    <b>Yeni Gönderi</b>
+</header>
 
-  </header>
+<main class="page">
 
+  <div
+    id="picker"
+    class="picker"
+    onclick="openFilePicker()"
+  >
 
-  <!-- =========================
-       OLUŞTUR
-  ========================== -->
+    <div id="pickerContent">
 
-  <main class="page">
+      <span>＋</span>
 
-    <div
-      id="picker"
-      class="picker"
-      onclick="openFilePicker()"
-    >
+      <br>
 
-      <div id="pickerContent">
+      <b>Fotoğraf / Video seç</b>
 
-        <span>＋</span>
-
-        <br>
-
-        <b>Fotoğraf / Video seç</b>
-
-        <small>
-          Galeriyi açmak için dokun
-        </small>
-
-      </div>
+      <small>
+        Galeriyi açmak için dokun
+      </small>
 
     </div>
 
+  </div>
 
-    <input
-      id="file"
-      type="file"
-      accept="image/*,video/*"
-      hidden
-    >
+  <input
+    id="file"
+    type="file"
+    accept="image/*,video/*"
+    hidden
+  >
 
+  <textarea
+    id="cap"
+    class="field"
+    placeholder="Açıklama / etiket"
+  ></textarea>
 
-    <textarea
-      id="cap"
-      class="field"
-      placeholder="Açıklama / etiket"
-    ></textarea>
+  <button
+    id="postBtn"
+    class="btn"
+    type="button"
+    onclick="post()"
+  >
+    Paylaş
+  </button>
 
-
-    <button
-      id="postBtn"
-      class="btn"
-      type="button"
-      onclick="post()"
-    >
-      Paylaş
-    </button>
-
-  </main>
+</main>
 
 </div>
 
-
-<!-- =========================
-     ALT MENÜ
-========================= -->
-
 <nav class="nav">
 
-  <!-- ANA SAYFA -->
+<a href="index.html">
 
-  <a href="index.html">
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+</svg>
+</span>
 
-    <span class="nav-icon">
+<span>Ana Sayfa</span>
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
+</a>
 
-        <path
-          d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"
-        />
+<a href="ara.html">
 
-      </svg>
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="6.5"/>
+<path d="m16 16 5 5"/>
+</svg>
+</span>
 
-    </span>
+<span>Ara</span>
 
-    <span>Ana Sayfa</span>
+</a>
 
-  </a>
+<a class="active" href="olustur.html">
 
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<rect x="4" y="4" width="16" height="16" rx="4"/>
+<path d="M12 8v8"/>
+<path d="M8 12h8"/>
+</svg>
+</span>
 
-  <!-- ARA -->
+<span>Oluştur</span>
 
-  <a href="ara.html">
+</a>
 
-    <span class="nav-icon">
+<a href="reels.html">
 
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+<path d="M3 9h18"/>
+<path d="M8 4l3 5"/>
+<path d="M13 4l3 5"/>
+</svg>
+</span>
 
-        <circle
-          cx="11"
-          cy="11"
-          r="6.5"
-        />
+<span>Reels</span>
 
-        <path
-          d="m16 16 5 5"
-        />
+</a>
 
-      </svg>
+<a href="profile.html">
 
-    </span>
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<circle cx="12" cy="8" r="3.5"/>
+<path d="M5 20a7 7 0 0 1 14 0"/>
+</svg>
+</span>
 
-    <span>Ara</span>
+<span>Profil</span>
 
-  </a>
-
-
-  <!-- OLUŞTUR -->
-
-  <a
-    class="active"
-    href="olustur.html"
-  >
-
-    <span class="nav-icon">
-
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
-
-        <rect
-          x="4"
-          y="4"
-          width="16"
-          height="16"
-          rx="4"
-        />
-
-        <path
-          d="M12 8v8"
-        />
-
-        <path
-          d="M8 12h8"
-        />
-
-      </svg>
-
-    </span>
-
-    <span>Oluştur</span>
-
-  </a>
-
-
-  <!-- REELS -->
-
-  <a href="reels.html">
-
-    <span class="nav-icon">
-
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
-
-        <rect
-          x="3"
-          y="4"
-          width="18"
-          height="16"
-          rx="2"
-        />
-
-        <path
-          d="M3 9h18"
-        />
-
-        <path
-          d="M8 4l3 5"
-        />
-
-        <path
-          d="M13 4l3 5"
-        />
-
-      </svg>
-
-    </span>
-
-    <span>Reels</span>
-
-  </a>
-
-
-  <!-- PROFİL -->
-
-  <a href="profile.html">
-
-    <span class="nav-icon">
-
-      <svg
-        class="svg"
-        viewBox="0 0 24 24"
-      >
-
-        <circle
-          cx="12"
-          cy="8"
-          r="3.5"
-        />
-
-        <path
-          d="M5 20a7 7 0 0 1 14 0"
-        />
-
-      </svg>
-
-    </span>
-
-    <span>Profil</span>
-
-  </a>
+</a>
 
 </nav>
 
-
-<!-- =========================
-     TOAST
-========================= -->
-
-<div
-  id="toast"
-  class="toast"
-  style="
-    position:fixed;
-    left:50%;
-    bottom:92px;
-    transform:translateX(-50%);
-    background:#25232a;
-    color:#fff;
-    padding:10px 16px;
-    border-radius:20px;
-    font-size:12px;
-    opacity:0;
-    pointer-events:none;
-    transition:.2s;
-    z-index:10000;
-    white-space:nowrap;
-    max-width:90%;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  "
-></div>
-
+<div id="toast" class="toast"></div>
 
 <script>
 
-/* =========================
-   API
-========================= */
-
 const API="/api";
-
 
 let token =
   localStorage.getItem("minegram_token") ||
   localStorage.getItem("minegram_supabase_token") ||
+  localStorage.getItem("token") ||
   null;
 
 
@@ -601,96 +423,91 @@ let token =
 
 function toast(message){
 
-  const el =
-    document.getElementById("toast");
+  const el=document.getElementById("toast");
 
   if(!el)return;
 
-  el.textContent =
-    String(message || "");
+  el.textContent=String(message || "");
 
   el.style.opacity="1";
 
   clearTimeout(window.__toast);
 
-  window.__toast =
-    setTimeout(() => {
-
-      el.style.opacity="0";
-
-    },2200);
+  window.__toast=setTimeout(()=>{
+    el.style.opacity="0";
+  },2500);
 
 }
 
 
 /* =========================
-   DOSYA SEÇME
+   GERİ
+========================= */
+
+function goBack(){
+
+  if(history.length>1){
+    history.back();
+  }else{
+    location.href="index.html";
+  }
+
+}
+
+
+/* =========================
+   DOSYA
 ========================= */
 
 function openFilePicker(){
 
-  const fileInput =
-    document.getElementById("file");
+  const input=document.getElementById("file");
 
-  if(!fileInput)return;
-
-  fileInput.click();
+  if(input){
+    input.click();
+  }
 
 }
 
 
-/* =========================
-   DOSYA SEÇİLİNCE
-========================= */
-
 document
-  .getElementById("file")
-  .addEventListener(
-    "change",
-    previewFile
-  );
+.getElementById("file")
+.addEventListener("change",previewFile);
 
 
 /* =========================
-   DOSYA ÖNİZLEME
+   ÖNİZLEME
 ========================= */
 
 function previewFile(){
 
-  const fileInput =
-    document.getElementById("file");
+  const input=document.getElementById("file");
+  const picker=document.getElementById("picker");
 
-  const picker =
-    document.getElementById("picker");
+  const f=input.files && input.files[0];
 
-  const f =
-    fileInput.files &&
-    fileInput.files[0];
+  if(!f)return;
 
-  if(!f){
+
+  if(f.size>100*1024*1024){
+
+    input.value="";
+
+    toast("Dosya çok büyük. Maksimum 100 MB.");
 
     return;
 
   }
 
 
-  /* Eski önizlemeyi kaldır */
-
-  const old =
-    document.getElementById(
-      "pickerPreview"
-    );
+  const old=document.getElementById("pickerPreview");
 
   if(old){
 
     if(old.src){
 
       try{
-
-        URL.revokeObjectURL(
-          old.src
-        );
-
+        URL.revokeObjectURL(old.src);
       }catch(e){}
 
     }
@@ -700,40 +517,17 @@ function previewFile(){
   }
 
 
-  /* Dosya boyutu kontrolü */
-
-  const maxSize =
-    100 * 1024 * 1024;
-
-  if(f.size > maxSize){
-
-    fileInput.value="";
-
-    toast(
-      "Dosya çok büyük. Maksimum 100 MB."
-    );
-
-    return;
-
-  }
-
-
-  const url =
-    URL.createObjectURL(f);
-
+  const url=URL.createObjectURL(f);
 
   let tag;
 
 
   if(
-    f.type &&
-    f.type.startsWith("video/")
+    String(f.type || "")
+      .startsWith("video/")
   ){
 
-    tag =
-      document.createElement(
-        "video"
-      );
+    tag=document.createElement("video");
 
     tag.controls=true;
     tag.muted=true;
@@ -742,47 +536,19 @@ function previewFile(){
 
   }else{
 
-    tag =
-      document.createElement(
-        "img"
-      );
+    tag=document.createElement("img");
 
-    tag.alt =
-      "Gönderi önizleme";
+    tag.alt="Gönderi önizleme";
 
   }
 
 
-  tag.id =
-    "pickerPreview";
-
-  tag.className =
-    "preview";
-
-  tag.src =
-    url;
-
-
-  /* Picker'ın içeriğini temizle */
+  tag.id="pickerPreview";
+  tag.className="preview";
+  tag.src=url;
 
   picker.innerHTML="";
-
-
-  /* Önizlemeyi ekle */
-
   picker.appendChild(tag);
-
-
-  /* Kullanıcıya bilgi */
-
-  console.log(
-    "[MINEGRAM FILE]",
-    {
-      name:f.name,
-      type:f.type,
-      size:f.size
-    }
-  );
 
 }
 
@@ -791,36 +557,22 @@ function previewFile(){
    API
 ========================= */
 
-async function api(
-  path,
-  opt={}
-){
+async function api(path,opt={}){
 
-  const headers = {
+  const headers={
     ...(opt.headers || {})
   };
 
 
   if(token){
 
-    headers.Authorization =
-      "Bearer " + token;
+    headers.Authorization=
+      "Bearer "+token;
 
   }
 
 
-  /*
-   * ÖNEMLİ:
-   * FormData gönderirken Content-Type
-   * elle yazılmıyor.
-   *
-   * Tarayıcı multipart boundary'yi
-   * kendisi oluşturuyor.
-   */
-
-  if(
-    opt.body instanceof FormData
-  ){
+  if(opt.body instanceof FormData){
 
     delete headers["Content-Type"];
     delete headers["content-type"];
@@ -828,9 +580,9 @@ async function api(
   }
 
 
-  const response =
+  const response=
     await fetch(
-      API + path,
+      API+path,
       {
         ...opt,
         headers
@@ -838,39 +590,31 @@ async function api(
     );
 
 
-  const contentType =
-    response.headers.get(
-      "content-type"
-    ) || "";
+  const contentType=
+    response.headers.get("content-type") || "";
 
 
-  let data = {};
+  let data={};
 
 
   if(
-    contentType.includes(
-      "application/json"
-    )
+    contentType.includes("application/json")
   ){
 
-    data =
+    data=
       await response
         .json()
-        .catch(() => ({}));
+        .catch(()=>({}));
 
   }else{
 
-    const text =
+    const text=
       await response
         .text()
-        .catch(() => "");
+        .catch(()=>"");
 
     if(text){
-
-      data = {
-        error:text
-      };
-
+      data={error:text};
     }
 
   }
@@ -898,46 +642,29 @@ async function api(
 
 async function post(){
 
-  const fileInput =
-    document.getElementById(
-      "file"
-    );
+  const fileInput=
+    document.getElementById("file");
 
-  const caption =
-    document.getElementById(
-      "cap"
-    );
+  const caption=
+    document.getElementById("cap");
 
-  const button =
-    document.getElementById(
-      "postBtn"
-    );
+  const button=
+    document.getElementById("postBtn");
 
 
-  if(
-    !fileInput ||
-    !caption ||
-    !button
-  ){
-
+  if(!fileInput || !caption || !button){
     return;
-
   }
 
 
-  const f =
+  const f=
     fileInput.files &&
     fileInput.files[0];
 
 
-  const text =
+  const text=
     caption.value.trim();
 
-
-  /*
-   * Hem fotoğraf/video hem de
-   * sadece açıklama destekleniyor.
-   */
 
   if(!f && !text){
 
@@ -950,17 +677,9 @@ async function post(){
   }
 
 
-  /* =========================
-     DOSYA KONTROLÜ
-  ========================= */
-
   if(f){
 
-    const maxSize =
-      100 * 1024 * 1024;
-
-
-    if(f.size > maxSize){
+    if(f.size>100*1024*1024){
 
       toast(
         "Dosya çok büyük. Maksimum 100 MB."
@@ -971,7 +690,7 @@ async function post(){
     }
 
 
-    const type =
+    const type=
       String(f.type || "");
 
 
@@ -991,20 +710,24 @@ async function post(){
   }
 
 
-  /* =========================
-     FORM DATA
-  ========================= */
+  if(!token){
 
-  const formData =
+    toast("Oturum bulunamadı. Tekrar giriş yap.");
+
+    setTimeout(()=>{
+      location.href="giris.html";
+    },900);
+
+    return;
+
+  }
+
+
+  const formData=
     new FormData();
 
 
   if(f){
-
-    /*
-     * Sunucunun beklediği alan:
-     * media
-     */
 
     formData.append(
       "media",
@@ -1015,47 +738,25 @@ async function post(){
   }
 
 
-  /*
-   * Sunucunun beklediği alan:
-   * caption
-   */
-
   formData.append(
     "caption",
     text
   );
 
 
-  /* =========================
-     BUTON
-  ========================= */
-
   button.disabled=true;
-
   button.style.opacity=".6";
-
-  button.textContent =
-    "Paylaşılıyor...";
+  button.textContent="Paylaşılıyor...";
 
 
   try{
 
     console.log(
-      "[MINEGRAM] Gönderi gönderiliyor...",
-      {
-        file:f
-          ? {
-              name:f.name,
-              type:f.type,
-              size:f.size
-            }
-          : null,
-        caption:text
-      }
+      "[MINEGRAM] POST /api/posts başlıyor"
     );
 
 
-    const result =
+    const result=
       await api(
         "/posts",
         {
@@ -1066,55 +767,41 @@ async function post(){
 
 
     console.log(
-      "[MINEGRAM] Gönderi başarılı:",
+      "[MINEGRAM] GÖNDERİ BAŞARILI",
       result
     );
 
 
-    /* =========================
-       FORMU TEMİZLE
-    ========================= */
+    /*
+     * Sunucudan dönen gönderiyi
+     * tarayıcıda da saklıyoruz.
+     */
 
-    caption.value="";
+    try{
 
-    fileInput.value="";
-
-
-    const picker =
-      document.getElementById(
-        "picker"
+      localStorage.setItem(
+        "minegram_last_created_post",
+        JSON.stringify(result)
       );
 
+      localStorage.setItem(
+        "minegram_post_created_at",
+        String(Date.now())
+      );
 
-    if(picker){
+    }catch(e){
 
-      picker.innerHTML = `
-
-        <div id="pickerContent">
-
-          <span>＋</span>
-
-          <br>
-
-          <b>Fotoğraf / Video seç</b>
-
-          <small>
-            Galeriyi açmak için dokun
-          </small>
-
-        </div>
-
-      `;
+      console.warn(
+        "localStorage kayıt hatası",
+        e
+      );
 
     }
 
 
     button.disabled=false;
-
     button.style.opacity="1";
-
-    button.textContent =
-      "Paylaş";
+    button.textContent="Paylaş";
 
 
     toast(
@@ -1123,13 +810,14 @@ async function post(){
 
 
     /*
-     * Ana sayfaya dön
+     * Profil sayfasına dön.
+     * pageshow/load mekanizması profilin
+     * gönderileri tekrar çekmesini sağlar.
      */
 
-    setTimeout(() => {
+    setTimeout(()=>{
 
-      location.href =
-        "index.html";
+      location.href="profile.html?refresh="+Date.now();
 
     },700);
 
@@ -1143,11 +831,8 @@ async function post(){
 
 
     button.disabled=false;
-
     button.style.opacity="1";
-
-    button.textContent =
-      "Paylaş";
+    button.textContent="Paylaş";
 
 
     toast(
@@ -1168,9 +853,7 @@ async function init(){
 
   if(!token){
 
-    location.replace(
-      "giris.html"
-    );
+    location.replace("giris.html");
 
     return;
 
@@ -1179,9 +862,7 @@ async function init(){
 
   try{
 
-    await api(
-      "/me"
-    );
+    await api("/me");
 
   }catch(error){
 
@@ -1199,10 +880,12 @@ async function init(){
       "minegram_supabase_token"
     );
 
-
-    location.replace(
-      "giris.html"
+    localStorage.removeItem(
+      "token"
     );
+
+
+    location.replace("giris.html");
 
   }
 
