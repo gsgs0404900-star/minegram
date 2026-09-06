@@ -3545,63 +3545,97 @@ document.getElementById('highlightDeleteBtn')
 
 };
 
-function renderHighlights(){
+async function firebaseUserDocument(username){
+ const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
+ const d=await r.json();
+ const val=v=>{
+  if(!v)return null;
+  if(v.stringValue!==undefined)return v.stringValue;
+  if(v.integerValue!==undefined)return Number(v.integerValue);
+  if(v.doubleValue!==undefined)return Number(v.doubleValue);
+  if(v.booleanValue!==undefined)return v.booleanValue;
+  if(v.timestampValue!==undefined)return v.timestampValue;
+  if(v.arrayValue)return (v.arrayValue.values||[]).map(val);
+  if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
+  return null;
+ };
+ const wanted=String(username||'').toLowerCase();
+ return (d.documents||[]).map(doc=>{
+  const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
+  return {doc,x};
+ }).find(({x})=>[
+  x.username,x.userName,x.handle,x.emailUsername
+ ].filter(Boolean).some(v=>String(v).toLowerCase()===wanted))||null;
+}
 
- const mine=
- currentProfile&&
- me&&
- String(currentProfile.id)===String(me.id);
+async function loadFirebaseHighlights(username){
+ try{
+  const found=await firebaseUserDocument(username);
+  const raw=found?.x?.highlights;
+  if(!Array.isArray(raw))return [];
+  return raw.map((item,i)=>{
+   if(typeof item==='string')return {title:'Öne çıkan '+(i+1),image:item,type:'image',createdAt:new Date().toISOString()};
+   if(!item||typeof item!=='object')return null;
+   let image=item.image||item.media||item.mediaUrl||item.url||item.base64||item.mediaBase64||'';
+   if(image&&!/^https?:\\/\\//i.test(image)&&!/^data:/i.test(image)&&String(image).length>100){
+    image='data:'+(item.mediaType||item.mimeType||'image/jpeg')+';base64,'+image;
+   }
+   return {...item,image,title:item.title||('Öne çıkan '+(i+1)),type:item.type||'image',createdAt:item.createdAt||new Date().toISOString(),_firebase:true};
+  }).filter(x=>x&&x.image);
+ }catch(e){
+  console.warn('[PROFILE] Firebase öne çıkanlar okunamadı',e);
+  return [];
+ }
+}
 
- const section=
- document.getElementById('highlightsSection');
+async function saveFirebaseHighlights(items){
+ const username=String(currentProfile?.username||'');
+ if(!username)return;
+ const found=await firebaseUserDocument(username);
+ if(!found?.doc?.name)return;
+ const clean=items.map(x=>({
+  mapValue:{fields:{
+   title:{stringValue:String(x.title||'Öne çıkan')},
+   image:{stringValue:String(x.image||'')},
+   type:{stringValue:String(x.type||'image')},
+   createdAt:{stringValue:String(x.createdAt||new Date().toISOString())}
+  }}
+ }));
+ const url='https://firestore.googleapis.com/v1/'+found.doc.name+'?updateMask.fieldPaths=highlights';
+ const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{highlights:{arrayValue:{values:clean}}}})});
+ if(!r.ok)throw new Error('Firebase öne çıkanlar kaydedilemedi');
+}
 
- const box=
- document.getElementById('highlights');
-
+async function renderHighlights(){
+ const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
+ const section=document.getElementById('highlightsSection');
+ const box=document.getElementById('highlights');
  section.hidden=!mine;
-
  if(!mine)return;
-
- const items=getHighlights();
-
- box.innerHTML='';
-
- const add=document.createElement('button');
-
- add.className='highlight add-highlight';
-
- add.innerHTML=
- '<span class="highlight-cover">＋</span>'+
- '<span class="highlight-title">Yeni</span>';
-
- add.onclick=addHighlight;
-
- box.appendChild(add);
-
- items.forEach((item,i)=>{
-
-   const b=document.createElement('button');
-
-   b.className='highlight';
-
-   b.innerHTML=
-   '<span class="highlight-cover">'+
-   (
-     item.image
-     ?'<img src="'+escapeHtml(item.image)+'" alt="">'
-     :'★'
-   )+
-   '</span>'+
-   '<span class="highlight-title">'+
-   escapeHtml(item.title)+
-   '</span>';
-
-   b.onclick=()=>openHighlightView(i);
-
-   box.appendChild(b);
-
+ const local=getHighlights();
+ let remote=[];
+ try{ remote=await loadFirebaseHighlights(currentProfile.username); }catch(e){}
+ const merged=[...remote,...local];
+ const seen=new Set();
+ const items=merged.filter(x=>{
+  const key=String(x?.image||'')+'|'+String(x?.title||'');
+  if(seen.has(key))return false;seen.add(key);return true;
  });
-
+ box.innerHTML='';
+ const add=document.createElement('button');
+ add.className='highlight add-highlight';
+ add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+ add.onclick=addHighlight;
+ box.appendChild(add);
+ items.forEach((item,i)=>{
+  const b=document.createElement('button'); b.className='highlight';
+  b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
+  b.onclick=()=>openHighlightView(i);
+  box.appendChild(b);
+ });
+ storyItems=items;
 }
 
 async function addHighlight(){
@@ -3637,7 +3671,8 @@ async function addHighlight(){
        });
 
        saveHighlights(items);
-       renderHighlights();
+       try{ await saveFirebaseHighlights(items); }catch(e){ console.warn('[PROFILE] Öne çıkan Firebase kaydı başarısız',e); }
+       await renderHighlights();
        toast('Öne çıkan eklendi');
 
      };
@@ -4078,7 +4113,7 @@ try{
 const merged=[...apiPosts,...firebasePosts];
 const seen=new Set();
 const posts=merged.filter(p=>{
-  const key=String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
+  const key=String(p?.username||p?.userName||p?.authorUsername||username||'').toLowerCase()+'_'+String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
   if(seen.has(key))return false;seen.add(key);return true;
 }).sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
 
