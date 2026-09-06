@@ -115,10 +115,11 @@ body{
 .story-prev,.story-next{position:absolute;top:0;bottom:0;width:35%;border:0;background:transparent;color:transparent;cursor:pointer;z-index:2}
 .story-prev{left:0}.story-next{right:0}
 .story-progress{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:4px;z-index:4}
-.story-progress span{height:3px;flex:1;background:rgba(255,255,255,.35);border-radius:10px}.story-progress span.active{background:#fff}
+.story-progress span{height:3px;flex:1;background:rgba(255,255,255,.35);border-radius:10px;overflow:hidden;position:relative}.story-progress span .story-progress-fill{display:block;height:100%;width:0%;background:#fff;border-radius:10px;transform-origin:left center}.story-progress span.done .story-progress-fill{width:100%}
 
 
 .story-more{position:absolute;top:18px;right:68px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer;z-index:5}
+.story-header{position:absolute;top:18px;left:58px;right:150px;z-index:5;display:flex;align-items:center;gap:8px;pointer-events:none}.story-header-avatar{width:36px;height:36px;border-radius:50%;background:#2D7FF9;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:700;flex:none}.story-header-info{display:flex;flex-direction:column;min-width:0}.story-header-user{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.story-header-time{font-size:10px;color:rgba(255,255,255,.85);white-space:nowrap}
 .story-more-menu{display:none;position:absolute;left:0;right:0;bottom:0;width:100%;max-height:78vh;overflow-y:auto;background:rgba(0,0,0,.96);border-top:1px solid rgba(255,255,255,.10);border-radius:18px 18px 0 0;padding:14px;z-index:20;box-shadow:0 -12px 35px rgba(0,0,0,.65)}
 .story-more-menu.open{display:block}
 .story-more-menu:before{content:"";display:block;width:42px;height:4px;margin:0 auto 14px;border-radius:99px;background:#555}
@@ -2907,7 +2908,14 @@ if(plusButton){
      TIMER
   ======================================================= */
 
+  let storyProgressRaf=null;
+
+  function stopStoryProgressAnimation(){
+    if(storyProgressRaf){ cancelAnimationFrame(storyProgressRaf); storyProgressRaf=null; }
+  }
+
   function clearTimer(){
+    stopStoryProgressAnimation();
 
     if(storyTimer){
 
@@ -2938,41 +2946,23 @@ if(plusButton){
   ======================================================= */
 
   function renderProgress(){
+    const progress=document.getElementById("storyProgress");
+    if(!progress) return;
+    const group=storyGroups[storyGroupIndex];
+    if(!group) return;
+    progress.innerHTML=group.stories.map((_,i)=>`<span class="${i<storyIndex?"done":i===storyIndex?"active":""}"><i class="story-progress-fill"></i></span>`).join("");
+    updateStoryProgressBar(0);
+  }
 
-    const progress=
-      document.getElementById(
-        "storyProgress"
-      );
-
-    if(!progress)
-      return;
-
-
-    const group=
-      storyGroups[
-        storyGroupIndex
-      ];
-
-    if(!group)
-      return;
-
-
-    progress.innerHTML=
-      group.stories
-        .map(
-          (_,i)=>
-            `
-              <span
-                class="${
-                  i<=storyIndex
-                    ? "active"
-                    : ""
-                }"
-              ></span>
-            `
-        )
-        .join("");
-
+  function updateStoryProgressBar(value){
+    const progress=document.getElementById("storyProgress");
+    if(!progress) return;
+    const bars=progress.querySelectorAll("span");
+    bars.forEach((bar,i)=>{
+      const fill=bar.querySelector(".story-progress-fill");
+      if(!fill) return;
+      fill.style.width=i<storyIndex?"100%":i===storyIndex?`${Math.max(0,Math.min(1,value))*100}%`:"0%";
+    });
   }
 
 
@@ -2983,6 +2973,7 @@ if(plusButton){
   function renderViewer(){
 
     clearTimer();
+
 
     const viewer=
       document.getElementById(
@@ -3055,6 +3046,14 @@ if(plusButton){
 
     renderProgress();
 
+    const header=document.getElementById("storyHeader");
+    if(header){
+      const username=String(item.username||item.userId||"").replace(/^@/,"").trim()||"Minegram";
+      const created=Number(item.createdAt||0);
+      const age=Math.max(0,Date.now()-created);
+      const timeText=created?new Date(created).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" • "+(age<60000?"şimdi":age<3600000?Math.floor(age/60000)+" dk önce":Math.floor(age/3600000)+" sa önce"):"şimdi";
+      header.innerHTML=`<div class="story-header-avatar">${esc(username.charAt(0).toUpperCase())}</div><div class="story-header-info"><div class="story-header-user">@${esc(username)}</div><div class="story-header-time">${esc(timeText)}</div></div>`;
+    }
 
     wrap.innerHTML="";
 
@@ -3195,11 +3194,15 @@ if(plusButton){
       );
 
 
-      storyTimer=
-        setTimeout(
-          nextStory,
-          5000
-        );
+      updateStoryProgressBar(0);
+      const started=performance.now();
+      const tick=()=>{
+        const value=(performance.now()-started)/5000;
+        updateStoryProgressBar(value);
+        if(value<1) storyProgressRaf=requestAnimationFrame(tick);
+      };
+      storyProgressRaf=requestAnimationFrame(tick);
+      storyTimer=setTimeout(nextStory,5000);
 
     }
 
