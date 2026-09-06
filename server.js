@@ -147,7 +147,7 @@ async function getFirebasePublicStories() {
     return {
       id: String(x.storyId || x.id || doc.name.split("/").pop()),
       username: x.username || "",
-      media_url: x.mediaUrl || x.mediaUri || x.media || "",
+      media_url: x.mediaUrl || x.mediaUri || x.media || (x.base64 ? `data:${x.mediaType || "image/jpeg"};base64,${x.base64}` : ""),
       media_type: x.mediaType || "image/jpeg",
       created_at: new Date(Number(x.createdAt) || Date.parse(x.createdAt || "") || Date.now()).toISOString(),
       type: "public_story",
@@ -228,7 +228,17 @@ async function deletePostFromFirebase(postId, profile) {
     const username = String(profile?.username || "").trim().toLowerCase();
     if (!username || !postId) return;
     const documentId = `minegram_public_post_${username}_${postId}`;
-    await firebaseRest(`minegramPublicPosts/${encodeURIComponent(documentId)}`, { method: "DELETE" });
+    await firebaseRest(`minegramPublicPosts/${encodeURIComponent(documentId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ fields: {
+        type: fsString("deleted_post"),
+        postId: fsInt(postId),
+        username: fsString(profile?.username || ""),
+        usernameLower: fsString(username),
+        ownerUid: fsString(profile?.id || ""),
+        deletedAt: fsInt(Date.now())
+      }})
+    });
   } catch (e) {
     console.error("MINEGRAM FIREBASE POST DELETE ERROR:", e?.message || e);
   }
