@@ -37,6 +37,194 @@ const SUPABASE_SERVICE_ROLE_KEY =
 
 const BUCKET = "media";
 
+
+/* =========================================================
+   MINEGRAM CROSS-PLATFORM FIREBASE MIRROR
+   Web/Supabase writes are mirrored to the same Firestore
+   collections consumed by the Android application.
+========================================================= */
+const FIREBASE_PROJECT_ID = "mim-ea133";
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+function fsString(value) {
+  return { stringValue: String(value ?? "") };
+}
+function fsInt(value) {
+  return { integerValue: String(Math.trunc(Number(value) || 0)) };
+}
+function fsBool(value) {
+  return { booleanValue: Boolean(value) };
+}
+
+async function firebaseRest(path, options = {}) {
+  const response = await fetch(`${FIRESTORE_BASE}/${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  const text = await response.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!response.ok) {
+    throw new Error(body?.error?.message || `Firebase REST ${response.status}`);
+  }
+  return body;
+}
+
+async function mirrorPostToFirebase(post, profile) {
+  try {
+    const username = String(profile?.username || "").trim();
+    if (!username || !post?.id) return;
+    const documentId = `minegram_public_post_${username.toLowerCase()}_${post.id}`;
+    const fields = {
+      postId: fsInt(post.id),
+      username: fsString(username),
+      usernameLower: fsString(username.toLowerCase()),
+      ownerUid: fsString(profile?.id || post.user_id || ""),
+      text: fsString(post.caption || ""),
+      caption: fsString(post.caption || ""),
+      likes: fsInt(post.likes || 0),
+      mediaUri: fsString(post.media_url || ""),
+      media: fsString(post.media_url || ""),
+      mediaType: fsString(post.media_type || ""),
+      mediaUrl: fsString(post.media_url || ""),
+      music: fsString(""),
+      commentCount: fsInt(post.comment_count || 0),
+      createdAt: fsInt(Date.parse(post.created_at || "") || Date.now()),
+      type: fsString("public_post"),
+      sender: fsString(username),
+      recipient: fsString("__minegram_public_posts__"),
+      conversationKey: fsString("__minegram_public_posts__")
+    };
+    await firebaseRest(`minegramPublicPosts/${encodeURIComponent(documentId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ fields })
+    });
+    console.log("MINEGRAM FIREBASE POST MIRROR OK:", documentId);
+  } catch (e) {
+    // Supabase remains authoritative; a mirror failure must not fail the web request.
+    console.error("MINEGRAM FIREBASE POST MIRROR ERROR:", e?.message || e);
+  }
+}
+
+async function mirrorStoryToFirebase(story, profile) {
+  try {
+    const username = String(profile?.username || "").trim();
+    if (!username || !story?.id) return;
+    const documentId = `story_${username.toLowerCase()}_${story.id}`;
+    const createdAt = Date.parse(story.created_at || "") || Date.now();
+    const fields = {
+      id: fsString(documentId),
+      storyId: fsString(String(story.id)),
+      username: fsString(username),
+      usernameLower: fsString(username.toLowerCase()),
+      mediaUri: fsString(story.media_url || ""),
+      mediaUrl: fsString(story.media_url || ""),
+      media: fsString(story.media_url || ""),
+      base64: fsString(""),
+      mediaType: fsString(story.media_type || "image/jpeg"),
+      createdAt: fsInt(createdAt),
+      type: fsString("public_story"),
+      sender: fsString(username),
+      recipient: fsString("__minegram_public_stories__")
+    };
+    await firebaseRest(`users/${encodeURIComponent(documentId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ fields })
+    });
+    console.log("MINEGRAM FIREBASE STORY MIRROR OK:", documentId);
+  } catch (e) {
+    console.error("MINEGRAM FIREBASE STORY MIRROR ERROR:", e?.message || e);
+  }
+}
+
+async function deletePostFromFirebase(postId, profile) {
+  try {
+    const username = String(profile?.username || "").trim().toLowerCase();
+    if (!username || !postId) return;
+    const documentId = `minegram_public_post_${username}_${postId}`;
+    await firebaseRest(`minegramPublicPosts/${encodeURIComponent(documentId)}`, { method: "DELETE" });
+  } catch (e) {
+    console.error("MINEGRAM FIREBASE POST DELETE ERROR:", e?.message || e);
+  }
+}
+
+async function deleteHighlightFromFirebase(highlightId, profile) {
+  try {
+    const username = String(profile?.username || "").trim();
+    if (!username || !highlightId) return;
+    const data = await firebaseRest(`users?pageSize=300`, { method: "GET" });
+    const found = (data?.documents || []).find(doc => {
+      const f = doc.fields || {};
+      return [f.username, f.userName, f.handle, f.emailUsername]
+        .map(v => v?.stringValue?.toLowerCase()).filter(Boolean)
+        .includes(username.toLowerCase());
+    });
+    if (!found?.name) return;
+    const existing = found.fields?.highlights?.arrayValue?.values || [];
+    const filtered = existing.filter(v => v?.mapValue?.fields?.id?.stringValue !== String(highlightId));
+    await firebaseRest(found.name.replace(`${FIRESTORE_BASE}/`, "") + `?updateMask.fieldPaths=highlights`, {
+      method: "PATCH",
+      body: JSON.stringify({ fields: { highlights: { arrayValue: { values: filtered } } } })
+    });
+  } catch (e) {
+    console.error("MINEGRAM FIREBASE HIGHLIGHT DELETE ERROR:", e?.message || e);
+  }
+}
+
+async function mirrorHighlightToFirebase(highlight, profile) {
+  try {
+    const username = String(profile?.username || "").trim();
+    if (!username || !highlight?.id) return;
+    const listUrl = `users?pageSize=300`;
+    const data = await firebaseRest(listUrl, { method: "GET" });
+    const documents = data?.documents || [];
+    const wanted = username.toLowerCase();
+    const found = documents.find(doc => {
+      const f = doc.fields || {};
+      return [f.username, f.userName, f.handle, f.emailUsername]
+        .map(v => v?.stringValue?.toLowerCase())
+        .filter(Boolean)
+        .includes(wanted);
+    });
+    if (!found?.name) return;
+
+    const existing = found.fields?.highlights?.arrayValue?.values || [];
+    const item = {
+      mapValue: { fields: {
+        id: fsString(String(highlight.id)),
+        title: fsString(highlight.title || "Öne çıkan"),
+        image: fsString(highlight.media_url || ""),
+        uri: fsString(highlight.media_url || ""),
+        media: fsString(highlight.media_url || ""),
+        mediaUrl: fsString(highlight.media_url || ""),
+        type: fsString(highlight.media_type || "image"),
+        mediaType: fsString(highlight.media_type || "image"),
+        createdAt: fsString(highlight.created_at || new Date().toISOString())
+      }}
+    };
+    const merged = existing.filter(v => {
+      const id = v?.mapValue?.fields?.id?.stringValue;
+      return id !== String(highlight.id);
+    });
+    merged.push(item);
+    const url = `${found.name}?updateMask.fieldPaths=highlights`;
+    await firebaseRest(url.replace(`${FIRESTORE_BASE}/`, ""), {
+      method: "PATCH",
+      body: JSON.stringify({
+        fields: {
+          highlights: { arrayValue: { values: merged.slice(-20) } }
+        }
+      })
+    });
+    console.log("MINEGRAM FIREBASE HIGHLIGHT MIRROR OK:", highlight.id);
+  } catch (e) {
+    console.error("MINEGRAM FIREBASE HIGHLIGHT MIRROR ERROR:", e?.message || e);
+  }
+}
+
 const CONFIG_OK = Boolean(
   SUPABASE_URL && SUPABASE_KEY
 );
@@ -2880,6 +3068,8 @@ app.post(
         throw error;
       }
 
+      await mirrorHighlightToFirebase(data, req.user);
+
       res.json({
         ok: true,
         id: data.id,
@@ -2938,6 +3128,8 @@ app.patch(
         throw error;
       }
 
+      await mirrorHighlightToFirebase(data, req.user);
+
       res.json({
         ok: true,
         ...data
@@ -2984,6 +3176,8 @@ app.delete(
       if (error) {
         throw error;
       }
+
+      await deleteHighlightFromFirebase(req.params.id, req.user);
 
       res.json({
         ok: true,
@@ -3110,6 +3304,8 @@ app.post(
         }
       );
 
+      await mirrorPostToFirebase(data, req.user);
+
       res.json({
         ...data,
 
@@ -3149,6 +3345,7 @@ app.post(
   upload.fields([{ name: "story", maxCount: 1 }, { name: "media", maxCount: 1 }]),
   async (req, res) => {
     try {
+      const reqFiles = req.files || {};
       const reqFile = reqFiles?.story?.[0] || reqFiles?.media?.[0] || null;
       if (!reqFile) {
         return res.status(400).json({
@@ -3213,6 +3410,8 @@ app.post(
       if (result.error) {
         throw result.error;
       }
+
+      await mirrorStoryToFirebase(result.data, req.user);
 
       res.json(
         result.data
@@ -3412,6 +3611,8 @@ app.delete(
       console.log(
         `[POST DELETE] ${postId} -> user ${req.user.id}`
       );
+
+      await deletePostFromFirebase(postId, req.user);
 
       return res.json({
         ok: true,
