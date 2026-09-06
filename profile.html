@@ -3032,31 +3032,47 @@ body{
 </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
-/* FIREBASE SENKRON AYARI
-   Android uygulamasinin kullandigi Firebase projesinin web config'ini buraya gir.
-   google-services.json dosyasini verirsen bu bolumu ben doldurabilirim. */
-const MINEGRAM_FIREBASE_CONFIG = window.MINEGRAM_FIREBASE_CONFIG || {
-  apiKey: "BURAYA_API_KEY",
-  authDomain: "BURAYA_PROJECT_ID.firebaseapp.com",
-  projectId: "BURAYA_PROJECT_ID",
-  storageBucket: "BURAYA_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "BURAYA_SENDER_ID",
-  appId: "BURAYA_APP_ID"
+const MINEGRAM_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBgJjz0LOWY2DO55h3sxsovBIlBOGjJwIo",
+  projectId: "mim-ea133",
+  storageBucket: "mim-ea133.firebasestorage.app",
+  appId: "1:303525353436:android:14e4c8fffa956e4a942119"
 };
+if (!firebase.apps.length) firebase.initializeApp(MINEGRAM_FIREBASE_CONFIG);
+const minegramDb = firebase.firestore();
+async function ensureMinegramFirebaseAuth(){
+  if (firebase.auth().currentUser) return;
+  try { await firebase.auth().signInAnonymously(); } catch(e) { console.warn('Firebase web auth:', e); }
+}
+async function loadMinegramFirebasePosts(username){
+  await ensureMinegramFirebaseAuth();
+  const wanted = String(username||'').trim().toLowerCase();
+  if (!wanted) return [];
+  const snap = await minegramDb.collection('minegramPublicPosts')
+    .where('type','==','public_post').get();
+  return snap.docs.map(d=>{
+    const x=d.data()||{};
+    let media=x.mediaUri||x.mediaUrl||'';
+    if (x.mediaBase64) {
+      const mt=String(x.mediaType||'image/jpeg');
+      media='data:'+mt+';base64,'+x.mediaBase64;
+    }
+    return {
+      ...x,
+      id: x.postId ?? x.id ?? d.id,
+      username: x.username || '',
+      media,
+      caption: x.text || x.caption || '',
+      createdAt: x.createdAt || 0
+    };
+  }).filter(x=>String(x.username).trim().toLowerCase()===wanted)
+    .sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
+}
 
-let minegramFirebaseReady=false;
-let minegramDb=null;
-try {
-  if(MINEGRAM_FIREBASE_CONFIG.projectId && !String(MINEGRAM_FIREBASE_CONFIG.projectId).startsWith('BURAYA_')){
-    if(!firebase.apps.length) firebase.initializeApp(MINEGRAM_FIREBASE_CONFIG);
-    minegramDb=firebase.firestore();
-    minegramFirebaseReady=true;
-  }
-}catch(e){ console.warn('Firebase web baglantisi kurulamadi',e); }
 
 const token=
 localStorage.getItem('minegram_token')||
@@ -3238,32 +3254,28 @@ function highlightsKey(){
 }
 
 function getHighlights(){
-  try{ return JSON.parse(localStorage.getItem(highlightsKey())||'[]'); }catch(e){ return []; }
+
+ try{
+
+   return JSON.parse(
+     localStorage.getItem(highlightsKey())||'[]'
+   );
+
+ }catch(e){
+
+   return[];
+
+ }
+
 }
 
 function saveHighlights(a){
-  localStorage.setItem(highlightsKey(),JSON.stringify(a));
-}
 
-async function loadFirebaseHighlights(username){
-  if(!minegramFirebaseReady || !minegramDb || !username) return null;
-  try{
-    const snap=await minegramDb.collection('users').doc(String(username).trim().toLowerCase()).get();
-    if(!snap.exists) return [];
-    const raw=snap.get('highlights');
-    return Array.isArray(raw) ? raw.map(x=>({
-      title:x?.title||'Öne çıkan',
-      image:x?.image||x?.mediaUri||x?.url||'',
-      type:x?.type||'image',
-      createdAt:x?.createdAt||''
-    })).filter(x=>x.image) : [];
-  }catch(e){ console.warn('Firebase highlights okunamadi',e); return null; }
-}
+ localStorage.setItem(
+   highlightsKey(),
+   JSON.stringify(a)
+ );
 
-async function syncHighlightsFromFirebase(){
-  const username=currentProfile?.username||target||me?.username||'';
-  const remote=await loadFirebaseHighlights(username);
-  if(remote!==null){ saveHighlights(remote); renderHighlights(); }
 }
 
 let openedHighlightIndex=-1;
@@ -3951,20 +3963,6 @@ function renderProfileExtra(){
 
 }
 
-async function loadFirebasePosts(username){
-  if(!minegramFirebaseReady || !minegramDb || !username) return null;
-  try{
-    const snap=await minegramDb.collection('minegramPublicPosts')
-      .where('type','==','public_post')
-      .where('usernameLower','==',String(username).trim().toLowerCase())
-      .get();
-    return snap.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.deleted).sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
-  }catch(e){
-    console.warn('Firebase gonderileri okunamadi',e);
-    return null;
-  }
-}
-
 async function load(){
 
  if(!token){
@@ -4049,7 +4047,6 @@ async function load(){
    .style.display=mine?'':'none';
 
    renderHighlights();
-   syncHighlightsFromFirebase();
 
    const av=
    document.getElementById('avatar');
@@ -4072,25 +4069,17 @@ async function load(){
 
    }
 
-   let posts=await loadFirebasePosts(username);
-
-   if(posts===null || posts.length===0){
-     const postsResponse=await api(
-       '/api/users/'+encodeURIComponent(username)+'/posts'
-     );
-     posts=Array.isArray(postsResponse)
-       ?postsResponse
-       :(Array.isArray(postsResponse?.posts)
-         ?postsResponse.posts
-         :(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
+   let posts=[];
+   try {
+     posts=await loadMinegramFirebasePosts(username);
+   } catch(firebaseError) {
+     console.warn('Firebase gönderileri okunamadı, API yedeği deneniyor:', firebaseError);
+     const postsResponse=await api('/api/users/'+encodeURIComponent(username)+'/posts');
+     posts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
    }
 
 currentPosts=posts;
-
-document.getElementById('postCount')
-  .textContent=
-    String(posts.length);
-
+document.getElementById('postCount').textContent=String(posts.length);
 renderPosts(posts);
  }catch(e){
 
