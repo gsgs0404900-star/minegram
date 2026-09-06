@@ -1191,11 +1191,11 @@ app.post(
       // Bazı Minegram veritabanı sürümlerinde profiles tablosunda email
       // alanı zorunlu. Önce email ile oluşturmayı deniyoruz; eski şemada
       // email kolonu yoksa aynı kaydı eski şemayla tekrar deniyoruz.
+      // profiles tablosunda email kolonu yok; sadece mevcut alanları gönder.
       const profilePayload = {
         id: authUser.id,
         auth_user_id: authUser.id,
         username,
-        email,
         display_name: displayName,
         bio: "",
         avatar_url: null,
