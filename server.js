@@ -2771,7 +2771,11 @@ app.post(
             Date.now() +
             10 * 60 * 1000,
           profile:
-            found.profile
+            found.profile,
+          userId:
+            found.authUser?.id || found.profile?.auth_user_id || found.profile?.id || null,
+          email:
+            found.email
         }
       );
 
@@ -2867,8 +2871,8 @@ app.post(
 
       const resetKey = crypto.randomBytes(32).toString("hex");
       recoveryResetKeys.set(resetKey, {
-        userId: found.authUser?.id || entry.userId || found.profile?.auth_user_id || found.profile?.id,
-        email: found.email,
+        userId: entry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id,
+        email: entry.email || found.email,
         expires: Date.now() + 10 * 60 * 1000
       });
 
@@ -2926,8 +2930,30 @@ app.post(
       ).trim();
       const newPassword = String(req.body?.newPassword || req.body?.password || "");
 
-      if (!resetKey) return res.status(400).json({ error: "Şifre sıfırlama anahtarı gerekli." });
       if (newPassword.length < 6) return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı." });
+
+      // Eski frontend sürümleri resetKey göndermese bile, doğrulama kodu ile
+      // güvenli biçimde aynı hesabı bulup şifreyi değiştirebilir.
+      if (!resetKey) {
+        const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "").trim();
+        const suppliedCode = String(req.body?.code || req.body?.verificationCode || "").trim();
+        const found = await resolveRecoveryEmail(identifier, req.body?.mode || "email");
+        const recoveryKey = found?.email?.toLowerCase();
+        const recoveryEntry = recoveryKey ? recoveryCodes.get(recoveryKey) : null;
+        if (!found || !recoveryEntry || recoveryEntry.expires < Date.now() || recoveryEntry.code !== suppliedCode) {
+          return res.status(400).json({ error: "Kod yanlış veya süresi dolmuş." });
+        }
+        const fallbackUserId = recoveryEntry.userId || found.authUser?.id || found.profile?.auth_user_id || found.profile?.id;
+        if (!fallbackUserId) return res.status(400).json({ error: "Hesap doğrulanamadı." });
+        const admin = adminClient();
+        const { data: updatedData, error } = await admin.auth.admin.updateUserById(fallbackUserId, { password: newPassword });
+        if (error || !updatedData?.user?.id) return res.status(400).json({ error: error?.message || "Şifre değiştirilemedi." });
+        const verifyClient = client();
+        const { data: loginData, error: loginError } = await verifyClient.auth.signInWithPassword({ email: found.email, password: newPassword });
+        if (loginError || loginData?.user?.id !== fallbackUserId) return res.status(400).json({ error: loginError?.message || "Yeni şifreyle giriş doğrulanamadı." });
+        recoveryCodes.delete(recoveryKey);
+        return res.json({ ok: true, passwordChanged: true, loginVerified: true, email: found.email, userId: fallbackUserId });
+      }
 
       const entry = recoveryResetKeys.get(resetKey);
       if (!entry || entry.expires < Date.now() || !entry.userId) {
