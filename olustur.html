@@ -408,6 +408,72 @@ body{
 
 <script>
 
+/* =========================================================
+   MINEGRAM FIREBASE PUBLIC POSTS - ORTAK SENKRON
+========================================================= */
+const MINEGRAM_FIREBASE_API_KEY="AIzaSyBgJjz0LOWY2DO55h3sxsovBIlBOGjJwIo";
+const MINEGRAM_FIREBASE_PROJECT="mim-ea133";
+const MINEGRAM_FIREBASE_DB="(default)";
+
+async function minegramFirebaseToken(){
+  const key="minegram_public_post_firebase_token";
+  const cached=sessionStorage.getItem(key);
+  if(cached)return cached;
+  const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+encodeURIComponent(MINEGRAM_FIREBASE_API_KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({returnSecureToken:true})
+  });
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.idToken)throw new Error(j.error?.message||"Firebase oturumu açılamadı");
+  sessionStorage.setItem(key,j.idToken); return j.idToken;
+}
+async function minegramFirestore(url,opt={}){
+  const token=await minegramFirebaseToken();
+  const r=await fetch(url,{...opt,cache:"no-store",headers:{...(opt.headers||{}),Authorization:"Bearer "+token}});
+  if(r.status===401||r.status===403){sessionStorage.removeItem("minegram_public_post_firebase_token");throw new Error("Firebase erişimi reddedildi");}
+  if(!r.ok){const t=await r.text().catch(()=>"");throw new Error(t||("Firebase HTTP "+r.status));}
+  return r.json().catch(()=>({}));
+}
+function minegramFirestoreCollection(name){
+  return "https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(MINEGRAM_FIREBASE_PROJECT)+"/databases/"+encodeURIComponent(MINEGRAM_FIREBASE_DB)+"/documents/"+encodeURIComponent(name);
+}
+function fsString(v){return {stringValue:String(v??"")};}
+function fsInt(v){return {integerValue:String(Math.trunc(Number(v)||0))};}
+function fsFields(d){
+  const f={}; for(const [k,v] of Object.entries(d)){ if(Array.isArray(v)) f[k]={arrayValue:{values:v.map(x=>fsString(x))}}; else if(typeof v==='number') f[k]=fsInt(v); else f[k]=fsString(v); } return f;
+}
+function fsValue(fields,k){const x=fields?.[k]; if(!x)return ""; if(x.stringValue!==undefined)return x.stringValue; if(x.integerValue!==undefined)return Number(x.integerValue); return "";}
+async function minegramLoadPublicPosts(){
+  const j=await minegramFirestore(minegramFirestoreCollection("minegramPublicPosts")+"?pageSize=500");
+  return (j.documents||[]).map(doc=>{
+    const f=doc.fields||{}, type=String(fsValue(f,"type")||"");
+    if(type!=="public_post")return null;
+    const id=String(fsValue(f,"postId")||fsValue(f,"id")||doc.name?.split("/").pop()||"");
+    const username=String(fsValue(f,"username")||"").replace(/^@/,"").trim();
+    const caption=String(fsValue(f,"text")||fsValue(f,"caption")||"");
+    const b64=String(fsValue(f,"mediaBase64")||fsValue(f,"base64")||"");
+    const mt=String(fsValue(f,"mediaType")||"image/jpeg");
+    const uri=String(fsValue(f,"mediaUri")||fsValue(f,"media")||"");
+    const media=b64?(b64.startsWith("data:")?b64:"data:"+mt+";base64,"+b64):uri;
+    const created=Number(fsValue(f,"createdAt")||0);
+    if(!id||!username||(!media&&!caption))return null;
+    return {id,postId:id,username,caption,text:caption,media,mediaType:mt,likes:Number(fsValue(f,"likes")||0),commentCount:Number(fsValue(f,"commentCount")||0),comments:[],createdAt:created||Date.now(),source:"firebase"};
+  }).filter(Boolean);
+}
+async function minegramPublishPublicPost(post){
+  const username=String(post.username||"").replace(/^@/,"").trim();
+  const id=String(post.id||post.postId||Date.now());
+  if(!username)return;
+  const media=String(post.media||"");
+  let mediaBase64="";
+  if(/^data:/i.test(media)) mediaBase64=media.split(",")[1]||"";
+  else if(media && !/^https?:\/\//i.test(media)) mediaBase64=media;
+  const data={postId:Number(id)||Date.now(),username,usernameLower:username.toLowerCase(),ownerUid:"web",text:String(post.caption||post.text||""),likes:Number(post.likes||0),mediaUri:/^https?:\/\//i.test(media)?media:"",mediaType:String(post.mediaType||"image/jpeg"),music:"",commentCount:0,createdAt:Date.now(),type:"public_post",sender:username,recipient:"__minegram_public_posts__",conversationKey:"__minegram_public_posts__"};
+  if(mediaBase64 && mediaBase64.length<=900000)data.mediaBase64=mediaBase64;
+  const docId="public_post_"+username.toLowerCase()+"_"+(Number(id)||Date.now());
+  return minegramFirestore(minegramFirestoreCollection("minegramPublicPosts")+"/"+encodeURIComponent(docId),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fsFields(data)})});
+}
+
+
 const API="/api";
 
 let token =
@@ -770,6 +836,39 @@ async function post(){
       "[MINEGRAM] GÖNDERİ BAŞARILI",
       result
     );
+
+    /* Site gönderisini Android'in dinlediği ortak Firebase akışına da yaz. */
+    try{
+      let media="";
+      let mediaType=f?.type||"image/jpeg";
+      if(f && String(f.type||"").startsWith("image/")){
+        media=await new Promise((resolve,reject)=>{
+          const fr=new FileReader(); fr.onload=()=>resolve(fr.result||""); fr.onerror=reject; fr.readAsDataURL(f);
+        });
+        /* Büyük görselleri küçült; Firestore dokümanında güvenli boyutta tut. */
+        if(String(media).length>850000){
+          media=await new Promise(resolve=>{
+            const img=new Image(); img.onload=()=>{
+              const scale=Math.min(1,1080/Math.max(img.width,img.height));
+              const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+              c.getContext("2d").drawImage(img,0,0,c.width,c.height); resolve(c.toDataURL("image/jpeg",0.72));
+            }; img.onerror=()=>resolve(""); img.src=String(media);
+          });
+        }
+      }else if(f){
+        /* Video için API'nin döndürdüğü kalıcı URL varsa Firebase'e onu koy. */
+        media=String(result?.media||result?.url||result?.mediaUrl||"");
+      }
+      const firebaseId=String(result?.id||result?.postId||Date.now());
+      const username=String(result?.username||result?.user?.username||me?.username||"").replace(/^@/,"").trim();
+      if(username){
+        await minegramPublishPublicPost({id:firebaseId,username,caption:text,media,mediaType});
+      }
+    }catch(firebaseError){
+      console.error("[MINEGRAM] Firebase ortak gönderi aktarımı:",firebaseError);
+      /* API gönderisi silinmez; Firebase aktarımı ayrıca tekrar denenebilir. */
+    }
+
 
 
     /*
