@@ -1053,7 +1053,7 @@ onclick="sendComment()"
   /* =======================================================
      FIREBASE STORY SİSTEMİ
      Android uygulaması ile aynı Firestore yapısı:
-     users/{username}/stories/{storyId}
+     users/{storyId}
 
      Android'in yazdığı alanlar:
        id, username, usernameLower, base64, mediaType, createdAt
@@ -1262,6 +1262,24 @@ onclick="sendComment()"
       createdAt:
         firestoreInteger(
           data.createdAt
+        ),
+
+      type:
+        firestoreString(
+          data.type ||
+          "public_story"
+        ),
+
+      sender:
+        firestoreString(
+          data.sender ||
+          data.username
+        ),
+
+      recipient:
+        firestoreString(
+          data.recipient ||
+          "__minegram_public_stories__"
         )
     };
   }
@@ -1313,32 +1331,13 @@ onclick="sendComment()"
   }
 
 
-  function firestoreStoryUrl(
-    username,
-    storyId=""
-  ){
-
+  function firestoreStoryUrl(username, storyId=""){
     const base =
-      "https://firestore.googleapis.com/v1/projects/" +
-      encodeURIComponent(
-        MINEGRAM_FIREBASE_PROJECT
-      ) +
-      "/databases/" +
-      encodeURIComponent(
-        MINEGRAM_FIREBASE_DB
-      ) +
-      "/documents/users/" +
-      encodeURIComponent(
-        String(username).toLowerCase()
-      ) +
-      "/stories";
-
-    return storyId
-      ? base + "/" +
-        encodeURIComponent(storyId)
-      : base;
+      "https://firestore.googleapis.com/v1/projects/" + encodeURIComponent(MINEGRAM_FIREBASE_PROJECT) +
+      "/databases/" + encodeURIComponent(MINEGRAM_FIREBASE_DB) +
+      "/documents/users";
+    return storyId ? base + "/" + encodeURIComponent(storyId) : base;
   }
-
 
   function firestoreStoryToMineStory(
     doc,
@@ -1576,69 +1575,19 @@ onclick="sendComment()"
 
 
   async function firebaseLoadMinegramStories(){
-
-    const me =
-      getLocalUsername();
-
-    if(!me)
-      return [];
-
-    /*
-      Uygulamadaki sistem ile aynı:
-      kendi hikayelerin + takip ettiğin
-      kullanıcıların hikayeleri.
-    */
-    const usernames =
-      [
-        me,
-        ...(await firebaseGetFollowingUsers())
-      ]
-      .map(
-        name =>
-          String(name||"")
-            .replace(/^@/,"")
-            .trim()
-      )
-      .filter(Boolean);
-
-    const uniqueUsers =
-      [
-        ...new Map(
-          usernames.map(
-            name=>[
-              name.toLowerCase(),
-              name
-            ]
-          )
-        ).values()
-      ];
-
-    const results =
-      await Promise.all(
-        uniqueUsers.map(
-          name =>
-            firebaseListStoriesForUser(
-              name
-            ).catch(error=>{
-              console.warn(
-                "STORY USER LOAD:",
-                name,
-                error
-              );
-              return [];
-            })
-        )
-      );
-
-    return results
-      .flat()
-      .filter(Boolean)
-      .sort(
-        (a,b)=>
-          a.createdAt-b.createdAt
-      );
+    const url = firestoreStoryUrl("") + "?pageSize=500";
+    const json = await firebaseStoryRequest(url, {method:"GET"});
+    const docs = Array.isArray(json?.documents) ? json.documents : [];
+    const now = Date.now();
+    return docs.map(doc => {
+      const fields = doc.fields || {};
+      const type = firestoreField(fields,"type") || "";
+      if(type !== "public_story") return null;
+      const story = firestoreStoryToMineStory(doc, firestoreField(fields,"username") || "");
+      if(!story || now - Number(story.createdAt) >= MINEGRAM_STORY_MAX_AGE) return null;
+      return story;
+    }).filter(Boolean).sort((a,b)=>Number(a.createdAt)-Number(b.createdAt));
   }
-
 
   function makeStoryId(
     username
@@ -2269,7 +2218,7 @@ onclick="sendComment()"
       /*
         Öncelik doğrudan Firebase:
         Android uygulamasının yazdığı aynı
-        users/{username}/stories koleksiyonu.
+        users koleksiyonu içindeki public_story kayıtları.
       */
       const firebaseStories =
         await firebaseLoadMinegramStories();
@@ -4717,41 +4666,369 @@ function renderPost(p){
 }
 
 
+
 /* =========================================================
-   FEED
+   FIREBASE ANDROID GÖNDERİLERİ
+   Android uygulamasının yazdığı minegramPublicPosts
+   koleksiyonunu web feed'ine dahil eder.
 ========================================================= */
 
-function minegramDeletedPostsKey(){
-  return "minegram_deleted_posts_v2";
+function firestorePostsUrl(collection){
+
+  return (
+    "https://firestore.googleapis.com/v1/projects/"+
+    encodeURIComponent(MINEGRAM_FIREBASE_PROJECT)+
+    "/databases/"+
+    encodeURIComponent(MINEGRAM_FIREBASE_DB)+
+    "/documents/"+
+    encodeURIComponent(collection)
+  );
+
 }
 
-function getDeletedPostIds(){
+function firestorePostMedia(fields){
+
+  const base64 = String(
+    firestoreField(fields,"mediaBase64") ||
+    firestoreField(fields,"base64") ||
+    ""
+  ).trim();
+
+  const mediaType = String(
+    firestoreField(fields,"mediaType") ||
+    "image/jpeg"
+  ).trim();
+
+  if(base64){
+
+    if(/^data:/i.test(base64)){
+      return base64;
+    }
+
+    return "data:"+
+      mediaType+
+      ";base64,"+
+      base64;
+
+  }
+
+  const uri = String(
+    firestoreField(fields,"mediaUri") ||
+    firestoreField(fields,"media") ||
+    ""
+  ).trim();
+
+  if(
+    /^https?:\/\//i.test(uri) ||
+    /^blob:/i.test(uri) ||
+    /^data:/i.test(uri)
+  ){
+    return uri;
+  }
+
+  return "";
+
+}
+
+function firestorePostToMinePost(doc){
+
+  const fields = doc?.fields || {};
+
+  const type = String(
+    firestoreField(fields,"type") ||
+    ""
+  ).trim();
+
+  /*
+    Canonical Android kayıtları public_post olarak gelir.
+    users koleksiyonunda da aynı kayıt tutulabildiği için
+    type boşsa postId/text/media alanları olan kayıtları kabul et.
+  */
+  if(
+    type &&
+    type !== "public_post" &&
+    type !== "post"
+  ){
+    return null;
+  }
+
+  const id = String(
+    firestoreField(fields,"postId") ||
+    firestoreField(fields,"id") ||
+    doc?.name?.split("/")?.pop() ||
+    ""
+  ).trim();
+
+  const username = String(
+    firestoreField(fields,"username") ||
+    ""
+  ).replace(/^@/,"").trim();
+
+  const text = String(
+    firestoreField(fields,"text") ||
+    firestoreField(fields,"caption") ||
+    ""
+  );
+
+  const createdRaw =
+    firestoreField(fields,"createdAt");
+
+  let createdAt = Number(createdRaw || 0);
+
+  /* Firestore timestamp/string ihtimaline karşı. */
+  if(!createdAt && createdRaw){
+    const parsed = Date.parse(String(createdRaw));
+    if(!Number.isNaN(parsed)) createdAt=parsed;
+  }
+
+  const media = firestorePostMedia(fields);
+
+  if(!id || !username || (!media && !text)){
+    return null;
+  }
+
+  const mediaType = String(
+    firestoreField(fields,"mediaType") ||
+    "image/jpeg"
+  );
+
+  const music =
+    firestoreField(fields,"music") ||
+    "";
+
+  const likesValue =
+    firestoreField(fields,"likes");
+
+  const commentsValue =
+    firestoreField(fields,"comments");
+
+  const commentCount = Number(
+    firestoreField(fields,"commentCount") ||
+    (Array.isArray(commentsValue) ? commentsValue.length : 0) ||
+    0
+  );
+
+  let comments=[];
+  if(Array.isArray(commentsValue)){
+    comments=commentsValue;
+  }
+
+  return {
+    id,
+    postId:id,
+    username,
+    ownerUid:String(
+      firestoreField(fields,"ownerUid") || ""
+    ),
+    caption:text,
+    text,
+    media,
+    mediaName:
+      mediaType.includes("video")
+        ? "minegram.mp4"
+        : "minegram.jpg",
+    mediaType,
+    music,
+    likes:
+      Array.isArray(likesValue)
+        ? likesValue
+        : Number(likesValue || 0),
+    commentCount,
+    comments,
+    createdAt: createdAt || Date.now(),
+    source:"firebase"
+  };
+}
+
+async function firebaseLoadMinegramPostsFrom(collection){
+
+  const url =
+    firestorePostsUrl(collection)+
+    "?pageSize=500";
+
+  const json =
+    await firebaseStoryRequest(
+      url,
+      {method:"GET"}
+    );
+
+  const docs =
+    Array.isArray(json?.documents)
+      ? json.documents
+      : [];
+
+  return docs
+    .map(firestorePostToMinePost)
+    .filter(Boolean);
+}
+
+async function firebaseLoadMinegramPosts(){
+
+  const results = await Promise.allSettled([
+    firebaseLoadMinegramPostsFrom("minegramPublicPosts"),
+    firebaseLoadMinegramPostsFrom("users")
+  ]);
+
+  const all=[];
+
+  for(const result of results){
+    if(result.status==="fulfilled" && Array.isArray(result.value)){
+      all.push(...result.value);
+    }
+  }
+
+  /* Aynı post canonical + legacy olarak iki kere gelmesin. */
+  const map=new Map();
+
+  for(const post of all){
+    const key=String(post.id||"");
+    if(!key) continue;
+
+    const old=map.get(key);
+
+    if(!old || (post.media && !old.media)){
+      map.set(key,post);
+    }
+  }
+
+  return [...map.values()]
+    .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
+}
+
+const MINEGRAM_DELETED_POSTS_KEY = "minegram_deleted_posts_v3";
+
+function getMinegramDeletedPostIds(){
   try{
-    const value=JSON.parse(localStorage.getItem(minegramDeletedPostsKey())||"[]");
-    return new Set(Array.isArray(value) ? value.map(String) : []);
+    const raw=localStorage.getItem(MINEGRAM_DELETED_POSTS_KEY)||"[]";
+    const arr=JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.map(v=>String(v)) : []);
   }catch(_){
     return new Set();
   }
 }
 
-function rememberDeletedPost(id){
+function addMinegramDeletedPost(id){
   const clean=String(id||"").trim();
   if(!clean)return;
-  const ids=getDeletedPostIds();
+  const ids=getMinegramDeletedPostIds();
   ids.add(clean);
-  localStorage.setItem(minegramDeletedPostsKey(),JSON.stringify([...ids].slice(-1000)));
+  ids.add("public_post_"+clean);
+  localStorage.setItem(
+    MINEGRAM_DELETED_POSTS_KEY,
+    JSON.stringify([...ids].slice(-2000))
+  );
 }
 
-function forgetDeletedPost(id){
-  const ids=getDeletedPostIds();
-  ids.delete(String(id||""));
-  localStorage.setItem(minegramDeletedPostsKey(),JSON.stringify([...ids]));
+function removeMinegramDeletedPost(id){
+  const clean=String(id||"").trim();
+  const ids=getMinegramDeletedPostIds();
+  ids.delete(clean);
+  ids.delete("public_post_"+clean);
+  localStorage.setItem(
+    MINEGRAM_DELETED_POSTS_KEY,
+    JSON.stringify([...ids])
+  );
 }
 
-function filterDeletedPosts(posts){
-  const deleted=getDeletedPostIds();
-  return (Array.isArray(posts)?posts:[]).filter(p=>!deleted.has(String(p?.id||p?.postId||"")));
+function isMinegramDeletedPost(post){
+  const ids=getMinegramDeletedPostIds();
+  const id=String(post?.id || post?.postId || "").trim();
+  const sourceId=String(post?.sourceId || "").trim();
+  return !!(
+    (id && ids.has(id)) ||
+    (sourceId && ids.has(sourceId)) ||
+    (id && ids.has("public_post_"+id))
+  );
 }
+
+function removeDeletedMinegramPosts(posts){
+  return (Array.isArray(posts)?posts:[]).filter(p=>!isMinegramDeletedPost(p));
+}
+
+async function tryDeleteFirebaseMinegramPost(postId){
+  const id=String(postId||"").trim();
+  if(!id)return false;
+
+  const targets=[
+    firestorePostsUrl("minegramPublicPosts")+"/"+encodeURIComponent(id),
+    firestorePostsUrl("users")+"/public_post_"+encodeURIComponent(id),
+    firestorePostsUrl("users")+"/"+encodeURIComponent(id)
+  ];
+
+  let deleted=false;
+
+  for(const url of targets){
+    try{
+      await firebaseStoryRequest(url,{method:"DELETE"});
+      deleted=true;
+    }catch(e){
+      /* 404 = kayıt yok; 403 = web anonim hesabının Android kaydını
+         silme yetkisi yok. API silmesi yine devam eder. */
+    }
+  }
+
+  return deleted;
+}
+
+function mergeFeedPosts(apiPosts,firebasePosts){
+
+  const map=new Map();
+
+  for(const post of [
+    ...(Array.isArray(apiPosts)?apiPosts:[]),
+    ...(Array.isArray(firebasePosts)?firebasePosts:[])
+  ]){
+
+    if(!post) continue;
+
+    /* Daha önce silinen gönderi API/Firebase tarafından tekrar dönse bile
+       bu tarayıcıda asla feed'e alınmaz. */
+    if(isMinegramDeletedPost(post)) continue;
+
+    const id=String(
+      post.id ||
+      post.postId ||
+      ""
+    ).trim();
+
+    if(!id) continue;
+
+    const existing=map.get(id);
+
+    /* API kaydı varsa onu koru; Firebase medya yoksa doldur. */
+    if(!existing){
+      map.set(id,post);
+    }else{
+      map.set(id,{
+        ...post,
+        ...existing,
+        media:existing.media || post.media || "",
+        mediaName:existing.mediaName || post.mediaName || "",
+        caption:
+          existing.caption ??
+          post.caption ??
+          "",
+        comments:
+          Array.isArray(existing.comments)
+            ? existing.comments
+            : (Array.isArray(post.comments)?post.comments:[])
+      });
+    }
+  }
+
+  return removeDeletedMinegramPosts([...map.values()])
+    .sort((a,b)=>{
+      const ad=Date.parse(a.createdAt||a.created_at||0);
+      const bd=Date.parse(b.createdAt||b.created_at||0);
+      const an=Number(a.createdAt||0);
+      const bn=Number(b.createdAt||0);
+      return (Number.isFinite(bd)?bd:bn) - (Number.isFinite(ad)?ad:an);
+    });
+}
+
+/* =========================================================
+   FEED
+========================================================= */
 
 async function loadFeed(){
 
@@ -4763,111 +5040,130 @@ async function loadFeed(){
     </div>
   `;
 
-  try{
-    const result=await api("/feed");
-    let posts=Array.isArray(result)
-      ? result
-      : (Array.isArray(result.posts) ? result.posts : (Array.isArray(result.data) ? result.data : []));
+  /*
+    İki kaynağı AYNI ANDA oku:
+    1) mevcut web API
+    2) Android uygulamasının Firebase gönderileri
 
-    /* Silinen gönderiler sunucudan yanlışlıkla tekrar dönse bile
-       bu tarayıcıda kesinlikle yeniden gösterilmez. */
-    posts=filterDeletedPosts(posts);
+    Böylece Android'den atılan gönderi site API'sinde
+    bulunmasa bile doğrudan Firebase'den görünür.
+  */
+  const [apiResult,firebaseResult]=
+    await Promise.allSettled([
+      api("/feed"),
+      firebaseLoadMinegramPosts()
+    ]);
 
-    feedEl.innerHTML=posts.length
-      ? posts.map(renderPost).join("")
-      : `
-        <div class="empty">
-          <strong>Henüz gönderi yok</strong>
-          İlk gönderini oluştur.
-        </div>
-      `;
+  let apiPosts=[];
+  let firebasePosts=[];
 
-  }catch(e){
+  if(apiResult.status==="fulfilled"){
+    const result=apiResult.value;
 
-    const msg=
-      String(
-        e?.message||""
-      );
+    apiPosts=
+      Array.isArray(result)
+        ? result
+        : (
+          Array.isArray(result?.posts)
+            ? result.posts
+            : (
+              Array.isArray(result?.data)
+                ? result.data
+                : []
+            )
+        );
+  }
 
+  if(firebaseResult.status==="fulfilled"){
+    firebasePosts=firebaseResult.value;
+  }
 
-    /*
-      SADECE GERÇEK AUTH HATALARI
-    */
+  const posts=
+    mergeFeedPosts(
+      apiPosts,
+      firebasePosts
+    );
 
-    const isAuthError=
+  console.log(
+    "[MINEGRAM FEED] API:",
+    apiPosts.length,
+    "Firebase:",
+    firebasePosts.length,
+    "Toplam:",
+    posts.length
+  );
 
-      e?.status===401 ||
+  if(posts.length){
 
-      /unauthorized/i.test(msg) ||
+    feedEl.innerHTML=
+      posts.map(renderPost).join("");
 
-      /invalid token/i.test(msg) ||
+    return;
+  }
 
-      /token expired/i.test(msg) ||
+  /* İki kaynak da hata verdiyse gerçek hatayı göster. */
+  const apiError =
+    apiResult.status==="rejected"
+      ? apiResult.reason
+      : null;
 
-      /jwt/i.test(msg) ||
+  const firebaseError =
+    firebaseResult.status==="rejected"
+      ? firebaseResult.reason
+      : null;
 
-      /not authenticated/i.test(msg) ||
+  const msg=String(
+    apiError?.message ||
+    firebaseError?.message ||
+    ""
+  );
 
-      /session expired/i.test(msg);
+  const isAuthError=
+    apiError?.status===401 ||
+    /unauthorized/i.test(msg) ||
+    /invalid token/i.test(msg) ||
+    /token expired/i.test(msg) ||
+    /jwt/i.test(msg) ||
+    /not authenticated/i.test(msg) ||
+    /session expired/i.test(msg);
 
+  /* Firebase'de erişim sorunu varsa siteyi boş göstermeyelim. */
+  if(isAuthError && !firebasePosts.length){
+    clearMinegramSession();
+    showLogin();
+    return;
+  }
 
-    if(isAuthError){
-
-      clearMinegramSession();
-
-      showLogin();
-
-      return;
-
-    }
-
+  if(!apiPosts.length && !firebasePosts.length &&
+     apiResult.status!=="fulfilled" &&
+     firebaseResult.status!=="fulfilled"){
 
     feedEl.innerHTML=`
-
       <div class="empty">
-
-        <strong>
-          Gönderiler yüklenemedi
-        </strong>
-
-        <small>
-          ${esc(
-            msg ||
-            "Sunucuya bağlanılamadı."
-          )}
-        </small>
-
+        <strong>Gönderiler yüklenemedi</strong>
+        <small>${esc(msg || "Sunucuya bağlanılamadı.")}</small>
         <br>
-
         <button
           onclick="loadFeed()"
-          style="
-            margin-top:16px;
-            padding:12px 22px;
-            border:0;
-            border-radius:22px;
-            background:#fff;
-            color:#000;
-            font-weight:700;
-            cursor:pointer
-          "
+          style="margin-top:16px;padding:12px 22px;border:0;border-radius:22px;background:#fff;color:#000;font-weight:700;cursor:pointer"
         >
           Tekrar Dene
         </button>
-
       </div>
-
     `;
 
-
-    toast(
-      msg ||
-      "Gönderiler yüklenemedi"
-    );
-
+    if(msg) toast(msg);
+    return;
   }
 
+  feedEl.innerHTML=`
+    <div class="empty">
+      <strong>Henüz gönderi yok</strong>
+      <small>İlk gönderini oluştur.</small>
+    </div>
+  `;
 }
+
 
 
 /* =========================================================
@@ -5308,59 +5604,69 @@ async function deletePostFromMenu(){
 
   if(!currentMenuPost)return;
 
-
-  const id=
-    currentMenuPost;
-
-
+  const id=String(currentMenuPost).trim();
   closeMenu();
 
-
-  if(
-    !confirm(
-      "Bu gönderiyi silmek istediğine emin misin?"
-    )
-  ){
-
+  if(!confirm("Bu gönderiyi silmek istediğine emin misin?")){
     return;
-
   }
 
+  /* Önce yerel tombstone oluştur. Böylece API/Firebase tekrar aynı postu
+     döndürse bile loadFeed onu kesinlikle çizmez. */
+  addMinegramDeletedPost(id);
+
+  /* Ekrandan anında kaldır. */
+  const article=document.querySelector(
+    '.post[data-id="'+CSS.escape(id)+'"]'
+  );
+  if(article) article.remove();
+
+  let apiOk=false;
+  let firebaseOk=false;
 
   try{
-
-    await api(
-      "/posts/"+
-      encodeURIComponent(id),
-      {
-        method:"DELETE"
+    try{
+      await api(
+        "/posts/"+encodeURIComponent(id),
+        {method:"DELETE"}
+      );
+      apiOk=true;
+    }catch(apiError){
+      /* Backend'de zaten silinmişse bunu hata sayma. */
+      if(Number(apiError?.status)===404){
+        apiOk=true;
       }
-    );
+    }
 
-    /* DELETE başarılı olduktan sonra id'yi yerel silme listesine
-       hemen yaz. Böylece loadFeed(), sayfa yenileme ve tekrar
-       açılışta sunucu eski kaydı döndürse bile gönderi görünmez. */
-    rememberDeletedPost(id);
+    /* Android gönderisi Firebase'de kalmışsa mümkünse onu da sil. */
+    firebaseOk=await tryDeleteFirebaseMinegramPost(id);
 
-    /* Ekrandan anında kaldır. */
-    document.querySelector(
-      '.post[data-id="'+CSS.escape(String(id))+'"]'
-    )?.remove();
-
-    toast("Gönderi silindi");
-
+    /* Burada loadFeed çağırmak sorun değil: tombstone sayesinde silinen
+       post artık API/Firebase'den gelse bile gösterilmeyecek. */
     await loadFeed();
 
+    if(apiOk || firebaseOk){
+      toast("Gönderi silindi");
+    }else{
+      /* İki kaynak da silinemediyse yanlışlıkla kalıcı gizleme yapma. */
+      removeMinegramDeletedPost(id);
+      await loadFeed();
+      toast("Gönderi silinemedi");
+    }
 
   }catch(e){
+    /* Silme işlemi tamamen başarısızsa tombstone'u geri al. */
+    if(!apiOk && !firebaseOk){
+      removeMinegramDeletedPost(id);
+    }
+
+    await loadFeed().catch(()=>{});
 
     toast(
-      e.message ||
+      e?.message ||
       "Gönderi silinemedi"
     );
-
   }
-
 }
 
 
