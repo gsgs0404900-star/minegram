@@ -3193,6 +3193,290 @@ app.post(
 );
 
 /* =========================================================
+   DELETE POST - TAM SENKRON
+   Profil + Ana Sayfa + Gönderi
+   post_likes + comments + saves + notifications
+========================================================= */
+
+app.delete(
+  "/api/posts/:id",
+  auth,
+  async (req, res) => {
+    const postId =
+      String(
+        req.params.id || ""
+      ).trim();
+
+    if (!postId) {
+      return res.status(400).json({
+        error:
+          "Gönderi ID gerekli."
+      });
+    }
+
+    try {
+
+      /* -----------------------------------------------------
+         ADMIN CLIENT
+         Silme işlemi RLS'ye takılmasın.
+      ----------------------------------------------------- */
+
+      const admin =
+        adminClient();
+
+      /* -----------------------------------------------------
+         1) GÖNDERİYİ BUL
+         Önce sahibini kontrol ediyoruz.
+      ----------------------------------------------------- */
+
+      const {
+        data: post,
+        error: postFindError
+      } =
+        await admin
+          .from("posts")
+          .select(
+            "id,user_id,media_url"
+          )
+          .eq(
+            "id",
+            postId
+          )
+          .maybeSingle();
+
+      if (postFindError) {
+        console.error(
+          "POST BULMA ERROR:",
+          postFindError
+        );
+
+        throw postFindError;
+      }
+
+      if (!post) {
+        return res.status(404).json({
+          error:
+            "Gönderi bulunamadı."
+        });
+      }
+
+      /* -----------------------------------------------------
+         2) SAHİPLİK KONTROLÜ
+      ----------------------------------------------------- */
+
+      if (
+        String(post.user_id) !==
+        String(req.user.id)
+      ) {
+        return res.status(403).json({
+          error:
+            "Bu gönderiyi silme yetkin yok."
+        });
+      }
+
+      /* -----------------------------------------------------
+         3) BEĞENİLERİ SİL
+      ----------------------------------------------------- */
+
+      const {
+        error: likesError
+      } =
+        await admin
+          .from("post_likes")
+          .delete()
+          .eq(
+            "post_id",
+            postId
+          );
+
+      if (likesError) {
+        console.error(
+          "POST LIKES DELETE ERROR:",
+          likesError
+        );
+
+        throw likesError;
+      }
+
+      /* -----------------------------------------------------
+         4) YORUMLARI SİL
+      ----------------------------------------------------- */
+
+      const {
+        error: commentsError
+      } =
+        await admin
+          .from("comments")
+          .delete()
+          .eq(
+            "post_id",
+            postId
+          );
+
+      if (commentsError) {
+        console.error(
+          "COMMENTS DELETE ERROR:",
+          commentsError
+        );
+
+        throw commentsError;
+      }
+
+      /* -----------------------------------------------------
+         5) KAYITLARI SİL
+      ----------------------------------------------------- */
+
+      const {
+        error: savesError
+      } =
+        await admin
+          .from("saves")
+          .delete()
+          .eq(
+            "post_id",
+            postId
+          );
+
+      if (savesError) {
+        console.error(
+          "SAVES DELETE ERROR:",
+          savesError
+        );
+
+        throw savesError;
+      }
+
+      /* -----------------------------------------------------
+         6) GÖNDERİYLE İLGİLİ BİLDİRİMLERİ TEMİZLE
+         
+         notifications tablosunda post_id varsa silinir.
+         Kolon yoksa ana gönderi silme işlemini bozmasın.
+      ----------------------------------------------------- */
+
+      try {
+
+        const {
+          error:
+            notificationsError
+        } =
+          await admin
+            .from("notifications")
+            .delete()
+            .eq(
+              "post_id",
+              postId
+            );
+
+        if (
+          notificationsError
+        ) {
+          console.log(
+            "NOTIFICATIONS POST_ID TEMİZLEME ATLANDI:",
+            notificationsError.message
+          );
+        }
+
+      } catch (
+        notificationError
+      ) {
+
+        console.log(
+          "NOTIFICATION TEMİZLEME ATLANDI:",
+          notificationError?.message ||
+            notificationError
+        );
+
+      }
+
+      /* -----------------------------------------------------
+         7) ANA POSTS KAYDINI SİL
+      ----------------------------------------------------- */
+
+      const {
+        data: deletedPost,
+        error: deleteError
+      } =
+        await admin
+          .from("posts")
+          .delete()
+          .eq(
+            "id",
+            postId
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .select(
+            "id"
+          )
+          .maybeSingle();
+
+      if (deleteError) {
+        console.error(
+          "POST DELETE ERROR:",
+          deleteError
+        );
+
+        throw deleteError;
+      }
+
+      if (!deletedPost) {
+        return res.status(404).json({
+          error:
+            "Gönderi silinemedi veya zaten silinmiş."
+        });
+      }
+
+      /* -----------------------------------------------------
+         8) BAŞARILI
+      ----------------------------------------------------- */
+
+      console.log(
+        "======================================"
+      );
+
+      console.log(
+        "MINEGRAM POST SİLİNDİ"
+      );
+
+      console.log(
+        "Post ID:",
+        postId
+      );
+
+      console.log(
+        "Sahip:",
+        req.user.id
+      );
+
+      console.log(
+        "======================================"
+      );
+
+      return res.json({
+        ok: true,
+        deleted: true,
+        id: postId
+      });
+
+    } catch (e) {
+
+      console.error(
+        "DELETE POST ERROR:",
+        e
+      );
+
+      return res.status(400).json({
+        error:
+          e?.message ||
+          "Gönderi silinemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
    STORIES CREATE - FIXED
 ========================================================= */
 
