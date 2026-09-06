@@ -3310,7 +3310,7 @@ function formatHighlightDate(value){
 
 function openHighlightView(index){
 
- storyItems=getHighlights();
+ storyItems = Array.isArray(storyItems) ? storyItems : [];
 
  storyIndex=index;
 
@@ -3545,9 +3545,10 @@ document.getElementById('highlightDeleteBtn')
 };
 
 async function firebaseUserDocument(username){
- const wanted=String(username||'').trim().toLowerCase();
- if(!wanted)return null;
- const base='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/';
+ const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
+ const d=await r.json();
  const val=v=>{
   if(!v)return null;
   if(v.stringValue!==undefined)return v.stringValue;
@@ -3559,26 +3560,13 @@ async function firebaseUserDocument(username){
   if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
   return null;
  };
- // Android uses users/{usernameLower} for shared highlights.
- try{
-  const r=await fetch(base+'users/'+encodeURIComponent(wanted),{cache:'no-store'});
-  if(r.ok){
-   const doc=await r.json();
-   const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
-   return {doc,x};
-  }
- }catch(_){}
- // Backward compatibility with older documents.
- try{
-  const r=await fetch(base+'users?pageSize=300',{cache:'no-store'});
-  if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
-  const d=await r.json();
-  return (d.documents||[]).map(doc=>{
-   const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
-   return {doc,x};
-  }).find(({x})=>[x.username,x.userName,x.handle,x.emailUsername]
-    .filter(Boolean).some(v=>String(v).toLowerCase()===wanted))||null;
- }catch(e){ throw e; }
+ const wanted=String(username||'').toLowerCase();
+ return (d.documents||[]).map(doc=>{
+  const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
+  return {doc,x};
+ }).find(({x})=>[
+  x.username,x.userName,x.handle,x.emailUsername
+ ].filter(Boolean).some(v=>String(v).toLowerCase()===wanted))||null;
 }
 
 async function loadFirebaseHighlights(username){
@@ -3639,20 +3627,8 @@ async function renderHighlights(){
   })).filter(x=>x.image):[];
  }catch(e){
   console.warn('[PROFILE] API öne çıkanlar okunamadı',e);
+  items=[];
  }
- try{
-  const remoteFirebase=await loadFirebaseHighlights(currentProfile.username);
-  items=items.concat(remoteFirebase);
- }catch(e){
-  console.warn('[PROFILE] Firebase öne çıkanlar okunamadı',e);
- }
- // Firebase + Supabase can contain the same item; keep one visible copy.
- const seen=new Set();
- items=items.filter(x=>{
-  const key=String(x.id||'')||String(x.image||'')+'|'+String(x.title||'');
-  if(seen.has(key))return false; seen.add(key); return Boolean(x.image);
- });
- if(!items.length)items=getHighlights();
 
  box.innerHTML='';
  const add=document.createElement('button');
