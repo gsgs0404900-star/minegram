@@ -1188,9 +1188,9 @@ app.post(
       createdAuthUserId = authUser.id;
 
       /* Profil oluştur / mevcut otomatik profili kullan */
-      // Bazı veritabanlarında Auth kullanıcısı oluşturulunca profiles kaydı
-      // trigger ile otomatik oluşabiliyor. Bu durumda INSERT primary-key
-      // çakışması üretmek yerine mevcut kaydı güncelliyoruz.
+      // Auth kullanıcısı oluşturulurken profiles kaydı bir DB trigger ile
+      // otomatik oluşmuş olabilir. Önce mevcut kaydı bulup güncelliyoruz;
+      // yoksa yeni kayıt oluşturuyoruz. Böylece profiles_pkey çakışması olmaz.
       const profilePayload = {
         id: authUser.id,
         auth_user_id: authUser.id,
@@ -1202,32 +1202,71 @@ app.post(
         settings: {}
       };
 
-      let {
-        data: profile,
-        error: profileError
-      } = await admin
+      let { data: profile, error: profileError } = await admin
         .from("profiles")
-        .upsert(profilePayload, { onConflict: "id" })
         .select("*")
-        .single();
+        .eq("id", authUser.id)
+        .maybeSingle();
 
       if (profileError) {
-        console.error(
-          "PROFILE CREATE ERROR:",
-          profileError
+        console.error("PROFILE LOOKUP ERROR:", profileError);
+      }
+
+      if (profile) {
+        ({ data: profile, error: profileError } = await admin
+          .from("profiles")
+          .update({
+            auth_user_id: authUser.id,
+            username,
+            display_name: displayName,
+            bio: "",
+            avatar_url: null,
+            verified: false,
+            settings: {}
+          })
+          .eq("id", authUser.id)
+          .select("*")
+          .single());
+      } else if (!profileError) {
+        ({ data: profile, error: profileError } = await admin
+          .from("profiles")
+          .insert(profilePayload)
+          .select("*")
+          .single());
+
+        // Trigger ile aynı anda oluşturulmuşsa tekrar okuyup güncelle.
+        if (profileError && /duplicate key value.*profiles_pkey|duplicate key.*id/i.test(String(profileError.message || ""))) {
+          ({ data: profile, error: profileError } = await admin
+            .from("profiles")
+            .update({
+              auth_user_id: authUser.id,
+              username,
+              display_name: displayName,
+              bio: "",
+              avatar_url: null,
+              verified: false,
+              settings: {}
+            })
+            .eq("id", authUser.id)
+            .select("*")
+            .single());
+        }
+      }
+
+      if (profileError || !profile) {
+        console.error("PROFILE CREATE ERROR:", profileError);
+
+        const profileErrorMessage = String(
+          profileError?.message ||
+          profileError?.details ||
+          profileError?.hint ||
+          "Profil kaydı oluşturulamadı."
         );
 
-        const profileErrorMessage = String(profileError.message || profileError.details || profileError.hint || "Profil kaydı oluşturulamadı.");
-
         try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
+          await admin.auth.admin.deleteUser(authUser.id);
         } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
+          console.error("AUTH CLEANUP ERROR:", cleanupError);
         }
 
         createdAuthUserId = null;
