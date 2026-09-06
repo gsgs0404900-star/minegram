@@ -153,7 +153,7 @@ async function getFirebasePublicStories() {
       type: "public_story",
       _firebase: true
     };
-  }).filter(x => x.media_url && String(x.type) === "public_story");
+  }).filter(x => x.media_url && String(x.type) === "public_story" && Number(x.syncVersion || 0) >= 2);
 }
 
 async function mirrorPostToFirebase(post, profile) {
@@ -177,6 +177,7 @@ async function mirrorPostToFirebase(post, profile) {
       commentCount: fsInt(post.comment_count || 0),
       createdAt: fsInt(Date.parse(post.created_at || "") || Date.now()),
       type: fsString("public_post"),
+      syncVersion: fsInt(2),
       sender: fsString(username),
       recipient: fsString("__minegram_public_posts__"),
       conversationKey: fsString("__minegram_public_posts__")
@@ -210,6 +211,7 @@ async function mirrorStoryToFirebase(story, profile) {
       mediaType: fsString(story.media_type || "image/jpeg"),
       createdAt: fsInt(createdAt),
       type: fsString("public_story"),
+      syncVersion: fsInt(2),
       sender: fsString(username),
       recipient: fsString("__minegram_public_stories__")
     };
@@ -236,7 +238,8 @@ async function deletePostFromFirebase(postId, profile) {
         username: fsString(profile?.username || ""),
         usernameLower: fsString(username),
         ownerUid: fsString(profile?.id || ""),
-        deletedAt: fsInt(Date.now())
+        deletedAt: fsInt(Date.now()),
+        syncVersion: fsInt(2)
       }})
     });
   } catch (e) {
@@ -257,6 +260,8 @@ async function getFirebaseHighlightsForUser(username) {
   for (const doc of docs) {
     const x = {};
     for (const [k, v] of Object.entries(doc.fields || {})) x[k] = await firebaseValue(v);
+    if (Number(x.syncVersion || 0) < 2) continue;
+    if (String(x.type || "") !== "public_highlight") continue;
     if (String(x.usernameLower || x.username || "").toLowerCase() !== wanted) continue;
     let media = x.mediaUrl || x.image || x.media || x.uri || x.base64 || x.mediaBase64 || "";
     if (media && !/^https?:\/\//i.test(String(media)) && !/^data:/i.test(String(media)) && String(media).length > 100) {
@@ -291,7 +296,8 @@ async function mirrorHighlightToFirebase(highlight, profile) {
       media: fsString(highlight.media_url || ""), mediaUrl: fsString(highlight.media_url || ""),
       type: fsString(highlight.media_type || "image"), mediaType: fsString(highlight.media_type || "image"),
       createdAt: fsString(highlight.created_at || new Date().toISOString()),
-      sortOrder: fsInt(highlight.sort_order || 0)
+      sortOrder: fsInt(highlight.sort_order || 0),
+      syncVersion: fsInt(2)
     };
     await firebaseRest(`minegramPublicHighlights/${encodeURIComponent(documentId)}`, {
       method: "PATCH", body: JSON.stringify({ fields })
@@ -1182,24 +1188,53 @@ app.post(
       createdAuthUserId = authUser.id;
 
       /* Profil oluştur */
-      const {
+      // Bazı Minegram veritabanı sürümlerinde profiles tablosunda email
+      // alanı zorunlu. Önce email ile oluşturmayı deniyoruz; eski şemada
+      // email kolonu yoksa aynı kaydı eski şemayla tekrar deniyoruz.
+      const profilePayload = {
+        id: authUser.id,
+        auth_user_id: authUser.id,
+        username,
+        email,
+        display_name: displayName,
+        bio: "",
+        avatar_url: null,
+        verified: false,
+        settings: {}
+      };
+
+      let {
         data: profile,
         error: profileError
       } =
         await admin
           .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
+          .insert(profilePayload)
           .select("*")
           .single();
+
+      // Eski profiles şemasında email kolonu olmayabilir.
+      if (profileError && /column .*email.* does not exist|schema cache.*email/i.test(String(profileError.message || ""))) {
+        const fallbackPayload = {
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        };
+
+        ({
+          data: profile,
+          error: profileError
+        } = await admin
+          .from("profiles")
+          .insert(fallbackPayload)
+          .select("*")
+          .single());
+      }
 
       if (profileError) {
         console.error(
@@ -3465,6 +3500,22 @@ app.post(
 );
 
 
+async function deleteStoryFromFirebase(storyId, profile) {
+  try {
+    const username = String(profile?.username || "").trim().toLowerCase();
+    if (!username || !storyId) return;
+    const docs = await readFirebaseCollection("users", 1000);
+    for (const doc of docs) {
+      const x = {};
+      for (const [k, v] of Object.entries(doc.fields || {})) x[k] = firebaseValue(v);
+      if (String(x.type || "") !== "public_story" || Number(x.syncVersion || 0) < 2) continue;
+      if (String(x.usernameLower || "").toLowerCase() === username && String(x.storyId || x.id || "").endsWith(String(storyId))) {
+        await firebaseRest(`users/${encodeURIComponent(doc.name.split("/").pop())}`, { method: "DELETE" });
+      }
+    }
+  } catch (e) { console.error("MINEGRAM FIREBASE STORY DELETE ERROR:", e?.message || e); }
+}
+
 /* =========================================================
    STORIES CREATE
 ========================================================= */
@@ -3561,6 +3612,30 @@ app.post(
   }
 );
 
+
+app.delete(
+  "/api/stories/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const { data: story, error: findError } = await req.sb
+        .from("stories")
+        .select("id,user_id")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (!story) return res.status(404).json({ error: "Hikaye bulunamadı" });
+      if (String(story.user_id) !== String(req.user.id)) return res.status(403).json({ error: "Bu hikayeyi silme yetkiniz yok" });
+      const { error } = await req.sb.from("stories").delete().eq("id", req.params.id).eq("user_id", req.user.id);
+      if (error) throw error;
+      await deleteStoryFromFirebase(req.params.id, req.user);
+      res.json({ ok: true, id: req.params.id });
+    } catch (e) {
+      console.error("STORY DELETE ERROR:", e);
+      res.status(400).json({ error: e.message });
+    }
+  }
+);
 
 /* =========================================================
    STORIES
