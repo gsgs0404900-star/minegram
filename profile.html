@@ -3942,36 +3942,9 @@ function renderProfileExtra(){
 }
 
 async function loadFirebasePublicPosts(username,userId){
-  const url="https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/minegramPublicPosts?pageSize=300";
-  const r=await fetch(url,{cache:"no-store"});
-  if(!r.ok)throw new Error("Firebase gönderileri okunamadı");
-  const d=await r.json();
-  const val=v=>{
-    if(v==null)return null;
-    if(v.stringValue!==undefined)return v.stringValue;
-    if(v.integerValue!==undefined)return Number(v.integerValue);
-    if(v.doubleValue!==undefined)return Number(v.doubleValue);
-    if(v.booleanValue!==undefined)return v.booleanValue;
-    if(v.timestampValue!==undefined)return v.timestampValue;
-    if(v.arrayValue)return (v.arrayValue.values||[]).map(val);
-    if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
-    return null;
-  };
-  return (d.documents||[]).map(doc=>{
-    const x={};Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
-    x.id=x.id||doc.name.split("/").pop();return x;
-  }).filter(x=>String(x.type||"")==="public_post"||!x.type).filter(x=>{
-    const ns=[x.username,x.userName,x.handle,x.authorUsername,x.ownerUsername].filter(Boolean).map(v=>String(v).toLowerCase());
-    const ids=[x.userId,x.uid,x.authorId,x.ownerId,x.userUid].filter(v=>v!=null).map(String);
-    return ns.includes(String(username||"").toLowerCase())||(userId!=null&&ids.includes(String(userId)));
-  }).map(x=>{
-    let m=x.media||x.mediaUrl||x.image||x.imageUrl||x.photo||x.photoUrl||x.base64||x.mediaBase64||"";
-    if(m&&!/^https?:\/\//i.test(m)&&!/^data:/i.test(m)&&String(m).length>100){
-      const mt=x.mediaType||x.mimeType||"image/jpeg";
-      m="data:"+mt+";base64,"+m;
-    }
-    return {...x,media:m};
-  });
+  // Firebase verisini artık doğrudan tarayıcıdan okumuyoruz.
+  // /api/users/:username/posts sunucu tarafında birleştirilmiş veriyi döndürür.
+  return [];
 }
 
 async function load(){
