@@ -4940,6 +4940,34 @@ function minegramPostFingerprint(post){
   return [username,owner,created,media,text].join("|");
 }
 
+/* API ve Firebase aynı gönderiye farklı ID verebiliyorsa bile yakala. */
+function minegramPostStableKeys(post){
+  if(!post)return [];
+  const username=String(post.username||"").toLowerCase().replace(/^@/,"").trim();
+  const owner=String(post.ownerUid||"").trim();
+  const media=String(post.media||"").trim();
+  const text=String(post.text||post.caption||"").trim();
+  const keys=[];
+  if(owner && media) keys.push("om:"+owner+"|"+media);
+  if(username && media) keys.push("um:"+username+"|"+media);
+  if(owner && text && !media) keys.push("ot:"+owner+"|"+text);
+  if(username && text && !media) keys.push("ut:"+username+"|"+text);
+  return keys;
+}
+
+function addMinegramDeletedStableKeys(post){
+  const keys=minegramPostStableKeys(post);
+  if(!keys.length)return;
+  const ids=getMinegramDeletedPostIds();
+  keys.forEach(k=>ids.add("stable:"+k));
+  localStorage.setItem(MINEGRAM_DELETED_POSTS_KEY,JSON.stringify([...ids].slice(-5000)));
+}
+
+function isMinegramDeletedStable(post){
+  const ids=getMinegramDeletedPostIds();
+  return minegramPostStableKeys(post).some(k=>ids.has("stable:"+k));
+}
+
 function addMinegramDeletedFingerprint(post){
   const fp=minegramPostFingerprint(post);
   if(!fp)return;
@@ -4961,7 +4989,8 @@ function isMinegramDeletedPost(post){
     (id && ids.has(id)) ||
     (sourceId && ids.has(sourceId)) ||
     (id && ids.has("public_post_"+id)) ||
-    isMinegramDeletedPostFingerprint(post)
+    isMinegramDeletedPostFingerprint(post) ||
+    isMinegramDeletedStable(post)
   );
 }
 
@@ -5642,7 +5671,10 @@ async function deletePostFromMenu(){
 
   /* Silindi bilgisini ID + içerik parmak iziyle kalıcı kaydet. */
   addMinegramDeletedPost(id);
-  if(knownPost) addMinegramDeletedFingerprint(knownPost);
+  if(knownPost){
+    addMinegramDeletedFingerprint(knownPost);
+    addMinegramDeletedStableKeys(knownPost);
+  }
 
   /* Kullanıcı silince tekrar yükleme yapmıyoruz. */
   if(article) article.remove();
@@ -5664,7 +5696,10 @@ async function deletePostFromMenu(){
       const matches=firebasePosts.filter(p=>{
         if(String(p?.id||p?.postId||"").trim()===id)return true;
         if(!knownPost)return false;
-        return minegramPostFingerprint(p)===minegramPostFingerprint(knownPost);
+        if(minegramPostFingerprint(p)===minegramPostFingerprint(knownPost))return true;
+        const a=minegramPostStableKeys(p);
+        const b=new Set(minegramPostStableKeys(knownPost));
+        return a.some(k=>b.has(k));
       });
 
       for(const p of matches){
@@ -5688,6 +5723,7 @@ async function deletePostFromMenu(){
       if(knownPost){
         const ids=getMinegramDeletedPostIds();
         ids.delete("fp:"+minegramPostFingerprint(knownPost));
+        minegramPostStableKeys(knownPost).forEach(k=>ids.delete("stable:"+k));
         localStorage.setItem(MINEGRAM_DELETED_POSTS_KEY,JSON.stringify([...ids]));
       }
       if(article && feedEl) feedEl.insertAdjacentHTML("beforeend",renderPost(knownPost));
