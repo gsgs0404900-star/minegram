@@ -56,6 +56,25 @@ function fsBool(value) {
   return { booleanValue: Boolean(value) };
 }
 
+function firebaseValue(v) {
+  if (!v) return null;
+  if (Object.prototype.hasOwnProperty.call(v, "stringValue")) return v.stringValue;
+  if (Object.prototype.hasOwnProperty.call(v, "integerValue")) return Number(v.integerValue);
+  if (Object.prototype.hasOwnProperty.call(v, "doubleValue")) return Number(v.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(v, "booleanValue")) return Boolean(v.booleanValue);
+  if (Object.prototype.hasOwnProperty.call(v, "timestampValue")) return v.timestampValue;
+  if (Object.prototype.hasOwnProperty.call(v, "nullValue")) return null;
+  if (v.referenceValue) return v.referenceValue;
+  if (v.arrayValue) return (v.arrayValue.values || []).map(firebaseValue);
+  if (v.mapValue) {
+    const out = {};
+    for (const [k, val] of Object.entries(v.mapValue.fields || {})) out[k] = firebaseValue(val);
+    return out;
+  }
+  return null;
+}
+
+
 async function firebaseRest(path, options = {}) {
   const response = await fetch(`${FIRESTORE_BASE}/${path}`, {
     ...options,
@@ -71,6 +90,58 @@ async function firebaseRest(path, options = {}) {
     throw new Error(body?.error?.message || `Firebase REST ${response.status}`);
   }
   return body;
+}
+
+
+async function readFirebaseCollection(collection, limit = 1000) {
+  const out = [];
+  let pageToken = "";
+  do {
+    const qs = new URLSearchParams({ pageSize: String(Math.min(limit - out.length, 1000)) });
+    if (pageToken) qs.set("pageToken", pageToken);
+    const data = await firebaseRest(`${collection}?${qs.toString()}`);
+    for (const doc of (data?.documents || [])) out.push(doc);
+    pageToken = data?.nextPageToken || "";
+  } while (pageToken && out.length < limit);
+  return out.slice(0, limit);
+}
+
+async function getFirebasePublicPosts() {
+  const docs = await readFirebaseCollection("minegramPublicPosts", 1000);
+  return docs.map(doc => {
+    const x = {};
+    for (const [k, v] of Object.entries(doc.fields || {})) x[k] = firebaseValue(v);
+    return {
+      id: String(x.postId ?? x.id ?? doc.name.split("/").pop()),
+      user_id: x.ownerUid || null,
+      username: x.username || "",
+      caption: x.caption || x.text || "",
+      text: x.text || x.caption || "",
+      media_url: x.mediaUrl || x.mediaUri || x.media || "",
+      media_type: x.mediaType || "",
+      likes: Number(x.likes || 0),
+      comment_count: Number(x.commentCount || 0),
+      created_at: new Date(Number(x.createdAt) || Date.parse(x.createdAt || "") || Date.now()).toISOString(),
+      _firebase: true
+    };
+  });
+}
+
+async function getFirebasePublicStories() {
+  const docs = await readFirebaseCollection("users", 1000);
+  return docs.map(doc => {
+    const x = {};
+    for (const [k, v] of Object.entries(doc.fields || {})) x[k] = firebaseValue(v);
+    return {
+      id: String(x.storyId || x.id || doc.name.split("/").pop()),
+      username: x.username || "",
+      media_url: x.mediaUrl || x.mediaUri || x.media || "",
+      media_type: x.mediaType || "image/jpeg",
+      created_at: new Date(Number(x.createdAt) || Date.parse(x.createdAt || "") || Date.now()).toISOString(),
+      type: "public_story",
+      _firebase: true
+    };
+  }).filter(x => x.media_url && String(x.type) === "public_story");
 }
 
 async function mirrorPostToFirebase(post, profile) {
@@ -2888,13 +2959,11 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const admin = adminClient();
-
       const {
         data,
         error
       } =
-        await admin
+        await req.sb
           .from("posts")
           .select("*")
           .order(
@@ -2924,7 +2993,7 @@ app.get(
         comment_count: p.comment_count, created_at: p.created_at,
         username: p.username
       }));
-      res.json([...(await hydratePosts(admin, supa, req.user.id)), ...fb]);
+      res.json([...(await hydratePosts(req.sb, supa, req.user.id)), ...fb]);
     } catch (e) {
       res.status(500).json({
         error:
@@ -2990,8 +3059,7 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const admin = adminClient();
-      const { data, error } = await admin
+      const { data, error } = await req.sb
         .from("highlights")
         .select("*")
         .eq("user_id", req.user.id)
@@ -3288,13 +3356,11 @@ app.post(
           req.file.mimetype;
       }
 
-      const admin = adminClient();
-
       const {
         data,
         error
       } =
-        await admin
+        await req.sb
           .from("posts")
           .insert({
             user_id:
@@ -3472,12 +3538,11 @@ app.get(
           86400000
         ).toISOString();
 
-      const admin = adminClient();
       const {
         data,
         error
       } =
-        await admin
+        await req.sb
           .from("stories")
           .select(`
             *,
@@ -4258,13 +4323,11 @@ app.get(
         });
       }
 
-      const admin = adminClient();
-
       const {
         data,
         error
       } =
-        await admin
+        await req.sb
           .from("posts")
           .select("*")
           .eq(
@@ -4285,7 +4348,7 @@ app.get(
 
       const username = req.params.username;
       const firebasePosts = (await getFirebasePublicPosts()).filter(p => String(p.username || "").toLowerCase() === String(username).toLowerCase());
-      const supaPosts = await hydratePosts(admin, data || [], req.user.id);
+      const supaPosts = await hydratePosts(req.sb, data || [], req.user.id);
       const merged = [...supaPosts, ...firebasePosts.map(p => ({
         id:p.id, user_id:p.user_id, username:p.username, caption:p.caption, text:p.text,
         media_url:p.media_url, media_type:p.media_type, likes:p.likes,
