@@ -4930,6 +4930,29 @@ function removeMinegramDeletedPost(id){
   );
 }
 
+function minegramPostFingerprint(post){
+  if(!post)return "";
+  const username=String(post.username||"").toLowerCase().replace(/^@/,"").trim();
+  const owner=String(post.ownerUid||"").trim();
+  const created=String(post.createdAt||post.created_at||"").trim();
+  const media=String(post.media||"").trim();
+  const text=String(post.text||post.caption||"").trim();
+  return [username,owner,created,media,text].join("|");
+}
+
+function addMinegramDeletedFingerprint(post){
+  const fp=minegramPostFingerprint(post);
+  if(!fp)return;
+  const ids=getMinegramDeletedPostIds();
+  ids.add("fp:"+fp);
+  localStorage.setItem(MINEGRAM_DELETED_POSTS_KEY,JSON.stringify([...ids].slice(-2000)));
+}
+
+function isMinegramDeletedPostFingerprint(post){
+  const fp=minegramPostFingerprint(post);
+  return !!(fp && getMinegramDeletedPostIds().has("fp:"+fp));
+}
+
 function isMinegramDeletedPost(post){
   const ids=getMinegramDeletedPostIds();
   const id=String(post?.id || post?.postId || "").trim();
@@ -4937,7 +4960,8 @@ function isMinegramDeletedPost(post){
   return !!(
     (id && ids.has(id)) ||
     (sourceId && ids.has(sourceId)) ||
-    (id && ids.has("public_post_"+id))
+    (id && ids.has("public_post_"+id)) ||
+    isMinegramDeletedPostFingerprint(post)
   );
 }
 
@@ -5095,6 +5119,7 @@ async function loadFeed(){
 
   if(posts.length){
 
+    window.__minegramFeedPosts=posts;
     feedEl.innerHTML=
       posts.map(renderPost).join("");
 
@@ -5607,18 +5632,19 @@ async function deletePostFromMenu(){
   const id=String(currentMenuPost).trim();
   closeMenu();
 
-  if(!confirm("Bu gönderiyi silmek istediğine emin misin?")){
-    return;
-  }
+  if(!confirm("Bu gönderiyi silmek istediğine emin misin?")) return;
 
-  /* Önce yerel tombstone oluştur. Böylece API/Firebase tekrar aynı postu
-     döndürse bile loadFeed onu kesinlikle çizmez. */
+  /* Gönderinin ekrandaki gerçek nesnesini bul. */
+  const article=document.querySelector('.post[data-id="'+CSS.escape(id)+'"]');
+  const knownPost=(window.__minegramFeedPosts||[]).find(p=>
+    String(p?.id||p?.postId||"").trim()===id
+  ) || null;
+
+  /* Silindi bilgisini ID + içerik parmak iziyle kalıcı kaydet. */
   addMinegramDeletedPost(id);
+  if(knownPost) addMinegramDeletedFingerprint(knownPost);
 
-  /* Ekrandan anında kaldır. */
-  const article=document.querySelector(
-    '.post[data-id="'+CSS.escape(id)+'"]'
-  );
+  /* Kullanıcı silince tekrar yükleme yapmıyoruz. */
   if(article) article.remove();
 
   let apiOk=false;
@@ -5626,46 +5652,61 @@ async function deletePostFromMenu(){
 
   try{
     try{
-      await api(
-        "/posts/"+encodeURIComponent(id),
-        {method:"DELETE"}
-      );
+      await api("/posts/"+encodeURIComponent(id),{method:"DELETE"});
       apiOk=true;
-    }catch(apiError){
-      /* Backend'de zaten silinmişse bunu hata sayma. */
-      if(Number(apiError?.status)===404){
-        apiOk=true;
-      }
+    }catch(e){
+      if(Number(e?.status)===404) apiOk=true;
     }
 
-    /* Android gönderisi Firebase'de kalmışsa mümkünse onu da sil. */
-    firebaseOk=await tryDeleteFirebaseMinegramPost(id);
+    /* Aynı gönderinin Firebase'de farklı ID'li kopyası varsa onu da bul. */
+    try{
+      const firebasePosts=await firebaseLoadMinegramPosts();
+      const matches=firebasePosts.filter(p=>{
+        if(String(p?.id||p?.postId||"").trim()===id)return true;
+        if(!knownPost)return false;
+        return minegramPostFingerprint(p)===minegramPostFingerprint(knownPost);
+      });
 
-    /* Burada loadFeed çağırmak sorun değil: tombstone sayesinde silinen
-       post artık API/Firebase'den gelse bile gösterilmeyecek. */
-    await loadFeed();
+      for(const p of matches){
+        const fid=String(p?.id||p?.postId||"").trim();
+        if(fid){
+          addMinegramDeletedPost(fid);
+          addMinegramDeletedFingerprint(p);
+          const ok=await tryDeleteFirebaseMinegramPost(fid);
+          firebaseOk=firebaseOk||ok;
+        }
+      }
+    }catch(_){ }
 
+    /* Başarılı API/Firebase silmesi yeterli. Feed'i yeniden çekmiyoruz. */
     if(apiOk || firebaseOk){
       toast("Gönderi silindi");
     }else{
-      /* İki kaynak da silinemediyse yanlışlıkla kalıcı gizleme yapma. */
+      /* Sunucuya silme isteği ulaşmadıysa kullanıcıya yanlış başarı verme.
+         Ancak fingerprint tombstone'u korumuyoruz. */
       removeMinegramDeletedPost(id);
-      await loadFeed();
+      if(knownPost){
+        const ids=getMinegramDeletedPostIds();
+        ids.delete("fp:"+minegramPostFingerprint(knownPost));
+        localStorage.setItem(MINEGRAM_DELETED_POSTS_KEY,JSON.stringify([...ids]));
+      }
+      if(article && feedEl) feedEl.insertAdjacentHTML("beforeend",renderPost(knownPost));
       toast("Gönderi silinemedi");
     }
 
   }catch(e){
-    /* Silme işlemi tamamen başarısızsa tombstone'u geri al. */
     if(!apiOk && !firebaseOk){
       removeMinegramDeletedPost(id);
+      if(knownPost){
+        const ids=getMinegramDeletedPostIds();
+        ids.delete("fp:"+minegramPostFingerprint(knownPost));
+        localStorage.setItem(MINEGRAM_DELETED_POSTS_KEY,JSON.stringify([...ids]));
+      }
+      if(knownPost && feedEl && !document.querySelector('.post[data-id="'+CSS.escape(id)+'"]')){
+        feedEl.insertAdjacentHTML("beforeend",renderPost(knownPost));
+      }
     }
-
-    await loadFeed().catch(()=>{});
-
-    toast(
-      e?.message ||
-      "Gönderi silinemedi"
-    );
+    toast(e?.message||"Gönderi silinemedi");
   }
 }
 
