@@ -256,6 +256,61 @@ function normalizeUsername(x) {
     .toLowerCase();
 }
 
+async function isAuthUserActive(userId) {
+  if (!userId || !SUPABASE_SERVICE_ROLE_KEY) return false;
+
+  try {
+    const admin = adminClient();
+    const { data, error } = await admin.auth.admin.getUserById(userId);
+    return !error && !!data?.user?.id;
+  } catch (e) {
+    console.error("ACTIVE USER CHECK ERROR:", e?.message || e);
+    return false;
+  }
+}
+
+async function filterActivePosts(posts) {
+  if (!Array.isArray(posts) || !posts.length) return [];
+
+  const userIds = [...new Set(
+    posts.map(p => p?.user_id).filter(Boolean)
+  )];
+
+  const activeIds = new Set();
+  await Promise.all(userIds.map(async userId => {
+    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  }));
+
+  return posts.filter(p => activeIds.has(p?.user_id));
+}
+
+async function filterActiveStories(stories) {
+  if (!Array.isArray(stories) || !stories.length) return [];
+
+  const userIds = [...new Set(
+    stories.map(s => s?.user_id).filter(Boolean)
+  )];
+
+  const activeIds = new Set();
+  await Promise.all(userIds.map(async userId => {
+    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  }));
+
+  return stories.filter(s => activeIds.has(s?.user_id));
+}
+
+async function filterActiveProfiles(profiles) {
+  if (!Array.isArray(profiles) || !profiles.length) return [];
+
+  const active = [];
+  await Promise.all(profiles.map(async profile => {
+    const userId = profile?.auth_user_id || profile?.id;
+    if (await isAuthUserActive(userId)) active.push(profile);
+  }));
+
+  return active;
+}
+
 async function findProfile(
   sb,
   username
@@ -274,6 +329,15 @@ async function findProfile(
 
   if (error) {
     throw error;
+  }
+
+  // profiles tablosunda eski hesap kaydı kalmış olsa bile,
+  // Supabase Auth hesabı silinmişse bu profil artık sitede görünmemeli.
+  if (!data) return null;
+
+  const authId = data.auth_user_id || data.id;
+  if (!authId || !(await isAuthUserActive(authId))) {
+    return null;
   }
 
   return data;
@@ -3199,10 +3263,12 @@ app.get(
         throw error;
       }
 
+      const activePosts = await filterActivePosts(data || []);
+
       res.json(
         await hydratePosts(
           req.sb,
-          data || [],
+          activePosts,
           req.user.id
         )
       );
@@ -3605,8 +3671,10 @@ app.get(
         });
       }
 
+      const activeStories = await filterActiveStories(data || []);
+
       res.json(
-        data || []
+        activeStories
       );
     } catch (e) {
       res.status(500).json({
@@ -4097,6 +4165,12 @@ app.post(
         });
       }
 
+      if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
+        return res.status(404).json({
+          error: "Kullanıcı bulunamadı"
+        });
+      }
+
       if (
         target.id ===
         req.user.id
@@ -4212,6 +4286,12 @@ app.get(
         });
       }
 
+      if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
+        return res.status(404).json({
+          error: "Kullanıcı bulunamadı"
+        });
+      }
+
       const {
         data,
         error
@@ -4235,10 +4315,12 @@ app.get(
         throw error;
       }
 
+      const activePosts = await filterActivePosts(data || []);
+
       res.json(
         await hydratePosts(
           req.sb,
-          data || [],
+          activePosts,
           req.user.id
         )
       );
@@ -4413,8 +4495,10 @@ app.get(
         throw error;
       }
 
+      const activeProfiles = await filterActiveProfiles(data || []);
+
       res.json(
-        (data || []).map(
+        activeProfiles.map(
           safeUser
         )
       );
