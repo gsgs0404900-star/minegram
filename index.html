@@ -5081,11 +5081,25 @@ function mergeFeedPosts(apiPosts,firebasePosts){
 
 /* =========================================================
    FEED
+   Tek seferde yalnızca en güncel yükleme ekrana yazılır.
+   Silme sırasında devam eden eski async istekler iptal edilmiş
+   sayılır; böylece silinen gönderi sonradan tekrar çizilmez.
 ========================================================= */
+
+let minegramFeedLoadVersion=0;
+let minegramPostDeleteVersion=0;
 
 async function loadFeed(){
 
   if(!feedEl)return;
+
+  const myFeedVersion=++minegramFeedLoadVersion;
+  const myDeleteVersion=minegramPostDeleteVersion;
+
+  /* Yeni bir yükleme başladıysa önceki isteğin sonucu ekrana yazamaz. */
+  const feedRequestIsCurrent=()=>
+    myFeedVersion===minegramFeedLoadVersion &&
+    myDeleteVersion===minegramPostDeleteVersion;
 
   feedEl.innerHTML=`
     <div class="empty">
@@ -5131,6 +5145,12 @@ async function loadFeed(){
     firebasePosts=firebaseResult.value;
   }
 
+  /* Silme veya daha yeni bir loadFeed başladıysa bu eski istek
+     artık hiçbir şeyi ekrana yazamaz. */
+  if(!feedRequestIsCurrent()){
+    return;
+  }
+
   const posts=
     mergeFeedPosts(
       apiPosts,
@@ -5154,6 +5174,8 @@ async function loadFeed(){
 
     return;
   }
+
+  if(!feedRequestIsCurrent())return;
 
   /* İki kaynak da hata verdiyse gerçek hatayı göster. */
   const apiError =
@@ -5657,6 +5679,10 @@ async function saveFromMenu(){
 async function deletePostFromMenu(){
 
   if(!currentMenuPost)return;
+
+  /* Devam eden tüm eski feed isteklerinin sonucu geçersiz. */
+  minegramPostDeleteVersion++;
+  minegramFeedLoadVersion++;
 
   const id=String(currentMenuPost).trim();
   closeMenu();
