@@ -975,6 +975,943 @@ onclick="sendComment()"
   let storyGroupIndex=0;
   let storyTimer=null;
   let storyVideo=null;
+
+  /* =======================================================
+     FIREBASE STORY SİSTEMİ
+     Android uygulaması ile aynı Firestore yapısı:
+     users/{username}/stories/{storyId}
+
+     Android'in yazdığı alanlar:
+       id, username, usernameLower, base64, mediaType, createdAt
+  ======================================================= */
+
+  const MINEGRAM_FIREBASE_API_KEY =
+    "AIzaSyBgJjz0LOWY2DO55h3sxsovBIlBOGjJwIo";
+
+  const MINEGRAM_FIREBASE_PROJECT =
+    "mim-ea133";
+
+  const MINEGRAM_FIREBASE_DB =
+    "(default)";
+
+  const MINEGRAM_STORY_MAX_AGE =
+    24 * 60 * 60 * 1000;
+
+  const MINEGRAM_STORY_MAX_BYTES =
+    450000;
+
+  async function getFirebaseStoryToken(){
+
+    const cached =
+      sessionStorage.getItem(
+        "minegram_firebase_story_token"
+      );
+
+    if(
+      cached &&
+      cached!=="null" &&
+      cached!=="undefined"
+    ){
+      return cached;
+    }
+
+    const response =
+      await fetch(
+        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
+        encodeURIComponent(
+          MINEGRAM_FIREBASE_API_KEY
+        ),
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            returnSecureToken:true
+          })
+        }
+      );
+
+    const json =
+      await response
+        .json()
+        .catch(()=>({}));
+
+    if(
+      !response.ok ||
+      !json.idToken
+    ){
+      throw new Error(
+        json.error?.message ||
+        "Firebase oturumu açılamadı."
+      );
+    }
+
+    sessionStorage.setItem(
+      "minegram_firebase_story_token",
+      json.idToken
+    );
+
+    return json.idToken;
+  }
+
+
+  async function firebaseStoryRequest(
+    url,
+    options={}
+  ){
+
+    const idToken =
+      await getFirebaseStoryToken();
+
+    const headers={
+      ...(options.headers||{}),
+      Authorization:
+        "Bearer " + idToken
+    };
+
+    let response =
+      await fetch(
+        url,
+        {
+          ...options,
+          headers,
+          cache:"no-store"
+        }
+      );
+
+    /*
+      Anonim Firebase token süresi dolduysa
+      bir kere yenisini alıp tekrar dene.
+    */
+    if(
+      response.status===401 ||
+      response.status===403
+    ){
+
+      sessionStorage.removeItem(
+        "minegram_firebase_story_token"
+      );
+
+      const freshToken =
+        await getFirebaseStoryToken();
+
+      response =
+        await fetch(
+          url,
+          {
+            ...options,
+            headers:{
+              ...(options.headers||{}),
+              Authorization:
+                "Bearer " + freshToken
+            },
+            cache:"no-store"
+          }
+        );
+
+    }
+
+    const json =
+      await response
+        .json()
+        .catch(()=>({}));
+
+    if(!response.ok){
+
+      const message =
+        json.error?.message ||
+        json.error ||
+        ("HTTP " + response.status);
+
+      const error =
+        new Error(
+          String(message)
+        );
+
+      error.status =
+        response.status;
+
+      throw error;
+    }
+
+    return json;
+  }
+
+
+  function firestoreString(value){
+    return {
+      stringValue:
+        String(value ?? "")
+    };
+  }
+
+
+  function firestoreInteger(value){
+    return {
+      integerValue:
+        String(
+          Math.round(
+            Number(value)||0
+          )
+        )
+    };
+  }
+
+
+  function firestoreDocFields(data){
+
+    return {
+      id:
+        firestoreString(data.id),
+
+      username:
+        firestoreString(data.username),
+
+      usernameLower:
+        firestoreString(
+          String(
+            data.username||""
+          ).toLowerCase()
+        ),
+
+      base64:
+        firestoreString(data.base64),
+
+      mediaType:
+        firestoreString(
+          data.mediaType ||
+          "image/jpeg"
+        ),
+
+      createdAt:
+        firestoreInteger(
+          data.createdAt
+        )
+    };
+  }
+
+
+  function firestoreField(
+    fields,
+    name
+  ){
+
+    const field =
+      fields?.[name];
+
+    if(!field)
+      return null;
+
+    if(
+      Object.prototype.hasOwnProperty.call(
+        field,
+        "stringValue"
+      )
+    ){
+      return field.stringValue;
+    }
+
+    if(
+      Object.prototype.hasOwnProperty.call(
+        field,
+        "integerValue"
+      )
+    ){
+      return Number(
+        field.integerValue
+      );
+    }
+
+    if(
+      Object.prototype.hasOwnProperty.call(
+        field,
+        "doubleValue"
+      )
+    ){
+      return Number(
+        field.doubleValue
+      );
+    }
+
+    return null;
+  }
+
+
+  function firestoreStoryUrl(
+    username,
+    storyId=""
+  ){
+
+    const base =
+      "https://firestore.googleapis.com/v1/projects/" +
+      encodeURIComponent(
+        MINEGRAM_FIREBASE_PROJECT
+      ) +
+      "/databases/" +
+      encodeURIComponent(
+        MINEGRAM_FIREBASE_DB
+      ) +
+      "/documents/users/" +
+      encodeURIComponent(
+        String(username).toLowerCase()
+      ) +
+      "/stories";
+
+    return storyId
+      ? base + "/" +
+        encodeURIComponent(storyId)
+      : base;
+  }
+
+
+  function firestoreStoryToMineStory(
+    doc,
+    fallbackUsername
+  ){
+
+    const fields =
+      doc?.fields || {};
+
+    const id =
+      firestoreField(
+        fields,
+        "id"
+      ) ||
+      doc?.name?.split("/")?.pop() ||
+      "";
+
+    const username =
+      firestoreField(
+        fields,
+        "username"
+      ) ||
+      fallbackUsername ||
+      "";
+
+    const base64 =
+      firestoreField(
+        fields,
+        "base64"
+      ) ||
+      "";
+
+    const mediaType =
+      firestoreField(
+        fields,
+        "mediaType"
+      ) ||
+      "image/jpeg";
+
+    const createdAt =
+      Number(
+        firestoreField(
+          fields,
+          "createdAt"
+        ) || 0
+      );
+
+    if(
+      !id ||
+      !username ||
+      !base64 ||
+      !createdAt
+    ){
+      return null;
+    }
+
+    if(
+      Date.now()-createdAt >=
+      MINEGRAM_STORY_MAX_AGE
+    ){
+      return null;
+    }
+
+    return {
+      id:String(id),
+      userId:String(username),
+      username:String(username)
+        .replace(/^@/,"")
+        .trim(),
+      displayName:String(username),
+      avatar:"",
+      media:
+        "data:" +
+        mediaType +
+        ";base64," +
+        base64,
+      type:String(mediaType),
+      createdAt,
+      commentsEnabled:true
+    };
+  }
+
+
+  async function firebaseListStoriesForUser(
+    username
+  ){
+
+    const clean =
+      String(username||"")
+        .replace(/^@/,"")
+        .trim();
+
+    if(!clean)
+      return [];
+
+    const result =
+      await firebaseStoryRequest(
+        firestoreStoryUrl(clean) +
+        "?pageSize=100",
+        {
+          method:"GET"
+        }
+      );
+
+    const docs =
+      Array.isArray(
+        result?.documents
+      )
+        ? result.documents
+        : [];
+
+    return docs
+      .map(
+        doc =>
+          firestoreStoryToMineStory(
+            doc,
+            clean
+          )
+      )
+      .filter(Boolean);
+  }
+
+
+  async function firebaseGetFollowingUsers(){
+
+    const me =
+      getLocalUsername();
+
+    if(!me)
+      return [];
+
+    const url =
+      "https://firestore.googleapis.com/v1/projects/" +
+      encodeURIComponent(
+        MINEGRAM_FIREBASE_PROJECT
+      ) +
+      "/databases/" +
+      encodeURIComponent(
+        MINEGRAM_FIREBASE_DB
+      ) +
+      "/documents/followRelations?pageSize=300";
+
+    try{
+
+      const result =
+        await firebaseStoryRequest(
+          url,
+          {
+            method:"GET"
+          }
+        );
+
+      const docs =
+        Array.isArray(
+          result?.documents
+        )
+          ? result.documents
+          : [];
+
+      const names=[];
+
+      docs.forEach(doc=>{
+
+        const fields =
+          doc?.fields || {};
+
+        const follower =
+          String(
+            firestoreField(
+              fields,
+              "followerUsername"
+            ) || ""
+          ).trim();
+
+        const following =
+          String(
+            firestoreField(
+              fields,
+              "followingUsername"
+            ) || ""
+          ).trim();
+
+        if(
+          follower &&
+          following &&
+          follower.toLowerCase()===
+          me.toLowerCase()
+        ){
+          names.push(
+            following
+          );
+        }
+
+      });
+
+      return [
+        ...new Map(
+          names.map(
+            name=>[
+              name.toLowerCase(),
+              name
+            ]
+          )
+        ).values()
+      ];
+
+    }catch(error){
+
+      console.warn(
+        "FOLLOWING STORY LISTESİ:",
+        error
+      );
+
+      /*
+        Takip ilişkileri okunamazsa eski
+        local following listesini kullan.
+      */
+      try{
+
+        const local=
+          JSON.parse(
+            localStorage.getItem(
+              "minegram_following"
+            ) || "[]"
+          );
+
+        if(Array.isArray(local))
+          return local;
+
+      }catch(e){}
+
+      return [];
+    }
+  }
+
+
+  async function firebaseLoadMinegramStories(){
+
+    const me =
+      getLocalUsername();
+
+    if(!me)
+      return [];
+
+    /*
+      Uygulamadaki sistem ile aynı:
+      kendi hikayelerin + takip ettiğin
+      kullanıcıların hikayeleri.
+    */
+    const usernames =
+      [
+        me,
+        ...(await firebaseGetFollowingUsers())
+      ]
+      .map(
+        name =>
+          String(name||"")
+            .replace(/^@/,"")
+            .trim()
+      )
+      .filter(Boolean);
+
+    const uniqueUsers =
+      [
+        ...new Map(
+          usernames.map(
+            name=>[
+              name.toLowerCase(),
+              name
+            ]
+          )
+        ).values()
+      ];
+
+    const results =
+      await Promise.all(
+        uniqueUsers.map(
+          name =>
+            firebaseListStoriesForUser(
+              name
+            ).catch(error=>{
+              console.warn(
+                "STORY USER LOAD:",
+                name,
+                error
+              );
+              return [];
+            })
+        )
+      );
+
+    return results
+      .flat()
+      .filter(Boolean)
+      .sort(
+        (a,b)=>
+          a.createdAt-b.createdAt
+      );
+  }
+
+
+  function makeStoryId(
+    username
+  ){
+
+    return (
+      "story_" +
+      String(username)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g,"_") +
+      "_" +
+      Date.now() +
+      "_" +
+      Math.random()
+        .toString(36)
+        .slice(2,10)
+    );
+  }
+
+
+  function blobToBase64(
+    blob
+  ){
+
+    return new Promise(
+      (resolve,reject)=>{
+
+        const reader =
+          new FileReader();
+
+        reader.onload=
+          ()=>{
+            const value =
+              String(
+                reader.result||""
+              );
+
+            resolve(
+              value.includes(",")
+                ? value.split(",")[1]
+                : value
+            );
+          };
+
+        reader.onerror=
+          ()=>reject(
+            new Error(
+              "Dosya okunamadı."
+            )
+          );
+
+        reader.readAsDataURL(
+          blob
+        );
+      }
+    );
+  }
+
+
+  async function prepareStoryFile(
+    file
+  ){
+
+    if(
+      /^video\//i.test(
+        file.type
+      )
+    ){
+
+      if(
+        file.size >
+        MINEGRAM_STORY_MAX_BYTES
+      ){
+        throw new Error(
+          "Video hikayesi 450 KB sınırını aşamaz."
+        );
+      }
+
+      return {
+        base64:
+          await blobToBase64(file),
+        mediaType:
+          file.type ||
+          "video/mp4"
+      };
+    }
+
+    if(
+      !/^image\//i.test(
+        file.type
+      )
+    ){
+      throw new Error(
+        "Sadece fotoğraf veya video ekleyebilirsin."
+      );
+    }
+
+    /*
+      Android tarafındaki sisteme benzer:
+      maksimum 720 px ve yaklaşık 450 KB.
+    */
+    const bitmap =
+      await new Promise(
+        (resolve,reject)=>{
+
+          const img =
+            new Image();
+
+          const url =
+            URL.createObjectURL(
+              file
+            );
+
+          img.onload=
+            ()=>{
+              URL.revokeObjectURL(
+                url
+              );
+              resolve(img);
+            };
+
+          img.onerror=
+            ()=>{
+              URL.revokeObjectURL(
+                url
+              );
+              reject(
+                new Error(
+                  "Fotoğraf okunamadı."
+                )
+              );
+            };
+
+          img.src=url;
+        }
+      );
+
+    const maxSide=720;
+
+    const scale =
+      Math.min(
+        1,
+        maxSide /
+        Math.max(
+          bitmap.width,
+          bitmap.height
+        )
+      );
+
+    const width =
+      Math.max(
+        1,
+        Math.round(
+          bitmap.width*scale
+        )
+      );
+
+    const height =
+      Math.max(
+        1,
+        Math.round(
+          bitmap.height*scale
+        )
+      );
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
+
+    canvas.width=width;
+    canvas.height=height;
+
+    const ctx =
+      canvas.getContext(
+        "2d",
+        {
+          alpha:false
+        }
+      );
+
+    ctx.drawImage(
+      bitmap,
+      0,
+      0,
+      width,
+      height
+    );
+
+    let quality=0.78;
+    let blob=
+      await new Promise(
+        resolve =>
+          canvas.toBlob(
+            resolve,
+            "image/jpeg",
+            quality
+          )
+      );
+
+    while(
+      blob &&
+      blob.size >
+      MINEGRAM_STORY_MAX_BYTES &&
+      quality>0.35
+    ){
+
+      quality -= 0.07;
+
+      blob =
+        await new Promise(
+          resolve =>
+            canvas.toBlob(
+              resolve,
+              "image/jpeg",
+              quality
+            )
+        );
+    }
+
+    if(
+      !blob ||
+      blob.size >
+      MINEGRAM_STORY_MAX_BYTES
+    ){
+      throw new Error(
+        "Fotoğraf 450 KB altına küçültülemedi."
+      );
+    }
+
+    return {
+      base64:
+        await blobToBase64(
+          blob
+        ),
+      mediaType:
+        "image/jpeg"
+    };
+  }
+
+
+  async function firebaseUploadStory(
+    file
+  ){
+
+    const username =
+      getLocalUsername();
+
+    if(!username){
+      throw new Error(
+        "Giriş yapan kullanıcı bulunamadı."
+      );
+    }
+
+    const prepared =
+      await prepareStoryFile(
+        file
+      );
+
+    const createdAt =
+      Date.now();
+
+    const id =
+      makeStoryId(
+        username
+      );
+
+    const fields =
+      firestoreDocFields({
+        id,
+        username,
+        base64:
+          prepared.base64,
+        mediaType:
+          prepared.mediaType,
+        createdAt
+      });
+
+    const url =
+      firestoreStoryUrl(
+        username
+      ) +
+      "?documentId=" +
+      encodeURIComponent(id);
+
+    const result =
+      await firebaseStoryRequest(
+        url,
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            fields
+          })
+        }
+      );
+
+    const uploaded =
+      firestoreStoryToMineStory(
+        result,
+        username
+      );
+
+    if(!uploaded){
+      throw new Error(
+        "Firebase hikaye kaydı okunamadı."
+      );
+    }
+
+    return uploaded;
+  }
+
+
+  async function firebaseDeleteStory(
+    story
+  ){
+
+    if(!story)
+      return;
+
+    const username =
+      String(
+        story.username||""
+      ).trim();
+
+    const id =
+      String(
+        story.id||""
+      ).trim();
+
+    if(!username || !id)
+      return;
+
+    await firebaseStoryRequest(
+      firestoreStoryUrl(
+        username,
+        id
+      ),
+      {
+        method:"DELETE"
+      }
+    );
+  }
+
   let loadingStories=false;
 
   const STORY_AGE=24*60*60*1000;
@@ -988,31 +1925,20 @@ onclick="sendComment()"
 
     if(!s)return null;
 
-    /*
-      Android uygulamasının /api/stories cevabıyla aynı yapıları
-      destekle: story, data, result veya doğrudan story nesnesi.
-    */
-    if(s.story && typeof s.story === "object") s=s.story;
-    else if(s.data && !Array.isArray(s.data) && typeof s.data === "object") s=s.data;
-    else if(s.result && typeof s.result === "object") s=s.result;
+    const profile=
+      s.profiles ||
+      s.profile ||
+      {};
 
-    const profile=s.profiles || s.profile || {};
-    const user=s.user || {};
+    const user=
+      s.user ||
+      {};
 
     const media=
       s.media_url ||
       s.mediaUrl ||
       s.media ||
       s.url ||
-      s.image_url ||
-      s.imageUrl ||
-      s.video_url ||
-      s.videoUrl ||
-      s.file_url ||
-      s.fileUrl ||
-      s.storage_url ||
-      s.storageUrl ||
-      s.path ||
       "";
 
     if(!media)return null;
@@ -1023,7 +1949,6 @@ onclick="sendComment()"
       user.username ||
       user.user_name ||
       s.username ||
-      s.user_name ||
       "minegram";
 
     const displayName=
@@ -1044,54 +1969,62 @@ onclick="sendComment()"
       s.avatarUrl ||
       "";
 
-    let rawCreated=
-      s.created_at ??
-      s.createdAt ??
-      s.timestamp ??
-      Date.now();
-
-    let createdAt=
-      typeof rawCreated === "number"
-        ? rawCreated
-        : new Date(rawCreated).getTime();
-
-    /* Unix timestamp saniye olarak geldiyse milisaniyeye çevir. */
-    if(createdAt>0 && createdAt<100000000000) createdAt*=1000;
-    if(!Number.isFinite(createdAt) || createdAt<=0) createdAt=Date.now();
-
-    let mediaUrl=String(media).trim();
+    const createdAt=
+      new Date(
+        s.created_at ||
+        s.createdAt ||
+        Date.now()
+      ).getTime();
 
     return {
-      id:String(
+
+      id:
         s.id ||
-        s.story_id ||
-        ("story_"+Date.now()+"_"+Math.random().toString(36).slice(2))
-      ),
-      userId:String(
+        (
+          "story_" +
+          Date.now() +
+          "_" +
+          Math.random()
+            .toString(36)
+            .slice(2)
+        ),
+
+      userId:
         s.user_id ||
         s.userId ||
-        s.ownerUid ||
-        s.owner_uid ||
         profile.id ||
         user.id ||
-        user.uid ||
-        ""
-      ),
-      username:String(username).replace(/^@/,"").trim(),
-      displayName:String(displayName),
-      avatar:String(avatar || ""),
-      media:mediaUrl,
-      type:String(
+        "",
+
+      username:
+        String(username)
+          .replace(/^@/,"")
+          .trim(),
+
+      displayName:
+        displayName,
+
+      avatar:
+        avatar,
+
+      media:
+        media,
+
+      type:
         s.media_type ||
         s.mediaType ||
         s.type ||
-        ""
-      ),
-      createdAt:createdAt,
+        "",
+
+      createdAt:
+        createdAt,
+
       commentsEnabled:
         s.comments_enabled !== false &&
         s.commentsEnabled !== false
+
     };
+
   }
 
 
@@ -1252,66 +2185,145 @@ onclick="sendComment()"
 
   async function loadStories(){
 
-    if(loadingStories)return;
+    if(loadingStories)
+      return;
+
     loadingStories=true;
 
     try{
-      const result=await api("/stories");
 
-      /* Android uygulamasının kabul ettiği tüm cevap biçimleri. */
-      let list=[];
+      /*
+        Öncelik doğrudan Firebase:
+        Android uygulamasının yazdığı aynı
+        users/{username}/stories koleksiyonu.
+      */
+      const firebaseStories =
+        await firebaseLoadMinegramStories();
 
-      if(Array.isArray(result)){
-        list=result;
-      }else if(Array.isArray(result?.stories)){
-        list=result.stories;
-      }else if(Array.isArray(result?.data)){
-        list=result.data;
-      }else if(Array.isArray(result?.results)){
-        list=result.results;
-      }else if(Array.isArray(result?.items)){
-        list=result.items;
-      }else if(result?.story && typeof result.story === "object"){
-        list=[result.story];
-      }else if(result && typeof result === "object" && (
-        result.media_url || result.mediaUrl || result.media || result.url ||
-        result.image_url || result.imageUrl || result.video_url || result.videoUrl
-      )){
-        list=[result];
+      if(
+        Array.isArray(firebaseStories)
+      ){
+
+        stories =
+          firebaseStories;
+
+        cleanStories();
+        buildStoryGroups();
+        renderStoryBar();
+
+        try{
+          localStorage.setItem(
+            "minegram_story_v2",
+            JSON.stringify(
+              stories
+            )
+          );
+        }catch(e){}
+
+        return;
       }
 
-      const normalized=list.map(normalizeStory).filter(Boolean);
-
-      stories=normalized;
-      cleanStories();
-      buildStoryGroups();
-      renderStoryBar();
-
-      try{
-        localStorage.setItem("minegram_story_v2",JSON.stringify(stories));
-      }catch(e){}
-
-      return stories;
-
     }catch(error){
-      console.error("STORY LOAD ERROR:",error);
 
-      /* Sunucu geçici olarak cevap vermezse son çalışan listeyi koru. */
+      console.error(
+        "FIREBASE STORY LOAD ERROR:",
+        error
+      );
+
+      /*
+        Firebase geçici olarak erişilemezse
+        eski /api sistemi yedek olarak çalışsın.
+      */
       try{
-        const local=JSON.parse(localStorage.getItem("minegram_story_v2")||"[]");
-        if(Array.isArray(local)){
-          stories=local.map(normalizeStory).filter(Boolean);
-          cleanStories();
-          buildStoryGroups();
-          renderStoryBar();
-        }
-      }catch(e){}
 
-      return stories;
+        const result =
+          await api(
+            "/stories"
+          );
+
+        const list =
+          Array.isArray(result)
+            ? result
+            : (
+                Array.isArray(
+                  result?.stories
+                )
+                  ? result.stories
+                  : []
+              );
+
+        stories =
+          list
+            .map(
+              normalizeStory
+            )
+            .filter(Boolean);
+
+        cleanStories();
+        buildStoryGroups();
+        renderStoryBar();
+
+        try{
+          localStorage.setItem(
+            "minegram_story_v2",
+            JSON.stringify(
+              stories
+            )
+          );
+        }catch(e){}
+
+        return;
+
+      }catch(apiError){
+
+        console.error(
+          "STORY API LOAD ERROR:",
+          apiError
+        );
+
+      }
+    }
+
+    /*
+      İki kaynak da geçici olarak okunamazsa
+      son başarılı yerel kayıtları göster.
+    */
+    try{
+
+      const local =
+        JSON.parse(
+          localStorage.getItem(
+            "minegram_story_v2"
+          ) || "[]"
+        );
+
+      if(
+        Array.isArray(local)
+      ){
+
+        stories =
+          local
+            .map(
+              normalizeStory
+            )
+            .filter(Boolean);
+
+        cleanStories();
+        buildStoryGroups();
+        renderStoryBar();
+
+      }
+
+    }catch(e){
+
+      stories=[];
 
     }finally{
+
       loadingStories=false;
+
     }
+
   }
 
 
@@ -1700,45 +2712,14 @@ if(plusButton){
      ANDROID / WEB -> SERVER STORY UPLOAD
   ======================================================= */
 
-  async function addStory(file, autoOpen = true, silent = false){
+  async function addStory(
+    file,
+    autoOpen=true,
+    silent=false
+  ){
 
     if(!file)
-      return;
-
-
-    if(
-      !/^image\//.test(file.type) &&
-      !/^video\//.test(file.type)
-    ){
-
-      alert(
-        "Sadece fotoğraf veya video ekleyebilirsin."
-      );
-
-      return;
-
-    }
-
-
-    const form=
-      new FormData();
-
-
-    /*
-      SERVERIN BEKLEDİĞİ ALAN:
-      story
-    */
-
-    form.append(
-      "story",
-      file,
-      file.name ||
-      (
-        "minegram_story_" +
-        Date.now()
-      )
-    );
-
+      return null;
 
     try{
 
@@ -1746,98 +2727,76 @@ if(plusButton){
         "Hikaye yükleniyor..."
       );
 
+      const uploaded =
+        await firebaseUploadStory(
+          file
+        );
+
+      stories.push(
+        uploaded
+      );
+
+      cleanStories();
+      buildStoryGroups();
+      renderStoryBar();
+
+      try{
+        localStorage.setItem(
+          "minegram_story_v2",
+          JSON.stringify(
+            stories
+          )
+        );
+      }catch(e){}
+
+      if(!silent){
+        toast(
+          "Hikaye paylaşıldı."
+        );
+      }
 
       /*
-        api() fonksiyonu
-        Authorization Bearer tokenı
-        otomatik ekliyor.
+        Uygulamadaki davranış:
+        yüklenen hikaye otomatik açılır.
       */
+      if(autoOpen){
 
-      const result=
-        await api(
-          "/stories",
-          {
-            method:"POST",
-            body:form
-          }
-        );
-
-
-      /*
-        Sunucudan dönen Storyyi
-        hemen local listeye ekle.
-      */
-
-      const uploaded=
-        normalizeStory(
-          result
-        );
-
-
-      if(uploaded){
-
-        stories.push(
-          uploaded
-        );
-
-        cleanStories();
-
-        buildStoryGroups();
-
-        renderStoryBar();
-
-        try{
-
-          localStorage.setItem(
-            "minegram_story_v2",
-            JSON.stringify(stories)
-          );
-
-        }catch(e){}
-
-        if(!silent){
-  toast("Hikaye paylaşıldı.");
-}
-
-
-        /*
-          Yüklenen Storyyi aç.
-        */
-
-        const group=
+        const group =
           storyGroups.find(
-            g =>
-              String(g.userId)===
-                String(uploaded.userId) ||
-              g.username.toLowerCase()===
-                uploaded.username.toLowerCase()
+            function(g){
+              return (
+                String(g.userId) ===
+                  String(uploaded.userId) ||
+                String(g.username).toLowerCase() ===
+                  String(uploaded.username).toLowerCase()
+              );
+            }
           );
-
 
         if(group){
 
+          const uploadedIndex =
+            group.stories.findIndex(
+              function(story){
+                return (
+                  String(story.id) ===
+                  String(uploaded.id)
+                );
+              }
+            );
+
           openGroup(
             group,
-            group.stories.findIndex(
-              s =>
-                String(s.id)===
-                String(uploaded.id)
-            )
+            uploadedIndex>=0
+              ? uploadedIndex
+              : group.stories.length-1
           );
 
         }
 
-        return uploaded;
-
-      }else{
-
-        await loadStories();
-
-        toast(
-          "Hikaye paylaşıldı."
-        );
-
       }
+
+      return uploaded;
 
     }catch(error){
 
@@ -1847,12 +2806,12 @@ if(plusButton){
       );
 
       if(
-        error.status===401 ||
-        error.status===403
+        error?.status===401 ||
+        error?.status===403
       ){
 
         alert(
-          "Oturum süresi dolmuş. Lütfen tekrar giriş yap."
+          "Firebase hikaye erişimi reddedildi. Firestore Rules içinde giriş yapmış kullanıcıların story koleksiyonuna erişebildiğinden emin ol."
         );
 
       }else{
@@ -1860,15 +2819,15 @@ if(plusButton){
         alert(
           "Hikaye yüklenemedi:\n" +
           (
-            error.message ||
-            "Sunucu hatası"
+            error?.message ||
+            "Firebase sunucu hatası"
           )
         );
 
       }
 
+      return null;
     }
-
   }
 
 
@@ -2731,23 +3690,34 @@ if(plusButton){
 
       try{
 
-        await api(
-          "/stories/" +
-          encodeURIComponent(
-            item.id
-          ),
-          {
-            method:"DELETE"
-          }
+        await firebaseDeleteStory(
+          item
         );
 
       }catch(error){
 
         console.warn(
-          "SERVER STORY DELETE:",
+          "FIREBASE STORY DELETE:",
           error
         );
 
+        /* Eski sunucu sistemi için yedek. */
+        try{
+          await api(
+            "/stories/" +
+            encodeURIComponent(
+              item.id
+            ),
+            {
+              method:"DELETE"
+            }
+          );
+        }catch(apiError){
+          console.warn(
+            "SERVER STORY DELETE:",
+            apiError
+          );
+        }
       }
 
 
@@ -2826,9 +3796,7 @@ if(plusButton){
 
       }
 
-      // Hepsi bittikten sonra sunucudaki gerçek listeyi çek.
-      // Böylece Android uygulaması ile web aynı story kaynağını kullanır.
-      await loadStories();
+      // Hepsi bittikten sonra sadece 1 kere yenile
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
