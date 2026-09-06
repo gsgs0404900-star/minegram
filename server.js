@@ -153,19 +153,19 @@ async function deletePostFromFirebase(postId, profile) {
 
 async function deleteHighlightFromFirebase(highlightId, profile) {
   try {
-    const username = String(profile?.username || "").trim();
+    const username = String(profile?.username || "").trim().toLowerCase();
     if (!username || !highlightId) return;
-    const data = await firebaseRest(`users?pageSize=300`, { method: "GET" });
-    const found = (data?.documents || []).find(doc => {
-      const f = doc.fields || {};
-      return [f.username, f.userName, f.handle, f.emailUsername]
-        .map(v => v?.stringValue?.toLowerCase()).filter(Boolean)
-        .includes(username.toLowerCase());
+    // Android stores the user's shared highlights in users/{usernameLower}.
+    // Never depend on username fields existing in that document.
+    const path = `users/${encodeURIComponent(username)}`;
+    const found = await firebaseRest(path, { method: "GET" });
+    const existing = found?.fields?.highlights?.arrayValue?.values || [];
+    const filtered = existing.filter(v => {
+      const f = v?.mapValue?.fields || {};
+      const id = f.id?.stringValue ?? f.highlightId?.stringValue ?? "";
+      return String(id) !== String(highlightId);
     });
-    if (!found?.name) return;
-    const existing = found.fields?.highlights?.arrayValue?.values || [];
-    const filtered = existing.filter(v => v?.mapValue?.fields?.id?.stringValue !== String(highlightId));
-    await firebaseRest(found.name.replace(`${FIRESTORE_BASE}/`, "") + `?updateMask.fieldPaths=highlights`, {
+    await firebaseRest(`${path}?updateMask.fieldPaths=highlights`, {
       method: "PATCH",
       body: JSON.stringify({ fields: { highlights: { arrayValue: { values: filtered } } } })
     });
@@ -178,46 +178,38 @@ async function mirrorHighlightToFirebase(highlight, profile) {
   try {
     const username = String(profile?.username || "").trim();
     if (!username || !highlight?.id) return;
-    const listUrl = `users?pageSize=300`;
-    const data = await firebaseRest(listUrl, { method: "GET" });
-    const documents = data?.documents || [];
-    const wanted = username.toLowerCase();
-    const found = documents.find(doc => {
-      const f = doc.fields || {};
-      return [f.username, f.userName, f.handle, f.emailUsername]
-        .map(v => v?.stringValue?.toLowerCase())
-        .filter(Boolean)
-        .includes(wanted);
-    });
-    if (!found?.name) return;
+    // Canonical Android document: users/{usernameLower}.
+    // The previous implementation searched up to 300 user documents and
+    // silently did nothing when the Android-created user document had no
+    // username field. That was the main Web -> Android highlight mismatch.
+    const path = `users/${encodeURIComponent(username.toLowerCase())}`;
+    let found = null;
+    try { found = await firebaseRest(path, { method: "GET" }); } catch (_) {}
 
-    const existing = found.fields?.highlights?.arrayValue?.values || [];
-    const item = {
-      mapValue: { fields: {
-        id: fsString(String(highlight.id)),
-        title: fsString(highlight.title || "Öne çıkan"),
-        image: fsString(highlight.media_url || ""),
-        uri: fsString(highlight.media_url || ""),
-        media: fsString(highlight.media_url || ""),
-        mediaUrl: fsString(highlight.media_url || ""),
-        type: fsString(highlight.media_type || "image"),
-        mediaType: fsString(highlight.media_type || "image"),
-        createdAt: fsString(highlight.created_at || new Date().toISOString())
-      }}
-    };
+    const existing = found?.fields?.highlights?.arrayValue?.values || [];
+    const mediaUrl = String(highlight.media_url || highlight.mediaUrl || "");
+    const item = { mapValue: { fields: {
+      id: fsString(String(highlight.id)),
+      highlightId: fsString(String(highlight.id)),
+      title: fsString(highlight.title || "Öne çıkan"),
+      image: fsString(mediaUrl),
+      uri: fsString(mediaUrl),
+      media: fsString(mediaUrl),
+      mediaUrl: fsString(mediaUrl),
+      type: fsString(highlight.media_type || "image"),
+      mediaType: fsString(highlight.media_type || "image"),
+      createdAt: fsString(highlight.created_at || new Date().toISOString())
+    }}};
     const merged = existing.filter(v => {
-      const id = v?.mapValue?.fields?.id?.stringValue;
-      return id !== String(highlight.id);
+      const f = v?.mapValue?.fields || {};
+      const id = f.id?.stringValue ?? f.highlightId?.stringValue ?? "";
+      return String(id) !== String(highlight.id);
     });
     merged.push(item);
-    const url = `${found.name}?updateMask.fieldPaths=highlights`;
-    await firebaseRest(url.replace(`${FIRESTORE_BASE}/`, ""), {
+
+    await firebaseRest(`${path}?updateMask.fieldPaths=highlights`, {
       method: "PATCH",
-      body: JSON.stringify({
-        fields: {
-          highlights: { arrayValue: { values: merged.slice(-20) } }
-        }
-      })
+      body: JSON.stringify({ fields: { highlights: { arrayValue: { values: merged.slice(-20) } } } })
     });
     console.log("MINEGRAM FIREBASE HIGHLIGHT MIRROR OK:", highlight.id);
   } catch (e) {
