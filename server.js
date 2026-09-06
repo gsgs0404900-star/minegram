@@ -1242,6 +1242,8 @@ app.post(
           profileError
         );
 
+        const profileErrorMessage = String(profileError.message || profileError.details || profileError.hint || "Profil kaydı oluşturulamadı.");
+
         try {
           await admin.auth.admin.deleteUser(
             authUser.id
@@ -1258,7 +1260,7 @@ app.post(
         return res.status(500).json({
           ok: false,
           code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
+          error: "Profil oluşturulamadı: " + profileErrorMessage
         });
       }
 
