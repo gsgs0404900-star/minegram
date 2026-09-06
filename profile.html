@@ -3032,47 +3032,7 @@ body{
 </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
-const MINEGRAM_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBgJjz0LOWY2DO55h3sxsovBIlBOGjJwIo",
-  projectId: "mim-ea133",
-  storageBucket: "mim-ea133.firebasestorage.app",
-  appId: "1:303525353436:android:14e4c8fffa956e4a942119"
-};
-if (!firebase.apps.length) firebase.initializeApp(MINEGRAM_FIREBASE_CONFIG);
-const minegramDb = firebase.firestore();
-async function ensureMinegramFirebaseAuth(){
-  if (firebase.auth().currentUser) return;
-  try { await firebase.auth().signInAnonymously(); } catch(e) { console.warn('Firebase web auth:', e); }
-}
-async function loadMinegramFirebasePosts(username){
-  await ensureMinegramFirebaseAuth();
-  const wanted = String(username||'').trim().toLowerCase();
-  if (!wanted) return [];
-  const snap = await minegramDb.collection('minegramPublicPosts')
-    .where('type','==','public_post').get();
-  return snap.docs.map(d=>{
-    const x=d.data()||{};
-    let media=x.mediaUri||x.mediaUrl||'';
-    if (x.mediaBase64) {
-      const mt=String(x.mediaType||'image/jpeg');
-      media='data:'+mt+';base64,'+x.mediaBase64;
-    }
-    return {
-      ...x,
-      id: x.postId ?? x.id ?? d.id,
-      username: x.username || '',
-      media,
-      caption: x.text || x.caption || '',
-      createdAt: x.createdAt || 0
-    };
-  }).filter(x=>String(x.username).trim().toLowerCase()===wanted)
-    .sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
-}
-
 
 const token=
 localStorage.getItem('minegram_token')||
@@ -4069,17 +4029,116 @@ async function load(){
 
    }
 
-   let posts=[];
-   try {
-     posts=await loadMinegramFirebasePosts(username);
-   } catch(firebaseError) {
-     console.warn('Firebase gönderileri okunamadı, API yedeği deneniyor:', firebaseError);
-     const postsResponse=await api('/api/users/'+encodeURIComponent(username)+'/posts');
-     posts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
-   }
+   const postsResponse=
+  await api(
+    '/api/users/'+
+    encodeURIComponent(username)+
+    '/posts'
+  );
+
+let posts=
+  Array.isArray(postsResponse)
+    ?postsResponse
+    :(
+      Array.isArray(postsResponse?.posts)
+        ?postsResponse.posts
+        :(
+          Array.isArray(postsResponse?.data)
+            ?postsResponse.data
+            :[]
+        )
+    );
+
+/*
+ * Site üzerinden /api/posts ile oluşturulan son gönderiyi
+ * profil API'si henüz listelemiyorsa da profilde göster.
+ * Böylece Oluştur > Paylaş sonrasında gönderi kaybolmaz.
+ */
+try{
+  const raw=localStorage.getItem('minegram_last_created_post');
+  if(raw){
+    const saved=JSON.parse(raw);
+    const candidate=
+      saved?.post ||
+      saved?.data?.post ||
+      saved?.data ||
+      saved;
+
+    if(candidate && typeof candidate==='object'){
+      const savedUsername=String(
+        candidate.username ||
+        candidate.user?.username ||
+        ''
+      ).trim().toLowerCase();
+
+      const wantedUsername=String(username||'')
+        .trim().toLowerCase();
+
+      if(savedUsername && savedUsername===wantedUsername){
+
+        const savedId=String(
+          candidate.id ??
+          candidate.postId ??
+          candidate._id ??
+          ''
+        );
+
+        const exists=posts.some(p=>
+          String(
+            p?.id ??
+            p?.postId ??
+            p?._id ??
+            ''
+          )===savedId && savedId
+        );
+
+        if(!exists){
+
+          const normalized={
+            ...candidate,
+            id:candidate.id ??
+               candidate.postId ??
+               candidate._id ??
+               ('local-'+Date.now()),
+            username:candidate.username ||
+                     candidate.user?.username ||
+                     username,
+            media:candidate.media ||
+                  candidate.mediaUrl ||
+                  candidate.image ||
+                  candidate.imageUrl ||
+                  candidate.photo ||
+                  candidate.photoUrl ||
+                  '',
+            caption:candidate.caption ||
+                    candidate.text ||
+                    candidate.description ||
+                    '',
+            createdAt:candidate.createdAt ||
+                      candidate.created_at ||
+                      Date.now()
+          };
+
+          posts=[normalized,...posts];
+        }
+      }
+    }
+  }
+}catch(e){
+  console.warn('[PROFILE] Son oluşturulan gönderi okunamadı',e);
+}
+
+posts.sort((a,b)=>
+  (Number(b?.createdAt)||0)-
+  (Number(a?.createdAt)||0)
+);
 
 currentPosts=posts;
-document.getElementById('postCount').textContent=String(posts.length);
+
+document.getElementById('postCount')
+  .textContent=
+    String(posts.length);
+
 renderPosts(posts);
  }catch(e){
 
