@@ -3343,11 +3343,15 @@ app.get(
   auth,
   async (req, res) => {
     try {
+      // Feed ortak web/Android kaynağıdır. Kullanıcı JWT'sinin RLS'i
+      // başka kullanıcıların gönderilerini gizlemesin diye burada service-role
+      // client kullanılır; sonuç yine aktif Auth kullanıcılarıyla filtrelenir.
+      const feedSb = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await feedSb
           .from("posts")
           .select("*")
           .order(
@@ -3642,7 +3646,7 @@ app.post(
           .from("posts")
           .insert({
             user_id:
-              req.user.id,
+              req.authUser.id,
 
             caption:
               req.body?.caption ||
@@ -4635,7 +4639,7 @@ app.get(
           .select("*")
           .eq(
             "user_id",
-            target.id
+            target.auth_user_id || target.id
           )
           .order(
             "created_at",
