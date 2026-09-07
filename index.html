@@ -4900,6 +4900,18 @@ async function loadMinegramActiveUsers(){
   }
 }
 
+function filterActiveApiPosts(posts,active){
+  if(!Array.isArray(posts)) return [];
+  if(!active) return [];
+  return posts.filter(post=>{
+    const owner=String(post?.userId||post?.user_id||'').trim();
+    // API posts must carry an exact owner id. Username alone is never enough
+    // because a deleted username may later be reused by another account.
+    if(!owner) return false;
+    return active.byId.has(owner) || Array.from(active.byUsername.values()).includes(owner);
+  });
+}
+
 function filterDeletedFirebasePosts(posts,active){
   if(!Array.isArray(posts)||!active)return [];
   return posts.filter(post=>{
@@ -4981,6 +4993,12 @@ async function loadFeed(){
   if(!feedRequestIsCurrent()){
     return;
   }
+
+  /* API cevabı bile ikinci kez doğrulanır: owner ID aktif Auth hesabında
+     yoksa, silinmiş hesabın eski postu kesinlikle ekrana çizilmez. */
+  const activeUsers = await loadMinegramActiveUsers();
+  if(!feedRequestIsCurrent()) return;
+  apiPosts = filterActiveApiPosts(apiPosts, activeUsers);
 
   /* Firebase eski kayıtları feed kaynağı değildir. */
   firebasePosts=[];
