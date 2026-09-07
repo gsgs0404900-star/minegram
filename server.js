@@ -4396,6 +4396,61 @@ app.delete(
   }
 );
 
+
+/* =========================================================
+   ORPHAN POST CLEANUP - V5
+   Auth hesabı silinmişse, geride kalan posts kayıtlarını da
+   veritabanından fiziksel olarak temizler. Böylece profil/grid
+   eski resimleri tekrar gösteremez.
+========================================================= */
+async function purgeOrphanedPostsAndProfiles() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return;
+  try {
+    const admin = adminClient();
+
+    const { data: posts, error: postsError } = await admin
+      .from("posts")
+      .select("id,user_id")
+      .limit(5000);
+    if (postsError) throw postsError;
+
+    const ownerIds = [...new Set((posts || [])
+      .map(p => String(p?.user_id || "").trim())
+      .filter(Boolean))];
+
+    for (const ownerId of ownerIds) {
+      if (!(await isAuthUserActive(ownerId))) {
+        const del = await admin.from("posts").delete().eq("user_id", ownerId);
+        if (del.error) console.warn("ORPHAN POST CLEANUP:", del.error.message);
+      }
+    }
+
+    const { data: profiles, error: profilesError } = await admin
+      .from("profiles")
+      .select("id,auth_user_id,username")
+      .limit(5000);
+    if (profilesError) throw profilesError;
+
+    for (const profile of (profiles || [])) {
+      const authId = String(profile?.auth_user_id || profile?.id || "").trim();
+      if (authId && !(await isAuthUserActive(authId))) {
+        const ids = new Set([
+          String(profile?.id || "").trim(),
+          String(profile?.auth_user_id || "").trim()
+        ].filter(Boolean));
+        for (const ownerId of ids) {
+          const del = await admin.from("posts").delete().eq("user_id", ownerId);
+          if (del.error) console.warn("ORPHAN PROFILE POST CLEANUP:", del.error.message);
+        }
+        const delProfile = await admin.from("profiles").delete().eq("id", profile.id);
+        if (delProfile.error) console.warn("ORPHAN PROFILE CLEANUP:", delProfile.error.message);
+      }
+    }
+  } catch (e) {
+    console.warn("ORPHAN CLEANUP FAILED:", e?.message || e);
+  }
+}
+
 /* =========================================================
    USER POSTS
 ========================================================= */
@@ -4405,6 +4460,8 @@ app.get(
   auth,
   async (req, res) => {
     try {
+      await purgeOrphanedPostsAndProfiles();
+
       const target =
         await findProfile(
           req.sb,
@@ -4424,24 +4481,30 @@ app.get(
         });
       }
 
-      const {
-        data,
-        error
-      } =
-        await req.sb
+      const targetOwnerIds = [...new Set([
+        String(target?.id || "").trim(),
+        String(target?.auth_user_id || "").trim()
+      ].filter(Boolean))];
+
+      let data = [];
+      let error = null;
+      if (targetOwnerIds.length === 1) {
+        const result = await req.sb
           .from("posts")
           .select("*")
-          .eq(
-            "user_id",
-            target.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending:
-                false
-            }
-          );
+          .eq("user_id", targetOwnerIds[0])
+          .order("created_at", { ascending: false });
+        data = result.data || [];
+        error = result.error;
+      } else if (targetOwnerIds.length > 1) {
+        const result = await req.sb
+          .from("posts")
+          .select("*")
+          .in("user_id", targetOwnerIds)
+          .order("created_at", { ascending: false });
+        data = result.data || [];
+        error = result.error;
+      }
 
       if (error) {
         throw error;
@@ -4507,9 +4570,9 @@ app.get(
                   true
               }
             )
-            .eq(
+            .in(
               "user_id",
-              target.id
+              [...new Set([target.id, target.auth_user_id].filter(Boolean))]
             ),
 
           req.sb
