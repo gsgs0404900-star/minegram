@@ -3463,7 +3463,11 @@ app.post(
       const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
       const objectPath = `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
-      const { error: uploadError } = await req.sb.storage
+      // Öne çıkan medya yüklemesi RLS'den etkilenmemesi için
+      // yalnızca sunucu tarafındaki service-role client kullanılır.
+      const admin = adminClient();
+
+      const { error: uploadError } = await admin.storage
         .from(BUCKET)
         .upload(objectPath, req.file.buffer, {
           contentType: req.file.mimetype,
@@ -3472,7 +3476,7 @@ app.post(
 
       if (uploadError) throw uploadError;
 
-      const { data: publicData } = req.sb.storage
+      const { data: publicData } = admin.storage
         .from(BUCKET)
         .getPublicUrl(objectPath);
 
@@ -3480,7 +3484,9 @@ app.post(
       const requestedSort = Number(req.body?.sortOrder);
       const sortOrder = Number.isFinite(requestedSort) ? requestedSort : 0;
 
-      const { data, error } = await req.sb
+      // highlights INSERT işlemi de service-role client ile yapılır;
+      // böylece profiles/highlights RLS politikası nedeniyle 42501 hatası oluşmaz.
+      const { data, error } = await admin
         .from("highlights")
         .insert({
           user_id: req.user.id,
@@ -3560,7 +3566,8 @@ app.patch(
       const id = String(req.params.id || "").trim();
       const title = String(req.body?.title || "").trim().slice(0, 80);
       if (!title) return res.status(400).json({ ok:false, error:"Öne çıkan adı gerekli." });
-      const { data, error } = await req.sb.from("highlights")
+      const admin = adminClient();
+      const { data, error } = await admin.from("highlights")
         .update({ title })
         .eq("id", id)
         .eq("user_id", req.user.id)
