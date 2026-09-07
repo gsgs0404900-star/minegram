@@ -3840,7 +3840,7 @@ app.delete(
    DELETE POST BY MEDIA URL
 ========================================================= */
 app.delete(
-  "/api/posts/by-media",
+  "/api/posts/delete-by-media",
   auth,
   async (req, res) => {
     try {
