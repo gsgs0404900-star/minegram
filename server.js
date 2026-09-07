@@ -3531,7 +3531,7 @@ app.delete(
       if (!item) return res.status(404).json({ ok:false, error:"Öne çıkan bulunamadı." });
       if (String(item.user_id) !== String(req.user.id)) return res.status(403).json({ ok:false, error:"Bu öne çıkanı silemezsin." });
 
-      const { error: deleteError } = await admin.from("highlights").delete().eq("id", id).eq("user_id", req.authUser.id);
+      const { error: deleteError } = await admin.from("highlights").delete().eq("id", id).eq("user_id", req.user.id);
       if (deleteError) throw deleteError;
 
       try {
@@ -3840,7 +3840,7 @@ app.delete(
    DELETE POST BY MEDIA URL
 ========================================================= */
 app.delete(
-  "/api/posts/delete-by-media",
+  "/api/posts/by-media",
   auth,
   async (req, res) => {
     try {
@@ -3848,17 +3848,29 @@ app.delete(
       if (!mediaUrl) return res.status(400).json({ ok:false, error:"Gönderi medya bağlantısı gerekli." });
 
       const admin = adminClient();
+      // Önce medya URL'siyle bul. user_id kolonunun şeması UUID/int olsa bile
+      // burada Supabase'e yanlış tip göndermeyelim; sahipliği JavaScript tarafında
+      // güvenli şekilde karşılaştırıyoruz.
       const { data: post, error: findError } = await admin
         .from("posts")
         .select("id,user_id,media_url")
         .eq("media_url", mediaUrl)
-        .eq("user_id", req.authUser.id)
         .maybeSingle();
 
       if (findError) throw findError;
-      if (!post) return res.status(404).json({ ok:false, error:"Gönderi bulunamadı veya sana ait değil." });
+      if (!post) return res.status(404).json({ ok:false, error:"Gönderi bulunamadı." });
 
-      const postId = String(post.id);
+      const ownerId = String(post.user_id || "").trim();
+      const authId = String(req.authUser?.id || "").trim();
+      const profileId = String(req.user?.id || "").trim();
+      const profileAuthId = String(req.user?.auth_user_id || "").trim();
+
+      if (!ownerId || (ownerId !== authId && ownerId !== profileId && ownerId !== profileAuthId)) {
+        return res.status(403).json({ ok:false, error:"Bu gönderiyi silme yetkin yok." });
+      }
+
+      const postId = String(post.id).trim();
+      if (!postId) return res.status(400).json({ ok:false, error:"Geçersiz gönderi kimliği." });
       for (const table of ["comments", "post_likes", "saves", "notifications"]) {
         try { await admin.from(table).delete().eq("post_id", postId); } catch (_) {}
       }
@@ -3866,8 +3878,7 @@ app.delete(
       const { error: deleteError } = await admin
         .from("posts")
         .delete()
-        .eq("id", postId)
-        .eq("user_id", req.user.id);
+        .eq("id", postId);
       if (deleteError) throw deleteError;
 
       try {
