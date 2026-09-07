@@ -272,16 +272,16 @@ async function isAuthUserActive(userId) {
 async function filterActivePosts(posts) {
   if (!Array.isArray(posts) || !posts.length) return [];
 
-  const userIds = [...new Set(
-    posts.map(p => p?.user_id).filter(Boolean)
-  )];
+  const ids = [...new Set(posts.map(p => String(p?.user_id || "").trim()).filter(Boolean))];
+  if (!ids.length) return [];
 
-  const activeIds = new Set();
-  await Promise.all(userIds.map(async userId => {
-    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  // Posts.user_id must belong to a currently existing Supabase Auth user.
+  const active = new Set();
+  await Promise.all(ids.map(async id => {
+    if (await isAuthUserActive(id)) active.add(id);
   }));
 
-  return posts.filter(p => activeIds.has(p?.user_id));
+  return posts.filter(p => active.has(String(p?.user_id || "").trim()));
 }
 
 async function filterActiveStories(stories) {
@@ -3285,6 +3285,7 @@ app.get(
   "/api/feed",
   auth,
   async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
       const {
         data,
@@ -3674,6 +3675,7 @@ app.get(
   "/api/stories",
   auth,
   async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
       const yesterday =
         new Date(
