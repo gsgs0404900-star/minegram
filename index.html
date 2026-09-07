@@ -5012,13 +5012,29 @@ async function loadMinegramActiveUsers(){
 
 function filterActiveApiPosts(posts,active){
   if(!Array.isArray(posts)) return [];
-  if(!active) return [];
+
+  /* Aktif kullanıcı doğrulaması geçici olarak alınamazsa
+     gerçek API gönderilerini boşaltıp "Henüz gönderi yok" gösterme. */
+  if(!active) return posts;
+
   return posts.filter(post=>{
-    const owner=String(post?.userId||post?.user_id||'').trim();
-    // API posts must carry an exact owner id. Username alone is never enough
-    // because a deleted username may later be reused by another account.
-    if(!owner) return false;
-    return active.byId.has(owner) || Array.from(active.byUsername.values()).includes(owner);
+    const owner=String(
+      post?.userId ||
+      post?.user_id ||
+      post?.ownerId ||
+      post?.owner_id ||
+      post?.auth_user_id ||
+      post?.user?.id ||
+      post?.user?.auth_user_id ||
+      ''
+    ).trim();
+
+    /* API gönderisinde owner alanı bulunmuyorsa,
+       gönderiyi sırf bu nedenle kaybetme. */
+    if(!owner) return true;
+
+    return active.byId.has(owner) ||
+      Array.from(active.byUsername.values()).includes(owner);
   });
 }
 
