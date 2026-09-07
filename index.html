@@ -2208,252 +2208,35 @@ onclick="sendComment()"
 
   async function loadStories(){
 
-    if(loadingStories)
-      return;
-
+    if(loadingStories) return;
     loadingStories=true;
 
     try{
+      // Firebase/local eski hikayeleri KULLANMA. Tek kaynak Supabase API.
+      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
 
-      /*
-        Öncelik doğrudan Firebase:
-        Android uygulamasının yazdığı aynı
-        users koleksiyonu içindeki public_story kayıtları.
-      */
-      const firebaseStories =
-        await firebaseLoadMinegramStories();
+      const result = await api("/stories");
+      const list = Array.isArray(result)
+        ? result
+        : (Array.isArray(result?.stories) ? result.stories : []);
 
-      if(
-        Array.isArray(firebaseStories)
-      ){
+      stories = list.map(normalizeStory).filter(Boolean);
+      cleanStories();
+      buildStoryGroups();
+      renderStoryBar();
 
-        stories =
-          firebaseStories;
-
-        cleanStories();
-        buildStoryGroups();
-        renderStoryBar();
-
-        try{
-          localStorage.setItem(
-            "minegram_story_v2",
-            JSON.stringify(
-              stories
-            )
-          );
-        }catch(e){}
-
-        return;
-      }
+      // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
+      try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
 
     }catch(error){
-
-      console.error(
-        "FIREBASE STORY LOAD ERROR:",
-        error
-      );
-
-      /*
-        Firebase geçici olarak erişilemezse
-        eski /api sistemi yedek olarak çalışsın.
-      */
-      try{
-
-        const result =
-          await api(
-            "/stories"
-          );
-
-        const list =
-          Array.isArray(result)
-            ? result
-            : (
-                Array.isArray(
-                  result?.stories
-                )
-                  ? result.stories
-                  : []
-              );
-
-        stories =
-          list
-            .map(
-              normalizeStory
-            )
-            .filter(Boolean);
-
-        cleanStories();
-        buildStoryGroups();
-        renderStoryBar();
-
-        try{
-          localStorage.setItem(
-            "minegram_story_v2",
-            JSON.stringify(
-              stories
-            )
-          );
-        }catch(e){}
-
-        return;
-
-      }catch(apiError){
-
-        console.error(
-          "STORY API LOAD ERROR:",
-          apiError
-        );
-
-      }
-    }
-
-    /*
-      İki kaynak da geçici olarak okunamazsa
-      son başarılı yerel kayıtları göster.
-    */
-    try{
-
-      const local =
-        JSON.parse(
-          localStorage.getItem(
-            "minegram_story_v2"
-          ) || "[]"
-        );
-
-      if(
-        Array.isArray(local)
-      ){
-
-        stories =
-          local
-            .map(
-              normalizeStory
-            )
-            .filter(Boolean);
-
-        cleanStories();
-        buildStoryGroups();
-        renderStoryBar();
-
-      }
-
-    }catch(e){
-
+      console.error("STORY API LOAD ERROR:", error);
       stories=[];
-
+      buildStoryGroups();
+      renderStoryBar();
     }finally{
-
       loadingStories=false;
-
     }
-
   }
-
-
-  /* =======================================================
-     GRUPLAMA
-  ======================================================= */
-
-  function buildStoryGroups(){
-
-    const map=
-      new Map();
-
-    stories
-      .sort(
-        (a,b)=>
-          a.createdAt-b.createdAt
-      )
-      .forEach(story=>{
-
-        const key=
-          story.userId ||
-          story.username ||
-          story.id;
-
-        if(!map.has(key)){
-
-          map.set(
-            key,
-            {
-              userId:story.userId,
-              username:story.username,
-              displayName:story.displayName,
-              avatar:story.avatar,
-              stories:[]
-            }
-          );
-
-        }
-
-        map
-          .get(key)
-          .stories
-          .push(story);
-
-      });
-
-    storyGroups=
-      Array.from(map.values());
-
-  }
-
-
-  /* =======================================================
-     AVATAR
-  ======================================================= */
-
-  function createAvatar(group){
-
-    if(group.avatar){
-
-      return `
-        <img
-          class="story-image"
-          src="${esc(group.avatar)}"
-          alt="${esc(group.username)}"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"
-        >
-        <span
-          style="
-            display:none;
-            width:58px;
-            height:58px;
-            border-radius:50%;
-            background:#3f91cc;
-            place-items:center;
-            font-size:21px;
-            color:#eee
-          "
-        >
-          ${esc(
-            String(
-              group.username ||
-              "M"
-            )
-            .charAt(0)
-            .toUpperCase()
-          )}
-        </span>
-      `;
-
-    }
-
-    return `
-      <span>
-        ${esc(
-          String(
-            group.username ||
-            "M"
-          )
-          .charAt(0)
-          .toUpperCase()
-        )}
-      </span>
-    `;
-
-  }
-
 
   /* =======================================================
      STORY BAR
@@ -5149,6 +4932,11 @@ async function loadFeed(){
     </div>
   `;
 
+  // Eski hesap verisinin tarayıcı yerel önbelleğinden geri gelmesini engelle.
+  try{
+    ["minegram_posts","minegram_feed","minegram_public_posts"].forEach(k=>localStorage.removeItem(k));
+  }catch(e){}
+
   /*
     İki kaynağı AYNI ANDA oku:
     1) mevcut web API
@@ -5194,17 +4982,10 @@ async function loadFeed(){
     return;
   }
 
-  /* Firebase eski hesap verisini siteye taşımadan önce aktif Auth
-     kullanıcılarıyla ownerUid doğrulaması yap. */
-  const activeUsers=await loadMinegramActiveUsers();
-  if(!feedRequestIsCurrent()) return;
-  firebasePosts=filterDeletedFirebasePosts(firebasePosts,activeUsers);
+  /* Firebase eski kayıtları feed kaynağı değildir. */
+  firebasePosts=[];
 
-  const posts=
-    mergeFeedPosts(
-      apiPosts,
-      firebasePosts
-    );
+  const posts = mergeFeedPosts(apiPosts, []);
 
   console.log(
     "[MINEGRAM FEED] API:",
@@ -5232,10 +5013,7 @@ async function loadFeed(){
       ? apiResult.reason
       : null;
 
-  const firebaseError =
-    firebaseResult.status==="rejected"
-      ? firebaseResult.reason
-      : null;
+  const firebaseError = null;
 
   const msg=String(
     apiError?.message ||
