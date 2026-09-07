@@ -3223,6 +3223,48 @@ app.post(
 ========================================================= */
 
 app.get(
+  "/api/active-users",
+  auth,
+  async (req, res) => {
+    try {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik" });
+      }
+
+      const admin = adminClient();
+      const activeIds = new Set();
+      let page = 1;
+      while (page <= 20) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        const users = Array.isArray(data?.users) ? data.users : [];
+        users.forEach(u => { if (u?.id) activeIds.add(String(u.id)); });
+        if (users.length < 1000) break;
+        page++;
+      }
+
+      const { data: profiles, error: profileError } = await req.sb
+        .from("profiles")
+        .select("id,auth_user_id,username");
+      if (profileError) throw profileError;
+
+      const users = (profiles || [])
+        .filter(p => activeIds.has(String(p.auth_user_id || p.id || "")))
+        .map(p => ({
+          id: p.id,
+          auth_user_id: p.auth_user_id || p.id,
+          username: p.username
+        }));
+
+      res.json({ users });
+    } catch (e) {
+      res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı" });
+    }
+  }
+);
+
+
+app.get(
   "/api/me",
   auth,
   (req, res) => {
@@ -3234,54 +3276,6 @@ app.get(
   }
 );
 
-
-/* =========================================================
-   ACTIVE USERS — FIREBASE ESKİ HESAP FİLTRESİ
-   Firebase'de kalmış eski gönderiler yalnızca halen Auth'ta
-   bulunan kullanıcıların ownerUid değeri eşleşiyorsa siteye alınır.
-========================================================= */
-app.get(
-  "/api/active-users",
-  auth,
-  async (req, res) => {
-    try {
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik." });
-      }
-
-      const admin = adminClient();
-      const authIds = new Set();
-      let page = 1;
-      while (page <= 50) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-        if (error) throw error;
-        const users = Array.isArray(data?.users) ? data.users : [];
-        for (const u of users) if (u?.id) authIds.add(String(u.id));
-        if (users.length < 1000) break;
-        page++;
-      }
-
-      const { data: profiles, error } = await admin
-        .from("profiles")
-        .select("id,auth_user_id,username");
-      if (error) throw error;
-
-      const users = (profiles || [])
-        .map(p => ({
-          id: String(p?.id || ""),
-          auth_user_id: String(p?.auth_user_id || p?.id || ""),
-          username: String(p?.username || "").trim().toLowerCase()
-        }))
-        .filter(p => p.username && authIds.has(p.auth_user_id));
-
-      res.set("Cache-Control", "no-store");
-      return res.json({ ok: true, users });
-    } catch (e) {
-      console.error("ACTIVE USERS ERROR:", e?.message || e);
-      return res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı." });
-    }
-  }
-);
 
 /* =========================================================
    FEED
