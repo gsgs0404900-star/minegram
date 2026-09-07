@@ -4,7 +4,8 @@
 <meta charset="utf-8">    
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">    
 <meta name="theme-color" content="#000">    
-<title>Minegram • Profil</title>    
+<title>Minegram • Profil</title>
+<meta name="minegram-profile-version" content="ACCOUNT_DELETE_FIX_V4">    
       
 <style>     
 *{box-sizing:border-box}     
@@ -4044,6 +4045,11 @@ async function loadFirebasePublicPosts(username,userId){
 
 async function load(){
 
+ /* V4: her yüklemede eski grid kesin olarak temizlenir. */
+ const loadGrid=document.getElementById('grid');
+ if(loadGrid){ loadGrid.innerHTML='<div class="empty">Yükleniyor...</div>'; }
+ document.getElementById('postCount').textContent='0';
+
  if(!token){
 
    location.href='index.html';
@@ -4088,7 +4094,7 @@ async function load(){
 
    document.getElementById('postCount')
    .textContent=
-   0;
+   currentProfile.postCount||0;
 
    document.getElementById('followers')
    .textContent=
@@ -4176,10 +4182,14 @@ async function load(){
  }).filter((p,i,a)=>a.findIndex(x=>String(x?.id||x?.postId||x?.createdAt)===String(p?.id||p?.postId||p?.createdAt))===i)
  .sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
  /* SON KONTROL: Sadece profil sahibinin gerçek userId'si ile eşleşen gönderiler. */
- const ownerId=String(currentProfile?.id||currentProfile?.auth_user_id||'').trim();
+ const ownerIds=new Set(
+   [currentProfile?.id,currentProfile?.auth_user_id,currentProfile?.authUserId]
+     .filter(Boolean).map(v=>String(v).trim())
+ );
  const strictPosts=posts.filter(p=>{
-   const pid=String(p?.userId||p?.user_id||p?.ownerId||p?.owner_id||'').trim();
-   return ownerId && pid && pid===ownerId;
+   const ids=[p?.userId,p?.user_id,p?.ownerId,p?.owner_id,p?.profileId,p?.profile_id]
+     .filter(Boolean).map(v=>String(v).trim());
+   return ids.length>0 && ids.some(id=>ownerIds.has(id));
  });
  currentPosts=strictPosts;
  document.getElementById('postCount').textContent=String(strictPosts.length);
@@ -4188,9 +4198,11 @@ async function load(){
 
    console.error(e);
 
+   currentPosts=[];
+   document.getElementById('postCount').textContent='0';
    document.getElementById('grid')
    .innerHTML=
-   '<div class="empty">Profil yüklenemedi.</div>';
+   '<div class="empty">Henüz gönderi yok.</div>';
 
    toast(e.message);
 
