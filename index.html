@@ -1937,53 +1937,6 @@ onclick="sendComment()"
 
   let loadingStories=false;
 
-  /* =======================================================
-     SİLİNMİŞ HESAPLARIN HİKAYELERİNİ GÖSTERME
-     Firebase eski users belgelerini tutabildiği için,
-     hikayeyi göstermeden önce Minegram API üzerinden
-     hesabın hâlâ aktif olduğunu doğrula.
-  ======================================================= */
-  const activeStoryOwnerCache = new Map();
-  const ACTIVE_OWNER_CACHE_MS = 30000;
-
-  async function isActiveStoryOwner(username){
-    const clean=String(username||'').replace(/^@/,'').trim();
-    if(!clean)return false;
-
-    const cached=activeStoryOwnerCache.get(clean.toLowerCase());
-    if(cached && Date.now()-cached.time<ACTIVE_OWNER_CACHE_MS){
-      return cached.active;
-    }
-
-    try{
-      const result=await api(
-        '/users/'+encodeURIComponent(clean)
-      );
-      const active=!!result;
-      activeStoryOwnerCache.set(clean.toLowerCase(),{active,time:Date.now()});
-      return active;
-    }catch(e){
-      /* Hesap doğrulanamıyorsa hikâyeyi güvenli tarafta tutma. */
-      activeStoryOwnerCache.set(clean.toLowerCase(),{active:false,time:Date.now()});
-      return false;
-    }
-  }
-
-  async function filterDeletedAccountStories(list){
-    if(!Array.isArray(list) || !list.length)return [];
-    const names=[...new Set(
-      list.map(s=>String(s?.username||'').replace(/^@/,'').trim().toLowerCase()).filter(Boolean)
-    )];
-    const active=new Set();
-    await Promise.all(names.map(async name=>{
-      if(await isActiveStoryOwner(name))active.add(name);
-    }));
-    return list.filter(s=>{
-      const name=String(s?.username||'').replace(/^@/,'').trim().toLowerCase();
-      return name && active.has(name);
-    });
-  }
-
   const STORY_AGE=24*60*60*1000;
 
 
@@ -2275,7 +2228,7 @@ onclick="sendComment()"
       ){
 
         stories =
-          await filterDeletedAccountStories(firebaseStories);
+          firebaseStories;
 
         cleanStories();
         buildStoryGroups();
@@ -2323,13 +2276,11 @@ onclick="sendComment()"
               );
 
         stories =
-          await filterDeletedAccountStories(
-            list
-              .map(
-                normalizeStory
-              )
-              .filter(Boolean)
-          );
+          list
+            .map(
+              normalizeStory
+            )
+            .filter(Boolean);
 
         cleanStories();
         buildStoryGroups();
@@ -2374,13 +2325,11 @@ onclick="sendComment()"
       ){
 
         stories =
-          await filterDeletedAccountStories(
-            local
-              .map(
-                normalizeStory
-              )
-              .filter(Boolean)
-          );
+          local
+            .map(
+              normalizeStory
+            )
+            .filter(Boolean);
 
         cleanStories();
         buildStoryGroups();
@@ -5140,6 +5089,48 @@ function mergeFeedPosts(apiPosts,firebasePosts){
 let minegramFeedLoadVersion=0;
 let minegramPostDeleteVersion=0;
 
+let minegramActiveUsersCache = null;
+let minegramActiveUsersCacheAt = 0;
+
+async function loadMinegramActiveUsers(){
+  const now=Date.now();
+  if(minegramActiveUsersCache && now-minegramActiveUsersCacheAt < 30000){
+    return minegramActiveUsersCache;
+  }
+  try{
+    const result=await api('/api/active-users?ts='+now);
+    const rows=Array.isArray(result?.users)?result.users:[];
+    const byId=new Set();
+    const byUsername=new Map();
+    for(const u of rows){
+      const authId=String(u?.auth_user_id||u?.id||'').trim();
+      const username=String(u?.username||'').trim().toLowerCase();
+      if(authId)byId.add(authId);
+      if(username)byUsername.set(username,authId);
+    }
+    minegramActiveUsersCache={byId,byUsername};
+    minegramActiveUsersCacheAt=now;
+    return minegramActiveUsersCache;
+  }catch(e){
+    console.warn('[MINEGRAM] Aktif kullanıcı listesi alınamadı:',e);
+    return null;
+  }
+}
+
+function filterDeletedFirebasePosts(posts,active){
+  if(!Array.isArray(posts)||!active)return [];
+  return posts.filter(post=>{
+    const owner=String(post?.ownerUid||'').trim();
+    const username=String(post?.username||'').replace(/^@/,'').trim().toLowerCase();
+    /* ownerUid yoksa eski/kimliği doğrulanamayan Firebase kaydıdır.
+       Aynı kullanıcı adı yeniden açılmışsa bile eski hesabın gönderisi
+       kesinlikle yeni hesaba taşınmasın. */
+    if(!owner)return false;
+    const mappedOwner=active.byUsername.get(username)||'';
+    return active.byId.has(owner) && (!mappedOwner || mappedOwner===owner);
+  });
+}
+
 async function loadFeed(){
 
   if(!feedEl)return;
@@ -5201,6 +5192,12 @@ async function loadFeed(){
   if(!feedRequestIsCurrent()){
     return;
   }
+
+  /* Firebase eski hesap verisini siteye taşımadan önce aktif Auth
+     kullanıcılarıyla ownerUid doğrulaması yap. */
+  const activeUsers=await loadMinegramActiveUsers();
+  if(!feedRequestIsCurrent()) return;
+  firebasePosts=filterDeletedFirebasePosts(firebasePosts,activeUsers);
 
   const posts=
     mergeFeedPosts(
