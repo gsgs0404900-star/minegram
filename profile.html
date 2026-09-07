@@ -3666,50 +3666,30 @@ async function renderHighlights(){
   section.hidden=!mine;
   if(!mine)return;
 
-  const ownerChanged=prepareFreshHighlightsAccount();
-  let remote=[];
+  /* Öne çıkanların tek kaynağı Android uygulamasının Firebase kaydıdır.
+     Sunucudaki eski/web öne çıkanları ve tarayıcı localStorage verilerini
+     KESİNLİKLE profile eklemiyoruz. Böylece uygulamada olmayanlar görünmez. */
+  let items=[];
   try{
-    const data=await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/highlights?ts='+Date.now());
-    if(Array.isArray(data)){
-      remote=data.map((h,i)=>({
-        id:h.id,
-        title:h.title||('Öne çıkan '+(i+1)),
-        image:h.mediaUrl||h.media||h.media_url||'',
-        type:String(h.mediaType||h.media_type||'').startsWith('video')?'video':'image',
-        createdAt:h.createdAt||new Date().toISOString(),
-        _server:true
-      })).filter(x=>x.image);
-    }
+    items=await loadFirebaseHighlights(currentProfile.username);
   }catch(e){
-    console.warn('[PROFILE] Sunucu öne çıkanları okunamadı',e);
+    console.warn('[PROFILE] Uygulama öne çıkanları okunamadı',e);
+    items=[];
   }
-
-  if(ownerChanged){
-    try{ await clearFirebaseHighlights(currentProfile.username); }catch(e){}
-  }
-
-  const local=getHighlights();
-  const merged=[...remote,...local];
-  const seen=new Set();
-  const items=merged.filter(x=>{
-    const key=String(x?.image||'')+'|'+String(x?.title||'');
-    if(seen.has(key))return false;seen.add(key);return true;
-  });
 
   box.innerHTML='';
-  const add=document.createElement('button');
-  add.className='highlight add-highlight';
-  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
-  add.onclick=addHighlight;
-  box.appendChild(add);
 
+  /* Web üzerinden yeni öne çıkan oluşturma kapalı.
+     Öne çıkan yalnızca Android uygulamasından eklenir. */
   items.forEach((item,i)=>{
     const b=document.createElement('button'); b.className='highlight';
     b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
     b.onclick=()=>openHighlightView(i);
     box.appendChild(b);
   });
+
   storyItems=items;
+  section.hidden=items.length===0;
 }
 
 async function addHighlight(){
