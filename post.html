@@ -2212,36 +2212,73 @@ onclick="sendComment()"
     loadingStories=true;
 
     try{
-      // POST.HTML eski Firebase public_story kayıtlarını okumaz.
-      // Hikayeler yalnızca Supabase API'den gelir; böylece silinen hesabın
-      // Firebase'de kalmış eski hikayesi tekrar gösterilemez.
-      const result = await api(
-        "/stories?ts=" + Date.now(),
-        { cache:"no-store" }
-      );
+      /*
+        KRİTİK GÜVENLİK:
+        Firebase/public_story/localStorage hikâyelerini HİÇBİR ZAMAN
+        feed'e geri yükleme. Silinmiş hesapların eski hikâyeleri burada
+        kalabildiği için yalnızca sunucunun /api/stories cevabı kullanılır.
+      */
+      stories=[];
 
-      const list = Array.isArray(result)
+      let activeUsers=[];
+      try{
+        const activeResult=await api('/active-users?ts='+Date.now());
+        activeUsers=Array.isArray(activeResult?.users)
+          ? activeResult.users : [];
+      }catch(e){
+        console.warn('Aktif hesaplar alınamadı; eski story cache kullanılmayacak.',e);
+        activeUsers=[];
+      }
+
+      const activeIds=new Set();
+      activeUsers.forEach(u=>{
+        if(u?.id) activeIds.add(String(u.id).trim());
+        if(u?.auth_user_id) activeIds.add(String(u.auth_user_id).trim());
+      });
+
+      /* Aktif hesap listesi alınamadıysa eski hiçbir story gösterme. */
+      if(!activeIds.size){
+        buildStoryGroups();
+        renderStoryBar();
+        return;
+      }
+
+      const result=await api('/stories?ts='+Date.now());
+      const list=Array.isArray(result)
         ? result
         : (Array.isArray(result?.stories) ? result.stories : []);
 
-      stories = list.map(normalizeStory).filter(Boolean);
+      /*
+        Yalnızca gerçek user_id'si halen aktif olan story'ler kabul edilir.
+        Username ile eşleştirme YOK; böylece silinen hesabın eski kullanıcı
+        adı üzerinden story geri gelemez.
+      */
+      stories=list
+        .map(normalizeStory)
+        .filter(Boolean)
+        .filter(story=>{
+          const uid=String(story?.userId||'').trim();
+          return uid && activeIds.has(uid);
+        });
+
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
 
-      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+      /* Eski story cache'ini temizle; bir daha fallback olarak kullanılmasın. */
+      try{
+        localStorage.removeItem('minegram_story_v2');
+      }catch(e){}
 
-    }catch(error){
-      console.error("STORY API LOAD ERROR:", error);
+    }catch(e){
+      console.error('STORY LOAD ERROR:',e);
       stories=[];
-      storyGroups=[];
       buildStoryGroups();
       renderStoryBar();
-      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+      try{ localStorage.removeItem('minegram_story_v2'); }catch(_){ }
     }finally{
       loadingStories=false;
     }
-
   }
 
   /* =======================================================
@@ -5030,8 +5067,10 @@ async function loadFeed(){
        Kullanıcısı olmayan, bozuk veya artık Auth'ta bulunmayan hesapların
        gönderilerini kesinlikle ekrana alma.
     */
+    const deletedIds=getMinegramDeletedPostIds();
     const safePosts=posts.filter(p=>{
       if(!p || !p.id || !p.userId || !p.user?.username)return false;
+      if(deletedIds.has(String(p.id).trim()))return false;
       return activeIds.has(String(p.userId));
     });
 
