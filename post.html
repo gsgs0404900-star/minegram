@@ -7196,8 +7196,6 @@ function getPostObjectId(post){
 
 function getSelectedPostFromSession(id){
   const wanted=String(id||"").trim();
-  if(!wanted) return null;
-
   const keys=[
     "minegram_selected_post",
     "minegram_selectedPost"
@@ -7209,8 +7207,25 @@ function getSelectedPostFromSession(id){
         const raw=storage.getItem(key);
         if(!raw) continue;
         const post=JSON.parse(raw);
-        if(!post) continue;
-        if(getPostObjectId(post)===wanted) return post;
+        if(!post || typeof post!=="object") continue;
+
+        /*
+          index.html bazı sürümlerde ID'yi farklı alanda taşıyabiliyor.
+          Önce tam eşleşmeyi dene; ardından iç içe post nesnesini de kontrol et.
+        */
+        const ids=[
+          getPostObjectId(post),
+          getPostObjectId(post.post),
+          String(post.postId??"").trim(),
+          String(post._id??"").trim(),
+          String(post.uuid??"").trim()
+        ].filter(Boolean);
+
+        if(wanted && ids.includes(wanted)) return post.post && typeof post.post==='object' ? post.post : post;
+
+        /* URL'de ID var ama cache nesnesinde ID alanı yoksa,
+           index.html'nin bıraktığı tek seçili gönderiyi yine göster. */
+        if(wanted && !ids.length) return post;
       }catch(e){}
     }
   }
@@ -7444,8 +7459,24 @@ async function init(){
   const requestedPostId=getPostIdFromUrl();
 
   if(requestedPostId){
-    await loadPostDetail(requestedPostId);
-    return;
+    const shown=await loadPostDetail(requestedPostId);
+    if(shown) return;
+  }
+
+  /* Bazı eski index.html sürümlerinde URL ID'si boş kalabiliyor.
+     Seçili gönderi cache'de varsa doğrudan onu aç. */
+  if(!requestedPostId){
+    try{
+      const raw=sessionStorage.getItem("minegram_selected_post") || localStorage.getItem("minegram_selected_post");
+      if(raw){
+        const cached=JSON.parse(raw);
+        const cachedId=getPostObjectId(cached);
+        if(cached && typeof cached==="object" && cachedId){
+          await loadPostDetail(cachedId);
+          return;
+        }
+      }
+    }catch(e){}
   }
 
 
