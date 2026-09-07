@@ -7,7 +7,7 @@
 <title>Minegram • Profil</title>    
       
 <style>     
-*{box-sizing:border-box}
+*{box-sizing:border-box}     
 html,body{     
   margin:0;     
   background:#000;     
@@ -4148,84 +4148,36 @@ async function load(){
 
    }
 
-   /* PROFİL GÖNDERİLERİ KESİN AKTİF HESAP FİLTRESİ
-      Silinmiş Auth hesabının profili/verisi veritabanında kalmış olsa bile
-      profil gridinde eski gönderileri göstermiyoruz. */
-   let activeUsers=[];
-   try{
-     const activeData=await api('/api/active-users?ts='+Date.now());
-     activeUsers=Array.isArray(activeData)
-       ?activeData
-       :(Array.isArray(activeData?.users)?activeData.users:[]);
-   }catch(e){
-     activeUsers=[];
-   }
-
-   const activeIds=new Set();
-   activeUsers.forEach(u=>{
-     if(u?.id)activeIds.add(String(u.id));
-     if(u?.auth_user_id)activeIds.add(String(u.auth_user_id));
-   });
-
-   const profileIsActive=
-     activeIds.has(String(currentProfile?.id||'')) ||
-     activeIds.has(String(currentProfile?.auth_user_id||'')) ||
-     String(currentProfile?.id||'')===String(me?.id||'');
-
-   if(!profileIsActive){
-     currentPosts=[];
-     document.getElementById('postCount').textContent='0';
-     document.getElementById('grid').innerHTML='<div class="empty">Henüz gönderi yok</div>';
-     renderPrompts([]);
-     return;
-   }
-
-   const postsResponse=await api(
-     '/api/users/'+encodeURIComponent(username)+'/posts?ts='+Date.now()
-   );
-
-   const apiPosts=Array.isArray(postsResponse)
-     ?postsResponse
-     :(Array.isArray(postsResponse?.posts)
-       ?postsResponse.posts
-       :(Array.isArray(postsResponse?.data)
-         ?postsResponse.data
-         :[]));
-
-   /* Yalnızca Supabase API. Firebase eski gönderileri burada asla eklenmez. */
-   const seen=new Set();
-   const posts=apiPosts.filter(p=>{
-     if(!p)return false;
-
-     /* Dönen kayıtta sahiplik bilgisi varsa mutlaka aktif profile ait olmalı. */
-     const owner=String(
-       p.userId||
-       p.user_id||
-       p.ownerId||
-       p.owner_id||
-       p.profileId||
-       p.profile_id||
-       ''
-     );
-
-     if(owner && !activeIds.has(owner) &&
-        owner!==String(currentProfile.id) &&
-        owner!==String(currentProfile.auth_user_id||'')){
-       return false;
-     }
-
-     const key=String(p.id||p.postId||p.createdAt||JSON.stringify(p));
-     if(seen.has(key))return false;
-     seen.add(key);
-     return true;
-   }).sort((a,b)=>
-     (Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-
-     (Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0)
-   );
-
-   currentPosts=posts;
-   document.getElementById('postCount').textContent=String(posts.length);
-   renderPosts(posts);
+ /* Silinmiş hesapların gönderileri profil gridine kesinlikle giremez.
+    Sunucu eski veri döndürse bile burada ikinci güvenlik filtresi uygulanır. */
+ const activeUsers=await api('/api/active-users?ts='+Date.now());
+ const activeList=Array.isArray(activeUsers)?activeUsers:(Array.isArray(activeUsers?.users)?activeUsers.users:[]);
+ const activeIds=new Set();
+ activeList.forEach(u=>{
+   if(u?.id)activeIds.add(String(u.id));
+   if(u?.auth_user_id)activeIds.add(String(u.auth_user_id));
+   if(u?.authUserId)activeIds.add(String(u.authUserId));
+ });
+ const profileIds=new Set([currentProfile?.id,currentProfile?.auth_user_id,currentProfile?.authUserId].filter(Boolean).map(String));
+ const profileIsActive=[...profileIds].some(id=>activeIds.has(id));
+ if(!profileIsActive){
+   currentPosts=[];
+   document.getElementById('postCount').textContent='0';
+   document.getElementById('grid').innerHTML='<div class="empty">Henüz gönderi yok.</div>';
+   return;
+ }
+ const postsResponse=await api('/api/users/'+encodeURIComponent(username)+'/posts?ts='+Date.now());
+ const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
+ const posts=apiPosts.filter(p=>{
+   const ownerIds=[p?.userId,p?.user_id,p?.ownerId,p?.owner_id,p?.profileId,p?.profile_id].filter(Boolean).map(String);
+   if(ownerIds.length && !ownerIds.some(id=>profileIds.has(id))) return false;
+   if(ownerIds.length && !ownerIds.some(id=>activeIds.has(id))) return false;
+   return true;
+ }).filter((p,i,a)=>a.findIndex(x=>String(x?.id||x?.postId||x?.createdAt)===String(p?.id||p?.postId||p?.createdAt))===i)
+ .sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
+ currentPosts=posts;
+ document.getElementById('postCount').textContent=String(posts.length);
+ renderPosts(posts);
  }catch(e){
 
    console.error(e);
