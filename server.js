@@ -311,84 +311,6 @@ async function filterActiveProfiles(profiles) {
   return active;
 }
 
-
-/* =========================================================
-   HARD DELETE CLEANUP
-   Auth hesabı silinmiş ama DB kayıtları kalmışsa bütün artık
-   içerikleri fiziksel olarak temizler. Böylece aynı kullanıcı adıyla
-   yeni hesap açıldığında eski hesabın hiçbir verisi taşınmaz.
-========================================================= */
-async function hardDeleteOrphanedAccounts() {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return;
-  try {
-    const admin = adminClient();
-    const activeIds = new Set();
-
-    for (let page = 1; page <= 100; page++) {
-      const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-      if (result?.error) throw result.error;
-      const users = result?.data?.users || [];
-      users.forEach(u => { if (u?.id) activeIds.add(String(u.id)); });
-      if (users.length < 1000) break;
-    }
-
-    const { data: profiles } = await admin.from("profiles").select("id,auth_user_id,username");
-    const orphanIds = [...new Set((profiles || [])
-      .map(p => String(p?.auth_user_id || p?.id || "").trim())
-      .filter(Boolean)
-      .filter(id => !activeIds.has(id))
-    )];
-
-    if (!orphanIds.length) return;
-
-    console.log("HARD DELETE: silinmiş hesaplar temizleniyor:", orphanIds.length);
-
-    for (const userId of orphanIds) {
-      try {
-        const { data: posts } = await admin.from("posts").select("id").eq("user_id", userId);
-        const postIds = (posts || []).map(p => p.id).filter(Boolean);
-
-        if (postIds.length) {
-          await admin.from("post_likes").delete().in("post_id", postIds);
-          await admin.from("comments").delete().in("post_id", postIds);
-          await admin.from("saves").delete().in("post_id", postIds);
-        }
-
-        await admin.from("post_likes").delete().eq("user_id", userId);
-        await admin.from("comments").delete().eq("user_id", userId);
-        await admin.from("saves").delete().eq("user_id", userId);
-        await admin.from("follows").delete().or(`follower_id.eq.${userId},following_id.eq.${userId}`);
-        await admin.from("notifications").delete().or(`user_id.eq.${userId},from_user_id.eq.${userId}`);
-        await admin.from("messages").delete().or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
-        await admin.from("highlights").delete().eq("user_id", userId);
-        await admin.from("stories").delete().eq("user_id", userId);
-        if (postIds.length) await admin.from("posts").delete().in("id", postIds);
-        await admin.from("posts").delete().eq("user_id", userId);
-        await admin.from("profiles").delete().or(`id.eq.${userId},auth_user_id.eq.${userId}`);
-
-        // Storage: kullanıcının eski gönderi/story/highlight klasörlerini de kaldır.
-        for (const folder of [userId, `stories/${userId}`, `highlights/${userId}`]) {
-          try {
-            const listed = await admin.storage.from(BUCKET).list(folder, { limit: 1000 });
-            const names = (listed?.data || []).map(x => x?.name).filter(Boolean);
-            if (names.length) {
-              await admin.storage.from(BUCKET).remove(names.map(name => `${folder}/${name}`));
-            }
-          } catch (storageError) {
-            console.error("HARD DELETE STORAGE ERROR:", folder, storageError?.message || storageError);
-          }
-        }
-
-        console.log("HARD DELETE tamamlandı:", userId);
-      } catch (userError) {
-        console.error("HARD DELETE USER ERROR:", userId, userError?.message || userError);
-      }
-    }
-  } catch (e) {
-    console.error("HARD DELETE CLEANUP ERROR:", e?.message || e);
-  }
-}
-
 async function findProfile(
   sb,
   username
@@ -3314,6 +3236,54 @@ app.get(
 
 
 /* =========================================================
+   ACTIVE USERS — FIREBASE ESKİ HESAP FİLTRESİ
+   Firebase'de kalmış eski gönderiler yalnızca halen Auth'ta
+   bulunan kullanıcıların ownerUid değeri eşleşiyorsa siteye alınır.
+========================================================= */
+app.get(
+  "/api/active-users",
+  auth,
+  async (req, res) => {
+    try {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik." });
+      }
+
+      const admin = adminClient();
+      const authIds = new Set();
+      let page = 1;
+      while (page <= 50) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        const users = Array.isArray(data?.users) ? data.users : [];
+        for (const u of users) if (u?.id) authIds.add(String(u.id));
+        if (users.length < 1000) break;
+        page++;
+      }
+
+      const { data: profiles, error } = await admin
+        .from("profiles")
+        .select("id,auth_user_id,username");
+      if (error) throw error;
+
+      const users = (profiles || [])
+        .map(p => ({
+          id: String(p?.id || ""),
+          auth_user_id: String(p?.auth_user_id || p?.id || ""),
+          username: String(p?.username || "").trim().toLowerCase()
+        }))
+        .filter(p => p.username && authIds.has(p.auth_user_id));
+
+      res.set("Cache-Control", "no-store");
+      return res.json({ ok: true, users });
+    } catch (e) {
+      console.error("ACTIVE USERS ERROR:", e?.message || e);
+      return res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı." });
+    }
+  }
+);
+
+/* =========================================================
    FEED
 ========================================================= */
 
@@ -4954,7 +4924,5 @@ app.listen(
     console.log(
       `Minegram server çalışıyor. PORT=${PORT}`
     );
-    hardDeleteOrphanedAccounts();
-    setInterval(hardDeleteOrphanedAccounts, 5 * 60 * 1000);
   }
 );
