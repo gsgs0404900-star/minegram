@@ -3236,54 +3236,6 @@ app.get(
 
 
 /* =========================================================
-   ACTIVE USERS — FIREBASE ESKİ HESAP FİLTRESİ
-   Firebase'de kalmış eski gönderiler yalnızca halen Auth'ta
-   bulunan kullanıcıların ownerUid değeri eşleşiyorsa siteye alınır.
-========================================================= */
-app.get(
-  "/api/active-users",
-  auth,
-  async (req, res) => {
-    try {
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik." });
-      }
-
-      const admin = adminClient();
-      const authIds = new Set();
-      let page = 1;
-      while (page <= 50) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-        if (error) throw error;
-        const users = Array.isArray(data?.users) ? data.users : [];
-        for (const u of users) if (u?.id) authIds.add(String(u.id));
-        if (users.length < 1000) break;
-        page++;
-      }
-
-      const { data: profiles, error } = await admin
-        .from("profiles")
-        .select("id,auth_user_id,username");
-      if (error) throw error;
-
-      const users = (profiles || [])
-        .map(p => ({
-          id: String(p?.id || ""),
-          auth_user_id: String(p?.auth_user_id || p?.id || ""),
-          username: String(p?.username || "").trim().toLowerCase()
-        }))
-        .filter(p => p.username && authIds.has(p.auth_user_id));
-
-      res.set("Cache-Control", "no-store");
-      return res.json({ ok: true, users });
-    } catch (e) {
-      console.error("ACTIVE USERS ERROR:", e?.message || e);
-      return res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı." });
-    }
-  }
-);
-
-/* =========================================================
    FEED
 ========================================================= */
 
@@ -3573,6 +3525,138 @@ app.post(
       res.status(400).json({
         error:
           e.message
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   DELETE POST
+   Kullanıcının kendi gönderisini GERÇEKTEN veritabanından siler.
+   Böylece /api/users/:username/posts tekrar çağrıldığında gönderi
+   profil gridine geri dönemez.
+========================================================= */
+app.delete(
+  "/api/posts/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const postId = String(req.params.id || "").trim();
+      if (!postId) {
+        return res.status(400).json({
+          ok: false,
+          error: "Gönderi kimliği gerekli."
+        });
+      }
+
+      // Önce gönderinin gerçekten giriş yapan kullanıcıya ait olduğunu doğrula.
+      const { data: post, error: postError } = await req.sb
+        .from("posts")
+        .select("id,user_id,media_url")
+        .eq("id", postId)
+        .maybeSingle();
+
+      if (postError) throw postError;
+
+      if (!post) {
+        return res.status(404).json({
+          ok: false,
+          error: "Gönderi bulunamadı."
+        });
+      }
+
+      if (String(post.user_id) !== String(req.user.id)) {
+        return res.status(403).json({
+          ok: false,
+          error: "Bu gönderiyi silme yetkin yok."
+        });
+      }
+
+      // Service-role ile silme: RLS/policy yüzünden silmenin yarım kalmasını önler.
+      const admin = adminClient();
+
+      // Gönderiye bağlı verileri önce temizle. Tablolardan biri mevcut değilse
+      // ana gönderinin silinmesini engellememesi için best-effort çalışır.
+      const cleanupTables = [
+        "comments",
+        "post_likes",
+        "saves",
+        "notifications"
+      ];
+
+      for (const table of cleanupTables) {
+        try {
+          const { error } = await admin
+            .from(table)
+            .delete()
+            .eq("post_id", postId);
+
+          if (error) {
+            console.warn(
+              `POST DELETE ${table} CLEANUP WARNING:`,
+              error.message
+            );
+          }
+        } catch (cleanupError) {
+          console.warn(
+            `POST DELETE ${table} CLEANUP EXCEPTION:`,
+            cleanupError?.message || cleanupError
+          );
+        }
+      }
+
+      // Asıl kayıt: gönderi artık Supabase posts tablosundan da kaldırılır.
+      const { error: deleteError } = await admin
+        .from("posts")
+        .delete()
+        .eq("id", postId)
+        .eq("user_id", req.user.id);
+
+      if (deleteError) throw deleteError;
+
+      // Supabase Storage'daki medya dosyasını da kaldırmayı dene.
+      // DB kaydının silinmesi medya silme hatası yüzünden geri alınmaz.
+      try {
+        const mediaUrl = String(post.media_url || "").trim();
+        const marker = `/storage/v1/object/public/${BUCKET}/`;
+        const index = mediaUrl.indexOf(marker);
+
+        if (index >= 0) {
+          const objectPath = decodeURIComponent(
+            mediaUrl.slice(index + marker.length)
+          );
+
+          if (objectPath) {
+            const { error: storageError } = await admin.storage
+              .from(BUCKET)
+              .remove([objectPath]);
+
+            if (storageError) {
+              console.warn(
+                "POST MEDIA DELETE WARNING:",
+                storageError.message
+              );
+            }
+          }
+        }
+      } catch (storageError) {
+        console.warn(
+          "POST MEDIA DELETE EXCEPTION:",
+          storageError?.message || storageError
+        );
+      }
+
+      return res.json({
+        ok: true,
+        deleted: true,
+        id: postId
+      });
+    } catch (e) {
+      console.error("DELETE POST ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "Gönderi silinemedi."
       });
     }
   }
@@ -4213,9 +4297,10 @@ app.post(
         });
       }
 
-      const targetAuthId = String(target.auth_user_id || target.id || "").trim();
-      if (!targetAuthId || !(await isAuthUserActive(targetAuthId))) {
-        return res.json([]);
+      if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
+        return res.status(404).json({
+          error: "Kullanıcı bulunamadı"
+        });
       }
 
       if (
@@ -4312,146 +4397,6 @@ app.post(
 
 
 /* =========================================================
-   DELETE ACCOUNT - KÖKTEN TEMİZLİK
-   Hesap silindiğinde Auth + profil + tüm gönderiler temizlenir.
-   Ayrıca storage içindeki kullanıcının medya klasörü de temizlenmeye çalışılır.
-========================================================= */
-
-app.delete(
-  "/api/account",
-  auth,
-  async (req, res) => {
-    try {
-      const admin = adminClient();
-      const authId = String(req.user.id || "").trim();
-      if (!authId) {
-        return res.status(401).json({ error: "Oturum bulunamadı." });
-      }
-
-      /* Hem auth id hem profil id ile eşleşen gönderileri bul. */
-      const profileResult = await admin
-        .from("profiles")
-        .select("id,auth_user_id,username")
-        .or(`id.eq.${authId},auth_user_id.eq.${authId}`);
-
-      if (profileResult.error) throw profileResult.error;
-
-      const profileRows = Array.isArray(profileResult.data)
-        ? profileResult.data
-        : [];
-
-      const ownerIds = new Set([authId]);
-      for (const p of profileRows) {
-        if (p?.id) ownerIds.add(String(p.id));
-        if (p?.auth_user_id) ownerIds.add(String(p.auth_user_id));
-      }
-
-      /* Gönderileri gerçekten veritabanından kaldır. */
-      for (const ownerId of ownerIds) {
-        const delPosts = await admin
-          .from("posts")
-          .delete()
-          .eq("user_id", ownerId);
-        if (delPosts.error) throw delPosts.error;
-      }
-
-      /* Profil satırlarını kaldır. */
-      const delProfiles = await admin
-        .from("profiles")
-        .delete()
-        .or(`id.eq.${authId},auth_user_id.eq.${authId}`);
-      if (delProfiles.error) throw delProfiles.error;
-
-      /* Supabase Storage klasörünü temizlemeyi dene; başarısız olması
-         hesap silme işlemini bozmasın. */
-      try {
-        const bucket = admin.storage.from(BUCKET);
-        for (const ownerId of ownerIds) {
-          const { data: files } = await bucket.list(ownerId, { limit: 1000 });
-          const names = (files || []).map(x => x?.name).filter(Boolean);
-          if (names.length) {
-            await bucket.remove(names.map(name => `${ownerId}/${name}`));
-          }
-        }
-      } catch (storageError) {
-        console.warn("ACCOUNT STORAGE CLEANUP:", storageError);
-      }
-
-      /* En son Auth kullanıcısını sil. */
-      const deletedAuth = await admin.auth.admin.deleteUser(authId);
-      if (deletedAuth.error) throw deletedAuth.error;
-
-      return res.json({
-        ok: true,
-        deleted: true,
-        message: "Hesap ve gönderileri kalıcı olarak silindi."
-      });
-    } catch (e) {
-      console.error("ACCOUNT DELETE ERROR:", e);
-      return res.status(500).json({
-        ok: false,
-        error: e?.message || "Hesap silinemedi."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   ORPHAN POST CLEANUP - V5
-   Auth hesabı silinmişse, geride kalan posts kayıtlarını da
-   veritabanından fiziksel olarak temizler. Böylece profil/grid
-   eski resimleri tekrar gösteremez.
-========================================================= */
-async function purgeOrphanedPostsAndProfiles() {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return;
-  try {
-    const admin = adminClient();
-
-    const { data: posts, error: postsError } = await admin
-      .from("posts")
-      .select("id,user_id")
-      .limit(5000);
-    if (postsError) throw postsError;
-
-    const ownerIds = [...new Set((posts || [])
-      .map(p => String(p?.user_id || "").trim())
-      .filter(Boolean))];
-
-    for (const ownerId of ownerIds) {
-      if (!(await isAuthUserActive(ownerId))) {
-        const del = await admin.from("posts").delete().eq("user_id", ownerId);
-        if (del.error) console.warn("ORPHAN POST CLEANUP:", del.error.message);
-      }
-    }
-
-    const { data: profiles, error: profilesError } = await admin
-      .from("profiles")
-      .select("id,auth_user_id,username")
-      .limit(5000);
-    if (profilesError) throw profilesError;
-
-    for (const profile of (profiles || [])) {
-      const authId = String(profile?.auth_user_id || profile?.id || "").trim();
-      if (authId && !(await isAuthUserActive(authId))) {
-        const ids = new Set([
-          String(profile?.id || "").trim(),
-          String(profile?.auth_user_id || "").trim()
-        ].filter(Boolean));
-        for (const ownerId of ids) {
-          const del = await admin.from("posts").delete().eq("user_id", ownerId);
-          if (del.error) console.warn("ORPHAN PROFILE POST CLEANUP:", del.error.message);
-        }
-        const delProfile = await admin.from("profiles").delete().eq("id", profile.id);
-        if (delProfile.error) console.warn("ORPHAN PROFILE CLEANUP:", delProfile.error.message);
-      }
-    }
-  } catch (e) {
-    console.warn("ORPHAN CLEANUP FAILED:", e?.message || e);
-  }
-}
-
-/* =========================================================
    USER POSTS
 ========================================================= */
 
@@ -4460,8 +4405,6 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      await purgeOrphanedPostsAndProfiles();
-
       const target =
         await findProfile(
           req.sb,
@@ -4481,30 +4424,24 @@ app.get(
         });
       }
 
-      const targetOwnerIds = [...new Set([
-        String(target?.id || "").trim(),
-        String(target?.auth_user_id || "").trim()
-      ].filter(Boolean))];
-
-      let data = [];
-      let error = null;
-      if (targetOwnerIds.length === 1) {
-        const result = await req.sb
+      const {
+        data,
+        error
+      } =
+        await req.sb
           .from("posts")
           .select("*")
-          .eq("user_id", targetOwnerIds[0])
-          .order("created_at", { ascending: false });
-        data = result.data || [];
-        error = result.error;
-      } else if (targetOwnerIds.length > 1) {
-        const result = await req.sb
-          .from("posts")
-          .select("*")
-          .in("user_id", targetOwnerIds)
-          .order("created_at", { ascending: false });
-        data = result.data || [];
-        error = result.error;
-      }
+          .eq(
+            "user_id",
+            target.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          );
 
       if (error) {
         throw error;
@@ -4570,9 +4507,9 @@ app.get(
                   true
               }
             )
-            .in(
+            .eq(
               "user_id",
-              [...new Set([target.id, target.auth_user_id].filter(Boolean))]
+              target.id
             ),
 
           req.sb
