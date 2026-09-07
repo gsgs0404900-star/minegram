@@ -3930,10 +3930,14 @@ app.post(
       const objectPath =
         `stories/${req.user.id}/${crypto.randomUUID()}${ext}`;
 
+      // Hikaye dosyasını service-role ile yükle.
+      // Böylece Storage RLS politikası kullanıcı tokenından bağımsız çalışır.
+      const admin = adminClient();
+
       const {
         error: uploadError
       } =
-        await req.sb.storage
+        await admin.storage
           .from(BUCKET)
           .upload(
             objectPath,
@@ -3953,18 +3957,14 @@ app.post(
       const {
         data: publicData
       } =
-        req.sb.storage
+        admin.storage
           .from(BUCKET)
           .getPublicUrl(
             objectPath
           );
 
-      // Hikaye DB kaydı service-role ile oluşturulur.
-      // Böylece stories INSERT RLS politikası yüzünden 42501/400 oluşmaz.
-      // Kullanıcı kimliği yine auth middleware tarafından doğrulanan
-      // req.user.id değerinden alınır; istemciden gelen user_id kullanılmaz.
-      const admin = adminClient();
-
+      // Hikaye DB kaydını da service-role ile oluştur.
+      // Böylece stories INSERT RLS politikası nedeniyle 400 oluşmaz.
       const result =
         await admin
           .from("stories")
