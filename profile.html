@@ -3350,7 +3350,13 @@ function formatHighlightDate(value){
 
 function openHighlightView(index){
 
- storyItems=getHighlights();
+ /* Öne çıkanlar artık renderHighlights() içinde sunucudan
+    (Supabase API) doldurulan storyItems listesinden açılır.
+    Eski kod korunuyor; yalnızca yanlış localStorage kaynağı
+    kullanılmasının önüne geçiliyor. */
+ if(!Array.isArray(storyItems)||!storyItems.length){
+   storyItems=getHighlights();
+ }
 
  storyIndex=index;
 
