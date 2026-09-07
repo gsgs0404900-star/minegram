@@ -2533,13 +2533,21 @@ if(plusButton){
         "Hikaye yükleniyor..."
       );
 
-      const uploaded =
-        await firebaseUploadStory(
-          file
-        );
+      const formData = new FormData();
+      formData.append("story", file, file.name || "story");
+
+      const uploaded = await api("/stories", {
+        method: "POST",
+        body: formData
+      });
+
+      const normalizedUploaded = normalizeStory(uploaded);
+      if (!normalizedUploaded) {
+        throw new Error("Sunucu hikaye kaydı döndürmedi.");
+      }
 
       stories.push(
-        uploaded
+        normalizedUploaded
       );
 
       cleanStories();
@@ -2572,9 +2580,9 @@ if(plusButton){
             function(g){
               return (
                 String(g.userId) ===
-                  String(uploaded.userId) ||
+                  String(normalizedUploaded.userId) ||
                 String(g.username).toLowerCase() ===
-                  String(uploaded.username).toLowerCase()
+                  String(normalizedUploaded.username).toLowerCase()
               );
             }
           );
@@ -2586,7 +2594,7 @@ if(plusButton){
               function(story){
                 return (
                   String(story.id) ===
-                  String(uploaded.id)
+                  String(normalizedUploaded.id)
                 );
               }
             );
@@ -2602,7 +2610,7 @@ if(plusButton){
 
       }
 
-      return uploaded;
+      return normalizedUploaded;
 
     }catch(error){
 
@@ -2617,7 +2625,7 @@ if(plusButton){
       ){
 
         alert(
-          "Firebase hikaye erişimi reddedildi. Firestore Rules içinde giriş yapmış kullanıcıların story koleksiyonuna erişebildiğinden emin ol."
+          "Hikaye API erişimi reddedildi. Oturumunu kontrol edip tekrar dene."
         );
 
       }else{
@@ -2626,7 +2634,7 @@ if(plusButton){
           "Hikaye yüklenemedi:\n" +
           (
             error?.message ||
-            "Firebase sunucu hatası"
+            "Sunucu hatası"
           )
         );
 
@@ -3568,43 +3576,17 @@ if(plusButton){
       }
 
 
-      /*
-        Backend DELETE endpointi varsa
-        gerçek kaydı da sil.
-      */
-
       try{
-
-        await firebaseDeleteStory(
-          item
+        if(!item.id) throw new Error("Hikaye kimliği bulunamadı.");
+        await api(
+          "/stories/" + encodeURIComponent(item.id),
+          {method:"DELETE"}
         );
-
       }catch(error){
-
-        console.warn(
-          "FIREBASE STORY DELETE:",
-          error
-        );
-
-        /* Eski sunucu sistemi için yedek. */
-        try{
-          await api(
-            "/stories/" +
-            encodeURIComponent(
-              item.id
-            ),
-            {
-              method:"DELETE"
-            }
-          );
-        }catch(apiError){
-          console.warn(
-            "SERVER STORY DELETE:",
-            apiError
-          );
-        }
+        console.error("SERVER STORY DELETE:",error);
+        alert(error?.message || "Hikaye silinemedi.");
+        return;
       }
-
 
       stories=
         stories.filter(
