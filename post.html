@@ -2208,138 +2208,38 @@ onclick="sendComment()"
 
   async function loadStories(){
 
-    if(loadingStories)
-      return;
-
+    if(loadingStories) return;
     loadingStories=true;
 
     try{
+      // POST.HTML eski Firebase public_story kayıtlarını okumaz.
+      // Hikayeler yalnızca Supabase API'den gelir; böylece silinen hesabın
+      // Firebase'de kalmış eski hikayesi tekrar gösterilemez.
+      const result = await api(
+        "/stories?ts=" + Date.now(),
+        { cache:"no-store" }
+      );
 
-      /*
-        ÖNEMLİ:
-        Firebase tarafındaki eski public_story kayıtlarında
-        hesap silindiğinde kullanıcı UID'si bulunmayabiliyor.
-        Bu nedenle Firebase hikayelerini doğrudan göstermiyoruz.
-        Önce sunucudan HALEN AKTİF hesap listesini alıp
-        hikayenin username'ini bu listeyle doğruluyoruz.
-      */
-      let activeUsers=[];
+      const list = Array.isArray(result)
+        ? result
+        : (Array.isArray(result?.stories) ? result.stories : []);
 
-      try{
-        const activeResult = await api(
-          "/active-users?ts=" + Date.now()
-        );
-
-        activeUsers = Array.isArray(activeResult?.users)
-          ? activeResult.users
-          : [];
-      }catch(activeError){
-        console.warn("AKTİF HESAP LİSTESİ ALINAMADI:", activeError);
-        activeUsers=[];
-      }
-
-      const activeUserIds = new Set();
-      const activeUsernames = new Set();
-
-      activeUsers.forEach(u=>{
-        if(u?.id) activeUserIds.add(String(u.id).trim());
-        if(u?.auth_user_id) activeUserIds.add(String(u.auth_user_id).trim());
-        if(u?.username){
-          activeUsernames.add(
-            String(u.username).replace(/^@/,"").trim().toLowerCase()
-          );
-        }
-      });
-
-      /* Firebase hikayelerini oku, fakat yalnızca aktif hesapları geçir. */
-      try{
-
-        const firebaseStories = await firebaseLoadMinegramStories();
-
-        if(Array.isArray(firebaseStories) && activeUsers.length){
-
-          stories = firebaseStories.filter(story=>{
-            const uid = String(story?.userId || "").trim();
-            const username = String(story?.username || "")
-              .replace(/^@/,"")
-              .trim()
-              .toLowerCase();
-
-            /*
-              Eski Firebase kayıtlarında userId çoğu zaman username'dir.
-              Bu yüzden hem gerçek UID hem kullanıcı adıyla doğrula.
-            */
-            return (
-              (uid && activeUserIds.has(uid)) ||
-              (username && activeUsernames.has(username))
-            );
-          });
-
-          cleanStories();
-          buildStoryGroups();
-          renderStoryBar();
-
-          try{
-            localStorage.setItem(
-              "minegram_story_v2",
-              JSON.stringify(stories)
-            );
-          }catch(e){}
-
-          return;
-        }
-
-      }catch(error){
-        console.warn("FIREBASE STORY LOAD ERROR:", error);
-      }
-
-      /*
-        Firebase doğrulanamazsa /api/stories kullan.
-        Sunucu tarafı da silinen hesapları filtreliyor.
-      */
-      try{
-
-        const result = await api(
-          "/stories?ts=" + Date.now()
-        );
-
-        const list = Array.isArray(result)
-          ? result
-          : (Array.isArray(result?.stories) ? result.stories : []);
-
-        stories = list
-          .map(normalizeStory)
-          .filter(Boolean);
-
-        cleanStories();
-        buildStoryGroups();
-        renderStoryBar();
-
-        try{
-          localStorage.setItem(
-            "minegram_story_v2",
-            JSON.stringify(stories)
-          );
-        }catch(e){}
-
-        return;
-
-      }catch(apiError){
-        console.error("STORY API LOAD ERROR:", apiError);
-      }
-
-      /*
-        Aktif hesap doğrulaması yapılamıyorsa eski local cache'i
-        GÖSTERME. Aksi halde silinen hesabın hikayesi geri gelir.
-      */
-      stories=[];
+      stories = list.map(normalizeStory).filter(Boolean);
+      cleanStories();
       buildStoryGroups();
       renderStoryBar();
 
+      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+
+    }catch(error){
+      console.error("STORY API LOAD ERROR:", error);
+      stories=[];
+      storyGroups=[];
+      buildStoryGroups();
+      renderStoryBar();
+      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
     }finally{
-
       loadingStories=false;
-
     }
 
   }
