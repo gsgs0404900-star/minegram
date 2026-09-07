@@ -3959,8 +3959,14 @@ app.post(
             objectPath
           );
 
+      // Hikaye DB kaydı service-role ile oluşturulur.
+      // Böylece stories INSERT RLS politikası yüzünden 42501/400 oluşmaz.
+      // Kullanıcı kimliği yine auth middleware tarafından doğrulanan
+      // req.user.id değerinden alınır; istemciden gelen user_id kullanılmaz.
+      const admin = adminClient();
+
       const result =
-        await req.sb
+        await admin
           .from("stories")
           .insert({
             user_id:
