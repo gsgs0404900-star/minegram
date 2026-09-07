@@ -5157,11 +5157,13 @@ async function loadFeed(){
     Böylece Android'den atılan gönderi site API'sinde
     bulunmasa bile doğrudan Firebase'den görünür.
   */
-  const [apiResult,firebaseResult]=
-    await Promise.allSettled([
-      api("/feed"),
-      firebaseLoadMinegramPosts()
-    ]);
+  /* WEB FEEDİN TEK OTORİTESİ SUPABASE API'DIR.
+     Firebase'deki eski/anonim cihaz kayıtları burada kesinlikle okunmaz.
+     Böylece silinmiş bir hesabın Firebase'de kalmış gönderisi,
+     kullanıcı adı tekrar kullanılsa bile siteye geri dönemez. */
+  const apiResult = await Promise.allSettled([
+    api("/feed")
+  ]).then(r => r[0]);
 
   let apiPosts=[];
   let firebasePosts=[];
@@ -5183,9 +5185,8 @@ async function loadFeed(){
         );
   }
 
-  if(firebaseResult.status==="fulfilled"){
-    firebasePosts=firebaseResult.value;
-  }
+  /* Firebase public-post koleksiyonu artık feed kaynağı değildir. */
+  firebasePosts=[];
 
   /* Silme veya daha yeni bir loadFeed başladıysa bu eski istek
      artık hiçbir şeyi ekrana yazamaz. */
