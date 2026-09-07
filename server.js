@@ -3480,7 +3480,11 @@ app.post(
       const requestedSort = Number(req.body?.sortOrder);
       const sortOrder = Number.isFinite(requestedSort) ? requestedSort : 0;
 
-      const { data, error } = await req.sb
+      // Öne çıkan INSERT işlemi service-role ile yapılır.
+      // Böylece Supabase RLS "new row violates row-level security policy"
+      // hatası vermez. Kullanıcı kimliği yine doğrulanmış req.user.id'dir.
+      const highlightAdmin = adminClient();
+      const { data, error } = await highlightAdmin
         .from("highlights")
         .insert({
           user_id: req.user.id,
