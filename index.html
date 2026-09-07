@@ -4992,7 +4992,7 @@ async function loadMinegramActiveUsers(){
   }
   try{
     const result=await api('/api/active-users?ts='+now);
-    const rows=Array.isArray(result?.users)?result.users:[];
+    const rows=Array.isArray(result)?result:(Array.isArray(result?.users)?result.users:(Array.isArray(result?.data)?result.data:[]));
     const byId=new Set();
     const byUsername=new Map();
     for(const u of rows){
@@ -5012,29 +5012,20 @@ async function loadMinegramActiveUsers(){
 
 function filterActiveApiPosts(posts,active){
   if(!Array.isArray(posts)) return [];
-
-  /* Aktif kullanıcı doğrulaması geçici olarak alınamazsa
-     gerçek API gönderilerini boşaltıp "Henüz gönderi yok" gösterme. */
-  if(!active) return posts;
-
+  /* Aktif kullanıcı kontrolü cevap veremiyorsa gerçek API gönderilerini
+     boşaltma; feed zaten sunucudan geldiği için göster. */
+  if(!active || !active.byId || !active.byId.size) return posts;
   return posts.filter(post=>{
     const owner=String(
-      post?.userId ||
-      post?.user_id ||
-      post?.ownerId ||
-      post?.owner_id ||
-      post?.auth_user_id ||
-      post?.user?.id ||
-      post?.user?.auth_user_id ||
-      ''
+      post?.userId||post?.user_id||post?.ownerId||post?.owner_id||
+      post?.auth_user_id||post?.user?.id||post?.user?.auth_user_id||''
     ).trim();
-
-    /* API gönderisinde owner alanı bulunmuyorsa,
-       gönderiyi sırf bu nedenle kaybetme. */
+    const username=String(post?.username||post?.user?.username||'').replace(/^@/,'').trim().toLowerCase();
+    /* Owner bilgisi yoksa gönderiyi sırf bu nedenle gizleme. */
     if(!owner) return true;
-
-    return active.byId.has(owner) ||
-      Array.from(active.byUsername.values()).includes(owner);
+    if(active.byId.has(owner)) return true;
+    if(username && active.byUsername?.get(username)===owner) return true;
+    return Array.from(active.byUsername?.values?.()||[]).includes(owner);
   });
 }
 
@@ -5182,8 +5173,7 @@ async function loadFeed(){
   }
 
   if(!apiPosts.length && !firebasePosts.length &&
-     apiResult.status!=="fulfilled" &&
-     firebaseResult.status!=="fulfilled"){
+     apiResult.status!=="fulfilled"){
 
     feedEl.innerHTML=`
       <div class="empty">
