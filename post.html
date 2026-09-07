@@ -5022,6 +5022,11 @@ let minegramPostDeleteVersion=0;
 
 async function loadFeed(){
 
+  const detailId=getPostIdFromUrl();
+  if(detailId){
+    return loadPostDetail(detailId);
+  }
+
   if(!feedEl)return;
 
   const myFeedVersion=++minegramFeedLoadVersion;
@@ -7236,13 +7241,25 @@ function getPostIdFromUrl(){
 
 function getSelectedPostFromSession(id){
   try{
-    const raw=sessionStorage.getItem("minegram_selected_post");
-    if(!raw)return null;
-    const post=JSON.parse(raw);
-    if(!post)return null;
-    const pid=String(post.id??post.postId??post._id??post.uuid??"").trim();
-    return pid===String(id).trim()?post:null;
-  }catch(e){ return null; }
+    const wanted=String(id||"").trim();
+    const keys=["minegram_selected_post"];
+    for(const key of keys){
+      const raws=[
+        sessionStorage.getItem(key),
+        localStorage.getItem(key)
+      ];
+      for(const raw of raws){
+        if(!raw)continue;
+        const post=JSON.parse(raw);
+        if(!post)continue;
+        const pid=String(post.id??post.postId??post._id??post.uuid??"").trim();
+        if(pid===wanted)return post;
+      }
+    }
+  }catch(e){
+    console.warn("[MINEGRAM] Seçili gönderi okunamadı",e);
+  }
+  return null;
 }
 
 function normalizeSinglePost(payload,id){
@@ -7273,6 +7290,15 @@ async function loadPostDetail(postId){
   const id=String(postId||"").trim();
   if(!id)return false;
 
+  /* index.html'nin gönderdiği gerçek gönderiyi önce ve hemen göster. */
+  const cached=getSelectedPostFromSession(id);
+  if(cached){
+    const normalized={...cached,id:String(cached.id??cached.postId??cached._id??cached.uuid??id)};
+    window.__minegramFeedPosts=[normalized];
+    feedEl.innerHTML=renderPost(normalized);
+    return true;
+  }
+
   feedEl.innerHTML=`<div class="empty">Gönderi yükleniyor...</div>`;
 
   try{
@@ -7288,17 +7314,12 @@ async function loadPostDetail(postId){
     console.warn("[MINEGRAM] Tek gönderi API yükleme hatası:",e);
   }
 
-  const cached=getSelectedPostFromSession(id);
-  if(cached){
-    const normalized={...cached,id:String(cached.id??cached.postId??cached._id??cached.uuid??id)};
-    window.__minegramFeedPosts=[normalized];
-    feedEl.innerHTML=renderPost(normalized);
-    return true;
-  }
-
   try{
     const result=await api('/feed?ts='+Date.now());
-    const posts=Array.isArray(result)?result:(Array.isArray(result?.posts)?result.posts:(Array.isArray(result?.data)?result.data:[]));
+    const posts=Array.isArray(result)
+      ? result
+      : (Array.isArray(result?.posts)?result.posts
+      : (Array.isArray(result?.data)?result.data:[]));
     const found=posts.find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===id);
     if(found){
       window.__minegramFeedPosts=[found];
@@ -7309,10 +7330,9 @@ async function loadPostDetail(postId){
     console.warn("[MINEGRAM] Feed yedek yükleme hatası:",e);
   }
 
-  feedEl.innerHTML=`<div class="empty"><strong>Gönderi bulunamadı</strong><small>Bu gönderi silinmiş veya artık kullanılamıyor olabilir.</small><br><button class="icon-btn" style="width:auto;padding:0 18px" onclick="location.href='index.html'">Ana sayfaya dön</button></div>`;
+  feedEl.innerHTML=`<div class="empty"><strong>Gönderi bulunamadı</strong><small>Gönderi kimliği: ${esc(id)}</small><br><button class="icon-btn" style="width:auto;padding:0 18px" onclick="location.href='index.html'">Ana sayfaya dön</button></div>`;
   return false;
 }
-
 /* =========================================================
    INIT
 ========================================================= */
@@ -7365,11 +7385,21 @@ async function init(){
 
   showHome();
 
+  /* post.html?id=... ise SADECE seçilen gönderiyi aç.
+     /me ve normal feed hiçbir şekilde ekranı ezmesin. */
+  const requestedPostId=getPostIdFromUrl();
+  if(requestedPostId){
+    const cached=getSelectedPostFromSession(requestedPostId);
+    if(cached && feedEl){
+      const normalized={...cached,id:String(cached.id??cached.postId??cached._id??cached.uuid??requestedPostId)};
+      window.__minegramFeedPosts=[normalized];
+      feedEl.innerHTML=renderPost(normalized);
+    }
+    await loadPostDetail(requestedPostId);
+    return;
+  }
 
-  /*
-    Token yoksa giriş.
-  */
-
+  /* Token yoksa giriş. */
   if(!token){
 
     showLogin();
@@ -7411,16 +7441,7 @@ async function init(){
     showHome();
 
 
-    /*
-      URL'de gönderi ID'si varsa doğrudan o gönderiyi aç.
-    */
-    const requestedPostId=getPostIdFromUrl();
-
-    if(requestedPostId){
-      await loadPostDetail(requestedPostId);
-    }else{
-      await loadFeed();
-    }
+    await loadFeed();
 
 
   }catch(e){
