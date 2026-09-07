@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Minegram - Ana Sayfa</title>
+<title>Minegram - Gönderi</title>
 
 <style>
 *{box-sizing:border-box}
@@ -7223,6 +7223,97 @@ async function forgot(){
 
 
 /* =========================================================
+   GÖNDERİ DETAYI
+   post.html?id=... ile açılan gönderiyi doğrudan yükler.
+========================================================= */
+
+function getPostIdFromUrl(){
+  try{
+    const params=new URLSearchParams(location.search||"");
+    return String(params.get("id")||params.get("postId")||params.get("post")||"").trim();
+  }catch(e){ return ""; }
+}
+
+function getSelectedPostFromSession(id){
+  try{
+    const raw=sessionStorage.getItem("minegram_selected_post");
+    if(!raw)return null;
+    const post=JSON.parse(raw);
+    if(!post)return null;
+    const pid=String(post.id??post.postId??post._id??post.uuid??"").trim();
+    return pid===String(id).trim()?post:null;
+  }catch(e){ return null; }
+}
+
+function normalizeSinglePost(payload,id){
+  if(!payload)return null;
+  const candidates=[];
+  if(payload.post)candidates.push(payload.post);
+  if(payload.result)candidates.push(payload.result);
+  if(Array.isArray(payload.posts))candidates.push(...payload.posts);
+  if(Array.isArray(payload.data))candidates.push(...payload.data);
+  else if(payload.data)candidates.push(payload.data);
+  if(Array.isArray(payload))candidates.push(...payload);
+  if(payload.id||payload.postId||payload._id||payload.uuid)candidates.unshift(payload);
+
+  const wanted=String(id||"").trim();
+  for(const candidate of candidates){
+    if(!candidate)continue;
+    const cid=String(candidate.id??candidate.postId??candidate._id??candidate.uuid??"").trim();
+    if(cid===wanted)return candidate;
+  }
+  if(candidates.length===1 && candidates[0] && typeof candidates[0]==="object"){
+    return {...candidates[0],id:String(candidates[0].id??candidates[0].postId??candidates[0]._id??candidates[0].uuid??wanted)};
+  }
+  return null;
+}
+
+async function loadPostDetail(postId){
+  if(!feedEl)return false;
+  const id=String(postId||"").trim();
+  if(!id)return false;
+
+  feedEl.innerHTML=`<div class="empty">Gönderi yükleniyor...</div>`;
+
+  try{
+    const result=await api("/posts/"+encodeURIComponent(id)+"?ts="+Date.now());
+    const post=normalizeSinglePost(result,id);
+    if(post){
+      const normalized={...post,id:String(post.id??post.postId??post._id??post.uuid??id)};
+      window.__minegramFeedPosts=[normalized];
+      feedEl.innerHTML=renderPost(normalized);
+      return true;
+    }
+  }catch(e){
+    console.warn("[MINEGRAM] Tek gönderi API yükleme hatası:",e);
+  }
+
+  const cached=getSelectedPostFromSession(id);
+  if(cached){
+    const normalized={...cached,id:String(cached.id??cached.postId??cached._id??cached.uuid??id)};
+    window.__minegramFeedPosts=[normalized];
+    feedEl.innerHTML=renderPost(normalized);
+    return true;
+  }
+
+  try{
+    const result=await api('/feed?ts='+Date.now());
+    const posts=Array.isArray(result)?result:(Array.isArray(result?.posts)?result.posts:(Array.isArray(result?.data)?result.data:[]));
+    const found=posts.find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===id);
+    if(found){
+      window.__minegramFeedPosts=[found];
+      feedEl.innerHTML=renderPost(found);
+      return true;
+    }
+  }catch(e){
+    console.warn("[MINEGRAM] Feed yedek yükleme hatası:",e);
+  }
+
+  feedEl.innerHTML=`<div class="empty"><strong>Gönderi bulunamadı</strong><small>Bu gönderi silinmiş veya artık kullanılamıyor olabilir.</small><br><button class="icon-btn" style="width:auto;padding:0 18px" onclick="location.href='index.html'">Ana sayfaya dön</button></div>`;
+  return false;
+}
+
+/* =========================================================
    INIT
 ========================================================= */
 
@@ -7321,10 +7412,15 @@ async function init(){
 
 
     /*
-      Feed.
+      URL'de gönderi ID'si varsa doğrudan o gönderiyi aç.
     */
+    const requestedPostId=getPostIdFromUrl();
 
-    await loadFeed();
+    if(requestedPostId){
+      await loadPostDetail(requestedPostId);
+    }else{
+      await loadFeed();
+    }
 
 
   }catch(e){
