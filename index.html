@@ -2052,6 +2052,62 @@ onclick="sendComment()"
 
 
   /* =======================================================
+     STORY GRUPLARINI OLUŞTUR
+     Her kullanıcı için hikayeleri tek grupta toplar.
+  ======================================================= */
+
+  function buildStoryGroups(){
+
+    const groupsMap = new Map();
+
+    (Array.isArray(stories) ? stories : []).forEach(function(story){
+
+      if(!story) return;
+
+      const userId = story.userId ? String(story.userId) : "";
+      const username = String(story.username || "minegram")
+        .replace(/^@/, "")
+        .trim();
+
+      const key = userId || username.toLowerCase();
+      if(!key) return;
+
+      let group = groupsMap.get(key);
+
+      if(!group){
+        group = {
+          userId: story.userId || "",
+          username: username,
+          displayName: story.displayName || username,
+          avatar: story.avatar || "",
+          stories: []
+        };
+        groupsMap.set(key, group);
+      }
+
+      group.stories.push(story);
+
+      if(!group.avatar && story.avatar) group.avatar = story.avatar;
+      if(!group.displayName && story.displayName) group.displayName = story.displayName;
+    });
+
+    storyGroups = Array.from(groupsMap.values());
+
+    storyGroups.forEach(function(group){
+      group.stories.sort(function(a,b){
+        return Number(a.createdAt || 0) - Number(b.createdAt || 0);
+      });
+    });
+
+    storyGroups.sort(function(a,b){
+      const aLast = a.stories[a.stories.length - 1];
+      const bLast = b.stories[b.stories.length - 1];
+      return Number(bLast?.createdAt || 0) - Number(aLast?.createdAt || 0);
+    });
+  }
+
+
+  /* =======================================================
      TEMİZLE
   ======================================================= */
 
@@ -3674,10 +3730,12 @@ onclick="sendComment()"
 
       }
 
-      // Hepsi bittikten sonra sadece 1 kere yenile
-      cleanStories();
-      buildStoryGroups();
-      renderStoryBar();
+      // Yalnızca başarılı yükleme varsa görünümü yenile.
+      if(uploadedCount > 0){
+        cleanStories();
+        buildStoryGroups();
+        renderStoryBar();
+      }
 
       try{
         localStorage.setItem(
