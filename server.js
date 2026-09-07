@@ -272,43 +272,16 @@ async function isAuthUserActive(userId) {
 async function filterActivePosts(posts) {
   if (!Array.isArray(posts) || !posts.length) return [];
 
-  // posts.user_id bazı kurulumlarda profiles.id, bazı eski kayıtlarda
-  // doğrudan Supabase Auth id olabilir. Önce profil -> auth id eşleşmesini
-  // çözüp SADECE halen Auth'ta yaşayan hesapların gönderilerini bırak.
-  const postOwnerIds = [...new Set(
-    posts.map(p => String(p?.user_id || '').trim()).filter(Boolean)
-  )];
-  if (!postOwnerIds.length) return [];
+  const ids = [...new Set(posts.map(p => String(p?.user_id || "").trim()).filter(Boolean))];
+  if (!ids.length) return [];
 
-  const admin = adminClient();
-  const [{ data: profiles }, authPages] = await Promise.all([
-    admin.from('profiles').select('id,auth_user_id').in('id', postOwnerIds),
-    (async () => {
-      const ids = new Set();
-      for (let page = 1; page <= 20; page++) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-        if (error) throw error;
-        const users = Array.isArray(data?.users) ? data.users : [];
-        users.forEach(u => { if (u?.id) ids.add(String(u.id)); });
-        if (users.length < 1000) break;
-      }
-      return ids;
-    })()
-  ]);
+  // Posts.user_id must belong to a currently existing Supabase Auth user.
+  const active = new Set();
+  await Promise.all(ids.map(async id => {
+    if (await isAuthUserActive(id)) active.add(id);
+  }));
 
-  const activeAuthIds = authPages;
-  const profileAuthById = new Map(
-    (profiles || []).map(p => [
-      String(p.id),
-      String(p.auth_user_id || p.id || '')
-    ])
-  );
-
-  return posts.filter(p => {
-    const owner = String(p?.user_id || '').trim();
-    const authId = profileAuthById.get(owner) || owner;
-    return !!authId && activeAuthIds.has(authId);
-  });
+  return posts.filter(p => active.has(String(p?.user_id || "").trim()));
 }
 
 async function filterActiveStories(stories) {
@@ -3312,6 +3285,7 @@ app.get(
   "/api/feed",
   auth,
   async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
       const {
         data,
@@ -3701,6 +3675,7 @@ app.get(
   "/api/stories",
   auth,
   async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
       const yesterday =
         new Date(
