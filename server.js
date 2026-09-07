@@ -4405,28 +4405,31 @@ app.get(
         });
       }
 
+      // Gönderi sayısını DB'deki ham kayıt sayısından alma.
+      // Silinmiş Auth hesabına ait eski postlar kesinlikle sayılmamalı.
+      const { data: profilePosts, error: profilePostsError } =
+        await req.sb
+          .from("posts")
+          .select("id,user_id")
+          .eq("user_id", target.id);
+
+      if (profilePostsError) {
+        throw profilePostsError;
+      }
+
+      const activeProfilePosts =
+        await filterActivePosts(profilePosts || []);
+
+      const postCountResult = {
+        count: activeProfilePosts.length
+      };
+
       const [
-        postCountResult,
         followersResult,
         followingResult,
         followingByMeResult
       ] =
         await Promise.all([
-          req.sb
-            .from("posts")
-            .select(
-              "id",
-              {
-                count:
-                  "exact",
-                head:
-                  true
-              }
-            )
-            .eq(
-              "user_id",
-              target.id
-            ),
 
           req.sb
             .from("follows")
