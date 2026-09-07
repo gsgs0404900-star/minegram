@@ -4,9 +4,7 @@
 <meta charset="utf-8">    
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">    
 <meta name="theme-color" content="#000">    
-<meta name="minegram-account-delete-version" content="V6_REAL_DELETE">
-<title>Minegram • Profil</title>
-<meta name="minegram-profile-version" content="ACCOUNT_DELETE_FIX_V4">    
+<title>Minegram • Profil</title>    
       
 <style>     
 *{box-sizing:border-box}     
@@ -3025,12 +3023,6 @@ body{
 <span class="menu-arrow">›</span>
 </button>
 
-<button class="menu-item" id="deleteAccountMenu" style="color:#ff4d67">
-<span class="menu-icon">⌫</span>
-<span class="menu-label">Hesabı Kalıcı Olarak Sil</span>
-<span class="menu-arrow">›</span>
-</button>
-
 <button class="menu-item" id="logoutMenu">
 <span class="menu-icon">⇥</span>
 <span class="menu-label">Çıkış Yap</span>
@@ -3083,6 +3075,12 @@ async function api(url,opt={}){
 
    opt.body=JSON.stringify(opt.body);
 
+ }
+
+ const isGet=!opt.method||String(opt.method).toUpperCase()==='GET';
+ if(isGet){
+   opt.cache='no-store';
+   url+=(url.includes('?')?'&':'?')+'_ts='+Date.now();
  }
 
  const r=await fetch(url,opt);
@@ -4052,11 +4050,6 @@ async function loadFirebasePublicPosts(username,userId){
 
 async function load(){
 
- /* V4: her yüklemede eski grid kesin olarak temizlenir. */
- const loadGrid=document.getElementById('grid');
- if(loadGrid){ loadGrid.innerHTML='<div class="empty">Yükleniyor...</div>'; }
- document.getElementById('postCount').textContent='0';
-
  if(!token){
 
    location.href='index.html';
@@ -4161,55 +4154,32 @@ async function load(){
 
    }
 
- /* Silinmiş hesapların gönderileri profil gridine kesinlikle giremez.
-    Sunucu eski veri döndürse bile burada ikinci güvenlik filtresi uygulanır. */
- const activeUsers=await api('/api/active-users?ts='+Date.now());
- const activeList=Array.isArray(activeUsers)?activeUsers:(Array.isArray(activeUsers?.users)?activeUsers.users:[]);
- const activeIds=new Set();
- activeList.forEach(u=>{
-   if(u?.id)activeIds.add(String(u.id));
-   if(u?.auth_user_id)activeIds.add(String(u.auth_user_id));
-   if(u?.authUserId)activeIds.add(String(u.authUserId));
- });
- const profileIds=new Set([currentProfile?.id,currentProfile?.auth_user_id,currentProfile?.authUserId].filter(Boolean).map(String));
- const profileIsActive=[...profileIds].some(id=>activeIds.has(id));
- if(!profileIsActive){
-   currentPosts=[];
-   document.getElementById('postCount').textContent='0';
-   document.getElementById('grid').innerHTML='<div class="empty">Henüz gönderi yok.</div>';
-   return;
- }
- const postsResponse=await api('/api/users/'+encodeURIComponent(username)+'/posts?ts='+Date.now());
- const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
- const posts=apiPosts.filter(p=>{
-   const ownerIds=[p?.userId,p?.user_id,p?.ownerId,p?.owner_id,p?.profileId,p?.profile_id].filter(Boolean).map(String);
-   if(ownerIds.length && !ownerIds.some(id=>profileIds.has(id))) return false;
-   if(ownerIds.length && !ownerIds.some(id=>activeIds.has(id))) return false;
-   return true;
- }).filter((p,i,a)=>a.findIndex(x=>String(x?.id||x?.postId||x?.createdAt)===String(p?.id||p?.postId||p?.createdAt))===i)
- .sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
- /* SON KONTROL: Sadece profil sahibinin gerçek userId'si ile eşleşen gönderiler. */
- const ownerIds=new Set(
-   [currentProfile?.id,currentProfile?.auth_user_id,currentProfile?.authUserId]
-     .filter(Boolean).map(v=>String(v).trim())
- );
- const strictPosts=posts.filter(p=>{
-   const ids=[p?.userId,p?.user_id,p?.ownerId,p?.owner_id,p?.profileId,p?.profile_id]
-     .filter(Boolean).map(v=>String(v).trim());
-   return ids.length>0 && ids.some(id=>ownerIds.has(id));
- });
- currentPosts=strictPosts;
- document.getElementById('postCount').textContent=String(strictPosts.length);
- renderPosts(strictPosts);
+   const postsResponse=await api(
+  '/api/users/'+encodeURIComponent(username)+'/posts'
+);
+
+const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
+
+/* Profil gönderilerinin tek kaynağı Supabase API'dir.
+   Firebase'deki eski kayıtlar profil ekranına da sızamaz. */
+const firebasePosts=[];
+const merged=[...apiPosts];
+const seen=new Set();
+const posts=merged.filter(p=>{
+  const key=String(p?.username||p?.userName||p?.authorUsername||username||'').toLowerCase()+'_'+String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
+  if(seen.has(key))return false;seen.add(key);return true;
+}).sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
+
+currentPosts=posts;
+document.getElementById('postCount').textContent=String(posts.length);
+renderPosts(posts);
  }catch(e){
 
    console.error(e);
 
-   currentPosts=[];
-   document.getElementById('postCount').textContent='0';
    document.getElementById('grid')
    .innerHTML=
-   '<div class="empty">Henüz gönderi yok.</div>';
+   '<div class="empty">Profil yüklenemedi.</div>';
 
    toast(e.message);
 
@@ -4868,48 +4838,6 @@ document.getElementById('settingsMenu')?.addEventListener('click',()=>{
   window.location.href='ayarlar.html';
 });
 
-async function deleteMinegramAccount(){
-
- if(!confirm('Hesabını KALICI OLARAK silmek istiyor musun?\n\nTüm gönderilerin, profilin ve hesap verilerin silinecek. Bu işlem geri alınamaz.')){
-   return;
- }
-
- const btn=document.getElementById('deleteAccountMenu');
- if(btn){
-   btn.disabled=true;
-   btn.querySelector('.menu-label').textContent='Hesap siliniyor...';
- }
-
- try{
-   const result=await api('/api/account',{method:'DELETE'});
-
-   const keys=[
-     'minegram_token','minegram_access_token','minegram_supabase_token',
-     'access_token','token','minegram_user','minegram_profile','minegram_email'
-   ];
-   keys.forEach(key=>{
-     localStorage.removeItem(key);
-     sessionStorage.removeItem(key);
-   });
-
-   currentPosts=[];
-   const grid=document.getElementById('grid');
-   if(grid) grid.innerHTML='<div class="empty">Henüz gönderi yok.</div>';
-   const count=document.getElementById('postCount');
-   if(count) count.textContent='0';
-
-   alert(result?.message||'Hesap ve tüm gönderilerin silindi.');
-   location.href='index.html';
-
- }catch(e){
-   if(btn){
-     btn.disabled=false;
-     btn.querySelector('.menu-label').textContent='Hesabı Kalıcı Olarak Sil';
-   }
-   alert(e.message||'Hesap silinemedi.');
- }
-}
-
 function logoutMinegram(){
 
  const keys=[
@@ -4933,11 +4861,6 @@ function logoutMinegram(){
  location.href='index.html';
 
 }
-
-document.getElementById('deleteAccountMenu')?.addEventListener('click',()=>{
- closeMenu();
- deleteMinegramAccount();
-});
 
 document.getElementById('logoutMenu')
 .onclick=()=>{
