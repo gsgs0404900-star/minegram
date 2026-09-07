@@ -4154,14 +4154,10 @@ async function load(){
 
 const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
 
-let firebasePosts=[];
-try{
-  firebasePosts=await loadFirebasePublicPosts(username,currentProfile.id);
-}catch(firebaseError){
-  console.warn('[PROFILE] Firebase gönderileri okunamadı',firebaseError);
-}
-
-const merged=[...apiPosts,...firebasePosts];
+/* Profil gönderilerinin tek kaynağı Supabase API'dir.
+   Firebase'deki eski kayıtlar profil ekranına da sızamaz. */
+const firebasePosts=[];
+const merged=[...apiPosts];
 const seen=new Set();
 const posts=merged.filter(p=>{
   const key=String(p?.username||p?.userName||p?.authorUsername||username||'').toLowerCase()+'_'+String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
