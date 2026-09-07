@@ -4148,25 +4148,84 @@ async function load(){
 
    }
 
+   /* PROFİL GÖNDERİLERİ KESİN AKTİF HESAP FİLTRESİ
+      Silinmiş Auth hesabının profili/verisi veritabanında kalmış olsa bile
+      profil gridinde eski gönderileri göstermiyoruz. */
+   let activeUsers=[];
+   try{
+     const activeData=await api('/api/active-users?ts='+Date.now());
+     activeUsers=Array.isArray(activeData)
+       ?activeData
+       :(Array.isArray(activeData?.users)?activeData.users:[]);
+   }catch(e){
+     activeUsers=[];
+   }
+
+   const activeIds=new Set();
+   activeUsers.forEach(u=>{
+     if(u?.id)activeIds.add(String(u.id));
+     if(u?.auth_user_id)activeIds.add(String(u.auth_user_id));
+   });
+
+   const profileIsActive=
+     activeIds.has(String(currentProfile?.id||'')) ||
+     activeIds.has(String(currentProfile?.auth_user_id||'')) ||
+     String(currentProfile?.id||'')===String(me?.id||'');
+
+   if(!profileIsActive){
+     currentPosts=[];
+     document.getElementById('postCount').textContent='0';
+     document.getElementById('grid').innerHTML='<div class="empty">Henüz gönderi yok</div>';
+     renderPrompts([]);
+     return;
+   }
+
    const postsResponse=await api(
-  '/api/users/'+encodeURIComponent(username)+'/posts'
-);
+     '/api/users/'+encodeURIComponent(username)+'/posts?ts='+Date.now()
+   );
 
-const apiPosts=Array.isArray(postsResponse)?postsResponse:(Array.isArray(postsResponse?.posts)?postsResponse.posts:(Array.isArray(postsResponse?.data)?postsResponse.data:[]));
+   const apiPosts=Array.isArray(postsResponse)
+     ?postsResponse
+     :(Array.isArray(postsResponse?.posts)
+       ?postsResponse.posts
+       :(Array.isArray(postsResponse?.data)
+         ?postsResponse.data
+         :[]));
 
-/* Profil gönderilerinin tek kaynağı Supabase API'dir.
-   Firebase'deki eski kayıtlar profil ekranına da sızamaz. */
-const firebasePosts=[];
-const merged=[...apiPosts];
-const seen=new Set();
-const posts=merged.filter(p=>{
-  const key=String(p?.username||p?.userName||p?.authorUsername||username||'').toLowerCase()+'_'+String(p?.id||p?.postId||p?.createdAt||JSON.stringify(p));
-  if(seen.has(key))return false;seen.add(key);return true;
-}).sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
+   /* Yalnızca Supabase API. Firebase eski gönderileri burada asla eklenmez. */
+   const seen=new Set();
+   const posts=apiPosts.filter(p=>{
+     if(!p)return false;
 
-currentPosts=posts;
-document.getElementById('postCount').textContent=String(posts.length);
-renderPosts(posts);
+     /* Dönen kayıtta sahiplik bilgisi varsa mutlaka aktif profile ait olmalı. */
+     const owner=String(
+       p.userId||
+       p.user_id||
+       p.ownerId||
+       p.owner_id||
+       p.profileId||
+       p.profile_id||
+       ''
+     );
+
+     if(owner && !activeIds.has(owner) &&
+        owner!==String(currentProfile.id) &&
+        owner!==String(currentProfile.auth_user_id||'')){
+       return false;
+     }
+
+     const key=String(p.id||p.postId||p.createdAt||JSON.stringify(p));
+     if(seen.has(key))return false;
+     seen.add(key);
+     return true;
+   }).sort((a,b)=>
+     (Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-
+     (Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0)
+   );
+
+   currentPosts=posts;
+   document.getElementById('postCount').textContent=String(posts.length);
+   renderPosts(posts);
  }catch(e){
 
    console.error(e);
