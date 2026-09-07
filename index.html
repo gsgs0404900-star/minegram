@@ -4165,6 +4165,63 @@ function profileUrl(username){
    POST
 ========================================================= */
 
+function openMinegramPost(post){
+  if(!post) return;
+
+  const id=String(
+    post.id ??
+    post.postId ??
+    post._id ??
+    post.uuid ??
+    ""
+  ).trim();
+
+  if(!id){
+    toast("Gönderi kimliği bulunamadı");
+    return;
+  }
+
+  try{
+    sessionStorage.setItem(
+      "minegram_selected_post",
+      JSON.stringify(post)
+    );
+
+    const profile={
+      username:post.user?.username || post.username || "minegram",
+      avatar:post.user?.avatar || post.avatar || post.user?.avatar_url || "",
+      displayName:post.user?.displayName || post.displayName || post.user?.display_name || "",
+      verified:!!(post.user?.verified || post.verified)
+    };
+
+    sessionStorage.setItem(
+      "minegram_selected_profile",
+      JSON.stringify(profile)
+    );
+  }catch(e){}
+
+  location.href=
+    "post.html?id="+
+    encodeURIComponent(id);
+}
+
+function openMinegramPostFromElement(event,element){
+  if(event){
+    const target=event.target;
+    if(target?.closest("button,a,input,select,textarea")) return;
+    if(target?.closest(".username,.comments-preview")) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const id=String(element?.dataset?.id||"").trim();
+  const post=(window.__minegramFeedPosts||[]).find(p=>
+    String(p?.id ?? p?.postId ?? p?._id ?? p?.uuid ?? "").trim()===id
+  );
+
+  if(post) openMinegramPost(post);
+}
+
 function renderPost(p){
 
   const username=
@@ -4258,6 +4315,8 @@ function renderPost(p){
     <article
       class="post"
       data-id="${esc(p.id)}"
+      onclick="openMinegramPostFromElement(event,this)"
+      style="cursor:pointer"
     >
 
       <div class="post-head">
