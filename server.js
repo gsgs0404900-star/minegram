@@ -269,20 +269,19 @@ async function isAuthUserActive(userId) {
   }
 }
 
-async function filterActivePosts(posts) {
-  if (!Array.isArray(posts) || !posts.length) return [];
-
-  const ids = [...new Set(posts.map(p => String(p?.user_id || "").trim()).filter(Boolean))];
-  if (!ids.length) return [];
-
-  // Posts.user_id must belong to a currently existing Supabase Auth user.
-  const active = new Set();
-  await Promise.all(ids.map(async id => {
-    if (await isAuthUserActive(id)) active.add(id);
-  }));
-
-  return posts.filter(p => active.has(String(p?.user_id || "").trim()));
+let minegramActiveProfileIdsCache=null;
+let minegramActiveProfileIdsCacheAt=0;
+async function getActiveMinegramProfileIds(force=false){
+ const now=Date.now();
+ if(!force&&minegramActiveProfileIdsCache&&now-minegramActiveProfileIdsCacheAt<15000)return minegramActiveProfileIdsCache;
+ if(!SUPABASE_SERVICE_ROLE_KEY)throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik: aktif hesap doğrulaması yapılamıyor.");
+ const admin=adminClient(),authIds=new Set(); let page=1;
+ while(true){const {data,error}=await admin.auth.admin.listUsers({page,perPage:1000}); if(error)throw error; const users=data?.users||[]; for(const u of users)if(u?.id)authIds.add(String(u.id)); if(users.length<1000||page>=100)break; page++;}
+ const activeProfileIds=new Set(),ids=[...authIds];
+ for(let i=0;i<ids.length;i+=500){const chunk=ids.slice(i,i+500); const {data:profiles,error}=await admin.from("profiles").select("id,auth_user_id").or(`id.in.(${chunk.join(",")}),auth_user_id.in.(${chunk.join(",")})`); if(error)throw error; for(const p of profiles||[]){const id=String(p?.id||"").trim(),aid=String(p?.auth_user_id||"").trim(); if(id&&(authIds.has(id)||(aid&&authIds.has(aid))))activeProfileIds.add(id);}}
+ minegramActiveProfileIdsCache=activeProfileIds; minegramActiveProfileIdsCacheAt=now; return activeProfileIds;
 }
+async function filterActivePosts(posts){if(!Array.isArray(posts)||!posts.length)return []; const ids=await getActiveMinegramProfileIds(); return posts.filter(p=>ids.has(String(p?.user_id||"").trim()));}
 
 async function filterActiveStories(stories) {
   if (!Array.isArray(stories) || !stories.length) return [];
@@ -3285,8 +3284,11 @@ app.get(
   "/api/feed",
   auth,
   async (req, res) => {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
+      res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.set("Pragma","no-cache");
+      res.set("Expires","0");
+      const activeProfileIds=await getActiveMinegramProfileIds(true);
       const {
         data,
         error
@@ -3294,6 +3296,7 @@ app.get(
         await req.sb
           .from("posts")
           .select("*")
+          .in("user_id", [...activeProfileIds])
           .order(
             "created_at",
             {
@@ -3675,7 +3678,6 @@ app.get(
   "/api/stories",
   auth,
   async (req, res) => {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     try {
       const yesterday =
         new Date(
