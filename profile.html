@@ -4175,9 +4175,15 @@ async function load(){
    return true;
  }).filter((p,i,a)=>a.findIndex(x=>String(x?.id||x?.postId||x?.createdAt)===String(p?.id||p?.postId||p?.createdAt))===i)
  .sort((a,b)=>(Date.parse(b?.createdAt||b?.timestamp||b?.date||0)||0)-(Date.parse(a?.createdAt||a?.timestamp||a?.date||0)||0));
- currentPosts=posts;
- document.getElementById('postCount').textContent=String(posts.length);
- renderPosts(posts);
+ /* SON KONTROL: Sadece profil sahibinin gerçek userId'si ile eşleşen gönderiler. */
+ const ownerId=String(currentProfile?.id||currentProfile?.auth_user_id||'').trim();
+ const strictPosts=posts.filter(p=>{
+   const pid=String(p?.userId||p?.user_id||p?.ownerId||p?.owner_id||'').trim();
+   return ownerId && pid && pid===ownerId;
+ });
+ currentPosts=strictPosts;
+ document.getElementById('postCount').textContent=String(strictPosts.length);
+ renderPosts(strictPosts);
  }catch(e){
 
    console.error(e);
