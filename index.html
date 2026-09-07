@@ -2439,26 +2439,21 @@ onclick="sendComment()"
 
 
       myStory.onclick=
-        function(){
+        function(e){
+
+          /* + butonuna basıldıysa hikaye seçiciyi aç.
+             Ana hikaye alanına basıldıysa mevcut hikayeyi aç. */
+          if(e && e.target && e.target.closest &&
+             e.target.closest(".plus")){
+            e.preventDefault();
+            e.stopPropagation();
+            openPicker();
+            return;
+          }
 
           openGroup(
             myGroup
           );
-
-          const plusButton = myStory.querySelector(".plus");
-
-if(plusButton){
-
-  plusButton.onclick = function(e){
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    openPicker();
-
-  };
-
-}
 
         };
 
@@ -2481,7 +2476,10 @@ if(plusButton){
         `;
 
       myStory.onclick=
-        openPicker;
+        function(e){
+          e.preventDefault();
+          openPicker();
+        };
 
       if(label)
         label.textContent=
@@ -2489,6 +2487,19 @@ if(plusButton){
 
     }
 
+
+    /* + butonu her durumda doğrudan dosya seçiciyi açsın.
+       Dinamik render sonrasında da çalışır. */
+    const storyPlus =
+      myStory.querySelector(".plus");
+
+    if(storyPlus){
+      storyPlus.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        openPicker();
+      };
+    }
 
     container.appendChild(
       storyItems
