@@ -4639,6 +4639,16 @@ app.get(
 
       const postsSb = adminClient();
 
+      // Eski gönderiler profiles.id, yeni gönderiler auth_user_id
+      // ile kaydedilmiş olabilir. İki kimliği de kontrol ederek profil
+      // ekranında hiçbir gönderinin tekrar giriş/geri dönüşte kaybolmamasını sağla.
+      const ownerIds = [
+        target.id,
+        target.auth_user_id
+      ]
+        .filter(Boolean)
+        .map(String);
+
       const {
         data,
         error
@@ -4646,15 +4656,11 @@ app.get(
         await postsSb
           .from("posts")
           .select("*")
-          .eq(
-            "user_id",
-            target.auth_user_id || target.id
-          )
+          .in("user_id", ownerIds)
           .order(
             "created_at",
             {
-              ascending:
-                false
+              ascending: false
             }
           );
 
@@ -4662,12 +4668,16 @@ app.get(
         throw error;
       }
 
-      const activePosts = await filterActivePosts(data || []);
+      // target profili zaten aktif Auth hesabına sahip. Bu endpoint yalnızca
+      // target kullanıcısının iki olası owner ID'sinden gelen gönderileri
+      // aldığı için burada tekrar user_id ile filtreleyip eski kayıtları
+      // düşürme.
+      const profilePosts = Array.isArray(data) ? data : [];
 
       res.json(
         await hydratePosts(
           postsSb,
-          activePosts,
+          profilePosts,
           req.user.id
         )
       );
