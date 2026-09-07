@@ -3531,7 +3531,7 @@ app.delete(
       if (!item) return res.status(404).json({ ok:false, error:"Öne çıkan bulunamadı." });
       if (String(item.user_id) !== String(req.user.id)) return res.status(403).json({ ok:false, error:"Bu öne çıkanı silemezsin." });
 
-      const { error: deleteError } = await admin.from("highlights").delete().eq("id", id).eq("user_id", req.user.id);
+      const { error: deleteError } = await admin.from("highlights").delete().eq("id", id).eq("user_id", req.authUser.id);
       if (deleteError) throw deleteError;
 
       try {
@@ -3840,7 +3840,7 @@ app.delete(
    DELETE POST BY MEDIA URL
 ========================================================= */
 app.delete(
-  "/api/posts/by-media",
+  "/api/posts/delete-by-media",
   auth,
   async (req, res) => {
     try {
@@ -3852,7 +3852,7 @@ app.delete(
         .from("posts")
         .select("id,user_id,media_url")
         .eq("media_url", mediaUrl)
-        .eq("user_id", req.user.id)
+        .eq("user_id", req.authUser.id)
         .maybeSingle();
 
       if (findError) throw findError;
