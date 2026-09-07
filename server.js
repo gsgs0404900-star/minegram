@@ -3837,6 +3837,57 @@ app.delete(
 
 
 /* =========================================================
+   DELETE POST BY MEDIA URL
+========================================================= */
+app.delete(
+  "/api/posts/by-media",
+  auth,
+  async (req, res) => {
+    try {
+      const mediaUrl = String(req.query?.media || "").trim();
+      if (!mediaUrl) return res.status(400).json({ ok:false, error:"Gönderi medya bağlantısı gerekli." });
+
+      const admin = adminClient();
+      const { data: post, error: findError } = await admin
+        .from("posts")
+        .select("id,user_id,media_url")
+        .eq("media_url", mediaUrl)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+      if (findError) throw findError;
+      if (!post) return res.status(404).json({ ok:false, error:"Gönderi bulunamadı veya sana ait değil." });
+
+      const postId = String(post.id);
+      for (const table of ["comments", "post_likes", "saves", "notifications"]) {
+        try { await admin.from(table).delete().eq("post_id", postId); } catch (_) {}
+      }
+
+      const { error: deleteError } = await admin
+        .from("posts")
+        .delete()
+        .eq("id", postId)
+        .eq("user_id", req.user.id);
+      if (deleteError) throw deleteError;
+
+      try {
+        const marker = `/storage/v1/object/public/${BUCKET}/`;
+        const index = mediaUrl.indexOf(marker);
+        if (index >= 0) {
+          const objectPath = decodeURIComponent(mediaUrl.slice(index + marker.length));
+          if (objectPath) await admin.storage.from(BUCKET).remove([objectPath]);
+        }
+      } catch (_) {}
+
+      return res.json({ ok:true, deleted:true, id:postId });
+    } catch (e) {
+      console.error("DELETE POST BY MEDIA ERROR:", e);
+      return res.status(500).json({ ok:false, error:e?.message || "Gönderi silinemedi." });
+    }
+  }
+);
+
+/* =========================================================
    STORIES CREATE
 ========================================================= */
 
