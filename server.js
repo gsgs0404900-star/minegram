@@ -3368,9 +3368,14 @@ app.get(
 
       const activePosts = await filterActivePosts(data || []);
 
+      // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
+      // kullanılmamalı. Aksi halde başka kullanıcının gönderisinin profili,
+      // beğenileri veya yorumları RLS tarafından boş dönebilir ve Android
+      // tarafında gönderi görünmüyor gibi davranabilir.
+      const feedHydrateSb = adminClient();
       res.json(
         await hydratePosts(
-          req.sb,
+          feedHydrateSb,
           activePosts,
           req.user.id
         )
@@ -3638,11 +3643,13 @@ app.post(
           req.file.mimetype;
       }
 
+      const postsSb = adminClient();
+
       const {
         data,
         error
       } =
-        await req.sb
+        await postsSb
           .from("posts")
           .insert({
             user_id:
@@ -4630,11 +4637,13 @@ app.get(
         });
       }
 
+      const postsSb = adminClient();
+
       const {
         data,
         error
       } =
-        await req.sb
+        await postsSb
           .from("posts")
           .select("*")
           .eq(
@@ -4657,7 +4666,7 @@ app.get(
 
       res.json(
         await hydratePosts(
-          req.sb,
+          postsSb,
           activePosts,
           req.user.id
         )
