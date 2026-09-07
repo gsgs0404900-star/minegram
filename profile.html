@@ -3569,20 +3569,19 @@ document.getElementById('highlightViewBack')
 .onclick=closeHighlightView;
 
 document.getElementById('highlightDeleteBtn')
-.onclick=()=>{
-
- if(openedHighlightIndex<0)return;
-
- const items=getHighlights();
-
- items.splice(openedHighlightIndex,1);
-
- saveHighlights(items);
-
- closeHighlightView();
-
- renderHighlights();
-
+.onclick=async()=>{
+  if(openedHighlightIndex<0)return;
+  const item=storyItems[openedHighlightIndex];
+  if(!item?.id){ toast('Öne çıkan kimliği bulunamadı'); return; }
+  if(!confirm('Bu öne çıkanı silmek istediğine emin misin?'))return;
+  try{
+    await api('/api/highlights/'+encodeURIComponent(item.id),{method:'DELETE'});
+    closeHighlightView();
+    await renderHighlights();
+    toast('Öne çıkan silindi');
+  }catch(e){
+    toast(e.message||'Öne çıkan silinemedi');
+  }
 };
 
 async function firebaseUserDocument(username){
@@ -3666,30 +3665,39 @@ async function renderHighlights(){
   section.hidden=!mine;
   if(!mine)return;
 
-  /* Öne çıkanların tek kaynağı Android uygulamasının Firebase kaydıdır.
-     Sunucudaki eski/web öne çıkanları ve tarayıcı localStorage verilerini
-     KESİNLİKLE profile eklemiyoruz. Böylece uygulamada olmayanlar görünmez. */
   let items=[];
   try{
-    items=await loadFirebaseHighlights(currentProfile.username);
+    const data=await api('/api/users/'+encodeURIComponent(currentProfile.username)+'/highlights?ts='+Date.now());
+    if(Array.isArray(data)){
+      items=data.map((h,i)=>({
+        id:h.id,
+        title:h.title||('Öne çıkan '+(i+1)),
+        image:h.mediaUrl||h.media||h.media_url||'',
+        type:String(h.mediaType||h.media_type||'').startsWith('video')?'video':'image',
+        createdAt:h.createdAt||h.created_at||new Date().toISOString(),
+        _server:true
+      })).filter(x=>x.image);
+    }
   }catch(e){
-    console.warn('[PROFILE] Uygulama öne çıkanları okunamadı',e);
-    items=[];
+    console.warn('[PROFILE] Sunucu öne çıkanları okunamadı',e);
   }
 
+  // Tek kaynak Supabase API'dir. localStorage/Firebase'deki eski hesap verileri
+  // yeni hesaba taşınmaz ve web/Android aynı kayıtları görür.
   box.innerHTML='';
+  const add=document.createElement('button');
+  add.className='highlight add-highlight';
+  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+  add.onclick=addHighlight;
+  box.appendChild(add);
 
-  /* Web üzerinden yeni öne çıkan oluşturma kapalı.
-     Öne çıkan yalnızca Android uygulamasından eklenir. */
   items.forEach((item,i)=>{
     const b=document.createElement('button'); b.className='highlight';
     b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
     b.onclick=()=>openHighlightView(i);
     box.appendChild(b);
   });
-
   storyItems=items;
-  section.hidden=items.length===0;
 }
 
 async function addHighlight(){
