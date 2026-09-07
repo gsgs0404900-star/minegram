@@ -269,19 +269,20 @@ async function isAuthUserActive(userId) {
   }
 }
 
-let minegramActiveProfileIdsCache=null;
-let minegramActiveProfileIdsCacheAt=0;
-async function getActiveMinegramProfileIds(force=false){
- const now=Date.now();
- if(!force&&minegramActiveProfileIdsCache&&now-minegramActiveProfileIdsCacheAt<15000)return minegramActiveProfileIdsCache;
- if(!SUPABASE_SERVICE_ROLE_KEY)throw new Error("SUPABASE_SERVICE_ROLE_KEY eksik: aktif hesap doğrulaması yapılamıyor.");
- const admin=adminClient(),authIds=new Set(); let page=1;
- while(true){const {data,error}=await admin.auth.admin.listUsers({page,perPage:1000}); if(error)throw error; const users=data?.users||[]; for(const u of users)if(u?.id)authIds.add(String(u.id)); if(users.length<1000||page>=100)break; page++;}
- const activeProfileIds=new Set(),ids=[...authIds];
- for(let i=0;i<ids.length;i+=500){const chunk=ids.slice(i,i+500); const {data:profiles,error}=await admin.from("profiles").select("id,auth_user_id").or(`id.in.(${chunk.join(",")}),auth_user_id.in.(${chunk.join(",")})`); if(error)throw error; for(const p of profiles||[]){const id=String(p?.id||"").trim(),aid=String(p?.auth_user_id||"").trim(); if(id&&(authIds.has(id)||(aid&&authIds.has(aid))))activeProfileIds.add(id);}}
- minegramActiveProfileIdsCache=activeProfileIds; minegramActiveProfileIdsCacheAt=now; return activeProfileIds;
+async function filterActivePosts(posts) {
+  if (!Array.isArray(posts) || !posts.length) return [];
+
+  const userIds = [...new Set(
+    posts.map(p => p?.user_id).filter(Boolean)
+  )];
+
+  const activeIds = new Set();
+  await Promise.all(userIds.map(async userId => {
+    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  }));
+
+  return posts.filter(p => activeIds.has(p?.user_id));
 }
-async function filterActivePosts(posts){if(!Array.isArray(posts)||!posts.length)return []; const ids=await getActiveMinegramProfileIds(); return posts.filter(p=>ids.has(String(p?.user_id||"").trim()));}
 
 async function filterActiveStories(stories) {
   if (!Array.isArray(stories) || !stories.length) return [];
@@ -3222,48 +3223,6 @@ app.post(
 ========================================================= */
 
 app.get(
-  "/api/active-users",
-  auth,
-  async (req, res) => {
-    try {
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik" });
-      }
-
-      const admin = adminClient();
-      const activeIds = new Set();
-      let page = 1;
-      while (page <= 20) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-        if (error) throw error;
-        const users = Array.isArray(data?.users) ? data.users : [];
-        users.forEach(u => { if (u?.id) activeIds.add(String(u.id)); });
-        if (users.length < 1000) break;
-        page++;
-      }
-
-      const { data: profiles, error: profileError } = await req.sb
-        .from("profiles")
-        .select("id,auth_user_id,username");
-      if (profileError) throw profileError;
-
-      const users = (profiles || [])
-        .filter(p => activeIds.has(String(p.auth_user_id || p.id || "")))
-        .map(p => ({
-          id: p.id,
-          auth_user_id: p.auth_user_id || p.id,
-          username: p.username
-        }));
-
-      res.json({ users });
-    } catch (e) {
-      res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı" });
-    }
-  }
-);
-
-
-app.get(
   "/api/me",
   auth,
   (req, res) => {
@@ -3277,6 +3236,54 @@ app.get(
 
 
 /* =========================================================
+   ACTIVE USERS — FIREBASE ESKİ HESAP FİLTRESİ
+   Firebase'de kalmış eski gönderiler yalnızca halen Auth'ta
+   bulunan kullanıcıların ownerUid değeri eşleşiyorsa siteye alınır.
+========================================================= */
+app.get(
+  "/api/active-users",
+  auth,
+  async (req, res) => {
+    try {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY eksik." });
+      }
+
+      const admin = adminClient();
+      const authIds = new Set();
+      let page = 1;
+      while (page <= 50) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        const users = Array.isArray(data?.users) ? data.users : [];
+        for (const u of users) if (u?.id) authIds.add(String(u.id));
+        if (users.length < 1000) break;
+        page++;
+      }
+
+      const { data: profiles, error } = await admin
+        .from("profiles")
+        .select("id,auth_user_id,username");
+      if (error) throw error;
+
+      const users = (profiles || [])
+        .map(p => ({
+          id: String(p?.id || ""),
+          auth_user_id: String(p?.auth_user_id || p?.id || ""),
+          username: String(p?.username || "").trim().toLowerCase()
+        }))
+        .filter(p => p.username && authIds.has(p.auth_user_id));
+
+      res.set("Cache-Control", "no-store");
+      return res.json({ ok: true, users });
+    } catch (e) {
+      console.error("ACTIVE USERS ERROR:", e?.message || e);
+      return res.status(500).json({ error: e?.message || "Aktif kullanıcılar alınamadı." });
+    }
+  }
+);
+
+/* =========================================================
    FEED
 ========================================================= */
 
@@ -3285,10 +3292,6 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
-      res.set("Pragma","no-cache");
-      res.set("Expires","0");
-      const activeProfileIds=await getActiveMinegramProfileIds(true);
       const {
         data,
         error
@@ -3296,7 +3299,6 @@ app.get(
         await req.sb
           .from("posts")
           .select("*")
-          .in("user_id", [...activeProfileIds])
           .order(
             "created_at",
             {
