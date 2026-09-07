@@ -4,6 +4,7 @@
 <meta charset="utf-8">    
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">    
 <meta name="theme-color" content="#000">    
+<meta name="minegram-account-delete-version" content="V6_REAL_DELETE">
 <title>Minegram • Profil</title>
 <meta name="minegram-profile-version" content="ACCOUNT_DELETE_FIX_V4">    
       
@@ -3024,6 +3025,12 @@ body{
 <span class="menu-arrow">›</span>
 </button>
 
+<button class="menu-item" id="deleteAccountMenu" style="color:#ff4d67">
+<span class="menu-icon">⌫</span>
+<span class="menu-label">Hesabı Kalıcı Olarak Sil</span>
+<span class="menu-arrow">›</span>
+</button>
+
 <button class="menu-item" id="logoutMenu">
 <span class="menu-icon">⇥</span>
 <span class="menu-label">Çıkış Yap</span>
@@ -4861,6 +4868,48 @@ document.getElementById('settingsMenu')?.addEventListener('click',()=>{
   window.location.href='ayarlar.html';
 });
 
+async function deleteMinegramAccount(){
+
+ if(!confirm('Hesabını KALICI OLARAK silmek istiyor musun?\n\nTüm gönderilerin, profilin ve hesap verilerin silinecek. Bu işlem geri alınamaz.')){
+   return;
+ }
+
+ const btn=document.getElementById('deleteAccountMenu');
+ if(btn){
+   btn.disabled=true;
+   btn.querySelector('.menu-label').textContent='Hesap siliniyor...';
+ }
+
+ try{
+   const result=await api('/api/account',{method:'DELETE'});
+
+   const keys=[
+     'minegram_token','minegram_access_token','minegram_supabase_token',
+     'access_token','token','minegram_user','minegram_profile','minegram_email'
+   ];
+   keys.forEach(key=>{
+     localStorage.removeItem(key);
+     sessionStorage.removeItem(key);
+   });
+
+   currentPosts=[];
+   const grid=document.getElementById('grid');
+   if(grid) grid.innerHTML='<div class="empty">Henüz gönderi yok.</div>';
+   const count=document.getElementById('postCount');
+   if(count) count.textContent='0';
+
+   alert(result?.message||'Hesap ve tüm gönderilerin silindi.');
+   location.href='index.html';
+
+ }catch(e){
+   if(btn){
+     btn.disabled=false;
+     btn.querySelector('.menu-label').textContent='Hesabı Kalıcı Olarak Sil';
+   }
+   alert(e.message||'Hesap silinemedi.');
+ }
+}
+
 function logoutMinegram(){
 
  const keys=[
@@ -4884,6 +4933,11 @@ function logoutMinegram(){
  location.href='index.html';
 
 }
+
+document.getElementById('deleteAccountMenu')?.addEventListener('click',()=>{
+ closeMenu();
+ deleteMinegramAccount();
+});
 
 document.getElementById('logoutMenu')
 .onclick=()=>{
