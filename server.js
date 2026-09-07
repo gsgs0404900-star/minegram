@@ -4213,10 +4213,9 @@ app.post(
         });
       }
 
-      if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
-        return res.status(404).json({
-          error: "Kullanıcı bulunamadı"
-        });
+      const targetAuthId = String(target.auth_user_id || target.id || "").trim();
+      if (!targetAuthId || !(await isAuthUserActive(targetAuthId))) {
+        return res.json([]);
       }
 
       if (
@@ -4313,6 +4312,91 @@ app.post(
 
 
 /* =========================================================
+   DELETE ACCOUNT - KÖKTEN TEMİZLİK
+   Hesap silindiğinde Auth + profil + tüm gönderiler temizlenir.
+   Ayrıca storage içindeki kullanıcının medya klasörü de temizlenmeye çalışılır.
+========================================================= */
+
+app.delete(
+  "/api/account",
+  auth,
+  async (req, res) => {
+    try {
+      const admin = adminClient();
+      const authId = String(req.user.id || "").trim();
+      if (!authId) {
+        return res.status(401).json({ error: "Oturum bulunamadı." });
+      }
+
+      /* Hem auth id hem profil id ile eşleşen gönderileri bul. */
+      const profileResult = await admin
+        .from("profiles")
+        .select("id,auth_user_id,username")
+        .or(`id.eq.${authId},auth_user_id.eq.${authId}`);
+
+      if (profileResult.error) throw profileResult.error;
+
+      const profileRows = Array.isArray(profileResult.data)
+        ? profileResult.data
+        : [];
+
+      const ownerIds = new Set([authId]);
+      for (const p of profileRows) {
+        if (p?.id) ownerIds.add(String(p.id));
+        if (p?.auth_user_id) ownerIds.add(String(p.auth_user_id));
+      }
+
+      /* Gönderileri gerçekten veritabanından kaldır. */
+      for (const ownerId of ownerIds) {
+        const delPosts = await admin
+          .from("posts")
+          .delete()
+          .eq("user_id", ownerId);
+        if (delPosts.error) throw delPosts.error;
+      }
+
+      /* Profil satırlarını kaldır. */
+      const delProfiles = await admin
+        .from("profiles")
+        .delete()
+        .or(`id.eq.${authId},auth_user_id.eq.${authId}`);
+      if (delProfiles.error) throw delProfiles.error;
+
+      /* Supabase Storage klasörünü temizlemeyi dene; başarısız olması
+         hesap silme işlemini bozmasın. */
+      try {
+        const bucket = admin.storage.from(BUCKET);
+        for (const ownerId of ownerIds) {
+          const { data: files } = await bucket.list(ownerId, { limit: 1000 });
+          const names = (files || []).map(x => x?.name).filter(Boolean);
+          if (names.length) {
+            await bucket.remove(names.map(name => `${ownerId}/${name}`));
+          }
+        }
+      } catch (storageError) {
+        console.warn("ACCOUNT STORAGE CLEANUP:", storageError);
+      }
+
+      /* En son Auth kullanıcısını sil. */
+      const deletedAuth = await admin.auth.admin.deleteUser(authId);
+      if (deletedAuth.error) throw deletedAuth.error;
+
+      return res.json({
+        ok: true,
+        deleted: true,
+        message: "Hesap ve gönderileri kalıcı olarak silindi."
+      });
+    } catch (e) {
+      console.error("ACCOUNT DELETE ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "Hesap silinemedi."
+      });
+    }
+  }
+);
+
+/* =========================================================
    USER POSTS
 ========================================================= */
 
@@ -4405,31 +4489,28 @@ app.get(
         });
       }
 
-      // Gönderi sayısını DB'deki ham kayıt sayısından alma.
-      // Silinmiş Auth hesabına ait eski postlar kesinlikle sayılmamalı.
-      const { data: profilePosts, error: profilePostsError } =
-        await req.sb
-          .from("posts")
-          .select("id,user_id")
-          .eq("user_id", target.id);
-
-      if (profilePostsError) {
-        throw profilePostsError;
-      }
-
-      const activeProfilePosts =
-        await filterActivePosts(profilePosts || []);
-
-      const postCountResult = {
-        count: activeProfilePosts.length
-      };
-
       const [
+        postCountResult,
         followersResult,
         followingResult,
         followingByMeResult
       ] =
         await Promise.all([
+          req.sb
+            .from("posts")
+            .select(
+              "id",
+              {
+                count:
+                  "exact",
+                head:
+                  true
+              }
+            )
+            .eq(
+              "user_id",
+              target.id
+            ),
 
           req.sb
             .from("follows")
