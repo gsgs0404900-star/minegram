@@ -3236,6 +3236,105 @@ app.get(
 
 
 /* =========================================================
+   ACCOUNT DELETE
+   Hesabı Supabase tarafında tamamen temizler. Login/register
+   akışına dokunmaz; yalnızca DELETE /api/account kullanır.
+========================================================= */
+app.delete(
+  "/api/account",
+  auth,
+  async (req, res) => {
+    const userId = String(req.user?.id || "").trim();
+    if (!userId) return res.status(401).json({ ok:false, error:"Oturum bulunamadı." });
+
+    try {
+      const admin = adminClient();
+
+      const { data: userPosts, error: postsReadError } = await admin
+        .from("posts")
+        .select("id,media_url")
+        .eq("user_id", userId);
+      if (postsReadError) throw postsReadError;
+
+      const postIds = (userPosts || []).map(p => p.id).filter(Boolean);
+
+      // Gönderiye bağlı kayıtları temizle.
+      if (postIds.length) {
+        for (const table of ["comments", "post_likes", "saves", "notifications"]) {
+          const { error } = await admin.from(table).delete().in("post_id", postIds);
+          if (error) console.warn(`ACCOUNT DELETE ${table}:`, error.message);
+        }
+      }
+
+      // Kullanıcıya ait sosyal ilişkiler ve içerikler.
+      const cleanup = [
+        ["comments", "user_id"],
+        ["post_likes", "user_id"],
+        ["saves", "user_id"],
+        ["notifications", "user_id"],
+        ["notifications", "from_user_id"],
+        ["follows", "follower_id"],
+        ["follows", "following_id"],
+        ["messages", "sender_id"],
+        ["messages", "recipient_id"],
+        ["stories", "user_id"],
+        ["highlights", "user_id"]
+      ];
+
+      for (const [table, column] of cleanup) {
+        try {
+          const { error } = await admin.from(table).delete().eq(column, userId);
+          if (error) console.warn(`ACCOUNT DELETE ${table}.${column}:`, error.message);
+        } catch (e) {
+          console.warn(`ACCOUNT DELETE ${table}.${column} EXCEPTION:`, e?.message || e);
+        }
+      }
+
+      if (postIds.length) {
+        const { error } = await admin.from("posts").delete().eq("user_id", userId);
+        if (error) throw error;
+      }
+
+      // Storage: kullanıcıya ait eski medya klasörlerini de temizle.
+      for (const prefix of ["stories/", "highlights/", ""]) {
+        try {
+          const pathPrefix = prefix === "" ? userId : `${prefix}${userId}`;
+          const { data: objects, error: listError } = await admin.storage
+            .from(BUCKET)
+            .list(pathPrefix, { limit: 1000 });
+          if (listError) {
+            console.warn("ACCOUNT STORAGE LIST:", listError.message);
+            continue;
+          }
+          const names = (objects || []).map(o => `${pathPrefix}/${o.name}`);
+          if (names.length) {
+            const { error: removeError } = await admin.storage.from(BUCKET).remove(names);
+            if (removeError) console.warn("ACCOUNT STORAGE REMOVE:", removeError.message);
+          }
+        } catch (e) {
+          console.warn("ACCOUNT STORAGE EXCEPTION:", e?.message || e);
+        }
+      }
+
+      const { error: profileError } = await admin
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+      if (profileError) throw profileError;
+
+      const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId);
+      if (authDeleteError) throw authDeleteError;
+
+      return res.json({ ok:true, deleted:true, id:userId });
+    } catch (e) {
+      console.error("ACCOUNT DELETE ERROR:", e);
+      return res.status(500).json({ ok:false, error:e?.message || "Hesap silinemedi." });
+    }
+  }
+);
+
+
+/* =========================================================
    FEED
 ========================================================= */
 
@@ -3404,10 +3503,8 @@ app.post(
   }
 );
 
-
 /* =========================================================
-   DELETE HIGHLIGHT
-   Sosyal içeriklerin tek kaynağı Supabase/Minegram API'dir.
+   HIGHLIGHT DELETE / UPDATE
 ========================================================= */
 app.delete(
   "/api/highlights/:id",
@@ -3415,38 +3512,56 @@ app.delete(
   async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!id) return res.status(400).json({ ok:false, error:"Öne çıkan kimliği gerekli." });
-
-      const { data: item, error: findError } = await req.sb
+      const admin = adminClient();
+      const { data: item, error: readError } = await admin
         .from("highlights")
         .select("id,user_id,media_url")
         .eq("id", id)
         .maybeSingle();
-      if (findError) throw findError;
+      if (readError) throw readError;
       if (!item) return res.status(404).json({ ok:false, error:"Öne çıkan bulunamadı." });
-      if (String(item.user_id) !== String(req.user.id)) {
-        return res.status(403).json({ ok:false, error:"Bu öne çıkanı silme yetkin yok." });
-      }
+      if (String(item.user_id) !== String(req.user.id)) return res.status(403).json({ ok:false, error:"Bu öne çıkanı silemezsin." });
 
-      const admin = adminClient();
-      const { error: delError } = await admin.from("highlights").delete().eq("id", id);
-      if (delError) throw delError;
+      const { error: deleteError } = await admin.from("highlights").delete().eq("id", id).eq("user_id", req.user.id);
+      if (deleteError) throw deleteError;
 
-      // Storage dosyası varsa best-effort temizle.
       try {
-        const url = String(item.media_url || "");
+        const mediaUrl = String(item.media_url || "");
         const marker = `/storage/v1/object/public/${BUCKET}/`;
-        const idx = url.indexOf(marker);
-        if (idx >= 0) {
-          const objectPath = decodeURIComponent(url.slice(idx + marker.length));
+        const at = mediaUrl.indexOf(marker);
+        if (at >= 0) {
+          const objectPath = decodeURIComponent(mediaUrl.slice(at + marker.length));
           if (objectPath) await admin.storage.from(BUCKET).remove([objectPath]);
         }
-      } catch (_) {}
+      } catch (e) { console.warn("HIGHLIGHT MEDIA DELETE:", e?.message || e); }
 
-      res.json({ ok:true, deleted:true, id });
+      return res.json({ ok:true, deleted:true, id });
     } catch (e) {
       console.error("HIGHLIGHT DELETE ERROR:", e);
-      res.status(400).json({ ok:false, error:e?.message || "Öne çıkan silinemedi." });
+      return res.status(500).json({ ok:false, error:e?.message || "Öne çıkan silinemedi." });
+    }
+  }
+);
+
+app.patch(
+  "/api/highlights/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      const title = String(req.body?.title || "").trim().slice(0, 80);
+      if (!title) return res.status(400).json({ ok:false, error:"Öne çıkan adı gerekli." });
+      const { data, error } = await req.sb.from("highlights")
+        .update({ title })
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ ok:false, error:"Öne çıkan bulunamadı." });
+      return res.json({ ok:true, id:data.id, title:data.title });
+    } catch (e) {
+      return res.status(500).json({ ok:false, error:e?.message || "Öne çıkan güncellenemedi." });
     }
   }
 );
@@ -3803,51 +3918,6 @@ app.post(
 );
 
 
-
-/* =========================================================
-   DELETE STORY
-========================================================= */
-app.delete(
-  "/api/stories/:id",
-  auth,
-  async (req, res) => {
-    try {
-      const id = String(req.params.id || "").trim();
-      if (!id) return res.status(400).json({ ok:false, error:"Story kimliği gerekli." });
-
-      const { data: story, error: findError } = await req.sb
-        .from("stories")
-        .select("id,user_id,media_url")
-        .eq("id", id)
-        .maybeSingle();
-      if (findError) throw findError;
-      if (!story) return res.status(404).json({ ok:false, error:"Story bulunamadı." });
-      if (String(story.user_id) !== String(req.user.id)) {
-        return res.status(403).json({ ok:false, error:"Bu story'yi silme yetkin yok." });
-      }
-
-      const admin = adminClient();
-      const { error: delError } = await admin.from("stories").delete().eq("id", id);
-      if (delError) throw delError;
-
-      try {
-        const url = String(story.media_url || "");
-        const marker = `/storage/v1/object/public/${BUCKET}/`;
-        const idx = url.indexOf(marker);
-        if (idx >= 0) {
-          const objectPath = decodeURIComponent(url.slice(idx + marker.length));
-          if (objectPath) await admin.storage.from(BUCKET).remove([objectPath]);
-        }
-      } catch (_) {}
-
-      res.json({ ok:true, deleted:true, id });
-    } catch (e) {
-      console.error("STORY DELETE ERROR:", e);
-      res.status(400).json({ ok:false, error:e?.message || "Story silinemedi." });
-    }
-  }
-);
-
 /* =========================================================
    STORIES
 ========================================================= */
@@ -3909,6 +3979,46 @@ app.get(
   }
 );
 
+
+/* =========================================================
+   STORY DELETE
+========================================================= */
+app.delete(
+  "/api/stories/:id",
+  auth,
+  async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      const admin = adminClient();
+      const { data: story, error: readError } = await admin
+        .from("stories")
+        .select("id,user_id,media_url")
+        .eq("id", id)
+        .maybeSingle();
+      if (readError) throw readError;
+      if (!story) return res.status(404).json({ ok:false, error:"Hikaye bulunamadı." });
+      if (String(story.user_id) !== String(req.user.id)) return res.status(403).json({ ok:false, error:"Bu hikayeyi silemezsin." });
+
+      const { error: deleteError } = await admin.from("stories").delete().eq("id", id).eq("user_id", req.user.id);
+      if (deleteError) throw deleteError;
+
+      try {
+        const mediaUrl = String(story.media_url || "");
+        const marker = `/storage/v1/object/public/${BUCKET}/`;
+        const at = mediaUrl.indexOf(marker);
+        if (at >= 0) {
+          const objectPath = decodeURIComponent(mediaUrl.slice(at + marker.length));
+          if (objectPath) await admin.storage.from(BUCKET).remove([objectPath]);
+        }
+      } catch (e) { console.warn("STORY MEDIA DELETE:", e?.message || e); }
+
+      return res.json({ ok:true, deleted:true, id });
+    } catch (e) {
+      console.error("STORY DELETE ERROR:", e);
+      return res.status(500).json({ ok:false, error:e?.message || "Hikaye silinemedi." });
+    }
+  }
+);
 
 /* =========================================================
    LIKE
