@@ -1943,85 +1943,100 @@ app.post("/api/login", async (req, res) => {
     }
 
 
-    /* ==========================================
-       SUPABASE AUTH GİRİŞİ
-    ========================================== */
+   /* ==========================================
+   SUPABASE AUTH GİRİŞİ
+========================================== */
 
-    const supabase =
-      client();
+const supabase = client();
 
+console.log("========== LOGIN DEBUG ==========");
+console.log("Gelen kullanıcı:", rawIdentifier);
+console.log("Bulunan email:", email);
+console.log("Şifre uzunluğu:", password.length);
+console.log("=================================");
 
-    const {
-      data: loginData,
-      error: loginError
-    } =
-      await supabase
-        .auth
-        .signInWithPassword({
+const {
+  data: loginData,
+  error: loginError
+} =
+  await supabase
+    .auth
+    .signInWithPassword({
 
-          email: email,
+      email: email,
 
-          password: password
+      password: password
 
-        });
-
-
-    if (
-      loginError ||
-      !loginData?.session ||
-      !loginData?.user
-    ) {
-
-      console.error(
-        "LOGIN AUTH ERROR:",
-        {
-          identifier:
-            rawIdentifier,
-
-          email:
-            email,
-
-          message:
-            loginError?.message
-        }
-      );
+    });
 
 
-      if (
-        /email not confirmed/i.test(
-          loginError?.message || ""
-        )
-      ) {
+if (
+  loginError ||
+  !loginData?.session ||
+  !loginData?.user
+) {
 
-        return res.status(403).json({
+  console.error("========================================");
+  console.error("LOGIN AUTH ERROR");
+  console.error("========================================");
 
-          ok: false,
+  console.error("Gelen kullanıcı:", rawIdentifier);
+  console.error("Bulunan email:", email);
+  console.error("Şifre uzunluğu:", password.length);
+  console.error("Supabase mesajı:", loginError?.message);
+  console.error("Supabase kodu:", loginError?.code);
+  console.error("Supabase status:", loginError?.status);
 
-          code:
-            "EMAIL_NOT_CONFIRMED",
-
-          error:
-            "E-posta adresin henüz doğrulanmamış."
-
-        });
-
-      }
+  console.error("========================================");
 
 
-      return res.status(401).json({
+  if (
+    /email not confirmed/i.test(
+      loginError?.message || ""
+    )
+  ) {
 
-        ok: false,
+    return res.status(403).json({
 
-        error:
-          "Kullanıcı adı veya şifre hatalı."
+      ok: false,
 
-      });
+      code: "EMAIL_NOT_CONFIRMED",
 
+      error:
+        "E-posta adresin henüz doğrulanmamış."
+
+    });
+
+  }
+
+
+  return res.status(401).json({
+
+    ok: false,
+
+    /*
+     * GEÇİCİ OLARAK GERÇEK HATAYI GÖSTER
+     */
+    error:
+      loginError?.message ||
+      "Supabase giriş hatası.",
+
+    debug: {
+      email: email,
+      code: loginError?.code || null
     }
 
+  });
 
-    const authUser =
-      loginData.user;
+}
+
+
+/* ==========================================
+   GİRİŞ BAŞARILI
+========================================== */
+
+const authUser =
+  loginData.user;
 
 
     /* ==========================================
