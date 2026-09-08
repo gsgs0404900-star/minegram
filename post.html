@@ -208,12 +208,18 @@ body{
 }
 
 /* GÖNDERİ AVATARINDA AKTİF/YENİ STORY HALKASI */
-.post-head .avatar.small.post-story-new{
+.post-head .avatar.small.post-story-avatar.has-story-ring{
   outline:2px solid #e53935 !important;
   outline-offset:3px;
   position:relative;
   z-index:20;
   cursor:pointer;
+}
+.post-head .avatar.small.post-story-avatar.post-story-new{
+  outline:2px solid #e53935 !important;
+  outline-offset:3px;
+  position:relative;
+  z-index:20;
 }
 
 .post-head .avatar.small.post-story-avatar{
@@ -2366,6 +2372,10 @@ onclick="sendComment()"
     storyGroups=
       Array.from(map.values());
 
+    // Gönderi avatarlarındaki story halkalarının da aynı grupları kullanması için
+    // global kopyayı güncelle.
+    window.__minegramStoryGroups = storyGroups;
+
   }
 
 
@@ -2502,6 +2512,10 @@ onclick="sendComment()"
 
       item.className=
         "story has-story";
+
+      if(Array.isArray(group.stories) && group.stories.length){
+        item.classList.add("has-new-story");
+      }
 
       item.style.flex=
         "0 0 68px";
@@ -4407,6 +4421,8 @@ function openMinegramStoryFromPostAvatar(event, element){
 }
 
 window.updateMinegramPostStoryRings=function(){
+  // Story verisi yüklendiğinde global grubu her zaman güncel tut.
+  if(Array.isArray(storyGroups)) window.__minegramStoryGroups = storyGroups;
   document.querySelectorAll(".post-head .post-story-avatar").forEach(function(el){
     const username=el.getAttribute("data-story-username") || "";
     const userId=el.getAttribute("data-story-user-id") || "";
