@@ -5308,9 +5308,23 @@ async function loadFeed(){
      Firebase'deki eski/anonim cihaz kayıtları burada kesinlikle okunmaz.
      Böylece silinmiş bir hesabın Firebase'de kalmış gönderisi,
      kullanıcı adı tekrar kullanılsa bile siteye geri dönemez. */
-  const apiResult = await Promise.allSettled([
-    api("/feed")
-  ]).then(r => r[0]);
+  /* Feed bağlantısı geçici olarak düşerse tek denemede hata ekranına geçme.
+     Aynı oturum ve token ile kısa aralıklarla yeniden dene. */
+  let apiResult;
+  for(let feedAttempt=0; feedAttempt<3; feedAttempt++){
+    apiResult = await Promise.allSettled([
+      api("/feed")
+    ]).then(r => r[0]);
+
+    if(apiResult.status === "fulfilled") break;
+
+    const retryStatus = Number(apiResult.reason?.status || 0);
+    const retryable = retryStatus===0 || retryStatus>=500;
+    if(!retryable || feedAttempt===2) break;
+
+    await new Promise(resolve=>setTimeout(resolve, 900*(feedAttempt+1)));
+    if(!feedRequestIsCurrent()) return;
+  }
 
   let apiPosts=[];
   let firebasePosts=[];
