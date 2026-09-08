@@ -105,6 +105,8 @@ body{
 .story{cursor:pointer;user-select:none}
 .story:active{transform:scale(.96)}
 .story.has-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #3f91cc}
+.story.has-new-story .avatar{box-shadow:0 0 0 3px #000,0 0 0 6px #ff3040}
+.story.has-new-story .avatar img{border:0}
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
 .story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
@@ -4992,7 +4994,7 @@ async function loadMinegramActiveUsers(){
   }
   try{
     const result=await api('/api/active-users?ts='+now);
-    const rows=Array.isArray(result)?result:(Array.isArray(result?.users)?result.users:(Array.isArray(result?.data)?result.data:[]));
+    const rows=Array.isArray(result?.users)?result.users:[];
     const byId=new Set();
     const byUsername=new Map();
     for(const u of rows){
@@ -5012,20 +5014,13 @@ async function loadMinegramActiveUsers(){
 
 function filterActiveApiPosts(posts,active){
   if(!Array.isArray(posts)) return [];
-  /* Aktif kullanıcı kontrolü cevap veremiyorsa gerçek API gönderilerini
-     boşaltma; feed zaten sunucudan geldiği için göster. */
-  if(!active || !active.byId || !active.byId.size) return posts;
+  if(!active) return [];
   return posts.filter(post=>{
-    const owner=String(
-      post?.userId||post?.user_id||post?.ownerId||post?.owner_id||
-      post?.auth_user_id||post?.user?.id||post?.user?.auth_user_id||''
-    ).trim();
-    const username=String(post?.username||post?.user?.username||'').replace(/^@/,'').trim().toLowerCase();
-    /* Owner bilgisi yoksa gönderiyi sırf bu nedenle gizleme. */
-    if(!owner) return true;
-    if(active.byId.has(owner)) return true;
-    if(username && active.byUsername?.get(username)===owner) return true;
-    return Array.from(active.byUsername?.values?.()||[]).includes(owner);
+    const owner=String(post?.userId||post?.user_id||'').trim();
+    // API posts must carry an exact owner id. Username alone is never enough
+    // because a deleted username may later be reused by another account.
+    if(!owner) return false;
+    return active.byId.has(owner) || Array.from(active.byUsername.values()).includes(owner);
   });
 }
 
@@ -5173,7 +5168,8 @@ async function loadFeed(){
   }
 
   if(!apiPosts.length && !firebasePosts.length &&
-     apiResult.status!=="fulfilled"){
+     apiResult.status!=="fulfilled" &&
+     firebaseResult.status!=="fulfilled"){
 
     feedEl.innerHTML=`
       <div class="empty">
