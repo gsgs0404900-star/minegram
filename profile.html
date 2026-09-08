@@ -210,6 +210,27 @@ a{color:inherit}
   border-color:#63b1ed;     
   color:#30206d     
 }     
+
+.profile-photo-btn{
+  flex:0 0 58px !important;
+  max-width:58px;
+  font-size:28px !important;
+  padding:0 !important;
+}
+.profile-photo-btn[hidden]{display:none !important}
+.edit-profile-photo-btn{
+  width:100%;
+  min-height:50px;
+  border:1px solid #444;
+  border-radius:12px;
+  background:#111;
+  color:#fff;
+  font-size:15px;
+  font-weight:700;
+  margin-top:10px;
+}
+.edit-profile-photo-btn:active{transform:scale(.99)}
+.profile-photo-input{display:none !important}
      
 .highlights-section{     
   margin-top:14px     
@@ -2938,8 +2959,10 @@ body{
     
 <div class="actions">    
   <button id="editBtn" class="primary">✎ &nbsp;Profil düzenle</button>    
+  <button id="profilePhotoBtn" class="profile-photo-btn" aria-label="Profil fotoğrafını değiştir" title="Profil fotoğrafını değiştir">＋</button>    
   <button id="shareBtn">♧ &nbsp;Profil paylaş</button>    
-</div>    
+</div>
+<input id="profilePhotoInput" class="profile-photo-input" type="file" accept="image/*">    
     
 <section id="highlightsSection" class="highlights-section" hidden>    
   <h2>Öne çıkanlar</h2>    
@@ -3082,9 +3105,10 @@ body{
       </button>    
     </div>    
     
+    <button type="button" id="editProfilePhotoBtn" class="edit-profile-photo-btn">＋ &nbsp;Profil fotoğrafını değiştir</button>
+
     <div class="edit-profile-photo-help">    
-      Profil fotoğrafını değiştirmek için profilindeki yuvarlak<br>    
-      fotoğrafa dokunun.    
+      Galeriden bir fotoğraf seçerek profil fotoğrafını değiştirebilirsin.    
     </div>    
     
   </div>    
@@ -4609,6 +4633,22 @@ async function loadFirebasePublicPosts(username,userId){
   });
 }
 
+function renderProfileAvatar(){
+  const av=document.getElementById('avatar');
+  if(!av || !currentProfile)return;
+
+  const localAvatar=(()=>{
+    try{return localStorage.getItem('minegram_avatar_'+String(currentProfile.id))||'';}catch(e){return '';}
+  })();
+  const avatarSrc=currentProfile.avatar||localAvatar||'';
+
+  if(avatarSrc){
+    av.innerHTML='<img src="'+escapeHtml(avatarSrc)+'" alt="Profil fotoğrafı">';
+  }else{
+    av.textContent=(currentProfile.displayName||currentProfile.username||'M')[0].toUpperCase();
+  }
+}
+
 async function load(){
 
  if(!token){
@@ -4686,6 +4726,9 @@ async function load(){
    document.getElementById('photoPromptRow')
    .style.display=mine?'':'none';
 
+   const profilePhotoBtn=document.getElementById('profilePhotoBtn');
+   if(profilePhotoBtn) profilePhotoBtn.hidden=!mine;
+
    document.getElementById('phoneRow')
    .style.display=mine?'':'none';
 
@@ -4694,26 +4737,7 @@ async function load(){
 
    await renderHighlights();
 
-   const av=
-   document.getElementById('avatar');
-
-   if(currentProfile.avatar){
-
-     av.innerHTML=
-     '<img src="'+
-     escapeHtml(currentProfile.avatar)+
-     '" alt="Profil fotoğrafı">';
-
-   }else{
-
-     av.textContent=
-     (
-       currentProfile.displayName||
-       currentProfile.username||
-       'M'
-     )[0].toUpperCase();
-
-   }
+   renderProfileAvatar();
 
        await updateProfileStoryRing();
 
@@ -5023,6 +5047,97 @@ function closeEditProfileScreen(){
  document.body.style.overflow='';
 
 }
+
+
+/* =========================================================
+   PROFİL FOTOĞRAFI — GALERİDEN SEÇ / SUNUCUYA KAYDET
+   ========================================================= */
+function openProfilePhotoPicker(){
+  if(!currentProfile || !me || String(currentProfile.id)!==String(me.id)) return;
+  const input=document.getElementById('profilePhotoInput');
+  if(input){
+    input.value='';
+    input.click();
+  }
+}
+
+function resizeProfilePhoto(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Fotoğraf okunamadı.'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('Fotoğraf açılamadı.'));
+      img.onload=()=>{
+        const max=512;
+        const scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+        const w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+        const h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+        const canvas=document.createElement('canvas');
+        canvas.width=w;
+        canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        if(!ctx){reject(new Error('Fotoğraf işlenemedi.'));return;}
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',.84));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function changeProfilePhoto(file){
+  if(!file || !file.type.startsWith('image/')){
+    toast('Lütfen bir resim seç.');
+    return;
+  }
+
+  try{
+    toast('Profil fotoğrafı yükleniyor...');
+    const avatarData=await resizeProfilePhoto(file);
+
+    // Önce sunucuya kaydet. Mevcut profil API'si /api/me PATCH kullanıyor.
+    const updated=await api('/api/me',{
+      method:'PATCH',
+      body:{avatar:avatarData}
+    });
+
+    currentProfile.avatar=updated?.avatar || avatarData;
+    if(me) me.avatar=currentProfile.avatar;
+
+    try{
+      localStorage.setItem('minegram_avatar_'+String(currentProfile.id),currentProfile.avatar);
+    }catch(e){}
+
+    renderProfileAvatar();
+    toast('Profil fotoğrafı değiştirildi');
+  }catch(e){
+    // Sunucu avatar alanını kabul etmiyorsa bile fotoğrafı bu tarayıcıda koru.
+    // Böylece kullanıcı fotoğraf seçiminin kaybolduğunu sanmaz.
+    try{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const data=reader.result;
+        currentProfile.avatar=data;
+        if(me) me.avatar=data;
+        try{localStorage.setItem('minegram_avatar_'+String(currentProfile.id),data);}catch(_e){}
+        renderProfileAvatar();
+        toast('Fotoğraf bu cihazda kaydedildi.');
+      };
+      reader.readAsDataURL(file);
+    }catch(_e){
+      toast(e.message||'Profil fotoğrafı değiştirilemedi');
+    }
+  }
+}
+
+document.getElementById('profilePhotoBtn')?.addEventListener('click',openProfilePhotoPicker);
+document.getElementById('editProfilePhotoBtn')?.addEventListener('click',openProfilePhotoPicker);
+document.getElementById('profilePhotoInput')?.addEventListener('change',e=>{
+  const file=e.target.files?.[0];
+  if(file) changeProfilePhoto(file);
+});
 
 document.getElementById('editBtn').onclick=async()=>{
 
