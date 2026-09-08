@@ -1488,6 +1488,18 @@ app.post("/api/account/migrate-local", async (req, res) => {
     }
 
     const admin = adminClient();
+
+    // Güvenlik: mevcut bir Supabase hesabının şifresini değiştirmek için
+    // isteğin o hesabın zaten açık olan oturumundan gelmesi gerekir.
+    // Böylece yalnızca kullanıcı adı/e-posta bilen biri hesabı ele geçiremez.
+    const authHeader = String(req.headers.authorization || "");
+    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    let authenticatedUserId = "";
+    if (bearer) {
+      const { data: tokenUser, error: tokenError } = await client().auth.getUser(bearer);
+      if (!tokenError && tokenUser?.user?.id) authenticatedUserId = tokenUser.user.id;
+    }
+
     const { data: profiles, error: profileError } = await admin
       .from("profiles")
       .select("*")
@@ -1523,6 +1535,14 @@ app.post("/api/account/migrate-local", async (req, res) => {
       if (createError) return res.status(400).json({ ok: false, error: createError.message });
       authUser = created?.user;
     } else {
+      if (!authenticatedUserId || authenticatedUserId !== authUser.id) {
+        return res.status(403).json({
+          ok: false,
+          code: "MIGRATION_AUTH_REQUIRED",
+          error: "Mevcut hesabı sunucuya taşımak için hesabın açık olduğu cihazdan tekrar giriş yapmalısın."
+        });
+      }
+
       const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(authUser.id, {
         password,
         email,
