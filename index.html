@@ -104,11 +104,14 @@ body{
 /* Hikaye */
 .story{cursor:pointer;user-select:none}
 .story:active{transform:scale(.96)}
-.story.has-new-story .avatar{
+.story.has-new-story .avatar,
+#myStory.has-new-story #storyAvatar{
   border:0 !important;
   box-shadow:none !important;
   outline:2px solid #e53935 !important;
-  outline-offset:2px;
+  outline-offset:3px;
+  position:relative;
+  z-index:5;
 }
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
@@ -2419,10 +2422,10 @@ onclick="sendComment()"
 
       item.addEventListener(
         "click",
-        function(){
-
-          openGroup(group);
-
+        function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(group, 0);
         }
       );
 
