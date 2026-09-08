@@ -2090,6 +2090,66 @@ onclick="sendComment()"
 
 
   /* =======================================================
+     STORY GRUPLARINI OLUŞTUR
+     Her kullanıcı için hikayeleri tek grupta toplar.
+  ======================================================= */
+
+  function buildStoryGroups(){
+
+    const groupsMap = new Map();
+
+    (Array.isArray(stories) ? stories : []).forEach(function(story){
+
+      if(!story) return;
+
+      const userId = story.userId ? String(story.userId) : "";
+      const username = String(story.username || "minegram")
+        .replace(/^@/, "")
+        .trim();
+
+      const key = userId || username.toLowerCase();
+      if(!key) return;
+
+      let group = groupsMap.get(key);
+
+      if(!group){
+        group = {
+          userId: story.userId || "",
+          username: username,
+          displayName: story.displayName || username,
+          avatar: story.avatar || "",
+          stories: []
+        };
+        groupsMap.set(key, group);
+      }
+
+      group.stories.push(story);
+
+      if(!group.avatar && story.avatar) group.avatar = story.avatar;
+      if(!group.displayName && story.displayName) group.displayName = story.displayName;
+    });
+
+    storyGroups = Array.from(groupsMap.values());
+    window.__minegramStoryGroups = storyGroups;
+    window.__minegramOpenStoryGroup = function(group,index){
+      if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
+    };
+
+    storyGroups.forEach(function(group){
+      group.stories.sort(function(a,b){
+        return Number(a.createdAt || 0) - Number(b.createdAt || 0);
+      });
+    });
+
+    storyGroups.sort(function(a,b){
+      const aLast = a.stories[a.stories.length - 1];
+      const bLast = b.stories[b.stories.length - 1];
+      return Number(bLast?.createdAt || 0) - Number(aLast?.createdAt || 0);
+    });
+  }
+
+
+  /* =======================================================
      TEMİZLE
   ======================================================= */
 
@@ -2278,123 +2338,13 @@ onclick="sendComment()"
   }
 
   /* =======================================================
-     GRUPLAMA
-  ======================================================= */
-
-  function buildStoryGroups(){
-
-    const groupsMap = new Map();
-
-    (Array.isArray(stories) ? stories : []).forEach(function(story){
-
-      if(!story) return;
-
-      const userId = story.userId ? String(story.userId) : "";
-      const username = String(story.username || "minegram")
-        .replace(/^@/, "")
-        .trim();
-
-      const key = userId || username.toLowerCase();
-      if(!key) return;
-
-      let group = groupsMap.get(key);
-
-      if(!group){
-        group = {
-          userId: story.userId || "",
-          username: username,
-          displayName: story.displayName || username,
-          avatar: story.avatar || "",
-          stories: []
-        };
-        groupsMap.set(key, group);
-      }
-
-      group.stories.push(story);
-
-      if(!group.avatar && story.avatar) group.avatar = story.avatar;
-      if(!group.displayName && story.displayName) group.displayName = story.displayName;
-    });
-
-    storyGroups = Array.from(groupsMap.values());
-    window.__minegramStoryGroups = storyGroups;
-    window.__minegramOpenStoryGroup = function(group,index){
-      if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
-    };
-
-    storyGroups.forEach(function(group){
-      group.stories.sort(function(a,b){
-        return Number(a.createdAt || 0) - Number(b.createdAt || 0);
-      });
-    });
-
-    storyGroups.sort(function(a,b){
-      const aLast = a.stories[a.stories.length - 1];
-      const bLast = b.stories[b.stories.length - 1];
-      return Number(bLast?.createdAt || 0) - Number(aLast?.createdAt || 0);
-    });
-  }
-
-
-  /* =======================================================
-     AVATAR
-  ======================================================= */
-
-  function createAvatar(group){
-
-    if(group.avatar){
-
-      return `
-        <img
-          class="story-image"
-          src="${esc(group.avatar)}"
-          alt="${esc(group.username)}"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"
-        >
-        <span
-          style="
-            display:none;
-            width:58px;
-            height:58px;
-            border-radius:50%;
-            background:#3f91cc;
-            place-items:center;
-            font-size:21px;
-            color:#eee
-          "
-        >
-          ${esc(
-            String(
-              group.username ||
-              "M"
-            )
-            .charAt(0)
-            .toUpperCase()
-          )}
-        </span>
-      `;
-
-    }
-
-    return `
-      <span>
-        ${esc(
-          String(
-            group.username ||
-            "M"
-          )
-          .charAt(0)
-          .toUpperCase()
-        )}
-      </span>
-    `;
-
-  }
-
-
-  /* =======================================================
      STORY BAR
   ======================================================= */
+
+  function isStorySeen(item){
+    if(!item || !item.id) return false;
+    try{ return localStorage.getItem("minegram_story_seen_" + item.id) === "1"; }catch(e){ return false; }
+  }
 
   function renderStoryBar(){
 
@@ -2726,18 +2676,27 @@ onclick="sendComment()"
         "Hikaye yükleniyor..."
       );
 
-      const uploaded =
-        await firebaseUploadStory(
-          file
-        );
+      const formData = new FormData();
+      formData.append("story", file, file.name || "story");
+
+      const uploaded = await api("/stories", {
+        method: "POST",
+        body: formData
+      });
+
+      const normalizedUploaded = normalizeStory(uploaded);
+      if (!normalizedUploaded) {
+        throw new Error("Sunucu hikaye kaydı döndürmedi.");
+      }
 
       stories.push(
-        uploaded
+        normalizedUploaded
       );
 
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
       try{
         localStorage.setItem(
@@ -2765,9 +2724,9 @@ onclick="sendComment()"
             function(g){
               return (
                 String(g.userId) ===
-                  String(uploaded.userId) ||
+                  String(normalizedUploaded.userId) ||
                 String(g.username).toLowerCase() ===
-                  String(uploaded.username).toLowerCase()
+                  String(normalizedUploaded.username).toLowerCase()
               );
             }
           );
@@ -2779,7 +2738,7 @@ onclick="sendComment()"
               function(story){
                 return (
                   String(story.id) ===
-                  String(uploaded.id)
+                  String(normalizedUploaded.id)
                 );
               }
             );
@@ -2795,7 +2754,7 @@ onclick="sendComment()"
 
       }
 
-      return uploaded;
+      return normalizedUploaded;
 
     }catch(error){
 
@@ -2810,7 +2769,7 @@ onclick="sendComment()"
       ){
 
         alert(
-          "Firebase hikaye erişimi reddedildi. Firestore Rules içinde giriş yapmış kullanıcıların story koleksiyonuna erişebildiğinden emin ol."
+          "Hikaye API erişimi reddedildi. Oturumunu kontrol edip tekrar dene."
         );
 
       }else{
@@ -2819,7 +2778,7 @@ onclick="sendComment()"
           "Hikaye yüklenemedi:\n" +
           (
             error?.message ||
-            "Firebase sunucu hatası"
+            "Sunucu hatası"
           )
         );
 
@@ -3024,6 +2983,13 @@ onclick="sendComment()"
         );
 
       }
+
+      try{
+        localStorage.setItem("minegram_story_seen_" + item.id, "1");
+      }catch(e){}
+
+      renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
     }catch(e){}
 
@@ -3761,43 +3727,17 @@ onclick="sendComment()"
       }
 
 
-      /*
-        Backend DELETE endpointi varsa
-        gerçek kaydı da sil.
-      */
-
       try{
-
-        await firebaseDeleteStory(
-          item
+        if(!item.id) throw new Error("Hikaye kimliği bulunamadı.");
+        await api(
+          "/stories/" + encodeURIComponent(item.id),
+          {method:"DELETE"}
         );
-
       }catch(error){
-
-        console.warn(
-          "FIREBASE STORY DELETE:",
-          error
-        );
-
-        /* Eski sunucu sistemi için yedek. */
-        try{
-          await api(
-            "/stories/" +
-            encodeURIComponent(
-              item.id
-            ),
-            {
-              method:"DELETE"
-            }
-          );
-        }catch(apiError){
-          console.warn(
-            "SERVER STORY DELETE:",
-            apiError
-          );
-        }
+        console.error("SERVER STORY DELETE:",error);
+        alert(error?.message || "Hikaye silinemedi.");
+        return;
       }
-
 
       stories=
         stories.filter(
@@ -3874,10 +3814,13 @@ onclick="sendComment()"
 
       }
 
-      // Hepsi bittikten sonra sadece 1 kere yenile
-      cleanStories();
-      buildStoryGroups();
-      renderStoryBar();
+      // Yalnızca başarılı yükleme varsa görünümü yenile.
+      if(uploadedCount > 0){
+        cleanStories();
+        buildStoryGroups();
+        renderStoryBar();
+        if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
+      }
 
       try{
         localStorage.setItem(
@@ -3901,7 +3844,6 @@ onclick="sendComment()"
   }
 
   loadStories();
-  if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
   setInterval(function(){
     loadStories();
@@ -7450,6 +7392,7 @@ async function loadPostDetail(postId){
 
     window.__minegramFeedPosts=[normalized];
     feedEl.innerHTML=renderPost(normalized);
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
     return true;
   }
@@ -7479,6 +7422,7 @@ async function loadPostDetail(postId){
 
       window.__minegramFeedPosts=[normalized];
       feedEl.innerHTML=renderPost(normalized);
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
       try{
         sessionStorage.setItem(
@@ -7527,6 +7471,7 @@ async function loadPostDetail(postId){
 
       window.__minegramFeedPosts=[normalized];
       feedEl.innerHTML=renderPost(normalized);
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
       try{
         sessionStorage.setItem(
