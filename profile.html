@@ -85,10 +85,11 @@ a{color:inherit}
 }     
      
 
-/* INDEX.HTML STORY HALKASI */
-.avatar.has-new-story{
+/* INDEX.HTML: #myStory.has-new-story #storyAvatar ile aynı görünüm */
+#avatar.profile-has-new-story{
   border:2px solid #e53935 !important;
   box-sizing:border-box !important;
+  box-shadow:none !important;
   overflow:visible !important;
 }
 
@@ -4018,149 +4019,182 @@ function renderProfileExtra(){
 }
 
 
+function profileNormalizeStory(s){
+  if(!s)return null;
+
+  const profile=s.profiles||s.profile||{};
+  const user=s.user||{};
+
+  const media=
+    s.media_url||
+    s.mediaUrl||
+    s.media||
+    s.url||
+    s.base64||
+    s.mediaBase64||
+    "";
+
+  if(!media)return null;
+
+  const username=
+    profile.username||
+    profile.user_name||
+    user.username||
+    user.user_name||
+    s.username||
+    "minegram";
+
+  const createdAt=
+    new Date(
+      s.created_at||
+      s.createdAt||
+      Date.now()
+    ).getTime();
+
+  return {
+    id:s.id||"",
+    userId:
+      s.user_id||
+      s.userId||
+      profile.id||
+      user.id||
+      "",
+    username:String(username)
+      .replace(/^@/,"")
+      .trim(),
+    media:media,
+    createdAt:createdAt
+  };
+}
+
+function profileStorySeen(story){
+  if(!story||!story.id)return false;
+  try{
+    return localStorage.getItem(
+      "minegram_story_seen_"+story.id
+    )==="1";
+  }catch(e){
+    return false;
+  }
+}
+
 async function updateProfileStoryRing(){
   const avatar=document.getElementById("avatar");
   if(!avatar)return;
 
   try{
     /*
-      INDEX.HTML:
-      const result = await api("/stories");
-      stories = list.map(normalizeStory).filter(Boolean);
-      cleanStories();
-      buildStoryGroups();
+      INDEX.HTML'DEKİ loadStories() GİBİ:
+      önce aynı local cache, yoksa aynı /stories API.
     */
-    const result=await api("/stories");
+    let raw=[];
 
-    const list=Array.isArray(result)
-      ?result
-      :(Array.isArray(result?.stories)?result.stories:[]);
+    try{
+      const cached=localStorage.getItem(
+        "minegram_story_v2"
+      );
 
-    const STORY_AGE=24*60*60*1000;
-    const now=Date.now();
-
-    const normalized=list.map(function(s){
-      if(!s)return null;
-
-      const profile=s.profiles || s.profile || {};
-      const user=s.user || {};
-
-      const media=
-        s.media_url ||
-        s.mediaUrl ||
-        s.media ||
-        s.url ||
-        "";
-
-      if(!media)return null;
-
-      const username=
-        profile.username ||
-        profile.user_name ||
-        user.username ||
-        user.user_name ||
-        s.username ||
-        "minegram";
-
-      const createdAt=new Date(
-        s.created_at ||
-        s.createdAt ||
-        Date.now()
-      ).getTime();
-
-      return {
-        id:s.id || (
-          "story_"+Date.now()+"_"+Math.random().toString(36).slice(2)
-        ),
-        userId:
-          s.user_id ||
-          s.userId ||
-          profile.id ||
-          user.id ||
-          "",
-        username:String(username)
-          .replace(/^@/,"")
-          .trim(),
-        createdAt:createdAt
-      };
-    }).filter(Boolean);
-
-    /* INDEX.HTML cleanStories() */
-    const active=normalized.filter(function(s){
-      return s &&
-             s.createdAt &&
-             s.createdAt > now-STORY_AGE;
-    });
-
-    const profileUsername=String(
-      currentProfile?.username || target || ""
-    ).replace(/^@/,"").trim().toLowerCase();
-
-    const profileId=String(
-      currentProfile?.id || ""
-    ).trim();
+      if(cached){
+        const parsed=JSON.parse(cached);
+        if(Array.isArray(parsed)){
+          raw=parsed;
+        }
+      }
+    }catch(e){}
 
     /*
-      INDEX.HTML buildStoryGroups() ile aynı:
-      kullanıcı ID'si veya kullanıcı adı üzerinden eşleştir.
+      Sunucu kaynağı her zaman güncel olsun.
+      Index.html de /stories kullanıyor.
     */
-    const profileStories=active.filter(function(story){
-      const storyUsername=String(
-        story.username || ""
-      ).replace(/^@/,"").trim().toLowerCase();
+    try{
+      const result=await api("/stories");
 
-      const storyUserId=String(
-        story.userId || ""
-      ).trim();
+      const serverList=
+        Array.isArray(result)
+        ?result
+        :(Array.isArray(result?.stories)
+          ?result.stories
+          :[]);
+
+      if(serverList.length){
+        raw=serverList;
+      }
+    }catch(e){
+      /* Cache varsa onunla devam et. */
+    }
+
+    /*
+      INDEX.HTML'DEKİ normalizeStory + cleanStories
+    */
+    const limit=Date.now()-(24*60*60*1000);
+
+    const stories=raw
+      .map(profileNormalizeStory)
+      .filter(Boolean)
+      .filter(function(s){
+        return s.media &&
+               Number(s.createdAt)>limit;
+      });
+
+    /*
+      INDEX.HTML'DEKİ isMyStory() İLE AYNI:
+      current user ID veya username.
+    */
+    const myId=String(
+      currentProfile?.id||
+      me?.id||
+      ""
+    );
+
+    const myUsername=String(
+      currentProfile?.username||
+      me?.username||
+      target||
+      ""
+    ).replace(/^@/,"").trim().toLowerCase();
+
+    const myStories=stories.filter(function(story){
+      const sid=String(story.userId||"");
+      const su=String(story.username||"")
+        .replace(/^@/,"")
+        .trim()
+        .toLowerCase();
 
       return (
-        (profileId && storyUserId &&
-         profileId===storyUserId) ||
-        (profileUsername && storyUsername &&
-         profileUsername===storyUsername)
+        (myId && sid && myId===sid) ||
+        (myUsername && su && myUsername===su)
       );
     });
 
     /*
-      INDEX.HTML isStorySeen() İLE AYNI:
-      localStorage.getItem("minegram_story_seen_" + item.id) === "1"
+      INDEX.HTML:
+      myGroup.stories.some(story => !isStorySeen(story))
     */
-    const hasNew=profileStories.some(function(story){
-      try{
-        return localStorage.getItem(
-          "minegram_story_seen_"+story.id
-        ) !== "1";
-      }catch(e){
-        return false;
-      }
+    const hasNew=myStories.some(function(story){
+      return !profileStorySeen(story);
     });
 
-    /*
-      Hem class hem inline border:
-      başka CSS kuralı halkanın görünmesini engellemesin.
-    */
-    avatar.classList.toggle("has-new-story",hasNew);
-
-    if(hasNew){
-      avatar.style.border="2px solid #e53935";
-      avatar.style.boxSizing="border-box";
-    }else{
-      avatar.style.border="0";
-      avatar.style.boxSizing="border-box";
-    }
+    avatar.classList.toggle(
+      "profile-has-new-story",
+      hasNew
+    );
 
     console.log(
-      "[PROFILE STORY RING]",
+      "[PROFILE STORY - INDEX AYNI]",
       {
-        username:profileUsername,
-        profileId:profileId,
-        stories:profileStories.length,
-        newStory:hasNew
+        myUsername:myUsername,
+        myId:myId,
+        totalStories:stories.length,
+        myStories:myStories.length,
+        hasNew:hasNew
       }
     );
 
   }catch(error){
-    console.error("[PROFILE STORY RING ERROR]",error);
+    console.error(
+      "[PROFILE STORY ERROR]",
+      error
+    );
   }
 }
 
@@ -4305,7 +4339,7 @@ async function load(){
 
        await updateProfileStoryRing();
 
-const postsResponse=await api(
+    const postsResponse=await api(
   '/api/users/'+encodeURIComponent(username)+'/posts'
 );
 
@@ -4337,6 +4371,8 @@ renderPosts(posts);
  }
 
 }
+
+setInterval(updateProfileStoryRing,5000);
 
 async function openUserList(type){
 
