@@ -1644,18 +1644,19 @@ app.post("/api/login", async (req, res) => {
       email = normalizeEmail(rawIdentifier);
     } else {
       // 2) Kullanıcı adını profiles tablosunda bul
-      const { data: profiles, error: profileError } = await admin
+      // Kullanıcı adını cihazdan bağımsız olarak doğrudan veritabanında ara.
+      // Eski kod ilk 100 profili çekiyordu; 100'den sonraki hesaplar başka
+      // telefonlarda kullanıcı adıyla giriş yapamıyordu.
+      const { data: profileByUsername, error: profileError } = await admin
         .from("profiles")
         .select("*")
-        .eq("username", rawIdentifier)
-        .limit(1);
+        .eq("username", normalizedUsername)
+        .maybeSingle();
 
       if (profileError) {
         console.error("LOGIN PROFILE SEARCH ERROR:", profileError);
       } else {
-        profile = (profiles || []).find(
-          p => normalizeUsername(p?.username || "") === normalizedUsername
-        ) || null;
+        profile = profileByUsername || null;
       }
 
       if (profile) {
