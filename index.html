@@ -4398,10 +4398,41 @@ async function openStoryForPostUser(username, event, userId){
 
   let group=findStoryGroup();
 
+  /* Hikayeler halen yükleniyorsa, yüklemenin bitmesini bekle.
+     Aksi halde butona basıldığı anda storyGroups boş olduğu için Story açılmaz. */
+  if(!group && loadingStories){
+    await new Promise(function(resolve){
+      const started=Date.now();
+      const wait=function(){
+        if(!loadingStories || Date.now()-started>8000){
+          resolve();
+          return;
+        }
+        setTimeout(wait,100);
+      };
+      wait();
+    });
+    group=findStoryGroup();
+  }
+
   /* Gönderiler hikayelerden önce ekrana geldiyse, hikayeleri bir kez daha yükle. */
   if(!group){
     try{
       await loadStories();
+      /* loadStories çağrısı yükleme nedeniyle beklememişse tamamlanmasını bekle. */
+      if(loadingStories){
+        await new Promise(function(resolve){
+          const started=Date.now();
+          const wait=function(){
+            if(!loadingStories || Date.now()-started>8000){
+              resolve();
+              return;
+            }
+            setTimeout(wait,100);
+          };
+          wait();
+        });
+      }
       group=findStoryGroup();
     }catch(e){}
   }
