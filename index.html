@@ -4387,10 +4387,30 @@ async function openStoryForPostUser(username, event, userId){
     }catch(e){}
   }
 
+  /* ID eşleşmesi bulunamazsa kullanıcı adına göre ham hikayelerden tekrar oluştur. */
+  if(!group && target){
+    const matchingStories=(Array.isArray(stories)?stories:[]).filter(function(story){
+      return String(story?.username||'').replace(/^@/,'').trim().toLowerCase()===target;
+    });
+    if(matchingStories.length){
+      group={
+        userId:matchingStories[0].userId||'',
+        username:matchingStories[0].username||target,
+        displayName:matchingStories[0].displayName||target,
+        avatar:matchingStories[0].avatar||'',
+        stories:matchingStories
+      };
+      storyGroups.push(group);
+    }
+  }
+
   if(group && Array.isArray(group.stories) && group.stories.length){
     openGroup(group, 0);
   }
 }
+
+/* Gönderi profil fotoğrafındaki tıklama için fonksiyonu kesin olarak global yap. */
+window.openStoryForPostUser=openStoryForPostUser;
 
 function openMinegramPostFromElement(event,element){
   if(event){
