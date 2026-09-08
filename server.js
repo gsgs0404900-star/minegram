@@ -1441,6 +1441,94 @@ app.post(
 );
 
 /* =========================================================
+   LEGACY LOCAL ACCOUNT MIGRATION
+========================================================= */
+app.post("/api/account/migrate-local", async (req, res) => {
+  try {
+    const username = normalizeUsername(req.body?.username);
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ ok: false, error: "Eski hesabı taşımak için kullanıcı adı, e-posta ve şifre gerekli." });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ ok: false, error: "Şifre en az 6 karakter olmalı." });
+    }
+    if (!CONFIG_OK || !SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ ok: false, error: "Supabase yapılandırması eksik." });
+    }
+
+    const admin = adminClient();
+    const { data: profiles, error: profileError } = await admin
+      .from("profiles")
+      .select("*")
+      .ilike("username", username)
+      .limit(20);
+
+    if (profileError) return res.status(500).json({ ok: false, error: profileError.message });
+    const profile = (profiles || []).find(p => normalizeUsername(p?.username) === username) || null;
+    if (!profile) return res.status(404).json({ ok: false, code: "PROFILE_NOT_FOUND", error: "Eski hesabın sunucuda profili bulunamadı." });
+
+    let authUser = null;
+    if (profile.auth_user_id || profile.id) {
+      const id = profile.auth_user_id || profile.id;
+      const { data } = await admin.auth.admin.getUserById(id);
+      if (data?.user) authUser = data.user;
+    }
+
+    if (!authUser) {
+      const { data: listed } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      authUser = (listed?.users || []).find(u => normalizeEmail(u?.email) === email) || null;
+    }
+
+    if (!authUser) {
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { username, display_name: profile.display_name || username }
+      });
+      if (createError) return res.status(400).json({ ok: false, error: createError.message });
+      authUser = created?.user;
+    } else {
+      const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(authUser.id, {
+        password,
+        email,
+        email_confirm: true,
+        user_metadata: { ...(authUser.user_metadata || {}), username }
+      });
+      if (updateError) return res.status(400).json({ ok: false, error: updateError.message });
+      authUser = updated?.user || authUser;
+    }
+
+    const { data: updatedProfile, error: upError } = await admin
+      .from("profiles")
+      .update({ auth_user_id: authUser.id, email, username })
+      .eq("id", profile.id)
+      .select("*")
+      .maybeSingle();
+
+    if (upError) return res.status(500).json({ ok: false, error: upError.message });
+
+    const anon = client();
+    const { data: loginData, error: loginError } = await anon.auth.signInWithPassword({ email, password });
+    if (loginError || !loginData?.session) return res.status(401).json({ ok: false, error: loginError?.message || "Hesap taşındı ancak giriş oluşturulamadı." });
+
+    return res.json({
+      ok: true,
+      migrated: true,
+      token: loginData.session.access_token,
+      profile: safeProfile(updatedProfile || profile),
+      user: safeProfile(updatedProfile || profile)
+    });
+  } catch (e) {
+    console.error("MIGRATE LOCAL ACCOUNT ERROR:", e);
+    return res.status(500).json({ ok: false, error: e?.message || "Eski hesap sunucuya taşınamadı." });
+  }
+});
+
+/* =========================================================
    LOGIN
 ========================================================= */
 
