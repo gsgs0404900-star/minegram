@@ -1501,8 +1501,10 @@ app.post(
             identifier
           );
 
+        // Kullanıcı adı cihazdan bağımsız olarak sunucudan bulunur.
+        // @ işareti, boşluk ve büyük/küçük harf farkları girişe engel olmaz.
         const {
-          data: profile,
+          data: profileRows,
           error: pe
         } = await admin
           .from("profiles")
@@ -1511,7 +1513,17 @@ app.post(
             "username",
             username
           )
-          .maybeSingle();
+          .limit(20);
+
+        const profileList = Array.isArray(profileRows)
+          ? profileRows
+          : [];
+
+        const profile =
+          profileList.find(
+            p =>
+              normalizeUsername(p?.username) === username
+          ) || profileList[0] || null;
 
         if (pe) {
           return res.status(500).json({
@@ -1546,15 +1558,24 @@ app.post(
 
         // Eski/uyumsuz profillerde auth_user_id farklı olabilir.
         // Profilde kayıtlı e-posta varsa Auth kullanıcısını onunla bul.
-        if (!authUser && profile.email && String(profile.email).includes("@")) {
-          const { data: listed } = await admin.auth.admin.listUsers({
-            page: 1,
-            perPage: 1000
-          });
-          const wantedEmail = String(profile.email).trim().toLowerCase();
-          authUser = (listed?.users || []).find(
-            u => String(u?.email || "").trim().toLowerCase() === wantedEmail
-          ) || null;
+        if (!authUser?.email && profile?.email && String(profile.email).includes("@")) {
+          const wantedEmail = normalizeEmail(profile.email);
+          for (let page = 1; page <= 20 && !authUser; page++) {
+            const { data: listed, error: listError } =
+              await admin.auth.admin.listUsers({
+                page,
+                perPage: 1000
+              });
+
+            if (listError) break;
+
+            authUser =
+              (listed?.users || []).find(
+                u => normalizeEmail(u?.email) === wantedEmail
+              ) || null;
+
+            if ((listed?.users || []).length < 1000) break;
+          }
         }
 
         if (!authUser?.email) {
@@ -1585,14 +1606,25 @@ app.post(
         !sd?.session ||
         !sd?.user
       ) {
+        const loginMessage = String(le?.message || "");
+
+        if (/email not confirmed/i.test(loginMessage)) {
+          return res.status(403).json({
+            ok: false,
+            code: "EMAIL_NOT_CONFIRMED",
+            error:
+              "E-posta adresin henüz doğrulanmamış. Önce e-posta doğrulamasını tamamla."
+          });
+        }
+
         return res.status(401).json({
+          ok: false,
+          code: "INVALID_LOGIN",
           error:
-            /invalid login credentials/i.test(
-              le?.message || ""
-            )
+            /invalid login credentials/i.test(loginMessage)
               ? "Kullanıcı adı/e-posta veya şifre hatalı."
               : (
-                  le?.message ||
+                  loginMessage ||
                   "Giriş başarısız."
                 )
         });
@@ -1641,6 +1673,26 @@ app.post(
 
         if (legacy) {
           list = [legacy];
+        }
+      }
+
+      // Eski profillerde auth_user_id boş/yanlış olabilir.
+      // Auth e-postası ile profil e-postasını eşleştirerek son bir
+      // sunucu tarafı kurtarma yolu kullan.
+      if (!list.length && sd?.user?.email) {
+        const wantedEmail = normalizeEmail(sd.user.email);
+        const { data: emailProfiles } = await admin
+          .from("profiles")
+          .select("*")
+          .limit(1000);
+
+        const emailMatch =
+          (emailProfiles || []).find(
+            p => normalizeEmail(p?.email) === wantedEmail
+          ) || null;
+
+        if (emailMatch) {
+          list = [emailMatch];
         }
       }
 
