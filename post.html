@@ -98,13 +98,39 @@ body{
   font-size:21px;
   color:#eee;
   margin:auto;
-  position:relative
+  position:relative;
+  overflow:visible
 }
 
 /* Hikaye */
-.story{cursor:pointer;user-select:none}
+.story{cursor:pointer;user-select:none;position:relative;overflow:visible}
 .story:active{transform:scale(.96)}
-.story.has-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #3f91cc}
+
+/* HİKAYEN: tek, ince kırmızı halka.
+   Halka avatarın tam içinde kalır; dışarı taşmaz ve + butonunu kapatmaz. */
+#myStory.has-new-story #storyAvatar{
+  border:2px solid #e53935 !important;
+  box-sizing:border-box !important;
+  box-shadow:none !important;
+  overflow:visible !important;
+}
+
+/* + butonu halkanın DIŞINDA kalır. */
+#myStory.has-new-story #storyAvatar .story-image{
+  width:54px !important;
+  height:54px !important;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+}
+
+/* + sadece kendi küçük alanında kalsın ve halkanın üstünde olsun. */
+#myStory .plus{
+  right:-4px !important;
+  bottom:-4px !important;
+  z-index:30 !important;
+}
+
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
 .story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
@@ -179,6 +205,19 @@ body{
   height:40px;
   font-size:15px;
   margin:0
+}
+
+/* GÖNDERİ AVATARINDA AKTİF/YENİ STORY HALKASI */
+.post-head .avatar.small.post-story-new{
+  outline:2px solid #e53935 !important;
+  outline-offset:3px;
+  position:relative;
+  z-index:20;
+  cursor:pointer;
+}
+
+.post-head .avatar.small.post-story-avatar{
+  cursor:pointer;
 }
 
 .plus{
@@ -786,7 +825,7 @@ aria-label="Mesajlar"
 
 <div class="avatar" id="storyAvatar">
 M
-<span class="plus">+</span>
+<label class="plus" for="storyInput">+</label>
 </div>
 
 <div id="storyLabel">Hikayen</div>
@@ -811,12 +850,72 @@ Yükleniyor...
 
 </section>
 
-<nav id="bottomNav" class="nav bottom-nav hidden">
-<a class="active" href="index.html"><i>⌂</i><span>Ana Sayfa</span></a>
-<a href="ara.html"><i>⌕</i><span>Ara</span></a>
-<a href="olustur.html"><i>＋</i><span>Oluştur</span></a>
-<a href="reels.html"><i>▣</i><span>Reels</span></a>
-<a href="profile.html"><i>♙</i><span>Profil</span></a>
+<nav id="bottomNav" class="nav hidden">
+
+<a class="active" href="index.html">
+
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+</svg>
+</span>
+
+Ana Sayfa
+
+</a>
+
+<a href="ara.html">
+
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="6.5"/>
+<path d="m16 16 5 5"/>
+</svg>
+</span>
+
+Ara
+
+</a>
+
+<a href="olustur.html">
+
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<rect x="4" y="4" width="16" height="16" rx="4"/>
+<path d="M12 8v8M8 12h8"/>
+</svg>
+</span>
+
+Oluştur
+
+</a>
+
+<a href="reels.html">
+
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+<path d="M3 9h18M8 4l3 5M13 4l3 5"/>
+</svg>
+</span>
+
+Reels
+
+</a>
+
+<a href="profile.html">
+
+<span class="nav-icon">
+<svg class="svg" viewBox="0 0 24 24">
+<circle cx="12" cy="8" r="3.5"/>
+<path d="M5 20a7 7 0 0 1 14 0"/>
+</svg>
+</span>
+
+Profil
+
+</a>
+
 </nav>
 
 </div>
@@ -3796,6 +3895,7 @@ if(plusButton){
   }
 
   loadStories();
+  if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
   setInterval(function(){
     loadStories();
@@ -4271,6 +4371,56 @@ function profileUrl(username){
    POST
 ========================================================= */
 
+function getMinegramStoryGroupForPost(postOrUsername, maybeUserId){
+  const groups=Array.isArray(window.__minegramStoryGroups) ? window.__minegramStoryGroups : [];
+  const post = (postOrUsername && typeof postOrUsername === "object") ? postOrUsername : null;
+  const username=String(post ? (post.user?.username || post.username || "") : (postOrUsername || "")).replace(/^@/,"").trim().toLowerCase();
+  const userId=String(post ? (post.user?.id || post.user?.userId || post.user_id || post.userId || post.ownerUid || post.ownerId || "") : (maybeUserId || "")).trim();
+  return groups.find(function(g){
+    const gid=String(g?.userId || "").trim();
+    const gun=String(g?.username || "").replace(/^@/,"").trim().toLowerCase();
+    return (userId && gid && userId===gid) || (username && gun===username);
+  }) || null;
+}
+
+function hasMinegramStoryForPost(post){
+  const group=getMinegramStoryGroupForPost(post);
+  return !!(group && Array.isArray(group.stories) && group.stories.length);
+}
+
+function hasMinegramUnseenStoryForPost(post){
+  const group=getMinegramStoryGroupForPost(post);
+  if(!group || !Array.isArray(group.stories) || !group.stories.length) return false;
+  return group.stories.some(function(story){
+    if(!story || !story.id) return false;
+    try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
+  });
+}
+
+function openMinegramStoryFromPostAvatar(event, element){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  const username=element?.getAttribute("data-story-username") || "";
+  const userId=element?.getAttribute("data-story-user-id") || "";
+  const group=getMinegramStoryGroupForPost(username,userId);
+  if(!group || !Array.isArray(group.stories) || !group.stories.length) return;
+  if(typeof window.__minegramOpenStoryGroup === "function") window.__minegramOpenStoryGroup(group,0);
+}
+
+window.updateMinegramPostStoryRings=function(){
+  document.querySelectorAll(".post-head .post-story-avatar").forEach(function(el){
+    const username=el.getAttribute("data-story-username") || "";
+    const userId=el.getAttribute("data-story-user-id") || "";
+    const group=getMinegramStoryGroupForPost(username,userId);
+    const has=!!(group && Array.isArray(group.stories) && group.stories.length);
+    const unseen=has && group.stories.some(function(story){
+      if(!story || !story.id) return false;
+      try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
+    });
+    el.classList.toggle("post-story-new",unseen);
+    el.title=has ? "Hikayeyi aç" : "";
+  });
+};
+
 function renderPost(p){
 
   const username=
@@ -4368,7 +4518,13 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div class="avatar small">
+        <div
+          class="avatar small post-story-avatar${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
+          data-story-username="${esc(rawUsername)}"
+          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
+          onclick="openMinegramStoryFromPostAvatar(event,this)"
+        >
           ${initial}
         </div>
 
