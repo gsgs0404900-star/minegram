@@ -182,9 +182,9 @@ body{
 }
 
 /* Yeni gönderi: gönderinin üstündeki profil fotoğrafında kırmızı halka */
-.post-head .avatar.small.has-new-post{
-  box-shadow:0 0 0 2px #fff,0 0 0 4px #e53935;
+.post-head .avatar.small.has-new-story{
   border:2px solid #e53935 !important;
+  box-shadow:none !important;
 }
 
 .plus{
@@ -2295,6 +2295,7 @@ onclick="sendComment()"
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      try{ renderFeed(); }catch(e){}
 
       // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
       try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
@@ -4331,30 +4332,25 @@ function markMinegramPostSeen(post){
   try{ localStorage.setItem("minegram_post_seen_" + id, "1"); }catch(e){}
 }
 
-function hasMinegramUnseenPostForUser(post){
-  const target=String(
-    post?.user?.username ||
-    post?.username ||
-    post?.userId ||
-    post?.user_id ||
-    ""
-  ).trim().toLowerCase();
-  if(!target) return !isMinegramPostSeen(post);
+function hasMinegramUnseenStoryForUser(post){
+  const targetId=String(
+    post?.user?.id || post?.user?.userId || post?.userId || post?.user_id || ""
+  ).trim();
+  const targetName=String(
+    post?.user?.username || post?.username || ""
+  ).replace(/^@/,"").trim().toLowerCase();
 
-  const posts=Array.isArray(window.__minegramFeedPosts)
-    ? window.__minegramFeedPosts
-    : [];
+  if(!Array.isArray(storyGroups)) return false;
 
-  return posts.some(function(item){
-    const owner=String(
-      item?.user?.username ||
-      item?.username ||
-      item?.userId ||
-      item?.user_id ||
-      ""
-    ).trim().toLowerCase();
-    return owner===target && !isMinegramPostSeen(item);
+  const group=storyGroups.find(function(g){
+    const gid=String(g?.userId || "").trim();
+    const gun=String(g?.username || "").replace(/^@/,"").trim().toLowerCase();
+    return (targetId && gid && gid===targetId) ||
+           (targetName && gun===targetName);
   });
+
+  return !!(group && Array.isArray(group.stories) &&
+    group.stories.some(function(story){ return !isStorySeen(story); }));
 }
 
 function openMinegramPost(post){
@@ -4525,10 +4521,10 @@ function renderPost(p){
         .toUpperCase()
     );
 
-  const hasNewPost=hasMinegramUnseenPostForUser(p);
+  const hasNewStory=hasMinegramUnseenStoryForUser(p);
   const avatarClass=
     "avatar small" +
-    (hasNewPost ? " has-new-post" : "");
+    (hasNewStory ? " has-new-story" : "");
 
 
   const liked=
