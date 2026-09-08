@@ -2717,6 +2717,177 @@ body{
     aspect-ratio:1/1    
   }    
 }    
+
+/* PROFILE STORY VIEWER — index.html ile aynı görünüm */
+.profile-story-viewer{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.96);
+  z-index:999999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.profile-story-viewer.open{display:flex}
+.profile-story-stage{
+  position:relative;
+  width:min(100vw,520px);
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.profile-story-media{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  display:block;
+}
+.profile-story-close,
+.profile-story-more{
+  position:absolute;
+  top:18px;
+  width:42px;
+  height:42px;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  cursor:pointer;
+  z-index:5;
+}
+.profile-story-close{right:18px;font-size:30px}
+.profile-story-more{right:68px;font-size:28px}
+.profile-story-prev,
+.profile-story-next{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:35%;
+  border:0;
+  background:transparent;
+  color:transparent;
+  cursor:pointer;
+  z-index:2;
+}
+.profile-story-prev{left:0}
+.profile-story-next{right:0}
+.profile-story-progress{
+  position:absolute;
+  top:10px;
+  left:10px;
+  right:10px;
+  display:flex;
+  gap:4px;
+  z-index:6;
+}
+.profile-story-progress span{
+  height:3px;
+  flex:1;
+  background:rgba(255,255,255,.35);
+  border-radius:10px;
+  overflow:hidden;
+  position:relative;
+}
+.profile-story-progress span i{
+  display:block;
+  height:100%;
+  width:0%;
+  background:#fff;
+  border-radius:10px;
+  transform-origin:left center;
+}
+.profile-story-progress span.done i{width:100%}
+.profile-story-header{
+  position:absolute;
+  top:44px;
+  left:12px;
+  right:150px;
+  z-index:12;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-right:8px;
+  pointer-events:auto;
+}
+.profile-story-header-avatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:#2D7FF9;
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-size:15px;
+  font-weight:700;
+  flex:none;
+  overflow:hidden;
+}
+.profile-story-header-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.profile-story-header-info{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-width:0;
+  line-height:1.15;
+}
+.profile-story-header-user{
+  font-size:13px;
+  font-weight:700;
+  color:#fff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.profile-story-header-time{
+  font-size:10px;
+  color:rgba(255,255,255,.85);
+  white-space:nowrap;
+  margin-top:2px;
+}
+.profile-story-menu{
+  display:none;
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  background:rgba(0,0,0,.96);
+  border-top:1px solid rgba(255,255,255,.10);
+  border-radius:18px 18px 0 0;
+  padding:14px;
+  z-index:20;
+}
+.profile-story-menu.open{display:block}
+.profile-story-menu:before{
+  content:"";
+  display:block;
+  width:42px;
+  height:4px;
+  margin:0 auto 14px;
+  border-radius:99px;
+  background:#555;
+}
+.profile-story-menu button{
+  display:block;
+  width:100%;
+  height:42px;
+  margin:0 0 4px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:#64B5F6;
+  font-size:14px;
+}
+@media(max-width:699px){
+  .profile-story-stage{width:100vw}
+}
+
 </style>    
 </head>    
     
@@ -4140,81 +4311,269 @@ async function updateProfileStoryRing(){
       e.stopPropagation();
 
       const items=window.profileStoryItems||[];
+      if(!items.length)return;
 
-      if(items.length){
-        /*
-          Profil sayfasında Story viewer varsa onu kullan.
-          Yoksa index.html'deki Story viewer'ını çağırabilecek
-          ortak fonksiyonlardan ilk uygun olanı dene.
-        */
-        if(typeof window.openGroup==="function"){
-          window.openGroup(items,0);
-          return;
-        }
-
-        if(typeof window.openStory==="function"){
-          window.openStory(items[0]);
-          return;
-        }
-
-        if(typeof window.openStories==="function"){
-          window.openStories(items,0);
-          return;
-        }
-
-        /*
-          Profilde viewer fonksiyonu yoksa Story'nin medya adresini
-          tam ekran basit viewer ile göster.
-        */
-        const story=items[0];
-        const viewer=document.createElement("div");
-        viewer.id="profileStoryViewer";
-        viewer.style.cssText=
-          "position:fixed;inset:0;background:#000;z-index:999999;" +
-          "display:flex;align-items:center;justify-content:center;";
-
-        const media=story.media||"";
-        const isVideo=
-          String(story.mediaType||"").toLowerCase().includes("video") ||
-          String(media).startsWith("data:video");
-
-        if(isVideo){
-          const video=document.createElement("video");
-          video.src=media;
-          video.controls=true;
-          video.autoplay=true;
-          video.playsInline=true;
-          video.style.cssText="max-width:100%;max-height:100%;";
-          viewer.appendChild(video);
-        }else{
-          const img=document.createElement("img");
-          img.src=media;
-          img.style.cssText=
-            "max-width:100%;max-height:100%;object-fit:contain;";
-          viewer.appendChild(img);
-        }
-
-        viewer.onclick=function(){
-          viewer.remove();
-        };
-
-        document.body.appendChild(viewer);
-
-        /* İlk Story görüldü olarak işaretle */
-        try{
-          localStorage.setItem(
-            "minegram_story_seen_"+story.id,
-            "1"
-          );
-        }catch(err){}
-
-        avatar.classList.remove("profile-has-new-story");
-      }
+      openProfileStoryViewer(0);
     };
 
   }catch(error){
     console.error("[PROFILE STORY ERROR]",error);
   }
+}
+
+
+/* =========================================================
+   PROFILE STORY VIEWER
+   index.html Story görüntüleyicisinin profil sürümü.
+   ========================================================= */
+let profileStoryViewerIndex=0;
+let profileStoryViewerTimer=null;
+let profileStoryViewerRaf=null;
+let profileStoryViewerVideo=null;
+
+function clearProfileStoryViewerTimer(){
+  if(profileStoryViewerTimer){
+    clearTimeout(profileStoryViewerTimer);
+    profileStoryViewerTimer=null;
+  }
+  if(profileStoryViewerRaf){
+    cancelAnimationFrame(profileStoryViewerRaf);
+    profileStoryViewerRaf=null;
+  }
+  if(profileStoryViewerVideo){
+    try{profileStoryViewerVideo.pause();}catch(e){}
+    profileStoryViewerVideo=null;
+  }
+}
+
+function closeProfileStoryViewer(){
+  clearProfileStoryViewerTimer();
+  const viewer=document.getElementById("profileStoryViewer");
+  if(viewer) viewer.remove();
+  profileStoryViewerIndex=0;
+}
+
+function profileStoryTimeText(item){
+  const created=Number(item?.createdAt||0);
+  if(!created)return "şimdi";
+
+  const age=Math.max(0,Date.now()-created);
+  const clock=new Date(created).toLocaleTimeString("tr-TR",{
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit"
+  });
+
+  if(age<60000)return clock+" • şimdi";
+  if(age<3600000)return clock+" • "+Math.floor(age/60000)+" dk önce";
+  return clock+" • "+Math.floor(age/3600000)+" sa önce";
+}
+
+function updateProfileStoryProgress(value){
+  const viewer=document.getElementById("profileStoryViewer");
+  if(!viewer)return;
+
+  const bars=viewer.querySelectorAll(".profile-story-progress span");
+  bars.forEach((bar,i)=>{
+    const fill=bar.querySelector("i");
+    if(!fill)return;
+    if(i<profileStoryViewerIndex){
+      fill.style.width="100%";
+    }else if(i===profileStoryViewerIndex){
+      fill.style.width=(Math.max(0,Math.min(1,value))*100)+"%";
+    }else{
+      fill.style.width="0%";
+    }
+  });
+}
+
+function renderProfileStoryViewer(){
+  clearProfileStoryViewerTimer();
+
+  const items=window.profileStoryItems||[];
+  if(!items.length){
+    closeProfileStoryViewer();
+    return;
+  }
+
+  if(profileStoryViewerIndex<0)profileStoryViewerIndex=0;
+  if(profileStoryViewerIndex>=items.length){
+    closeProfileStoryViewer();
+    return;
+  }
+
+  let viewer=document.getElementById("profileStoryViewer");
+  if(!viewer){
+    viewer=document.createElement("div");
+    viewer.id="profileStoryViewer";
+    viewer.className="profile-story-viewer";
+    viewer.onclick=function(e){
+      if(e.target===viewer)closeProfileStoryViewer();
+    };
+    document.body.appendChild(viewer);
+  }
+
+  viewer.classList.add("open");
+
+  const item=items[profileStoryViewerIndex];
+  const username=String(
+    item.username ||
+    currentProfile?.username ||
+    me?.username ||
+    "Minegram"
+  ).replace(/^@/,"").trim() || "Minegram";
+
+  const media=String(item.media||"");
+  const isVideo=
+    String(item.type||item.mediaType||"").toLowerCase().startsWith("video") ||
+    /^data:video\//i.test(media);
+
+  viewer.innerHTML=`
+    <div class="profile-story-stage" onclick="event.stopPropagation()">
+      <div class="profile-story-progress">
+        ${items.map((_,i)=>`
+          <span class="${i<profileStoryViewerIndex?'done':i===profileStoryViewerIndex?'active':''}">
+            <i></i>
+          </span>
+        `).join("")}
+      </div>
+
+      <div class="profile-story-header">
+        <div class="profile-story-header-avatar">
+          ${
+            currentProfile?.avatar
+            ? `<img src="${escapeHtml(currentProfile.avatar)}" alt="">`
+            : escapeHtml(username.charAt(0).toUpperCase())
+          }
+        </div>
+        <div class="profile-story-header-info">
+          <div class="profile-story-header-user">@${escapeHtml(username)}</div>
+          <div class="profile-story-header-time">${escapeHtml(profileStoryTimeText(item))}</div>
+        </div>
+      </div>
+
+      <button class="profile-story-more" onclick="toggleProfileStoryMenu(event)" aria-label="Daha fazla">⋮</button>
+      <button class="profile-story-close" onclick="closeProfileStoryViewer()" aria-label="Kapat">×</button>
+
+      <button class="profile-story-prev" onclick="previousProfileStory()" aria-label="Önceki"></button>
+      <div id="profileStoryMediaWrap"></div>
+      <button class="profile-story-next" onclick="nextProfileStory()" aria-label="Sonraki"></button>
+
+      <div id="profileStoryMenu" class="profile-story-menu" onclick="event.stopPropagation()">
+        <button onclick="closeProfileStoryMenu()">Kapat</button>
+      </div>
+    </div>
+  `;
+
+  const wrap=document.getElementById("profileStoryMediaWrap");
+  if(!wrap)return;
+
+  try{
+    localStorage.setItem("minegram_story_seen_"+item.id,"1");
+  }catch(e){}
+
+  const avatar=document.getElementById("avatar");
+  if(avatar)avatar.classList.remove("profile-has-new-story");
+
+  if(isVideo){
+    const video=document.createElement("video");
+    video.className="profile-story-media";
+    video.src=media;
+    video.autoplay=true;
+    video.playsInline=true;
+    video.controls=false;
+    wrap.appendChild(video);
+
+    profileStoryViewerVideo=video;
+
+    video.onloadedmetadata=function(){
+      const duration=(Number(video.duration)||5)*1000;
+      const started=performance.now();
+
+      const tick=()=>{
+        if(!document.getElementById("profileStoryViewer"))return;
+        const value=(performance.now()-started)/duration;
+        updateProfileStoryProgress(value);
+        if(value<1){
+          profileStoryViewerRaf=requestAnimationFrame(tick);
+        }
+      };
+      profileStoryViewerRaf=requestAnimationFrame(tick);
+    };
+
+    video.onended=function(){
+      nextProfileStory();
+    };
+
+    video.onerror=function(){
+      nextProfileStory();
+    };
+
+    video.play().catch(function(){
+      video.muted=true;
+      video.play().catch(()=>{});
+    });
+  }else{
+    const img=document.createElement("img");
+    img.className="profile-story-media";
+    img.src=media;
+    img.alt="Hikaye";
+    wrap.appendChild(img);
+
+    const started=performance.now();
+    const duration=5000;
+
+    const tick=()=>{
+      if(!document.getElementById("profileStoryViewer"))return;
+      const value=(performance.now()-started)/duration;
+      updateProfileStoryProgress(value);
+      if(value<1){
+        profileStoryViewerRaf=requestAnimationFrame(tick);
+      }
+    };
+
+    profileStoryViewerRaf=requestAnimationFrame(tick);
+    profileStoryViewerTimer=setTimeout(nextProfileStory,duration);
+  }
+}
+
+function openProfileStoryViewer(index=0){
+  const items=window.profileStoryItems||[];
+  if(!items.length)return;
+
+  profileStoryViewerIndex=Math.max(
+    0,
+    Math.min(Number(index)||0,items.length-1)
+  );
+
+  renderProfileStoryViewer();
+}
+
+function nextProfileStory(){
+  const items=window.profileStoryItems||[];
+  if(profileStoryViewerIndex<items.length-1){
+    profileStoryViewerIndex++;
+    renderProfileStoryViewer();
+  }else{
+    closeProfileStoryViewer();
+  }
+}
+
+function previousProfileStory(){
+  const items=window.profileStoryItems||[];
+  if(profileStoryViewerIndex>0){
+    profileStoryViewerIndex--;
+    renderProfileStoryViewer();
+  }
+}
+
+function toggleProfileStoryMenu(e){
+  if(e)e.stopPropagation();
+  document.getElementById("profileStoryMenu")?.classList.toggle("open");
+}
+
+function closeProfileStoryMenu(){
+  document.getElementById("profileStoryMenu")?.classList.remove("open");
 }
 
 async function loadFirebasePublicPosts(username,userId){
