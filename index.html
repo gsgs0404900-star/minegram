@@ -104,7 +104,8 @@ body{
 /* Hikaye */
 .story{cursor:pointer;user-select:none}
 .story:active{transform:scale(.96)}
-.story.has-new-story .avatar{border:2px solid #e53935 !important;box-shadow:none !important}
+.story.has-new-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #e53935}
+.story.has-new-story .avatar{border:2px solid #e53935 !important}
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
 .story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
@@ -179,12 +180,6 @@ body{
   height:40px;
   font-size:15px;
   margin:0
-}
-
-/* Yeni gönderi: gönderinin üstündeki profil fotoğrafında kırmızı halka */
-.post-head .avatar.small.has-new-story{
-  border:2px solid #e53935 !important;
-  box-shadow:none !important;
 }
 
 .plus{
@@ -2021,13 +2016,8 @@ onclick="sendComment()"
       userId:
         s.user_id ||
         s.userId ||
-        s.owner_id ||
-        s.ownerId ||
-        s.auth_user_id ||
         profile.id ||
-        profile.user_id ||
         user.id ||
-        user.user_id ||
         "",
 
       username:
@@ -2285,17 +2275,12 @@ onclick="sendComment()"
       const result = await api("/stories");
       const list = Array.isArray(result)
         ? result
-        : (Array.isArray(result?.stories)
-          ? result.stories
-          : (Array.isArray(result?.data)
-            ? result.data
-            : (Array.isArray(result?.items) ? result.items : [])));
+        : (Array.isArray(result?.stories) ? result.stories : []);
 
       stories = list.map(normalizeStory).filter(Boolean);
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
-      try{ renderFeed(); }catch(e){}
 
       // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
       try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
@@ -3946,40 +3931,6 @@ let replyingTo=null;
 const feedEl=
   document.getElementById("feed");
 
-/* Gönderi profil fotoğrafına tıklama: Story varsa doğrudan Story aç.
-   Inline onclick yerine event delegation kullanıyoruz; böylece gönderinin
-   kendi tıklama olayı kırmızı Story halkasının tıklamasını yakalayamaz. */
-if(feedEl){
-  feedEl.addEventListener("click", function(e){
-    const avatar=e.target && e.target.closest
-      ? e.target.closest(".post-head .avatar.small[data-story-username]")
-      : null;
-    if(!avatar) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const username=avatar.getAttribute("data-story-username") || "";
-    const userId=avatar.getAttribute("data-story-user-id") || "";
-
-    /* Önce bellekteki hikayeyi doğrudan bul ve aç. */
-    const target=String(username||"").replace(/^@/,"").trim().toLowerCase();
-    const targetId=String(userId||"").trim();
-    const directGroup=storyGroups.find(function(g){
-      const gid=String(g?.userId||"").trim();
-      const gun=String(g?.username||"").replace(/^@/,"").trim().toLowerCase();
-      return (targetId && gid && gid===targetId) || (target && gun===target);
-    });
-
-    if(directGroup && Array.isArray(directGroup.stories) && directGroup.stories.length){
-      openGroup(directGroup,0);
-      return;
-    }
-
-    openStoryForPostUser(username, e, userId);
-  }, true);
-}
-
 
 /* =========================================================
    HTML ESCAPE
@@ -4306,69 +4257,8 @@ function profileUrl(username){
    POST
 ========================================================= */
 
-function isMinegramPostSeen(post){
-  if(!post) return false;
-  const id=String(
-    post.id ??
-    post.postId ??
-    post._id ??
-    post.uuid ??
-    ""
-  ).trim();
-  if(!id) return false;
-  try{ return localStorage.getItem("minegram_post_seen_" + id) === "1"; }catch(e){ return false; }
-}
-
-function markMinegramPostSeen(post){
-  if(!post) return;
-  const id=String(
-    post.id ??
-    post.postId ??
-    post._id ??
-    post.uuid ??
-    ""
-  ).trim();
-  if(!id) return;
-  try{ localStorage.setItem("minegram_post_seen_" + id, "1"); }catch(e){}
-}
-
-function hasMinegramUnseenStoryForUser(post){
-  const targetId=String(
-    post?.user?.id || post?.user?.userId || post?.userId || post?.user_id || ""
-  ).trim();
-  const targetName=String(
-    post?.user?.username || post?.username || ""
-  ).replace(/^@/,"").trim().toLowerCase();
-
-  /* Gönderide kırmızı halka SADECE gerçekten aktif bir Story varsa görünsün.
-     Story yoksa veya geçersiz/eski kayıt varsa kesinlikle halka verme. */
-  if(!Array.isArray(storyGroups) || (!targetId && !targetName)) return false;
-
-  const group=storyGroups.find(function(g){
-    const gid=String(g?.userId || "").trim();
-    const gun=String(g?.username || "").replace(/^@/,"").trim().toLowerCase();
-    return (targetId && gid && gid===targetId) ||
-           (targetName && gun===targetName);
-  });
-
-  if(!group || !Array.isArray(group.stories) || !group.stories.length) return false;
-
-  const now=Date.now();
-  const activeStories=group.stories.filter(function(story){
-    if(!story || !story.media) return false;
-    const created=Number(story.createdAt || 0);
-    if(created && (now-created)>STORY_AGE) return false;
-    return true;
-  });
-
-  return activeStories.some(function(story){ return !isStorySeen(story); });
-}
-
 function openMinegramPost(post){
   if(!post) return;
-
-  markMinegramPostSeen(post);
-  try{ renderFeed(); }catch(e){}
 
   const id=String(
     post.id ??
@@ -4406,91 +4296,6 @@ function openMinegramPost(post){
     "post.html?id="+
     encodeURIComponent(id);
 }
-
-async function openStoryForPostUser(username, event, userId){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  const target=String(username||'').replace(/^@/,'').trim().toLowerCase();
-  const targetId=String(userId||'').trim();
-  if(!target && !targetId) return;
-
-  function findStoryGroup(){
-    return storyGroups.find(function(g){
-      const gUserId=String(g?.userId||'').trim();
-      const gUsername=String(g?.username||'').replace(/^@/,'').trim().toLowerCase();
-      return (targetId && gUserId && gUserId===targetId) ||
-             (target && gUsername===target);
-    });
-  }
-
-  let group=findStoryGroup();
-
-  /* Hikayeler halen yükleniyorsa, yüklemenin bitmesini bekle.
-     Aksi halde butona basıldığı anda storyGroups boş olduğu için Story açılmaz. */
-  if(!group && loadingStories){
-    await new Promise(function(resolve){
-      const started=Date.now();
-      const wait=function(){
-        if(!loadingStories || Date.now()-started>8000){
-          resolve();
-          return;
-        }
-        setTimeout(wait,100);
-      };
-      wait();
-    });
-    group=findStoryGroup();
-  }
-
-  /* Gönderiler hikayelerden önce ekrana geldiyse, hikayeleri bir kez daha yükle. */
-  if(!group){
-    try{
-      await loadStories();
-      /* loadStories çağrısı yükleme nedeniyle beklememişse tamamlanmasını bekle. */
-      if(loadingStories){
-        await new Promise(function(resolve){
-          const started=Date.now();
-          const wait=function(){
-            if(!loadingStories || Date.now()-started>8000){
-              resolve();
-              return;
-            }
-            setTimeout(wait,100);
-          };
-          wait();
-        });
-      }
-      group=findStoryGroup();
-    }catch(e){}
-  }
-
-  /* ID eşleşmesi bulunamazsa kullanıcı adına göre ham hikayelerden tekrar oluştur. */
-  if(!group && target){
-    const matchingStories=(Array.isArray(stories)?stories:[]).filter(function(story){
-      return String(story?.username||'').replace(/^@/,'').trim().toLowerCase()===target;
-    });
-    if(matchingStories.length){
-      group={
-        userId:matchingStories[0].userId||'',
-        username:matchingStories[0].username||target,
-        displayName:matchingStories[0].displayName||target,
-        avatar:matchingStories[0].avatar||'',
-        stories:matchingStories
-      };
-      storyGroups.push(group);
-    }
-  }
-
-  if(group && Array.isArray(group.stories) && group.stories.length){
-    openGroup(group, 0);
-  }
-}
-
-/* Gönderi profil fotoğrafındaki tıklama için fonksiyonu kesin olarak global yap. */
-window.openStoryForPostUser=openStoryForPostUser;
 
 function openMinegramPostFromElement(event,element){
   if(event){
@@ -4531,11 +4336,6 @@ function renderPost(p){
         .charAt(0)
         .toUpperCase()
     );
-
-  const hasNewStory=hasMinegramUnseenStoryForUser(p) === true;
-  const avatarClass=
-    "avatar small" +
-    (hasNewStory ? " has-new-story" : "");
 
 
   const liked=
@@ -4613,14 +4413,7 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div
-          class="${avatarClass}"
-          data-story-username="${esc(rawUsername)}"
-          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || '')}"
-          title="Hikayeyi aç"
-          onclick="event.preventDefault();event.stopPropagation();openStoryForPostUser(this.getAttribute('data-story-username') || '', event, this.getAttribute('data-story-user-id') || '')"
-          style="cursor:pointer;position:relative;z-index:20;pointer-events:auto"
-        >
+        <div class="avatar small">
           ${initial}
         </div>
 
@@ -5308,23 +5101,9 @@ async function loadFeed(){
      Firebase'deki eski/anonim cihaz kayıtları burada kesinlikle okunmaz.
      Böylece silinmiş bir hesabın Firebase'de kalmış gönderisi,
      kullanıcı adı tekrar kullanılsa bile siteye geri dönemez. */
-  /* Feed bağlantısı geçici olarak düşerse tek denemede hata ekranına geçme.
-     Aynı oturum ve token ile kısa aralıklarla yeniden dene. */
-  let apiResult;
-  for(let feedAttempt=0; feedAttempt<3; feedAttempt++){
-    apiResult = await Promise.allSettled([
-      api("/feed")
-    ]).then(r => r[0]);
-
-    if(apiResult.status === "fulfilled") break;
-
-    const retryStatus = Number(apiResult.reason?.status || 0);
-    const retryable = retryStatus===0 || retryStatus>=500;
-    if(!retryable || feedAttempt===2) break;
-
-    await new Promise(resolve=>setTimeout(resolve, 900*(feedAttempt+1)));
-    if(!feedRequestIsCurrent()) return;
-  }
+  const apiResult = await Promise.allSettled([
+    api("/feed")
+  ]).then(r => r[0]);
 
   let apiPosts=[];
   let firebasePosts=[];
