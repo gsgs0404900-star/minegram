@@ -3937,6 +3937,25 @@ let replyingTo=null;
 const feedEl=
   document.getElementById("feed");
 
+/* Gönderi profil fotoğrafına tıklama: Story varsa doğrudan Story aç.
+   Inline onclick yerine event delegation kullanıyoruz; böylece gönderinin
+   kendi tıklama olayı kırmızı Story halkasının tıklamasını yakalayamaz. */
+if(feedEl){
+  feedEl.addEventListener("click", function(e){
+    const avatar=e.target && e.target.closest
+      ? e.target.closest(".post-head .avatar.small[data-story-username]")
+      : null;
+    if(!avatar) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const username=avatar.getAttribute("data-story-username") || "";
+    const userId=avatar.getAttribute("data-story-user-id") || "";
+    openStoryForPostUser(username, e, userId);
+  }, true);
+}
+
 
 /* =========================================================
    HTML ESCAPE
@@ -4535,7 +4554,8 @@ function renderPost(p){
 
         <div
           class="${avatarClass}"
-          onclick="openStoryForPostUser('${esc(rawUsername)}',event,'${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || '')}')"
+          data-story-username="${esc(rawUsername)}"
+          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || '')}"
           title="Hikayeyi aç"
           style="cursor:pointer"
         >
