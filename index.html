@@ -182,6 +182,12 @@ body{
   margin:0
 }
 
+/* Yeni gönderi: gönderinin üstündeki profil fotoğrafında kırmızı halka */
+.post-head .avatar.small.has-new-post{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #e53935;
+  border:2px solid #e53935 !important;
+}
+
 .plus{
   position:absolute;
   right:-2px;
@@ -4257,8 +4263,63 @@ function profileUrl(username){
    POST
 ========================================================= */
 
+function isMinegramPostSeen(post){
+  if(!post) return false;
+  const id=String(
+    post.id ??
+    post.postId ??
+    post._id ??
+    post.uuid ??
+    ""
+  ).trim();
+  if(!id) return false;
+  try{ return localStorage.getItem("minegram_post_seen_" + id) === "1"; }catch(e){ return false; }
+}
+
+function markMinegramPostSeen(post){
+  if(!post) return;
+  const id=String(
+    post.id ??
+    post.postId ??
+    post._id ??
+    post.uuid ??
+    ""
+  ).trim();
+  if(!id) return;
+  try{ localStorage.setItem("minegram_post_seen_" + id, "1"); }catch(e){}
+}
+
+function hasMinegramUnseenPostForUser(post){
+  const target=String(
+    post?.user?.username ||
+    post?.username ||
+    post?.userId ||
+    post?.user_id ||
+    ""
+  ).trim().toLowerCase();
+  if(!target) return !isMinegramPostSeen(post);
+
+  const posts=Array.isArray(window.__minegramFeedPosts)
+    ? window.__minegramFeedPosts
+    : [];
+
+  return posts.some(function(item){
+    const owner=String(
+      item?.user?.username ||
+      item?.username ||
+      item?.userId ||
+      item?.user_id ||
+      ""
+    ).trim().toLowerCase();
+    return owner===target && !isMinegramPostSeen(item);
+  });
+}
+
 function openMinegramPost(post){
   if(!post) return;
+
+  markMinegramPostSeen(post);
+  try{ renderFeed(); }catch(e){}
 
   const id=String(
     post.id ??
@@ -4337,6 +4398,11 @@ function renderPost(p){
         .toUpperCase()
     );
 
+  const hasNewPost=hasMinegramUnseenPostForUser(p);
+  const avatarClass=
+    "avatar small" +
+    (hasNewPost ? " has-new-post" : "");
+
 
   const liked=
     !!p.likedByMe;
@@ -4413,7 +4479,7 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div class="avatar small">
+        <div class="${avatarClass}">
           ${initial}
         </div>
 
