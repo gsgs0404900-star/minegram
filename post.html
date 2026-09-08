@@ -207,19 +207,12 @@ body{
   margin:0
 }
 
-/* GÖNDERİ AVATARINDA AKTİF/YENİ STORY HALKASI */
-.post-head .avatar.small.post-story-avatar.has-story-ring{
+.post-head .avatar.small.post-story-new{
   outline:2px solid #e53935 !important;
   outline-offset:3px;
   position:relative;
   z-index:20;
   cursor:pointer;
-}
-.post-head .avatar.small.post-story-avatar.post-story-new{
-  outline:2px solid #e53935 !important;
-  outline-offset:3px;
-  position:relative;
-  z-index:20;
 }
 
 .post-head .avatar.small.post-story-avatar{
@@ -2257,70 +2250,28 @@ onclick="sendComment()"
     loadingStories=true;
 
     try{
-      /*
-        KRİTİK GÜVENLİK:
-        Firebase/public_story/localStorage hikâyelerini HİÇBİR ZAMAN
-        feed'e geri yükleme. Silinmiş hesapların eski hikâyeleri burada
-        kalabildiği için yalnızca sunucunun /api/stories cevabı kullanılır.
-      */
-      stories=[];
+      // Firebase/local eski hikayeleri KULLANMA. Tek kaynak Supabase API.
+      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
 
-      let activeUsers=[];
-      try{
-        const activeResult=await api('/active-users?ts='+Date.now());
-        activeUsers=Array.isArray(activeResult?.users)
-          ? activeResult.users : [];
-      }catch(e){
-        console.warn('Aktif hesaplar alınamadı; eski story cache kullanılmayacak.',e);
-        activeUsers=[];
-      }
-
-      const activeIds=new Set();
-      activeUsers.forEach(u=>{
-        if(u?.id) activeIds.add(String(u.id).trim());
-        if(u?.auth_user_id) activeIds.add(String(u.auth_user_id).trim());
-      });
-
-      /* Aktif hesap listesi alınamadıysa eski hiçbir story gösterme. */
-      if(!activeIds.size){
-        buildStoryGroups();
-        renderStoryBar();
-        return;
-      }
-
-      const result=await api('/stories?ts='+Date.now());
-      const list=Array.isArray(result)
+      const result = await api("/stories");
+      const list = Array.isArray(result)
         ? result
         : (Array.isArray(result?.stories) ? result.stories : []);
 
-      /*
-        Yalnızca gerçek user_id'si halen aktif olan story'ler kabul edilir.
-        Username ile eşleştirme YOK; böylece silinen hesabın eski kullanıcı
-        adı üzerinden story geri gelemez.
-      */
-      stories=list
-        .map(normalizeStory)
-        .filter(Boolean)
-        .filter(story=>{
-          const uid=String(story?.userId||'').trim();
-          return uid && activeIds.has(uid);
-        });
-
+      stories = list.map(normalizeStory).filter(Boolean);
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
-      /* Eski story cache'ini temizle; bir daha fallback olarak kullanılmasın. */
-      try{
-        localStorage.removeItem('minegram_story_v2');
-      }catch(e){}
+      // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
+      try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
 
-    }catch(e){
-      console.error('STORY LOAD ERROR:',e);
+    }catch(error){
+      console.error("STORY API LOAD ERROR:", error);
       stories=[];
       buildStoryGroups();
       renderStoryBar();
-      try{ localStorage.removeItem('minegram_story_v2'); }catch(_){ }
     }finally{
       loadingStories=false;
     }
@@ -2332,50 +2283,56 @@ onclick="sendComment()"
 
   function buildStoryGroups(){
 
-    const map=
-      new Map();
+    const groupsMap = new Map();
 
-    stories
-      .sort(
-        (a,b)=>
-          a.createdAt-b.createdAt
-      )
-      .forEach(story=>{
+    (Array.isArray(stories) ? stories : []).forEach(function(story){
 
-        const key=
-          story.userId ||
-          story.username ||
-          story.id;
+      if(!story) return;
 
-        if(!map.has(key)){
+      const userId = story.userId ? String(story.userId) : "";
+      const username = String(story.username || "minegram")
+        .replace(/^@/, "")
+        .trim();
 
-          map.set(
-            key,
-            {
-              userId:story.userId,
-              username:story.username,
-              displayName:story.displayName,
-              avatar:story.avatar,
-              stories:[]
-            }
-          );
+      const key = userId || username.toLowerCase();
+      if(!key) return;
 
-        }
+      let group = groupsMap.get(key);
 
-        map
-          .get(key)
-          .stories
-          .push(story);
+      if(!group){
+        group = {
+          userId: story.userId || "",
+          username: username,
+          displayName: story.displayName || username,
+          avatar: story.avatar || "",
+          stories: []
+        };
+        groupsMap.set(key, group);
+      }
 
-      });
+      group.stories.push(story);
 
-    storyGroups=
-      Array.from(map.values());
+      if(!group.avatar && story.avatar) group.avatar = story.avatar;
+      if(!group.displayName && story.displayName) group.displayName = story.displayName;
+    });
 
-    // Gönderi avatarlarındaki story halkalarının da aynı grupları kullanması için
-    // global kopyayı güncelle.
+    storyGroups = Array.from(groupsMap.values());
     window.__minegramStoryGroups = storyGroups;
+    window.__minegramOpenStoryGroup = function(group,index){
+      if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
+    };
 
+    storyGroups.forEach(function(group){
+      group.stories.sort(function(a,b){
+        return Number(a.createdAt || 0) - Number(b.createdAt || 0);
+      });
+    });
+
+    storyGroups.sort(function(a,b){
+      const aLast = a.stories[a.stories.length - 1];
+      const bLast = b.stories[b.stories.length - 1];
+      return Number(bLast?.createdAt || 0) - Number(aLast?.createdAt || 0);
+    });
   }
 
 
@@ -2513,9 +2470,8 @@ onclick="sendComment()"
       item.className=
         "story has-story";
 
-      if(Array.isArray(group.stories) && group.stories.length){
+      if(Array.isArray(group.stories) && group.stories.some(function(story){ return !isStorySeen(story); }))
         item.classList.add("has-new-story");
-      }
 
       item.style.flex=
         "0 0 68px";
@@ -2551,10 +2507,10 @@ onclick="sendComment()"
 
       item.addEventListener(
         "click",
-        function(){
-
-          openGroup(group);
-
+        function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(group, 0);
         }
       );
 
@@ -2596,6 +2552,14 @@ onclick="sendComment()"
       myStory.classList.add(
         "has-story"
       );
+
+      /* Yeni hikaye varsa kırmızı halka göster.
+         Hikaye görüntülenince renderStoryBar() çağrılır ve halka gider.
+         Yeni bir hikaye yüklendiğinde yeni ID nedeniyle tekrar görünür. */
+      if(myGroup.stories.some(function(story){ return !isStorySeen(story); }))
+        myStory.classList.add("has-new-story");
+      else
+        myStory.classList.remove("has-new-story");
 
       const last=
         myGroup.stories[
@@ -2640,27 +2604,39 @@ onclick="sendComment()"
 
 
       myStory.onclick=
-        function(){
+        function(e){
 
-          openGroup(
-            myGroup
-          );
+          /* Kırmızı halka/avatar alanına basılırsa mevcut Story açılsın.
+             Sadece + alanı Story ekleme seçicisini açsın. */
+          if(e && e.target && e.target.closest &&
+             e.target.closest(".plus")){
+            e.preventDefault();
+            e.stopPropagation();
+            openPicker();
+            return;
+          }
 
-          const plusButton = myStory.querySelector(".plus");
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(myGroup, 0);
 
-if(plusButton){
+        };
 
-  plusButton.onclick = function(e){
+      /* Kırmızı halkaya doğrudan basıldığında da Story'yi aç.
+         + butonu bunun dışında kalır. */
+      avatar.onclick=
+        function(e){
+          if(e && e.target && e.target.closest &&
+             e.target.closest(".plus")){
+            e.preventDefault();
+            e.stopPropagation();
+            openPicker();
+            return;
+          }
 
-    e.preventDefault();
-    e.stopPropagation();
-
-    openPicker();
-
-  };
-
-}
-
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(myGroup, 0);
         };
 
       if(label)
@@ -2682,7 +2658,10 @@ if(plusButton){
         `;
 
       myStory.onclick=
-        openPicker;
+        function(e){
+          e.preventDefault();
+          openPicker();
+        };
 
       if(label)
         label.textContent=
@@ -2690,6 +2669,19 @@ if(plusButton){
 
     }
 
+
+    /* + butonu her durumda doğrudan dosya seçiciyi açsın.
+       Dinamik render sonrasında da çalışır. */
+    const storyPlus =
+      myStory.querySelector(".plus");
+
+    if(storyPlus){
+      storyPlus.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        openPicker();
+      };
+    }
 
     container.appendChild(
       storyItems
@@ -4421,8 +4413,6 @@ function openMinegramStoryFromPostAvatar(event, element){
 }
 
 window.updateMinegramPostStoryRings=function(){
-  // Story verisi yüklendiğinde global grubu her zaman güncel tut.
-  if(Array.isArray(storyGroups)) window.__minegramStoryGroups = storyGroups;
   document.querySelectorAll(".post-head .post-story-avatar").forEach(function(el){
     const username=el.getAttribute("data-story-username") || "";
     const userId=el.getAttribute("data-story-user-id") || "";
@@ -4433,7 +4423,6 @@ window.updateMinegramPostStoryRings=function(){
       try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
     });
     el.classList.toggle("post-story-new",unseen);
-    el.classList.toggle("has-story-ring",has);
     el.title=has ? "Hikayeyi aç" : "";
   });
 };
@@ -4536,7 +4525,7 @@ function renderPost(p){
       <div class="post-head">
 
         <div
-          class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " has-story-ring" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
+          class="avatar small post-story-avatar${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
