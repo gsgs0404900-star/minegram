@@ -92,9 +92,10 @@ a{color:inherit}
 
 /* PROFİL AVATARINDA YENİ STORY HALKASI - index.html ile aynı */
 #avatar.has-new-story{
-  border:2px solid #e53935 !important;
+  border:3px solid #e53935 !important;
   box-sizing:border-box !important;
-  box-shadow:none !important;
+  box-shadow:0 0 0 2px #000, 0 0 0 4px #e53935 !important;
+  overflow:visible !important;
 }     
      
 .stats{     
@@ -4018,34 +4019,39 @@ function renderProfileExtra(){
 
 async function updateProfileStoryRing(){
   const av=document.getElementById('avatar');
-  if(!av || !currentProfile)return;
+  if(!av)return;
 
-  /*
-    index.html ile BİREBİR aynı Story verisini kullan:
-    /stories -> profiles/profile içindeki kullanıcı bilgileri
-  */
   try{
     const result=await api('/stories');
-
     const list=Array.isArray(result)
-      ?result
-      :(Array.isArray(result?.stories)?result.stories:[]);
+      ? result
+      : (Array.isArray(result?.stories)?result.stories:[]);
+
+    const profileUsername=String(
+      currentProfile?.username || target || me?.username || ''
+    ).replace(/^@/,'').trim().toLowerCase();
+
+    const profileId=String(currentProfile?.id || '').trim();
 
     const now=Date.now();
-    const STORY_AGE=24*60*60*1000;
-
-    const profileId=String(currentProfile.id||'').trim();
-    const profileUsername=String(currentProfile.username||'')
-      .replace(/^@/,'')
-      .trim()
-      .toLowerCase();
+    const maxAge=24*60*60*1000;
 
     const hasNewStory=list.some(function(s){
       if(!s || !s.id)return false;
 
-      /* Supabase /stories cevabında kullanıcı bazen profiles içinde gelir. */
       const profile=s.profiles || s.profile || {};
       const user=s.user || {};
+
+      const storyUsername=String(
+        s.username ||
+        s.user_name ||
+        s.userName ||
+        profile.username ||
+        profile.user_name ||
+        user.username ||
+        user.user_name ||
+        ''
+      ).replace(/^@/,'').trim().toLowerCase();
 
       const storyUserId=String(
         s.user_id ||
@@ -4053,53 +4059,39 @@ async function updateProfileStoryRing(){
         s.owner_id ||
         s.ownerId ||
         profile.id ||
-        profile.user_id ||
         user.id ||
-        user.userId ||
         ''
       ).trim();
 
-      const storyUsername=String(
-        profile.username ||
-        profile.user_name ||
-        user.username ||
-        user.user_name ||
-        s.username ||
-        s.user_name ||
-        s.userName ||
-        ''
-      ).replace(/^@/,'').trim().toLowerCase();
-
-      const sameUser=
-        (profileId && storyUserId && profileId===storyUserId) ||
+      const sameUser =
         (profileUsername && storyUsername &&
-         profileUsername===storyUsername);
+         profileUsername === storyUsername) ||
+        (profileId && storyUserId &&
+         profileId === storyUserId);
 
       if(!sameUser)return false;
 
-      const createdAt=new Date(
-        s.created_at ||
-        s.createdAt ||
-        s.timestamp ||
-        0
-      ).getTime();
+      const createdAt=Date.parse(
+        s.created_at || s.createdAt || s.timestamp || ''
+      );
 
-      if(!createdAt || (now-createdAt)>STORY_AGE)return false;
+      if(!createdAt || now-createdAt>maxAge || createdAt>now+60000)return false;
 
-      /* index.html'deki isStorySeen() ile aynı kontrol */
+      let seen=false;
       try{
-        return localStorage.getItem(
-          'minegram_story_seen_'+s.id
-        )!=='1';
-      }catch(e){
-        return true;
-      }
+        seen=localStorage.getItem('minegram_story_seen_'+s.id)==='1';
+      }catch(e){}
+
+      return !seen;
     });
 
     av.classList.toggle('has-new-story',hasNewStory);
+    console.log('[PROFILE STORY RING]',{
+      profileUsername, profileId, storyCount:list.length, hasNewStory
+    });
 
   }catch(e){
-    console.error('[PROFILE] Story halkası kontrolü başarısız:',e);
+    console.error('[PROFILE STORY RING ERROR]',e);
     av.classList.remove('has-new-story');
   }
 }
