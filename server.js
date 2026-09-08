@@ -1599,187 +1599,215 @@ app.post("/api/login", async (req, res) => {
     }
 
     const admin = adminClient();
-    let authUser = null;
-    let profile = null;
-    let email = identifier.toLowerCase();
+    const candidates = [];
+    const profiles = [];
 
-    // 1) E-posta ile giriş: Auth'u doğrudan bul.
+    const addCandidate = (u) => {
+      if (!u) return;
+      const email = normalizeEmail(u.email || u?.user?.email || "");
+      if (!email) return;
+      const id = u.id || u?.user?.id || "";
+      if (!candidates.some(x => x.email === email)) candidates.push({ email, id, authUser: u?.user || u });
+    };
+
     if (identifier.includes("@")) {
+      const email = normalizeEmail(identifier);
       try {
         const r = await admin.auth.admin.getUserByEmail(email);
-        authUser = r?.data?.user || null;
+        if (r?.data?.user) addCandidate(r.data.user);
       } catch (_) {}
-      if (!authUser) {
-        try { authUser = await findAuthUserByEmailExact(email); } catch (_) {}
+      try { addCandidate(await findAuthUserByEmailExact(email)); } catch (_) {}
+
+      const pr = await admin.from("profiles").select("*").ilike("email", email).limit(20);
+      if (!pr.error) {
+        for (const p of (pr.data || [])) {
+          profiles.push(p);
+          if (p.auth_user_id) {
+            try {
+              const r = await admin.auth.admin.getUserById(p.auth_user_id);
+              if (r?.data?.user) addCandidate(r.data.user);
+            } catch (_) {}
+          }
+        }
       }
-      if (authUser?.email) email = normalizeEmail(authUser.email);
     } else {
-      // 2) Kullanıcı adı: önce profiles.
       const username = normalizeUsername(identifier);
+
+      // 1) Tüm eşleşen profilleri al. Eski/çift profillerden yalnızca ilkini
+      // seçmek yanlış Auth hesabına yönlendirebiliyordu.
       const pr = await admin
         .from("profiles")
         .select("*")
         .ilike("username", username)
-        .limit(20);
+        .limit(50);
 
       if (pr.error) {
         return res.status(500).json({ ok:false, error:pr.error.message });
       }
-      profile = (pr.data || []).find(p => normalizeUsername(p?.username) === username) || (pr.data || [])[0] || null;
 
-      // 3) Profile yoksa Auth metadata'dan kullanıcı adını bul.
-      if (!authUser) {
-        for (let page=1; page<=20 && !authUser; page++) {
+      for (const p of (pr.data || [])) {
+        if (normalizeUsername(p?.username) === username) profiles.push(p);
+      }
+
+      // 2) Profil -> auth_user_id / id üzerinden Auth kullanıcılarını bul.
+      for (const p of profiles) {
+        const id = p?.auth_user_id || p?.id;
+        if (!id) continue;
+        try {
+          const r = await admin.auth.admin.getUserById(id);
+          if (r?.data?.user) addCandidate(r.data.user);
+        } catch (_) {}
+      }
+
+      // 3) Profil e-postalarını da aday olarak ekle.
+      for (const p of profiles) {
+        const email = normalizeEmail(p?.email || "");
+        if (!email) continue;
+        try {
+          const r = await admin.auth.admin.getUserByEmail(email);
+          if (r?.data?.user) addCandidate(r.data.user);
+        } catch (_) {}
+        try { addCandidate(await findAuthUserByEmailExact(email)); } catch (_) {}
+      }
+
+      // 4) Profile kaydı olmayan / eski hesaplar: Auth metadata'daki tüm
+      // kullanıcı adı alanlarını tara.
+      for (let page = 1; page <= 50 && candidates.length === 0; page++) {
+        const lr = await admin.auth.admin.listUsers({ page, perPage:1000 });
+        if (lr?.error) break;
+        const users = lr.data?.users || [];
+        for (const u of users) {
+          const meta = u?.user_metadata || {};
+          const metaNames = [meta.username, meta.user_name, meta.preferred_username, u?.app_metadata?.username];
+          if (metaNames.some(v => normalizeUsername(v || "") === username)) addCandidate(u);
+        }
+        if (users.length < 1000) break;
+      }
+
+      // 5) Son çare: Auth kullanıcılarının e-postaları ile profiles
+      // eşleşmesini tarayarak eski bağlantısı kopmuş hesapları yakala.
+      if (candidates.length === 0) {
+        for (let page = 1; page <= 50 && candidates.length === 0; page++) {
           const lr = await admin.auth.admin.listUsers({ page, perPage:1000 });
-          if (lr.error) break;
+          if (lr?.error) break;
           const users = lr.data?.users || [];
-          authUser = users.find(u => normalizeUsername(
-            u?.user_metadata?.username ||
-            u?.user_metadata?.user_name ||
-            u?.user_metadata?.preferred_username || ""
-          ) === username) || null;
+          for (const u of users) {
+            const meta = u?.user_metadata || {};
+            const display = normalizeUsername(meta.username || meta.user_name || meta.preferred_username || "");
+            if (display === username) addCandidate(u);
+          }
           if (users.length < 1000) break;
         }
       }
-
-      // 4) Profile varsa auth_user_id/id ile Auth'u bul.
-      if (!authUser && profile) {
-        const id = profile.auth_user_id || profile.id;
-        if (id) {
-          try {
-            const r = await admin.auth.admin.getUserById(id);
-            authUser = r?.data?.user || null;
-          } catch (_) {}
-        }
-      }
-
-      // 5) Profile e-postasıyla Auth'u bul.
-      if (!authUser && profile?.email && String(profile.email).includes("@")) {
-        email = normalizeEmail(profile.email);
-        try {
-          const r = await admin.auth.admin.getUserByEmail(email);
-          authUser = r?.data?.user || null;
-        } catch (_) {}
-        if (!authUser) {
-          try { authUser = await findAuthUserByEmailExact(email); } catch (_) {}
-        }
-      }
-
-      if (authUser?.email) email = normalizeEmail(authUser.email);
     }
 
-    // 6) Auth kullanıcısı hâlâ yoksa ama profiles kaydında e-posta varsa,
-    // eski hesap için Auth hesabını oluştur. Bu, ikinci cihazda da çalışır.
-    if (!authUser && profile?.email && String(profile.email).includes("@")) {
-      email = normalizeEmail(profile.email);
-      const cr = await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm:true,
-        user_metadata:{
-          username: profile.username,
-          display_name: profile.display_name || profile.username
-        }
-      });
-      if (cr.error) {
-        // E-posta zaten Auth'ta ise tekrar bulmayı dene.
-        try {
-          const rr = await admin.auth.admin.getUserByEmail(email);
-          authUser = rr?.data?.user || null;
-        } catch (_) {}
-        if (!authUser) return res.status(401).json({ ok:false, code:"INVALID_LOGIN", error:cr.error.message });
-      } else authUser = cr.data?.user || null;
-    }
-
-    if (!authUser?.email) {
+    if (candidates.length === 0) {
       return res.status(401).json({ ok:false, code:"ACCOUNT_NOT_FOUND", error:"Kullanıcı adı veya e-posta ile kayıtlı hesap bulunamadı." });
     }
 
-    email = normalizeEmail(authUser.email);
-
-    // 7) Gerçek şifre doğrulaması Supabase Auth tarafından yapılır.
+    // Her olası Auth hesabını gerçek Supabase şifresiyle dene. Böylece
+    // eski/çift profile kayıtlarından yanlış hesaba denk gelinmez.
     const anon = client();
-    const login = await anon.auth.signInWithPassword({ email, password });
-    if (login.error || !login.data?.session || !login.data?.user) {
-      const msg = String(login.error?.message || "");
+    let loginData = null;
+    let authUser = null;
+    let lastLoginError = null;
+
+    for (const candidate of candidates) {
+      const login = await anon.auth.signInWithPassword({ email:candidate.email, password });
+      if (login?.data?.session && login?.data?.user) {
+        loginData = login.data;
+        authUser = login.data.user;
+        break;
+      }
+      lastLoginError = login?.error || null;
+    }
+
+    if (!loginData?.session || !authUser) {
+      const msg = String(lastLoginError?.message || "");
       if (/email not confirmed/i.test(msg)) {
         return res.status(403).json({ ok:false, code:"EMAIL_NOT_CONFIRMED", error:"E-posta adresin henüz doğrulanmamış. Önce e-posta doğrulamasını tamamla." });
       }
       return res.status(401).json({ ok:false, code:"INVALID_LOGIN", error:"Kullanıcı adı/e-posta veya şifre hatalı." });
     }
 
-    const authId = login.data.user.id;
+    const authId = authUser.id;
+    const email = normalizeEmail(authUser.email || "");
+    const username = normalizeUsername(identifier);
 
-    // 8) Auth hesabının profili yoksa oluştur; varsa auth_user_id'yi düzelt.
+    // Auth ID ile profil bul.
+    let matchedProfiles = [];
     const byAuth = await admin.from("profiles").select("*").eq("auth_user_id", authId).limit(20);
-    let profiles = byAuth.data || [];
+    if (!byAuth.error) matchedProfiles = byAuth.data || [];
 
-    if (!profiles.length) {
-      const byId = await admin.from("profiles").select("*").eq("id", authId).maybeSingle();
-      if (byId.data) profiles = [byId.data];
+    if (!matchedProfiles.length) {
+      const byId = await admin.from("profiles").select("*").eq("id", authId).limit(20);
+      if (!byId.error) matchedProfiles = byId.data || [];
     }
-    if (!profiles.length && email) {
+
+    if (!matchedProfiles.length && email) {
       const byEmail = await admin.from("profiles").select("*").eq("email", email).limit(20);
-      profiles = byEmail.data || [];
-    }
-    if (!profiles.length && !identifier.includes("@")) {
-      const username = normalizeUsername(identifier);
-      const byName = await admin.from("profiles").select("*").ilike("username", username).limit(20);
-      profiles = (byName.data || []).filter(p => normalizeUsername(p?.username) === username);
+      if (!byEmail.error) matchedProfiles = byEmail.data || [];
     }
 
-    if (!profiles.length && !identifier.includes("@")) {
-      const username = normalizeUsername(identifier);
+    if (!matchedProfiles.length && !identifier.includes("@")) {
+      matchedProfiles = profiles.filter(p => normalizeUsername(p?.username) === username);
+    }
+
+    let selected = matchedProfiles.find(p => normalizeUsername(p?.username) === username) || matchedProfiles[0] || null;
+
+    // Profil yoksa Auth metadata'dan doğru kullanıcı adını kullanarak oluştur.
+    if (!selected) {
+      const meta = authUser.user_metadata || {};
+      const finalUsername = username || normalizeUsername(meta.username || meta.user_name || meta.preferred_username || "user");
       const ins = await admin.from("profiles").insert({
         id: authId,
         auth_user_id: authId,
-        username,
-        display_name: authUser.user_metadata?.display_name || username,
+        username: finalUsername,
+        display_name: meta.display_name || finalUsername,
         email,
         bio:"",
         avatar_url:null,
         verified:false,
         settings:{}
       }).select("*").single();
+
       if (ins.error && ins.error.code !== "23505") {
         return res.status(500).json({ ok:false, error:ins.error.message });
       }
-      if (ins.data) profiles = [ins.data];
-    }
-
-    // Eski profile ile Auth ID'yi kesin olarak bağla.
-    if (profiles.length) {
-      const target = profiles[0];
-      if (target.auth_user_id !== authId || target.id !== authId) {
-        const ur = await admin.from("profiles")
-          .update({ auth_user_id:authId, email: target.email || email })
-          .eq("id", target.id)
-          .select("*").maybeSingle();
-        if (ur.data) profiles[0] = ur.data;
+      selected = ins.data || null;
+      if (!selected) {
+        const retry = await admin.from("profiles").select("*").eq("auth_user_id", authId).limit(1);
+        selected = retry.data?.[0] || null;
       }
     }
 
-    if (!profiles.length) {
+    if (!selected) {
       return res.status(404).json({ ok:false, error:"Bu hesap için Minegram profili oluşturulamadı." });
     }
 
-    const safe = profiles.map(safeProfile);
-    const selected = safe.find(x => normalizeUsername(x.username) === normalizeUsername(identifier)) || safe[0];
+    // Bağlantısı kopuk eski profili düzelt.
+    if (selected.auth_user_id !== authId || selected.email !== email) {
+      const ur = await admin.from("profiles")
+        .update({ auth_user_id:authId, email: selected.email || email })
+        .eq("id", selected.id)
+        .select("*").maybeSingle();
+      if (ur.data) selected = ur.data;
+    }
 
+    const safe = [safeProfile(selected)];
     return res.json({
       ok:true,
-      multipleProfiles:safe.length > 1,
+      multipleProfiles:false,
       profiles:safe,
-      profile:selected,
-      token:login.data.session.access_token,
-      user:selected
+      profile:safe[0],
+      token:loginData.session.access_token,
+      user:safe[0]
     });
   } catch (e) {
     console.error("LOGIN ERROR:", e);
-    return res.status(500).json({ ok:false, error:e?.message || "Giriş başarısız." });
+    return res.status(500).json({ ok:false, error:e?.message || "Giriş sırasında sunucu hatası oluştu." });
   }
 });
-
 
 /* =========================================================
    PASSWORD RESET TOKEN STORAGE
