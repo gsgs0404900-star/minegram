@@ -199,6 +199,19 @@ body{
   margin:0
 }
 
+/* GÖNDERİ AVATARINDA AKTİF/YENİ STORY HALKASI */
+.post-head .avatar.small.post-story-new{
+  outline:2px solid #e53935 !important;
+  outline-offset:3px;
+  position:relative;
+  z-index:20;
+  cursor:pointer;
+}
+
+.post-head .avatar.small.post-story-avatar{
+  cursor:pointer;
+}
+
 .plus{
   position:absolute;
   right:-2px;
@@ -2110,6 +2123,10 @@ onclick="sendComment()"
     });
 
     storyGroups = Array.from(groupsMap.values());
+    window.__minegramStoryGroups = storyGroups;
+    window.__minegramOpenStoryGroup = function(group,index){
+      if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
+    };
 
     storyGroups.forEach(function(group){
       group.stories.sort(function(a,b){
@@ -2298,6 +2315,7 @@ onclick="sendComment()"
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
       // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
       try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
@@ -2671,6 +2689,7 @@ onclick="sendComment()"
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
       try{
         localStorage.setItem(
@@ -2963,6 +2982,7 @@ onclick="sendComment()"
       }catch(e){}
 
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
     }catch(e){}
 
@@ -3792,6 +3812,7 @@ onclick="sendComment()"
         cleanStories();
         buildStoryGroups();
         renderStoryBar();
+        if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
       }
 
       try{
@@ -4348,6 +4369,56 @@ function openMinegramPostFromElement(event,element){
   if(post) openMinegramPost(post);
 }
 
+function getMinegramStoryGroupForPost(postOrUsername, maybeUserId){
+  const groups=Array.isArray(window.__minegramStoryGroups) ? window.__minegramStoryGroups : [];
+  const post = (postOrUsername && typeof postOrUsername === "object") ? postOrUsername : null;
+  const username=String(post ? (post.user?.username || post.username || "") : (postOrUsername || "")).replace(/^@/,"").trim().toLowerCase();
+  const userId=String(post ? (post.user?.id || post.user?.userId || post.user_id || post.userId || post.ownerUid || post.ownerId || "") : (maybeUserId || "")).trim();
+  return groups.find(function(g){
+    const gid=String(g?.userId || "").trim();
+    const gun=String(g?.username || "").replace(/^@/,"").trim().toLowerCase();
+    return (userId && gid && userId===gid) || (username && gun===username);
+  }) || null;
+}
+
+function hasMinegramStoryForPost(post){
+  const group=getMinegramStoryGroupForPost(post);
+  return !!(group && Array.isArray(group.stories) && group.stories.length);
+}
+
+function hasMinegramUnseenStoryForPost(post){
+  const group=getMinegramStoryGroupForPost(post);
+  if(!group || !Array.isArray(group.stories) || !group.stories.length) return false;
+  return group.stories.some(function(story){
+    if(!story || !story.id) return false;
+    try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
+  });
+}
+
+function openMinegramStoryFromPostAvatar(event, element){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  const username=element?.getAttribute("data-story-username") || "";
+  const userId=element?.getAttribute("data-story-user-id") || "";
+  const group=getMinegramStoryGroupForPost(username,userId);
+  if(!group || !Array.isArray(group.stories) || !group.stories.length) return;
+  if(typeof window.__minegramOpenStoryGroup === "function") window.__minegramOpenStoryGroup(group,0);
+}
+
+window.updateMinegramPostStoryRings=function(){
+  document.querySelectorAll(".post-head .post-story-avatar").forEach(function(el){
+    const username=el.getAttribute("data-story-username") || "";
+    const userId=el.getAttribute("data-story-user-id") || "";
+    const group=getMinegramStoryGroupForPost(username,userId);
+    const has=!!(group && Array.isArray(group.stories) && group.stories.length);
+    const unseen=has && group.stories.some(function(story){
+      if(!story || !story.id) return false;
+      try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
+    });
+    el.classList.toggle("post-story-new",unseen);
+    el.title=has ? "Hikayeyi aç" : "";
+  });
+};
+
 function renderPost(p){
 
   const username=
@@ -4447,7 +4518,13 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div class="avatar small">
+        <div
+          class="avatar small post-story-avatar${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
+          data-story-username="${esc(rawUsername)}"
+          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
+          onclick="openMinegramStoryFromPostAvatar(event,this)"
+        >
           ${initial}
         </div>
 
@@ -5193,6 +5270,8 @@ async function loadFeed(){
     window.__minegramFeedPosts=posts;
     feedEl.innerHTML=
       posts.map(renderPost).join("");
+
+    if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
     return;
   }
