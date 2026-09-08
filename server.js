@@ -801,14 +801,16 @@ app.post(
 
       /* Kullanıcı adı kontrolü */
       const {
-        data: existingProfile,
+        data: existingProfiles,
         error: usernameCheckError
       } = await admin
         .from("profiles")
-        .select("id,username,auth_user_id")
-        .eq("username", username)
-        .limit(1)
-        .maybeSingle();
+        .select("id,username,auth_user_id,email")
+        .ilike("username", username)
+        .limit(50);
+
+      const existingProfile = (existingProfiles || [])
+        .find(p => normalizeUsername(p?.username) === username) || null;
 
       if (usernameCheckError) {
         console.error(
@@ -830,6 +832,32 @@ app.post(
           code: "USERNAME_TAKEN",
           error: "Bu kullanıcı adı zaten alınmış."
         });
+      }
+
+      // profiles satırı silinmiş/bozulmuş olsa bile Auth metadata'sındaki
+      // kullanıcı adını tekrar kullanıma açık bırakma.
+      try {
+        let authUsernameTaken = false;
+        for (let page = 1; page <= 20 && !authUsernameTaken; page++) {
+          const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+          if (result?.error) break;
+          const users = result?.data?.users || [];
+          authUsernameTaken = users.some(u => {
+            const m = u?.user_metadata || {};
+            return [m.username, m.user_name, m.preferred_username, u?.app_metadata?.username]
+              .some(v => normalizeUsername(v || "") === username);
+          });
+          if (users.length < 1000) break;
+        }
+        if (authUsernameTaken) {
+          return res.status(409).json({
+            ok: false,
+            code: "USERNAME_TAKEN",
+            error: "Bu kullanıcı adı zaten alınmış."
+          });
+        }
+      } catch (e) {
+        console.error("AUTH USERNAME CHECK ERROR:", e?.message || e);
       }
 
       /* E-posta kontrolü */
