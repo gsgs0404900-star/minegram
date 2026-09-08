@@ -102,17 +102,27 @@ body{
 }
 
 /* Hikaye */
-.story{cursor:pointer;user-select:none}
+.story{cursor:pointer;user-select:none;position:relative;overflow:visible}
 .story:active{transform:scale(.96)}
-.story.has-new-story .avatar,
-#myStory.has-new-story #storyAvatar{
-  border:0 !important;
-  box-shadow:none !important;
-  outline:2px solid #e53935 !important;
-  outline-offset:3px;
-  position:relative;
-  z-index:5;
+
+/* Instagram tarzı tek kırmızı halka.
+   Halkayı avatarın kendisine değil Story kutusuna çiziyoruz;
+   böylece .stories{overflow:hidden} halkayı kesemez. */
+.story.has-new-story::before{
+  content:"";
+  position:absolute;
+  width:62px;
+  height:62px;
+  left:50%;
+  top:0;
+  transform:translateX(-50%);
+  border:2px solid #e53935;
+  border-radius:50%;
+  box-sizing:border-box;
+  pointer-events:none;
+  z-index:10;
 }
+
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
 .story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
