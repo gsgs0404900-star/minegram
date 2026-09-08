@@ -4083,82 +4083,39 @@ async function updateProfileStoryRing(){
   if(!avatar)return;
 
   try{
-    /*
-      INDEX.HTML'DEKİ loadStories() GİBİ:
-      önce aynı local cache, yoksa aynı /stories API.
-    */
     let raw=[];
 
     try{
-      const cached=localStorage.getItem(
-        "minegram_story_v2"
-      );
-
+      const cached=localStorage.getItem("minegram_story_v2");
       if(cached){
         const parsed=JSON.parse(cached);
-        if(Array.isArray(parsed)){
-          raw=parsed;
-        }
+        if(Array.isArray(parsed))raw=parsed;
       }
     }catch(e){}
 
-    /*
-      Sunucu kaynağı her zaman güncel olsun.
-      Index.html de /stories kullanıyor.
-    */
     try{
       const result=await api("/stories");
-
-      const serverList=
-        Array.isArray(result)
+      const serverList=Array.isArray(result)
         ?result
-        :(Array.isArray(result?.stories)
-          ?result.stories
-          :[]);
+        :(Array.isArray(result?.stories)?result.stories:[]);
+      if(serverList.length)raw=serverList;
+    }catch(e){}
 
-      if(serverList.length){
-        raw=serverList;
-      }
-    }catch(e){
-      /* Cache varsa onunla devam et. */
-    }
-
-    /*
-      INDEX.HTML'DEKİ normalizeStory + cleanStories
-    */
     const limit=Date.now()-(24*60*60*1000);
 
-    const stories=raw
-      .map(profileNormalizeStory)
+    const stories=raw.map(profileNormalizeStory)
       .filter(Boolean)
-      .filter(function(s){
-        return s.media &&
-               Number(s.createdAt)>limit;
-      });
+      .filter(s=>s.media && Number(s.createdAt)>limit);
 
-    /*
-      INDEX.HTML'DEKİ isMyStory() İLE AYNI:
-      current user ID veya username.
-    */
-    const myId=String(
-      currentProfile?.id||
-      me?.id||
-      ""
-    );
-
+    const myId=String(currentProfile?.id||me?.id||"");
     const myUsername=String(
-      currentProfile?.username||
-      me?.username||
-      target||
-      ""
+      currentProfile?.username||me?.username||target||""
     ).replace(/^@/,"").trim().toLowerCase();
 
     const myStories=stories.filter(function(story){
       const sid=String(story.userId||"");
       const su=String(story.username||"")
-        .replace(/^@/,"")
-        .trim()
-        .toLowerCase();
+        .replace(/^@/,"").trim().toLowerCase();
 
       return (
         (myId && sid && myId===sid) ||
@@ -4166,35 +4123,97 @@ async function updateProfileStoryRing(){
       );
     });
 
+    const hasNew=myStories.some(story=>!profileStorySeen(story));
+
+    avatar.classList.toggle("profile-has-new-story",hasNew);
+
     /*
-      INDEX.HTML:
-      myGroup.stories.some(story => !isStorySeen(story))
+      Profil avatarına basınca açılacak Story grubunu sakla.
+      En yeni Story ilk sırada olacak.
     */
-    const hasNew=myStories.some(function(story){
-      return !profileStorySeen(story);
-    });
+    window.profileStoryItems=myStories
+      .slice()
+      .sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
 
-    avatar.classList.toggle(
-      "profile-has-new-story",
-      hasNew
-    );
+    avatar.onclick=function(e){
+      e.preventDefault();
+      e.stopPropagation();
 
-    console.log(
-      "[PROFILE STORY - INDEX AYNI]",
-      {
-        myUsername:myUsername,
-        myId:myId,
-        totalStories:stories.length,
-        myStories:myStories.length,
-        hasNew:hasNew
+      const items=window.profileStoryItems||[];
+
+      if(items.length){
+        /*
+          Profil sayfasında Story viewer varsa onu kullan.
+          Yoksa index.html'deki Story viewer'ını çağırabilecek
+          ortak fonksiyonlardan ilk uygun olanı dene.
+        */
+        if(typeof window.openGroup==="function"){
+          window.openGroup(items,0);
+          return;
+        }
+
+        if(typeof window.openStory==="function"){
+          window.openStory(items[0]);
+          return;
+        }
+
+        if(typeof window.openStories==="function"){
+          window.openStories(items,0);
+          return;
+        }
+
+        /*
+          Profilde viewer fonksiyonu yoksa Story'nin medya adresini
+          tam ekran basit viewer ile göster.
+        */
+        const story=items[0];
+        const viewer=document.createElement("div");
+        viewer.id="profileStoryViewer";
+        viewer.style.cssText=
+          "position:fixed;inset:0;background:#000;z-index:999999;" +
+          "display:flex;align-items:center;justify-content:center;";
+
+        const media=story.media||"";
+        const isVideo=
+          String(story.mediaType||"").toLowerCase().includes("video") ||
+          String(media).startsWith("data:video");
+
+        if(isVideo){
+          const video=document.createElement("video");
+          video.src=media;
+          video.controls=true;
+          video.autoplay=true;
+          video.playsInline=true;
+          video.style.cssText="max-width:100%;max-height:100%;";
+          viewer.appendChild(video);
+        }else{
+          const img=document.createElement("img");
+          img.src=media;
+          img.style.cssText=
+            "max-width:100%;max-height:100%;object-fit:contain;";
+          viewer.appendChild(img);
+        }
+
+        viewer.onclick=function(){
+          viewer.remove();
+        };
+
+        document.body.appendChild(viewer);
+
+        /* İlk Story görüldü olarak işaretle */
+        try{
+          localStorage.setItem(
+            "minegram_story_seen_"+story.id,
+            "1"
+          );
+        }catch(err){}
+
+        avatar.classList.remove("profile-has-new-story");
       }
-    );
+    };
 
   }catch(error){
-    console.error(
-      "[PROFILE STORY ERROR]",
-      error
-    );
+    console.error("[PROFILE STORY ERROR]",error);
   }
 }
 
