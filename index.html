@@ -4358,6 +4358,27 @@ function openMinegramPost(post){
     encodeURIComponent(id);
 }
 
+function openStoryForPostUser(username, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const target=String(username||'').replace(/^@/,'').trim().toLowerCase();
+  if(!target) return;
+
+  const group=storyGroups.find(function(g){
+    return String(g?.username||'').replace(/^@/,'').trim().toLowerCase()===target;
+  });
+
+  if(group && Array.isArray(group.stories) && group.stories.length){
+    openGroup(group, 0);
+    return;
+  }
+
+  /* Hikayesi yoksa normal gönderi tıklamasını bozma. */
+}
+
 function openMinegramPostFromElement(event,element){
   if(event){
     const target=event.target;
@@ -4479,7 +4500,12 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div class="${avatarClass}">
+        <div
+          class="${avatarClass}"
+          onclick="openStoryForPostUser('${esc(rawUsername)}',event)"
+          title="Hikayeyi aç"
+          style="cursor:pointer"
+        >
           ${initial}
         </div>
 
