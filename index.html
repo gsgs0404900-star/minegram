@@ -4358,25 +4358,38 @@ function openMinegramPost(post){
     encodeURIComponent(id);
 }
 
-function openStoryForPostUser(username, event){
+async function openStoryForPostUser(username, event, userId){
   if(event){
     event.preventDefault();
     event.stopPropagation();
   }
 
   const target=String(username||'').replace(/^@/,'').trim().toLowerCase();
-  if(!target) return;
+  const targetId=String(userId||'').trim();
+  if(!target && !targetId) return;
 
-  const group=storyGroups.find(function(g){
-    return String(g?.username||'').replace(/^@/,'').trim().toLowerCase()===target;
-  });
+  function findStoryGroup(){
+    return storyGroups.find(function(g){
+      const gUserId=String(g?.userId||'').trim();
+      const gUsername=String(g?.username||'').replace(/^@/,'').trim().toLowerCase();
+      return (targetId && gUserId && gUserId===targetId) ||
+             (target && gUsername===target);
+    });
+  }
+
+  let group=findStoryGroup();
+
+  /* Gönderiler hikayelerden önce ekrana geldiyse, hikayeleri bir kez daha yükle. */
+  if(!group){
+    try{
+      await loadStories();
+      group=findStoryGroup();
+    }catch(e){}
+  }
 
   if(group && Array.isArray(group.stories) && group.stories.length){
     openGroup(group, 0);
-    return;
   }
-
-  /* Hikayesi yoksa normal gönderi tıklamasını bozma. */
 }
 
 function openMinegramPostFromElement(event,element){
@@ -4502,7 +4515,7 @@ function renderPost(p){
 
         <div
           class="${avatarClass}"
-          onclick="openStoryForPostUser('${esc(rawUsername)}',event)"
+          onclick="openStoryForPostUser('${esc(rawUsername)}',event,'${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || '')}')"
           title="Hikayeyi aç"
           style="cursor:pointer"
         >
