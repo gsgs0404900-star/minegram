@@ -84,18 +84,18 @@ a{color:inherit}
   border:0     
 }     
      
+
+/* PROFİL STORY - INDEX.HTML'DEKİ HAS-NEW-STORY HALKASI */
+#avatar.has-new-story{
+  outline:3px solid #e53935 !important;
+  outline-offset:-2px !important;
+  box-shadow:0 0 0 1px #e53935 !important;
+}
+
 .avatar img{     
   width:100%;     
   height:100%;     
   object-fit:cover     
-}
-
-/* PROFİL AVATARINDA YENİ STORY HALKASI - index.html ile aynı */
-#avatar.has-new-story{
-  border:3px solid #e53935 !important;
-  box-sizing:border-box !important;
-  box-shadow:0 0 0 2px #000, 0 0 0 4px #e53935 !important;
-  overflow:visible !important;
 }     
      
 .stats{     
@@ -4017,26 +4017,44 @@ function renderProfileExtra(){
 
 }
 
+
+function profileStoryIsSeen(story){
+  if(!story || !story.id)return false;
+  try{
+    return localStorage.getItem(
+      "minegram_story_seen_"+story.id
+    ) === "1";
+  }catch(e){
+    return false;
+  }
+}
+
 async function updateProfileStoryRing(){
-  const av=document.getElementById('avatar');
-  if(!av)return;
+  const avatar=document.getElementById("avatar");
+  if(!avatar || !currentProfile)return;
 
   try{
-    const result=await api('/stories');
+    /* INDEX.HTML: tek Story kaynağı */
+    const result=await api("/stories");
+
     const list=Array.isArray(result)
-      ? result
-      : (Array.isArray(result?.stories)?result.stories:[]);
+      ?result
+      :(Array.isArray(result?.stories)
+        ?result.stories
+        :[]);
 
-    const profileUsername=String(
-      currentProfile?.username || target || me?.username || ''
-    ).replace(/^@/,'').trim().toLowerCase();
+    const username=String(
+      currentProfile.username || target || ""
+    ).replace(/^@/,"").trim().toLowerCase();
 
-    const profileId=String(currentProfile?.id || '').trim();
+    const userId=String(
+      currentProfile.id || ""
+    ).trim();
 
     const now=Date.now();
     const maxAge=24*60*60*1000;
 
-    const hasNewStory=list.some(function(s){
+    const profileStories=list.filter(function(s){
       if(!s || !s.id)return false;
 
       const profile=s.profiles || s.profile || {};
@@ -4044,55 +4062,90 @@ async function updateProfileStoryRing(){
 
       const storyUsername=String(
         s.username ||
-        s.user_name ||
         s.userName ||
+        s.user_name ||
+        s.authorUsername ||
+        s.ownerUsername ||
         profile.username ||
+        profile.userName ||
         profile.user_name ||
         user.username ||
+        user.userName ||
         user.user_name ||
-        ''
-      ).replace(/^@/,'').trim().toLowerCase();
+        ""
+      ).replace(/^@/,"").trim().toLowerCase();
 
       const storyUserId=String(
         s.user_id ||
         s.userId ||
-        s.owner_id ||
+        s.uid ||
+        s.authorId ||
         s.ownerId ||
         profile.id ||
+        profile.user_id ||
         user.id ||
-        ''
+        user.uid ||
+        ""
       ).trim();
 
-      const sameUser =
-        (profileUsername && storyUsername &&
-         profileUsername === storyUsername) ||
-        (profileId && storyUserId &&
-         profileId === storyUserId);
+      const sameUser=
+        (username && storyUsername && username===storyUsername) ||
+        (userId && storyUserId && userId===storyUserId);
 
       if(!sameUser)return false;
 
-      const createdAt=Date.parse(
-        s.created_at || s.createdAt || s.timestamp || ''
+      /* Index.html'deki 24 saatlik aktif Story mantığı */
+      const created=Date.parse(
+        s.created_at ||
+        s.createdAt ||
+        s.timestamp ||
+        ""
       );
 
-      if(!createdAt || now-createdAt>maxAge || createdAt>now+60000)return false;
+      const expires=Date.parse(
+        s.expires_at ||
+        s.expiresAt ||
+        ""
+      );
 
-      let seen=false;
-      try{
-        seen=localStorage.getItem('minegram_story_seen_'+s.id)==='1';
-      }catch(e){}
+      if(expires && expires<=now)return false;
 
-      return !seen;
+      /* Tarih yoksa da API'den gelen eşleşmiş Story'yi göster.
+         Böylece backend alan adı değişse bile halka kaybolmaz. */
+      if(created && created<now-maxAge)return false;
+
+      return true;
     });
 
-    av.classList.toggle('has-new-story',hasNewStory);
-    console.log('[PROFILE STORY RING]',{
-      profileUsername, profileId, storyCount:list.length, hasNewStory
-    });
+    /*
+      İSTENEN DAVRANIŞ:
+      Profil sahibinin aktif Story'si varsa, index.html'deki
+      has-new-story mantığıyla kırmızı halka göster.
+      Görülmüşse halka kaldırılır.
+    */
+    const hasNewStory=profileStories.some(
+      story=>!profileStoryIsSeen(story)
+    );
 
-  }catch(e){
-    console.error('[PROFILE STORY RING ERROR]',e);
-    av.classList.remove('has-new-story');
+    avatar.classList.toggle(
+      "has-new-story",
+      hasNewStory
+    );
+
+    console.log(
+      "[PROFILE STORY RING]",
+      {
+        profile:username,
+        stories:profileStories.length,
+        newStory:hasNewStory
+      }
+    );
+
+  }catch(error){
+    console.error(
+      "[PROFILE STORY RING ERROR]",
+      error
+    );
   }
 }
 
@@ -4235,8 +4288,7 @@ async function load(){
 
    }
 
-   /* Profilde yeni/görülmemiş Story varsa kırmızı halka */
-    await updateProfileStoryRing();
+       await updateProfileStoryRing();
 
     const postsResponse=await api(
   '/api/users/'+encodeURIComponent(username)+'/posts'
@@ -4270,6 +4322,11 @@ renderPosts(posts);
  }
 
 }
+
+window.__profileStoryRingTimer=setInterval(
+  updateProfileStoryRing,
+  5000
+);
 
 async function openUserList(type){
 
