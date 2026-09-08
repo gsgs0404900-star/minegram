@@ -1467,12 +1467,15 @@ app.post("/api/account/migrate-local", async (req, res) => {
       .limit(20);
 
     if (profileError) return res.status(500).json({ ok: false, error: profileError.message });
-    const profile = (profiles || []).find(p => normalizeUsername(p?.username) === username) || null;
-    if (!profile) return res.status(404).json({ ok: false, code: "PROFILE_NOT_FOUND", error: "Eski hesabın sunucuda profili bulunamadı." });
+    let profile = (profiles || []).find(p => normalizeUsername(p?.username) === username) || null;
+
+    // Eski Android hesabı yalnızca MineStorage'da kalmışsa profiles satırı
+    // henüz olmayabilir. Bu durumda Auth kullanıcısı da yoksa aşağıda oluşturulur;
+    // Auth kullanıcısı varsa mevcut hesabı kullanıp profile satırını tamamlarız.
 
     let authUser = null;
-    if (profile.auth_user_id || profile.id) {
-      const id = profile.auth_user_id || profile.id;
+    if (profile?.auth_user_id || profile?.id) {
+      const id = profile?.auth_user_id || profile?.id;
       const { data } = await admin.auth.admin.getUserById(id);
       if (data?.user) authUser = data.user;
     }
@@ -1487,7 +1490,7 @@ app.post("/api/account/migrate-local", async (req, res) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { username, display_name: profile.display_name || username }
+        user_metadata: { username, display_name: profile?.display_name || username }
       });
       if (createError) return res.status(400).json({ ok: false, error: createError.message });
       authUser = created?.user;
@@ -1502,12 +1505,59 @@ app.post("/api/account/migrate-local", async (req, res) => {
       authUser = updated?.user || authUser;
     }
 
-    const { data: updatedProfile, error: upError } = await admin
-      .from("profiles")
-      .update({ auth_user_id: authUser.id, email, username })
-      .eq("id", profile.id)
-      .select("*")
-      .maybeSingle();
+    let updatedProfile = null;
+    let upError = null;
+
+    if (profile?.id) {
+      const result = await admin
+        .from("profiles")
+        .update({ auth_user_id: authUser.id, email, username })
+        .eq("id", profile.id)
+        .select("*")
+        .maybeSingle();
+      updatedProfile = result.data;
+      upError = result.error;
+    } else {
+      // Tamamen yerel kalmış eski hesap: Supabase Auth kullanıcısına profile oluştur.
+      const result = await admin
+        .from("profiles")
+        .insert({
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: username,
+          email,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        })
+        .select("*")
+        .single();
+      updatedProfile = result.data;
+      upError = result.error;
+
+      // Trigger aynı anda profile oluşturmuş olabilir; tekrar okuyup devam et.
+      if (upError?.code === "23505") {
+        const retry = await admin
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .maybeSingle();
+        updatedProfile = retry.data;
+        upError = retry.error;
+        if (updatedProfile) {
+          const fix = await admin
+            .from("profiles")
+            .update({ auth_user_id: authUser.id, email, username })
+            .eq("id", updatedProfile.id)
+            .select("*")
+            .maybeSingle();
+          updatedProfile = fix.data || updatedProfile;
+          upError = fix.error;
+        }
+      }
+    }
 
     if (upError) return res.status(500).json({ ok: false, error: upError.message });
 
