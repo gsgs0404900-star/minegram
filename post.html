@@ -4417,6 +4417,7 @@ window.updateMinegramPostStoryRings=function(){
       try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
     });
     el.classList.toggle("post-story-new",unseen);
+    el.classList.toggle("has-story-ring",has);
     el.title=has ? "Hikayeyi aç" : "";
   });
 };
@@ -4519,7 +4520,7 @@ function renderPost(p){
       <div class="post-head">
 
         <div
-          class="avatar small post-story-avatar${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
+          class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " has-story-ring" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
@@ -5175,6 +5176,9 @@ async function loadFeed(){
     feedEl.innerHTML=safePosts.length
       ? safePosts.map(renderPost).join('')
       : `<div class="empty"><strong>Henüz gönderi yok</strong>İlk gönderini oluştur.</div>`;
+
+    if(typeof window.updateMinegramPostStoryRings === "function")
+      window.updateMinegramPostStoryRings();
 
   }catch(e){
 
