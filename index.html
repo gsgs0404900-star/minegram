@@ -2461,6 +2461,14 @@ onclick="sendComment()"
         "has-story"
       );
 
+      /* Yeni hikaye varsa kırmızı halka göster.
+         Hikaye görüntülenince renderStoryBar() çağrılır ve halka gider.
+         Yeni bir hikaye yüklendiğinde yeni ID nedeniyle tekrar görünür. */
+      if(myGroup.stories.some(function(story){ return !isStorySeen(story); }))
+        myStory.classList.add("has-new-story");
+      else
+        myStory.classList.remove("has-new-story");
+
       const last=
         myGroup.stories[
           myGroup.stories.length-1
