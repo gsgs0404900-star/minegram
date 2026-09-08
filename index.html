@@ -2022,8 +2022,13 @@ onclick="sendComment()"
       userId:
         s.user_id ||
         s.userId ||
+        s.owner_id ||
+        s.ownerId ||
+        s.auth_user_id ||
         profile.id ||
+        profile.user_id ||
         user.id ||
+        user.user_id ||
         "",
 
       username:
@@ -2281,7 +2286,11 @@ onclick="sendComment()"
       const result = await api("/stories");
       const list = Array.isArray(result)
         ? result
-        : (Array.isArray(result?.stories) ? result.stories : []);
+        : (Array.isArray(result?.stories)
+          ? result.stories
+          : (Array.isArray(result?.data)
+            ? result.data
+            : (Array.isArray(result?.items) ? result.items : [])));
 
       stories = list.map(normalizeStory).filter(Boolean);
       cleanStories();
@@ -3952,6 +3961,21 @@ if(feedEl){
 
     const username=avatar.getAttribute("data-story-username") || "";
     const userId=avatar.getAttribute("data-story-user-id") || "";
+
+    /* Önce bellekteki hikayeyi doğrudan bul ve aç. */
+    const target=String(username||"").replace(/^@/,"").trim().toLowerCase();
+    const targetId=String(userId||"").trim();
+    const directGroup=storyGroups.find(function(g){
+      const gid=String(g?.userId||"").trim();
+      const gun=String(g?.username||"").replace(/^@/,"").trim().toLowerCase();
+      return (targetId && gid && gid===targetId) || (target && gun===target);
+    });
+
+    if(directGroup && Array.isArray(directGroup.stories) && directGroup.stories.length){
+      openGroup(directGroup,0);
+      return;
+    }
+
     openStoryForPostUser(username, e, userId);
   }, true);
 }
