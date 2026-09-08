@@ -104,7 +104,8 @@ body{
 /* Hikaye */
 .story{cursor:pointer;user-select:none}
 .story:active{transform:scale(.96)}
-.story.has-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #e53935}
+.story.has-new-story .avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #e53935}
+.story.has-new-story .avatar{border:2px solid #e53935 !important}
 .story-image{width:58px;height:58px;border-radius:50%;object-fit:cover;display:block}
 
 .story-viewer{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;display:none;align-items:center;justify-content:center}
@@ -2298,6 +2299,11 @@ onclick="sendComment()"
      STORY BAR
   ======================================================= */
 
+  function isStorySeen(item){
+    if(!item || !item.id) return false;
+    try{ return localStorage.getItem("minegram_story_seen_" + item.id) === "1"; }catch(e){ return false; }
+  }
+
   function renderStoryBar(){
 
     const container=
@@ -2371,6 +2377,9 @@ onclick="sendComment()"
 
       item.className=
         "story has-story";
+
+      if(Array.isArray(group.stories) && group.stories.some(function(story){ return !isStorySeen(story); }))
+        item.classList.add("has-new-story");
 
       item.style.flex=
         "0 0 68px";
@@ -2906,6 +2915,12 @@ onclick="sendComment()"
         );
 
       }
+
+      try{
+        localStorage.setItem("minegram_story_seen_" + item.id, "1");
+      }catch(e){}
+
+      renderStoryBar();
 
     }catch(e){}
 
