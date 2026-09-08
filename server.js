@@ -1582,1458 +1582,203 @@ app.post("/api/account/migrate-local", async (req, res) => {
    LOGIN
 ========================================================= */
 
-app.post(
-  "/api/login",
-  async (req, res) => {
-    try {
-      const identifier =
-        String(
-          req.body?.username ??
-          req.body?.email ??
-          ""
-        ).trim();
+/* =========================================================
+   LOGIN
+========================================================= */
 
-      const password =
-        String(
-          req.body?.password ??
-          ""
-        );
+app.post("/api/login", async (req, res) => {
+  try {
+    const identifier = String(req.body?.username ?? req.body?.email ?? "").trim();
+    const password = String(req.body?.password ?? "");
 
-      if (
-        !identifier ||
-        !password
-      ) {
-        return res.status(400).json({
-          error:
-            "Kullanıcı adı/e-posta ve şifre gerekli."
-        });
+    if (!identifier || !password) {
+      return res.status(400).json({ ok:false, error:"Kullanıcı adı/e-posta ve şifre gerekli." });
+    }
+    if (!CONFIG_OK || !SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ ok:false, error:"Supabase yapılandırması eksik." });
+    }
+
+    const admin = adminClient();
+    let authUser = null;
+    let profile = null;
+    let email = identifier.toLowerCase();
+
+    // 1) E-posta ile giriş: Auth'u doğrudan bul.
+    if (identifier.includes("@")) {
+      try {
+        const r = await admin.auth.admin.getUserByEmail(email);
+        authUser = r?.data?.user || null;
+      } catch (_) {}
+      if (!authUser) {
+        try { authUser = await findAuthUserByEmailExact(email); } catch (_) {}
       }
-
-      if (!CONFIG_OK) {
-        return res.status(500).json({
-          error:
-            "Supabase ortam değişkenleri eksik."
-        });
-      }
-
-      if (
-        !SUPABASE_SERVICE_ROLE_KEY
-      ) {
-        return res.status(500).json({
-          error:
-            "Giriş için SUPABASE_SERVICE_ROLE_KEY gerekli."
-        });
-      }
-
-      const admin =
-        adminClient();
-
-      let email =
-        identifier.toLowerCase();
-
-      if (
-        !identifier.includes("@")
-      ) {
-        const username =
-          normalizeUsername(
-            identifier
-          );
-
-        // Kullanıcı adı cihazdan bağımsız olarak sunucudan bulunur.
-        // @ işareti, boşluk ve büyük/küçük harf farkları girişe engel olmaz.
-        const {
-          data: profileRows,
-          error: pe
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .ilike(
-            "username",
-            username
-          )
-          .limit(20);
-
-        const profileList = Array.isArray(profileRows)
-          ? profileRows
-          : [];
-
-        const profile =
-          profileList.find(
-            p =>
-              normalizeUsername(p?.username) === username
-          ) || profileList[0] || null;
-
-        if (pe) {
-          return res.status(500).json({
-            error: pe.message
-          });
-        }
-
-        if (!profile) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı adı veya şifre hatalı."
-          });
-        }
-
-        let authUser = null;
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
-
-        if (authId) {
-          const {
-            data: au,
-            error: ae
-          } =
-            await admin.auth.admin.getUserById(
-              authId
-            );
-          if (!ae && au?.user?.email) {
-            authUser = au.user;
-          }
-        }
-
-        // Eski/uyumsuz profillerde auth_user_id farklı olabilir.
-        // Profilde kayıtlı e-posta varsa Auth kullanıcısını onunla bul.
-        if (!authUser?.email && profile?.email && String(profile.email).includes("@")) {
-          const wantedEmail = normalizeEmail(profile.email);
-          for (let page = 1; page <= 20 && !authUser; page++) {
-            const { data: listed, error: listError } =
-              await admin.auth.admin.listUsers({
-                page,
-                perPage: 1000
-              });
-
-            if (listError) break;
-
-            authUser =
-              (listed?.users || []).find(
-                u => normalizeEmail(u?.email) === wantedEmail
-              ) || null;
-
-            if ((listed?.users || []).length < 1000) break;
-          }
-        }
-
-        // auth_user_id/profile.id ve profile.email bulunamazsa, Auth
-        // kullanıcılarını kullanıcı adı metadata'sından da ara. Eski
-        // Android hesaplarında profiles satırı Auth id'siyle eşleşmeyebilir.
-        if (!authUser?.email) {
-          for (let page = 1; page <= 20 && !authUser; page++) {
-            const { data: listed, error: listError } =
-              await admin.auth.admin.listUsers({ page, perPage: 1000 });
-            if (listError) break;
-            authUser = (listed?.users || []).find(u => {
-              const metaUsername = normalizeUsername(
-                u?.user_metadata?.username ||
-                u?.user_metadata?.user_name ||
-                u?.user_metadata?.preferred_username ||
-                ""
-              );
-              return metaUsername && metaUsername === username;
-            }) || null;
-            if ((listed?.users || []).length < 1000) break;
-          }
-        }
-
-        if (!authUser?.email) {
-          return res.status(401).json({
-            error:
-              "Kullanıcı adı sunucuda bulundu ancak bu hesap için giriş e-postası bulunamadı. Hesabı bir kez ilk cihazdan aktarın."
-          });
-        }
-
-        email =
-          String(authUser.email).trim().toLowerCase();
-      }
-
-      const anon =
-        client();
-
-      const {
-        data: sd,
-        error: le
-      } =
-        await anon.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (
-        le ||
-        !sd?.session ||
-        !sd?.user
-      ) {
-        const loginMessage = String(le?.message || "");
-
-        if (/email not confirmed/i.test(loginMessage)) {
-          return res.status(403).json({
-            ok: false,
-            code: "EMAIL_NOT_CONFIRMED",
-            error:
-              "E-posta adresin henüz doğrulanmamış. Önce e-posta doğrulamasını tamamla."
-          });
-        }
-
-        return res.status(401).json({
-          ok: false,
-          code: "INVALID_LOGIN",
-          error:
-            /invalid login credentials/i.test(loginMessage)
-              ? "Kullanıcı adı/e-posta veya şifre hatalı."
-              : (
-                  loginMessage ||
-                  "Giriş başarısız."
-                )
-        });
-      }
-
-      const authId =
-        sd.user.id;
-
-      const {
-        data: profiles,
-        error: pe2
-      } = await admin
+      if (authUser?.email) email = normalizeEmail(authUser.email);
+    } else {
+      // 2) Kullanıcı adı: önce profiles.
+      const username = normalizeUsername(identifier);
+      const pr = await admin
         .from("profiles")
         .select("*")
-        .eq(
-          "auth_user_id",
-          authId
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        );
+        .ilike("username", username)
+        .limit(20);
 
-      if (pe2) {
-        return res.status(500).json({
-          error: pe2.message
-        });
+      if (pr.error) {
+        return res.status(500).json({ ok:false, error:pr.error.message });
       }
+      profile = (pr.data || []).find(p => normalizeUsername(p?.username) === username) || (pr.data || [])[0] || null;
 
-      let list =
-        profiles || [];
-
-      if (!list.length) {
-        const {
-          data: legacy
-        } = await admin
-          .from("profiles")
-          .select("*")
-          .eq(
-            "id",
-            authId
-          )
-          .maybeSingle();
-
-        if (legacy) {
-          list = [legacy];
+      // 3) Profile yoksa Auth metadata'dan kullanıcı adını bul.
+      if (!authUser) {
+        for (let page=1; page<=20 && !authUser; page++) {
+          const lr = await admin.auth.admin.listUsers({ page, perPage:1000 });
+          if (lr.error) break;
+          const users = lr.data?.users || [];
+          authUser = users.find(u => normalizeUsername(
+            u?.user_metadata?.username ||
+            u?.user_metadata?.user_name ||
+            u?.user_metadata?.preferred_username || ""
+          ) === username) || null;
+          if (users.length < 1000) break;
         }
       }
 
-      // Eski profillerde auth_user_id boş/yanlış olabilir.
-      // Auth e-postası ile profil e-postasını eşleştirerek son bir
-      // sunucu tarafı kurtarma yolu kullan.
-      if (!list.length && sd?.user?.email) {
-        const wantedEmail = normalizeEmail(sd.user.email);
-        const { data: emailProfiles } = await admin
-          .from("profiles")
-          .select("*")
-          .limit(1000);
-
-        const emailMatch =
-          (emailProfiles || []).find(
-            p => normalizeEmail(p?.email) === wantedEmail
-          ) || null;
-
-        if (emailMatch) {
-          list = [emailMatch];
-        }
-      }
-
-      if (!list.length) {
-        return res.status(404).json({
-          error:
-            "Bu hesap için Minegram profili bulunamadı."
-        });
-      }
-
-      const safe =
-        list.map(
-          safeProfile
-        );
-
-      const selected =
-        identifier.includes("@")
-          ? safe[0]
-          : (
-              safe.find(
-                x =>
-                  x.username ===
-                  normalizeUsername(
-                    identifier
-                  )
-              ) ||
-              safe[0]
-            );
-
-      return res.json({
-        ok: true,
-        multipleProfiles:
-          safe.length > 1,
-        profiles: safe,
-        profile: selected,
-        token:
-          sd.session
-            .access_token,
-        user: selected
-      });
-
-    } catch (e) {
-      console.error(
-        "LOGIN ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        error:
-          e?.message ||
-          "Giriş başarısız."
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   RECOVERY HELPERS
-========================================================= */
-
-function publicOrigin(req) {
-  const proto =
-    req.headers[
-      "x-forwarded-proto"
-    ] ||
-    req.protocol ||
-    "http";
-
-  return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
-}
-
-function maskEmail(email) {
-  const [
-    u,
-    d
-  ] =
-    String(email).split("@");
-
-  if (!u || !d) {
-    return email;
-  }
-
-  const shown =
-    u.length <= 2
-      ? u[0] + "*"
-      : u.slice(0, 2) +
-        "*".repeat(
-          Math.max(
-            1,
-            u.length - 2
-          )
-        );
-
-  return `${shown}@${d}`;
-}
-
-function normalizeRecoveryPhone(
-  value
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
-
-  const digits =
-    String(value)
-      .replace(/\D/g, "");
-
-  if (!digits) {
-    return "";
-  }
-
-  if (digits.length >= 10) {
-    return digits.slice(-10);
-  }
-
-  return digits;
-}
-
-
-/* =========================================================
-   FORGOT PASSWORD - FIND ACCOUNT
-========================================================= */
-
-app.post(
-  "/api/forgot-password/find-account",
-  async (req, res) => {
-    try {
-      const identifier =
-        String(
-          req.body?.identifier ??
-          req.body?.email ??
-          req.body?.username ??
-          req.body?.phone ??
-          ""
-        ).trim();
-
-      const mode =
-        String(
-          req.body?.mode ??
-          ""
-        )
-          .trim()
-          .toLowerCase();
-
-      if (!identifier) {
-        return res.status(400).json({
-          ok: false,
-          error: "E-posta, kullanıcı adı veya telefon numarası gerekli."
-        });
-      }
-
-      /*
-       * Frontend mode gönderiyorsa onu kullanıyoruz.
-       * Göndermiyorsa identifier'a göre otomatik belirliyoruz.
-       */
-      let recoveryMode = mode;
-
-      if (!recoveryMode) {
-        if (identifier.includes("@")) {
-          recoveryMode = "email";
-        } else if (
-          /[\d\s()+\-]/.test(identifier) &&
-          normalizeRecoveryPhone(identifier).length >= 10
-        ) {
-          recoveryMode = "phone";
-        } else {
-          recoveryMode = "username";
-        }
-      }
-
-      let found = null;
-
-      /*
-       * -----------------------------------------------------
-       * 1) TELEFON
-       * -----------------------------------------------------
-       */
-
-      if (
-        recoveryMode === "phone" ||
-        recoveryMode === "tel" ||
-        recoveryMode === "telefon"
-      ) {
-        const authUser =
-          await findUserByPhone(
-            identifier
-          );
-
-        if (authUser?.email) {
-          const admin =
-            adminClient();
-
-          let profile = null;
-
-          const {
-            data: profileById
-          } =
-            await admin
-              .from("profiles")
-              .select(
-                "id,auth_user_id,username,email,display_name,avatar_url"
-              )
-              .or(
-                `id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`
-              )
-              .limit(1)
-              .maybeSingle();
-
-          profile =
-            profileById || null;
-
-          found = {
-            email:
-              authUser.email,
-            profile,
-            authUser
-          };
-        }
-      }
-
-      /*
-       * -----------------------------------------------------
-       * 2) E-POSTA / KULLANICI ADI
-       * -----------------------------------------------------
-       */
-
-      if (!found) {
-        found =
-          await resolveRecoveryEmail(
-            identifier,
-            recoveryMode === "username"
-              ? "email"
-              : recoveryMode
-          );
-      }
-
-      /*
-       * -----------------------------------------------------
-       * HESAP YOK
-       * -----------------------------------------------------
-       */
-
-      if (!found?.email) {
-        return res.status(404).json({
-          ok: false,
-          error: "Bu bilgilerle eşleşen bir hesap bulunamadı."
-        });
-      }
-
-      const profile =
-        found.profile || {};
-
-      /*
-       * -----------------------------------------------------
-       * FRONTEND'E GÖNDERİLECEK HESAP BİLGİSİ
-       * -----------------------------------------------------
-       */
-
-      return res.json({
-        ok: true,
-
-        account: {
-          id:
-            profile.id ||
-            found.authUser?.id ||
-            null,
-
-          username:
-            profile.username ||
-            "",
-
-          displayName:
-            profile.display_name ||
-            profile.displayName ||
-            profile.username ||
-            "",
-
-          email:
-            found.email,
-
-          maskedEmail:
-            maskEmail(
-              found.email
-            ),
-
-          avatar:
-            profile.avatar_url ||
-            null
-        },
-
-        /*
-         * Frontend'in sonraki adımda kullanabilmesi
-         * için normalize edilmiş değerler.
-         */
-        identifier,
-        mode: recoveryMode
-      });
-
-    } catch (e) {
-      console.error(
-        "FIND ACCOUNT ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Hesap aranırken bir hata oluştu."
-      });
-    }
-  }
-);
-
-/* =========================================================
-   TEK VE TEMİZ findUserByPhone
-========================================================= */
-
-async function findUserByPhone(
-  phone
-) {
-  if (!SUPABASE_URL) {
-    console.error(
-      "SUPABASE_URL EKSİK"
-    );
-
-    return null;
-  }
-
-  if (
-    !SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    console.error(
-      "SUPABASE_SERVICE_ROLE_KEY EKSİK"
-    );
-
-    return null;
-  }
-
-  const admin =
-    adminClient();
-
-  const wanted =
-    normalizeRecoveryPhone(
-      phone
-    );
-
-  console.log(
-    "======================================"
-  );
-
-  console.log(
-    "MINEGRAM TELEFON HESAP ARAMA"
-  );
-
-  console.log(
-    "Gelen telefon:",
-    phone
-  );
-
-  console.log(
-    "Normalize telefon:",
-    wanted
-  );
-
-  console.log(
-    "======================================"
-  );
-
-  if (
-    !wanted ||
-    wanted.length !== 10
-  ) {
-    console.log(
-      "GEÇERSİZ TELEFON:",
-      wanted
-    );
-
-    return null;
-  }
-
-
-  /* -------------------------------------------------------
-     1) SUPABASE AUTH TELEFON
-  ------------------------------------------------------- */
-
-  try {
-    for (
-      let page = 1;
-      page <= 20;
-      page++
-    ) {
-      const result =
-        await admin.auth.admin.listUsers({
-          page,
-          perPage: 1000
-        });
-
-      const users =
-        result?.data?.users ||
-        [];
-
-      const error =
-        result?.error;
-
-      if (error) {
-        console.error(
-          "AUTH KULLANICILARI ALINAMADI:",
-          error
-        );
-
-        break;
-      }
-
-      console.log(
-        `AUTH SAYFA ${page}: ${users.length} kullanıcı`
-      );
-
-      for (const user of users) {
-        if (!user?.phone) {
-          continue;
-        }
-
-        const normalizedUserPhone =
-          normalizeRecoveryPhone(
-            user.phone
-          );
-
-        console.log(
-          "AUTH TELEFON KONTROL:",
-          user.phone,
-          "=>",
-          normalizedUserPhone
-        );
-
-        if (
-          normalizedUserPhone ===
-          wanted
-        ) {
-          console.log(
-            "TELEFON AUTH'TA BULUNDU!",
-            user.id,
-            user.email
-          );
-
-          return user;
-        }
-      }
-
-      if (
-        users.length < 1000
-      ) {
-        break;
-      }
-    }
-  } catch (error) {
-    console.error(
-      "AUTH TELEFON ARAMA HATASI:",
-      error?.message ||
-        error
-    );
-  }
-
-
-  /* -------------------------------------------------------
-     2) PROFILES TELEFON
-  ------------------------------------------------------- */
-
-  const possibleColumns = [
-    "phone",
-    "phone_number",
-    "phoneNumber",
-    "telefon",
-    "telefon_numarasi",
-    "telefon_numarası",
-    "mobile",
-    "mobile_phone",
-    "gsm",
-    "gsm_number"
-  ];
-
-  for (
-    const column of
-    possibleColumns
-  ) {
-    try {
-      const {
-        data,
-        error
-      } =
-        await admin
-          .from("profiles")
-          .select("*")
-          .not(
-            column,
-            "is",
-            null
-          );
-
-      if (error) {
-        console.log(
-          `PROFILES KOLONU KULLANILAMIYOR: ${column}`
-        );
-
-        continue;
-      }
-
-      for (
-        const profile of
-        data || []
-      ) {
-        const profilePhone =
-          normalizeRecoveryPhone(
-            profile?.[column]
-          );
-
-        if (
-          !profilePhone
-        ) {
-          continue;
-        }
-
-        if (
-          profilePhone !==
-          wanted
-        ) {
-          continue;
-        }
-
-        console.log(
-          "TELEFON PROFILES'TA BULUNDU:",
-          profile.id,
-          profile.username,
-          column
-        );
-
-        const possibleAuthIds = [
-          profile.auth_user_id,
-          profile.id
-        ].filter(Boolean);
-
-        for (
-          const authId of
-          possibleAuthIds
-        ) {
+      // 4) Profile varsa auth_user_id/id ile Auth'u bul.
+      if (!authUser && profile) {
+        const id = profile.auth_user_id || profile.id;
+        if (id) {
           try {
-            const {
-              data: authData,
-              error: authError
-            } =
-              await admin.auth.admin.getUserById(
-                authId
-              );
-
-            if (
-              !authError &&
-              authData?.user
-            ) {
-              console.log(
-                "AUTH KULLANICISI BULUNDU:",
-                authData.user.id
-              );
-
-              return authData.user;
-            }
-          } catch (error) {
-            console.log(
-              "AUTH ID KONTROL HATASI:",
-              authId,
-              error?.message ||
-                error
-            );
-          }
+            const r = await admin.auth.admin.getUserById(id);
+            authUser = r?.data?.user || null;
+          } catch (_) {}
         }
       }
-    } catch (error) {
-      console.log(
-        `PROFILE TELEFON ARAMA HATASI [${column}]:`,
-        error?.message ||
-          error
-      );
-    }
-  }
 
-  console.log(
-    "TELEFONLA HESAP BULUNAMADI:",
-    wanted
-  );
-
-  return null;
-}
-
-
-/* =========================================================
-   RECOVERY EMAIL RESOLVE
-========================================================= */
-
-function normalizeRecoveryMode(mode) {
-  const m = String(mode || "email").trim().toLowerCase();
-  if (["phone", "tel", "telefon"].includes(m)) return "phone";
-  if (["username", "user", "kullanici", "kullanıcı"].includes(m)) return "username";
-  return "email";
-}
-
-async function findAuthUserByEmailExact(email) {
-  const wanted = String(email || "").trim().toLowerCase();
-  if (!wanted || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
-
-  /* Supabase Admin REST: SDK sürümünden bağımsız kesin arama. */
-  for (let page = 1; page <= 20; page++) {
-    const url = `${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/users?page=${page}&per_page=1000`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      // 5) Profile e-postasıyla Auth'u bul.
+      if (!authUser && profile?.email && String(profile.email).includes("@")) {
+        email = normalizeEmail(profile.email);
+        try {
+          const r = await admin.auth.admin.getUserByEmail(email);
+          authUser = r?.data?.user || null;
+        } catch (_) {}
+        if (!authUser) {
+          try { authUser = await findAuthUserByEmailExact(email); } catch (_) {}
+        }
       }
+
+      if (authUser?.email) email = normalizeEmail(authUser.email);
+    }
+
+    // 6) Auth kullanıcısı hâlâ yoksa ama profiles kaydında e-posta varsa,
+    // eski hesap için Auth hesabını oluştur. Bu, ikinci cihazda da çalışır.
+    if (!authUser && profile?.email && String(profile.email).includes("@")) {
+      email = normalizeEmail(profile.email);
+      const cr = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm:true,
+        user_metadata:{
+          username: profile.username,
+          display_name: profile.display_name || profile.username
+        }
+      });
+      if (cr.error) {
+        // E-posta zaten Auth'ta ise tekrar bulmayı dene.
+        try {
+          const rr = await admin.auth.admin.getUserByEmail(email);
+          authUser = rr?.data?.user || null;
+        } catch (_) {}
+        if (!authUser) return res.status(401).json({ ok:false, code:"INVALID_LOGIN", error:cr.error.message });
+      } else authUser = cr.data?.user || null;
+    }
+
+    if (!authUser?.email) {
+      return res.status(401).json({ ok:false, code:"ACCOUNT_NOT_FOUND", error:"Kullanıcı adı veya e-posta ile kayıtlı hesap bulunamadı." });
+    }
+
+    email = normalizeEmail(authUser.email);
+
+    // 7) Gerçek şifre doğrulaması Supabase Auth tarafından yapılır.
+    const anon = client();
+    const login = await anon.auth.signInWithPassword({ email, password });
+    if (login.error || !login.data?.session || !login.data?.user) {
+      const msg = String(login.error?.message || "");
+      if (/email not confirmed/i.test(msg)) {
+        return res.status(403).json({ ok:false, code:"EMAIL_NOT_CONFIRMED", error:"E-posta adresin henüz doğrulanmamış. Önce e-posta doğrulamasını tamamla." });
+      }
+      return res.status(401).json({ ok:false, code:"INVALID_LOGIN", error:"Kullanıcı adı/e-posta veya şifre hatalı." });
+    }
+
+    const authId = login.data.user.id;
+
+    // 8) Auth hesabının profili yoksa oluştur; varsa auth_user_id'yi düzelt.
+    const byAuth = await admin.from("profiles").select("*").eq("auth_user_id", authId).limit(20);
+    let profiles = byAuth.data || [];
+
+    if (!profiles.length) {
+      const byId = await admin.from("profiles").select("*").eq("id", authId).maybeSingle();
+      if (byId.data) profiles = [byId.data];
+    }
+    if (!profiles.length && email) {
+      const byEmail = await admin.from("profiles").select("*").eq("email", email).limit(20);
+      profiles = byEmail.data || [];
+    }
+    if (!profiles.length && !identifier.includes("@")) {
+      const username = normalizeUsername(identifier);
+      const byName = await admin.from("profiles").select("*").ilike("username", username).limit(20);
+      profiles = (byName.data || []).filter(p => normalizeUsername(p?.username) === username);
+    }
+
+    if (!profiles.length && !identifier.includes("@")) {
+      const username = normalizeUsername(identifier);
+      const ins = await admin.from("profiles").insert({
+        id: authId,
+        auth_user_id: authId,
+        username,
+        display_name: authUser.user_metadata?.display_name || username,
+        email,
+        bio:"",
+        avatar_url:null,
+        verified:false,
+        settings:{}
+      }).select("*").single();
+      if (ins.error && ins.error.code !== "23505") {
+        return res.status(500).json({ ok:false, error:ins.error.message });
+      }
+      if (ins.data) profiles = [ins.data];
+    }
+
+    // Eski profile ile Auth ID'yi kesin olarak bağla.
+    if (profiles.length) {
+      const target = profiles[0];
+      if (target.auth_user_id !== authId || target.id !== authId) {
+        const ur = await admin.from("profiles")
+          .update({ auth_user_id:authId, email: target.email || email })
+          .eq("id", target.id)
+          .select("*").maybeSingle();
+        if (ur.data) profiles[0] = ur.data;
+      }
+    }
+
+    if (!profiles.length) {
+      return res.status(404).json({ ok:false, error:"Bu hesap için Minegram profili oluşturulamadı." });
+    }
+
+    const safe = profiles.map(safeProfile);
+    const selected = safe.find(x => normalizeUsername(x.username) === normalizeUsername(identifier)) || safe[0];
+
+    return res.json({
+      ok:true,
+      multipleProfiles:safe.length > 1,
+      profiles:safe,
+      profile:selected,
+      token:login.data.session.access_token,
+      user:selected
     });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(
-        `Supabase Auth kullanıcıları alınamadı (${response.status}): ${data?.msg || data?.message || data?.error_description || "Bilinmeyen hata"}`
-      );
-    }
-
-    const users = Array.isArray(data?.users) ? data.users : [];
-    const match = users.find(
-      user => String(user?.email || "").trim().toLowerCase() === wanted
-    );
-
-    if (match?.id) return match;
-    if (users.length < 1000) break;
-  }
-
-  return null;
-}
-
-
-async function resolveRecoveryEmail(
-  identifier,
-  mode = "email"
-) {
-  const raw = String(identifier || "").trim();
-  if (!raw) return null;
-
-  const cleanMode = normalizeRecoveryMode(mode);
-  const admin = adminClient();
-
-  let email = raw;
-  let profile = null;
-  let authUser = null;
-
-  /* -------------------------------------------------------
-     1) TELEFON
-  ------------------------------------------------------- */
-  if (cleanMode === "phone") {
-    authUser = await findUserByPhone(raw);
-
-    if (!authUser?.id || !authUser?.email) {
-      return null;
-    }
-
-    email = String(authUser.email).trim().toLowerCase();
-
-    try {
-      const { data } = await admin
-        .from("profiles")
-        .select("*")
-        .or(`id.eq.${authUser.id},auth_user_id.eq.${authUser.id}`)
-        .limit(1)
-        .maybeSingle();
-      profile = data || null;
-    } catch (e) {
-      console.log("RECOVERY PROFILE TELEFON HATASI:", e?.message || e);
-    }
-
-    return { email, profile, authUser };
-  }
-
-  /* -------------------------------------------------------
-     2) E-POSTA
-     Supabase Auth doğrudan e-posta ile aranır.
-     Böylece profiles RLS yüzünden boş dönse bile hesap bulunur.
-  ------------------------------------------------------- */
-  if (email.includes("@")) {
-    email = email.toLowerCase();
-
-    try {
-      const { data, error } =
-        await admin.auth.admin.getUserByEmail(email);
-
-      if (!error && data?.user?.id) {
-        authUser = data.user;
-        email = String(data.user.email || email)
-          .trim()
-          .toLowerCase();
-      }
-    } catch (e) {
-      console.log("RECOVERY AUTH E-POSTA HATASI:", e?.message || e);
-    }
-
-    /* SDK başarısız olsa bile doğrudan Supabase Auth REST ile ara. */
-    if (!authUser) {
-      try {
-        authUser = await findAuthUserByEmailExact(email);
-      } catch (e) {
-        console.log("RECOVERY AUTH REST E-POSTA HATASI:", e?.message || e);
-      }
-    }
-
-    /* Auth'ta bulunamazsa profiles'tan da kontrol et. */
-    if (!authUser) {
-      try {
-        const { data } = await admin
-          .from("profiles")
-          .select("*")
-          .eq("email", email)
-          .limit(1)
-          .maybeSingle();
-
-        profile = data || null;
-      } catch (e) {
-        console.log("RECOVERY PROFILE E-POSTA HATASI:", e?.message || e);
-      }
-    }
-  }
-
-  /* -------------------------------------------------------
-     3) KULLANICI ADI
-     Service-role ile profiles aranır; RLS engeline takılmaz.
-  ------------------------------------------------------- */
-  if (!authUser && !email.includes("@")) {
-    const username = normalizeUsername(raw);
-
-    try {
-      const { data, error } = await admin
-        .from("profiles")
-        .select("*")
-        .eq("username", username)
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.log("RECOVERY USERNAME PROFILE HATASI:", error.message || error);
-      } else {
-        profile = data || null;
-      }
-    } catch (e) {
-      console.log("RECOVERY USERNAME ARAMA HATASI:", e?.message || e);
-    }
-
-    if (!profile) return null;
-
-    const authId = profile.auth_user_id || profile.id || null;
-
-    if (authId) {
-      try {
-        const { data, error } =
-          await admin.auth.admin.getUserById(authId);
-
-        if (!error && data?.user?.id) {
-          authUser = data.user;
-          email = String(data.user.email || profile.email || "")
-            .trim()
-            .toLowerCase();
-        }
-      } catch (e) {
-        console.log("RECOVERY USERNAME AUTH HATASI:", e?.message || e);
-      }
-    }
-
-    /* auth_user_id/id çalışmadıysa profile e-postasıyla Auth'u bul. */
-    if (!authUser && profile.email) {
-      try {
-        const { data, error } =
-          await admin.auth.admin.getUserByEmail(
-            String(profile.email).trim().toLowerCase()
-          );
-
-        if (!error && data?.user?.id) {
-          authUser = data.user;
-          email = String(data.user.email || profile.email)
-            .trim()
-            .toLowerCase();
-        }
-      } catch (e) {
-        console.log("RECOVERY PROFILE EMAIL AUTH HATASI:", e?.message || e);
-      }
-    }
-  }
-
-  /* -------------------------------------------------------
-     4) E-posta ile bulunduysa profile'i service-role ile getir.
-  ------------------------------------------------------- */
-  if (!profile && email.includes("@")) {
-    try {
-      const { data } = await admin
-        .from("profiles")
-        .select("*")
-        .eq("email", email)
-        .limit(1)
-        .maybeSingle();
-      profile = data || null;
-    } catch (e) {
-      console.log("RECOVERY PROFILE SON ARAMA HATASI:", e?.message || e);
-    }
-  }
-
-  /* Profile'dan Auth kullanıcısını son kez doğrula. */
-  if (!authUser && profile) {
-    authUser = await resolveAuthUserForProfile(profile, admin);
-    if (authUser?.email) {
-      email = String(authUser.email).trim().toLowerCase();
-    }
-  }
-
-  if (!email.includes("@")) return null;
-
-  return {
-    email,
-    profile,
-    authUser
-  };
-}
-
-/* =========================================================
-   FORGOT LEGACY
-========================================================= */
-
-app.post(
-  "/api/forgot",
-  async (req, res) => {
-    try {
-      const identifier =
-        String(
-          req.body?.identifier ||
-          ""
-        ).trim();
-
-      const anon =
-        client();
-
-      let email =
-        identifier;
-
-      if (
-        !identifier.includes("@")
-      ) {
-        if (
-          !SUPABASE_SERVICE_ROLE_KEY
-        ) {
-          return res.json({
-            ok: true
-          });
-        }
-
-        const profile =
-          await findProfile(
-            anon,
-            identifier
-          );
-
-        if (!profile) {
-          return res.json({
-            ok: true
-          });
-        }
-
-        const admin =
-          adminClient();
-
-        const authId =
-          profile.auth_user_id ||
-          profile.id;
-
-        const {
-          data,
-          error
-        } =
-          await admin.auth.admin.getUserById(
-            authId
-          );
-
-        if (
-          error ||
-          !data?.user?.email
-        ) {
-          return res.json({
-            ok: true
-          });
-        }
-
-        email =
-          data.user.email;
-      }
-
-      const {
-        error
-      } =
-        await anon.auth.resetPasswordForEmail(
-          email,
-          {
-            redirectTo:
-              `${publicOrigin(req)}/`
-          }
-        );
-
-      if (error) {
-        return res.status(400).json({
-          error:
-            error.message
-        });
-      }
-
-      res.json({
-        ok: true
-      });
-    } catch {
-      res.json({
-        ok: true
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   AUTH CONFIG
-========================================================= */
-
-app.get(
-  "/api/auth-config",
-  (req, res) => {
-    if (!CONFIG_OK) {
-      return res.status(500).json({
-        error:
-          "Supabase yapılandırması eksik."
-      });
-    }
-
-    res.json({
-      url:
-        SUPABASE_URL,
-      key:
-        SUPABASE_KEY
-    });
-  }
-);
-
-
-/* =========================================================
-   RESEND
-========================================================= */
-
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(
-      process.env.RESEND_FROM_EMAIL ||
-      "onboarding@resend.dev"
-    ).trim();
-
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
-
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
-  }
-
-  return j;
-}
-
-const recoveryCodes =
-  new Map();
-
-/* =========================================================
-   RECOVERY CODE PERSISTENCE
-   Kodlar artık sadece RAM'de tutulmaz. Node yeniden başlasa bile
-   10 dakikalık aktif doğrulama kodu kaybolmaz.
-========================================================= */
-const recoveryCodesFile = path.join(__dirname, "minegram-recovery-codes.json");
-
-function loadRecoveryCodes() {
-  try {
-    if (!fs.existsSync(recoveryCodesFile)) return;
-
-    const raw = fs.readFileSync(recoveryCodesFile, "utf8");
-    const data = JSON.parse(raw);
-
-    recoveryCodes.clear();
-
-    if (data && typeof data === "object") {
-      for (const [email, entry] of Object.entries(data)) {
-        if (entry && entry.expires > Date.now()) {
-          recoveryCodes.set(email, entry);
-        }
-      }
-    }
-
-    saveRecoveryCodes();
   } catch (e) {
-    console.error("RECOVERY CODE LOAD ERROR:", e?.message || e);
+    console.error("LOGIN ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Giriş başarısız." });
   }
-}
-
-function saveRecoveryCodes() {
-  try {
-    const data = Object.fromEntries(recoveryCodes.entries());
-    fs.writeFileSync(
-      recoveryCodesFile,
-      JSON.stringify(data, null, 2),
-      "utf8"
-    );
-  } catch (e) {
-    console.error("RECOVERY CODE SAVE ERROR:", e?.message || e);
-  }
-}
-
-function setRecoveryCode(email, entry) {
-  recoveryCodes.set(String(email).trim().toLowerCase(), entry);
-  saveRecoveryCodes();
-}
-
-function deleteRecoveryCode(email) {
-  recoveryCodes.delete(String(email).trim().toLowerCase());
-  saveRecoveryCodes();
-}
-
-function cleanupRecoveryCodes() {
-  const now = Date.now();
-  let changed = false;
-
-  for (const [email, entry] of recoveryCodes.entries()) {
-    if (!entry?.expires || entry.expires <= now) {
-      recoveryCodes.delete(email);
-      changed = true;
-    }
-  }
-
-  if (changed) saveRecoveryCodes();
-}
-
-loadRecoveryCodes();
-
-
-/* =========================================================
-   FORGOT START
-========================================================= */
-
-app.post(
-  "/api/forgot/start",
-  async (req, res) => {
-    try {
-      const found =
-        await resolveRecoveryEmail(
-          req.body?.identifier,
-          req.body?.mode ||
-            "email"
-        );
-
-      if (!found) {
-        return res.status(404).json({
-          error:
-            "Hesap bulunamadı."
-        });
-      }
-
-      const code =
-        String(
-          Math.floor(
-            100000 +
-            Math.random() *
-              900000
-          )
-        );
-
-      setRecoveryCode(
-        found.email.toLowerCase(),
-        {
-          code,
-          expires:
-            Date.now() +
-            10 * 60 * 1000,
-          profile:
-            found.profile,
-          authUserId:
-            found.authUser?.id ||
-            found.profile?.auth_user_id ||
-            found.profile?.id ||
-            null
-        }
-      );
-
-      await sendResendEmail(
-        found.email,
-        "Minegram doğrulama kodun",
-
-        `<div style="font-family:Arial,sans-serif">
-          <h2>Minegram</h2>
-          <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
-          <div style="font-size:32px;font-weight:700;letter-spacing:8px">
-            ${code}
-          </div>
-          <p>Bu kod 10 dakika geçerlidir.</p>
-        </div>`,
-
-        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-      );
-
-      res.json({
-        ok: true,
-        email:
-          found.email,
-        maskedEmail:
-          maskEmail(
-            found.email
-          )
-      });
-    } catch (e) {
-      console.error(
-        "FORGOT START ERROR:",
-        e
-      );
-
-      res.status(500).json({
-        error:
-          e.message
-      });
-    }
-  }
-);
+});
 
 
 /* =========================================================
