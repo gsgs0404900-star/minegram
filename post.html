@@ -84,18 +84,18 @@ a{color:inherit}
   border:0     
 }     
      
-
-/* INDEX.HTML STORY HALKASI */
-.avatar.has-new-story{
-  border:2px solid #e53935 !important;
-  box-sizing:border-box !important;
-  overflow:visible !important;
-}
-
 .avatar img{     
   width:100%;     
   height:100%;     
   object-fit:cover     
+}
+
+/* INDEX.HTML İLE AYNI YENİ STORY HALKASI */
+.avatar.has-new-story{
+  border:2px solid #e53935 !important;
+  box-sizing:border-box !important;
+  box-shadow:none !important;
+  overflow:visible !important;
 }     
      
 .stats{     
@@ -4017,150 +4017,119 @@ function renderProfileExtra(){
 
 }
 
-
-async function updateProfileStoryRing(){
+async function updateProfileStoryRingExact(){
   const avatar=document.getElementById("avatar");
   if(!avatar)return;
 
   try{
-    /*
-      INDEX.HTML:
-      const result = await api("/stories");
-      stories = list.map(normalizeStory).filter(Boolean);
-      cleanStories();
-      buildStoryGroups();
-    */
     const result=await api("/stories");
-
     const list=Array.isArray(result)
       ?result
       :(Array.isArray(result?.stories)?result.stories:[]);
 
-    const STORY_AGE=24*60*60*1000;
     const now=Date.now();
+    const STORY_AGE=24*60*60*1000;
 
-    const normalized=list.map(function(s){
+    /* index.html normalizeStory() ile aynı alanlar */
+    const stories=list.map(function(s){
       if(!s)return null;
 
-      const profile=s.profiles || s.profile || {};
-      const user=s.user || {};
-
-      const media=
-        s.media_url ||
-        s.mediaUrl ||
-        s.media ||
-        s.url ||
-        "";
-
-      if(!media)return null;
+      const profile=s.profiles||s.profile||{};
+      const user=s.user||{};
 
       const username=
-        profile.username ||
-        profile.user_name ||
-        user.username ||
-        user.user_name ||
-        s.username ||
+        profile.username||
+        profile.user_name||
+        user.username||
+        user.user_name||
+        s.username||
         "minegram";
 
-      const createdAt=new Date(
-        s.created_at ||
-        s.createdAt ||
-        Date.now()
-      ).getTime();
-
       return {
-        id:s.id || (
-          "story_"+Date.now()+"_"+Math.random().toString(36).slice(2)
-        ),
+        id:s.id||"",
         userId:
-          s.user_id ||
-          s.userId ||
-          profile.id ||
-          user.id ||
+          s.user_id||
+          s.userId||
+          profile.id||
+          user.id||
           "",
         username:String(username)
           .replace(/^@/,"")
           .trim(),
-        createdAt:createdAt
+        createdAt:new Date(
+          s.created_at||
+          s.createdAt||
+          Date.now()
+        ).getTime()
       };
     }).filter(Boolean);
 
-    /* INDEX.HTML cleanStories() */
-    const active=normalized.filter(function(s){
-      return s &&
-             s.createdAt &&
-             s.createdAt > now-STORY_AGE;
+    /* index.html cleanStories() ile aynı 24 saatlik filtre */
+    const activeStories=stories.filter(function(story){
+      return story &&
+        story.id &&
+        Number(story.createdAt)>now-STORY_AGE;
     });
 
     const profileUsername=String(
-      currentProfile?.username || target || ""
+      currentProfile?.username||
+      target||
+      ""
     ).replace(/^@/,"").trim().toLowerCase();
 
     const profileId=String(
-      currentProfile?.id || ""
+      currentProfile?.id||""
     ).trim();
 
-    /*
-      INDEX.HTML buildStoryGroups() ile aynı:
-      kullanıcı ID'si veya kullanıcı adı üzerinden eşleştir.
-    */
-    const profileStories=active.filter(function(story){
+    const profileStories=activeStories.filter(function(story){
       const storyUsername=String(
-        story.username || ""
+        story.username||""
       ).replace(/^@/,"").trim().toLowerCase();
 
       const storyUserId=String(
-        story.userId || ""
+        story.userId||""
       ).trim();
 
       return (
-        (profileId && storyUserId &&
-         profileId===storyUserId) ||
-        (profileUsername && storyUsername &&
+        (profileUsername &&
+         storyUsername &&
          profileUsername===storyUsername)
+        ||
+        (profileId &&
+         storyUserId &&
+         profileId===storyUserId)
       );
     });
 
-    /*
-      INDEX.HTML isStorySeen() İLE AYNI:
-      localStorage.getItem("minegram_story_seen_" + item.id) === "1"
-    */
-    const hasNew=profileStories.some(function(story){
+    /* index.html isStorySeen() ile aynı */
+    const hasNewStory=profileStories.some(function(story){
       try{
         return localStorage.getItem(
           "minegram_story_seen_"+story.id
-        ) !== "1";
+        )!=="1";
       }catch(e){
-        return false;
+        return true;
       }
     });
 
-    /*
-      Hem class hem inline border:
-      başka CSS kuralı halkanın görünmesini engellemesin.
-    */
-    avatar.classList.toggle("has-new-story",hasNew);
-
-    if(hasNew){
-      avatar.style.border="2px solid #e53935";
-      avatar.style.boxSizing="border-box";
-    }else{
-      avatar.style.border="0";
-      avatar.style.boxSizing="border-box";
-    }
+    avatar.classList.toggle(
+      "has-new-story",
+      hasNewStory
+    );
 
     console.log(
-      "[PROFILE STORY RING]",
-      {
-        username:profileUsername,
-        profileId:profileId,
-        stories:profileStories.length,
-        newStory:hasNew
-      }
+      "[PROFILE STORY]",
+      profileUsername,
+      "aktif:",profileStories.length,
+      "yeni:",hasNewStory
     );
 
   }catch(error){
-    console.error("[PROFILE STORY RING ERROR]",error);
+    console.error(
+      "[PROFILE STORY RING ERROR]",
+      error
+    );
+    avatar.classList.remove("has-new-story");
   }
 }
 
@@ -4303,9 +4272,9 @@ async function load(){
 
    }
 
-       await updateProfileStoryRing();
+   await updateProfileStoryRingExact();
 
-const postsResponse=await api(
+    const postsResponse=await api(
   '/api/users/'+encodeURIComponent(username)+'/posts'
 );
 
