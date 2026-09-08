@@ -1647,7 +1647,8 @@ app.post("/api/login", async (req, res) => {
       const { data: profiles, error: profileError } = await admin
         .from("profiles")
         .select("*")
-        .limit(100);
+        .eq("username", rawIdentifier)
+        .limit(1);
 
       if (profileError) {
         console.error("LOGIN PROFILE SEARCH ERROR:", profileError);
