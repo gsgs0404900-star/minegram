@@ -2526,8 +2526,8 @@ onclick="sendComment()"
       myStory.onclick=
         function(e){
 
-          /* + butonuna basıldıysa hikaye seçiciyi aç.
-             Ana hikaye alanına basıldıysa mevcut hikayeyi aç. */
+          /* Kırmızı halka/avatar alanına basılırsa mevcut Story açılsın.
+             Sadece + alanı Story ekleme seçicisini açsın. */
           if(e && e.target && e.target.closest &&
              e.target.closest(".plus")){
             e.preventDefault();
@@ -2536,10 +2536,27 @@ onclick="sendComment()"
             return;
           }
 
-          openGroup(
-            myGroup
-          );
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(myGroup, 0);
 
+        };
+
+      /* Kırmızı halkaya doğrudan basıldığında da Story'yi aç.
+         + butonu bunun dışında kalır. */
+      avatar.onclick=
+        function(e){
+          if(e && e.target && e.target.closest &&
+             e.target.closest(".plus")){
+            e.preventDefault();
+            e.stopPropagation();
+            openPicker();
+            return;
+          }
+
+          e.preventDefault();
+          e.stopPropagation();
+          openGroup(myGroup, 0);
         };
 
       if(label)
