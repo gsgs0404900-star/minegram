@@ -1716,10 +1716,31 @@ app.post(
           }
         }
 
+        // auth_user_id/profile.id ve profile.email bulunamazsa, Auth
+        // kullanıcılarını kullanıcı adı metadata'sından da ara. Eski
+        // Android hesaplarında profiles satırı Auth id'siyle eşleşmeyebilir.
+        if (!authUser?.email) {
+          for (let page = 1; page <= 20 && !authUser; page++) {
+            const { data: listed, error: listError } =
+              await admin.auth.admin.listUsers({ page, perPage: 1000 });
+            if (listError) break;
+            authUser = (listed?.users || []).find(u => {
+              const metaUsername = normalizeUsername(
+                u?.user_metadata?.username ||
+                u?.user_metadata?.user_name ||
+                u?.user_metadata?.preferred_username ||
+                ""
+              );
+              return metaUsername && metaUsername === username;
+            }) || null;
+            if ((listed?.users || []).length < 1000) break;
+          }
+        }
+
         if (!authUser?.email) {
           return res.status(401).json({
             error:
-              "Kullanıcı hesabının giriş bilgisi bulunamadı. Şifre sıfırlama ile hesabı yeniden etkinleştirin."
+              "Kullanıcı adı sunucuda bulundu ancak bu hesap için giriş e-postası bulunamadı. Hesabı bir kez ilk cihazdan aktarın."
           });
         }
 
