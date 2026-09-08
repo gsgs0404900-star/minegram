@@ -2937,6 +2937,17 @@ body{
 .profile-story-viewer-avatar{width:38px;height:38px;border-radius:50%;background:#2d7ff9;display:grid;place-items:center;font-weight:700;overflow:hidden}
 .profile-story-viewer-avatar img{width:100%;height:100%;object-fit:cover}
 
+
+
+/* Story menu clean */
+.profile-story-menu{display:none;position:absolute;left:10px;right:10px;bottom:14px;width:auto;max-height:72vh;overflow-y:auto;background:#111;border:1px solid #2b2b2b;border-radius:18px;padding:10px;z-index:50;box-shadow:0 10px 40px rgba(0,0,0,.65)}
+.profile-story-menu.open{display:block}
+.profile-story-menu button{display:block;width:100%;min-height:44px;margin:3px 0;padding:10px 14px;border:0;border-radius:12px;background:transparent;color:#fff;font-size:14px;text-align:left;cursor:pointer}
+.profile-story-menu button:hover{background:#202020}
+.profile-story-menu .story-menu-primary{background:#1976d2;text-align:center;font-weight:700}
+.profile-story-menu .story-menu-outline{border:1px solid #444;text-align:center}
+.profile-story-menu .story-menu-danger{color:#ff5252}
+
 </style>    
 </head>    
     
@@ -4514,16 +4525,16 @@ function renderProfileStoryViewer(){
       <button class="profile-story-next" onclick="nextProfileStory()" aria-label="Sonraki"></button>
 
       <div id="profileStoryMenu" class="profile-story-menu" onclick="event.stopPropagation()">
-        <button class="story-menu-primary" onclick="shareProfileCurrentStory()">Gönder / Paylaş</button>
-        <button class="story-menu-outline" onclick="showProfileStoryViewers()">Görüntüleyenler</button>
-        <button class="story-menu-outline" onclick="copyProfileCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
+        <button class="story-menu-primary" onclick="profileShareCurrentStory()">Gönder / Paylaş</button>
+        <button class="story-menu-outline" onclick="profileShowStoryViewers()">Görüntüleyenler</button>
+        <button class="story-menu-outline" onclick="profileCopyStoryOptions()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
         <button class="story-menu-outline" onclick="closeProfileStoryMenu()">Daha fazla</button>
-        <button class="story-menu-text" onclick="downloadProfileCurrentStory()">Videoyu / fotoğrafı kaydet</button>
-        <button class="story-menu-text" onclick="highlightProfileCurrentStory()">Öne çıkar</button>
-        <button class="story-menu-text" onclick="toggleProfileStoryComments()">Yorum yapmayı kapat</button>
-        <button class="story-menu-text" onclick="goProfileStorySettings()">Hikaye ayarlarına git</button>
-        <button class="story-menu-text" onclick="hideProfileCurrentStory()">Hikayeyi gizle</button>
-        <button class="story-menu-text danger" onclick="deleteProfileCurrentStory()">Sil</button>
+        <button onclick="profileDownloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
+        <button onclick="profileHighlightCurrentStory()">Öne çıkar</button>
+        <button onclick="profileToggleStoryComments()">Yorum yapmayı kapat</button>
+        <button onclick="profileGoStorySettings()">Hikaye ayarlarına git</button>
+        <button onclick="profileHideCurrentStory()">Hikayeyi gizle</button>
+        <button id="profileStoryDeleteButton" class="story-menu-danger" onclick="profileDeleteCurrentStory()">Sil</button>
       </div>
     </div>
   `;
@@ -4630,6 +4641,298 @@ function previousProfileStory(){
   }
 }
 
+
+function profileCurrentStory(){
+  const items=window.profileStoryItems||[];
+  return items[profileStoryViewerIndex]||null;
+}
+
+async function profileShareCurrentStory(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  const data={
+    title:"Minegram",
+    text:"Minegram hikayesi",
+    url:location.href
+  };
+
+  try{
+    if(navigator.share){
+      await navigator.share(data);
+    }else if(navigator.clipboard){
+      await navigator.clipboard.writeText(location.href);
+      toast("Bağlantı kopyalandı");
+    }else{
+      window.prompt("Bağlantıyı kopyalayın:",location.href);
+    }
+  }catch(e){}
+}
+
+async function profileCopyStoryOptions(){
+  closeProfileStoryMenu();
+
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  const url=location.href;
+
+  try{
+    if(navigator.share){
+      await navigator.share({
+        title:"Minegram",
+        text:"Minegram hikayesi",
+        url:url
+      });
+      return;
+    }
+
+    if(navigator.clipboard){
+      await navigator.clipboard.writeText(url);
+      toast("Bağlantı kopyalandı");
+      return;
+    }
+
+    window.prompt("Bağlantıyı kopyalayın:",url);
+  }catch(e){}
+}
+
+function profileDownloadCurrentStory(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  const media=String(item.media||"");
+  const a=document.createElement("a");
+  a.href=media;
+  a.download="minegram_story_"+Date.now()+
+    (String(item.type||item.mediaType||"").toLowerCase().includes("video")
+      ?".mp4":".jpg");
+
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  try{toast("Hikaye kaydediliyor");}catch(e){}
+}
+
+function profileHighlightCurrentStory(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  try{
+    localStorage.setItem(
+      "minegram_highlight_"+item.id,
+      "1"
+    );
+  }catch(e){}
+
+  try{toast("Hikaye öne çıkarıldı.");}
+  catch(e){alert("Hikaye öne çıkarıldı.");}
+}
+
+function profileToggleStoryComments(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  const key="minegram_story_comments_"+item.id;
+  let enabled=true;
+
+  try{
+    enabled=localStorage.getItem(key)!=="0";
+    enabled=!enabled;
+    localStorage.setItem(key,enabled?"1":"0");
+  }catch(e){
+    enabled=false;
+  }
+
+  try{
+    toast(
+      enabled
+      ?"Yorum yapma açıldı."
+      :"Yorum yapma kapatıldı."
+    );
+  }catch(e){
+    alert(
+      enabled
+      ?"Yorum yapma açıldı."
+      :"Yorum yapma kapatıldı."
+    );
+  }
+}
+
+function profileGoStorySettings(){
+  closeProfileStoryMenu();
+  location.href="ayarlar.html";
+}
+
+function profileHideCurrentStory(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  try{
+    localStorage.setItem(
+      "minegram_story_hidden_"+item.id,
+      "1"
+    );
+  }catch(e){}
+
+  closeProfileStoryViewer();
+
+  try{toast("Hikaye gizlendi.");}
+  catch(e){alert("Hikaye gizlendi.");}
+}
+
+async function profileDeleteCurrentStory(){
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  closeProfileStoryMenu();
+
+  if(!confirm("Bu hikayeyi silmek istiyor musun?"))return;
+
+  try{
+    if(!item.id)throw new Error("Hikaye kimliği bulunamadı.");
+
+    await api(
+      "/stories/"+encodeURIComponent(item.id),
+      {method:"DELETE"}
+    );
+
+    const items=(window.profileStoryItems||[])
+      .filter(s=>String(s.id)!==String(item.id));
+
+    window.profileStoryItems=items;
+
+    try{
+      const cached=JSON.parse(
+        localStorage.getItem("minegram_story_v2")||"[]"
+      );
+
+      if(Array.isArray(cached)){
+        const next=cached.filter(
+          s=>String(s.id)!==String(item.id)
+        );
+        localStorage.setItem(
+          "minegram_story_v2",
+          JSON.stringify(next)
+        );
+      }
+    }catch(e){}
+
+    if(!items.length){
+      closeProfileStoryViewer();
+      const avatar=document.getElementById("avatar");
+      avatar?.classList.remove("profile-has-new-story");
+    }else{
+      if(profileStoryViewerIndex>=items.length){
+        profileStoryViewerIndex=items.length-1;
+      }
+      renderProfileStoryViewer();
+    }
+
+    try{toast("Hikaye silindi.");}
+    catch(e){alert("Hikaye silindi.");}
+
+  }catch(error){
+    console.error("PROFILE STORY DELETE:",error);
+    alert(error?.message||"Hikaye silinemedi.");
+  }
+}
+
+function profileGetStoryViewers(item){
+  if(!item)return [];
+
+  const candidates=[
+    item.viewers,
+    item.viewerNames,
+    item.seenBy,
+    item.viewedBy,
+    item.storyViewers
+  ];
+
+  for(const value of candidates){
+    if(!Array.isArray(value))continue;
+
+    return value.map(v=>{
+      if(typeof v==="string")return {name:v,avatar:""};
+      return {
+        name:
+          v?.username||
+          v?.userName||
+          v?.name||
+          v?.displayName||
+          "Minegram",
+        avatar:v?.avatar||v?.avatar_url||""
+      };
+    });
+  }
+
+  return [];
+}
+
+function profileShowStoryViewers(){
+  closeProfileStoryMenu();
+
+  const item=profileCurrentStory();
+  if(!item)return;
+
+  const modal=document.getElementById(
+    "profileStoryViewersModal"
+  );
+  const body=document.getElementById(
+    "profileStoryViewersBody"
+  );
+  const count=document.getElementById(
+    "profileStoryViewerCount"
+  );
+
+  if(!modal||!body)return;
+
+  const viewers=profileGetStoryViewers(item);
+
+  if(count){
+    count.textContent=" ("+viewers.length+")";
+  }
+
+  if(!viewers.length){
+    body.innerHTML=
+      '<div class="profile-story-viewers-empty">Henüz kimse görmedi.</div>';
+  }else{
+    body.innerHTML=viewers.map(v=>{
+      const name=String(v.name||"Minegram");
+      const avatar=v.avatar
+        ?'<img src="'+String(v.avatar).replace(/"/g,'&quot;')+'" alt="">'
+        :escapeHtml(name.charAt(0).toUpperCase());
+
+      return `
+        <div class="profile-story-viewer-row">
+          <div class="profile-story-viewer-row-avatar">${avatar}</div>
+          <div class="profile-story-viewer-row-name">${escapeHtml(name)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  modal.classList.add("open");
+}
+
+function profileCloseStoryViewers(e){
+  if(e&&e.target!==e.currentTarget)return;
+  document.getElementById(
+    "profileStoryViewersModal"
+  )?.classList.remove("open");
+}
+
 function toggleProfileStoryMenu(e){
   if(e)e.stopPropagation();
   document.getElementById("profileStoryMenu")?.classList.toggle("open");
@@ -4639,7 +4942,7 @@ function closeProfileStoryMenu(){
   document.getElementById("profileStoryMenu")?.classList.remove("open");
 }
 
-\nfunction profileCurrentStory(){\n  const items=window.profileStoryItems||[];\n  return items[profileStoryViewerIndex]||null;\n}\n\nfunction shareProfileCurrentStory(){\n  const item=profileCurrentStory();\n  if(!item)return;\n  closeProfileStoryMenu();\n  if(navigator.share){\n    navigator.share({title:'Minegram',text:'Minegram hikayesi',url:location.href}).catch(()=>{});\n  }else if(navigator.clipboard){\n    navigator.clipboard.writeText(location.href).then(()=>alert('Bağlantı kopyalandı.')).catch(()=>{});\n  }\n}\n\nfunction copyProfileCurrentStory(){\n  closeProfileStoryMenu();\n  if(navigator.clipboard){\n    navigator.clipboard.writeText(location.href).then(()=>alert('Hikaye bağlantısı kopyalandı.')).catch(()=>alert('Bağlantı kopyalanamadı.'));\n  }\n}\n\nfunction downloadProfileCurrentStory(){\n  const item=profileCurrentStory();\n  if(!item)return;\n  const a=document.createElement('a');\n  a.href=item.media;\n  a.download='minegram_story_'+Date.now()+(String(item.type||item.mediaType||'').toLowerCase().startsWith('video')?'.mp4':'.jpg');\n  document.body.appendChild(a); a.click(); a.remove();\n  closeProfileStoryMenu();\n}\n\nfunction highlightProfileCurrentStory(){\n  const item=profileCurrentStory(); if(!item)return;\n  localStorage.setItem('minegram_highlight_'+item.id,'1');\n  closeProfileStoryMenu();\n  alert('Hikaye öne çıkarıldı.');\n}\n\nfunction toggleProfileStoryComments(){\n  const item=profileCurrentStory(); if(!item)return;\n  item.commentsEnabled=item.commentsEnabled===false;\n  try{localStorage.setItem('minegram_story_comments_'+item.id,item.commentsEnabled?'1':'0')}catch(e){}\n  closeProfileStoryMenu();\n  alert(item.commentsEnabled?'Yorum yapma açıldı.':'Yorum yapma kapatıldı.');\n}\n\nfunction goProfileStorySettings(){\n  closeProfileStoryMenu();\n  location.href='ayarlar.html';\n}\n\nfunction hideProfileCurrentStory(){\n  const item=profileCurrentStory(); if(!item)return;\n  localStorage.setItem('minegram_story_hidden_'+item.id,'1');\n  closeProfileStoryMenu();\n  closeProfileStoryViewer();\n  alert('Hikaye gizlendi.');\n}\n\nasync function deleteProfileCurrentStory(){\n  const item=profileCurrentStory(); if(!item)return;\n  if(!confirm('Bu hikayeyi silmek istiyor musun?'))return;\n  try{\n    if(!item.id)throw new Error('Hikaye kimliği bulunamadı.');\n    await api('/stories/'+encodeURIComponent(item.id),{method:'DELETE'});\n  }catch(error){\n    alert(error?.message||'Hikaye silinemedi.');\n    return;\n  }\n  try{localStorage.setItem('minegram_story_v2',JSON.stringify((window.profileStoryItems||[]).filter(x=>String(x.id)!==String(item.id))))}catch(e){}\n  window.profileStoryItems=(window.profileStoryItems||[]).filter(x=>String(x.id)!==String(item.id));\n  closeProfileStoryMenu();\n  if(window.profileStoryItems.length) renderProfileStoryViewer(); else closeProfileStoryViewer();\n  document.getElementById('avatar')?.classList.remove('profile-has-new-story');\n  alert('Hikaye silindi.');\n}\n\nfunction showProfileStoryViewers(){\n  const item=profileCurrentStory(); if(!item)return;\n  closeProfileStoryMenu();\n  let modal=document.getElementById('profileStoryViewersModal');\n  if(!modal){\n    modal=document.createElement('div');\n    modal.id='profileStoryViewersModal';\n    modal.className='profile-story-viewers-modal';\n    modal.onclick=e=>{if(e.target===modal)closeProfileStoryViewers()};\n    document.body.appendChild(modal);\n  }\n  let names=[];\n  try{names=JSON.parse(localStorage.getItem('minegram_story_viewers_'+item.id)||'[]')}catch(e){}\n  names=[...new Set((Array.isArray(names)?names:[]).map(x=>String(x||'').trim()).filter(Boolean))];\n  modal.innerHTML=`<div class="profile-story-viewers-sheet" onclick="event.stopPropagation()">\n    <div class="profile-story-viewers-head"><strong>Görüntüleyenler (${names.length})</strong><button onclick="closeProfileStoryViewers()">×</button></div>\n    <div class="profile-story-viewers-list">\n      ${names.length?names.map(name=>`<div class="profile-story-viewer-row"><div class="profile-story-viewer-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div><span>${escapeHtml(name)}</span></div>`).join(''):'<div style="padding:20px 4px;color:#aaa;text-align:center">Henüz kimse görmedi.</div>'}\n    </div>\n  </div>`;\n  modal.classList.add('open');\n}\nfunction closeProfileStoryViewers(){document.getElementById('profileStoryViewersModal')?.classList.remove('open')}\n\nasync function loadFirebasePublicPosts(username,userId){
+async function loadFirebasePublicPosts(username,userId){
   const url="https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/minegramPublicPosts?pageSize=300";
   const r=await fetch(url,{cache:"no-store"});
   if(!r.ok)throw new Error("Firebase gönderileri okunamadı");
@@ -5826,6 +6129,17 @@ Paylaş
 
 </div>
 
+</div>
+
+
+<div id="profileStoryViewersModal" class="profile-story-viewers-modal" onclick="profileCloseStoryViewers(event)">
+  <div class="profile-story-viewers-sheet" onclick="event.stopPropagation()">
+    <div class="profile-story-viewers-head">
+      <strong>Görüntüleyenler <span id="profileStoryViewerCount"></span></strong>
+      <button onclick="profileCloseStoryViewers()" aria-label="Kapat">×</button>
+    </div>
+    <div id="profileStoryViewersBody" class="profile-story-viewers-body"></div>
+  </div>
 </div>
 
 </body>
