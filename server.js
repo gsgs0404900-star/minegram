@@ -1647,8 +1647,7 @@ app.post("/api/login", async (req, res) => {
       const { data: profiles, error: profileError } = await admin
         .from("profiles")
         .select("*")
-        .eq("username", rawIdentifier)
-        .limit(1);
+        .limit(100);
 
       if (profileError) {
         console.error("LOGIN PROFILE SEARCH ERROR:", profileError);
@@ -1710,15 +1709,76 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Gerçek, cihazdan bağımsız Supabase girişi
-    const { data: loginData, error: loginError } = await client()
-      .auth
-      .signInWithPassword({ email, password });
+    // Gerçek, cihazdan bağımsız Supabase girişi.
+    // Profildeki email eski/yanlış kalmışsa girişin bozulmaması için
+    // aynı kullanıcı adına bağlı olabilecek Auth e-postalarını da sırayla dene.
+    // ŞİFRE DEĞİŞTİRİLMEZ; yalnızca mevcut şifre doğrulanır.
+    const candidateEmails = [];
+    const addCandidateEmail = (value) => {
+      const normalized = normalizeEmail(value || "");
+      if (normalized && !candidateEmails.includes(normalized)) {
+        candidateEmails.push(normalized);
+      }
+    };
 
-    if (loginError || !loginData?.session || !loginData?.user) {
+    addCandidateEmail(email);
+
+    if (!rawIdentifier.includes("@")) {
+      // Profiles kaydındaki auth_user_id/id üzerinden Auth e-postasını doğrula.
+      const linkedAuthIds = [];
+      if (profile?.auth_user_id) linkedAuthIds.push(String(profile.auth_user_id));
+      if (profile?.id) linkedAuthIds.push(String(profile.id));
+
+      for (const authId of linkedAuthIds) {
+        try {
+          const result = await admin.auth.admin.getUserById(authId);
+          addCandidateEmail(result?.data?.user?.email || "");
+        } catch (e) {
+          console.error("LOGIN AUTH USER LOOKUP ERROR:", e?.message || e);
+        }
+      }
+
+      // Son olarak Auth metadata'sındaki kullanıcı adına bağlı hesabı bul.
+      try {
+        for (let page = 1; page <= 50; page++) {
+          const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+          if (error) break;
+          const users = data?.users || [];
+          for (const u of users) {
+            const m = u?.user_metadata || {};
+            const metaUsername = normalizeUsername(
+              m.username || m.user_name || m.preferred_username || ""
+            );
+            if (metaUsername === normalizedUsername) addCandidateEmail(u?.email || "");
+          }
+          if (users.length < 1000) break;
+        }
+      } catch (e) {
+        console.error("LOGIN AUTH METADATA SEARCH ERROR:", e?.message || e);
+      }
+    }
+
+    let loginData = null;
+    let loginError = null;
+
+    for (const candidateEmail of candidateEmails) {
+      const attempt = await client().auth.signInWithPassword({
+        email: candidateEmail,
+        password
+      });
+      if (attempt.data?.session && attempt.data?.user) {
+        loginData = attempt.data;
+        loginError = null;
+        email = candidateEmail;
+        break;
+      }
+      loginError = attempt.error;
+    }
+
+    if (!loginData?.session || !loginData?.user) {
       console.error("LOGIN AUTH ERROR:", {
         identifier: rawIdentifier,
-        email,
+        candidateEmails,
         message: loginError?.message
       });
 
@@ -2389,7 +2449,10 @@ app.get(
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const { data, error } = await req.sb
+      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
+      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
+      const highlightsSb = adminClient();
+      const { data, error } = await highlightsSb
         .from("highlights")
         .select("*")
         .eq("user_id", target.id)
@@ -2420,7 +2483,9 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const { data, error } = await req.sb
+      // Kendi öne çıkanlarını da service-role ile oku; RLS kaynaklı boş listeyi önle.
+      const highlightsSb = adminClient();
+      const { data, error } = await highlightsSb
         .from("highlights")
         .select("*")
         .eq("user_id", req.user.id)
@@ -3005,11 +3070,14 @@ app.get(
           86400000
         ).toISOString();
 
+      // Hikayeler ortak akıştır. req.sb üzerindeki RLS başka kullanıcıların
+      // hikayelerini boş döndürebilir; bu yüzden okuma service-role ile yapılır.
+      const storiesSb = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await storiesSb
           .from("stories")
           .select(`
             *,
