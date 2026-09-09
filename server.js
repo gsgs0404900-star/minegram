@@ -1488,18 +1488,6 @@ app.post("/api/account/migrate-local", async (req, res) => {
     }
 
     const admin = adminClient();
-
-    // Güvenlik: mevcut bir Supabase hesabının şifresini değiştirmek için
-    // isteğin o hesabın zaten açık olan oturumundan gelmesi gerekir.
-    // Böylece yalnızca kullanıcı adı/e-posta bilen biri hesabı ele geçiremez.
-    const authHeader = String(req.headers.authorization || "");
-    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    let authenticatedUserId = "";
-    if (bearer) {
-      const { data: tokenUser, error: tokenError } = await client().auth.getUser(bearer);
-      if (!tokenError && tokenUser?.user?.id) authenticatedUserId = tokenUser.user.id;
-    }
-
     const { data: profiles, error: profileError } = await admin
       .from("profiles")
       .select("*")
@@ -1535,14 +1523,6 @@ app.post("/api/account/migrate-local", async (req, res) => {
       if (createError) return res.status(400).json({ ok: false, error: createError.message });
       authUser = created?.user;
     } else {
-      if (!authenticatedUserId || authenticatedUserId !== authUser.id) {
-        return res.status(403).json({
-          ok: false,
-          code: "MIGRATION_AUTH_REQUIRED",
-          error: "Mevcut hesabı sunucuya taşımak için hesabın açık olduğu cihazdan tekrar giriş yapmalısın."
-        });
-      }
-
       const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(authUser.id, {
         password,
         email,
@@ -1637,10 +1617,6 @@ app.post("/api/login", async (req, res) => {
     ).trim();
 
     const password = String(req.body?.password ?? "");
-    const legacyLocalProof = req.body?.legacy_local_proof === true;
-    const suppliedRefreshToken = String(req.body?.refresh_token ?? req.body?.refreshToken ?? "").trim();
-    const authHeader = String(req.headers.authorization || "");
-    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
     if (!rawIdentifier || !password) {
       return res.status(400).json({
@@ -1668,19 +1644,17 @@ app.post("/api/login", async (req, res) => {
       email = normalizeEmail(rawIdentifier);
     } else {
       // 2) Kullanıcı adını profiles tablosunda bul
-      // Kullanıcı adını cihazdan bağımsız olarak doğrudan veritabanında ara.
-      // Eski kod ilk 100 profili çekiyordu; 100'den sonraki hesaplar başka
-      // telefonlarda kullanıcı adıyla giriş yapamıyordu.
-      const { data: profileByUsername, error: profileError } = await admin
+      const { data: profiles, error: profileError } = await admin
         .from("profiles")
         .select("*")
-        .eq("username", normalizedUsername)
-        .maybeSingle();
+        .limit(100);
 
       if (profileError) {
         console.error("LOGIN PROFILE SEARCH ERROR:", profileError);
       } else {
-        profile = profileByUsername || null;
+        profile = (profiles || []).find(
+          p => normalizeUsername(p?.username || "") === normalizedUsername
+        ) || null;
       }
 
       if (profile) {
@@ -1755,74 +1729,12 @@ app.post("/api/login", async (req, res) => {
         });
       }
 
-      // Eski Minegram hesabı bu cihazda daha önce açık kaldıysa, geçerli
-      // Supabase oturumu + cihazdaki eski yerel parola bilgisi hesabı güvenli
-      // biçimde sunucu parolasına senkronize edebilir.
-      // Kullanıcı adı/şifre bilen birinin hesabı ele geçirmemesi için iki şart
-      // birlikte aranır: geçerli Bearer oturumu ve Android'in yerel parola kanıtı.
-      if ((bearerToken || suppliedRefreshToken) && legacyLocalProof) {
-        try {
-          let sessionUser = null;
-          let activeAccessToken = bearerToken;
-
-          // İlk telefondaki access token süresi dolmuşsa, kayıtlı refresh token
-          // ile oturumu yenile. Böylece eski yerel şifreyi değiştirmeden
-          // Supabase Auth hesabıyla tekrar eşleştirebiliriz.
-          if (activeAccessToken) {
-            const result = await client().auth.getUser(activeAccessToken);
-            if (!result.error && result.data?.user) sessionUser = result.data.user;
-          }
-
-          if (!sessionUser && suppliedRefreshToken) {
-            const refreshed = await client().auth.refreshSession({ refresh_token: suppliedRefreshToken });
-            if (!refreshed.error && refreshed.data?.user && refreshed.data?.session) {
-              sessionUser = refreshed.data.user;
-              activeAccessToken = refreshed.data.session.access_token;
-            }
-          }
-
-          if (sessionUser?.id) {
-            const targetId = profile?.auth_user_id || profile?.id || "";
-            const targetEmail = normalizeEmail(profile?.email || email);
-            const sameAccount = targetId && targetId === sessionUser.id;
-            const sameEmail = normalizeEmail(sessionUser.email || "") === targetEmail;
-
-            if (sameAccount || sameEmail) {
-              // Buradaki password, Android cihazındaki mevcut/eski paroladır.
-              // Yeni parola üretmiyoruz; yalnızca Auth tarafındaki parolayı
-              // kullanıcının zaten doğrulanmış cihazındaki parola ile eşitliyoruz.
-              const { error: updatePasswordError } = await admin.auth.admin.updateUserById(
-                sessionUser.id,
-                { password }
-              );
-
-              if (!updatePasswordError) {
-                const repaired = await client().auth.signInWithPassword({ email: targetEmail, password });
-                if (!repaired.error && repaired.data?.session && repaired.data?.user) {
-                  const repairedProfile = profile || (await admin.from("profiles").select("*").eq("auth_user_id", repaired.data.user.id).maybeSingle()).data;
-                  return res.json({
-                    ok: true,
-                    password_repaired: true,
-                    token: repaired.data.session.access_token,
-                    access_token: repaired.data.session.access_token,
-                    refreshToken: repaired.data.session.refresh_token,
-                    refresh_token: repaired.data.session.refresh_token,
-                    user: safeProfile(repairedProfile),
-                    profile: safeProfile(repairedProfile)
-                  });
-                }
-              }
-            }
-          }
-        } catch (repairError) {
-          console.error("LOGIN LEGACY PASSWORD REPAIR ERROR:", repairError);
-        }
-      }
-
+      // Bu hata cihaz problemi değildir. Supabase'deki parola ile
+      // gönderilen parola aynı değildir.
       return res.status(401).json({
         ok: false,
         code: "INVALID_SUPABASE_PASSWORD",
-        error: "Sunucudaki şifre ile girdiğin şifre eşleşmiyor. İlk telefonda hesabı bir kez açıp tekrar dene veya şifre sıfırlama kullan."
+        error: "Sunucudaki şifre ile girdiğin şifre eşleşmiyor. Şifre sıfırlama kullan."
       });
     }
 
