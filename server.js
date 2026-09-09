@@ -1638,6 +1638,7 @@ app.post("/api/login", async (req, res) => {
 
     const password = String(req.body?.password ?? "");
     const legacyLocalProof = req.body?.legacy_local_proof === true;
+    const suppliedRefreshToken = String(req.body?.refresh_token ?? req.body?.refreshToken ?? "").trim();
     const authHeader = String(req.headers.authorization || "");
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
@@ -1759,18 +1760,39 @@ app.post("/api/login", async (req, res) => {
       // biçimde sunucu parolasına senkronize edebilir.
       // Kullanıcı adı/şifre bilen birinin hesabı ele geçirmemesi için iki şart
       // birlikte aranır: geçerli Bearer oturumu ve Android'in yerel parola kanıtı.
-      if (bearerToken && legacyLocalProof) {
+      if ((bearerToken || suppliedRefreshToken) && legacyLocalProof) {
         try {
-          const { data: sessionUser, error: sessionError } = await client().auth.getUser(bearerToken);
-          if (!sessionError && sessionUser?.user?.id) {
+          let sessionUser = null;
+          let activeAccessToken = bearerToken;
+
+          // İlk telefondaki access token süresi dolmuşsa, kayıtlı refresh token
+          // ile oturumu yenile. Böylece eski yerel şifreyi değiştirmeden
+          // Supabase Auth hesabıyla tekrar eşleştirebiliriz.
+          if (activeAccessToken) {
+            const result = await client().auth.getUser(activeAccessToken);
+            if (!result.error && result.data?.user) sessionUser = result.data.user;
+          }
+
+          if (!sessionUser && suppliedRefreshToken) {
+            const refreshed = await client().auth.refreshSession({ refresh_token: suppliedRefreshToken });
+            if (!refreshed.error && refreshed.data?.user && refreshed.data?.session) {
+              sessionUser = refreshed.data.user;
+              activeAccessToken = refreshed.data.session.access_token;
+            }
+          }
+
+          if (sessionUser?.id) {
             const targetId = profile?.auth_user_id || profile?.id || "";
-            const sameAccount = targetId && targetId === sessionUser.user.id;
             const targetEmail = normalizeEmail(profile?.email || email);
-            const sameEmail = normalizeEmail(sessionUser.user.email || "") === targetEmail;
+            const sameAccount = targetId && targetId === sessionUser.id;
+            const sameEmail = normalizeEmail(sessionUser.email || "") === targetEmail;
 
             if (sameAccount || sameEmail) {
+              // Buradaki password, Android cihazındaki mevcut/eski paroladır.
+              // Yeni parola üretmiyoruz; yalnızca Auth tarafındaki parolayı
+              // kullanıcının zaten doğrulanmış cihazındaki parola ile eşitliyoruz.
               const { error: updatePasswordError } = await admin.auth.admin.updateUserById(
-                sessionUser.user.id,
+                sessionUser.id,
                 { password }
               );
 
