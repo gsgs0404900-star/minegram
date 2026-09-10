@@ -394,7 +394,7 @@ async function hydratePosts(
       )
       .in("post_id", postIds),
 
-    sb
+    adminClient()
       .from("comments")
       .select(
         "id,post_id,user_id,text,created_at,profiles(username,display_name)"
@@ -1591,6 +1591,33 @@ app.post("/api/account/migrate-local", async (req, res) => {
    LOGIN - TÜM TELEFONLAR İÇİN
 ========================================================= */
 
+/* =========================================================
+   TOKEN REFRESH
+   ========================================================= */
+app.post("/api/refresh", async (req, res) => {
+  try {
+    const refreshToken = String(req.body?.refreshToken ?? req.body?.refresh_token ?? "").trim();
+    if (!refreshToken) return res.status(400).json({ ok:false, error:"Refresh token gerekli." });
+    const anon = client();
+    const { data, error } = await anon.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data?.session) {
+      return res.status(401).json({ ok:false, error:error?.message || "Oturum yenilenemedi." });
+    }
+    return res.json({
+      ok: true,
+      token: data.session.access_token,
+      access_token: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      refresh_token: data.session.refresh_token,
+      user: data.user ? safeProfile(data.user) : null,
+      profile: data.user ? safeProfile(data.user) : null
+    });
+  } catch (e) {
+    console.error("REFRESH ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Oturum yenilenemedi." });
+  }
+});
+
 app.post("/api/login", async (req, res) => {
   try {
     const rawIdentifier = String(
@@ -1848,123 +1875,6 @@ app.post("/api/login", async (req, res) => {
       ok: false,
       code: "LOGIN_SERVER_ERROR",
       error: error?.message || "Giriş sırasında sunucu hatası oluştu."
-    });
-  }
-});
-
-
-/* =========================================================
-   REFRESH SESSION - TÜM TELEFONLAR İÇİN
-   =========================================================
-   Android/web istemcisi access token süresi dolduğunda kayıtlı
-   şifreyi tekrar istemeden refresh token ile yeni oturum alabilir.
-*/
-app.post("/api/refresh", async (req, res) => {
-  try {
-    const refreshToken = String(
-      req.body?.refresh_token ??
-      req.body?.refreshToken ??
-      ""
-    ).trim();
-
-    if (!refreshToken) {
-      return res.status(400).json({
-        ok: false,
-        code: "REFRESH_TOKEN_REQUIRED",
-        error: "Refresh token gerekli."
-      });
-    }
-
-    if (!CONFIG_OK) {
-      return res.status(500).json({
-        ok: false,
-        code: "SERVER_CONFIG_ERROR",
-        error: "Supabase yapılandırması eksik."
-      });
-    }
-
-    // Supabase refresh endpoint'i doğrudan istemci anahtarıyla çağrılır.
-    // Böylece cihazın mevcut access token'ının süresi dolmuş olsa bile
-    // geçerli refresh token ile yeni access token üretilebilir.
-    const response = await fetch(
-      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-      {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          refresh_token: refreshToken
-        })
-      }
-    );
-
-    const raw = await response.text();
-    let data = {};
-    try {
-      data = raw ? JSON.parse(raw) : {};
-    } catch (_) {}
-
-    if (!response.ok || !data?.access_token) {
-      console.error("REFRESH SESSION ERROR:", {
-        status: response.status,
-        message: data?.msg || data?.message || raw?.slice?.(0, 300)
-      });
-
-      return res.status(401).json({
-        ok: false,
-        code: "REFRESH_FAILED",
-        error: "Oturum yenilenemedi. Lütfen tekrar giriş yap."
-      });
-    }
-
-    let profile = null;
-    try {
-      const sb = client(data.access_token);
-      const userResult = await sb.auth.getUser(data.access_token);
-      const user = userResult?.data?.user || null;
-
-      if (user?.id) {
-        const byId = await sb
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        profile = byId.data || null;
-
-        if (!profile) {
-          const byAuth = await sb
-            .from("profiles")
-            .select("*")
-            .eq("auth_user_id", user.id)
-            .maybeSingle();
-
-          profile = byAuth.data || null;
-        }
-      }
-    } catch (e) {
-      console.error("REFRESH PROFILE LOOKUP ERROR:", e?.message || e);
-    }
-
-    return res.json({
-      ok: true,
-      token: data.access_token,
-      access_token: data.access_token,
-      refreshToken: data.refresh_token || refreshToken,
-      refresh_token: data.refresh_token || refreshToken,
-      expires_in: data.expires_in,
-      expires_at: data.expires_at,
-      user: safeProfile(profile),
-      profile: safeProfile(profile)
-    });
-  } catch (error) {
-    console.error("REFRESH SERVER ERROR:", error);
-    return res.status(500).json({
-      ok: false,
-      code: "REFRESH_SERVER_ERROR",
-      error: error?.message || "Oturum yenilenemedi."
     });
   }
 });
@@ -2757,58 +2667,27 @@ app.get(
 ========================================================= */
 app.get(
   "/api/users/:username/highlights",
+  auth,
   async (req, res) => {
     try {
-      // Profil öne çıkanları PUBLIC olmalıdır. Profil ziyaretinde JWT zorunlu değildir.
-      const highlightsSb = adminClient();
-      const target = await findProfile(
-        highlightsSb,
-        req.params.username
-      );
-
+      const target = await findProfile(req.sb, req.params.username);
       if (!target) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      // Eski hesaplarda profiles.id ile auth_user_id farklı olabilir.
-      // Bu nedenle iki ID üzerinden de kontrol ediyoruz.
-      const possibleUserIds = [
-        target.id,
-        target.auth_user_id
-      ].filter(Boolean);
+      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
+      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
+      const highlightsSb = adminClient();
+      const { data, error } = await highlightsSb
+        .from("highlights")
+        .select("*")
+        .eq("user_id", target.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
-      const rows = [];
+      if (error) throw error;
 
-      for (const userId of [...new Set(possibleUserIds)]) {
-        const { data, error } = await highlightsSb
-          .from("highlights")
-          .select("*")
-          .eq("user_id", userId)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        rows.push(...(data || []));
-      }
-
-      const unique = new Map();
-      for (const h of rows) {
-        if (h?.id != null) {
-          unique.set(String(h.id), h);
-        }
-      }
-
-      const data = [...unique.values()].sort((a, b) => {
-        const sortA = Number(a?.sort_order ?? 0);
-        const sortB = Number(b?.sort_order ?? 0);
-        if (sortA !== sortB) return sortA - sortB;
-
-        return String(a?.created_at || "").localeCompare(
-          String(b?.created_at || "")
-        );
-      });
-
-      res.json(data.map(h => ({
+      res.json((data || []).map(h => ({
         id: h.id,
         userId: h.user_id,
         media: h.media_url,
@@ -3637,11 +3516,12 @@ app.post(
         });
       }
 
+      // Yorum kaydı RLS'den etkilenmesin; tüm istemciler aynı Supabase tablosuna yazsın.
       const {
         data,
         error
       } =
-        await req.sb
+        await adminClient()
           .from("comments")
           .insert({
             post_id:
@@ -3712,6 +3592,54 @@ app.post(
         error:
           e.message
       });
+    }
+  }
+);
+
+
+app.get(
+  "/api/posts/:id/comments",
+  auth,
+  async (req, res) => {
+    try {
+      // Okuma da RLS'ye takılmasın; uygulama ve site aynı yorumları görsün.
+      const { data: comments, error } = await adminClient()
+        .from("comments")
+        .select("id,post_id,user_id,text,created_at")
+        .eq("post_id", req.params.id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const ids = [...new Set((comments || []).map(c => c.user_id).filter(Boolean))];
+      let profiles = [];
+      if (ids.length) {
+        const result = await adminClient()
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name")
+          .or(ids.map(id => `id.eq.${id},auth_user_id.eq.${id}`).join(","));
+        profiles = result.data || [];
+      }
+
+      const findProfile = (userId) =>
+        profiles.find(p => String(p.id) === String(userId) || String(p.auth_user_id) === String(userId));
+
+      return res.json({
+        comments: (comments || []).map(c => {
+          const profile = findProfile(c.user_id);
+          return {
+            id: c.id,
+            postId: c.post_id,
+            userId: c.user_id,
+            username: profile?.username || "",
+            displayName: profile?.display_name || profile?.username || "",
+            text: c.text,
+            createdAt: new Date(c.created_at).getTime()
+          };
+        })
+      });
+    } catch (e) {
+      return res.status(400).json({ error: e?.message || "Yorumlar alınamadı." });
     }
   }
 );
