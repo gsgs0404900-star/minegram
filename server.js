@@ -269,34 +269,65 @@ async function isAuthUserActive(userId) {
   }
 }
 
-async function filterActivePosts(posts) {
-  if (!Array.isArray(posts) || !posts.length) return [];
+async function filterActiveContent(rows) {
+  if (!Array.isArray(rows) || !rows.length) return [];
 
-  const userIds = [...new Set(
-    posts.map(p => p?.user_id).filter(Boolean)
-  )];
+  // Eski Minegram kayıtlarında user_id bazen profiles.id, bazen
+  // Supabase Auth user.id olarak tutulabiliyor. Sadece Auth id ile
+  // kontrol etmek eski cihazlarda oluşturulmuş içerikleri yanlışlıkla
+  // gizliyordu. Önce profiles tablosundaki iki kimliği eşleştiriyoruz.
+  const ids = [...new Set(rows.map(x => String(x?.user_id || "").trim()).filter(Boolean))];
+  if (!ids.length) return [];
 
+  const admin = adminClient();
+  const { data: profiles, error } = await admin
+    .from("profiles")
+    .select("id,auth_user_id")
+    .or(`id.in.(${ids.join(",")}),auth_user_id.in.(${ids.join(",")})`);
+
+  if (error) {
+    console.warn("CONTENT PROFILE FILTER ERROR:", error.message);
+    // Profil sorgusu geçici olarak başarısızsa ortak feed'i boşaltma.
+    return rows;
+  }
+
+  const validIds = new Set();
+  for (const p of profiles || []) {
+    if (p?.id) validIds.add(String(p.id));
+    if (p?.auth_user_id) validIds.add(String(p.auth_user_id));
+  }
+
+  // Profil eşleşmesi varsa Auth hesabının gerçekten mevcut olduğunu da
+  // doğrula. Eşleşme yoksa içeriği sırf eski id formatı nedeniyle silme.
+  const authIds = [...new Set((profiles || []).map(p => p?.auth_user_id || p?.id).filter(Boolean).map(String))];
   const activeIds = new Set();
-  await Promise.all(userIds.map(async userId => {
-    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  await Promise.all(authIds.map(async id => {
+    if (await isAuthUserActive(id)) activeIds.add(id);
   }));
 
-  return posts.filter(p => activeIds.has(p?.user_id));
+  if (!activeIds.size) return rows;
+
+  const activeContentIds = new Set();
+  for (const p of profiles || []) {
+    const authId = String(p?.auth_user_id || p?.id || "");
+    if (activeIds.has(authId)) {
+      if (p?.id) activeContentIds.add(String(p.id));
+      if (p?.auth_user_id) activeContentIds.add(String(p.auth_user_id));
+    }
+  }
+
+  return rows.filter(x => {
+    const id = String(x?.user_id || "");
+    return activeContentIds.has(id) || (!validIds.has(id) && id.length > 0);
+  });
+}
+
+async function filterActivePosts(posts) {
+  return filterActiveContent(posts);
 }
 
 async function filterActiveStories(stories) {
-  if (!Array.isArray(stories) || !stories.length) return [];
-
-  const userIds = [...new Set(
-    stories.map(s => s?.user_id).filter(Boolean)
-  )];
-
-  const activeIds = new Set();
-  await Promise.all(userIds.map(async userId => {
-    if (await isAuthUserActive(userId)) activeIds.add(userId);
-  }));
-
-  return stories.filter(s => activeIds.has(s?.user_id));
+  return filterActiveContent(stories);
 }
 
 async function filterActiveProfiles(profiles) {
@@ -401,9 +432,9 @@ async function hydratePosts(
     sb
       .from("profiles")
       .select(
-        "id,username,display_name,bio,avatar_url,verified"
+        "id,auth_user_id,username,display_name,bio,avatar_url,verified"
       )
-      .in("id", userIds),
+      .or(`id.in.(${userIds.join(",")}),auth_user_id.in.(${userIds.join(",")})`),
 
     sb
       .from("post_likes")
@@ -452,12 +483,11 @@ async function hydratePosts(
   const saves =
     savesResult.data || [];
 
-  const pmap =
-    new Map(
-      profiles.map(
-        p => [p.id, p]
-      )
-    );
+  const pmap = new Map();
+  for (const p of profiles) {
+    if (p?.id) pmap.set(String(p.id), p);
+    if (p?.auth_user_id) pmap.set(String(p.auth_user_id), p);
+  }
 
   const likeMap =
     new Map();
@@ -2412,7 +2442,7 @@ app.get(
         throw error;
       }
 
-      const activePosts = data || [];
+      const activePosts = await filterActivePosts(data || []);
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
       // kullanılmamalı. Aksi halde başka kullanıcının gönderisinin profili,
@@ -3105,7 +3135,7 @@ app.get(
         });
       }
 
-      const activeStories = data || [];
+      const activeStories = await filterActiveStories(data || []);
 
       res.json(
         activeStories
