@@ -397,7 +397,7 @@ async function hydratePosts(
     adminClient()
       .from("comments")
       .select(
-        "id,post_id,user_id,text,created_at"
+        "id,post_id,user_id,text,created_at,profiles(username,display_name)"
       )
       .in("post_id", postIds)
       .order(
@@ -430,25 +430,6 @@ async function hydratePosts(
 
   const comments =
     commentsResult.data || [];
-
-  // Yorum profillerini nested relation yerine ayrı ve güvenli sorguyla eşleştir.
-  // Böylece Supabase'deki profiles FK/relation tanımı farklı olsa bile yorumlar kaybolmaz.
-  const commentUserIds = [
-    ...new Set(comments.map(c => c.user_id).filter(Boolean))
-  ];
-  let commentProfiles = [];
-  if (commentUserIds.length) {
-    const [byId, byAuth] = await Promise.all([
-      adminClient().from("profiles").select("id,auth_user_id,username,display_name").in("id", commentUserIds),
-      adminClient().from("profiles").select("id,auth_user_id,username,display_name").in("auth_user_id", commentUserIds)
-    ]);
-    commentProfiles = [...(byId.data || []), ...(byAuth.data || [])];
-  }
-  const commentProfileMap = new Map();
-  for (const profile of commentProfiles) {
-    if (profile?.id) commentProfileMap.set(String(profile.id), profile);
-    if (profile?.auth_user_id) commentProfileMap.set(String(profile.auth_user_id), profile);
-  }
 
   const saves =
     savesResult.data || [];
@@ -511,8 +492,7 @@ async function hydratePosts(
         createdAt:
           c.created_at,
         username:
-          commentProfileMap.get(String(c.user_id))?.username ||
-          commentProfileMap.get(String(c.user_id))?.display_name ||
+          c.profiles?.username ||
           ""
       });
   }
