@@ -4404,16 +4404,13 @@ function renderPost(p){
 
 
   const comments=
-    mergeComments(
-      Array.isArray(p.comments)
-        ? p.comments
-        : (
-          Array.isArray(p.post?.comments)
-            ? p.post.comments
-            : []
-        ),
-      p.id
-    );
+    Array.isArray(p.comments)
+      ? p.comments
+      : (
+        Array.isArray(p.post?.comments)
+          ? p.post.comments
+          : []
+      );
 
 
   let media="";
@@ -5902,20 +5899,6 @@ function changeCommentSort(
 
   if(currentCommentPost){
 
-    const all=
-      getLocalComments(
-        currentCommentPost
-      );
-
-
-    document.getElementById(
-      "commentList"
-    ).innerHTML=
-      renderCommentsForPost(
-        all
-      );
-
-
     refreshComments(false);
 
   }
@@ -5977,11 +5960,12 @@ async function refreshComments(
 
     list.innerHTML=
       renderCommentsForPost(
-        mergeComments(
-          remote,
-          id
-        )
+        remote
       );
+
+    try{
+      localStorage.removeItem(localCommentsKey(id));
+    }catch(e){}
 
 
   }catch(e){}
@@ -6076,11 +6060,12 @@ async function openComments(id){
 
     list.innerHTML=
       renderCommentsForPost(
-        mergeComments(
-          remote,
-          id
-        )
+        remote
       );
+
+    try{
+      localStorage.removeItem(localCommentsKey(id));
+    }catch(e){}
 
 
   }catch(e){
