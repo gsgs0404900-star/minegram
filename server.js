@@ -1852,6 +1852,123 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+
+/* =========================================================
+   REFRESH SESSION - TÜM TELEFONLAR İÇİN
+   =========================================================
+   Android/web istemcisi access token süresi dolduğunda kayıtlı
+   şifreyi tekrar istemeden refresh token ile yeni oturum alabilir.
+*/
+app.post("/api/refresh", async (req, res) => {
+  try {
+    const refreshToken = String(
+      req.body?.refresh_token ??
+      req.body?.refreshToken ??
+      ""
+    ).trim();
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        ok: false,
+        code: "REFRESH_TOKEN_REQUIRED",
+        error: "Refresh token gerekli."
+      });
+    }
+
+    if (!CONFIG_OK) {
+      return res.status(500).json({
+        ok: false,
+        code: "SERVER_CONFIG_ERROR",
+        error: "Supabase yapılandırması eksik."
+      });
+    }
+
+    // Supabase refresh endpoint'i doğrudan istemci anahtarıyla çağrılır.
+    // Böylece cihazın mevcut access token'ının süresi dolmuş olsa bile
+    // geçerli refresh token ile yeni access token üretilebilir.
+    const response = await fetch(
+      `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken
+        })
+      }
+    );
+
+    const raw = await response.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch (_) {}
+
+    if (!response.ok || !data?.access_token) {
+      console.error("REFRESH SESSION ERROR:", {
+        status: response.status,
+        message: data?.msg || data?.message || raw?.slice?.(0, 300)
+      });
+
+      return res.status(401).json({
+        ok: false,
+        code: "REFRESH_FAILED",
+        error: "Oturum yenilenemedi. Lütfen tekrar giriş yap."
+      });
+    }
+
+    let profile = null;
+    try {
+      const sb = client(data.access_token);
+      const userResult = await sb.auth.getUser(data.access_token);
+      const user = userResult?.data?.user || null;
+
+      if (user?.id) {
+        const byId = await sb
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        profile = byId.data || null;
+
+        if (!profile) {
+          const byAuth = await sb
+            .from("profiles")
+            .select("*")
+            .eq("auth_user_id", user.id)
+            .maybeSingle();
+
+          profile = byAuth.data || null;
+        }
+      }
+    } catch (e) {
+      console.error("REFRESH PROFILE LOOKUP ERROR:", e?.message || e);
+    }
+
+    return res.json({
+      ok: true,
+      token: data.access_token,
+      access_token: data.access_token,
+      refreshToken: data.refresh_token || refreshToken,
+      refresh_token: data.refresh_token || refreshToken,
+      expires_in: data.expires_in,
+      expires_at: data.expires_at,
+      user: safeProfile(profile),
+      profile: safeProfile(profile)
+    });
+  } catch (error) {
+    console.error("REFRESH SERVER ERROR:", error);
+    return res.status(500).json({
+      ok: false,
+      code: "REFRESH_SERVER_ERROR",
+      error: error?.message || "Oturum yenilenemedi."
+    });
+  }
+});
+
 /* =========================================================
    MINEGRAM EMAIL DELIVERY + PASSWORD RECOVERY
    ========================================================= */
