@@ -241,7 +241,40 @@ function safeUser(u) {
       u.avatar ??
       null,
     verified: !!u.verified,
-    settings: u.settings || {}
+    settings: u.settings || {},
+    premium: (() => {
+      const settings =
+        u.settings && typeof u.settings === "object"
+          ? u.settings
+          : {};
+      const p =
+        settings.minegramPremium &&
+        typeof settings.minegramPremium === "object"
+          ? settings.minegramPremium
+          : {};
+      const until = p.verifiedUntil ? new Date(p.verifiedUntil) : null;
+      const active =
+        p.active === true &&
+        !!until &&
+        !Number.isNaN(until.getTime()) &&
+        until.getTime() > Date.now();
+
+      return {
+        active,
+        plan: active ? (p.plan || "mavi_tik_aylik") : null,
+        verifiedUntil: active ? until.toISOString() : null,
+        features: active ? [
+          "blue_badge",
+          "premium_profile",
+          "profile_boost",
+          "profile_stats",
+          "premium_themes",
+          "impersonation_protection",
+          "premium_post_boost",
+          "premium_notifications"
+        ] : []
+      };
+    })()
   };
 }
 
@@ -4423,6 +4456,400 @@ app.post(
   }
 );
 
+
+
+/* =========================================================
+   MINEGRAM MAVİ TİK + PREMIUM ÖZELLİKLER
+   Mevcut kodlara dokunmadan eklenmiştir.
+   Ödeme sağlayıcısı kart bilgilerini Minegram sunucusuna göndermez.
+   Başarılı ödeme sağlayıcının webhook'u ile sunucuya bildirilir.
+========================================================= */
+
+const MINEGRAM_PREMIUM_FEATURES = [
+  "blue_badge",
+  "premium_profile",
+  "profile_boost",
+  "profile_stats",
+  "premium_themes",
+  "impersonation_protection",
+  "premium_post_boost",
+  "premium_notifications"
+];
+
+function premiumState(profile) {
+  const settings =
+    profile?.settings && typeof profile.settings === "object"
+      ? profile.settings
+      : {};
+
+  const premium =
+    settings?.minegramPremium &&
+    typeof settings.minegramPremium === "object"
+      ? settings.minegramPremium
+      : {};
+
+  const until = premium?.verifiedUntil
+    ? new Date(premium.verifiedUntil)
+    : null;
+
+  const active =
+    premium?.active === true &&
+    !!until &&
+    !Number.isNaN(until.getTime()) &&
+    until.getTime() > Date.now();
+
+  return {
+    active,
+    plan: active ? (premium.plan || "mavi_tik_aylik") : null,
+    verifiedUntil: active ? until.toISOString() : null,
+    features: active ? [...MINEGRAM_PREMIUM_FEATURES] : [],
+    startedAt: premium?.startedAt || null,
+    provider: premium?.provider || null,
+    orderId: premium?.orderId || null
+  };
+}
+
+function premiumSafeUser(profile) {
+  const state = premiumState(profile);
+
+  return {
+    ...safeUser(profile),
+    verified: !!profile?.verified || state.active,
+    premium: {
+      active: state.active,
+      plan: state.plan,
+      verifiedUntil: state.verifiedUntil,
+      features: state.features
+    }
+  };
+}
+
+/*
+ * Giriş yapan hesabın Mavi Tik/Premium durumunu getirir.
+ */
+app.get(
+  "/api/mavi-tik/status",
+  auth,
+  async (req, res) => {
+    try {
+      const state = premiumState(req.user);
+
+      return res.json({
+        ok: true,
+        active: state.active,
+        verified: state.active || !!req.user?.verified,
+        plan: state.plan,
+        verifiedUntil: state.verifiedUntil,
+        features: state.features
+      });
+    } catch (e) {
+      console.error("MAVI TIK STATUS ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: "Mavi Tik durumu alınamadı."
+      });
+    }
+  }
+);
+
+/*
+ * Özel özelliklerin tamamı tek noktadan kontrol edilir.
+ * Frontend'de anahtar açmak tek başına yetki vermez.
+ */
+app.get(
+  "/api/mavi-tik/features",
+  auth,
+  async (req, res) => {
+    try {
+      const state = premiumState(req.user);
+
+      const features = {};
+      for (const feature of MINEGRAM_PREMIUM_FEATURES) {
+        features[feature] = state.active;
+      }
+
+      return res.json({
+        ok: true,
+        premiumActive: state.active,
+        verifiedUntil: state.verifiedUntil,
+        features
+      });
+    } catch (e) {
+      console.error("MAVI TIK FEATURES ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: "Premium özellikler alınamadı."
+      });
+    }
+  }
+);
+
+/*
+ * Güvenli ödeme sayfasına yönlendirme.
+ *
+ * MINEGRAM_MAVI_TIK_CHECKOUT_URL:
+ *   Ödeme sağlayıcının (iyzico/PayTR vb.) HOSTED CHECKOUT adresi.
+ *
+ * Kart bilgileri bu endpoint'e gönderilmez ve Minegram veritabanında
+ * tutulmaz.
+ */
+app.post(
+  "/api/mavi-tik/checkout",
+  auth,
+  async (req, res) => {
+    try {
+      const checkoutUrl = env("MINEGRAM_MAVI_TIK_CHECKOUT_URL");
+
+      if (!checkoutUrl) {
+        return res.status(503).json({
+          ok: false,
+          code: "PAYMENT_NOT_CONFIGURED",
+          error:
+            "Mavi Tik ödeme sistemi henüz yapılandırılmadı. Ödeme sağlayıcının güvenli ödeme adresini sunucuya ekle."
+        });
+      }
+
+      const state = premiumState(req.user);
+
+      if (state.active) {
+        return res.json({
+          ok: true,
+          alreadyActive: true,
+          active: true,
+          verifiedUntil: state.verifiedUntil,
+          features: state.features
+        });
+      }
+
+      /*
+       * Checkout URL'sine kullanıcı kimliğini uygulama tarafında
+       * query olarak eklemiyoruz. Ödeme sağlayıcının kendi müşteri/order
+       * mekanizması kullanılmalıdır.
+       */
+      return res.json({
+        ok: true,
+        active: false,
+        plan: "mavi_tik_aylik",
+        amount: env("MINEGRAM_MAVI_TIK_PRICE") || "99.90",
+        currency: "TRY",
+        checkoutUrl
+      });
+    } catch (e) {
+      console.error("MAVI TIK CHECKOUT ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: "Ödeme başlatılamadı."
+      });
+    }
+  }
+);
+
+/*
+ * Ödeme sağlayıcının SUNUCU-SUNUCU webhook'u.
+ *
+ * Header:
+ *   x-minegram-webhook-secret: Render Environment Variables içindeki
+ *   MINEGRAM_PAYMENT_WEBHOOK_SECRET değeri.
+ *
+ * Sağlayıcı başarılı ödemeyi doğruladıktan sonra:
+ *   userId / authUserId
+ *   status = paid|active|success
+ *   verifiedUntil (ISO tarih, opsiyonel)
+ *   orderId (opsiyonel)
+ *
+ * göndererek hesabı aktive eder.
+ */
+app.post(
+  "/api/mavi-tik/webhook",
+  async (req, res) => {
+    try {
+      const expectedSecret = env("MINEGRAM_PAYMENT_WEBHOOK_SECRET");
+      const receivedSecret =
+        String(
+          req.headers["x-minegram-webhook-secret"] ||
+          req.headers["x-webhook-secret"] ||
+          ""
+        ).trim();
+
+      if (!expectedSecret || !receivedSecret || receivedSecret !== expectedSecret) {
+        return res.status(401).json({
+          ok: false,
+          error: "Webhook yetkilendirmesi başarısız."
+        });
+      }
+
+      const body = req.body || {};
+      const status = String(body.status || body.paymentStatus || "")
+        .trim()
+        .toLowerCase();
+
+      const userId = String(
+        body.userId ||
+        body.user_id ||
+        body.authUserId ||
+        body.auth_user_id ||
+        ""
+      ).trim();
+
+      if (!userId) {
+        return res.status(400).json({
+          ok: false,
+          error: "Webhook için kullanıcı kimliği gerekli."
+        });
+      }
+
+      const successStatuses = new Set([
+        "paid",
+        "active",
+        "success",
+        "successful",
+        "completed"
+      ]);
+
+      const cancelStatuses = new Set([
+        "cancelled",
+        "canceled",
+        "expired",
+        "failed",
+        "refunded",
+        "inactive"
+      ]);
+
+      if (!successStatuses.has(status) && !cancelStatuses.has(status)) {
+        return res.status(400).json({
+          ok: false,
+          error: "Desteklenmeyen ödeme durumu."
+        });
+      }
+
+      const admin = adminClient();
+
+      const profileResult = await admin
+        .from("profiles")
+        .select("*")
+        .or(`id.eq.${userId},auth_user_id.eq.${userId}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (profileResult.error) throw profileResult.error;
+
+      const profile = profileResult.data;
+
+      if (!profile) {
+        return res.status(404).json({
+          ok: false,
+          error: "Kullanıcı profili bulunamadı."
+        });
+      }
+
+      const currentSettings =
+        profile.settings && typeof profile.settings === "object"
+          ? profile.settings
+          : {};
+
+      const currentPremium =
+        currentSettings.minegramPremium &&
+        typeof currentSettings.minegramPremium === "object"
+          ? currentSettings.minegramPremium
+          : {};
+
+      let verifiedUntil = null;
+
+      if (successStatuses.has(status)) {
+        const requestedUntil = body.verifiedUntil || body.verified_until;
+
+        if (requestedUntil) {
+          const parsed = new Date(requestedUntil);
+          if (!Number.isNaN(parsed.getTime())) {
+            verifiedUntil = parsed.toISOString();
+          }
+        }
+
+        /*
+         * Sağlayıcı süre göndermiyorsa varsayılan olarak 30 gün ver.
+         * Gerçek abonelik sağlayıcısı kendi yenileme webhook'unda
+         * yeni verifiedUntil değerini gönderebilir.
+         */
+        if (!verifiedUntil) {
+          verifiedUntil = new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+          ).toISOString();
+        }
+      }
+
+      const nextPremium = successStatuses.has(status)
+        ? {
+            active: true,
+            plan: "mavi_tik_aylik",
+            verifiedUntil,
+            startedAt: currentPremium.startedAt || new Date().toISOString(),
+            provider:
+              String(body.provider || "payment_gateway").slice(0, 80),
+            orderId:
+              String(body.orderId || body.order_id || "").slice(0, 160) || null
+          }
+        : {
+            active: false,
+            plan: null,
+            verifiedUntil: null,
+            startedAt: currentPremium.startedAt || null,
+            provider: currentPremium.provider || null,
+            orderId: currentPremium.orderId || null
+          };
+
+      const nextSettings = {
+        ...currentSettings,
+        minegramPremium: nextPremium
+      };
+
+      const updateResult = await admin
+        .from("profiles")
+        .update({
+          verified: successStatuses.has(status),
+          settings: nextSettings
+        })
+        .eq("id", profile.id)
+        .select("*")
+        .single();
+
+      if (updateResult.error) throw updateResult.error;
+
+      return res.json({
+        ok: true,
+        active: successStatuses.has(status),
+        verifiedUntil: nextPremium.verifiedUntil,
+        features: successStatuses.has(status)
+          ? [...MINEGRAM_PREMIUM_FEATURES]
+          : []
+      });
+    } catch (e) {
+      console.error("MAVI TIK WEBHOOK ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: "Mavi Tik ödeme bildirimi işlenemedi."
+      });
+    }
+  }
+);
+
+/*
+ * Sunucu tarafında premium özellik kontrolü gereken yerler için
+ * kullanılabilecek middleware.
+ */
+function requirePremium(req, res, next) {
+  const state = premiumState(req.user);
+
+  if (!state.active) {
+    return res.status(403).json({
+      ok: false,
+      code: "PREMIUM_REQUIRED",
+      error: "Bu özellik Mavi Tik üyelerine özeldir."
+    });
+  }
+
+  req.premium = state;
+  next();
+}
 
 /* =========================================================
    UPDATE PROFILE
