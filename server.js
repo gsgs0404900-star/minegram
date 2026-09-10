@@ -2720,16 +2720,54 @@ app.get(
   async (req, res) => {
     try {
       // Kendi öne çıkanlarını da service-role ile oku; RLS kaynaklı boş listeyi önle.
+      // Eski/yeni hesaplarda profiles.id ile Auth UID farklı olabileceği için
+      // iki kimliği de destekle.
       const highlightsSb = adminClient();
-      const { data, error } = await highlightsSb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", req.user.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      const profile = await findProfile(req.sb, req.user.username || req.user.email || "");
+      const ownerIds = [
+        req.user.id,
+        profile?.id,
+        profile?.auth_user_id
+      ]
+        .map(v => String(v || "").trim())
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+      let data = [];
+      let error = null;
+
+      if (ownerIds.length === 1) {
+        const result = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .eq("user_id", ownerIds[0])
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+        data = result.data || [];
+        error = result.error;
+      } else {
+        const result = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .in("user_id", ownerIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+        data = result.data || [];
+        error = result.error;
+      }
 
       if (error) throw error;
-      res.json(data || []);
+
+      const unique = [];
+      const seen = new Set();
+      for (const h of data) {
+        const key = String(h.id || `${h.user_id}:${h.media_url || ""}:${h.created_at || ""}`);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(h);
+      }
+
+      res.json(unique);
     } catch (e) {
       console.error("MY HIGHLIGHTS ERROR:", e);
       res.status(500).json({ error: e.message });
@@ -2743,64 +2781,79 @@ app.post(
   upload.single("media"),
   async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "Öne çıkan için medya dosyası seçilmedi" });
-      }
-
-      const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
-      const objectPath = `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
-
-      // Öne çıkan medya yüklemesi RLS'den etkilenmemesi için
-      // yalnızca sunucu tarafındaki service-role client kullanılır.
       const admin = adminClient();
-
-      const { error: uploadError } = await admin.storage
-        .from(BUCKET)
-        .upload(objectPath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = admin.storage
-        .from(BUCKET)
-        .getPublicUrl(objectPath);
-
       const title = String(req.body?.title || "Öne çıkan").trim().slice(0, 80) || "Öne çıkan";
       const requestedSort = Number(req.body?.sortOrder);
       const sortOrder = Number.isFinite(requestedSort) ? requestedSort : 0;
 
-      // highlights INSERT işlemi de service-role client ile yapılır;
-      // böylece profiles/highlights RLS politikası nedeniyle 42501 hatası oluşmaz.
+      // Android/web dosya yüklemesi: mevcut medya upload sistemi aynen korunur.
+      if (req.file) {
+        const ext = path.extname(req.file.originalname).toLowerCase() || ".bin";
+        const objectPath = `highlights/${req.user.id}/${crypto.randomUUID()}${ext}`;
+
+        const { error: uploadError } = await admin.storage
+          .from(BUCKET)
+          .upload(objectPath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: false
+          });
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = admin.storage
+          .from(BUCKET)
+          .getPublicUrl(objectPath);
+
+        const { data, error } = await admin
+          .from("highlights")
+          .insert({
+            user_id: req.user.id,
+            media_url: publicData.publicUrl,
+            media_type: req.file.mimetype,
+            title,
+            sort_order: sortOrder
+          })
+          .select("*")
+          .single();
+        if (error) throw error;
+
+        return res.json({
+          ok: true, id: data.id, userId: data.user_id,
+          media: data.media_url, mediaUrl: data.media_url,
+          mediaType: data.media_type, title: data.title,
+          sortOrder: data.sort_order ?? 0, createdAt: data.created_at
+        });
+      }
+
+      // Web profilindeki mevcut sistem URL ile öne çıkan ekliyorsa,
+      // JSON isteğini de kabul et. Böylece site ve Android aynı highlights tablosunu kullanır.
+      const mediaUrl = String(req.body?.mediaUrl || req.body?.media_url || req.body?.image || "").trim();
+      if (!/^https?:\/\//i.test(mediaUrl)) {
+        return res.status(400).json({ error: "Öne çıkan için medya dosyası veya geçerli medya URL'si gerekli" });
+      }
+
+      const mediaType = String(req.body?.mediaType || req.body?.media_type || "image").trim() || "image";
       const { data, error } = await admin
         .from("highlights")
         .insert({
           user_id: req.user.id,
-          media_url: publicData.publicUrl,
-          media_type: req.file.mimetype,
+          media_url: mediaUrl,
+          media_type: mediaType,
           title,
           sort_order: sortOrder
         })
         .select("*")
         .single();
-
       if (error) throw error;
 
-      res.json({
-        ok: true,
-        id: data.id,
-        userId: data.user_id,
-        media: data.media_url,
-        mediaUrl: data.media_url,
-        mediaType: data.media_type,
-        title: data.title,
-        sortOrder: data.sort_order ?? 0,
-        createdAt: data.created_at
+      return res.json({
+        ok: true, id: data.id, userId: data.user_id,
+        media: data.media_url, mediaUrl: data.media_url,
+        mediaType: data.media_type, title: data.title,
+        sortOrder: data.sort_order ?? 0, createdAt: data.created_at
       });
     } catch (e) {
       console.error("HIGHLIGHT CREATE ERROR:", e);
-      res.status(400).json({ error: e.message });
+      return res.status(400).json({ error: e.message });
     }
   }
 );
