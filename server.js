@@ -166,15 +166,10 @@ async function auth(req, res, next) {
       throw error || new Error("Oturum gerekli");
     }
 
-    // Token doğrulaması kullanıcı tokenı ile yapılır; profil okuması ise
-    // RLS nedeniyle 401'e düşmemesi için service-role client ile yapılır.
-    // Böylece yorum/beğeni/feed gibi authenticated API'ler, profiles
-    // tablosunun SELECT politikasından bağımsız çalışır.
-    const admin = adminClient();
     let {
       data: profile,
       error: pError
-    } = await admin
+    } = await sb
       .from("profiles")
       .select("*")
       .eq("id", user.id)
@@ -182,7 +177,7 @@ async function auth(req, res, next) {
 
     if (!profile) {
       const fallback =
-        await admin
+        await sb
           .from("profiles")
           .select("*")
           .eq("auth_user_id", user.id)
@@ -1596,36 +1591,40 @@ app.post("/api/account/migrate-local", async (req, res) => {
 });
 
 /* =========================================================
-   LOGIN - TÜM TELEFONLAR İÇİN
+   REFRESH SESSION
+   Android uygulaması kapanıp açıldığında access token süresi dolmuşsa
+   refresh token ile yeni access + refresh token üret.
 ========================================================= */
-
 app.post("/api/refresh", async (req, res) => {
   try {
     const refreshToken = String(req.body?.refreshToken ?? req.body?.refresh_token ?? "").trim();
     if (!refreshToken) {
-      return res.status(400).json({ ok: false, code: "MISSING_REFRESH_TOKEN", error: "Yenileme oturumu bulunamadı." });
+      return res.status(400).json({ ok: false, code: "MISSING_REFRESH_TOKEN", error: "Oturum yenileme anahtarı bulunamadı." });
     }
-
-    const { data, error } = await client().auth.refreshSession({ refresh_token: refreshToken });
+    const anon = client();
+    const { data, error } = await anon.auth.refreshSession({ refresh_token: refreshToken });
     if (error || !data?.session) {
       console.error("REFRESH AUTH ERROR:", error?.message || error);
       return res.status(401).json({ ok: false, code: "REFRESH_FAILED", error: "Oturum yenileme anahtarı geçersiz veya süresi dolmuş." });
     }
-
     return res.json({
       ok: true,
       token: data.session.access_token,
       access_token: data.session.access_token,
       refreshToken: data.session.refresh_token,
       refresh_token: data.session.refresh_token,
-      user: safeProfile(data.user),
-      profile: safeProfile(data.user)
+      user: data.user ? safeProfile(data.user) : null,
+      profile: data.user ? safeProfile(data.user) : null
     });
   } catch (error) {
     console.error("REFRESH SERVER ERROR:", error);
     return res.status(500).json({ ok: false, code: "REFRESH_SERVER_ERROR", error: error?.message || "Oturum yenilenemedi." });
   }
 });
+
+/* =========================================================
+   LOGIN - TÜM TELEFONLAR İÇİN
+========================================================= */
 
 app.post("/api/login", async (req, res) => {
   try {
@@ -2676,46 +2675,27 @@ app.get(
 ========================================================= */
 app.get(
   "/api/users/:username/highlights",
+  auth,
   async (req, res) => {
     try {
-      // Profil öne çıkanları PUBLIC olmalıdır. Profil ziyaretinde JWT zorunlu değildir.
-      const highlightsSb = adminClient();
-      const target = await findProfile(highlightsSb, req.params.username);
-
+      const target = await findProfile(req.sb, req.params.username);
       if (!target) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      // Eski hesaplarda profiles.id ile auth_user_id farklı olabilir.
-      // Bu nedenle iki ID üzerinden de kontrol ediyoruz.
-      const possibleUserIds = [target.id, target.auth_user_id].filter(Boolean);
-      const rows = [];
+      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
+      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
+      const highlightsSb = adminClient();
+      const { data, error } = await highlightsSb
+        .from("highlights")
+        .select("*")
+        .eq("user_id", target.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
-      for (const userId of [...new Set(possibleUserIds)]) {
-        const { data, error } = await highlightsSb
-          .from("highlights")
-          .select("*")
-          .eq("user_id", userId)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true });
+      if (error) throw error;
 
-        if (error) throw error;
-        rows.push(...(data || []));
-      }
-
-      const unique = new Map();
-      for (const h of rows) {
-        if (h?.id != null) unique.set(String(h.id), h);
-      }
-
-      const data = [...unique.values()].sort((x, y) => {
-        const a = Number(x?.sort_order ?? 0);
-        const b = Number(y?.sort_order ?? 0);
-        if (a !== b) return a - b;
-        return String(x?.created_at || "").localeCompare(String(y?.created_at || ""));
-      });
-
-      res.json(data.map(h => ({
+      res.json((data || []).map(h => ({
         id: h.id,
         userId: h.user_id,
         media: h.media_url,
@@ -3526,64 +3506,6 @@ app.post(
    COMMENTS
 ========================================================= */
 
-app.get(
-  "/api/posts/:id/comments",
-  auth,
-  async (req, res) => {
-    try {
-      const postId = req.params.id;
-
-      // Yorumlar ortak veridir. Kullanıcıya bağlı Supabase istemcisinin RLS
-      // kuralları yüzünden eklenen yorumun hemen sonraki okumada kaybolmaması
-      // için burada doğrulanmış oturumdan sonra service-role ile okuyoruz.
-      const admin = adminClient();
-      const { data: comments, error } = await admin
-        .from("comments")
-        .select("id,post_id,user_id,text,created_at")
-        .eq("post_id", postId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
-      const rows = comments || [];
-      const userIds = [...new Set(rows.map(c => String(c.user_id)).filter(Boolean))];
-      let profiles = [];
-
-      if (userIds.length) {
-        const { data: profileRows, error: profileError } = await admin
-          .from("profiles")
-          .select("id,auth_user_id,username,display_name")
-          .or(`id.in.(${userIds.join(",")}),auth_user_id.in.(${userIds.join(",")})`);
-
-        if (!profileError) profiles = profileRows || [];
-      }
-
-      const profileMap = new Map();
-      for (const profile of profiles) {
-        if (profile?.id) profileMap.set(String(profile.id), profile);
-        if (profile?.auth_user_id) profileMap.set(String(profile.auth_user_id), profile);
-      }
-
-      res.json({
-        comments: rows.map(c => {
-          const profile = profileMap.get(String(c.user_id));
-          return {
-            id: c.id,
-            postId: c.post_id,
-            userId: c.user_id,
-            username: profile?.username || "",
-            displayName: profile?.display_name || "",
-            text: c.text,
-            createdAt: new Date(c.created_at).getTime()
-          };
-        })
-      });
-    } catch (e) {
-      res.status(400).json({ error: e.message });
-    }
-  }
-);
-
 app.post(
   "/api/posts/:id/comments",
   auth,
@@ -3602,15 +3524,11 @@ app.post(
         });
       }
 
-      // Yorum kaydı da ortak veridir. Auth middleware oturumu doğruladıktan
-      // sonra service-role ile yazıyoruz; böylece RLS, yorumu yazdıktan hemen
-      // sonra siteden/uygulamadan okunmasını engellemiyor.
-      const admin = adminClient();
       const {
         data,
         error
       } =
-        await admin
+        await req.sb
           .from("comments")
           .insert({
             post_id:
