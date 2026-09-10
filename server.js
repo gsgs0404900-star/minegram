@@ -166,10 +166,15 @@ async function auth(req, res, next) {
       throw error || new Error("Oturum gerekli");
     }
 
+    // Token doğrulaması kullanıcı tokenı ile yapılır; profil okuması ise
+    // RLS nedeniyle 401'e düşmemesi için service-role client ile yapılır.
+    // Böylece yorum/beğeni/feed gibi authenticated API'ler, profiles
+    // tablosunun SELECT politikasından bağımsız çalışır.
+    const admin = adminClient();
     let {
       data: profile,
       error: pError
-    } = await sb
+    } = await admin
       .from("profiles")
       .select("*")
       .eq("id", user.id)
@@ -177,7 +182,7 @@ async function auth(req, res, next) {
 
     if (!profile) {
       const fallback =
-        await sb
+        await admin
           .from("profiles")
           .select("*")
           .eq("auth_user_id", user.id)
