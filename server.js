@@ -269,65 +269,16 @@ async function isAuthUserActive(userId) {
   }
 }
 
-async function filterActiveContent(rows) {
-  if (!Array.isArray(rows) || !rows.length) return [];
-
-  // Eski Minegram kayıtlarında user_id bazen profiles.id, bazen
-  // Supabase Auth user.id olarak tutulabiliyor. Sadece Auth id ile
-  // kontrol etmek eski cihazlarda oluşturulmuş içerikleri yanlışlıkla
-  // gizliyordu. Önce profiles tablosundaki iki kimliği eşleştiriyoruz.
-  const ids = [...new Set(rows.map(x => String(x?.user_id || "").trim()).filter(Boolean))];
-  if (!ids.length) return [];
-
-  const admin = adminClient();
-  const { data: profiles, error } = await admin
-    .from("profiles")
-    .select("id,auth_user_id")
-    .or(`id.in.(${ids.join(",")}),auth_user_id.in.(${ids.join(",")})`);
-
-  if (error) {
-    console.warn("CONTENT PROFILE FILTER ERROR:", error.message);
-    // Profil sorgusu geçici olarak başarısızsa ortak feed'i boşaltma.
-    return rows;
-  }
-
-  const validIds = new Set();
-  for (const p of profiles || []) {
-    if (p?.id) validIds.add(String(p.id));
-    if (p?.auth_user_id) validIds.add(String(p.auth_user_id));
-  }
-
-  // Profil eşleşmesi varsa Auth hesabının gerçekten mevcut olduğunu da
-  // doğrula. Eşleşme yoksa içeriği sırf eski id formatı nedeniyle silme.
-  const authIds = [...new Set((profiles || []).map(p => p?.auth_user_id || p?.id).filter(Boolean).map(String))];
-  const activeIds = new Set();
-  await Promise.all(authIds.map(async id => {
-    if (await isAuthUserActive(id)) activeIds.add(id);
-  }));
-
-  if (!activeIds.size) return rows;
-
-  const activeContentIds = new Set();
-  for (const p of profiles || []) {
-    const authId = String(p?.auth_user_id || p?.id || "");
-    if (activeIds.has(authId)) {
-      if (p?.id) activeContentIds.add(String(p.id));
-      if (p?.auth_user_id) activeContentIds.add(String(p.auth_user_id));
-    }
-  }
-
-  return rows.filter(x => {
-    const id = String(x?.user_id || "");
-    return activeContentIds.has(id) || (!validIds.has(id) && id.length > 0);
-  });
-}
-
 async function filterActivePosts(posts) {
-  return filterActiveContent(posts);
+  // Feed ortak veridir. Auth ID/profile ID eşleşmesi yüzünden başka cihazdaki
+  // geçerli gönderileri yanlışlıkla filtrelemeyiz. Silinen hesap temizliği ayrı
+  // hesap silme akışında yapılır.
+  return Array.isArray(posts) ? posts : [];
 }
 
 async function filterActiveStories(stories) {
-  return filterActiveContent(stories);
+  // Hikayeler de ortak akıştır; profile/auth id farkı nedeniyle görünmez olmasın.
+  return Array.isArray(stories) ? stories : [];
 }
 
 async function filterActiveProfiles(profiles) {
@@ -2416,7 +2367,6 @@ app.delete(
 
 app.get(
   "/api/feed",
-  auth,
   async (req, res) => {
     try {
       // Feed ortak web/Android kaynağıdır. Kullanıcı JWT'sinin RLS'i
@@ -2453,7 +2403,7 @@ app.get(
         await hydratePosts(
           feedHydrateSb,
           activePosts,
-          req.user.id
+          req.user?.id || null
         )
       );
     } catch (e) {
@@ -3091,7 +3041,6 @@ app.post(
 
 app.get(
   "/api/stories",
-  auth,
   async (req, res) => {
     try {
       const yesterday =
@@ -3103,43 +3052,47 @@ app.get(
       // Hikayeler ortak akıştır. req.sb üzerindeki RLS başka kullanıcıların
       // hikayelerini boş döndürebilir; bu yüzden okuma service-role ile yapılır.
       const storiesSb = adminClient();
-      const {
-        data,
-        error
-      } =
-        await storiesSb
-          .from("stories")
-          .select(`
-            *,
-            profiles(
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .gte(
-            "created_at",
-            yesterday
-          )
-          .order(
-            "created_at",
-            {
-              ascending: true
-            }
-          );
+      const { data, error } = await storiesSb
+        .from("stories")
+        .select("*")
+        .gte("created_at", yesterday)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        return res.status(400).json({
-          error:
-            error.message
-        });
+        return res.status(400).json({ error: error.message });
       }
 
-      const activeStories = await filterActiveStories(data || []);
+      const rows = data || [];
+      const ids = [...new Set(rows.map(s => String(s?.user_id || "").trim()).filter(Boolean))];
+      let profiles = [];
+      if (ids.length) {
+        const pr = await storiesSb
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name,avatar_url")
+          .or(`id.in.(${ids.join(",")}),auth_user_id.in.(${ids.join(",")})`);
+        if (pr.error) console.warn("STORY PROFILE LOOKUP:", pr.error.message);
+        profiles = pr.data || [];
+      }
 
-      res.json(
-        activeStories
-      );
+      const pmap = new Map();
+      for (const p of profiles) {
+        if (p?.id) pmap.set(String(p.id), p);
+        if (p?.auth_user_id) pmap.set(String(p.auth_user_id), p);
+      }
+
+      const result = rows.map(story => {
+        const profile = pmap.get(String(story?.user_id || ""));
+        return {
+          ...story,
+          profiles: profile || null,
+          user: profile || null,
+          username: profile?.username || "",
+          display_name: profile?.display_name || "",
+          avatar_url: profile?.avatar_url || null
+        };
+      });
+
+      res.json(result);
     } catch (e) {
       res.status(500).json({
         error:
