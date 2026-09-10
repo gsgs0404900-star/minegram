@@ -270,15 +270,33 @@ async function isAuthUserActive(userId) {
 }
 
 async function filterActivePosts(posts) {
-  // Feed ortak veridir. Auth ID/profile ID eşleşmesi yüzünden başka cihazdaki
-  // geçerli gönderileri yanlışlıkla filtrelemeyiz. Silinen hesap temizliği ayrı
-  // hesap silme akışında yapılır.
-  return Array.isArray(posts) ? posts : [];
+  if (!Array.isArray(posts) || !posts.length) return [];
+
+  const userIds = [...new Set(
+    posts.map(p => p?.user_id).filter(Boolean)
+  )];
+
+  const activeIds = new Set();
+  await Promise.all(userIds.map(async userId => {
+    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  }));
+
+  return posts.filter(p => activeIds.has(p?.user_id));
 }
 
 async function filterActiveStories(stories) {
-  // Hikayeler de ortak akıştır; profile/auth id farkı nedeniyle görünmez olmasın.
-  return Array.isArray(stories) ? stories : [];
+  if (!Array.isArray(stories) || !stories.length) return [];
+
+  const userIds = [...new Set(
+    stories.map(s => s?.user_id).filter(Boolean)
+  )];
+
+  const activeIds = new Set();
+  await Promise.all(userIds.map(async userId => {
+    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  }));
+
+  return stories.filter(s => activeIds.has(s?.user_id));
 }
 
 async function filterActiveProfiles(profiles) {
@@ -383,9 +401,9 @@ async function hydratePosts(
     sb
       .from("profiles")
       .select(
-        "id,auth_user_id,username,display_name,bio,avatar_url,verified"
+        "id,username,display_name,bio,avatar_url,verified"
       )
-      .or(`id.in.(${userIds.join(",")}),auth_user_id.in.(${userIds.join(",")})`),
+      .in("id", userIds),
 
     sb
       .from("post_likes")
@@ -434,11 +452,12 @@ async function hydratePosts(
   const saves =
     savesResult.data || [];
 
-  const pmap = new Map();
-  for (const p of profiles) {
-    if (p?.id) pmap.set(String(p.id), p);
-    if (p?.auth_user_id) pmap.set(String(p.auth_user_id), p);
-  }
+  const pmap =
+    new Map(
+      profiles.map(
+        p => [p.id, p]
+      )
+    );
 
   const likeMap =
     new Map();
@@ -638,6 +657,224 @@ app.get(
     }
   }
 );
+
+/* =========================================================
+   MINEGRAM EMAIL DELIVERY + PASSWORD RECOVERY
+   ========================================================= */
+
+const recoveryCodes = new Map();
+const recoveryRate = new Map();
+
+function maskEmail(email) {
+  const e = normalizeEmail(email);
+  const at = e.indexOf("@");
+  if (at <= 0) return e;
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  const shown = local.length <= 2 ? local[0] : local.slice(0, 2);
+  return `${shown}${"*".repeat(Math.max(2, local.length - shown.length))}@${domain}`;
+}
+
+async function sendResendEmail(to, subject, html, text) {
+  const email = normalizeEmail(to);
+  if (!email) throw new Error("Geçerli bir e-posta adresi gerekli.");
+
+  // Öncelik: Resend API (Render'da RESEND_API_KEY tanımlıysa).
+  const resendKey = env("RESEND_API_KEY");
+  if (resendKey) {
+    const from = env("RESEND_FROM_EMAIL") || "Minegram <onboarding@resend.dev>";
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ from, to: [email], subject, html, text })
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`E-posta gönderilemedi. Resend HTTP ${response.status}: ${body.slice(0, 300)}`);
+    }
+    return;
+  }
+
+  // Mevcut Minegram Google Apps Script mail göndericisi.
+  const relay = "https://script.google.com/macros/s/AKfycbzpkelBwMJ4QsIgDpEHpvHZkMO5vkwdJqqnF2JDfg3E_HMFobTgUdhQaeyb0xD0PwSC2g/exec";
+  const url = relay + "?email=" + encodeURIComponent(email) + "&code=" + encodeURIComponent(String(text || "").match(/\b\d{6}\b/)?.[0] || "");
+  const response = await fetch(url, { method: "GET", redirect: "follow" });
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`E-posta gönderilemedi. Mail servisi HTTP ${response.status}: ${body.slice(0, 300)}`);
+  }
+}
+
+function recoveryKey(email) {
+  return normalizeEmail(email);
+}
+
+function recoveryAllowed(email) {
+  const key = recoveryKey(email);
+  const last = recoveryRate.get(key) || 0;
+  return Date.now() - last >= 60 * 1000;
+}
+
+function setRecoveryCode(email, entry) {
+  recoveryCodes.set(recoveryKey(email), entry);
+}
+
+function deleteRecoveryCode(email) {
+  recoveryCodes.delete(recoveryKey(email));
+}
+
+function cleanupRecoveryCodes() {
+  const now = Date.now();
+  for (const [key, entry] of recoveryCodes.entries()) {
+    if (!entry?.expires || entry.expires <= now) recoveryCodes.delete(key);
+  }
+}
+
+async function findAuthUserByEmailExact(email) {
+  const wanted = normalizeEmail(email);
+  const admin = adminClient();
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const found = users.find(u => normalizeEmail(u?.email) === wanted);
+    if (found) return found;
+    if (users.length < 1000) break;
+  }
+  return null;
+}
+
+async function resolveRecoveryEmail(identifier, mode = "email") {
+  const raw = String(identifier || "").trim();
+  if (!raw) return null;
+  const admin = adminClient();
+  const normalizedMode = String(mode || "email").toLowerCase();
+
+  if (raw.includes("@") || normalizedMode === "email") {
+    const email = normalizeEmail(raw);
+    if (!email.includes("@")) return null;
+    let authUser = null;
+    try { authUser = await findAuthUserByEmailExact(email); } catch (_) {}
+    let profile = null;
+    const { data } = await admin.from("profiles").select("*").ilike("email", email).limit(5);
+    profile = (data || []).find(p => normalizeEmail(p?.email) === email) || null;
+    return { email, authUser, profile };
+  }
+
+  const username = normalizeUsername(raw);
+  const { data: profiles } = await admin.from("profiles").select("*").limit(1000);
+  let profile = (profiles || []).find(p => normalizeUsername(p?.username) === username) || null;
+  let email = normalizeEmail(profile?.email || "");
+  let authUser = null;
+
+  if (profile?.auth_user_id || profile?.id) {
+    try {
+      const result = await admin.auth.admin.getUserById(profile.auth_user_id || profile.id);
+      authUser = result?.data?.user || null;
+      if (!email) email = normalizeEmail(authUser?.email || "");
+    } catch (_) {}
+  }
+
+  // Profile kaydı eksikse Auth metadata'dan kullanıcı adına göre bul.
+  if (!authUser || !email) {
+    for (let page = 1; page <= 50 && !authUser; page++) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) break;
+      const users = data?.users || [];
+      const found = users.find(u => {
+        const m = u?.user_metadata || {};
+        return [m.username, m.user_name, m.preferred_username, u?.app_metadata?.username]
+          .some(v => normalizeUsername(v || "") === username);
+      });
+      if (found) {
+        authUser = found;
+        email = normalizeEmail(found.email || email);
+        break;
+      }
+      if (users.length < 1000) break;
+    }
+  }
+
+  return email ? { email, authUser, profile } : null;
+}
+
+async function sendRecoveryCode(email, code) {
+  await sendResendEmail(
+    email,
+    "Minegram şifre sıfırlama kodun",
+    `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111"><h2>Minegram</h2><p>Şifreni yenilemek için 6 haneli kodun:</p><div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div><p style="color:#666">Bu kod 10 dakika geçerlidir.</p><p style="color:#666">Bu kodu kimseyle paylaşma.</p></div>`,
+    `Minegram şifre sıfırlama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+  );
+}
+
+app.post("/api/forgot/start", async (req, res) => {
+  try {
+    cleanupRecoveryCodes();
+    const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "").trim();
+    const mode = String(req.body?.mode || (identifier.includes("@") ? "email" : "username")).toLowerCase();
+    if (!identifier) return res.status(400).json({ ok: false, error: "E-posta adresi veya kullanıcı adı gerekli." });
+    if (!CONFIG_OK || !SUPABASE_SERVICE_ROLE_KEY) return res.status(500).json({ ok: false, error: "Sunucu yapılandırması eksik." });
+
+    const found = await resolveRecoveryEmail(identifier, mode);
+    if (!found?.email) return res.status(404).json({ ok: false, error: "Bu bilgilerle kayıtlı hesap bulunamadı." });
+    const email = normalizeEmail(found.email);
+    if (!recoveryAllowed(email)) return res.status(429).json({ ok: false, error: "Yeni kod göndermek için 60 saniye bekle." });
+
+    const code = createVerificationCode();
+    const entry = {
+      code,
+      email,
+      userId: found.authUser?.id || found.profile?.auth_user_id || found.profile?.id || null,
+      authUserId: found.authUser?.id || null,
+      profile: found.profile || null,
+      username: found.profile?.username || found.authUser?.user_metadata?.username || "",
+      displayName: found.profile?.display_name || found.authUser?.user_metadata?.display_name || "",
+      expires: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    };
+    setRecoveryCode(email, entry);
+    recoveryRate.set(recoveryKey(email), Date.now());
+
+    try {
+      await sendRecoveryCode(email, code);
+    } catch (mailError) {
+      deleteRecoveryCode(email);
+      return res.status(500).json({ ok: false, code: "EMAIL_SEND_ERROR", error: mailError?.message || "Doğrulama e-postası gönderilemedi." });
+    }
+
+    return res.json({ ok: true, message: "Doğrulama kodu e-posta adresine gönderildi.", maskedEmail: maskEmail(email), email });
+  } catch (e) {
+    console.error("FORGOT START ERROR:", e);
+    return res.status(500).json({ ok: false, error: e?.message || "Hesap kurtarma başlatılamadı." });
+  }
+});
+
+app.post("/api/forgot/resend", async (req, res) => {
+  try {
+    cleanupRecoveryCodes();
+    const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "").trim();
+    const mode = String(req.body?.mode || (identifier.includes("@") ? "email" : "username")).toLowerCase();
+    if (!identifier) return res.status(400).json({ ok: false, error: "Hesap bilgisi gerekli." });
+    const found = await resolveRecoveryEmail(identifier, mode);
+    if (!found?.email) return res.status(404).json({ ok: false, error: "Hesap bulunamadı." });
+    const email = normalizeEmail(found.email);
+    if (!recoveryAllowed(email)) return res.status(429).json({ ok: false, error: "Yeni kod göndermek için 60 saniye bekle." });
+
+    const code = createVerificationCode();
+    const old = recoveryCodes.get(recoveryKey(email)) || {};
+    const entry = { ...old, code, email, userId: found.authUser?.id || old.userId || found.profile?.auth_user_id || found.profile?.id || null, authUserId: found.authUser?.id || old.authUserId || null, profile: found.profile || old.profile || null, expires: Date.now() + 10 * 60 * 1000, attempts: 0 };
+    setRecoveryCode(email, entry);
+    recoveryRate.set(recoveryKey(email), Date.now());
+    await sendRecoveryCode(email, code);
+    return res.json({ ok: true, message: "Kod yeniden gönderildi.", maskedEmail: maskEmail(email), email });
+  } catch (e) {
+    console.error("FORGOT RESEND ERROR:", e);
+    return res.status(500).json({ ok: false, error: e?.message || "Kod yeniden gönderilemedi." });
+  }
+});
 
 /* =========================================================
    REGISTER + 6 HANELİ E-POSTA DOĞRULAMA
@@ -2367,6 +2604,7 @@ app.delete(
 
 app.get(
   "/api/feed",
+  auth,
   async (req, res) => {
     try {
       // Feed ortak web/Android kaynağıdır. Kullanıcı JWT'sinin RLS'i
@@ -2403,7 +2641,7 @@ app.get(
         await hydratePosts(
           feedHydrateSb,
           activePosts,
-          req.user?.id || null
+          req.user.id
         )
       );
     } catch (e) {
@@ -3041,6 +3279,7 @@ app.post(
 
 app.get(
   "/api/stories",
+  auth,
   async (req, res) => {
     try {
       const yesterday =
@@ -3052,47 +3291,43 @@ app.get(
       // Hikayeler ortak akıştır. req.sb üzerindeki RLS başka kullanıcıların
       // hikayelerini boş döndürebilir; bu yüzden okuma service-role ile yapılır.
       const storiesSb = adminClient();
-      const { data, error } = await storiesSb
-        .from("stories")
-        .select("*")
-        .gte("created_at", yesterday)
-        .order("created_at", { ascending: true });
+      const {
+        data,
+        error
+      } =
+        await storiesSb
+          .from("stories")
+          .select(`
+            *,
+            profiles(
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .gte(
+            "created_at",
+            yesterday
+          )
+          .order(
+            "created_at",
+            {
+              ascending: true
+            }
+          );
 
       if (error) {
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({
+          error:
+            error.message
+        });
       }
 
-      const rows = data || [];
-      const ids = [...new Set(rows.map(s => String(s?.user_id || "").trim()).filter(Boolean))];
-      let profiles = [];
-      if (ids.length) {
-        const pr = await storiesSb
-          .from("profiles")
-          .select("id,auth_user_id,username,display_name,avatar_url")
-          .or(`id.in.(${ids.join(",")}),auth_user_id.in.(${ids.join(",")})`);
-        if (pr.error) console.warn("STORY PROFILE LOOKUP:", pr.error.message);
-        profiles = pr.data || [];
-      }
+      const activeStories = await filterActiveStories(data || []);
 
-      const pmap = new Map();
-      for (const p of profiles) {
-        if (p?.id) pmap.set(String(p.id), p);
-        if (p?.auth_user_id) pmap.set(String(p.auth_user_id), p);
-      }
-
-      const result = rows.map(story => {
-        const profile = pmap.get(String(story?.user_id || ""));
-        return {
-          ...story,
-          profiles: profile || null,
-          user: profile || null,
-          username: profile?.username || "",
-          display_name: profile?.display_name || "",
-          avatar_url: profile?.avatar_url || null
-        };
-      });
-
-      res.json(result);
+      res.json(
+        activeStories
+      );
     } catch (e) {
       res.status(500).json({
         error:
