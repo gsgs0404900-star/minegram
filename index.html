@@ -4461,14 +4461,17 @@ function renderPost(p){
       : Number(p.likes||0);
 
 
-  const comments =
-    Array.isArray(p.comments)
-      ? p.comments
-      : (
-        Array.isArray(p.post?.comments)
-          ? p.post.comments
-          : []
-      );
+  const comments=
+    mergeComments(
+      Array.isArray(p.comments)
+        ? p.comments
+        : (
+          Array.isArray(p.post?.comments)
+            ? p.post.comments
+            : []
+        ),
+      p.id
+    );
 
 
   let media="";
@@ -6154,29 +6157,24 @@ async function refreshComments(
 
   try{
 
-    const p=
+    const response=
       await api(
         "/posts/"+
         encodeURIComponent(id)+
-        "/comments?ts="+
-        Date.now()
+        "/comments?ts="+Date.now()
       );
 
-
     const remote=
-      Array.isArray(p.comments)
-        ? p.comments
-        : (
-          Array.isArray(
-            p.post?.comments
-          )
-            ? p.post.comments
-            : []
-        );
+      Array.isArray(response?.comments)
+        ? response.comments
+        : [];
 
-
+    // Sunucu tek otoritedir. LocalStorage yalnızca
+    // başarısız ağ isteğinde geçici önizleme olarak kullanılır.
     list.innerHTML=
-      renderCommentsForPost(remote);
+      renderCommentsForPost(
+        remote
+      );
 
 
   }catch(e){}
@@ -6253,9 +6251,7 @@ async function openComments(id){
     const p=
       await api(
         "/posts/"+
-        encodeURIComponent(id)+
-        "/comments?ts="+
-        Date.now()
+        encodeURIComponent(id)
       );
 
 
@@ -6272,15 +6268,33 @@ async function openComments(id){
 
 
     list.innerHTML=
-      renderCommentsForPost(remote);
+      renderCommentsForPost(
+        mergeComments(
+          remote,
+          id
+        )
+      );
 
 
   }catch(e){
-    list.innerHTML=`
-      <div class="empty">
-        Yorumlar yüklenemedi.
-      </div>
-    `;
+
+    const local=
+      getLocalComments(id);
+
+
+    list.innerHTML=
+      local.length
+        ? local
+            .map(renderComment)
+            .join("")
+        : `
+
+          <div class="empty">
+            Yorumlar yüklenemedi.
+          </div>
+
+        `;
+
   }
 
 }
