@@ -185,7 +185,7 @@ body{
 <script>
 "use strict";
 
-const API="/api";
+const API="https://minegram-hwns.onrender.com/api";
 
 const identifierInput=
   document.getElementById("identifier");
@@ -612,38 +612,25 @@ async function login(){
 
   try{
 
-    const response=
-      await fetch(
-        API+"/login",
-        {
+    let response = null;
+    for(let attempt=1; attempt<=3; attempt++){
+      try{
+        response = await fetch(API+"/login", {
           method:"POST",
-
-          headers:{
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              identifier,
-
-              username:identifier,
-
-              email:identifier,
-
-              password
-
-            }),
-
+          headers:{"Content-Type":"application/json","Accept":"application/json"},
+          body:JSON.stringify({identifier,username:identifier,email:identifier,password}),
           cache:"no-store",
-
           credentials:"same-origin"
-        }
-      );
+        });
+        break;
+      }catch(networkError){
+        console.warn("[MINEGRAM LOGIN RETRY]", attempt, networkError);
+        if(attempt<3) await new Promise(r=>setTimeout(r,2000*attempt));
+      }
+    }
+    if(!response){
+      throw new Error("Sunucuya bağlanılamadı. İnternet bağlantısını veya sunucu adresini kontrol et.");
+    }
 
 
     const raw=
