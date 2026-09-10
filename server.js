@@ -3596,6 +3596,53 @@ app.post(
 );
 
 
+app.get(
+  "/api/posts/:id/comments",
+  auth,
+  async (req, res) => {
+    try {
+      const { data: comments, error } = await req.sb
+        .from("comments")
+        .select("id,post_id,user_id,text,created_at")
+        .eq("post_id", req.params.id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const ids = [...new Set((comments || []).map(c => c.user_id).filter(Boolean))];
+      let profiles = [];
+      if (ids.length) {
+        const result = await adminClient()
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name")
+          .or(ids.map(id => `id.eq.${id},auth_user_id.eq.${id}`).join(","));
+        profiles = result.data || [];
+      }
+
+      const findProfile = (userId) =>
+        profiles.find(p => String(p.id) === String(userId) || String(p.auth_user_id) === String(userId));
+
+      return res.json({
+        comments: (comments || []).map(c => {
+          const profile = findProfile(c.user_id);
+          return {
+            id: c.id,
+            postId: c.post_id,
+            userId: c.user_id,
+            username: profile?.username || "",
+            displayName: profile?.display_name || profile?.username || "",
+            text: c.text,
+            createdAt: new Date(c.created_at).getTime()
+          };
+        })
+      });
+    } catch (e) {
+      return res.status(400).json({ error: e?.message || "Yorumlar alınamadı." });
+    }
+  }
+);
+
+
 /* =========================================================
    SAVE
 ========================================================= */
