@@ -2651,16 +2651,53 @@ app.get(
       // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
       // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
       const highlightsSb = adminClient();
-      const { data, error } = await highlightsSb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", target.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+
+      // ÖNEMLİ: Eski/yeni Minegram hesaplarında profiles.id ile
+      // profiles.auth_user_id aynı olmayabilir. Öne çıkanlar ise bazı
+      // sürümlerde Auth UID, bazı sürümlerde profile ID ile kaydedilmiş.
+      // Bu yüzden ikisini de sorgula; böylece sitede görünen kayıtlar
+      // Android'de boş liste olarak gelmez.
+      const ownerIds = [target.id, target.auth_user_id]
+        .map(v => String(v || '').trim())
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+      let data = [];
+      let error = null;
+
+      if (ownerIds.length === 1) {
+        const result = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .eq("user_id", ownerIds[0])
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+        data = result.data || [];
+        error = result.error;
+      } else {
+        const result = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .in("user_id", ownerIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+        data = result.data || [];
+        error = result.error;
+      }
 
       if (error) throw error;
 
-      res.json((data || []).map(h => ({
+      // Eski kayıtlar iki kimlik altında bulunabiliyorsa tekrarları temizle.
+      const unique = [];
+      const seen = new Set();
+      for (const h of data) {
+        const key = String(h.id || `${h.user_id}:${h.media_url || ''}:${h.created_at || ''}`);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(h);
+      }
+
+      res.json(unique.map(h => ({
         id: h.id,
         userId: h.user_id,
         media: h.media_url,
