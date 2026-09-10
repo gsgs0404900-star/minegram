@@ -1591,6 +1591,34 @@ app.post("/api/account/migrate-local", async (req, res) => {
    LOGIN - TÜM TELEFONLAR İÇİN
 ========================================================= */
 
+app.post("/api/refresh", async (req, res) => {
+  try {
+    const refreshToken = String(req.body?.refreshToken ?? req.body?.refresh_token ?? "").trim();
+    if (!refreshToken) {
+      return res.status(400).json({ ok: false, code: "MISSING_REFRESH_TOKEN", error: "Yenileme oturumu bulunamadı." });
+    }
+
+    const { data, error } = await client().auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data?.session) {
+      console.error("REFRESH AUTH ERROR:", error?.message || error);
+      return res.status(401).json({ ok: false, code: "REFRESH_FAILED", error: "Oturum yenileme anahtarı geçersiz veya süresi dolmuş." });
+    }
+
+    return res.json({
+      ok: true,
+      token: data.session.access_token,
+      access_token: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      refresh_token: data.session.refresh_token,
+      user: safeProfile(data.user),
+      profile: safeProfile(data.user)
+    });
+  } catch (error) {
+    console.error("REFRESH SERVER ERROR:", error);
+    return res.status(500).json({ ok: false, code: "REFRESH_SERVER_ERROR", error: error?.message || "Oturum yenilenemedi." });
+  }
+});
+
 app.post("/api/login", async (req, res) => {
   try {
     const rawIdentifier = String(
@@ -2644,10 +2672,7 @@ app.get(
     try {
       // Profil öne çıkanları PUBLIC olmalıdır. Profil ziyaretinde JWT zorunlu değildir.
       const highlightsSb = adminClient();
-      const target = await findProfile(
-        highlightsSb,
-        req.params.username
-      );
+      const target = await findProfile(highlightsSb, req.params.username);
 
       if (!target) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
@@ -2655,11 +2680,7 @@ app.get(
 
       // Eski hesaplarda profiles.id ile auth_user_id farklı olabilir.
       // Bu nedenle iki ID üzerinden de kontrol ediyoruz.
-      const possibleUserIds = [
-        target.id,
-        target.auth_user_id
-      ].filter(Boolean);
-
+      const possibleUserIds = [target.id, target.auth_user_id].filter(Boolean);
       const rows = [];
 
       for (const userId of [...new Set(possibleUserIds)]) {
@@ -2676,19 +2697,14 @@ app.get(
 
       const unique = new Map();
       for (const h of rows) {
-        if (h?.id != null) {
-          unique.set(String(h.id), h);
-        }
+        if (h?.id != null) unique.set(String(h.id), h);
       }
 
-      const data = [...unique.values()].sort((a, b) => {
-        const sortA = Number(a?.sort_order ?? 0);
-        const sortB = Number(b?.sort_order ?? 0);
-        if (sortA !== sortB) return sortA - sortB;
-
-        return String(a?.created_at || "").localeCompare(
-          String(b?.created_at || "")
-        );
+      const data = [...unique.values()].sort((x, y) => {
+        const a = Number(x?.sort_order ?? 0);
+        const b = Number(y?.sort_order ?? 0);
+        if (a !== b) return a - b;
+        return String(x?.created_at || "").localeCompare(String(y?.created_at || ""));
       });
 
       res.json(data.map(h => ({
@@ -3502,6 +3518,64 @@ app.post(
    COMMENTS
 ========================================================= */
 
+app.get(
+  "/api/posts/:id/comments",
+  auth,
+  async (req, res) => {
+    try {
+      const postId = req.params.id;
+
+      // Yorumlar ortak veridir. Kullanıcıya bağlı Supabase istemcisinin RLS
+      // kuralları yüzünden eklenen yorumun hemen sonraki okumada kaybolmaması
+      // için burada doğrulanmış oturumdan sonra service-role ile okuyoruz.
+      const admin = adminClient();
+      const { data: comments, error } = await admin
+        .from("comments")
+        .select("id,post_id,user_id,text,created_at")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const rows = comments || [];
+      const userIds = [...new Set(rows.map(c => String(c.user_id)).filter(Boolean))];
+      let profiles = [];
+
+      if (userIds.length) {
+        const { data: profileRows, error: profileError } = await admin
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name")
+          .or(`id.in.(${userIds.join(",")}),auth_user_id.in.(${userIds.join(",")})`);
+
+        if (!profileError) profiles = profileRows || [];
+      }
+
+      const profileMap = new Map();
+      for (const profile of profiles) {
+        if (profile?.id) profileMap.set(String(profile.id), profile);
+        if (profile?.auth_user_id) profileMap.set(String(profile.auth_user_id), profile);
+      }
+
+      res.json({
+        comments: rows.map(c => {
+          const profile = profileMap.get(String(c.user_id));
+          return {
+            id: c.id,
+            postId: c.post_id,
+            userId: c.user_id,
+            username: profile?.username || "",
+            displayName: profile?.display_name || "",
+            text: c.text,
+            createdAt: new Date(c.created_at).getTime()
+          };
+        })
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  }
+);
+
 app.post(
   "/api/posts/:id/comments",
   auth,
@@ -3520,11 +3594,15 @@ app.post(
         });
       }
 
+      // Yorum kaydı da ortak veridir. Auth middleware oturumu doğruladıktan
+      // sonra service-role ile yazıyoruz; böylece RLS, yorumu yazdıktan hemen
+      // sonra siteden/uygulamadan okunmasını engellemiyor.
+      const admin = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("comments")
           .insert({
             post_id:
