@@ -3570,6 +3570,16 @@ app.post(
         });
       }
 
+      const { count: commentCount, error: commentCountError } =
+        await adminClient()
+          .from("comments")
+          .select("id", { count: "exact", head: true })
+          .eq("post_id", req.params.id);
+
+      if (commentCountError) {
+        throw commentCountError;
+      }
+
       res.json({
         id:
           data.id,
@@ -3584,7 +3594,10 @@ app.post(
           data.created_at,
 
         username:
-          req.user.username
+          req.user.username,
+
+        commentCount:
+          commentCount || 0
       });
 
     } catch (e) {
@@ -3625,6 +3638,7 @@ app.get(
         profiles.find(p => String(p.id) === String(userId) || String(p.auth_user_id) === String(userId));
 
       return res.json({
+        commentCount: (comments || []).length,
         comments: (comments || []).map(c => {
           const profile = findProfile(c.user_id);
           return {
