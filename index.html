@@ -6157,23 +6157,31 @@ async function refreshComments(
 
   try{
 
-    const response=
+    const p=
       await api(
         "/posts/"+
-        encodeURIComponent(id)+
-        "/comments?ts="+Date.now()
+        encodeURIComponent(id)
       );
 
-    const remote=
-      Array.isArray(response?.comments)
-        ? response.comments
-        : [];
 
-    // Sunucu tek otoritedir. LocalStorage yalnızca
-    // başarısız ağ isteğinde geçici önizleme olarak kullanılır.
+    const remote=
+      Array.isArray(p.comments)
+        ? p.comments
+        : (
+          Array.isArray(
+            p.post?.comments
+          )
+            ? p.post.comments
+            : []
+        );
+
+
     list.innerHTML=
       renderCommentsForPost(
-        remote
+        mergeComments(
+          remote,
+          id
+        )
       );
 
 
@@ -6189,55 +6197,114 @@ async function refreshComments(
 async function openComments(id){
 
   currentCommentPost=id;
-  currentCommentSort="forYou";
+
+  currentCommentSort=
+    "forYou";
+
   replyingTo=null;
 
-  const input=document.getElementById("commentInput");
-  if(input){
-    input.value="";
-    input.placeholder="Bunun hakkında ne düşünüyorsun?";
-  }
 
-  const sort=document.getElementById("commentSort");
-  if(sort) sort.value="forYou";
-
-  document.getElementById("commentsModal").classList.add("open");
-
-  const list=document.getElementById("commentList");
-
-  // Önce mevcut yerel önizlemeyi göster; asıl kaynak hemen aşağıdaki API'dir.
-  const local=getLocalComments(id);
-  list.innerHTML=local.length
-    ? renderCommentsForPost(local)
-    : `<div class="empty">Yorumlar yükleniyor...</div>`;
-
-  // ÖNEMLİ: Yorumları /posts/:id'den değil, doğrudan
-  // /posts/:id/comments endpoint'inden alıyoruz. Site ve Android aynı kaynağı kullanır.
-  try{
-    const response=await api(
-      "/posts/"+
-      encodeURIComponent(id)+
-      "/comments?ts="+Date.now()
+  const input=
+    document.getElementById(
+      "commentInput"
     );
 
-    if(!currentCommentPost || String(currentCommentPost)!==String(id)) return;
 
-    const remote=Array.isArray(response?.comments)
-      ? response.comments
-      : [];
+  if(input){
 
-    // Sunucu başarılı cevap verdiyse TEK OTORİTE sunucudur.
-    // Böylece eski localStorage yorumları gerçek sayıya/görüntüye karışmaz.
-    list.innerHTML=renderCommentsForPost(remote);
+    input.value="";
+
+    input.placeholder=
+      "Bunun hakkında ne düşünüyorsun?";
+
+  }
+
+
+  const sort=
+    document.getElementById(
+      "commentSort"
+    );
+
+
+  if(sort){
+
+    sort.value=
+      "forYou";
+
+  }
+
+
+  document
+    .getElementById(
+      "commentsModal"
+    )
+    .classList
+    .add("open");
+
+
+  const list=
+    document.getElementById(
+      "commentList"
+    );
+
+
+  list.innerHTML=
+    renderCommentsForPost(
+      getLocalComments(id)
+    );
+
+
+  try{
+
+    const p=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)
+      );
+
+
+    const remote=
+      Array.isArray(p.comments)
+        ? p.comments
+        : (
+          Array.isArray(
+            p.post?.comments
+          )
+            ? p.post.comments
+            : []
+        );
+
+
+    list.innerHTML=
+      renderCommentsForPost(
+        mergeComments(
+          remote,
+          id
+        )
+      );
+
 
   }catch(e){
-    // Ağ hatasında mevcut yerel önizlemeyi koru; hata yokmuş gibi
-    // sahte sunucu yorumu üretme.
-    const fallback=getLocalComments(id);
-    list.innerHTML=fallback.length
-      ? renderCommentsForPost(fallback)
-      : `<div class="empty">Yorumlar yüklenemedi.</div>`;
+
+    const local=
+      getLocalComments(id);
+
+
+    list.innerHTML=
+      local.length
+        ? local
+            .map(renderComment)
+            .join("")
+        : `
+
+          <div class="empty">
+            Yorumlar yüklenemedi.
+          </div>
+
+        `;
+
   }
+
 }
 
 
