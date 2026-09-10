@@ -3631,14 +3631,20 @@ app.get(
 
       if (error) throw error;
 
-      const ids = [...new Set((comments || []).map(c => c.user_id).filter(Boolean))];
+      const ids = [...new Set((comments || []).map(c => c.user_id).filter(Boolean).map(String))];
       let profiles = [];
       if (ids.length) {
-        const result = await adminClient()
-          .from("profiles")
-          .select("id,auth_user_id,username,display_name")
-          .or(ids.map(id => `id.eq.${id},auth_user_id.eq.${id}`).join(","));
-        profiles = result.data || [];
+        // İki ayrı sorgu: OR ifadesinin UUID/int tip farklılıklarında
+        // yorum listesini tamamen boşaltmasını önler.
+        const [byId, byAuth] = await Promise.all([
+          adminClient().from("profiles")
+            .select("id,auth_user_id,username,display_name")
+            .in("id", ids),
+          adminClient().from("profiles")
+            .select("id,auth_user_id,username,display_name")
+            .in("auth_user_id", ids)
+        ]);
+        profiles = [...(byId.data || []), ...(byAuth.data || [])];
       }
 
       const findProfile = (userId) =>
