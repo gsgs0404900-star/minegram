@@ -2412,7 +2412,7 @@ app.get(
         throw error;
       }
 
-      const activePosts = await filterActivePosts(data || []);
+      const activePosts = data || [];
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
       // kullanılmamalı. Aksi halde başka kullanıcının gönderisinin profili,
@@ -3105,7 +3105,7 @@ app.get(
         });
       }
 
-      const activeStories = await filterActiveStories(data || []);
+      const activeStories = data || [];
 
       res.json(
         activeStories
