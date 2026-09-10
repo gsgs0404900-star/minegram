@@ -1583,6 +1583,9 @@ app.post("/api/account/migrate-local", async (req, res) => {
       ok: true,
       migrated: true,
       token: loginData.session.access_token,
+      access_token: loginData.session.access_token,
+      refreshToken: loginData.session.refresh_token,
+      refresh_token: loginData.session.refresh_token,
       profile: safeProfile(updatedProfile || profile),
       user: safeProfile(updatedProfile || profile)
     });
