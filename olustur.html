@@ -477,12 +477,36 @@ async function minegramPublishPublicPost(post){
 
 
 const API="/api";
-
-let token =
-  localStorage.getItem("minegram_token") ||
-  localStorage.getItem("minegram_supabase_token") ||
-  localStorage.getItem("token") ||
-  null;
+function minegramValidToken(v){
+  return !!v && String(v).trim() && String(v)!=="null" && String(v)!=="undefined";
+}
+function minegramGetToken(){
+  const keys=["minegram_token","minegram_supabase_token","minegram_access_token","supabase_token","access_token"];
+  for(const key of keys){
+    const v=localStorage.getItem(key);
+    if(minegramValidToken(v)) return String(v).trim();
+  }
+  return "";
+}
+function minegramGetRefreshToken(){
+  const keys=["minegram_refresh_token","refresh_token","minegram_refreshToken","refreshToken"];
+  for(const key of keys){
+    const v=localStorage.getItem(key);
+    if(minegramValidToken(v)) return String(v).trim();
+  }
+  return "";
+}
+function minegramSaveSession(data){
+  const access=String(data?.access_token||data?.token||"").trim();
+  const refresh=String(data?.refresh_token||data?.refreshToken||"").trim();
+  if(access){
+    for(const k of ["minegram_token","minegram_supabase_token","minegram_access_token","access_token"]) localStorage.setItem(k,access);
+    token=access;
+  }
+  if(refresh) localStorage.setItem("minegram_refresh_token",refresh);
+  return access;
+}
+let token=minegramGetToken();
 
 
 /* =========================
@@ -625,7 +649,49 @@ function previewFile(){
    API
 ========================= */
 
-async function api(path,opt={}){
+async function api(path,opt={},retry=true){
+  const headers={...(opt.headers||{})};
+  const currentToken=token||minegramGetToken();
+  if(currentToken) headers.Authorization="Bearer "+currentToken;
+  if(opt.body instanceof FormData){
+    delete headers["Content-Type"]; delete headers["content-type"];
+  }
+  let response=await fetch(API+path,{...opt,headers});
+  if((response.status===401||response.status===403)&&retry){
+    const refresh=minegramGetRefreshToken();
+    if(refresh){
+      try{
+        const rr=await fetch(API+"/refresh",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({refresh_token:refresh})
+        });
+        const rj=await rr.json().catch(()=>({}));
+        const fresh=minegramSaveSession(rj);
+        if(rr.ok&&fresh){
+          const retryHeaders={...(opt.headers||{}),Authorization:"Bearer "+fresh};
+          if(opt.body instanceof FormData){
+            delete retryHeaders["Content-Type"]; delete retryHeaders["content-type"];
+          }
+          response=await fetch(API+path,{...opt,headers:retryHeaders});
+        }
+      }catch(e){}
+    }
+  }
+  const contentType=response.headers.get("content-type")||"";
+  let data={};
+  if(contentType.includes("application/json")) data=await response.json().catch(()=>({}));
+  else{
+    const text=await response.text().catch(()=>"");
+    if(text)data={error:text};
+  }
+  if(!response.ok){
+    const err=new Error(data.error||data.message||("İşlem başarısız. HTTP "+response.status));
+    err.status=response.status;
+    throw err;
+  }
+  return data;
+}){
 
   const headers={
     ...(opt.headers || {})
@@ -778,16 +844,11 @@ async function post(){
   }
 
 
+  token=minegramGetToken();
   if(!token){
-
     toast("Oturum bulunamadı. Tekrar giriş yap.");
-
-    setTimeout(()=>{
-      location.href="giris.html";
-    },900);
-
+    setTimeout(()=>{ location.href="giris.html"; },900);
     return;
-
   }
 
 
@@ -951,45 +1012,20 @@ async function post(){
 ========================= */
 
 async function init(){
-
+  token=minegramGetToken();
   if(!token){
-
     location.replace("giris.html");
-
     return;
-
   }
-
-
   try{
-
     await api("/me");
-
   }catch(error){
-
-    console.warn(
-      "[OLUŞTUR /me]",
-      error
-    );
-
-
-    localStorage.removeItem(
-      "minegram_token"
-    );
-
-    localStorage.removeItem(
-      "minegram_supabase_token"
-    );
-
-    localStorage.removeItem(
-      "token"
-    );
-
-
+    console.warn("[OLUŞTUR /me]",error);
+    token="";
+    for(const k of ["minegram_token","minegram_supabase_token","minegram_access_token","supabase_token","access_token"])
+      localStorage.removeItem(k);
     location.replace("giris.html");
-
   }
-
 }
 
 
