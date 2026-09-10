@@ -2640,27 +2640,58 @@ app.get(
 ========================================================= */
 app.get(
   "/api/users/:username/highlights",
-  auth,
   async (req, res) => {
     try {
-      const target = await findProfile(req.sb, req.params.username);
+      // Profil öne çıkanları PUBLIC olmalıdır. Profil ziyaretinde JWT zorunlu değildir.
+      const highlightsSb = adminClient();
+      const target = await findProfile(
+        highlightsSb,
+        req.params.username
+      );
+
       if (!target) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
-      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
-      const highlightsSb = adminClient();
-      const { data, error } = await highlightsSb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", target.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      // Eski hesaplarda profiles.id ile auth_user_id farklı olabilir.
+      // Bu nedenle iki ID üzerinden de kontrol ediyoruz.
+      const possibleUserIds = [
+        target.id,
+        target.auth_user_id
+      ].filter(Boolean);
 
-      if (error) throw error;
+      const rows = [];
 
-      res.json((data || []).map(h => ({
+      for (const userId of [...new Set(possibleUserIds)]) {
+        const { data, error } = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .eq("user_id", userId)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+        rows.push(...(data || []));
+      }
+
+      const unique = new Map();
+      for (const h of rows) {
+        if (h?.id != null) {
+          unique.set(String(h.id), h);
+        }
+      }
+
+      const data = [...unique.values()].sort((a, b) => {
+        const sortA = Number(a?.sort_order ?? 0);
+        const sortB = Number(b?.sort_order ?? 0);
+        if (sortA !== sortB) return sortA - sortB;
+
+        return String(a?.created_at || "").localeCompare(
+          String(b?.created_at || "")
+        );
+      });
+
+      res.json(data.map(h => ({
         id: h.id,
         userId: h.user_id,
         media: h.media_url,
