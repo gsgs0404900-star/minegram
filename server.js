@@ -2640,136 +2640,39 @@ app.get(
 ========================================================= */
 app.get(
   "/api/users/:username/highlights",
+  auth,
   async (req, res) => {
     try {
-      const username = String(req.params.username || "").trim();
-
-      if (!username) {
-        return res.status(400).json({
-          error: "Kullanıcı adı gerekli"
-        });
-      }
-
-      // Public profil verisi olduğu için burada auth kullanılmıyor.
-      // Service-role ile okunuyor; böylece RLS başka kullanıcıların
-      // öne çıkanlarını engellemiyor.
-      const highlightsSb = adminClient();
-
-      // Kullanıcı profilini bul
-      const target = await findProfile(highlightsSb, username);
-
+      const target = await findProfile(req.sb, req.params.username);
       if (!target) {
-        return res.status(404).json({
-          error: "Kullanıcı bulunamadı"
-        });
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      /*
-        Eski/yeni hesaplarda:
-          profiles.id
-          profiles.auth_user_id
+      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
+      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
+      const highlightsSb = adminClient();
+      const { data, error } = await highlightsSb
+        .from("highlights")
+        .select("*")
+        .eq("user_id", target.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
-        değerleri farklı olabilir.
+      if (error) throw error;
 
-        Bu yüzden her iki ID'yi de kontrol ediyoruz.
-      */
-      const userIds = [
-        target.id,
-        target.auth_user_id
-      ]
-        .filter(Boolean)
-        .map(String)
-        .filter((value, index, array) => {
-          return array.indexOf(value) === index;
-        });
-
-      if (userIds.length === 0) {
-        return res.json([]);
-      }
-
-      // Her iki olası user_id için öne çıkanları getir
-      const results = [];
-
-      for (const userId of userIds) {
-        const { data, error } = await highlightsSb
-          .from("highlights")
-          .select("*")
-          .eq("user_id", userId)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true });
-
-        if (error) {
-          throw error;
-        }
-
-        if (Array.isArray(data)) {
-          results.push(...data);
-        }
-      }
-
-      /*
-        Aynı kayıt iki ID üzerinden gelirse tekrar göstermemek için
-        id'ye göre tekilleştir.
-      */
-      const uniqueHighlights = [];
-      const seenIds = new Set();
-
-      for (const h of results) {
-        const highlightId = String(h.id);
-
-        if (seenIds.has(highlightId)) {
-          continue;
-        }
-
-        seenIds.add(highlightId);
-        uniqueHighlights.push(h);
-      }
-
-      // Son sıralama
-      uniqueHighlights.sort((a, b) => {
-        const sortA = Number(a.sort_order ?? 0);
-        const sortB = Number(b.sort_order ?? 0);
-
-        if (sortA !== sortB) {
-          return sortA - sortB;
-        }
-
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-
-        return dateA - dateB;
-      });
-
-      const output = uniqueHighlights.map(h => ({
+      res.json((data || []).map(h => ({
         id: h.id,
         userId: h.user_id,
-
-        // Android + Web ortak alanlar
         media: h.media_url,
         mediaUrl: h.media_url,
         mediaType: h.media_type || "",
-
         title: h.title || "Öne çıkan",
-
         sortOrder: h.sort_order ?? 0,
         createdAt: h.created_at
-      }));
-
-      console.log(
-        `[HIGHLIGHTS] @${username} -> ${output.length} öne çıkan`
-      );
-
-      return res.json(output);
-
+      })));
     } catch (e) {
-      console.error(
-        "HIGHLIGHTS GET ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        error: e.message || "Öne çıkanlar alınamadı"
-      });
+      console.error("HIGHLIGHTS GET ERROR:", e);
+      res.status(500).json({ error: e.message });
     }
   }
 );
