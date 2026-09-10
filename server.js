@@ -394,7 +394,7 @@ async function hydratePosts(
       )
       .in("post_id", postIds),
 
-    sb
+    adminClient()
       .from("comments")
       .select(
         "id,post_id,user_id,text,created_at,profiles(username,display_name)"
@@ -3516,11 +3516,12 @@ app.post(
         });
       }
 
+      // Yorum kaydı RLS'den etkilenmesin; tüm istemciler aynı Supabase tablosuna yazsın.
       const {
         data,
         error
       } =
-        await req.sb
+        await adminClient()
           .from("comments")
           .insert({
             post_id:
@@ -3601,7 +3602,8 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const { data: comments, error } = await req.sb
+      // Okuma da RLS'ye takılmasın; uygulama ve site aynı yorumları görsün.
+      const { data: comments, error } = await adminClient()
         .from("comments")
         .select("id,post_id,user_id,text,created_at")
         .eq("post_id", req.params.id)
