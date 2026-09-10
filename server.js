@@ -1578,9 +1578,6 @@ app.post("/api/account/migrate-local", async (req, res) => {
       ok: true,
       migrated: true,
       token: loginData.session.access_token,
-      access_token: loginData.session.access_token,
-      refreshToken: loginData.session.refresh_token,
-      refresh_token: loginData.session.refresh_token,
       profile: safeProfile(updatedProfile || profile),
       user: safeProfile(updatedProfile || profile)
     });
@@ -1591,21 +1588,20 @@ app.post("/api/account/migrate-local", async (req, res) => {
 });
 
 /* =========================================================
-   REFRESH SESSION
-   Android uygulaması kapanıp açıldığında access token süresi dolmuşsa
-   refresh token ile yeni access + refresh token üret.
+   LOGIN - TÜM TELEFONLAR İÇİN
 ========================================================= */
+
+/* =========================================================
+   TOKEN REFRESH
+   ========================================================= */
 app.post("/api/refresh", async (req, res) => {
   try {
     const refreshToken = String(req.body?.refreshToken ?? req.body?.refresh_token ?? "").trim();
-    if (!refreshToken) {
-      return res.status(400).json({ ok: false, code: "MISSING_REFRESH_TOKEN", error: "Oturum yenileme anahtarı bulunamadı." });
-    }
+    if (!refreshToken) return res.status(400).json({ ok:false, error:"Refresh token gerekli." });
     const anon = client();
     const { data, error } = await anon.auth.refreshSession({ refresh_token: refreshToken });
     if (error || !data?.session) {
-      console.error("REFRESH AUTH ERROR:", error?.message || error);
-      return res.status(401).json({ ok: false, code: "REFRESH_FAILED", error: "Oturum yenileme anahtarı geçersiz veya süresi dolmuş." });
+      return res.status(401).json({ ok:false, error:error?.message || "Oturum yenilenemedi." });
     }
     return res.json({
       ok: true,
@@ -1616,15 +1612,11 @@ app.post("/api/refresh", async (req, res) => {
       user: data.user ? safeProfile(data.user) : null,
       profile: data.user ? safeProfile(data.user) : null
     });
-  } catch (error) {
-    console.error("REFRESH SERVER ERROR:", error);
-    return res.status(500).json({ ok: false, code: "REFRESH_SERVER_ERROR", error: error?.message || "Oturum yenilenemedi." });
+  } catch (e) {
+    console.error("REFRESH ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Oturum yenilenemedi." });
   }
 });
-
-/* =========================================================
-   LOGIN - TÜM TELEFONLAR İÇİN
-========================================================= */
 
 app.post("/api/login", async (req, res) => {
   try {
