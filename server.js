@@ -2700,27 +2700,58 @@ app.get(
 ========================================================= */
 app.get(
   "/api/users/:username/highlights",
-  auth,
   async (req, res) => {
     try {
-      const target = await findProfile(req.sb, req.params.username);
+      // Profil/auth ID farkı nedeniyle Android ve web aynı öne çıkanları
+      // görebilsin. Okuma service-role ile yapılır; JWT zorunlu değildir.
+      const highlightsSb = adminClient();
+      const target = await findProfile(highlightsSb, req.params.username);
+
       if (!target) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      // Ortak profil verisi: kullanıcı JWT'sinin RLS'i başka kullanıcıların
-      // öne çıkanlarını gizlemesin. Okuma service-role ile yapılır.
-      const highlightsSb = adminClient();
-      const { data, error } = await highlightsSb
-        .from("highlights")
-        .select("*")
-        .eq("user_id", target.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      // highlights.user_id eski/yeni hesaplarda profiles.id veya
+      // profiles.auth_user_id olabilir. İkisini de kontrol et.
+      const possibleUserIds = [
+        target.id,
+        target.auth_user_id
+      ].filter(Boolean);
 
-      if (error) throw error;
+      const uniqueUserIds = [...new Set(possibleUserIds.map(String))];
+      const rows = [];
 
-      res.json((data || []).map(h => ({
+      for (const userId of uniqueUserIds) {
+        const { data, error } = await highlightsSb
+          .from("highlights")
+          .select("*")
+          .eq("user_id", userId)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+        rows.push(...(data || []));
+      }
+
+      // Aynı kayıt iki ID üzerinden gelirse tek kez gönder.
+      const unique = new Map();
+      for (const h of rows) {
+        if (h?.id != null) {
+          unique.set(String(h.id), h);
+        }
+      }
+
+      const data = [...unique.values()].sort((a, b) => {
+        const sa = Number(a?.sort_order ?? 0);
+        const sb = Number(b?.sort_order ?? 0);
+        if (sa !== sb) return sa - sb;
+
+        const ta = new Date(a?.created_at || 0).getTime();
+        const tb = new Date(b?.created_at || 0).getTime();
+        return ta - tb;
+      });
+
+      return res.json(data.map(h => ({
         id: h.id,
         userId: h.user_id,
         media: h.media_url,
@@ -2732,7 +2763,9 @@ app.get(
       })));
     } catch (e) {
       console.error("HIGHLIGHTS GET ERROR:", e);
-      res.status(500).json({ error: e.message });
+      return res.status(500).json({
+        error: e?.message || "Öne çıkanlar alınamadı."
+      });
     }
   }
 );
