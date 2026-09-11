@@ -810,6 +810,19 @@ body{
   "
 >
 
+
+<style id="minegramPremiumWebStyle">
+html.minegram-premium-active[data-premium-theme="ocean"] body{background:linear-gradient(180deg,#0b2638 0%,#07151f 100%)!important}
+html.minegram-premium-active[data-premium-theme="sunset"] body{background:linear-gradient(180deg,#32142f 0%,#160b18 100%)!important}
+html.minegram-premium-active[data-premium-theme="violet"] body{background:linear-gradient(180deg,#24143d 0%,#11091e 100%)!important}
+html.minegram-premium-active[data-premium-frame="blue"] .profile-avatar,html.minegram-premium-active[data-premium-frame="blue"] .avatar{box-shadow:0 0 0 3px #3b82f6!important}
+html.minegram-premium-active[data-premium-frame="gold"] .profile-avatar,html.minegram-premium-active[data-premium-frame="gold"] .avatar{box-shadow:0 0 0 3px #ffc107!important}
+html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.minegram-premium-active[data-premium-frame="pink"] .avatar{box-shadow:0 0 0 3px #ff4d8d!important}
+.minegram-premium-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.minegram-premium-badges span{padding:5px 9px;border-radius:50px;background:rgba(59,130,246,.14);font-size:11px}
+.minegram-pinned-post{outline:2px solid rgba(59,130,246,.45);position:relative}.minegram-pinned-post:before{content:'📌';position:absolute;right:6px;top:6px;z-index:4}
+.minegram-premium-music{position:fixed;left:14px;bottom:14px;z-index:9999;padding:8px 12px;border-radius:20px;background:rgba(0,0,0,.72);color:#fff;font-size:12px}
+</style>
+
 </head>
 
 <body>
@@ -7887,6 +7900,24 @@ document.addEventListener(
 
 init();
 
+</script>
+
+
+<script id="minegramPremiumRuntime">
+(function(){
+ const K=['profile_theme','profile_background','profile_frames','achievement_badges','daily_streak','pin_posts','profile_views','comment_effects','profile_music','featured_stories','advanced_notifications','extra_privacy'];
+ const on=k=>localStorage.getItem('premium_'+k)!=='false';
+ const active=()=>localStorage.getItem('minegram_verified')==='true';
+ const toast2=m=>{const t=document.getElementById('toast');if(t){t.textContent=m;t.classList.add('show');clearTimeout(window.__mpt);window.__mpt=setTimeout(()=>t.classList.remove('show'),2200)}};
+ function streak(){if(!on('daily_streak'))return;const today=new Date().toISOString().slice(0,10),last=localStorage.getItem('premium_streak_last'),old=Number(localStorage.getItem('premium_streak_count')||0);if(last===today)return old;const d=new Date();d.setDate(d.getDate()-1);const y=d.toISOString().slice(0,10);const n=last===y?old+1:1;localStorage.setItem('premium_streak_last',today);localStorage.setItem('premium_streak_count',n);return n}
+ function apply(){if(!active())return;document.documentElement.classList.add('minegram-premium-active');if(on('profile_theme'))document.documentElement.dataset.premiumTheme=localStorage.getItem('premium_theme')||'ocean';if(on('profile_frames'))document.documentElement.dataset.premiumFrame=localStorage.getItem('premium_frame')||'blue';if(on('achievement_badges')){let host=document.querySelector('[data-premium-badges]');if(!host){host=document.createElement('div');host.className='minegram-premium-badges';host.dataset.premiumBadges='1';host.innerHTML='<span>🏆 Premium</span><span>🔵 Doğrulanmış</span><span>✨ Minegram Plus</span>';const p=document.querySelector('.profile-header,.profile-info,.profile-main')||document.body; p.appendChild(host)}}if(on('daily_streak'))streak();}
+ function views(){if(!active()||!on('profile_views'))return;let n=Number(localStorage.getItem('premium_profile_views_count')||0);n++;localStorage.setItem('premium_profile_views_count',String(n));}
+ function pinPosts(){if(!active()||!on('pin_posts'))return;const candidates=[...document.querySelectorAll('[data-post-id],.post,.post-card,.grid-item')];candidates.forEach((el,i)=>{if(el.dataset.minegramPremiumPinBound)return;el.dataset.minegramPremiumPinBound='1';const id=el.dataset.postId||String(i);const pinned=JSON.parse(localStorage.getItem('premium_pinned_posts')||'[]');if(pinned.includes(id))el.classList.add('minegram-pinned-post');let b=document.createElement('button');b.type='button';b.textContent=pinned.includes(id)?'📌 Sabitlemeyi kaldır':'📌 Sabitle';b.style.cssText='margin:6px;padding:6px 9px;border:0;border-radius:10px;cursor:pointer';b.onclick=e=>{e.stopPropagation();let a=JSON.parse(localStorage.getItem('premium_pinned_posts')||'[]');if(a.includes(id)){a=a.filter(x=>x!==id);el.classList.remove('minegram-pinned-post');b.textContent='📌 Sabitle'}else{a.push(id);el.classList.add('minegram-pinned-post');b.textContent='📌 Sabitlemeyi kaldır'}localStorage.setItem('premium_pinned_posts',JSON.stringify(a));toast2(a.includes(id)?'📌 Gönderi sabitlendi':'Gönderi sabitlemesi kaldırıldı')};el.appendChild(b)})}
+ function commentEffects(){if(!active()||!on('comment_effects'))return;document.querySelectorAll('textarea, input[placeholder*="yorum" i],input[placeholder*="Yorum" i]').forEach(el=>{if(el.dataset.premiumEffectBound)return;el.dataset.premiumEffectBound='1';el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){const eff=localStorage.getItem('premium_comment_effect')||'✨';if(el.value.trim()&&!el.value.trim().startsWith(eff))el.value=eff+' '+el.value}})})}
+ function music(){if(!active()||!on('profile_music'))return;const src=localStorage.getItem('premium_profile_music');if(!src||document.querySelector('.minegram-premium-music'))return;const a=new Audio(src);a.loop=true;const b=document.createElement('button');b.className='minegram-premium-music';b.type='button';b.textContent='🎵 Profil müziğini oynat';b.onclick=()=>{if(a.paused){a.play().then(()=>b.textContent='⏸️ Profil müziğini durdur').catch(()=>toast2('Müzik için tekrar dokun'))}else{a.pause();b.textContent='🎵 Profil müziğini oynat'}};document.body.appendChild(b)}
+ function run(){apply();if(location.pathname.toLowerCase().includes('profile')){views();pinPosts();music()}commentEffects();}
+ window.addEventListener('storage',run);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();new MutationObserver(()=>{pinPosts();commentEffects()}).observe(document.documentElement,{childList:true,subtree:true});
+})();
 </script>
 
 </body>
