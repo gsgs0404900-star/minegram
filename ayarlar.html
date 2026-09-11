@@ -711,8 +711,25 @@ button.sub-row .sub-arrow{
 <div class="info" style="margin-top:14px">
 <h3>💳 Mavi Tik Aboneliği</h3>
 <p style="font-size:20px;font-weight:700">₺99,99 / ay</p>
-<p style="color:#aaa">Ödeme, güvenli banka/kart ödeme sayfasında tamamlanır.</p>
-<button class="form-button" id="buyVerifiedButton" type="button">💳 Güvenli ödeme sayfasını aç</button>
+<p id="verifiedBalance" style="color:#aaa">Bakiye: ₺0,00</p>
+
+<div class="form-group">
+<label class="form-label">Kart numarası</label>
+<input class="form-input" id="verifiedCard" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000">
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div class="form-group">
+<label class="form-label">Son kullanma</label>
+<input class="form-input" id="verifiedExpiry" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="AA/YY">
+</div>
+<div class="form-group">
+<label class="form-label">CVV</label>
+<input class="form-input" id="verifiedCvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="CVV">
+</div>
+</div>
+
+<button class="form-button" id="buyVerifiedButton" type="button">💳 Mavi Tik Satın Al — ₺99,99</button>
 <button class="form-button" id="refreshVerifiedButton" type="button" style="margin-top:10px;background:#222">↻ Durumu yenile</button>
 <button class="form-button" id="cancelVerifiedButton" type="button" style="display:none;margin-top:10px;background:#333">❌ Aboneliği iptal et</button>
 <p id="verifiedUntil" style="font-size:12px;color:#999;margin-top:10px"></p>
@@ -1404,48 +1421,81 @@ darkTheme
    MAVİ TİK
 ===================================================== */
 
-async function loadVerifiedStatus(){
+function getVerifiedBalance(){
+  const raw=localStorage.getItem('minegram_wallet_balance') ?? localStorage.getItem('minegram_balance') ?? '0';
+  const n=Number(String(raw).replace(',','.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function setVerifiedBalance(value){
+  const clean=Math.max(0,Number(value)||0);
+  localStorage.setItem('minegram_wallet_balance',clean.toFixed(2));
+  localStorage.setItem('minegram_balance',clean.toFixed(2));
+}
+
+function updateVerifiedBalance(){
+  const el=document.getElementById('verifiedBalance');
+  if(el) el.textContent='Bakiye: ₺'+getVerifiedBalance().toFixed(2).replace('.',',');
+}
+
+function validVerifiedCard(card,expiry,cvv){
+  const digits=String(card||'').replace(/\D/g,'');
+  const exp=String(expiry||'').trim();
+  const cvvDigits=String(cvv||'').replace(/\D/g,'');
+  return digits.length>=13 && digits.length<=19 && cvvDigits.length>=3 && cvvDigits.length<=4 && /^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(exp);
+}
+
+function loadVerifiedStatus(){
   const statusEl=document.getElementById('verifiedStatus');
   const untilEl=document.getElementById('verifiedUntil');
   const buyBtn=document.getElementById('buyVerifiedButton');
   const cancelBtn=document.getElementById('cancelVerifiedButton');
-  try{
-    const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_access_token')||localStorage.getItem('token');
-    const r=await fetch('/api/mavi-tik/status',{headers:token?{Authorization:'Bearer '+token}:{}});
-    const j=await r.json();
-    if(!r.ok) throw new Error(j.error||'Durum alınamadı');
-    const active=!!j.active;
-    if(statusEl) statusEl.textContent=active?'✓ Mavi tik aktif':'Mavi tik satın alınmadı';
-    if(untilEl) untilEl.textContent=j.verifiedUntil?'Geçerlilik: '+new Date(j.verifiedUntil).toLocaleString('tr-TR'):'';
-    if(buyBtn) buyBtn.style.display=active?'none':'block';
-    if(cancelBtn) cancelBtn.style.display=active?'block':'none';
-    saveSetting('minegram_verified',active);
-    verified=active;
-  }catch(e){
-    if(statusEl) statusEl.textContent='Durum alınamadı';
-    if(buyBtn) buyBtn.style.display='block';
-  }
+  const active=localStorage.getItem('minegram_verified')==='true';
+  if(statusEl) statusEl.textContent=active?'✓ Mavi tik aktif':'Mavi tik satın alınmadı';
+  if(untilEl) untilEl.textContent=active&&localStorage.getItem('minegram_verified_paid_at')?'Satın alma: '+new Date(Number(localStorage.getItem('minegram_verified_paid_at'))).toLocaleString('tr-TR'):'';
+  if(buyBtn) buyBtn.style.display=active?'none':'block';
+  if(cancelBtn) cancelBtn.style.display=active?'block':'none';
+  verified=active;
+  updateVerifiedBalance();
 }
 
-async function startVerifiedCheckout(){
-  try{
-    const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_access_token')||localStorage.getItem('token');
-    const r=await fetch('/api/mavi-tik/checkout',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:'{}'});
-    const j=await r.json();
-    if(!r.ok) throw new Error(j.error||'Ödeme başlatılamadı');
-    if(j.alreadyActive){toast('Mavi tik zaten aktif');loadVerifiedStatus();return;}
-    if(!j.checkoutUrl) throw new Error('Güvenli ödeme adresi yapılandırılmamış');
-    window.location.href=j.checkoutUrl;
-  }catch(e){toast(e.message||'Ödeme başlatılamadı');}
+function startVerifiedPurchase(){
+  if(verified){toast('Mavi tik zaten aktif');return;}
+  const card=document.getElementById('verifiedCard').value.trim();
+  const expiry=document.getElementById('verifiedExpiry').value.trim();
+  const cvv=document.getElementById('verifiedCvv').value.trim();
+  if(!card||!expiry||!cvv){toast('Kart bilgilerini eksiksiz gir');return;}
+  if(!validVerifiedCard(card,expiry,cvv)){toast('Kart bilgilerini kontrol et');return;}
+  const balance=getVerifiedBalance();
+  const price=99.99;
+  if(balance<price){toast('Bakiyeniz yetersiz');return;}
+  setVerifiedBalance(balance-price);
+  verified=true;
+  saveSetting('minegram_verified',true);
+  localStorage.setItem('minegram_verified_paid','true');
+  localStorage.setItem('minegram_verified_paid_at',String(Date.now()));
+  loadVerifiedStatus();
+  toast('Mavi tik satın alındı ve ₺99,99 bakiyeden düşüldü');
 }
 
-async function cancelVerifiedSubscription(){
-  toast('İptal işlemi için ödeme sağlayıcının abonelik yönetimi kullanılmalıdır.');
+function cancelVerifiedSubscription(){
+  if(!verified){toast('Aktif abonelik bulunmuyor');return;}
+  if(!confirm('Mavi tik aboneliğini iptal etmek istediğine emin misin? Mavi tik ve premium özellikler hemen devre dışı kalacak.')) return;
+  verified=false;
+  saveSetting('minegram_verified',false);
+  localStorage.setItem('minegram_verified_paid','false');
+  localStorage.setItem('minegram_verified_cancelled','true');
+  localStorage.setItem('minegram_verified_cancelled_at',String(Date.now()));
+  loadVerifiedStatus();
+  toast('Mavi tik aboneliği iptal edildi');
 }
 
-document.getElementById('buyVerifiedButton').onclick=startVerifiedCheckout;
+document.getElementById('buyVerifiedButton').onclick=startVerifiedPurchase;
 document.getElementById('refreshVerifiedButton').onclick=loadVerifiedStatus;
 document.getElementById('cancelVerifiedButton').onclick=cancelVerifiedSubscription;
+document.getElementById('verifiedCard').oninput=function(){let v=this.value.replace(/\D/g,'').slice(0,19);let parts=v.match(/.{1,4}/g)||[];this.value=parts.join(' ')};
+document.getElementById('verifiedExpiry').oninput=function(){let v=this.value.replace(/\D/g,'').slice(0,4);this.value=v.length>2?v.slice(0,2)+'/'+v.slice(2):v};
+document.getElementById('verifiedCvv').oninput=function(){this.value=this.value.replace(/\D/g,'').slice(0,4)};
 
 
 /* =====================================================
