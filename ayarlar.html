@@ -750,6 +750,12 @@ button.sub-row .sub-arrow{
 <div class="sub-row"><span>🌟 Öne çıkan hikâyeler</span></div>
 <div class="sub-row"><span>🔔 Gelişmiş bildirimler</span></div>
 <div class="sub-row"><span>🕶️ Ek gizlilik özellikleri</span></div>
+
+<div id="premiumFeatureControls" style="margin-top:18px">
+<h3>⚙️ Premium özellikleri yönet</h3>
+<p>Satın aldıktan sonra kullanmak istediğin özellikleri buradan açıp kapatabilirsin.</p>
+<div id="premiumControlsList"></div>
+</div>
 </div>
 
 <p style="font-size:12px;color:#888;margin-top:20px">Kart numarası, son kullanma tarihi veya CVV Minegram sunucusuna gönderilmez. Gerçek ödeme için Render ortam değişkenindeki güvenli ödeme sağlayıcısı bağlantısı kullanılır.</p>
@@ -1452,6 +1458,39 @@ function validVerifiedCard(card,expiry,cvv){
   return digits.length>=13 && digits.length<=19 && cvvDigits.length>=3 && cvvDigits.length<=4 && /^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(exp);
 }
 
+function renderPremiumControls(){
+  const box=document.getElementById('premiumControlsList');
+  if(!box)return;
+  const defs=[
+    ['profile_theme','👑 Özel profil teması'],
+    ['profile_background','🎨 Profil arka planı'],
+    ['profile_frames','✨ Profil çerçeveleri'],
+    ['achievement_badges','🏆 Başarı rozetleri'],
+    ['daily_streak','🔥 Günlük seri'],
+    ['pin_posts','📌 Gönderi sabitleme'],
+    ['profile_views','👀 Profil görüntülenmeleri'],
+    ['comment_effects','💬 Yorum efektleri'],
+    ['profile_music','🎵 Profil müziği'],
+    ['featured_stories','🌟 Öne çıkan hikâyeler'],
+    ['advanced_notifications','🔔 Gelişmiş bildirimler'],
+    ['extra_privacy','🕶️ Ek gizlilik özellikleri']
+  ];
+  box.innerHTML='';
+  if(!verified)return;
+  defs.forEach(([key,label])=>{
+    const row=document.createElement('div');
+    row.className='sub-row';
+    const enabled=localStorage.getItem('premium_'+key)!=='false';
+    row.innerHTML='<span>'+label+'</span><button type="button" class="switch '+(enabled?'on':'')+'"></button>';
+    row.querySelector('button').onclick=()=>{
+      const next=!row.querySelector('button').classList.contains('on');
+      localStorage.setItem('premium_'+key,next?'true':'false');
+      row.querySelector('button').classList.toggle('on',next);
+    };
+    box.appendChild(row);
+  });
+}
+
 function loadVerifiedStatus(){
   const statusEl=document.getElementById('verifiedStatus');
   const untilEl=document.getElementById('verifiedUntil');
@@ -1464,6 +1503,7 @@ function loadVerifiedStatus(){
   if(cancelBtn) cancelBtn.style.display=active?'block':'none';
   verified=active;
   updateVerifiedBalance();
+  renderPremiumControls();
 }
 
 function startVerifiedPurchase(){
@@ -1482,6 +1522,7 @@ function startVerifiedPurchase(){
   localStorage.setItem('minegram_verified_paid','true');
   localStorage.setItem('minegram_verified_paid_at',String(Date.now()));
   loadVerifiedStatus();
+  renderPremiumControls();
   toast('Mavi tik satın alındı ve ₺99,99 bakiyeden düşüldü');
 }
 
@@ -1494,6 +1535,7 @@ function cancelVerifiedSubscription(){
   localStorage.setItem('minegram_verified_cancelled','true');
   localStorage.setItem('minegram_verified_cancelled_at',String(Date.now()));
   loadVerifiedStatus();
+  renderPremiumControls();
   toast('Mavi tik aboneliği iptal edildi');
 }
 
