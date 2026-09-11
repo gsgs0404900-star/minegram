@@ -763,6 +763,72 @@ button.sub-row .sub-arrow{
 </div>
 </div>
 
+
+<!-- PREMIUM ÖZELLİKLERİ: UYGULAMADAKİ SİSTEMLER -->
+<div id="premiumWebTools" style="display:none;margin-top:12px">
+  <div class="info" style="margin-top:10px">
+    <h3>✨ Premium sistemleri</h3>
+    <p id="premiumWebToolsText">Mavi Tik aktif olduğunda uygulamadaki premium sistemleri burada kullanabilirsin.</p>
+    <div id="premiumThemeTools" style="display:none;margin-top:12px">
+      <b>👑 Profil temasını seç</b>
+      <div style="display:grid;gap:8px;margin-top:8px">
+        <button type="button" class="sub-row" data-premium-theme="ocean"><span>🌊 Okyanus</span><span>›</span></button>
+        <button type="button" class="sub-row" data-premium-theme="sunset"><span>🌅 Gün batımı</span><span>›</span></button>
+        <button type="button" class="sub-row" data-premium-theme="violet"><span>💜 Mor</span><span>›</span></button>
+      </div>
+      <b style="display:block;margin-top:12px">✨ Profil çerçevesi</b>
+      <div style="display:grid;gap:8px;margin-top:8px">
+        <button type="button" class="sub-row" data-premium-frame="blue"><span>🔵 Mavi</span><span>›</span></button>
+        <button type="button" class="sub-row" data-premium-frame="gold"><span>🟡 Altın</span><span>›</span></button>
+        <button type="button" class="sub-row" data-premium-frame="pink"><span>🩷 Pembe</span><span>›</span></button>
+      </div>
+    </div>
+    <div id="premiumBadgeTools" style="display:none;margin-top:12px">
+      <b>🏆 Başarı rozetleri</b>
+      <p style="margin:6px 0">🏆 Premium &nbsp; 🔵 Doğrulanmış &nbsp; ✨ Minegram Plus</p>
+    </div>
+    <div id="premiumStreakTools" style="display:none;margin-top:12px">
+      <b>🔥 Günlük seri</b>
+      <p style="margin:6px 0">Bugünkü seri: <strong id="premiumStreakCount">0</strong> gün</p>
+    </div>
+    <div id="premiumPinTools" style="display:none;margin-top:12px">
+      <b>📌 Gönderi sabitleme</b>
+      <p style="margin:6px 0">Profilindeki gönderilerdeki sabitle düğmesiyle gönderiyi üste taşıyabilirsin.</p>
+    </div>
+    <div id="premiumViewsTools" style="display:none;margin-top:12px">
+      <b>👀 Profil görüntülenmeleri</b>
+      <p style="margin:6px 0">Profil görüntülenme sayısı: <strong id="premiumViewCount">0</strong></p>
+    </div>
+    <div id="premiumCommentTools" style="display:none;margin-top:12px">
+      <b>💬 Yorum efektleri</b>
+      <p style="margin:6px 0">Yorumlarda kullanılacak efekt: <strong id="premiumCommentEffectValue">✨</strong></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button type="button" class="sub-row premium-effect" data-effect="✨"><span>✨</span></button>
+        <button type="button" class="sub-row premium-effect" data-effect="🔥"><span>🔥</span></button>
+        <button type="button" class="sub-row premium-effect" data-effect="💙"><span>💙</span></button>
+        <button type="button" class="sub-row premium-effect" data-effect="🎉"><span>🎉</span></button>
+      </div>
+    </div>
+    <div id="premiumMusicTools" style="display:none;margin-top:12px">
+      <b>🎵 Profil müziği</b>
+      <input id="premiumProfileMusic" type="file" accept="audio/*" style="margin-top:8px;width:100%">
+      <p style="margin:6px 0;color:#999">Seçtiğin müzik bu tarayıcıda profil müziği olarak saklanır.</p>
+    </div>
+    <div id="premiumStoryTools" style="display:none;margin-top:12px">
+      <b>🌟 Öne çıkan hikâyeler</b>
+      <p style="margin:6px 0">Öne çıkanlar sistemi açıksa profilindeki mevcut hikâyeler öne çıkarma alanında kullanılabilir.</p>
+    </div>
+    <div id="premiumNotificationTools" style="display:none;margin-top:12px">
+      <b>🔔 Gelişmiş bildirimler</b>
+      <p style="margin:6px 0">Premium bildirim tercihi açık.</p>
+    </div>
+    <div id="premiumPrivacyTools" style="display:none;margin-top:12px">
+      <b>🕶️ Ek gizlilik özellikleri</b>
+      <p style="margin:6px 0">Profil görüntülenmesi ve premium görünüm gibi premium bilgilerin gösterimi için ek gizlilik modu aktif.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ŞİFRE VE GÜVENLİK -->
 
 <div class="sub-screen" id="securityScreen">
@@ -1486,9 +1552,11 @@ function renderPremiumControls(){
       const next=!row.querySelector('button').classList.contains('on');
       localStorage.setItem('premium_'+key,next?'true':'false');
       row.querySelector('button').classList.toggle('on',next);
+      if(window.MinegramPremiumWeb?.onToggle) window.MinegramPremiumWeb.onToggle(key,next);
     };
     box.appendChild(row);
   });
+  if(window.MinegramPremiumWeb?.renderSettingsTools) window.MinegramPremiumWeb.renderSettingsTools(box);
 }
 
 function loadVerifiedStatus(){
@@ -2451,6 +2519,56 @@ if(location.hash==='#mavi-tik'){
 }
 
 
+
+
+/* =====================================================
+   MINEGRAM PREMIUM WEB — Android ile aynı davranışlar
+   ===================================================== */
+window.MinegramPremiumWeb=(function(){
+  const keys=['profile_theme','profile_background','profile_frames','achievement_badges','daily_streak','pin_posts','profile_views','comment_effects','profile_music','featured_stories','advanced_notifications','extra_privacy'];
+  const on=k=>localStorage.getItem('premium_'+k)!=='false';
+  const active=()=>localStorage.getItem('minegram_verified')==='true' || (typeof verified!=='undefined' && verified);
+  const set=(k,v)=>localStorage.setItem('premium_'+k,v?'true':'false');
+  function renderSettingsTools(){
+    const tools=document.getElementById('premiumWebTools'); if(!tools)return;
+    tools.style.display=active()?'block':'none';
+    const map={profile_theme:'premiumThemeTools',profile_frames:'premiumThemeTools',achievement_badges:'premiumBadgeTools',daily_streak:'premiumStreakTools',pin_posts:'premiumPinTools',profile_views:'premiumViewsTools',comment_effects:'premiumCommentTools',profile_music:'premiumMusicTools',featured_stories:'premiumStoryTools',advanced_notifications:'premiumNotificationTools',extra_privacy:'premiumPrivacyTools'};
+    Object.values(map).forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
+    keys.forEach(k=>{if(!on(k))return; const id=map[k]; const e=id&&document.getElementById(id); if(e)e.style.display='block'});
+    document.querySelectorAll('[data-premium-theme]').forEach(b=>b.onclick=()=>{localStorage.setItem('premium_theme',b.dataset.premiumTheme);applyProfilePremium()});
+    document.querySelectorAll('[data-premium-frame]').forEach(b=>b.onclick=()=>{localStorage.setItem('premium_frame',b.dataset.premiumFrame);applyProfilePremium()});
+    document.querySelectorAll('.premium-effect').forEach(b=>b.onclick=()=>{localStorage.setItem('premium_comment_effect',b.dataset.effect);const x=document.getElementById('premiumCommentEffectValue');if(x)x.textContent=b.dataset.effect});
+    const f=document.getElementById('premiumProfileMusic'); if(f)f.onchange=()=>{const file=f.files&&f.files[0];if(!file)return; const r=new FileReader();r.onload=()=>{localStorage.setItem('premium_profile_music',r.result);toast('Profil müziği kaydedildi')};r.readAsDataURL(file)};
+    const st=document.getElementById('premiumStreakCount'); if(st)st.textContent=touchStreak();
+    const vc=document.getElementById('premiumViewCount'); if(vc)vc.textContent=localStorage.getItem('premium_profile_views_count')||'0';
+  }
+  function touchStreak(){
+    if(!on('daily_streak'))return 0;
+    const today=new Date().toISOString().slice(0,10), last=localStorage.getItem('premium_streak_last'), old=Number(localStorage.getItem('premium_streak_count')||0);
+    if(last===today)return old;
+    const d=new Date(); d.setDate(d.getDate()-1); const yesterday=d.toISOString().slice(0,10); const next=last===yesterday?old+1:1;
+    localStorage.setItem('premium_streak_last',today);localStorage.setItem('premium_streak_count',String(next));return next;
+  }
+  function applyProfilePremium(){
+    if(!active())return;
+    document.documentElement.classList.toggle('minegram-premium-active',true);
+    if(on('profile_theme'))document.documentElement.dataset.premiumTheme=localStorage.getItem('premium_theme')||'ocean';
+    if(on('profile_frames'))document.documentElement.dataset.premiumFrame=localStorage.getItem('premium_frame')||'blue';
+    if(on('achievement_badges'))document.documentElement.dataset.premiumBadges='on';
+  }
+  function onToggle(k,v){
+    set(k,v); renderSettingsTools(); applyProfilePremium();
+    if(k==='daily_streak'&&v)touchStreak();
+    toast(v?'Özellik açıldı':'Özellik kapatıldı');
+  }
+  function registerProfileView(username){
+    if(!active()||!on('profile_views'))return;
+    const me=(localStorage.getItem('minegram_username')||'').trim(); if(me&&me.toLowerCase()===(username||'').trim().toLowerCase())return;
+    const n=Number(localStorage.getItem('premium_profile_views_count')||0)+1;localStorage.setItem('premium_profile_views_count',String(n));
+  }
+  return {keys,on,active,renderSettingsTools,onToggle,applyProfilePremium,touchStreak,registerProfileView};
+})();
+MinegramPremiumWeb.applyProfilePremium();
 </script>
 
 </body>
