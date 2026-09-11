@@ -2619,13 +2619,10 @@ async function sendResendEmail(
   }
 
   const from =
-    String(process.env.RESEND_FROM_EMAIL || "").trim();
-
-  if (!from) {
-    throw new Error(
-      "RESEND_FROM_EMAIL ayarlanmadı. Herkese e-posta göndermek için Resend üzerinde doğrulanmış alan adından bir gönderen adresi tanımlayın."
-    );
-  }
+    String(
+      process.env.RESEND_FROM_EMAIL ||
+      "onboarding@resend.dev"
+    ).trim();
 
   const r =
     await fetch(
@@ -5253,6 +5250,314 @@ app.get(
     );
   }
 );
+
+
+
+
+/* =========================================================
+   MINEGRAM ADMIN SMTP SERVİSİ
+   - SMTP şifresi Firestore'a veya HTML'e yazılmaz.
+   - SMTP parolası yalnızca RAM'de tutulur; tercihen SMTP_PASS
+     Environment Variable ile sunucuda kalıcı olarak verilir.
+   - Admin istekleri Firebase ID token + sabit admin UID ile doğrulanır.
+   - Harici npm paketi gerekmez; Node.js net/tls kullanılır.
+========================================================= */
+const SMTP_ADMIN_UID = "QJqw9moQk8XgpHcFo89bAVPk3uh1";
+const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
+const smtpConfigFile = path.join(__dirname, "minegram-smtp-config.json");
+let smtpRuntime = {
+  fromName: env("SMTP_FROM_NAME") || "Minegram",
+  fromEmail: env("SMTP_FROM_EMAIL"),
+  host: env("SMTP_HOST"),
+  port: Number(env("SMTP_PORT")) || 587,
+  secure: /^(1|true|yes)$/i.test(env("SMTP_SECURE")),
+  user: env("SMTP_USER"),
+  pass: env("SMTP_PASS"),
+  codeLength: Number(env("VERIFICATION_CODE_LENGTH")) || 6,
+  expiryMinutes: Number(env("VERIFICATION_EXPIRY_MINUTES")) || 10,
+  cooldownSeconds: Number(env("VERIFICATION_COOLDOWN_SECONDS")) || 60
+};
+
+try {
+  if (fs.existsSync(smtpConfigFile)) {
+    const saved = JSON.parse(fs.readFileSync(smtpConfigFile, "utf8"));
+    smtpRuntime = { ...smtpRuntime, ...saved, pass: smtpRuntime.pass };
+  }
+} catch (e) {
+  console.error("SMTP CONFIG LOAD ERROR:", e?.message || e);
+}
+
+function smtpPublicConfig() {
+  return {
+    configured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.pass && smtpRuntime.fromEmail),
+    fromName: smtpRuntime.fromName || "Minegram",
+    fromEmail: smtpRuntime.fromEmail || "",
+    host: smtpRuntime.host || "",
+    port: smtpRuntime.port || 587,
+    secure: !!smtpRuntime.secure,
+    user: smtpRuntime.user || "",
+    codeLength: smtpRuntime.codeLength || 6,
+    expiryMinutes: smtpRuntime.expiryMinutes || 10,
+    cooldownSeconds: smtpRuntime.cooldownSeconds || 60
+  };
+}
+
+function saveSmtpPublicConfig() {
+  const safe = {
+    fromName: smtpRuntime.fromName,
+    fromEmail: smtpRuntime.fromEmail,
+    host: smtpRuntime.host,
+    port: smtpRuntime.port,
+    secure: smtpRuntime.secure,
+    user: smtpRuntime.user,
+    codeLength: smtpRuntime.codeLength,
+    expiryMinutes: smtpRuntime.expiryMinutes,
+    cooldownSeconds: smtpRuntime.cooldownSeconds
+  };
+  fs.writeFileSync(smtpConfigFile, JSON.stringify(safe, null, 2), "utf8");
+}
+
+async function verifyFirebaseAdminToken(req) {
+  const token = bearer(req);
+  if (!token) throw new Error("Admin oturumu gerekli.");
+  if (!FIREBASE_WEB_API_KEY) throw new Error("FIREBASE_WEB_API_KEY eksik.");
+
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken: token })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  const firebaseUser = data?.users?.[0];
+  if (!response.ok || !firebaseUser?.localId) {
+    throw new Error(data?.error?.message || "Firebase admin oturumu doğrulanamadı.");
+  }
+  if (firebaseUser.localId !== SMTP_ADMIN_UID) {
+    throw new Error("Bu Firebase hesabının SMTP admin yetkisi yok.");
+  }
+  return firebaseUser;
+}
+
+async function smtpAdminAuth(req, res, next) {
+  try {
+    await verifyFirebaseAdminToken(req);
+    next();
+  } catch (e) {
+    console.error("SMTP ADMIN AUTH ERROR:", e?.message || e);
+    res.status(401).json({ ok: false, error: "Admin oturumu gerekli." });
+  }
+}
+
+function smtpEscapeHeader(value) {
+  return String(value || "").replace(/[\r\n]/g, " ").trim();
+}
+
+function smtpEscapeAddress(value) {
+  const v = smtpEscapeHeader(value);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new Error("Geçersiz e-posta adresi.");
+  return v;
+}
+
+function smtpConnectionOptions() {
+  return {
+    host: smtpRuntime.host,
+    port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
+    servername: smtpRuntime.host,
+    timeout: 20000
+  };
+}
+
+async function sendSmtpEmail({ to, subject, text, html }) {
+  if (!smtpRuntime.host || !smtpRuntime.user || !smtpRuntime.pass || !smtpRuntime.fromEmail) {
+    throw new Error("SMTP ayarları eksik. Sunucuda SMTP_PASS veya panelde SMTP şifresi gerekli.");
+  }
+
+  const net = await import("net");
+  const tls = await import("tls");
+  let socket;
+
+  const connectSocket = (secure) => new Promise((resolve, reject) => {
+    const options = smtpConnectionOptions();
+    let s;
+    let settled = false;
+    const fail = e => {
+      if (!settled) { settled = true; reject(e); }
+      else s.destroy();
+    };
+    if (secure) {
+      s = tls.connect(options, () => { settled = true; resolve(s); });
+    } else {
+      s = net.createConnection(options, () => { settled = true; resolve(s); });
+    }
+    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı.")));
+    s.once("error", fail);
+  });
+
+  socket = await connectSocket(!!smtpRuntime.secure);
+  let buffer = "";
+  let pending = null;
+  let timer = null;
+
+  const attachReader = (sock) => {
+    buffer = "";
+    pending = null;
+    if (timer) clearTimeout(timer);
+    sock.on("data", chunk => {
+      buffer += chunk.toString("utf8");
+      const lines = buffer.split(/\n/);
+      buffer = lines.pop() || "";
+      for (const raw of lines) {
+        const line = raw.replace(/\r$/, "");
+        if (pending && /^\d{3} /.test(line)) {
+          const p = pending;
+          pending = null;
+          if (timer) clearTimeout(timer);
+          const code = Number(line.slice(0, 3));
+          p.resolve({ code, line });
+          break;
+        }
+      }
+    });
+  };
+  attachReader(socket);
+
+  const readResponse = () => new Promise((resolve, reject) => {
+    pending = { resolve, reject };
+    timer = setTimeout(() => {
+      pending = null;
+      reject(new Error("SMTP sunucusundan yanıt alınamadı."));
+    }, 30000);
+  });
+
+  const command = async (cmd, expected) => {
+    socket.write(cmd + "\r\n");
+    const r = await readResponse();
+    if (!expected.includes(r.code)) throw new Error(`SMTP ${r.code}: ${r.line}`);
+    return r;
+  };
+
+  try {
+    let greeting = await readResponse();
+    if (greeting.code !== 220) throw new Error(`SMTP ${greeting.code}: ${greeting.line}`);
+    await command("EHLO minegram.com", [250]);
+
+    if (!smtpRuntime.secure) {
+      await command("STARTTLS", [220]);
+      socket.removeAllListeners("data");
+      socket = await new Promise((resolve, reject) => {
+        const upgraded = tls.connect({ socket, servername: smtpRuntime.host }, () => resolve(upgraded));
+        upgraded.once("error", reject);
+      });
+      attachReader(socket);
+      await command("EHLO minegram.com", [250]);
+    }
+
+    await command("AUTH LOGIN", [334]);
+    await command(Buffer.from(String(smtpRuntime.user)).toString("base64"), [334]);
+    await command(Buffer.from(String(smtpRuntime.pass)).toString("base64"), [235]);
+    await command(`MAIL FROM:<${smtpEscapeAddress(smtpRuntime.fromEmail)}>`, [250]);
+    await command(`RCPT TO:<${smtpEscapeAddress(to)}>`, [250, 251]);
+    await command("DATA", [354]);
+
+    const safeFromName = smtpEscapeHeader(smtpRuntime.fromName || "Minegram");
+    const safeSubject = smtpEscapeHeader(subject || "Minegram");
+    const bodyText = String(text || "").replace(/\r?\n/g, "\r\n");
+    const bodyHtml = String(html || "").replace(/\r?\n/g, "\r\n");
+    const boundary = `minegram_${crypto.randomBytes(12).toString("hex")}`;
+    const message = [
+      `From: ${safeFromName} <${smtpEscapeAddress(smtpRuntime.fromEmail)}>`,
+      `To: <${smtpEscapeAddress(to)}>`,
+      `Subject: ${safeSubject}`,
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      'Content-Transfer-Encoding: 8bit',
+      "",
+      bodyText,
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      'Content-Transfer-Encoding: 8bit',
+      "",
+      bodyHtml,
+      `--${boundary}--`,
+      ""
+    ].join("\r\n").replace(/^\./gm, "..");
+    socket.write(message + ".\r\n");
+    const sent = await readResponse();
+    if (sent.code !== 250) throw new Error(`SMTP ${sent.code}: ${sent.line}`);
+    await command("QUIT", [221]);
+  } finally {
+    socket.end();
+  }
+}
+
+app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
+  res.json({ ok: true, ...smtpPublicConfig() });
+});
+
+app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
+  try {
+    const body = req.body || {};
+    const host = smtpEscapeHeader(body.host);
+    const user = smtpEscapeHeader(body.user);
+    const fromEmail = smtpEscapeAddress(body.fromEmail);
+    const fromName = smtpEscapeHeader(body.fromName || "Minegram");
+    const port = Number(body.port) || 587;
+    const secure = !!body.secure;
+    if (!host || !user || !fromEmail) throw new Error("Gönderici e-posta, SMTP sunucusu ve SMTP kullanıcı gerekli.");
+    if (![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
+
+    smtpRuntime = {
+      ...smtpRuntime,
+      fromName, fromEmail, host, user, port, secure
+    };
+    if (String(body.pass || "").trim()) smtpRuntime.pass = String(body.pass);
+    smtpRuntime.codeLength = Number(body.codeLength || smtpRuntime.codeLength) || 6;
+    smtpRuntime.expiryMinutes = Number(body.expiryMinutes || smtpRuntime.expiryMinutes) || 10;
+    smtpRuntime.cooldownSeconds = Number(body.cooldownSeconds || smtpRuntime.cooldownSeconds) || 60;
+    saveSmtpPublicConfig();
+    res.json({ ok: true, ...smtpPublicConfig() });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
+  }
+});
+
+app.post("/api/admin/email-service/test", smtpAdminAuth, async (req, res) => {
+  try {
+    const to = smtpEscapeAddress(req.body?.to);
+    await sendSmtpEmail({
+      to,
+      subject: "Minegram SMTP test e-postası",
+      text: "Minegram SMTP servisi başarıyla çalışıyor.",
+      html: "<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>SMTP servisi başarıyla çalışıyor.</p></div>"
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("SMTP TEST ERROR:", e?.message || e);
+    res.status(400).json({ ok: false, error: e?.message || "Test e-postası gönderilemedi." });
+  }
+});
+
+app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req, res) => {
+  try {
+    const codeLength = Number(req.body?.codeLength);
+    const expiryMinutes = Number(req.body?.expiryMinutes);
+    const cooldownSeconds = Number(req.body?.cooldownSeconds);
+    if (![6, 8].includes(codeLength)) throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
+    if (![5, 10, 15, 30].includes(expiryMinutes)) throw new Error("Geçerlilik süresi geçersiz.");
+    if (![60, 120, 300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
+    smtpRuntime = { ...smtpRuntime, codeLength, expiryMinutes, cooldownSeconds };
+    saveSmtpPublicConfig();
+    res.json({ ok: true, codeLength, expiryMinutes, cooldownSeconds });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e?.message || "Doğrulama ayarları kaydedilemedi." });
+  }
+});
 
 
 /* =========================================================
