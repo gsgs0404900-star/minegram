@@ -758,6 +758,39 @@ body{
   }
 
 }
+
+/* =========================================================
+   MINEGRAM WEB CANLI YAYIN
+========================================================= */
+#liveScreen{position:fixed;inset:0;background:#000;color:#fff;display:none;z-index:1000;overflow:hidden}
+#liveScreen.open{display:block}
+.live-web{height:100%;width:100%;display:flex;flex-direction:column;background:#000}
+.live-web-head{height:62px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #252525;background:#000;flex:none}
+.live-web-head button{border:0;background:none;color:#fff;font-size:32px;width:40px;height:40px;cursor:pointer}
+.live-web-title{font-size:21px;font-weight:700;flex:1}
+.live-web-body{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#050505}
+#liveVideo{width:100%;height:100%;object-fit:cover;background:#000;display:none}
+.live-preview-placeholder{padding:25px;text-align:center;color:#bbb;max-width:420px}
+.live-preview-placeholder .cam{font-size:64px;margin-bottom:10px}
+.live-overlay{position:absolute;left:0;right:0;top:0;display:none;padding:14px;pointer-events:none}
+.live-overlay-row{display:flex;align-items:center;gap:10px}
+.live-pill{background:#d92323;border-radius:18px;padding:6px 10px;font-weight:700;font-size:13px}
+.live-viewers{margin-left:auto;background:rgba(0,0,0,.55);border-radius:18px;padding:7px 11px;font-size:13px}
+.live-bottom{position:absolute;left:0;right:0;bottom:0;display:none;padding:14px;gap:8px;flex-direction:column;background:linear-gradient(transparent,rgba(0,0,0,.82))}
+.live-comments{max-height:150px;overflow:auto;font-size:14px;text-shadow:0 1px 2px #000}
+.live-comment-line{margin:4px 0}
+.live-input-row{display:flex;gap:8px}
+.live-input-row input{flex:1;min-width:0;background:rgba(0,0,0,.55);border:1px solid #666;border-radius:22px;color:#fff;padding:11px 14px;outline:none}
+.live-input-row button,.live-start-btn{border:0;border-radius:22px;background:#1976d2;color:#fff;font-weight:700;padding:11px 16px;cursor:pointer}
+.live-end-btn{border:0;border-radius:22px;background:#b3261e;color:#fff;padding:10px 14px;font-weight:700;cursor:pointer}
+.live-setup{width:min(520px,92vw);padding:26px;border-radius:22px;background:#101010;border:1px solid #292929;box-shadow:0 15px 45px rgba(0,0,0,.55)}
+.live-setup h2{margin:0 0 8px;font-size:25px}
+.live-setup p{color:#aaa;line-height:1.45}
+.live-setup input{width:100%;margin:10px 0;padding:13px 14px;border-radius:12px;border:1px solid #444;background:#050505;color:#fff;outline:none}
+.live-setup .live-start-btn{width:100%;margin-top:8px;font-size:15px}
+.live-perm{font-size:13px;color:#888;margin-top:10px}
+@media(max-width:520px){.live-web-head{height:56px}.live-setup{padding:20px}.live-web-title{font-size:19px}}
+
 </style>
 
 <meta
@@ -792,6 +825,19 @@ Minegram
 </div>
 
 <div class="top-actions">
+
+<button
+class="icon-btn"
+ id="liveTopBtn"
+ onclick="openLiveScreen()"
+ aria-label="Canlı Yayın"
+ title="Canlı Yayın"
+>
+<svg class="svg" viewBox="0 0 24 24">
+<path d="M15 10 21 7v10l-6-3"/>
+<rect x="3" y="5" width="12" height="14" rx="2"/>
+</svg>
+</button>
 
 <button
 class="icon-btn"
@@ -1070,6 +1116,34 @@ onclick="sendComment()"
 
 </div>
 
+</div>
+
+<div id="liveScreen" aria-hidden="true">
+  <div class="live-web">
+    <header class="live-web-head">
+      <button type="button" onclick="closeLiveScreen()" aria-label="Geri">‹</button>
+      <div class="live-web-title">Canlı Yayın</div>
+    </header>
+    <div class="live-web-body">
+      <div id="liveSetup" class="live-setup">
+        <h2>🔴 Canlı Yayın</h2>
+        <p>Uygulamadaki canlı yayın ekranı gibi kamera ve mikrofonunu açıp yayın başlatabilirsin.</p>
+        <input id="liveTitleInput" maxlength="100" placeholder="Canlı yayın başlığı">
+        <button class="live-start-btn" type="button" onclick="startWebLive()">🎥 Canlı yayını başlat</button>
+        <div class="live-perm">Tarayıcı kamera ve mikrofon izni isteyebilir.</div>
+      </div>
+      <video id="liveVideo" autoplay playsinline muted></video>
+      <div id="livePlaceholder" class="live-preview-placeholder" style="display:none"><div class="cam">📷</div><div>Kamera görüntüsü başlatılamadı.</div></div>
+      <div id="liveOverlay" class="live-overlay">
+        <div class="live-overlay-row"><span class="live-pill">🔴 CANLI</span><span id="liveTitleLabel">Canlı yayın</span><span class="live-viewers" id="liveViewerLabel">👁 1 izliyor</span></div>
+      </div>
+      <div id="liveBottom" class="live-bottom">
+        <div class="live-comments" id="liveComments"><div class="live-comment-line">Minegram'a hoş geldiniz! 🎉</div></div>
+        <div class="live-input-row"><input id="liveCommentInput" maxlength="300" placeholder="Yorum yaz..."><button type="button" onclick="sendWebLiveComment()">Gönder</button></div>
+        <button class="live-end-btn" type="button" onclick="stopWebLive()">⏹ Canlı yayını bitir</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -7682,6 +7756,80 @@ async function init(){
 
 }
 
+
+/* =========================================================
+   WEB CANLI YAYIN
+   Android LiveStreamScreen ile aynı temel akış: başlık, kamera/mikrofon,
+   canlı göstergesi, izleyici sayısı, yorumlar ve yayını bitirme.
+========================================================= */
+let webLiveStream = null;
+let webLiveActive = false;
+let webLiveViewers = 1;
+
+function openLiveScreen(){
+  const el=document.getElementById('liveScreen');
+  if(!el)return;
+  el.classList.add('open');
+  el.setAttribute('aria-hidden','false');
+}
+
+function closeLiveScreen(){
+  if(webLiveActive){
+    if(!confirm('Canlı yayını kapatmak istiyor musun?')) return;
+    stopWebLive(true);
+  }
+  const el=document.getElementById('liveScreen');
+  if(el){el.classList.remove('open');el.setAttribute('aria-hidden','true');}
+}
+
+async function startWebLive(){
+  const title=(document.getElementById('liveTitleInput')?.value||'').trim();
+  try{
+    if(!navigator.mediaDevices?.getUserMedia) throw new Error('Tarayıcın kamera kullanımını desteklemiyor.');
+    webLiveStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    const video=document.getElementById('liveVideo');
+    video.srcObject=webLiveStream;
+    video.style.display='block';
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePlaceholder').style.display='none';
+    document.getElementById('liveOverlay').style.display='block';
+    document.getElementById('liveBottom').style.display='flex';
+    document.getElementById('liveTitleLabel').textContent=title||'Canlı yayın';
+    webLiveActive=true;
+    webLiveViewers=1;
+    document.getElementById('liveViewerLabel').textContent='👁 1 izliyor';
+    toast('Canlı yayın başlatıldı');
+  }catch(e){
+    document.getElementById('livePlaceholder').style.display='block';
+    toast(e.message||'Kamera ve mikrofon açılamadı');
+  }
+}
+
+function sendWebLiveComment(){
+  const input=document.getElementById('liveCommentInput');
+  const text=(input?.value||'').trim();
+  if(!text)return;
+  const box=document.getElementById('liveComments');
+  const row=document.createElement('div');
+  row.className='live-comment-line';
+  row.textContent='@Kullanıcı: '+text;
+  box.appendChild(row);
+  box.scrollTop=box.scrollHeight;
+  input.value='';
+}
+
+function stopWebLive(silent=false){
+  if(webLiveStream){webLiveStream.getTracks().forEach(t=>t.stop());webLiveStream=null;}
+  const video=document.getElementById('liveVideo');
+  if(video){video.srcObject=null;video.style.display='none';}
+  document.getElementById('liveOverlay').style.display='none';
+  document.getElementById('liveBottom').style.display='none';
+  document.getElementById('liveSetup').style.display='block';
+  webLiveActive=false;
+  if(!silent) toast('Canlı yayın sonlandırıldı');
+}
+
+if(location.hash==='#live') setTimeout(openLiveScreen,0);
 
 /* =========================================================
    ESC
