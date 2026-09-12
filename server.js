@@ -5445,24 +5445,6 @@ async function firebaseLookupIdToken(idToken) {
   return data.users[0];
 }
 
-async function firebaseSendVerifyEmail(idToken) {
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        requestType: "VERIFY_EMAIL",
-        idToken
-      })
-    }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Firebase doğrulama e-postası gönderilemedi.");
-  }
-  return data;
-}
 
 app.get("/api/admin/email-service/status", async (req, res) => {
   res.json({
