@@ -6,10 +6,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
-import dns from "dns";
-
-// Render gibi ortamlarda IPv6 yönlendirmesi yoksa SMTP bağlantısını IPv4'e önceliklendir. Bu, ENETUNREACH ...:465 hatasını önler.
-try { dns.setDefaultResultOrder("ipv4first"); } catch (_) {}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -691,10 +687,10 @@ function registrationAllowed(email) {
 }
 
 async function sendRegistrationCode(email, code) {
-  await sendResendEmail(
-    email,
-    "Minegram e-posta doğrulama kodun",
-    `
+  await sendSmtpEmail({
+    to: email,
+    subject: "Minegram e-posta doğrulama kodun",
+    html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
         <h2 style="margin:0 0 16px">Minegram</h2>
         <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
@@ -705,8 +701,8 @@ async function sendRegistrationCode(email, code) {
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
     `,
-    `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-  );
+    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+  });
 }
 
 app.post(
@@ -2789,11 +2785,10 @@ app.post(
         }
       );
 
-      await sendResendEmail(
-        found.email,
-        "Minegram doğrulama kodun",
-
-        `<div style="font-family:Arial,sans-serif">
+      await sendSmtpEmail({
+        to: found.email,
+        subject: "Minegram doğrulama kodun",
+        html: `<div style="font-family:Arial,sans-serif">
           <h2>Minegram</h2>
           <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
           <div style="font-size:32px;font-weight:700;letter-spacing:8px">
@@ -2801,9 +2796,8 @@ app.post(
           </div>
           <p>Bu kod 10 dakika geçerlidir.</p>
         </div>`,
-
-        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-      );
+        text: `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      });
 
       res.json({
         ok: true,
@@ -5285,7 +5279,7 @@ let smtpRuntime = {
 try {
   if (fs.existsSync(smtpConfigFile)) {
     const saved = JSON.parse(fs.readFileSync(smtpConfigFile, "utf8"));
-    smtpRuntime = { ...smtpRuntime, ...saved, pass: saved.pass || smtpRuntime.pass };
+    smtpRuntime = { ...smtpRuntime, ...saved, pass: smtpRuntime.pass };
   }
 } catch (e) {
   console.error("SMTP CONFIG LOAD ERROR:", e?.message || e);
@@ -5314,7 +5308,6 @@ function saveSmtpPublicConfig() {
     port: smtpRuntime.port,
     secure: smtpRuntime.secure,
     user: smtpRuntime.user,
-    pass: smtpRuntime.pass,
     codeLength: smtpRuntime.codeLength,
     expiryMinutes: smtpRuntime.expiryMinutes,
     cooldownSeconds: smtpRuntime.cooldownSeconds
@@ -5366,19 +5359,12 @@ function smtpEscapeAddress(value) {
   return v;
 }
 
-async function smtpConnectionOptions() {
-  // SMTP bağlantısında IPv6 yoluna hiç girmemek için hostu önce gerçek IPv4
-  // adresine çözüyoruz. Böylece Render/Node'un IPv6 seçmesi nedeniyle oluşan
-  // ENETUNREACH ve bazı IPv6 timeout durumları tamamen devre dışı kalır.
-  const dns = await import("dns");
-  const lookup = dns.promises.lookup;
-  const resolved = await lookup(String(smtpRuntime.host), { family: 4, all: false });
+function smtpConnectionOptions() {
   return {
-    host: resolved.address,
+    host: smtpRuntime.host,
     port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
     servername: smtpRuntime.host,
-    timeout: 30000,
-    family: 4
+    timeout: 20000
   };
 }
 
@@ -5391,29 +5377,22 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   const tls = await import("tls");
   let socket;
 
-  const connectSocket = async (secure) => {
-    let options;
-    try {
-      options = await smtpConnectionOptions();
-    } catch (e) {
-      throw new Error(`SMTP sunucusu IPv4 olarak çözülemedi: ${e?.message || e}`);
+  const connectSocket = (secure) => new Promise((resolve, reject) => {
+    const options = smtpConnectionOptions();
+    let s;
+    let settled = false;
+    const fail = e => {
+      if (!settled) { settled = true; reject(e); }
+      else s.destroy();
+    };
+    if (secure) {
+      s = tls.connect(options, () => { settled = true; resolve(s); });
+    } else {
+      s = net.createConnection(options, () => { settled = true; resolve(s); });
     }
-    return new Promise((resolve, reject) => {
-      let s;
-      let settled = false;
-      const fail = e => {
-        if (!settled) { settled = true; reject(e); }
-        else s.destroy();
-      };
-      if (secure) {
-        s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
-      } else {
-        s = net.createConnection(options, () => { settled = true; resolve(s); });
-      }
-      s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
-      s.once("error", fail);
-    });
-  };
+    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı.")));
+    s.once("error", fail);
+  });
 
   socket = await connectSocket(!!smtpRuntime.secure);
   let buffer = "";
@@ -5467,7 +5446,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
       await command("STARTTLS", [220]);
       socket.removeAllListeners("data");
       socket = await new Promise((resolve, reject) => {
-        const upgraded = tls.connect({ socket, servername: smtpRuntime.host, family: 4 }, () => resolve(upgraded));
+        const upgraded = tls.connect({ socket, servername: smtpRuntime.host }, () => resolve(upgraded));
         upgraded.once("error", reject);
       });
       attachReader(socket);
