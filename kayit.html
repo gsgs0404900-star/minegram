@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -34,10 +33,6 @@ body{
     background:#000;
 }
 
-/* =========================
-   ÜST
-========================= */
-
 .topbar{
     width:100%;
     height:60px;
@@ -67,10 +62,6 @@ body{
     color:#fff;
 }
 
-/* =========================
-   İÇERİK
-========================= */
-
 .content{
     width:317px;
     margin:115px auto 0;
@@ -92,51 +83,33 @@ body{
     margin:0 0 65px;
 }
 
-/* =========================
-   INPUT
-========================= */
-
-.username-input{
+.email-input{
     display:block;
     width:100%;
     height:39px;
-
     padding:0 10px;
-
     border:1px solid #252525;
     border-radius:6px;
-
     background:#050505;
     color:#fff;
-
     outline:none;
-
     font-size:12px;
-    font-family:Arial,Helvetica,sans-serif;
 }
 
-.username-input::placeholder{
+.email-input::placeholder{
     color:#777;
-    opacity:1;
 }
 
-.username-input:focus{
+.email-input:focus{
     border-color:#555;
 }
-
-/* =========================
-   MESAJ
-========================= */
 
 .message{
     min-height:18px;
     margin-top:12px;
-
     text-align:center;
-
     font-size:11px;
     line-height:1.4;
-
     color:#ff5c5c;
 }
 
@@ -144,81 +117,24 @@ body{
     color:#55b8ff;
 }
 
-.message.checking{
-    color:#aaa;
-}
-
-/* =========================
-   ÖNER
-========================= */
-
-.suggest{
-    display:block;
-
-    width:fit-content;
-
-    margin:18px auto 0;
-
-    padding:0;
-
-    border:0;
-    background:transparent;
-
-    color:#008cff;
-
-    font-size:12px;
-    font-weight:400;
-
-    cursor:pointer;
-}
-
-.suggest:hover{
-    text-decoration:underline;
-}
-
-/* =========================
-   İLERİ BUTONU
-========================= */
-
 .next-button{
     display:block;
-
     width:317px;
     height:37px;
-
     margin:18px auto 0;
-
     border:0;
     border-radius:22px;
-
     background:#2677b5;
-
     color:#000;
-
     font-size:12px;
     font-weight:700;
-
     cursor:pointer;
-
-    transition:.15s;
-}
-
-.next-button:hover{
-    background:#3288c9;
-}
-
-.next-button:active{
-    transform:scale(.99);
 }
 
 .next-button:disabled{
     opacity:.6;
     cursor:not-allowed;
 }
-
-/* =========================
-   MOBİL
-========================= */
 
 @media(max-width:600px){
 
@@ -239,7 +155,7 @@ body{
     }
 
     .content{
-        width:calc(100% - 120px);
+        width:calc(100% - 40px);
         max-width:714px;
         margin:105px auto 0;
     }
@@ -255,12 +171,10 @@ body{
         margin-bottom:55px;
     }
 
-    .username-input{
+    .email-input{
         height:68px;
         padding:0 20px;
-
         font-size:18px;
-
         border:2px solid #686868;
         border-radius:9px;
     }
@@ -269,29 +183,14 @@ body{
         font-size:14px;
     }
 
-    .suggest{
-        margin-top:25px;
-        font-size:18px;
-        font-weight:700;
-        color:#62b5f5;
-    }
-
     .next-button{
         width:100%;
-        max-width:714px;
-
         height:58px;
-
-        margin:18px auto 30px;
-
+        margin:25px auto 30px;
         font-size:20px;
         border-radius:32px;
     }
 }
-
-/* =========================
-   KÜÇÜK TELEFON
-========================= */
 
 @media(max-width:430px){
 
@@ -307,494 +206,207 @@ body{
     .description{
         font-size:20px;
     }
-
-    .next-button{
-        width:100%;
-    }
 }
 </style>
-
 </head>
 
 <body>
 
 <div class="page">
 
-<!-- ÜST -->
+    <div class="topbar">
 
-<div class="topbar">
+        <div
+            class="back"
+            id="backButton"
+            aria-label="Geri"
+        >‹</div>
 
-    <div
-        class="back"
-        onclick="goBack()"
-        aria-label="Geri"
-    >
-        ‹
+        <div class="top-title">
+            Kayıt ol
+        </div>
+
     </div>
 
-    <div class="top-title">
-        Kayıt ol
-    </div>
+
+    <main class="content">
+
+        <h1 class="title">
+            Hesap oluştur
+        </h1>
+
+        <p class="description">
+            Minegram hesabın için e-posta adresini gir.
+        </p>
+
+        <input
+            type="email"
+            id="email"
+            class="email-input"
+            placeholder="E-posta adresi"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="254"
+        >
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+        <button
+            type="button"
+            id="nextButton"
+            class="next-button"
+        >
+            İleri
+        </button>
+
+    </main>
 
 </div>
 
-
-<!-- İÇERİK -->
-
-<main class="content">
-
-    <h1 class="title">
-        Kullanıcı adı oluştur
-    </h1>
-
-    <p class="description">
-        Önce Minegram hesabın için bir kullanıcı adı oluştur.
-    </p>
-
-    <input
-        type="text"
-        id="username"
-        class="username-input"
-        placeholder="Kullanıcı adı"
-        autocomplete="username"
-        autocapitalize="none"
-        spellcheck="false"
-        maxlength="30"
-    >
-
-    <div
-        id="usernameMessage"
-        class="message"
-    ></div>
-
-
-    <!-- OTOMATİK ÖNER -->
-
-    <button
-        type="button"
-        id="suggestUsername"
-        class="suggest"
-    >
-        Otomatik kullanıcı adı öner
-    </button>
-
-
-    <!-- İLERİ -->
-
-    <button
-        type="button"
-        id="nextButton"
-        class="next-button"
-        disabled
-    >
-        İleri
-    </button>
-
-</main>
-
-</div>
 
 <script>
 
 "use strict";
 
 
-/* =========================
-   ELEMENTLER
-========================= */
-
-const usernameInput =
-    document.getElementById("username");
-
-const usernameMessage =
-    document.getElementById("usernameMessage");
+const emailInput =
+    document.getElementById("email");
 
 const nextButton =
     document.getElementById("nextButton");
 
-const suggestUsername =
-    document.getElementById("suggestUsername");
+const message =
+    document.getElementById("message");
+
+const backButton =
+    document.getElementById("backButton");
 
 
-let usernameAvailable = false;
-let checkTimer = null;
+function showMessage(
+    text,
+    success=false
+){
+
+    message.textContent =
+        text || "";
+
+    message.className =
+        "message";
+
+    if(success){
+
+        message.classList.add("success");
+
+    }
+
+}
 
 
-/* =========================
+function validEmail(email){
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+}
+
+
+/* =========================================
    GERİ
-========================= */
+========================================= */
 
-function goBack(){
+backButton.addEventListener(
+    "click",
+    function(){
 
-    if(history.length > 1){
+        window.location.href =
+            "giris.html";
 
-        history.back();
+    }
+);
 
-    }else{
 
-        window.location.href = "giris.html";
+/* =========================================
+   DEVAM
+========================================= */
+
+function goNext(){
+
+    const email =
+        emailInput.value
+            .trim()
+            .toLowerCase();
+
+
+    showMessage("");
+
+
+    if(!email){
+
+        showMessage(
+            "E-posta adresini gir."
+        );
+
+        emailInput.focus();
+
+        return;
 
     }
 
-}
 
+    if(!validEmail(email)){
 
-/* =========================
-   TEMİZLE
-========================= */
+        showMessage(
+            "Geçerli bir e-posta adresi gir."
+        );
 
-function cleanUsername(value){
+        emailInput.focus();
 
-    return String(value || "")
-        .trim()
-        .replace(/^@/, "")
-        .toLowerCase();
-
-}
-
-
-/* =========================
-   GEÇERLİ Mİ?
-========================= */
-
-function validUsername(username){
-
-    return /^[a-z0-9._]{3,30}$/.test(username);
-
-}
-
-
-/* =========================
-   MESAJ
-========================= */
-
-function showMessage(text,type){
-
-    usernameMessage.textContent = text || "";
-
-    usernameMessage.className = "message";
-
-    if(type){
-
-        usernameMessage.classList.add(type);
+        return;
 
     }
 
-}
 
+    /*
+     * SADECE E-POSTA SAKLANIYOR.
+     * ŞİFRE HENÜZ YOK.
+     */
 
-/* =========================
-   KULLANICI ADI KONTROL
-========================= */
+    sessionStorage.setItem(
+        "minegram_register_email",
+        email
+    );
 
-async function checkUsername(username){
-
-    usernameAvailable = false;
 
     nextButton.disabled = true;
 
+    nextButton.textContent =
+        "Devam ediliyor...";
 
-    if(!username){
-
-        showMessage("", "");
-
-        return;
-
-    }
-
-
-    if(!validUsername(username)){
-
-        showMessage(
-            "3-30 karakter kullan. Harf, sayı, _ veya . kullanabilirsin.",
-            ""
-        );
-
-        return;
-
-    }
-
-
-    showMessage(
-        "Kullanıcı adı kontrol ediliyor...",
-        "checking"
-    );
-
-
-    try{
-
-        const response = await fetch(
-            "/api/check-username?username=" +
-            encodeURIComponent(username),
-            {
-                method:"GET",
-                headers:{
-                    "Accept":"application/json"
-                },
-                cache:"no-store"
-            }
-        );
-
-
-        const data = await response
-            .json()
-            .catch(function(){
-                return {};
-            });
-
-
-        console.log(
-            "[MINEGRAM USERNAME CHECK]",
-            data
-        );
-
-
-        if(!response.ok){
-
-            throw new Error(
-                data.error ||
-                "Kullanıcı adı kontrol edilemedi."
-            );
-
-        }
-
-
-        if(data.available === true){
-
-            usernameAvailable = true;
-
-            nextButton.disabled = false;
-
-            showMessage(
-                "Kullanıcı adı kullanılabilir.",
-                "success"
-            );
-
-            return;
-
-        }
-
-
-        usernameAvailable = false;
-
-        nextButton.disabled = true;
-
-        showMessage(
-            "Bu kullanıcı adı zaten alınmış.",
-            ""
-        );
-
-    }
-    catch(error){
-
-        console.error(
-            "[MINEGRAM USERNAME CHECK ERROR]",
-            error
-        );
-
-        usernameAvailable = false;
-
-        nextButton.disabled = true;
-
-        showMessage(
-            error.message ||
-            "Kullanıcı adı kontrol edilemedi.",
-            ""
-        );
-
-    }
-
-}
-
-
-/* =========================
-   INPUT
-========================= */
-
-usernameInput.addEventListener(
-    "input",
-    function(){
-
-        clearTimeout(checkTimer);
-
-        const username =
-            cleanUsername(
-                usernameInput.value
-            );
-
-
-        usernameInput.value = username;
-
-        usernameAvailable = false;
-
-        nextButton.disabled = true;
-
-
-        checkTimer = setTimeout(
-            function(){
-
-                checkUsername(username);
-
-            },
-            400
-        );
-
-    }
-);
-
-
-/* =========================
-   ENTER
-========================= */
-
-usernameInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" &&
-            !nextButton.disabled
-        ){
-
-            event.preventDefault();
-
-            goToKayit();
-
-        }
-
-    }
-);
-
-
-/* =========================
-   OTOMATİK ÖNER
-========================= */
-
-suggestUsername.addEventListener(
-    "click",
-    async function(){
-
-        const suggestions = [
-
-            "minegram_user",
-            "minegram2026",
-            "minegram01",
-            "minegram_user1",
-            "my_minegram",
-            "minegram_official",
-            "minegram2026_",
-            "minegram_user01"
-
-        ];
-
-
-        suggestUsername.disabled = true;
-
-
-        for(
-            let i = 0;
-            i < suggestions.length;
-            i++
-        ){
-
-            const username =
-                suggestions[i];
-
-
-            usernameInput.value =
-                username;
-
-
-            await checkUsername(
-                username
-            );
-
-
-            if(usernameAvailable){
-
-                suggestUsername.disabled = false;
-
-                return;
-
-            }
-
-        }
-
-
-        suggestUsername.disabled = false;
-
-        showMessage(
-            "Uygun kullanıcı adı bulunamadı.",
-            ""
-        );
-
-    }
-);
-
-
-/* =========================
-   İLERİ → KAYIT.HTML
-========================= */
-
-function goToKayit(){
-
-    const username =
-        cleanUsername(
-            usernameInput.value
-        );
-
-    if(!validUsername(username)){
-
-        showMessage(
-            "Geçerli bir kullanıcı adı gir.",
-            ""
-        );
-
-        return;
-    }
-
-    sessionStorage.setItem(
-        "minegram_register_username",
-        username
-    );
 
     window.location.href =
-        "/sifre-olustur.html?username=" +
-        encodeURIComponent(username);
+        "sifre-olustur.html";
+
 }
+
 
 nextButton.addEventListener(
     "click",
-    function(){
-        goToKayit();
-    }
+    goNext
 );
 
-/* =========================
-   SAYFA AÇILIŞI
-========================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function(){
+emailInput.addEventListener(
+    "keydown",
+    function(event){
 
-        const savedUsername =
-            sessionStorage.getItem(
-                "minegram_register_username"
-            );
+        if(event.key === "Enter"){
 
+            event.preventDefault();
 
-        if(savedUsername){
-
-            usernameInput.value =
-                cleanUsername(
-                    savedUsername
-                );
-
-
-            checkUsername(
-                usernameInput.value
-            );
+            goNext();
 
         }
 
