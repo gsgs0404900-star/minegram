@@ -2,94 +2,63 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#000000">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Minegram - E-posta Doğrulama</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-.page{min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
-.box{width:365px;margin-top:90px;text-align:center}
-.title{font-size:22px;font-weight:700;line-height:1.25;margin:0 0 12px}
-.desc{color:#777;font-size:13px;line-height:1.5;margin:0 0 24px}
-.email{font-weight:700;word-break:break-word}
-.status{min-height:24px;margin:15px 0;color:#aaa;font-size:13px;line-height:1.5}
-.status.ok{color:#35c759}.status.err{color:#ff4d4d}
-button{width:100%;height:44px;border:0;border-radius:22px;background:#2d80bd;color:#000;font-weight:700;cursor:pointer;margin-top:10px}
-button.secondary{background:#000;border:1px solid #555;color:#0095f6}
-</style>
+*{box-sizing:border-box}html,body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;min-height:100%}body{min-height:100vh;display:flex;justify-content:center}.box{width:365px;margin-top:90px;text-align:center}.back{font-size:30px;text-align:left;cursor:pointer;margin-bottom:28px}.title{font-size:22px;margin:0 0 12px}.desc{color:#777;font-size:13px;line-height:1.5}.email{font-weight:700;word-break:break-word}.status{margin-top:25px;min-height:24px;font-size:13px;color:#aaa}.status.ok{color:#35c759}.status.err{color:#ff4d4d}.btn{width:100%;height:44px;margin-top:14px;border:0;border-radius:22px;background:#2d80bd;color:#000;font-weight:700;cursor:pointer}.btn.secondary{background:#000;color:#0095f6;border:1px solid #555}.btn:disabled{opacity:.6;cursor:not-allowed}</style>
 </head>
 <body>
-<div class="page"><div class="box">
+<div class="box">
+<div class="back" onclick="history.back()">‹</div>
 <h1 class="title">E-posta adresini doğrula</h1>
-<p class="desc">
-E-posta adresine Firebase tarafından doğrulama bağlantısı gönderildi.<br>
-Gmail'ini açıp Minegram doğrulama bağlantısına tıkla.
-</p>
+<p class="desc">Gmail'deki Firebase doğrulama bağlantısına tıkla.<br>Ardından aşağıdaki butonla tekrar kontrol et.</p>
 <div id="email" class="email"></div>
-<div id="status" class="status">Doğrulama bekleniyor...</div>
-<button id="check" type="button">Doğrulamayı kontrol et</button>
-<button id="resend" class="secondary" type="button">Doğrulama e-postasını yeniden gönder</button>
-</div></div>
+<div id="status" class="status">Firebase doğrulaması kontrol ediliyor...</div>
+<button id="check" class="btn">Tekrar kontrol et</button>
+<button id="resend" class="btn secondary">Doğrulama e-postasını tekrar gönder</button>
+</div>
 <script>
 "use strict";
-const params = new URLSearchParams(location.search);
-const email = String(params.get("email") || sessionStorage.getItem("minegram_register_email") || "").trim().toLowerCase();
-const username = String(params.get("username") || sessionStorage.getItem("minegram_register_username") || "").trim().toLowerCase();
-const password = sessionStorage.getItem("minegram_register_password") || sessionStorage.getItem("minegram_password") || "";
-const emailEl = document.getElementById("email");
-const statusEl = document.getElementById("status");
-const checkBtn = document.getElementById("check");
-const resendBtn = document.getElementById("resend");
-emailEl.textContent = email || "E-posta adresi bulunamadı.";
-
-function status(text, cls=""){ statusEl.textContent=text; statusEl.className="status "+cls; }
-
-async function checkVerified(){
-  if(!email || !password){ status("Kayıt bilgileri bulunamadı. Lütfen kayıt işlemine baştan başla.","err"); return; }
-  checkBtn.disabled=true;
-  status("Firebase doğrulaması kontrol ediliyor...");
+const params=new URLSearchParams(location.search);
+const email=(params.get("email")||sessionStorage.getItem("minegram_register_email")||"").trim().toLowerCase();
+const username=(params.get("username")||sessionStorage.getItem("minegram_register_username")||"").trim().toLowerCase();
+const statusEl=document.getElementById("status");
+const checkBtn=document.getElementById("check");
+const resendBtn=document.getElementById("resend");
+document.getElementById("email").textContent=email;
+function status(t,c=""){statusEl.textContent=t;statusEl.className="status "+c}
+async function check(){
+  const idToken=sessionStorage.getItem("minegram_firebase_id_token")||"";
+  const refreshToken=sessionStorage.getItem("minegram_firebase_refresh_token")||"";
+  if(!refreshToken&&!idToken){status("Firebase oturumu bulunamadı. Kayıt işlemine yeniden başla.","err");return}
+  checkBtn.disabled=true; status("Firebase doğrulaması kontrol ediliyor...");
   try{
-    const r=await fetch("/api/register/firebase-status",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Accept":"application/json"},
-      body:JSON.stringify({email,password}),
-      cache:"no-store"
-    });
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok || data.ok===false) throw new Error(data.error || "Doğrulama kontrol edilemedi.");
-    if(data.verified){
-      sessionStorage.setItem("minegram_email_verified","true");
+    const r=await fetch("/api/register/firebase-status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken,refreshToken,email,username}),cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    if(d.idToken) sessionStorage.setItem("minegram_firebase_id_token",d.idToken);
+    if(!r.ok) throw new Error(d.error||"Doğrulama kontrol edilemedi.");
+    if(d.verified){
+      status("E-posta doğrulandı. Hesabın hazır.","ok");
       sessionStorage.removeItem("minegram_otp_pending");
-      status("E-posta doğrulandı. Kayıt tamamlandı.","ok");
-      setTimeout(()=>{ location.href="./giris.html"; },1200);
-    }else{
-      status("Henüz doğrulanmadı. Gmail'deki bağlantıya tıklayıp tekrar kontrol et.");
-    }
-  }catch(e){ status(e.message || "Doğrulama kontrol edilemedi.","err"); }
-  finally{ checkBtn.disabled=false; }
+      setTimeout(()=>location.href="./giris.html",900);
+    }else{status("Henüz doğrulanmadı. Gmail'deki bağlantıya tıklayıp tekrar kontrol et.");}
+  }catch(e){status(e.message||"Doğrulama kontrol edilemedi.","err")}
+  finally{checkBtn.disabled=false}
 }
-
 async function resend(){
-  if(!email || !password){ status("Kayıt bilgileri bulunamadı.","err"); return; }
-  resendBtn.disabled=true;
-  status("Yeni doğrulama e-postası gönderiliyor...");
+  const idToken=sessionStorage.getItem("minegram_firebase_id_token")||"";
+  const refreshToken=sessionStorage.getItem("minegram_firebase_refresh_token")||"";
+  resendBtn.disabled=true; status("Doğrulama e-postası gönderiliyor...","");
   try{
-    const r=await fetch("/api/register/firebase-resend",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Accept":"application/json"},
-      body:JSON.stringify({email,password}),
-      cache:"no-store"
-    });
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok || data.ok===false) throw new Error(data.error || "E-posta gönderilemedi.");
-    status("Yeni Firebase doğrulama e-postası gönderildi.","ok");
-  }catch(e){ status(e.message || "E-posta gönderilemedi.","err"); }
-  finally{ resendBtn.disabled=false; }
+    const r=await fetch("/api/register/firebase-resend",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken,refreshToken,email}),cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    if(d.idToken) sessionStorage.setItem("minegram_firebase_id_token",d.idToken);
+    if(!r.ok) throw new Error(d.error||"E-posta gönderilemedi.");
+    status(d.message||"Doğrulama e-postası tekrar gönderildi.","ok");
+  }catch(e){status(e.message||"E-posta gönderilemedi.","err")}
+  finally{setTimeout(()=>resendBtn.disabled=false,1000)}
 }
-checkBtn.addEventListener("click",checkVerified);
-resendBtn.addEventListener("click",resend);
-setInterval(()=>{ if(document.visibilityState==="visible") checkVerified(); },15000);
+checkBtn.addEventListener("click",check);resendBtn.addEventListener("click",resend);check();
 </script>
 </body>
 </html>
