@@ -5370,6 +5370,33 @@ function smtpConnectionOptions() {
   };
 }
 
+
+async function sendResendHttpEmail({ to, subject, text, html }) {
+  const apiKey = env("RESEND_API_KEY");
+  const from = env("RESEND_FROM_EMAIL") || env("SMTP_FROM_EMAIL") || env("SMTP_USER");
+  if (!apiKey) throw new Error("RESEND_API_KEY ayarlanmadı.");
+  if (!from) throw new Error("RESEND_FROM_EMAIL veya SMTP_FROM_EMAIL gerekli.");
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: `${smtpEscapeHeader(smtpRuntime.fromName || "Minegram")} <${smtpEscapeAddress(from)}>` ,
+      to: [smtpEscapeAddress(to)],
+      subject: smtpEscapeHeader(subject || "Minegram"),
+      text: String(text || ""),
+      html: String(html || "")
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || `Resend HTTP ${response.status}`);
+  }
+  return { ok: true, provider: "resend-http", id: data?.id || "" };
+}
+
 async function sendSmtpEmail({ to, subject, text, html }) {
   if (!smtpRuntime.host || !smtpRuntime.user || !smtpRuntime.pass || !smtpRuntime.fromEmail) {
     throw new Error("SMTP ayarları eksik. SMTP_HOST, SMTP_USER, SMTP_PASS ve SMTP_FROM_EMAIL gerekli.");
@@ -5558,24 +5585,39 @@ async function sendSmtpEmail({ to, subject, text, html }) {
     }
   };
 
-  // If Gmail 465 is selected but the platform/network refuses implicit TLS,
-  // automatically retry with Gmail's STARTTLS endpoint on 587.
+  // Render Free, SMTP portları 25/465/587 dışarıya kapattığı için
+  // SMTP bağlantısı ağ seviyesinde timeout verebilir. Önce SMTP denenir;
+  // başarısız olursa RESEND_API_KEY varsa HTTPS üzerinden e-posta gönderilir.
+  let smtpError = null;
   try {
     return await runSession(preferredPort, preferredPort === 465 || !!smtpRuntime.secure);
   } catch (firstError) {
+    smtpError = firstError;
     if (preferredPort === 465 || smtpRuntime.secure) {
       try {
         return await runSession(587, false);
       } catch (secondError) {
-        throw new Error(`Gmail SMTP başarısız. 465: ${firstError?.message || firstError} | 587: ${secondError?.message || secondError}`);
+        smtpError = new Error(`Gmail SMTP başarısız. 465: ${firstError?.message || firstError} | 587: ${secondError?.message || secondError}`);
       }
     }
-    throw firstError;
   }
+
+  if (env("RESEND_API_KEY")) {
+    try {
+      return await sendResendHttpEmail({ to, subject, text, html });
+    } catch (resendError) {
+      throw new Error(`SMTP başarısız: ${smtpError?.message || smtpError} | HTTPS e-posta da başarısız: ${resendError?.message || resendError}`);
+    }
+  }
+
+  throw new Error(
+    `${smtpError?.message || smtpError}. Render Free'da SMTP 25/465/587 portları kapalıdır. ` +
+    `RESEND_API_KEY + RESEND_FROM_EMAIL ile HTTPS e-posta sağlayıcısı kullanın veya Render ücretli plana geçin.`
+  );
 }
 
 app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
-  res.json({ ok: true, ...smtpPublicConfig() });
+  res.json({ ok: true, ...smtpPublicConfig(), smtpBlockedOnRenderFree: true, httpsFallbackConfigured: Boolean(env("RESEND_API_KEY")) });
 });
 
 app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
@@ -5599,7 +5641,7 @@ app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
     smtpRuntime.expiryMinutes = Number(body.expiryMinutes || smtpRuntime.expiryMinutes) || 10;
     smtpRuntime.cooldownSeconds = Number(body.cooldownSeconds || smtpRuntime.cooldownSeconds) || 60;
     saveSmtpPublicConfig();
-    res.json({ ok: true, ...smtpPublicConfig() });
+    res.json({ ok: true, ...smtpPublicConfig(), smtpBlockedOnRenderFree: true, httpsFallbackConfigured: Boolean(env("RESEND_API_KEY")) });
   } catch (e) {
     res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
   }
