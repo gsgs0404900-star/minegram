@@ -73,16 +73,17 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.static(publicDir));
+app.use(express.static(__dirname));
+
+// Minegram Admin Panel web routes
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
-
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 
-app.use(express.static(publicDir));
-app.use(express.static(__dirname));
 
 const upload = multer({
   storage: multer.memoryStorage(),
