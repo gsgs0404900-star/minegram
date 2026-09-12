@@ -2676,78 +2676,18 @@ app.get(
 
 
 /* =========================================================
-   RESEND
-========================================================= */
-
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(process.env.RESEND_FROM_EMAIL || "").trim();
-
-  if (!from) {
-    throw new Error(
-      "RESEND_FROM_EMAIL ayarlanmadı. Herkese e-posta göndermek için Resend üzerinde doğrulanmış alan adından bir gönderen adresi tanımlayın."
-    );
-  }
-
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
-
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
-  }
-
-  return j;
+   LEGACY MAIL FUNCTION
+   Eski şifre sıfırlama akışındaki çağrılar korunur;
+   artık Resend değil Gmail SMTP kullanılır.
+   ========================================================= */
+async function sendResendEmail(to, subject, html, text) {
+  return sendGmailSmtpEmail({
+    to,
+    subject,
+    html,
+    text
+  });
 }
-
-const recoveryCodes =
-  new Map();
 
 /* =========================================================
    RECOVERY CODE PERSISTENCE
@@ -5386,56 +5326,186 @@ app.use(
 
 
 /* =========================================================
-   MINEGRAM GMAIL SMTP E-POSTA / DOĞRULAMA SERVİSİ
+   MINEGRAM GMAIL SMTP ADMIN E-POSTA SERVİSİ
    Resend kullanılmaz. Kullanıcı hangi e-postayı girdiyse kod oraya gider.
    ========================================================= */
-const MINEGRAM_ADMIN_TEST_EMAIL = smtpEnv("SMTP_USER", "minegramdestek@gmail.com");
-const MINEGRAM_FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
+const MINEGRAM_ADMIN_TEST_EMAIL =
+  smtpEnv("SMTP_USER", "minegramdestek@gmail.com");
+
+const MINEGRAM_FIREBASE_WEB_API_KEY =
+  env("FIREBASE_WEB_API_KEY") ||
+  "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
 
 async function firebaseLookupIdToken(idToken) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken})});
-  const data = await response.json().catch(()=>({}));
-  if (!response.ok || !data.users?.[0]) throw new Error(data.error?.message || "Firebase admin oturumu doğrulanamadı.");
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({idToken})
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data.users?.[0]) {
+    throw new Error(
+      data.error?.message || "Firebase admin oturumu doğrulanamadı."
+    );
+  }
+
   return data.users[0];
 }
 
 async function requireAdminFromBearer(req) {
   const token = bearer(req);
-  if (!token) throw new Error("Admin Firebase oturumu gerekli.");
+
+  if (!token) {
+    throw new Error("Admin Firebase oturumu gerekli.");
+  }
+
   const firebaseUser = await firebaseLookupIdToken(token);
   const uid = String(firebaseUser.localId || "");
   const email = normalizeEmail(firebaseUser.email);
-  if (uid !== "QJqw9moQk8XgpHcFo89bAVPk3uh1") throw new Error("Bu işlem yalnızca Minegram admin hesabı için kullanılabilir.");
-  if (email !== normalizeEmail(MINEGRAM_ADMIN_TEST_EMAIL)) throw new Error(`Admin Firebase hesabının e-postası ${MINEGRAM_ADMIN_TEST_EMAIL} olmalı.`);
+
+  if (uid !== "QJqw9moQk8XgpHcFo89bAVPk3uh1") {
+    throw new Error(
+      "Bu işlem yalnızca Minegram admin hesabı için kullanılabilir."
+    );
+  }
+
+  if (email !== normalizeEmail(MINEGRAM_ADMIN_TEST_EMAIL)) {
+    throw new Error(
+      `Admin Firebase hesabının e-postası ${MINEGRAM_ADMIN_TEST_EMAIL} olmalı.`
+    );
+  }
+
   return firebaseUser;
 }
 
-app.get("/api/admin/email-service/status", async (req,res)=>{
-  try { await requireAdminFromBearer(req); } catch(e) { return res.status(401).json({ok:false,error:e.message}); }
-  res.json({ok:true,configured:Boolean(smtpEnv("SMTP_PASS")),mode:"gmail-smtp",provider:"Gmail SMTP",host:smtpEnv("SMTP_HOST","smtp.gmail.com"),port:465,secure:true,user:smtpEnv("SMTP_USER","minegramdestek@gmail.com"),fromName:smtpEnv("SMTP_FROM_NAME","Minegram"),fromEmail:smtpEnv("SMTP_FROM_EMAIL",smtpEnv("SMTP_USER","minegramdestek@gmail.com")),codeLength:6,expiryMinutes:10,cooldownSeconds:60,smtpRequired:true});
+app.get("/api/admin/email-service/status", async (req,res) => {
+  try {
+    await requireAdminFromBearer(req);
+  } catch(e) {
+    return res.status(401).json({
+      ok:false,
+      error:e.message
+    });
+  }
+
+  res.json({
+    ok:true,
+    configured:Boolean(smtpEnv("SMTP_PASS")),
+    mode:"gmail-smtp",
+    provider:"Gmail SMTP",
+    host:smtpEnv("SMTP_HOST","smtp.gmail.com"),
+    port:Number(smtpEnv("SMTP_PORT","465")),
+    secure:true,
+    user:smtpEnv("SMTP_USER","minegramdestek@gmail.com"),
+    fromName:smtpEnv("SMTP_FROM_NAME","Minegram"),
+    fromEmail:smtpEnv(
+      "SMTP_FROM_EMAIL",
+      smtpEnv("SMTP_USER","minegramdestek@gmail.com")
+    ),
+    codeLength:6,
+    expiryMinutes:10,
+    cooldownSeconds:60,
+    smtpRequired:true
+  });
 });
 
 app.post("/api/admin/email-service/config", async (req,res)=>{
-  try { await requireAdminFromBearer(req); res.json({ok:true,configured:Boolean(smtpEnv("SMTP_PASS")),message:"Gmail SMTP Environment Variables kullanılıyor. Şifre panelde saklanmaz."}); }
-  catch(e) { res.status(401).json({ok:false,error:e.message}); }
+  try {
+    await requireAdminFromBearer(req);
+
+    res.json({
+      ok:true,
+      configured:Boolean(smtpEnv("SMTP_PASS")),
+      mode:"gmail-smtp",
+      message:
+        "Gmail SMTP Environment Variables kullanılıyor. Şifre panelde saklanmaz."
+    });
+  } catch(e) {
+    res.status(401).json({
+      ok:false,
+      error:e.message
+    });
+  }
 });
 
 app.post("/api/admin/email-service/verification-config", async (req,res)=>{
-  try { await requireAdminFromBearer(req);
-    const codeLength=Number(req.body?.codeLength); const expiryMinutes=Number(req.body?.expiryMinutes); const cooldownSeconds=Number(req.body?.cooldownSeconds);
-    if(![6,8].includes(codeLength)) throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
-    if(![5,10,15,30].includes(expiryMinutes)) throw new Error("Geçerlilik süresi geçersiz.");
-    if(![60,120,300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
-    res.json({ok:true,codeLength,expiryMinutes,cooldownSeconds});
-  } catch(e) { res.status(400).json({ok:false,error:e.message}); }
+  try {
+    await requireAdminFromBearer(req);
+
+    const codeLength = Number(req.body?.codeLength);
+    const expiryMinutes = Number(req.body?.expiryMinutes);
+    const cooldownSeconds = Number(req.body?.cooldownSeconds);
+
+    if (![6,8].includes(codeLength)) {
+      throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
+    }
+
+    if (![5,10,15,30].includes(expiryMinutes)) {
+      throw new Error("Geçerlilik süresi geçersiz.");
+    }
+
+    if (![60,120,300].includes(cooldownSeconds)) {
+      throw new Error("Gönderim aralığı geçersiz.");
+    }
+
+    res.json({
+      ok:true,
+      codeLength,
+      expiryMinutes,
+      cooldownSeconds,
+      mode:"gmail-smtp"
+    });
+  } catch(e) {
+    res.status(400).json({
+      ok:false,
+      error:e.message
+    });
+  }
 });
 
 app.post("/api/admin/email-service/test", async (req,res)=>{
-  try { await requireAdminFromBearer(req);
-    const to=smtpEscapeAddress(req.body?.to || MINEGRAM_ADMIN_TEST_EMAIL);
-    await sendGmailSmtpEmail({to,subject:"Minegram test e-postası",text:"Minegram Gmail SMTP servisi başarıyla çalışıyor.",html:"<div style=\"font-family:Arial;padding:24px\"><h2>Minegram</h2><p>Gmail SMTP servisi başarıyla çalışıyor.</p></div>"});
-    res.json({ok:true,sent:true,to});
-  } catch(e) { console.error("GMAIL SMTP TEST ERROR:",e?.message||e); res.status(500).json({ok:false,error:"Test e-postası gönderilemedi: "+(e?.message||e)}); }
+  try {
+    await requireAdminFromBearer(req);
+
+    const to = smtpEscapeAddress(
+      req.body?.to || MINEGRAM_ADMIN_TEST_EMAIL
+    );
+
+    await sendGmailSmtpEmail({
+      to,
+      subject:"Minegram test e-postası",
+      text:"Minegram Gmail SMTP servisi başarıyla çalışıyor.",
+      html:
+        '<div style="font-family:Arial;padding:24px">' +
+        '<h2>Minegram</h2>' +
+        '<p>Gmail SMTP servisi başarıyla çalışıyor.</p>' +
+        '</div>'
+    });
+
+    res.json({
+      ok:true,
+      sent:true,
+      to,
+      mode:"gmail-smtp"
+    });
+  } catch(e) {
+    console.error(
+      "GMAIL SMTP TEST ERROR:",
+      e?.stack || e?.message || e
+    );
+
+    res.status(500).json({
+      ok:false,
+      error:
+        "Test e-postası gönderilemedi: " +
+        (e?.message || e)
+    });
+  }
 });
 
 app.listen(
