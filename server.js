@@ -690,22 +690,22 @@ function registrationAllowed(email) {
 }
 
 async function sendRegistrationCode(email, code) {
-  await sendResendEmail(
-    email,
-    "Minegram e-posta doğrulama kodun",
-    `
+  const length = String(code).length;
+  const expiry = Number(smtpRuntime?.expiryMinutes) || 10;
+  await sendSmtpEmail({
+    to: email,
+    subject: "Minegram e-posta doğrulama kodun",
+    html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
         <h2 style="margin:0 0 16px">Minegram</h2>
-        <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
-        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
-          ${code}
-        </div>
-        <p style="color:#666">Bu kod 10 dakika geçerlidir.</p>
+        <p style="font-size:16px">Hesabını doğrulamak için ${length} haneli kodun:</p>
+        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div>
+        <p style="color:#666">Bu kod ${expiry} dakika geçerlidir.</p>
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
     `,
-    `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-  );
+    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod ${expiry} dakika geçerlidir.`
+  });
 }
 
 app.post(
@@ -892,7 +892,7 @@ app.post(
        * ÖNEMLİ:
        * Supabase'in kendi confirmation mailini kullanmıyoruz.
        * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Resend ile biz gönderiyoruz.
+       * 6 haneli kodu SMTP üzerinden kullanıcının yazdığı adrese gönderiyoruz.
        */
       const {
         data: created,
@@ -2600,77 +2600,10 @@ app.get(
 
 
 /* =========================================================
-   RESEND
+   SMTP E-POSTA GÖNDERİMİ
+   Resend tamamen kaldırıldı. Doğrulama kodları, sunucuda
+   tanımlı SMTP hesabından kullanıcının yazdığı adrese gönderilir.
 ========================================================= */
-
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(
-      process.env.RESEND_FROM_EMAIL ||
-      smtpRuntime?.fromEmail ||
-      ""
-    ).trim();
-
-  if (!from) {
-    throw new Error("RESEND_FROM_EMAIL ayarlanmadı. Render Environment Variables bölümüne doğrulanmış gönderici adresini ekle.");
-  }
-
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
-
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
-  }
-
-  return j;
-}
 
 const recoveryCodes =
   new Map();
@@ -2793,21 +2726,12 @@ app.post(
         }
       );
 
-      await sendResendEmail(
-        found.email,
-        "Minegram doğrulama kodun",
-
-        `<div style="font-family:Arial,sans-serif">
-          <h2>Minegram</h2>
-          <p>Şifre sıfırlama işlemin için doğrulama kodun:</p>
-          <div style="font-size:32px;font-weight:700;letter-spacing:8px">
-            ${code}
-          </div>
-          <p>Bu kod 10 dakika geçerlidir.</p>
-        </div>`,
-
-        `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-      );
+      await sendSmtpEmail({
+        to: found.email,
+        subject: "Minegram doğrulama kodun",
+        html: `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Şifre sıfırlama işlemin için doğrulama kodun:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px">${code}</div><p>Bu kod 10 dakika geçerlidir.</p></div>`,
+        text: `Minegram doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
+      });
 
       res.json({
         ok: true,
@@ -5505,67 +5429,57 @@ async function sendSmtpEmail({ to, subject, text, html }) {
 }
 
 app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
-  const from = String(process.env.RESEND_FROM_EMAIL || smtpRuntime.fromEmail || "").trim();
+  const cfg = smtpPublicConfig();
   res.json({
     ok: true,
-    configured: Boolean(process.env.RESEND_API_KEY && from),
-    provider: "resend",
-    fromName: process.env.RESEND_FROM_NAME || smtpRuntime.fromName || "Minegram",
-    fromEmail: from,
-    from,
-    codeLength: Number(smtpRuntime.codeLength) === 8 ? 8 : 6,
-    expiryMinutes: Number(smtpRuntime.expiryMinutes) || 10,
-    cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60
+    configured: cfg.configured,
+    provider: "smtp",
+    fromName: cfg.fromName,
+    fromEmail: cfg.fromEmail,
+    from: cfg.fromEmail,
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    user: cfg.user,
+    codeLength: cfg.codeLength,
+    expiryMinutes: cfg.expiryMinutes,
+    cooldownSeconds: cfg.cooldownSeconds
   });
 });
 
 app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
   try {
     const body = req.body || {};
-    const from = String(body.from || body.fromEmail || "").trim().toLowerCase();
+    const from = String(body.fromEmail || body.from || "").trim().toLowerCase();
     const fromName = String(body.fromName || "Minegram").replace(/[\r\n]/g, " ").trim();
+    const host = String(body.host || smtpRuntime.host || "").trim();
+    const port = Number(body.port || smtpRuntime.port || 587);
+    const secure = Boolean(body.secure);
+    const user = String(body.user || smtpRuntime.user || "").trim();
+    if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) throw new Error("Geçersiz gönderici e-posta adresi.");
+    if (!host || !user || !from) throw new Error("SMTP host, kullanıcı ve gönderici e-posta gerekli.");
+    if (![465, 587, 25].includes(port)) throw new Error("SMTP portu 465, 587 veya 25 olmalı.");
 
-    if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) {
-      throw new Error("Geçersiz gönderici e-posta adresi.");
-    }
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY Render Environment Variables bölümünde eksik.");
-    }
-    if (!process.env.RESEND_FROM_EMAIL && !from) {
-      throw new Error("RESEND_FROM_EMAIL ayarlanmadı.");
-    }
-
-    smtpRuntime = {
-      ...smtpRuntime,
-      fromName,
-      fromEmail: from || process.env.RESEND_FROM_EMAIL
-    };
+    smtpRuntime = { ...smtpRuntime, fromName, fromEmail: from, host, port, secure, user };
     saveSmtpPublicConfig();
-
-    res.json({
-      ok: true,
-      provider: "resend",
-      configured: true,
-      fromName: smtpRuntime.fromName,
-      fromEmail: smtpRuntime.fromEmail
-    });
+    res.json({ ok: true, provider: "smtp", ...smtpPublicConfig(), configured: Boolean(smtpRuntime.pass) });
   } catch (e) {
-    res.status(400).json({ ok: false, error: e?.message || "Resend ayarları kaydedilemedi." });
+    res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
   }
 });
 
 app.post("/api/admin/email-service/test", smtpAdminAuth, async (req, res) => {
   try {
     const to = smtpEscapeAddress(req.body?.to);
-    await sendResendEmail(
+    await sendSmtpEmail({
       to,
-      "Minegram test e-postası",
-      `<div style="font-family:Arial,sans-serif;padding:24px"><h2>Minegram</h2><p>Resend e-posta servisi başarıyla çalışıyor.</p><p>Bu test mesajı yalnızca test amacıyla gönderildi.</p></div>`,
-      "Minegram Resend e-posta servisi başarıyla çalışıyor."
-    );
+      subject: "Minegram test e-postası",
+      html: `<div style="font-family:Arial,sans-serif;padding:24px"><h2>Minegram</h2><p>SMTP e-posta servisi başarıyla çalışıyor.</p><p>Bu test mesajı yalnızca test amacıyla gönderildi.</p></div>`,
+      text: "Minegram SMTP e-posta servisi başarıyla çalışıyor."
+    });
     res.json({ ok: true, sent: true, to });
   } catch (e) {
-    console.error("RESEND TEST ERROR:", e?.message || e);
+    console.error("SMTP TEST ERROR:", e?.message || e);
     res.status(400).json({ ok: false, error: e?.message || "Test e-postası gönderilemedi." });
   }
 });
@@ -5580,7 +5494,7 @@ app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req, re
     if (![60, 120, 300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
     smtpRuntime = { ...smtpRuntime, codeLength, expiryMinutes, cooldownSeconds };
     saveSmtpPublicConfig();
-    res.json({ ok: true, provider: "resend", codeLength, expiryMinutes, cooldownSeconds });
+    res.json({ ok: true, provider: "smtp", codeLength, expiryMinutes, cooldownSeconds });
   } catch (e) {
     res.status(400).json({ ok: false, error: e?.message || "Doğrulama ayarları kaydedilemedi." });
   }
