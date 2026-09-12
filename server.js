@@ -4283,65 +4283,83 @@ app.get(
 
 
 
+
 /* =========================================================
-   MINEGRAM E-POSTA SERVİSİ - SUPABASE AUTH
-   Resend yok. Gmail SMTP yok. Render SMTP portu yok.
+   MINEGRAM ADMIN - SUPABASE CUSTOM SMTP YÖNETİMİ
+   Admin panelinden SMTP sağlayıcısı yapılandırılır.
+   SMTP şifresi tarayıcıda saklanmaz. Supabase Management API
+   erişim anahtarı yalnızca Render Environment Variables içinde tutulur.
 ========================================================= */
-app.get("/api/admin/email-service/status",(req,res)=>res.json({ok:true,configured:true,mode:"supabase-auth-native",provider:"Supabase Auth",smtpRequired:false,resendRequired:false,message:"E-posta doğrulama ve şifre sıfırlama Supabase Auth tarafından gönderilir."}));
-app.post("/api/admin/email-service/test", async (req, res) => {
-  try {
-    const to = normalizeEmail(req.body?.to);
-    if (!to) {
-      return res.status(400).json({
-        ok: false,
-        error: "Test e-postası için alıcı e-posta gerekli."
-      });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-      return res.status(400).json({
-        ok: false,
-        error: "Geçerli bir e-posta adresi gir."
-      });
-    }
-
-    // Supabase Auth, resetPasswordForEmail çağrısında mevcut olmayan
-    // hesaplar için güvenlik nedeniyle hata vermeyebilir ve e-posta
-    // göndermeden başarılı cevap döndürebilir. Bu nedenle admin testinde
-    // OTP gönderimi kullanılır. shouldCreateUser=true olduğunda Supabase
-    // Auth, adres mevcut değilse gerekli Auth kullanıcısını oluşturup
-    // doğrulama OTP'sini gönderir. Böylece test gerçekten e-posta
-    // sağlayıcısına teslim edilmek üzere kuyruğa alınır.
-    const { error } = await client().auth.signInWithOtp({
-      email: to,
-      options: {
-        shouldCreateUser: true,
-        data: {
-          minegram_email_test: true
-        }
-      }
-    });
-
-    if (error) throw error;
-
-    return res.json({
-      ok: true,
-      sent: true,
-      accepted: true,
-      to,
-      mode: "supabase-auth-otp",
-      message: `Supabase Auth OTP e-postayı ${to} adresine gönderim için kabul etti. Teslimat Supabase Auth e-posta sağlayıcısına bağlıdır.`
-    });
-  } catch (e) {
-    console.error("SUPABASE AUTH EMAIL TEST ERROR:", e);
-    return res.status(400).json({
-      ok: false,
-      error: e?.message || "Supabase Auth test e-postası gönderilemedi."
-    });
+const SMTP_ADMIN_UID = "QJqw9moQk8XgpHcFo89bAVPk3uh1";
+const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
+const SUPABASE_PROJECT_REF = env("SUPABASE_PROJECT_REF");
+const SUPABASE_ACCESS_TOKEN = env("SUPABASE_ACCESS_TOKEN");
+const smtpConfigFile = path.join(__dirname, "minegram-smtp-config.json");
+let smtpRuntime = {
+  provider: env("SMTP_PROVIDER") || "custom",
+  fromName: env("SMTP_FROM_NAME") || "Minegram",
+  fromEmail: env("SMTP_FROM_EMAIL") || "",
+  host: env("SMTP_HOST") || "",
+  port: Number(env("SMTP_PORT")) || 587,
+  secure: /^(1|true|yes)$/i.test(env("SMTP_SECURE")),
+  user: env("SMTP_USER") || "",
+  pass: env("SMTP_PASS") || "",
+  codeLength: Number(env("VERIFICATION_CODE_LENGTH")) || 6,
+  expiryMinutes: Number(env("VERIFICATION_EXPIRY_MINUTES")) || 10,
+  cooldownSeconds: Number(env("VERIFICATION_COOLDOWN_SECONDS")) || 60
+};
+try {
+  if (fs.existsSync(smtpConfigFile)) {
+    const saved = JSON.parse(fs.readFileSync(smtpConfigFile, "utf8"));
+    smtpRuntime = { ...smtpRuntime, ...saved, pass: smtpRuntime.pass || saved.pass || "" };
   }
-});
-app.post("/api/admin/email-service/config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",smtpRequired:false,resendRequired:false,message:"E-posta ayarları Supabase Dashboard > Authentication > Email bölümünden yönetilir."}));
-app.post("/api/admin/email-service/verification-config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",message:"Native Supabase Auth doğrulama bağlantısı kullanılır; 6/8 haneli SMTP kod ayarı yoktur."}));
+} catch (e) { console.error("SMTP CONFIG LOAD ERROR:", e?.message || e); }
+function smtpPublicConfig(){ return {
+  configured:Boolean(smtpRuntime.host&&smtpRuntime.user&&smtpRuntime.pass&&smtpRuntime.fromEmail),
+  provider:smtpRuntime.provider||"custom", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"",
+  host:smtpRuntime.host||"", port:smtpRuntime.port||587, secure:!!smtpRuntime.secure, user:smtpRuntime.user||"",
+  codeLength:smtpRuntime.codeLength||6, expiryMinutes:smtpRuntime.expiryMinutes||10, cooldownSeconds:smtpRuntime.cooldownSeconds||60,
+  supabaseCustomSmtpConfigured:Boolean(SUPABASE_PROJECT_REF&&SUPABASE_ACCESS_TOKEN), managementApiConfigured:Boolean(SUPABASE_PROJECT_REF&&SUPABASE_ACCESS_TOKEN)
+};}
+function saveSmtpPublicConfig(){
+  const safe={provider:smtpRuntime.provider,fromName:smtpRuntime.fromName,fromEmail:smtpRuntime.fromEmail,host:smtpRuntime.host,port:smtpRuntime.port,secure:smtpRuntime.secure,user:smtpRuntime.user,codeLength:smtpRuntime.codeLength,expiryMinutes:smtpRuntime.expiryMinutes,cooldownSeconds:smtpRuntime.cooldownSeconds};
+  fs.writeFileSync(smtpConfigFile,JSON.stringify(safe,null,2),"utf8");
+}
+async function verifyFirebaseAdminToken(req){
+  const token=bearer(req); if(!token) throw new Error("Admin oturumu gerekli.");
+  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken:token})});
+  const d=await r.json().catch(()=>({})); const u=d?.users?.[0];
+  if(!r.ok||!u?.localId) throw new Error(d?.error?.message||"Firebase admin oturumu doğrulanamadı.");
+  if(String(u.localId)!==SMTP_ADMIN_UID) throw new Error("Bu Firebase hesabının SMTP admin yetkisi yok.");
+  return u;
+}
+async function smtpAdminAuth(req,res,next){ try{ await verifyFirebaseAdminToken(req); next(); }catch(e){ res.status(401).json({ok:false,error:e?.message||"Admin oturumu gerekli."}); }}
+function smtpEscapeHeader(v){return String(v||"").replace(/[\r\n]/g," ").trim();}
+function smtpEscapeAddress(v){const x=smtpEscapeHeader(v);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))throw new Error("Geçersiz e-posta adresi.");return x;}
+async function sendSmtpEmail({to,subject,text,html}){
+  if(!smtpRuntime.host||!smtpRuntime.user||!smtpRuntime.pass||!smtpRuntime.fromEmail) throw new Error("SMTP ayarları eksik. Önce Admin Panel > E-posta / Doğrulama bölümünden SMTP sağlayıcısını kaydedin.");
+  const net=await import("net"), tls=await import("tls");
+  const options={host:smtpRuntime.host,port:Number(smtpRuntime.port)||587,servername:smtpRuntime.host,timeout:20000};
+  const secure=!!smtpRuntime.secure;
+  const socket=await new Promise((resolve,reject)=>{let s,done=false;const fail=e=>{if(!done){done=true;reject(e);}else s.destroy();};s=secure?tls.connect(options,()=>{done=true;resolve(s);}):net.createConnection(options,()=>{done=true;resolve(s);});s.setTimeout(20000,()=>fail(new Error(`SMTP bağlantı zaman aşımı (${options.host}:${options.port})`)));s.once("error",fail);});
+  let buffer="",pending=null,timer=null;
+  const readResponse=()=>new Promise((resolve,reject)=>{pending={resolve,reject};timer=setTimeout(()=>{pending=null;reject(new Error("SMTP sunucu yanıt zaman aşımı."));},20000);});
+  const parse=()=>{if(!pending)return;const m=buffer.match(/(?:^|\r\n)(\d{3})[ -](.*?)(?=\r\n|$)/);if(!m)return;const code=Number(m[1]);const lines=buffer.split(/\r\n/).filter(x=>/^\d{3}[ -]/.test(x));if(!lines.length)return;const last=lines[lines.length-1];if(last[3]==="-")return;buffer="";clearTimeout(timer);const p=pending;pending=null;p.resolve({code,line:last.slice(4)});};
+  socket.on("data",d=>{buffer+=d.toString();parse();});
+  const command=async(cmd,codes)=>{socket.write(cmd+"\r\n");const r=await readResponse();if(!codes.includes(r.code))throw new Error(`SMTP ${r.code}: ${r.line}`);return r;};
+  try{await readResponse();await command(`EHLO minegram.com`,[250]);if(!secure){await command("STARTTLS",[220]);await new Promise((resolve,reject)=>{socket.removeAllListeners("data");tls.connect({socket,servername:options.host},()=>{resolve();}).once("error",reject);});buffer="";socket.on("data",d=>{buffer+=d.toString();parse();});await command("EHLO minegram.com",[250]);}
+    await command("AUTH LOGIN",[334]);await command(Buffer.from(String(smtpRuntime.user)).toString("base64"),[334]);await command(Buffer.from(String(smtpRuntime.pass)).toString("base64"),[235]);await command(`MAIL FROM:<${smtpEscapeAddress(smtpRuntime.fromEmail)}>`,[250]);await command(`RCPT TO:<${smtpEscapeAddress(to)}>`,[250,251]);await command("DATA",[354]);
+    const boundary=`minegram_${crypto.randomBytes(12).toString("hex")}`;const msg=[`From: ${smtpEscapeHeader(smtpRuntime.fromName||"Minegram")} <${smtpEscapeAddress(smtpRuntime.fromEmail)}>`,`To: <${smtpEscapeAddress(to)}>`,`Subject: ${smtpEscapeHeader(subject||"Minegram")}`,"MIME-Version: 1.0",`Content-Type: multipart/alternative; boundary="${boundary}"`,"",`--${boundary}`,'Content-Type: text/plain; charset="UTF-8"','Content-Transfer-Encoding: 8bit',"",String(text||"").replace(/\r?\n/g,"\r\n"),`--${boundary}`,'Content-Type: text/html; charset="UTF-8"','Content-Transfer-Encoding: 8bit',"",String(html||"").replace(/\r?\n/g,"\r\n"),`--${boundary}--`,""].join("\r\n").replace(/^\./gm,"..");socket.write(msg+".\r\n");const sent=await readResponse();if(sent.code!==250)throw new Error(`SMTP ${sent.code}: ${sent.line}`);await command("QUIT",[221]);}finally{socket.end();}}
+async function applySupabaseCustomSmtp(){
+  if(!SUPABASE_PROJECT_REF||!SUPABASE_ACCESS_TOKEN) throw new Error("Render Environment Variables içine SUPABASE_PROJECT_REF ve SUPABASE_ACCESS_TOKEN eklenmeli.");
+  const body={external_email_enabled:true,mailer_autoconfirm:false,smtp_admin_email:smtpRuntime.fromEmail,smtp_host:smtpRuntime.host,smtp_port:String(smtpRuntime.port),smtp_user:smtpRuntime.user,smtp_pass:smtpRuntime.pass,smtp_sender_name:smtpRuntime.fromName,smtp_max_frequency:Math.max(60,Number(smtpRuntime.cooldownSeconds)||60)};
+  const r=await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(SUPABASE_PROJECT_REF)}/config/auth`,{method:"PATCH",headers:{Authorization:`Bearer ${SUPABASE_ACCESS_TOKEN}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d?.message||d?.error||`Supabase SMTP yapılandırması başarısız (${r.status}).`); return d;
+}
+app.get("/api/admin/email-service/status",smtpAdminAuth,(req,res)=>res.json({ok:true,...smtpPublicConfig()}));
+app.post("/api/admin/email-service/config",smtpAdminAuth,async(req,res)=>{try{const b=req.body||{};smtpRuntime={...smtpRuntime,provider:smtpEscapeHeader(b.provider||"custom"),fromName:smtpEscapeHeader(b.fromName||"Minegram"),fromEmail:smtpEscapeAddress(b.fromEmail),host:smtpEscapeHeader(b.host),port:Number(b.port)||587,secure:!!b.secure,user:smtpEscapeHeader(b.user),codeLength:Number(b.codeLength||6),expiryMinutes:Number(b.expiryMinutes||10),cooldownSeconds:Number(b.cooldownSeconds||60)};if(![465,587].includes(smtpRuntime.port))throw new Error("SMTP portu 465 veya 587 olmalı.");if(String(b.pass||"").trim())smtpRuntime.pass=String(b.pass);if(!smtpRuntime.pass)throw new Error("SMTP şifresi/anahtarı gerekli.");saveSmtpPublicConfig();await applySupabaseCustomSmtp();res.json({ok:true,...smtpPublicConfig(),message:"SMTP sağlayıcısı kaydedildi ve Supabase Auth Custom SMTP olarak etkinleştirildi."});}catch(e){res.status(400).json({ok:false,error:e?.message||"SMTP ayarları kaydedilemedi."});}});
+app.post("/api/admin/email-service/test",smtpAdminAuth,async(req,res)=>{try{const to=smtpEscapeAddress(req.body?.to);await sendSmtpEmail({to,subject:"Minegram SMTP test e-postası",text:"Minegram SMTP sağlayıcısı başarıyla çalışıyor.",html:"<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>SMTP sağlayıcısı başarıyla çalışıyor.</p></div>"});res.json({ok:true,sent:true,to,provider:smtpRuntime.provider});}catch(e){console.error("SMTP TEST ERROR:",e?.message||e);res.status(400).json({ok:false,error:e?.message||"Test e-postası gönderilemedi."});}});
+app.post("/api/admin/email-service/verification-config",smtpAdminAuth,(req,res)=>{try{const codeLength=Number(req.body?.codeLength),expiryMinutes=Number(req.body?.expiryMinutes),cooldownSeconds=Number(req.body?.cooldownSeconds);if(![6,8].includes(codeLength))throw new Error("Kod uzunluğu 6 veya 8 olmalı.");if(![5,10,15,30].includes(expiryMinutes))throw new Error("Geçerlilik süresi geçersiz.");if(![60,120,300].includes(cooldownSeconds))throw new Error("Gönderim aralığı geçersiz.");smtpRuntime={...smtpRuntime,codeLength,expiryMinutes,cooldownSeconds};saveSmtpPublicConfig();res.json({ok:true,codeLength,expiryMinutes,cooldownSeconds});}catch(e){res.status(400).json({ok:false,error:e?.message||"Doğrulama ayarları kaydedilemedi."});}});
 
 /* =========================================================
    FALLBACK
