@@ -5689,6 +5689,65 @@ app.post("/api/admin/email-service/test", async (req, res) => {
   }
 });
 
+
+// =========================================================
+// V7 — Firebase şifre sıfırlama e-postası
+// Resend/SMTP kullanılmaz. Firebase Authentication kullanılır.
+// =========================================================
+app.post("/api/auth/firebase-password-reset", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Geçerli bir e-posta adresi gir."
+      });
+    }
+
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestType: "PASSWORD_RESET",
+          email
+        })
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const code = String(data?.error?.message || "");
+      if (code === "EMAIL_NOT_FOUND") {
+        return res.status(404).json({
+          ok: false,
+          code: "EMAIL_NOT_FOUND",
+          error: "Bu e-posta ile kayıtlı bir Firebase hesabı bulunamadı."
+        });
+      }
+
+      return res.status(400).json({
+        ok: false,
+        error: code || "Şifre sıfırlama e-postası gönderilemedi."
+      });
+    }
+
+    return res.json({
+      ok: true,
+      email
+    });
+  } catch (error) {
+    console.error("[MINEGRAM] Firebase password reset error:", error);
+    return res.status(500).json({
+      ok: false,
+      error: error?.message || "Şifre sıfırlama e-postası gönderilemedi."
+    });
+  }
+});
+
 app.listen(
   PORT,
   "0.0.0.0",
