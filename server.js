@@ -10,21 +10,6 @@ import fs from "fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-// Admin paneli Render dışında (ör. localhost:5500) açıldığında
-// SMTP API isteklerinin Authorization header ile ulaşabilmesi için CORS.
-app.use((req,res,next)=>{
-  const origin=req.headers.origin;
-  if(origin && (origin === "https://minegram-hwns.onrender.com" || origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))){
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  }
-  if(req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
-
 app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -50,8 +35,10 @@ const SUPABASE_KEY =
 const SUPABASE_SERVICE_ROLE_KEY =
   env("SUPABASE_SERVICE_ROLE_KEY");
 
-const SUPABASE_PROJECT_REF = env("SUPABASE_PROJECT_REF");
-const SUPABASE_ACCESS_TOKEN = env("SUPABASE_ACCESS_TOKEN");
+const SUPABASE_PROJECT_REF = env("SUPABASE_PROJECT_REF") || env("SUPABASE_PROJECT_ID") || (() => {
+  try { return new URL(SUPABASE_URL).hostname.split(".")[0]; } catch (_) { return ""; }
+})();
+const SUPABASE_ACCESS_TOKEN = env("SUPABASE_ACCESS_TOKEN") || env("SUPABASE_MANAGEMENT_ACCESS_TOKEN");
 
 const BUCKET = "media";
 
@@ -2598,17 +2585,20 @@ app.get(
    Supabase Dashboard'da tanımlı Custom SMTP ile gönderilir.
 ========================================================= */
 async function supabaseAuthOtp(email) {
+  // Test adresi mevcut Supabase kullanıcısı değilse create_user=true ile
+  // Supabase Auth'a alınır. Böylece admin panelindeki TEST düğmesi yalnızca
+  // mevcut kullanıcılarla sınırlı kalmaz ve gerçek Custom SMTP tetiklenir.
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_KEY,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ email, create_user: false })
+    body: JSON.stringify({ email, create_user: true })
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.msg || data?.message || data?.error_description || data?.error || "Supabase doğrulama e-postası gönderilemedi.");
+    throw new Error(data?.msg || data?.message || data?.error_description || data?.error || "Supabase Custom SMTP üzerinden doğrulama e-postası gönderilemedi.");
   }
   return data;
 }
@@ -2630,8 +2620,11 @@ async function supabaseVerifyEmailOtp(email, token) {
 }
 
 async function supabaseManagementAuthConfig(patch) {
-  if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
-    throw new Error("SUPABASE_PROJECT_REF veya SUPABASE_ACCESS_TOKEN Render Environment Variables içinde eksik.");
+  if (!SUPABASE_PROJECT_REF) {
+    throw new Error("SUPABASE_PROJECT_REF Render Environment Variables içinde okunamadı. Değişken adını tam olarak SUPABASE_PROJECT_REF yap.");
+  }
+  if (!SUPABASE_ACCESS_TOKEN) {
+    throw new Error("SUPABASE_ACCESS_TOKEN Render Environment Variables içinde okunamadı. Bu değer Supabase Management API Personal Access Token olmalı; anon/service-role JWT kullanılmamalı.");
   }
   const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(SUPABASE_PROJECT_REF)}/config/auth`, {
     method: "PATCH",
@@ -2643,21 +2636,32 @@ async function supabaseManagementAuthConfig(patch) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.message || data?.error || data?.error_description || `Supabase Management API HTTP ${response.status}`);
+    const detail = data?.message || data?.error || data?.error_description || `HTTP ${response.status}`;
+    if (/jwt.*decode|token/i.test(String(detail))) {
+      throw new Error("Supabase Management API token geçersiz. SUPABASE_ACCESS_TOKEN alanına Supabase Dashboard'dan oluşturulan Personal Access Token değerini koy; anon/service-role JWT koyma.");
+    }
+    throw new Error(`Supabase Management API: ${detail}`);
   }
   return data;
 }
 
 async function supabaseManagementGetAuthConfig() {
-  if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
-    throw new Error("SUPABASE_PROJECT_REF veya SUPABASE_ACCESS_TOKEN Render Environment Variables içinde eksik.");
+  if (!SUPABASE_PROJECT_REF) {
+    throw new Error("SUPABASE_PROJECT_REF Render Environment Variables içinde okunamadı.");
+  }
+  if (!SUPABASE_ACCESS_TOKEN) {
+    throw new Error("SUPABASE_ACCESS_TOKEN Render Environment Variables içinde okunamadı. Personal Access Token gerekli.");
   }
   const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(SUPABASE_PROJECT_REF)}/config/auth`, {
     headers: { Authorization: `Bearer ${SUPABASE_ACCESS_TOKEN}` }
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.message || data?.error || data?.error_description || `Supabase Management API HTTP ${response.status}`);
+    const detail = data?.message || data?.error || data?.error_description || `HTTP ${response.status}`;
+    if (/jwt.*decode|token/i.test(String(detail))) {
+      throw new Error("Supabase Management API token geçersiz. SUPABASE_ACCESS_TOKEN = Supabase Personal Access Token olmalı.");
+    }
+    throw new Error(`Supabase Management API: ${detail}`);
   }
   return data;
 }
@@ -5242,6 +5246,10 @@ const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_u
 async function verifyFirebaseAdminToken(req) {
   const token = bearer(req);
   if (!token) throw new Error("Admin oturumu gerekli.");
+  if (!FIREBASE_WEB_API_KEY) throw new Error("Firebase Web API key sunucuda bulunamadı.");
+
+  // Firebase ID tokenı burada JWT olarak decode etmiyoruz.
+  // Google Identity Toolkit tokenı sunucu tarafında doğrular.
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -5249,16 +5257,25 @@ async function verifyFirebaseAdminToken(req) {
   });
   const data = await response.json().catch(() => ({}));
   const firebaseUser = data?.users?.[0];
-  if (!response.ok || !firebaseUser?.localId) throw new Error(data?.error?.message || "Firebase admin oturumu doğrulanamadı.");
-  if (firebaseUser.localId !== SMTP_ADMIN_UID) throw new Error("Bu Firebase hesabının SMTP admin yetkisi yok.");
+
+  if (!response.ok || !firebaseUser?.localId) {
+    const code = data?.error?.message || `HTTP_${response.status}`;
+    throw new Error(`Firebase admin token doğrulanamadı: ${code}`);
+  }
+
+  if (firebaseUser.localId !== SMTP_ADMIN_UID) {
+    throw new Error("Bu Firebase hesabının SMTP admin yetkisi yok.");
+  }
   return firebaseUser;
 }
 
 async function smtpAdminAuth(req, res, next) {
-  try { await verifyFirebaseAdminToken(req); next(); }
-  catch (e) {
+  try {
+    await verifyFirebaseAdminToken(req);
+    next();
+  } catch (e) {
     console.error("SUPABASE SMTP ADMIN AUTH ERROR:", e?.message || e);
-    res.status(401).json({ ok:false, error:"Admin oturumu gerekli." });
+    res.status(401).json({ ok:false, error:e?.message || "Admin oturumu gerekli." });
   }
 }
 
