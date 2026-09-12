@@ -28,6 +28,13 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 @media(max-width:950px){.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.stats{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.app{display:block}.sidebar{position:static;width:100%}.main{margin-left:0;width:100%;padding:16px}.menu{display:flex;overflow-x:auto;gap:5px}.menu button{min-width:max-content}.stats{grid-template-columns:1fr}.content-grid,.form-grid{grid-template-columns:1fr}.form-full{grid-column:auto}}
 </style>
+
+<style id="minegram-native-mail-addon-style">
+.native-mail-box{margin-top:18px;padding:16px;border:1px solid #dbe4f0;border-radius:12px;background:#f8fafc}
+.native-mail-box h3{margin:0 0 8px}.native-mail-box p{margin:7px 0;color:#475467;font-size:14px;line-height:1.5}
+.native-mail-status{margin-top:10px;font-weight:700}
+</style>
+
 </head>
 <body>
 
@@ -100,86 +107,31 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
 
 <section id="emailService" class="section">
-  <div class="content-grid">
-    <div class="panel">
-      <h2>📧 E-posta / Doğrulama</h2>
-      <p>Minegram'a kayıt olan herkes, kayıt ekranında kendi e-posta adresini yazar. Doğrulama kodu sabit bir adrese değil, kullanıcının yazdığı e-posta adresine gönderilir.</p>
-
-      <div class="input-group">
-        <label>Gönderici adı</label>
-        <input id="smtpFromName" placeholder="Minegram">
-      </div>
-
-      <div class="input-group">
-        <label>Gönderici e-posta</label>
-        <input id="smtpFromEmail" type="email" placeholder="noreply@minegram.com">
-      </div>
-
-      <div class="input-group">
-        <label>Mail servisi</label>
-        <select id="mailProvider">
-          <option value="firebase">Firebase Authentication</option>
-          <option value="resend">Resend</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label>Resend API anahtarı (yalnızca Resend seçilirse)</label>
-        <input id="resendApiKey" type="password" autocomplete="new-password" placeholder="Sunucu Environment Variable olarak saklanmalı">
-      </div>
-
-      <div class="input-group">
-        <label>Resend doğrulanmış gönderici</label>
-        <input id="resendFrom" placeholder="Minegram <admin@minegram.com>">
-      </div>
-
-      <div class="actions">
-        <button id="emailServiceSaveButton" class="btn btn-primary">Doğrulama servisini kaydet</button>
-        <button id="emailServiceTestButton" class="btn btn-success">Test e-postası gönder</button>
-      </div>
-      <div id="emailServiceMessage" class="message"></div>
-    </div>
-
-    <div class="panel">
-      <h2>🔐 Doğrulama Ayarları</h2>
-
-      <div class="input-group">
-        <label>Kod uzunluğu</label>
-        <select id="verificationCodeLength">
-          <option value="6">6 hane</option>
-          <option value="8">8 hane</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label>Kod geçerlilik süresi</label>
-        <select id="verificationExpiry">
-          <option value="5">5 dakika</option>
-          <option value="10" selected>10 dakika</option>
-          <option value="15">15 dakika</option>
-          <option value="30">30 dakika</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label>Tekrar gönderme aralığı</label>
-        <select id="verificationCooldown">
-          <option value="60">60 saniye</option>
-          <option value="120">2 dakika</option>
-          <option value="300">5 dakika</option>
-        </select>
-      </div>
-
-      <button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
-      <div id="verificationMessage" class="message"></div>
-
-      <hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
-
-      <h3>📨 Kullanıcı doğrulaması</h3>
-      <p>Örnek: kullanıcı <b>ornek@gmail.com</b> ile kayıt olursa doğrulama kodunun alıcısı <b>ornek@gmail.com</b> olur. Admin e-postasına sabitlenmez.</p>
-      <p id="emailServiceStatus"><span class="badge">Servis kontrol ediliyor...</span></p>
-    </div>
+<div class="content-grid">
+  <div class="panel">
+    <h2>📧 E-posta / Doğrulama</h2>
+    <p>Kullanıcı kayıt sırasında hangi Gmail/e-posta adresini yazarsa doğrulama kodu doğrudan o adrese gönderilir.</p>
+    <div class="input-group"><label>Mail servisi</label><select id="mailProvider"><option value="resend">Resend</option></select></div>
+    <div class="input-group"><label>Gönderici adı</label><input id="smtpFromName" placeholder="Minegram"></div>
+    <div class="input-group"><label>Gönderici e-posta</label><input id="smtpFromEmail" type="email" placeholder="admin@minegram.com"></div>
+    <div class="input-group"><label>Resend doğrulanmış gönderici</label><input id="resendFrom" placeholder="admin@minegram.com"></div>
+    <p style="color:#697386;font-size:13px">Resend API anahtarı HTML'e yazılmaz. Render → Environment Variables içinde <b>RESEND_API_KEY</b> olarak tutulur.</p>
+    <div class="actions"><button id="smtpSaveButton" class="btn btn-primary">Doğrulama servisini kaydet</button><button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button></div>
+    <div id="smtpMessage" class="message"></div>
   </div>
+  <div class="panel">
+    <h2>🔐 Doğrulama Ayarları</h2>
+    <div class="input-group"><label>Kod uzunluğu</label><select id="verificationCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
+    <div class="input-group"><label>Kod geçerlilik süresi</label><select id="verificationExpiry"><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
+    <div class="input-group"><label>Tekrar gönderme aralığı</label><select id="verificationCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
+    <button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
+    <div id="verificationMessage" class="message"></div>
+    <hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
+    <h3>📨 Kullanıcı doğrulaması</h3>
+    <p>Örnek: <b>kullanici@gmail.com</b> kayıt olursa kodun alıcısı <b>kullanici@gmail.com</b> olur. Admin e-postasına sabitlenmez.</p>
+    <p id="smtpStatus"><span class="badge">Servis kontrol ediliyor...</span></p>
+  </div>
+</div>
 </section>
 
 <section id="settings" class="section"><div class="panel"><h2>⚙️ Sistem ayarları</h2><div class="input-group"><label>Site adı</label><input id="siteName" placeholder="Minegram"></div><button id="settingsButton" class="btn btn-primary">Ayarları kaydet</button><div id="settingsMessage" class="message"></div></div></section>
@@ -205,9 +157,9 @@ function money(value){return Number(value||0).toLocaleString("tr-TR",{minimumFra
 function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return timestamp.toDate().toLocaleString("tr-TR")}
 
 async function checkAdmin(uid){
-    // Admin yetkisi Firebase UID ile sabitlenir.
-    // Böylece Firestore admins/{uid} okuma kuralı giriş ekranını kilitlemez.
-    return String(uid||"") === ADMIN_UID;
+    if(uid!==ADMIN_UID)return false;
+    const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));
+    return adminDocument.exists() && adminDocument.data().active===true;
 }
 
 /* PANEL VERİLERİNİ TEK TEK YÜKLE.
@@ -318,8 +270,16 @@ $("loginForm").addEventListener("submit",async event=>{
             throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);
         }
 
-        // UID doğrulaması yeterlidir; panel açılışı admins koleksiyonu
-        // için Firestore okuma iznine bağımlı değildir.
+        const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));
+
+        if(!adminDocument.exists()){
+            throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");
+        }
+
+        if(adminDocument.data().active!==true){
+            throw new Error("Admin hesabında active değeri true değil.");
+        }
+
         await openAdminPanel(credential.user);
 
     }catch(error){
@@ -559,130 +519,52 @@ $("settingsButton").addEventListener("click",async()=>{
         $("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi.";
     }catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}
 });
-// =========================================================
-// MINEGRAM E-POSTA / DOĞRULAMA YÖNETİMİ
-// Alıcı adresi kullanıcıdan gelir; admin adresine sabitlenmez.
-// =========================================================
-const EMAIL_ADMIN_API = "/api/admin/email-service";
 
-async function emailAdminRequest(path, options={}) {
-  const user = auth.currentUser;
-  if (!user) throw new Error("Önce Admin olarak giriş yapmalısın.");
-
-  const idToken = await user.getIdToken(true);
-  const response = await fetch(EMAIL_ADMIN_API + path, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + idToken,
-      ...(options.headers || {})
-    },
-    credentials: "include"
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || data.message || "E-posta servisi isteği başarısız.");
-  }
-  return data;
+/* =========================================================
+   MINEGRAM RESEND E-POSTA / DOĞRULAMA
+   ========================================================= */
+const EMAIL_SERVICE_API = "/api/admin/email-service";
+async function emailServiceRequest(path, options={}){
+    const user=auth.currentUser;
+    if(!user) throw new Error("Önce Admin olarak giriş yapmalısın.");
+    // forceRefresh=true kullanılmaz: securetoken refresh hatasını tetiklemesin.
+    const idToken=await user.getIdToken(false);
+    const response=await fetch(EMAIL_SERVICE_API+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+idToken,...(options.headers||{})},credentials:"include"});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error||data.message||"E-posta servisi isteği başarısız.");
+    return data;
 }
-
-async function loadEmailVerificationSettings() {
-  try {
-    const data = await emailAdminRequest("/status");
-    $("emailServiceStatus").innerHTML = data.configured
-      ? '<span class="badge badge-green">● Doğrulama servisi aktif</span>'
-      : '<span class="badge badge-red">● Servis yapılandırılmamış</span>';
-
-    if (data.provider) $("mailProvider").value = data.provider;
-    if (data.fromName) $("smtpFromName").value = data.fromName;
-    if (data.fromEmail) $("smtpFromEmail").value = data.fromEmail;
-    if (data.from) $("resendFrom").value = data.from;
-    if (data.codeLength) $("verificationCodeLength").value = String(data.codeLength);
-    if (data.expiryMinutes) $("verificationExpiry").value = String(data.expiryMinutes);
-    if (data.cooldownSeconds) $("verificationCooldown").value = String(data.cooldownSeconds);
-  } catch (e) {
-    $("emailServiceStatus").innerHTML =
-      '<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
-    console.warn("E-posta doğrulama servisi:", e.message);
-  }
+async function loadEmailService(){
+    try{
+        const data=await emailServiceRequest("/status");
+        $("smtpStatus").innerHTML=data.configured?'<span class="badge badge-green">● Resend aktif</span>':'<span class="badge badge-red">● Resend yapılandırılmamış</span>';
+        if(data.fromName) $("smtpFromName").value=data.fromName;
+        if(data.fromEmail) $("smtpFromEmail").value=data.fromEmail;
+        if(data.from) $("resendFrom").value=data.from;
+        if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
+        if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
+        if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
+    }catch(error){$("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';console.warn("E-posta servisi:",error.message);}
 }
-
-$("emailServiceSaveButton").addEventListener("click", async () => {
-  const msg = $("emailServiceMessage");
-  msg.className = "message";
-  msg.textContent = "Kaydediliyor...";
-
-  try {
-    await emailAdminRequest("/config", {
-      method: "POST",
-      body: JSON.stringify({
-        provider: $("mailProvider").value,
-        fromName: $("smtpFromName").value.trim(),
-        fromEmail: $("smtpFromEmail").value.trim(),
-        from: $("resendFrom").value.trim(),
-        // Sunucu bu alanı Environment Variable ile tercih etmeli.
-        apiKey: $("resendApiKey").value
-      })
-    });
-
-    $("resendApiKey").value = "";
-    msg.className = "message success";
-    msg.textContent = "E-posta doğrulama servisi kaydedildi.";
-    await loadEmailVerificationSettings();
-  } catch (e) {
-    msg.className = "message error";
-    msg.textContent = e.message;
-  }
+$("smtpSaveButton").addEventListener("click",async()=>{
+    const message=$("smtpMessage");message.className="message";message.textContent="Kaydediliyor...";
+    try{
+        await emailServiceRequest("/config",{method:"POST",body:JSON.stringify({provider:"resend",fromName:$("smtpFromName").value.trim(),fromEmail:$("smtpFromEmail").value.trim(),from:$("resendFrom").value.trim()})});
+        message.className="message success";message.textContent="Resend doğrulama servisi kaydedildi.";await loadEmailService();
+    }catch(error){message.className="message error";message.textContent=error.message;}
 });
-
-$("verificationSaveButton").addEventListener("click", async () => {
-  const msg = $("verificationMessage");
-  msg.className = "message";
-  msg.textContent = "Kaydediliyor...";
-
-  try {
-    await emailAdminRequest("/verification-config", {
-      method: "POST",
-      body: JSON.stringify({
-        codeLength: Number($("verificationCodeLength").value),
-        expiryMinutes: Number($("verificationExpiry").value),
-        cooldownSeconds: Number($("verificationCooldown").value)
-      })
-    });
-
-    msg.className = "message success";
-    msg.textContent = "Doğrulama ayarları kaydedildi.";
-  } catch (e) {
-    msg.className = "message error";
-    msg.textContent = e.message;
-  }
+$("smtpTestButton").addEventListener("click",async()=>{
+    const message=$("smtpMessage");const to=prompt("Test e-postası hangi adrese gönderilsin?");if(!to)return;
+    message.className="message";message.textContent="Test e-postası gönderiliyor...";
+    try{await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to:to.trim()})});message.className="message success";message.textContent="Test e-postası gönderildi: "+to.trim();}
+    catch(error){message.className="message error";message.textContent="Gönderilemedi: "+error.message;}
 });
-
-$("emailServiceTestButton").addEventListener("click", async () => {
-  const msg = $("emailServiceMessage");
-  const to = prompt("Test e-postası hangi adrese gönderilsin?");
-  if (!to) return;
-
-  msg.className = "message";
-  msg.textContent = "Test e-postası gönderiliyor...";
-
-  try {
-    await emailAdminRequest("/test", {
-      method: "POST",
-      body: JSON.stringify({ to: to.trim() })
-    });
-    msg.className = "message success";
-    msg.textContent = "Test e-postası gönderildi: " + to.trim();
-  } catch (e) {
-    msg.className = "message error";
-    msg.textContent = "Gönderilemedi: " + e.message;
-  }
+$("verificationSaveButton").addEventListener("click",async()=>{
+    const message=$("verificationMessage");message.className="message";message.textContent="Kaydediliyor...";
+    try{await emailServiceRequest("/verification-config",{method:"POST",body:JSON.stringify({codeLength:Number($("verificationCodeLength").value),expiryMinutes:Number($("verificationExpiry").value),cooldownSeconds:Number($("verificationCooldown").value)})});message.className="message success";message.textContent="Doğrulama ayarları kaydedildi.";}
+    catch(error){message.className="message error";message.textContent=error.message;}
 });
-
-document.querySelector('[data-page="emailService"]').addEventListener("click", () => {
-  loadEmailVerificationSettings();
-});
+document.querySelector('[data-page="emailService"]').addEventListener("click",()=>loadEmailService().catch(()=>{}));
 
 </script>
 </body>
