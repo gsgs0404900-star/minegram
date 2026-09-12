@@ -5376,113 +5376,129 @@ function smtpEscapeAddress(value) {
   return v;
 }
 
-function smtpConnectionOptions() {
+async function smtpConnectionOptions() {
+  const dns = await import("dns");
+  const host = String(smtpRuntime.host || "").trim();
+  if (!host) throw new Error("SMTP host boş.");
+  let address = host;
+  try {
+    const resolved = await dns.promises.lookup(host, { family: 4, all: false });
+    address = resolved.address;
+  } catch (e) {
+    throw new Error(`SMTP host çözülemedi (${host}): ${e?.message || e}`);
+  }
   return {
-    host: smtpRuntime.host,
+    host: address,
     port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
-    servername: smtpRuntime.host,
-    timeout: 20000
+    servername: host,
+    timeout: 30000,
+    family: 4
   };
+}
+
+function formatSmtpNetworkError(e) {
+  if (e?.name === "AggregateError" || Array.isArray(e?.errors)) {
+    const parts = (e.errors || []).map(x => `${x.code || "ERR"}${x.address ? ` ${x.address}` : ""}${x.port ? `:${x.port}` : ""}: ${x.message || x}`).join(" | ");
+    return `SMTP bağlantı hatası: ${parts || e.message || "AggregateError"}`;
+  }
+  if (e?.code === "ECONNREFUSED") return `SMTP bağlantısı reddedildi: ${e.address || smtpRuntime.host}:${e.port || smtpRuntime.port}`;
+  if (e?.code === "ETIMEDOUT" || e?.code === "ESOCKETTIMEDOUT") return `SMTP bağlantısı zaman aşımına uğradı: ${e.address || smtpRuntime.host}:${e.port || smtpRuntime.port}`;
+  return e?.message || String(e);
 }
 
 async function sendSmtpEmail({ to, subject, text, html }) {
   if (!smtpRuntime.host || !smtpRuntime.user || !smtpRuntime.pass || !smtpRuntime.fromEmail) {
-    throw new Error("SMTP ayarları eksik. Host, kullanıcı, şifre ve gönderici e-posta gerekli.");
+    throw new Error("SMTP ayarları eksik. Sunucuda SMTP_PASS veya panelde SMTP şifresi gerekli.");
   }
 
   const net = await import("net");
   const tls = await import("tls");
+  let socket;
 
-  const host = String(smtpRuntime.host).trim();
-  const port = Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587);
-  const secure = !!smtpRuntime.secure;
+  const connectSocket = (secure) => new Promise((resolve, reject) => {
+    smtpConnectionOptions().then(options => {
+      let s;
+      let settled = false;
+      const fail = e => {
+        if (!settled) { settled = true; reject(formatSmtpNetworkError(e)); }
+        else if (s) s.destroy();
+      };
+      if (secure) {
+        s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
+      } else {
+        s = net.createConnection({ ...options, family: 4 }, () => { settled = true; resolve(s); });
+      }
+      s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
+      s.once("error", fail);
+    }).catch(reject);
+    return;
+    /* unreachable legacy block */
+    const options = smtpConnectionOptions();
 
-  const connect = () => new Promise((resolve, reject) => {
-    const onError = e => reject(new Error(`SMTP bağlantı hatası: ${e?.message || e}`));
-    const onTimeout = () => reject(new Error(`SMTP bağlantı zaman aşımına uğradı (${host}:${port}). Host ve portu kontrol et.`));
-    const options = { host, port, servername: host, timeout: 30000 };
-    const socket = secure
-      ? tls.connect({ ...options, rejectUnauthorized: true })
-      : net.createConnection(options);
-    let done = false;
-    const success = () => {
-      if (done) return;
-      done = true;
-      socket.setTimeout(0);
-      socket.removeListener("error", onError);
-      socket.removeListener("timeout", onTimeout);
-      resolve(socket);
-    };
-    socket.once("error", onError);
-    socket.once("timeout", onTimeout);
-    socket.once("connect", () => { if (!secure) success(); });
-    if (secure) socket.once("secureConnect", success);
   });
 
-  let socket = await connect();
-  let responseBuffer = "";
-  let responseWaiters = [];
+  socket = await connectSocket(!!smtpRuntime.secure);
+  let buffer = "";
+  let pending = null;
+  let timer = null;
 
-  const feed = chunk => {
-    responseBuffer += chunk.toString("utf8");
-    const lines = responseBuffer.split(/\r?\n/);
-    responseBuffer = lines.pop() || "";
-    for (const line of lines) {
-      if (/^\d{3}(?: |$)/.test(line)) {
-        const code = Number(line.slice(0, 3));
-        const waiter = responseWaiters.shift();
-        if (waiter) waiter.resolve({ code, line });
+  const attachReader = (sock) => {
+    buffer = "";
+    pending = null;
+    if (timer) clearTimeout(timer);
+    sock.on("data", chunk => {
+      buffer += chunk.toString("utf8");
+      const lines = buffer.split(/\n/);
+      buffer = lines.pop() || "";
+      for (const raw of lines) {
+        const line = raw.replace(/\r$/, "");
+        if (pending && /^\d{3} /.test(line)) {
+          const p = pending;
+          pending = null;
+          if (timer) clearTimeout(timer);
+          const code = Number(line.slice(0, 3));
+          p.resolve({ code, line });
+          break;
+        }
       }
-    }
-  };
-  const attach = sock => {
-    sock.on("data", feed);
-    sock.setTimeout(30000, () => {
-      while (responseWaiters.length) responseWaiters.shift().reject(new Error("SMTP yanıt zaman aşımına uğradı."));
-      sock.destroy(new Error("SMTP yanıt zaman aşımına uğradı."));
     });
   };
-  attach(socket);
+  attachReader(socket);
 
   const readResponse = () => new Promise((resolve, reject) => {
-    responseWaiters.push({ resolve, reject });
+    pending = { resolve, reject };
+    timer = setTimeout(() => {
+      pending = null;
+      reject(new Error("SMTP sunucusundan yanıt alınamadı."));
+    }, 30000);
   });
+
   const command = async (cmd, expected) => {
-    socket.write(String(cmd) + "\r\n");
+    socket.write(cmd + "\r\n");
     const r = await readResponse();
     if (!expected.includes(r.code)) throw new Error(`SMTP ${r.code}: ${r.line}`);
     return r;
   };
 
   try {
-    const greeting = await readResponse();
+    let greeting = await readResponse();
     if (greeting.code !== 220) throw new Error(`SMTP ${greeting.code}: ${greeting.line}`);
-
     await command("EHLO minegram.com", [250]);
 
-    if (!secure) {
+    if (!smtpRuntime.secure) {
       await command("STARTTLS", [220]);
       socket.removeAllListeners("data");
-      socket.removeAllListeners("timeout");
       socket = await new Promise((resolve, reject) => {
-        const upgraded = tls.connect({
-          socket,
-          servername: host,
-          rejectUnauthorized: true
-        }, () => resolve(upgraded));
+        const upgraded = tls.connect({ socket, servername: smtpRuntime.host }, () => resolve(upgraded));
         upgraded.once("error", reject);
       });
-      responseBuffer = "";
-      responseWaiters = [];
-      attach(socket);
+      attachReader(socket);
       await command("EHLO minegram.com", [250]);
     }
 
-    // Gmail/Google Workspace ve çoğu SMTP sağlayıcısı AUTH LOGIN'ı destekler.
     await command("AUTH LOGIN", [334]);
-    await command(Buffer.from(String(smtpRuntime.user), "utf8").toString("base64"), [334]);
-    await command(Buffer.from(String(smtpRuntime.pass), "utf8").toString("base64"), [235]);
-
+    await command(Buffer.from(String(smtpRuntime.user)).toString("base64"), [334]);
+    await command(Buffer.from(String(smtpRuntime.pass)).toString("base64"), [235]);
     await command(`MAIL FROM:<${smtpEscapeAddress(smtpRuntime.fromEmail)}>`, [250]);
     await command(`RCPT TO:<${smtpEscapeAddress(to)}>`, [250, 251]);
     await command("DATA", [354]);
@@ -5512,13 +5528,12 @@ async function sendSmtpEmail({ to, subject, text, html }) {
       `--${boundary}--`,
       ""
     ].join("\r\n").replace(/^\./gm, "..");
-
     socket.write(message + ".\r\n");
     const sent = await readResponse();
     if (sent.code !== 250) throw new Error(`SMTP ${sent.code}: ${sent.line}`);
-    try { await command("QUIT", [221]); } catch (_) {}
+    await command("QUIT", [221]);
   } finally {
-    try { socket.end(); } catch (_) {}
+    socket.end();
   }
 }
 
