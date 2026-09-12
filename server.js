@@ -73,6 +73,14 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
 app.use(express.static(publicDir));
 app.use(express.static(__dirname));
 
@@ -686,134 +694,29 @@ function registrationAllowed(email) {
   return now - last >= 60 * 1000;
 }
 
-async function firebaseSignUp(email, password) {
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, returnSecureToken: true })
-    }
+async function sendRegistrationCode(email, code) {
+  await sendResendEmail(
+    email,
+    "Minegram e-posta doğrulama kodun",
+    `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
+        <h2 style="margin:0 0 16px">Minegram</h2>
+        <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
+        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
+          ${code}
+        </div>
+        <p style="color:#666">Bu kod 10 dakika geçerlidir.</p>
+        <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
+      </div>
+    `,
+    `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
   );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Firebase hesabı oluşturulamadı.");
-  }
-  return data;
-}
-
-
-async function firebaseSignInAndSendVerifyEmail(email, password) {
-  const signInResponse = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, returnSecureToken: true })
-    }
-  );
-
-  const signInData = await signInResponse.json().catch(() => ({}));
-
-  if (!signInResponse.ok) {
-    throw new Error(signInData?.error?.message || "Mevcut Firebase hesabına giriş yapılamadı.");
-  }
-
-  const idToken = String(signInData?.idToken || "").trim();
-  if (!idToken) throw new Error("Firebase oturum anahtarı alınamadı.");
-
-  await firebaseSendVerifyEmail(idToken);
-
-  return {
-    localId: signInData.localId,
-    idToken: signInData.idToken,
-    refreshToken: signInData.refreshToken,
-    email: signInData.email
-  };
-}
-
-
-async function firebaseEmailExists(email) {
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        identifier: String(email || "").trim().toLowerCase(),
-        continueUri: "https://minegram.com/"
-      })
-    }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const code = String(data?.error?.message || "");
-    if (code === "EMAIL_NOT_FOUND") return false;
-    throw new Error(code || "Firebase e-posta kontrolü başarısız.");
-  }
-  return data?.registered === true;
-}
-
-async function firebaseSendVerifyEmail(idToken) {
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        requestType: "VERIFY_EMAIL",
-        idToken
-      })
-    }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Firebase doğrulama e-postası gönderilemedi.");
-  }
-  return data;
-}
-
-async function firebaseRefreshIdToken(refreshToken) {
-  const response = await fetch(
-    `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken
-      }).toString()
-    }
-  );
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error?.error_description || data.error?.message || "Firebase oturumu yenilenemedi.");
-  }
-  return data;
-}
-
-async function firebaseDeleteByIdToken(idToken) {
-  if (!idToken) return;
-  try {
-    await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken })
-      }
-    );
-  } catch (e) {
-    console.error("FIREBASE CLEANUP ERROR:", e?.message || e);
-  }
 }
 
 app.post(
   "/api/register",
   async (req, res) => {
     let createdAuthUserId = null;
-    let createdFirebaseIdToken = null;
-    let createdFirebaseRefreshToken = null;
 
     try {
       const username =
@@ -890,6 +793,15 @@ app.post(
           ok: false,
           code: "SERVICE_ROLE_MISSING",
           error: "SUPABASE_SERVICE_ROLE_KEY eksik."
+        });
+      }
+
+      if (!registrationAllowed(email)) {
+        return res.status(429).json({
+          ok: false,
+          code: "CODE_RATE_LIMIT",
+          error:
+            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle."
         });
       }
 
@@ -1134,149 +1046,60 @@ app.post(
       }
 
       /*
-       * FIREBASE HESABI OLUŞTUR + FIREBASE DOĞRULAMA E-POSTASI GÖNDER
-       * Resend/SMTP kullanılmaz.
+       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
        */
-      let firebaseData;
+      const code = createVerificationCode();
+
+      registrationCodes.set(
+        registrationKey(email),
+        {
+          code,
+          userId: authUser.id,
+          email,
+          expires: Date.now() + 10 * 60 * 1000,
+          attempts: 0,
+          username,
+          displayName
+        }
+      );
+
+      registrationRate.set(
+        registrationKey(email),
+        Date.now()
+      );
+
       try {
-        firebaseData = await firebaseSignUp(email, password);
-        createdFirebaseIdToken = String(firebaseData.idToken || "").trim();
-        createdFirebaseRefreshToken = String(firebaseData.refreshToken || "").trim();
+        await sendRegistrationCode(
+          email,
+          code
+        );
+      } catch (mailError) {
+        console.error(
+          "REGISTRATION EMAIL ERROR:",
+          mailError
+        );
 
-        if (!createdFirebaseIdToken || !createdFirebaseRefreshToken) {
-          throw new Error("Firebase oturumu oluşturulamadı.");
-        }
-
-        await firebaseSendVerifyEmail(createdFirebaseIdToken);
-      } catch (firebaseError) {
-        console.error("FIREBASE REGISTRATION ERROR:", firebaseError);
-
-        const firebaseMessage = String(firebaseError?.message || "");
-
-        /*
-         * EMAIL_EXISTS:
-         * Firebase'de bu e-posta daha önce oluşturulmuşsa yeni kullanıcı
-         * oluşturmaya çalışma. Girilen mevcut şifre ile oturum açıp
-         * doğrulama e-postasını yeniden gönder.
-         *
-         * Güvenlik nedeniyle şifre yanlışsa mevcut Firebase hesabına
-         * erişmeye çalışılmaz; normal hata döndürülür.
-         */
-        if (firebaseMessage.includes("EMAIL_EXISTS")) {
-          console.log(
-            "[MINEGRAM] EMAIL_EXISTS: Firebase'de aynı e-posta ile eski hesap aranıyor."
-          );
-
-          /*
-           * ÖNEMLİ:
-           * Kullanıcı adı Minegram'da kayıtlı olmasa bile Firebase Auth'ta
-           * daha önce yarım kalmış bir hesap bulunabilir. Bu durumda yeni
-           * hesap oluşturulamaz.
-           *
-           * Eğer eski Firebase hesabı HENÜZ E-POSTA DOĞRULAMAMIŞSA,
-           * bu hesabı eski/yarım kayıt olarak kabul edip siler ve yeni
-           * kayıt akışını bir kez tekrarlarız. Böylece kullanıcı adına
-           * bakarak yanlış "hesap zaten kayıtlı" mesajı verilmez.
-           *
-           * Eğer eski hesap DOĞRULANMIŞSA, kesinlikle silinmez.
-           */
-          try {
-            const oldFirebaseUser = await admin.auth.getUserByEmail(email);
-
-            if (!oldFirebaseUser.emailVerified) {
-              console.log(
-                "[MINEGRAM] Eski Firebase hesabı doğrulanmamış. Yarım kayıt temizleniyor."
-              );
-
-              await admin.auth.deleteUser(oldFirebaseUser.uid);
-
-              firebaseData = await firebaseSignUp(email, password);
-              createdFirebaseIdToken = String(firebaseData.idToken || "").trim();
-              createdFirebaseRefreshToken = String(firebaseData.refreshToken || "").trim();
-
-              if (!createdFirebaseIdToken || !createdFirebaseRefreshToken) {
-                throw new Error("Firebase oturumu oluşturulamadı.");
-              }
-
-              await firebaseSendVerifyEmail(createdFirebaseIdToken);
-
-              console.log(
-                "[MINEGRAM] Eski doğrulanmamış Firebase hesabı temizlendi ve yeni doğrulama e-postası gönderildi."
-              );
-            } else {
-              console.log(
-                "[MINEGRAM] Firebase hesabı e-posta doğrulaması yapılmış; hesap silinmeyecek."
-              );
-
-              try {
-                await admin.auth.admin.deleteUser(authUser.id);
-              } catch (cleanupError) {
-                console.error(
-                  "SUPABASE CLEANUP AFTER VERIFIED FIREBASE EMAIL EXISTS ERROR:",
-                  cleanupError
-                );
-              }
-
-              createdAuthUserId = null;
-
-              return res.status(409).json({
-                ok: false,
-                code: "EMAIL_EXISTS_VERIFIED",
-                error: "Bu e-posta adresi Firebase'de doğrulanmış bir hesaba ait. Giriş yap veya Şifremi unuttum seçeneğini kullan."
-              });
-            }
-          } catch (existingFirebaseError) {
-            const existingCode =
-              String(existingFirebaseError?.errorInfo?.code || existingFirebaseError?.code || "");
-
-            if (
-              existingCode === "auth/user-not-found" ||
-              existingCode === "USER_NOT_FOUND"
-            ) {
-              throw firebaseError;
-            }
-
-            console.error(
-              "[MINEGRAM] EMAIL_EXISTS temizleme/kontrol hatası:",
-              existingFirebaseError
-            );
-
-            try {
-              await admin.auth.admin.deleteUser(authUser.id);
-            } catch (cleanupError) {
-              console.error(
-                "SUPABASE CLEANUP AFTER FIREBASE EMAIL EXISTS ERROR:",
-                cleanupError
-              );
-            }
-
-            createdAuthUserId = null;
-
-            return res.status(409).json({
-              ok: false,
-              code: "EMAIL_EXISTS",
-              error: "Bu e-posta Firebase'de zaten kullanılıyor. Giriş veya şifre sıfırlama ile devam et."
-            });
-          }
-        }
+        registrationCodes.delete(
+          registrationKey(email)
+        );
 
         try {
-          await admin.auth.admin.deleteUser(authUser.id);
+          await admin.auth.admin.deleteUser(
+            authUser.id
+          );
         } catch (cleanupError) {
-          console.error("SUPABASE CLEANUP AFTER FIREBASE ERROR:", cleanupError);
+          console.error(
+            "AUTH CLEANUP AFTER MAIL ERROR:",
+            cleanupError
+          );
         }
 
-        await firebaseDeleteByIdToken(createdFirebaseIdToken);
-        createdAuthUserId = null;
-        createdFirebaseIdToken = null;
-        createdFirebaseRefreshToken = null;
-
-        return res.status(400).json({
+        return res.status(500).json({
           ok: false,
-          code: "FIREBASE_EMAIL_ERROR",
+          code: "EMAIL_SEND_ERROR",
           error:
-            firebaseMessage ||
-            "Firebase doğrulama e-postası gönderilemedi."
+            mailError?.message ||
+            "Doğrulama e-postası gönderilemedi."
         });
       }
 
@@ -1286,10 +1109,8 @@ app.post(
         ok: true,
         needsEmailVerification: true,
         message:
-          "Firebase tarafından e-posta doğrulama bağlantısı gönderildi.",
+          "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.",
         maskedEmail: maskEmail(email),
-        firebaseIdToken: createdFirebaseIdToken,
-        firebaseRefreshToken: createdFirebaseRefreshToken,
         email,
         user: {
           id: authUser.id,
@@ -1304,10 +1125,6 @@ app.post(
         "REGISTER ERROR:",
         e
       );
-
-      if (createdFirebaseIdToken) {
-        await firebaseDeleteByIdToken(createdFirebaseIdToken);
-      }
 
       if (createdAuthUserId) {
         try {
@@ -1333,89 +1150,6 @@ app.post(
     }
   }
 );
-
-/* =========================================================
-   FIREBASE KAYIT DOĞRULAMA DURUMU
-   Resend/SMTP kullanılmaz.
-   ========================================================= */
-
-app.post("/api/register/firebase-status", async (req, res) => {
-  try {
-    let idToken = String(req.body?.idToken || "").trim();
-    const refreshToken = String(req.body?.refreshToken || "").trim();
-
-    if (!idToken && refreshToken) {
-      const refreshed = await firebaseRefreshIdToken(refreshToken);
-      idToken = String(refreshed.id_token || "").trim();
-    }
-
-    if (!idToken) {
-      return res.status(401).json({ ok: false, verified: false, error: "Firebase oturumu bulunamadı." });
-    }
-
-    const user = await firebaseLookupIdToken(idToken);
-    const email = normalizeEmail(user.email);
-
-    const verified = user.emailVerified === true;
-
-    if (verified) {
-      try {
-        const admin = adminClient();
-        const usersResult = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        const supaUser = (usersResult?.data?.users || []).find(u => normalizeEmail(u?.email) === email);
-        if (supaUser?.id) {
-          await admin.auth.admin.updateUserById(supaUser.id, { email_confirm: true });
-        }
-      } catch (confirmError) {
-        console.error("SUPABASE EMAIL CONFIRM AFTER FIREBASE ERROR:", confirmError?.message || confirmError);
-      }
-    }
-
-    return res.json({
-      ok: true,
-      verified,
-      email,
-      idToken,
-      message: verified
-        ? "E-posta doğrulandı."
-        : "Henüz doğrulanmadı. Gmail'deki bağlantıya tıklayıp tekrar kontrol et."
-    });
-  } catch (e) {
-    console.error("FIREBASE STATUS ERROR:", e?.message || e);
-    return res.status(400).json({
-      ok: false,
-      verified: false,
-      error: e?.message || "Firebase doğrulaması kontrol edilemedi."
-    });
-  }
-});
-
-app.post("/api/register/firebase-resend", async (req, res) => {
-  try {
-    let idToken = String(req.body?.idToken || "").trim();
-    const refreshToken = String(req.body?.refreshToken || "").trim();
-
-    if (!idToken && refreshToken) {
-      const refreshed = await firebaseRefreshIdToken(refreshToken);
-      idToken = String(refreshed.id_token || "").trim();
-    }
-
-    if (!idToken) {
-      return res.status(401).json({ ok: false, error: "Firebase oturumu bulunamadı." });
-    }
-
-    const user = await firebaseLookupIdToken(idToken);
-    if (user.emailVerified === true) {
-      return res.json({ ok: true, verified: true, message: "E-posta zaten doğrulanmış." });
-    }
-
-    await firebaseSendVerifyEmail(idToken);
-    return res.json({ ok: true, verified: false, message: "Firebase doğrulama e-postası tekrar gönderildi." });
-  } catch (e) {
-    console.error("FIREBASE RESEND ERROR:", e?.message || e);
-    return res.status(400).json({ ok: false, error: e?.message || "Doğrulama e-postası tekrar gönderilemedi." });
-  }
-});
 
 /* =========================================================
    REGISTER VERIFY
@@ -2893,11 +2627,11 @@ async function sendResendEmail(
   }
 
   const from =
-    String(process.env.RESEND_FROM_EMAIL || "").trim();
+    String(process.env.RESEND_FROM_EMAIL || "admin@minegram.com").trim();
 
   if (!from) {
     throw new Error(
-      "RESEND_FROM_EMAIL ayarlanmadı. Herkese e-posta göndermek için Resend üzerinde doğrulanmış alan adından bir gönderen adresi tanımlayın."
+      "RESEND_FROM_EMAIL ayarlanmadı. Varsayılan gönderen admin@minegram.com kullanılmalıdır ve minegram.com Resend üzerinde doğrulanmış olmalıdır."
     );
   }
 
@@ -5607,6 +5341,24 @@ async function firebaseLookupIdToken(idToken) {
   return data.users[0];
 }
 
+async function firebaseSendVerifyEmail(idToken) {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestType: "VERIFY_EMAIL",
+        idToken
+      })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error?.message || "Firebase doğrulama e-postası gönderilemedi.");
+  }
+  return data;
+}
 
 app.get("/api/admin/email-service/status", async (req, res) => {
   res.json({
@@ -5617,8 +5369,8 @@ app.get("/api/admin/email-service/status", async (req, res) => {
     testEmail: MINEGRAM_ADMIN_TEST_EMAIL,
     fromName: "Minegram",
     fromEmail: MINEGRAM_ADMIN_TEST_EMAIL,
-    codeLength: 0,
-    expiryMinutes: 0,
+    codeLength: 6,
+    expiryMinutes: 10,
     cooldownSeconds: 60,
     smtpRequired: false
   });
@@ -5685,65 +5437,6 @@ app.post("/api/admin/email-service/test", async (req, res) => {
     return res.status(500).json({
       ok: false,
       error: e?.message || "E-posta gönderilemedi."
-    });
-  }
-});
-
-
-// =========================================================
-// V7 — Firebase şifre sıfırlama e-postası
-// Resend/SMTP kullanılmaz. Firebase Authentication kullanılır.
-// =========================================================
-app.post("/api/auth/firebase-password-reset", async (req, res) => {
-  try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        ok: false,
-        error: "Geçerli bir e-posta adresi gir."
-      });
-    }
-
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestType: "PASSWORD_RESET",
-          email
-        })
-      }
-    );
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const code = String(data?.error?.message || "");
-      if (code === "EMAIL_NOT_FOUND") {
-        return res.status(404).json({
-          ok: false,
-          code: "EMAIL_NOT_FOUND",
-          error: "Bu e-posta ile kayıtlı bir Firebase hesabı bulunamadı."
-        });
-      }
-
-      return res.status(400).json({
-        ok: false,
-        error: code || "Şifre sıfırlama e-postası gönderilemedi."
-      });
-    }
-
-    return res.json({
-      ok: true,
-      email
-    });
-  } catch (error) {
-    console.error("[MINEGRAM] Firebase password reset error:", error);
-    return res.status(500).json({
-      ok: false,
-      error: error?.message || "Şifre sıfırlama e-postası gönderilemedi."
     });
   }
 });
