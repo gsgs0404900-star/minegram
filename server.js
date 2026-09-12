@@ -35,6 +35,11 @@ const SUPABASE_KEY =
 const SUPABASE_SERVICE_ROLE_KEY =
   env("SUPABASE_SERVICE_ROLE_KEY");
 
+// Firebase Authentication web API key. Used only to verify the Firebase emailVerified flag.
+const FIREBASE_WEB_API_KEY =
+  env("FIREBASE_WEB_API_KEY") ||
+  "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
+
 const BUCKET = "media";
 
 const CONFIG_OK = Boolean(
@@ -687,22 +692,9 @@ function registrationAllowed(email) {
 }
 
 async function sendRegistrationCode(email, code) {
-  await sendResendEmail(
-    email,
-    "Minegram e-posta doğrulama kodun",
-    `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
-        <h2 style="margin:0 0 16px">Minegram</h2>
-        <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
-        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
-          ${code}
-        </div>
-        <p style="color:#666">Bu kod 10 dakika geçerlidir.</p>
-        <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
-      </div>
-    `,
-    `Minegram e-posta doğrulama kodun: ${code}\nBu kod 10 dakika geçerlidir.`
-  );
+  // Resend/SMTP is intentionally not used anymore.
+  // Firebase Authentication sends the verification email from the browser.
+  throw new Error("Resend devre dışı. E-posta doğrulaması Firebase Authentication tarafından gönderilir.");
 }
 
 app.post(
@@ -1038,64 +1030,28 @@ app.post(
       }
 
       /*
-       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
+       * SMTP/Resend KULLANILMIYOR.
+       * Firebase Authentication, frontend tarafında doğrulama e-postasını gönderir.
+       * Supabase kullanıcısı burada email_confirm=false olarak kalır;
+       * Firebase doğrulandıktan sonra /api/register/firebase-verify ile onaylanır.
        */
-      const code = createVerificationCode();
+      createdAuthUserId = null;
 
-      registrationCodes.set(
-        registrationKey(email),
-        {
-          code,
-          userId: authUser.id,
-          email,
-          expires: Date.now() + 10 * 60 * 1000,
-          attempts: 0,
+      return res.json({
+        ok: true,
+        needsEmailVerification: true,
+        firebaseEmailVerification: true,
+        message:
+          "Kayıt oluşturuldu. E-posta doğrulama bağlantısı Firebase tarafından gönderilecek.",
+        maskedEmail: maskEmail(email),
+        email,
+        user: {
+          id: authUser.id,
+          email: authUser.email,
           username,
           displayName
         }
-      );
-
-      registrationRate.set(
-        registrationKey(email),
-        Date.now()
-      );
-
-      try {
-        await sendRegistrationCode(
-          email,
-          code
-        );
-      } catch (mailError) {
-        console.error(
-          "REGISTRATION EMAIL ERROR:",
-          mailError
-        );
-
-        registrationCodes.delete(
-          registrationKey(email)
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP AFTER MAIL ERROR:",
-            cleanupError
-          );
-        }
-
-        return res.status(500).json({
-          ok: false,
-          code: "EMAIL_SEND_ERROR",
-          error:
-            mailError?.message ||
-            "Doğrulama e-postası gönderilemedi."
-        });
-      }
-
-      createdAuthUserId = null;
+      });
 
       return res.json({
         ok: true,
@@ -1317,6 +1273,99 @@ app.post(
         error:
           e?.message ||
           "Doğrulama başarısız."
+      });
+    }
+  }
+);
+
+/* =========================================================
+   FIREBASE E-POSTA DOĞRULAMA → SUPABASE ONAYI
+   Resend/SMTP gerekmez. Firebase ID token içindeki
+   email_verified bilgisini doğrulayıp Supabase kullanıcısını onaylarız.
+========================================================= */
+
+app.post(
+  "/api/register/firebase-verify",
+  async (req, res) => {
+    try {
+      const idToken = String(req.body?.idToken || "").trim();
+      const supabaseUserId = String(req.body?.supabaseUserId || "").trim();
+
+      if (!idToken || !supabaseUserId) {
+        return res.status(400).json({
+          ok: false,
+          error: "Firebase doğrulama bilgisi eksik."
+        });
+      }
+
+      const lookupResponse = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken })
+        }
+      );
+
+      const lookup = await lookupResponse.json().catch(() => ({}));
+      const firebaseUser = Array.isArray(lookup.users) ? lookup.users[0] : null;
+
+      if (!lookupResponse.ok || !firebaseUser) {
+        return res.status(401).json({
+          ok: false,
+          error: "Firebase oturumu doğrulanamadı."
+        });
+      }
+
+      if (firebaseUser.emailVerified !== true) {
+        return res.status(403).json({
+          ok: false,
+          error: "E-posta adresi henüz doğrulanmadı."
+        });
+      }
+
+      const admin = adminClient();
+      const { data: target, error: targetError } =
+        await admin.auth.admin.getUserById(supabaseUserId);
+
+      if (targetError || !target?.user) {
+        return res.status(404).json({
+          ok: false,
+          error: "Minegram hesabı bulunamadı."
+        });
+      }
+
+      const targetEmail = normalizeEmail(target.user.email || "");
+      const firebaseEmail = normalizeEmail(firebaseUser.email || "");
+
+      if (!targetEmail || !firebaseEmail || targetEmail !== firebaseEmail) {
+        return res.status(403).json({
+          ok: false,
+          error: "Doğrulanan e-posta ile Minegram hesabının e-postası eşleşmiyor."
+        });
+      }
+
+      const { data: updated, error: updateError } =
+        await admin.auth.admin.updateUserById(
+          supabaseUserId,
+          { email_confirm: true }
+        );
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return res.json({
+        ok: true,
+        verified: true,
+        email: updated?.user?.email || targetEmail,
+        message: "E-posta doğrulandı. Minegram hesabın etkinleştirildi."
+      });
+    } catch (e) {
+      console.error("FIREBASE VERIFY ERROR:", e);
+      return res.status(500).json({
+        ok: false,
+        error: e?.message || "E-posta doğrulaması tamamlanamadı."
       });
     }
   }
@@ -2597,74 +2646,14 @@ app.get(
 
 
 /* =========================================================
-   RESEND
+   E-POSTA SERVİSİ
+   Resend ve SMTP devre dışı. Firebase Authentication kullanılır.
 ========================================================= */
 
-async function sendResendEmail(
-  to,
-  subject,
-  html,
-  text
-) {
-  const key =
-    String(
-      process.env.RESEND_API_KEY ||
-      ""
-    ).trim();
-
-  if (!key) {
-    throw new Error(
-      "RESEND_API_KEY eksik."
-    );
-  }
-
-  const from =
-    String(process.env.RESEND_FROM_EMAIL || "admin@minegram.com").trim();
-
-  if (!from) {
-    throw new Error(
-      "RESEND_FROM_EMAIL ayarlanmadı. Varsayılan gönderen admin@minegram.com kullanılmalıdır ve minegram.com Resend üzerinde doğrulanmış olmalıdır."
-    );
-  }
-
-  const r =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${key}`,
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          html,
-          text
-        })
-      }
-    );
-
-  const j =
-    await r
-      .json()
-      .catch(
-        () => ({})
-      );
-
-  if (!r.ok) {
-    throw new Error(
-      j.message ||
-      "E-posta gönderilemedi."
-    );
-  }
-
-  return j;
+async function sendResendEmail() {
+  throw new Error(
+    "Resend devre dışı. E-posta gönderimi Firebase Authentication tarafından yapılır."
+  );
 }
 
 const recoveryCodes =
