@@ -5391,7 +5391,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   const tls = await import("tls");
   let socket;
 
-  const connectSocket = (secure) => new Promise((resolve, reject) => {
+  const connectSocket = async (secure) => new Promise((resolve, reject) => {
     let options;
     try {
       options = await smtpConnectionOptions();
