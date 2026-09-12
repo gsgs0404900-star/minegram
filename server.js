@@ -5372,127 +5372,183 @@ function smtpConnectionOptions() {
 
 async function sendSmtpEmail({ to, subject, text, html }) {
   if (!smtpRuntime.host || !smtpRuntime.user || !smtpRuntime.pass || !smtpRuntime.fromEmail) {
-    throw new Error("SMTP ayarları eksik. Sunucuda SMTP_PASS veya panelde SMTP şifresi gerekli.");
+    throw new Error("SMTP ayarları eksik. SMTP_HOST, SMTP_USER, SMTP_PASS ve SMTP_FROM_EMAIL gerekli.");
   }
 
   const net = await import("net");
   const tls = await import("tls");
-  let socket;
 
-  const connectSocket = (secure) => new Promise((resolve, reject) => {
-    const options = smtpConnectionOptions();
-    let s;
+  const host = String(smtpRuntime.host).trim();
+  const user = String(smtpRuntime.user).trim();
+  const pass = String(smtpRuntime.pass);
+  const fromEmail = smtpEscapeAddress(smtpRuntime.fromEmail);
+  const toEmail = smtpEscapeAddress(to);
+  const preferredPort = Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587);
+
+  const connect = (port, secure) => new Promise((resolve, reject) => {
     let settled = false;
-    const fail = e => {
-      if (!settled) { settled = true; reject(e); }
-      else s.destroy();
+    const options = {
+      host,
+      port,
+      servername: host,
+      timeout: 25000,
+      rejectUnauthorized: true
     };
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      reject(err instanceof Error ? err : new Error(String(err)));
+    };
+    let socket;
     if (secure) {
-      s = tls.connect(options, () => { settled = true; resolve(s); });
-    } else {
-      s = net.createConnection(options, () => { settled = true; resolve(s); });
-    }
-    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı.")));
-    s.once("error", fail);
-  });
-
-  socket = await connectSocket(!!smtpRuntime.secure);
-  let buffer = "";
-  let pending = null;
-  let timer = null;
-
-  const attachReader = (sock) => {
-    buffer = "";
-    pending = null;
-    if (timer) clearTimeout(timer);
-    sock.on("data", chunk => {
-      buffer += chunk.toString("utf8");
-      const lines = buffer.split(/\n/);
-      buffer = lines.pop() || "";
-      for (const raw of lines) {
-        const line = raw.replace(/\r$/, "");
-        if (pending && /^\d{3} /.test(line)) {
-          const p = pending;
-          pending = null;
-          if (timer) clearTimeout(timer);
-          const code = Number(line.slice(0, 3));
-          p.resolve({ code, line });
-          break;
-        }
-      }
-    });
-  };
-  attachReader(socket);
-
-  const readResponse = () => new Promise((resolve, reject) => {
-    pending = { resolve, reject };
-    timer = setTimeout(() => {
-      pending = null;
-      reject(new Error("SMTP sunucusundan yanıt alınamadı."));
-    }, 30000);
-  });
-
-  const command = async (cmd, expected) => {
-    socket.write(cmd + "\r\n");
-    const r = await readResponse();
-    if (!expected.includes(r.code)) throw new Error(`SMTP ${r.code}: ${r.line}`);
-    return r;
-  };
-
-  try {
-    let greeting = await readResponse();
-    if (greeting.code !== 220) throw new Error(`SMTP ${greeting.code}: ${greeting.line}`);
-    await command("EHLO minegram.com", [250]);
-
-    if (!smtpRuntime.secure) {
-      await command("STARTTLS", [220]);
-      socket.removeAllListeners("data");
-      socket = await new Promise((resolve, reject) => {
-        const upgraded = tls.connect({ socket, servername: smtpRuntime.host }, () => resolve(upgraded));
-        upgraded.once("error", reject);
+      socket = tls.connect(options, () => {
+        if (!settled) { settled = true; resolve(socket); }
       });
-      attachReader(socket);
-      await command("EHLO minegram.com", [250]);
+    } else {
+      socket = net.createConnection(options, () => {
+        if (!settled) { settled = true; resolve(socket); }
+      });
     }
+    socket.setTimeout(25000, () => fail(new Error(`SMTP bağlantı zaman aşımı (${host}:${port}).`)));
+    socket.once("error", fail);
+  });
 
-    await command("AUTH LOGIN", [334]);
-    await command(Buffer.from(String(smtpRuntime.user)).toString("base64"), [334]);
-    await command(Buffer.from(String(smtpRuntime.pass)).toString("base64"), [235]);
-    await command(`MAIL FROM:<${smtpEscapeAddress(smtpRuntime.fromEmail)}>`, [250]);
-    await command(`RCPT TO:<${smtpEscapeAddress(to)}>`, [250, 251]);
-    await command("DATA", [354]);
+  const runSession = async (port, secure) => {
+    let socket = await connect(port, secure);
+    let buffer = "";
+    let pending = null;
+    let timer = null;
 
-    const safeFromName = smtpEscapeHeader(smtpRuntime.fromName || "Minegram");
-    const safeSubject = smtpEscapeHeader(subject || "Minegram");
-    const bodyText = String(text || "").replace(/\r?\n/g, "\r\n");
-    const bodyHtml = String(html || "").replace(/\r?\n/g, "\r\n");
-    const boundary = `minegram_${crypto.randomBytes(12).toString("hex")}`;
-    const message = [
-      `From: ${safeFromName} <${smtpEscapeAddress(smtpRuntime.fromEmail)}>`,
-      `To: <${smtpEscapeAddress(to)}>`,
-      `Subject: ${safeSubject}`,
-      "MIME-Version: 1.0",
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      "",
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      'Content-Transfer-Encoding: 8bit',
-      "",
-      bodyText,
-      `--${boundary}`,
-      'Content-Type: text/html; charset="UTF-8"',
-      'Content-Transfer-Encoding: 8bit',
-      "",
-      bodyHtml,
-      `--${boundary}--`,
-      ""
-    ].join("\r\n").replace(/^\./gm, "..");
-    socket.write(message + ".\r\n");
-    const sent = await readResponse();
-    if (sent.code !== 250) throw new Error(`SMTP ${sent.code}: ${sent.line}`);
-    await command("QUIT", [221]);
-  } finally {
-    socket.end();
+    const cleanupTimer = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+
+    const attachReader = (sock) => {
+      buffer = "";
+      sock.on("data", chunk => {
+        buffer += chunk.toString("utf8");
+        const lines = buffer.split(/\n/);
+        buffer = lines.pop() || "";
+        for (const raw of lines) {
+          const line = raw.replace(/\r$/, "");
+          if (pending && /^\d{3} /.test(line)) {
+            const p = pending;
+            pending = null;
+            cleanupTimer();
+            p.resolve({ code: Number(line.slice(0, 3)), line });
+            break;
+          }
+        }
+      });
+    };
+
+    const readResponse = () => new Promise((resolve, reject) => {
+      if (pending) return reject(new Error("SMTP yanıt okuyucu meşgul."));
+      pending = { resolve, reject };
+      timer = setTimeout(() => {
+        pending = null;
+        reject(new Error("SMTP sunucusundan 30 saniye içinde yanıt alınamadı."));
+      }, 30000);
+    });
+
+    const command = async (cmd, expected) => {
+      socket.write(cmd + "\r\n");
+      const r = await readResponse();
+      if (!expected.includes(r.code)) throw new Error(`SMTP ${r.code}: ${r.line}`);
+      return r;
+    };
+
+    try {
+      attachReader(socket);
+      const greeting = await readResponse();
+      if (greeting.code !== 220) throw new Error(`SMTP ${greeting.code}: ${greeting.line}`);
+
+      await command("EHLO minegram.com", [250]);
+
+      if (!secure) {
+        await command("STARTTLS", [220]);
+        socket.removeAllListeners("data");
+        socket = await new Promise((resolve, reject) => {
+          const upgraded = tls.connect({ socket, servername: host, rejectUnauthorized: true }, () => resolve(upgraded));
+          upgraded.once("error", reject);
+        });
+        attachReader(socket);
+        await command("EHLO minegram.com", [250]);
+      }
+
+      // Gmail accepts AUTH PLAIN with an App Password and this avoids
+      // compatibility problems seen with some AUTH LOGIN implementations.
+      const authPlain = Buffer.from(`\0${user}\0${pass}`).toString("base64");
+      let authDone = false;
+      try {
+        const r = await command(`AUTH PLAIN ${authPlain}`, [235]);
+        authDone = r.code === 235;
+      } catch (plainError) {
+        // Fallback for SMTP servers that expose LOGIN but reject PLAIN.
+        await command("AUTH LOGIN", [334]);
+        await command(Buffer.from(user).toString("base64"), [334]);
+        await command(Buffer.from(pass).toString("base64"), [235]);
+        authDone = true;
+      }
+      if (!authDone) throw new Error("SMTP kimlik doğrulaması başarısız.");
+
+      await command(`MAIL FROM:<${fromEmail}>`, [250]);
+      await command(`RCPT TO:<${toEmail}>`, [250, 251]);
+      await command("DATA", [354]);
+
+      const safeFromName = smtpEscapeHeader(smtpRuntime.fromName || "Minegram");
+      const safeSubject = smtpEscapeHeader(subject || "Minegram");
+      const bodyText = String(text || "").replace(/\r?\n/g, "\r\n");
+      const bodyHtml = String(html || "").replace(/\r?\n/g, "\r\n");
+      const boundary = `minegram_${crypto.randomBytes(12).toString("hex")}`;
+      const message = [
+        `Date: ${new Date().toUTCString()}`,
+        `Message-ID: <${crypto.randomBytes(12).toString("hex")}@minegram.com>`,
+        `From: ${safeFromName} <${fromEmail}>`,
+        `To: <${toEmail}>`,
+        `Subject: ${safeSubject}`,
+        "MIME-Version: 1.0",
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        "",
+        `--${boundary}`,
+        'Content-Type: text/plain; charset="UTF-8"',
+        'Content-Transfer-Encoding: 8bit',
+        "",
+        bodyText,
+        `--${boundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        'Content-Transfer-Encoding: 8bit',
+        "",
+        bodyHtml,
+        `--${boundary}--`,
+        ""
+      ].join("\r\n").replace(/^\./gm, "..");
+
+      socket.write(message + "\r\n.\r\n");
+      const sent = await readResponse();
+      if (sent.code !== 250) throw new Error(`SMTP ${sent.code}: ${sent.line}`);
+      await command("QUIT", [221]);
+      return { ok: true, host, port, secure, smtp: sent.line };
+    } finally {
+      cleanupTimer();
+      try { socket.end(); } catch (_) {}
+      try { socket.destroy(); } catch (_) {}
+    }
+  };
+
+  // If Gmail 465 is selected but the platform/network refuses implicit TLS,
+  // automatically retry with Gmail's STARTTLS endpoint on 587.
+  try {
+    return await runSession(preferredPort, preferredPort === 465 || !!smtpRuntime.secure);
+  } catch (firstError) {
+    if (preferredPort === 465 || smtpRuntime.secure) {
+      try {
+        return await runSession(587, false);
+      } catch (secondError) {
+        throw new Error(`Gmail SMTP başarısız. 465: ${firstError?.message || firstError} | 587: ${secondError?.message || secondError}`);
+      }
+    }
+    throw firstError;
   }
 }
 
