@@ -889,7 +889,7 @@ app.post(
        * ÖNEMLİ:
        * Supabase'in kendi confirmation mailini kullanmıyoruz.
        * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Resend ile biz gönderiyoruz.
+       * 6 haneli kodu Minegram'ın kendi doğrulama sistemi ile SMTP üzerinden gönderiyoruz.
        */
       const {
         data: created,
@@ -1169,33 +1169,27 @@ app.post(
       if (!/^\d{6}$/.test(code)) {
         return res.status(400).json({
           ok: false,
-          error:
-            "6 haneli doğrulama kodunu gir."
+          error: "6 haneli doğrulama kodunu gir."
         });
       }
 
-      const key =
-        registrationKey(email);
-
-      const entry =
-        registrationCodes.get(key);
+      const key = registrationKey(email);
+      const entry = registrationCodes.get(key);
 
       if (!entry) {
         return res.status(400).json({
           ok: false,
-          error:
-            "Doğrulama kodu bulunamadı. Yeni kod iste."
+          error: "Doğrulama kodu bulunamadı. Yeni kod iste."
         });
       }
 
-      if (entry.expires < Date.now()) {
+      if (!entry.expires || entry.expires < Date.now()) {
         registrationCodes.delete(key);
 
         return res.status(400).json({
           ok: false,
           code: "CODE_EXPIRED",
-          error:
-            "Kodun süresi dolmuş. Yeni kod iste."
+          error: "Kodun süresi dolmuş. Yeni kod iste."
         });
       }
 
@@ -1205,75 +1199,147 @@ app.post(
         return res.status(429).json({
           ok: false,
           code: "TOO_MANY_ATTEMPTS",
-          error:
-            "Çok fazla yanlış kod girildi. Yeni kod iste."
+          error: "Çok fazla yanlış kod girildi. Yeni kod iste."
         });
       }
 
       if (entry.code !== code) {
-        entry.attempts += 1;
+        entry.attempts = Number(entry.attempts || 0) + 1;
+
+        if (entry.attempts >= 5) {
+          registrationCodes.delete(key);
+
+          return res.status(429).json({
+            ok: false,
+            code: "TOO_MANY_ATTEMPTS",
+            error: "Çok fazla yanlış kod girildi. Yeni kod iste."
+          });
+        }
 
         return res.status(400).json({
           ok: false,
           code: "INVALID_CODE",
-          error:
-            "Kod yanlış. Lütfen tekrar kontrol et."
+          error: "Kod yanlış. Lütfen tekrar kontrol et."
         });
       }
 
-      const admin = adminClient();
-
       /*
-       * Kod doğru:
-       * Supabase Auth kullanıcısının e-postasını doğrula.
+       * BURASI MINEGRAM'IN BAĞIMSIZ E-POSTA DOĞRULAMA KISMI.
+       *
+       * Kodun üretilmesi, saklanması, süresi, deneme sayısı
+       * ve SMTP ile gönderilmesi Minegram tarafındadır.
+       *
+       * Supabase/Firebase'in kendi doğrulama e-postasını kullanmıyoruz.
+       *
+       * Mevcut Minegram hesabının giriş yapabilmesi için,
+       * hesap hâlâ Supabase Auth üzerinde tutulduğu sürece,
+       * yalnızca son adımda email_confirm işareti güncellenir.
+       * Bu, Supabase'in e-posta doğrulama sistemini kullanmak değildir.
        */
-      const {
-        data: updated,
-        error: updateError
-      } =
-        await admin.auth.admin.updateUserById(
+      let updatedUser = null;
+
+      try {
+        const admin = adminClient();
+
+        const {
+          data: userData,
+          error: userError
+        } = await admin.auth.admin.getUserById(entry.userId);
+
+        if (userError || !userData?.user) {
+          console.error(
+            "REGISTER VERIFY USER LOOKUP ERROR:",
+            userError
+          );
+
+          return res.status(404).json({
+            ok: false,
+            code: "USER_NOT_FOUND",
+            error: "Kayıt bulunamadı. Lütfen yeniden kayıt ol."
+          });
+        }
+
+        updatedUser = userData.user;
+
+        /*
+         * Minegram kodu doğru kabul edildi.
+         * Supabase Auth hesabı kullanıldığı için login sırasında
+         * "Email not confirmed" engelini kaldırıyoruz.
+         */
+        const {
+          data: confirmedData,
+          error: confirmError
+        } = await admin.auth.admin.updateUserById(
           entry.userId,
           {
             email_confirm: true
           }
         );
 
-      if (updateError) {
+        if (confirmError) {
+          console.error(
+            "REGISTER EMAIL CONFIRM ERROR:",
+            confirmError
+          );
+
+          return res.status(500).json({
+            ok: false,
+            code: "EMAIL_CONFIRM_FAILED",
+            error:
+              "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
+          });
+        }
+
+        updatedUser =
+          confirmedData?.user ||
+          updatedUser;
+
+      } catch (confirmException) {
         console.error(
-          "EMAIL CONFIRM ERROR:",
-          updateError
+          "REGISTER EMAIL CONFIRM EXCEPTION:",
+          confirmException?.message || confirmException
         );
 
         return res.status(500).json({
           ok: false,
+          code: "EMAIL_CONFIRM_FAILED",
           error:
-            "E-posta doğrulanamadı. Lütfen tekrar deneyin."
+            "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
         });
       }
 
+      // Kod bir kez başarıyla kullanıldıktan sonra silinir.
       registrationCodes.delete(key);
 
       /*
-       * Doğrulama tamamlandıktan sonra otomatik giriş.
+       * Otomatik giriş:
+       * Frontend şifre gönderiyorsa mevcut davranışı koruyoruz.
+       * Şifre gönderilmiyorsa doğrulama başarılı döner ve normal
+       * giriş ekranından devam edilebilir.
        */
-      const anon = client();
+      let loginData = null;
+      let loginError = null;
 
-      const {
-        data: loginData,
-        error: loginError
-      } =
-        await anon.auth.signInWithPassword({
-          email: entry.email,
-          password: String(
-            req.body?.password || ""
-          )
-        });
+      const password =
+        String(req.body?.password || "");
 
-      /*
-       * Şifre frontend tarafından gönderilmiyorsa
-       * doğrulama yine başarılı sayılır; frontend normal
-       * giriş ekranından devam edebilir.
-       */
+      if (password) {
+        try {
+          const anon = client();
+
+          const loginResult =
+            await anon.auth.signInWithPassword({
+              email: entry.email,
+              password
+            });
+
+          loginData = loginResult?.data || null;
+          loginError = loginResult?.error || null;
+        } catch (e) {
+          loginError = e;
+        }
+      }
+
       if (
         loginError ||
         !loginData?.session
@@ -1285,7 +1351,9 @@ app.post(
           message:
             "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
           user: {
-            id: updated?.user?.id || entry.userId,
+            id:
+              updatedUser?.id ||
+              entry.userId,
             email: entry.email,
             username: entry.username,
             displayName: entry.displayName
@@ -1299,7 +1367,9 @@ app.post(
         token:
           loginData.session.access_token,
         user: {
-          id: updated?.user?.id || entry.userId,
+          id:
+            updatedUser?.id ||
+            entry.userId,
           email: entry.email,
           username: entry.username,
           displayName: entry.displayName
@@ -1340,17 +1410,13 @@ app.post(
         });
       }
 
-      const key =
-        registrationKey(email);
-
-      const entry =
-        registrationCodes.get(key);
+      const key = registrationKey(email);
+      const entry = registrationCodes.get(key);
 
       if (!entry) {
         return res.status(404).json({
           ok: false,
-          error:
-            "Bekleyen bir kayıt bulunamadı."
+          error: "Bekleyen bir kayıt bulunamadı."
         });
       }
 
@@ -1362,49 +1428,21 @@ app.post(
         });
       }
 
-      const admin = adminClient();
-
-      const {
-        data: authData,
-        error: authError
-      } =
-        await admin.auth.admin.getUserById(
-          entry.userId
-        );
-
-      if (
-        authError ||
-        !authData?.user
-      ) {
-        registrationCodes.delete(key);
-
-        return res.status(404).json({
-          ok: false,
-          error:
-            "Kayıt bulunamadı. Lütfen yeniden kayıt ol."
-        });
-      }
-
-      if (
-        authData.user.email_confirmed_at
-      ) {
-        registrationCodes.delete(key);
-
-        return res.json({
-          ok: true,
-          verified: true,
-          message:
-            "E-posta zaten doğrulanmış."
-        });
-      }
-
-      const code =
-        createVerificationCode();
+      /*
+       * Yeni kod tamamen Minegram tarafından üretilir.
+       * Firebase/Supabase'in confirmation mail servisi kullanılmaz.
+       */
+      const code = createVerificationCode();
 
       entry.code = code;
       entry.expires =
         Date.now() + 10 * 60 * 1000;
       entry.attempts = 0;
+
+      registrationCodes.set(
+        key,
+        entry
+      );
 
       registrationRate.set(
         key,
