@@ -28,13 +28,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 @media(max-width:950px){.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.stats{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.app{display:block}.sidebar{position:static;width:100%}.main{margin-left:0;width:100%;padding:16px}.menu{display:flex;overflow-x:auto;gap:5px}.menu button{min-width:max-content}.stats{grid-template-columns:1fr}.content-grid,.form-grid{grid-template-columns:1fr}.form-full{grid-column:auto}}
 </style>
-
-<style id="minegram-native-mail-addon-style">
-.native-mail-box{margin-top:18px;padding:16px;border:1px solid #dbe4f0;border-radius:12px;background:#f8fafc}
-.native-mail-box h3{margin:0 0 8px}.native-mail-box p{margin:7px 0;color:#475467;font-size:14px;line-height:1.5}
-.native-mail-status{margin-top:10px;font-weight:700}
-</style>
-
 </head>
 <body>
 
@@ -109,28 +102,93 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <section id="emailService" class="section">
 <div class="content-grid">
   <div class="panel">
-    <h2>📧 E-posta / Doğrulama</h2>
-    <p>Resend kullanılmaz. Kullanıcı kayıt sırasında hangi Gmail/e-posta adresini yazarsa 6 haneli doğrulama kodu doğrudan o adrese gönderilir.</p>
-    <div class="input-group"><label>SMTP sunucusu</label><input id="smtpHost" placeholder="smtp.gmail.com"></div>
-    <div class="input-group"><label>SMTP portu</label><select id="smtpPort"><option value="465">465 (SSL)</option><option value="587">587 (STARTTLS)</option></select></div>
-    <div class="input-group"><label>SMTP kullanıcı e-postası</label><input id="smtpUser" type="email" placeholder="minegramdestek@gmail.com"></div>
-    <div class="input-group"><label>Gönderici adı</label><input id="smtpFromName" placeholder="Minegram"></div>
-    <div class="input-group"><label>Gönderici e-posta</label><input id="smtpFromEmail" type="email" placeholder="minegramdestek@gmail.com"></div>
-    <p style="color:#697386;font-size:13px">SMTP şifresi güvenlik için HTML'e kaydedilmez. Render Environment Variables içinde <b>SMTP_PASS</b> olarak tutulur.</p>
-    <div class="actions"><button id="smtpSaveButton" class="btn btn-primary">SMTP ayarlarını kaydet</button><button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button></div>
+    <h2>📧 Minegram Doğrulama E-posta Servisi</h2>
+    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP parolası bu HTML dosyasında tutulmaz; sunucu tarafında Environment Variable olarak saklanmalıdır.</p>
+
+    <div class="input-group">
+      <label>Gönderici adı</label>
+      <input id="smtpFromName" placeholder="Minegram">
+    </div>
+
+    <div class="input-group">
+      <label>Gönderici e-posta</label>
+      <input id="smtpFromEmail" type="email" placeholder="noreply@alanadiniz.com">
+    </div>
+
+    <div class="input-group">
+      <label>SMTP sunucusu</label>
+      <input id="smtpHost" placeholder="smtp.example.com">
+    </div>
+
+    <div class="form-grid">
+      <div class="input-group">
+        <label>SMTP portu</label>
+        <input id="smtpPort" type="number" value="587">
+      </div>
+      <div class="input-group">
+        <label>Şifreleme</label>
+        <select id="smtpSecure">
+          <option value="false">STARTTLS / 587</option>
+          <option value="true">SSL / 465</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>SMTP kullanıcı</label>
+      <input id="smtpUser" autocomplete="off" placeholder="SMTP kullanıcı adı">
+    </div>
+
+    <div class="input-group">
+      <label>SMTP şifresi / anahtarı</label>
+      <input id="smtpPass" type="password" autocomplete="new-password" placeholder="Sunucu tarafında saklanır">
+    </div>
+
+    <div class="actions">
+      <button id="smtpSaveButton" class="btn btn-primary">Servis ayarlarını kaydet</button>
+      <button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button>
+    </div>
     <div id="smtpMessage" class="message"></div>
   </div>
+
   <div class="panel">
     <h2>🔐 Doğrulama Ayarları</h2>
-    <div class="input-group"><label>Kod uzunluğu</label><select id="verificationCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
-    <div class="input-group"><label>Kod geçerlilik süresi</label><select id="verificationExpiry"><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
-    <div class="input-group"><label>Tekrar gönderme aralığı</label><select id="verificationCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
+
+    <div class="input-group">
+      <label>Kod uzunluğu</label>
+      <select id="verificationCodeLength">
+        <option value="6">6 hane</option>
+        <option value="8">8 hane</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>Kod geçerlilik süresi</label>
+      <select id="verificationExpiry">
+        <option value="5">5 dakika</option>
+        <option value="10">10 dakika</option>
+        <option value="15">15 dakika</option>
+        <option value="30">30 dakika</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>Gönderim aralığı</label>
+      <select id="verificationCooldown">
+        <option value="60">60 saniye</option>
+        <option value="120">2 dakika</option>
+        <option value="300">5 dakika</option>
+      </select>
+    </div>
+
     <button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
     <div id="verificationMessage" class="message"></div>
+
     <hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
-    <h3>📨 Kullanıcı doğrulaması</h3>
-    <p>Örnek: <b>kullanici@gmail.com</b> kayıt olursa kodun alıcısı <b>kullanici@gmail.com</b> olur. Admin e-postasına sabitlenmez.</p>
-    <p id="smtpStatus"><span class="badge">Servis kontrol ediliyor...</span></p>
+
+    <h3>Servis durumu</h3>
+    <p id="smtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
+    <p style="color:#697386;font-size:13px">SMTP kullanıcı adı ve şifresi güvenlik nedeniyle Firestore'a yazılmaz. Gerçek gizli bilgiler sunucu Environment Variables bölümünde tutulmalıdır.</p>
   </div>
 </div>
 </section>
@@ -522,52 +580,180 @@ $("settingsButton").addEventListener("click",async()=>{
 });
 
 /* =========================================================
-   MINEGRAM SMTP E-POSTA / DOĞRULAMA
-========================================================= */
+   MINEGRAM DOĞRULAMA E-POSTA SERVİSİ
+   Gizli SMTP parolası istemciye/Firestore'a yazılmaz.
+   Sunucu endpoint'i:
+     GET  /api/admin/email-service/status
+     POST /api/admin/email-service/config
+     POST /api/admin/email-service/test
+   ========================================================= */
 const EMAIL_SERVICE_API = "/api/admin/email-service";
+
 async function emailServiceRequest(path, options={}){
-    const user=auth.currentUser;
-    if(!user) throw new Error("Önce Admin olarak giriş yapmalısın.");
-    const idToken=await user.getIdToken(false);
-    const response=await fetch(EMAIL_SERVICE_API+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+idToken,...(options.headers||{})},credentials:"include"});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.error||data.message||"E-posta servisi isteği başarısız.");
+    const currentUser = (typeof auth !== "undefined" && auth) ? auth.currentUser : null;
+    const headers = new Headers(options.headers || {});
+    headers.set("Content-Type","application/json");
+    if(currentUser){
+        const token = await currentUser.getIdToken(true);
+        headers.set("Authorization","Bearer " + token);
+    }
+    const response = await fetch(EMAIL_SERVICE_API + path, {
+        ...options,
+        headers,
+        credentials:"include"
+    });
+    const data = await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || data.message || "E-posta servisi isteği başarısız.");
     return data;
 }
+
 async function loadEmailService(){
     try{
-        const data=await emailServiceRequest("/status");
-        $("smtpStatus").innerHTML=data.configured?'<span class="badge badge-green">● SMTP aktif</span>':'<span class="badge badge-red">● SMTP yapılandırılmamış</span>';
-        if(data.host) $("smtpHost").value=data.host;
-        if(data.port) $("smtpPort").value=String(data.port);
-        if(data.user) $("smtpUser").value=data.user;
+        const data = await emailServiceRequest("/status");
+        $("smtpStatus").innerHTML = data.configured
+            ? '<span class="badge badge-green">● Aktif</span>'
+            : '<span class="badge badge-red">● Yapılandırılmamış</span>';
+
         if(data.fromName) $("smtpFromName").value=data.fromName;
         if(data.fromEmail) $("smtpFromEmail").value=data.fromEmail;
+        if(data.host) $("smtpHost").value=data.host;
+        if(data.port) $("smtpPort").value=data.port;
+        if(typeof data.secure==="boolean") $("smtpSecure").value=String(data.secure);
+        if(data.user) $("smtpUser").value=data.user;
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-    }catch(error){$("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';console.warn("E-posta servisi:",error.message);}
+    }catch(error){
+        $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
+        console.warn("E-posta servisi:",error.message);
+    }
 }
+
 $("smtpSaveButton").addEventListener("click",async()=>{
-    const message=$("smtpMessage");message.className="message";message.textContent="Kaydediliyor...";
+    const message=$("smtpMessage");
+    message.className="message";
+    message.textContent="Kaydediliyor...";
     try{
-        await emailServiceRequest("/config",{method:"POST",body:JSON.stringify({host:$("smtpHost").value.trim(),port:Number($("smtpPort").value),secure:Number($("smtpPort").value)===465,user:$("smtpUser").value.trim(),fromName:$("smtpFromName").value.trim(),fromEmail:$("smtpFromEmail").value.trim()})});
-        message.className="message success";message.textContent="SMTP doğrulama servisi kaydedildi.";await loadEmailService();
-    }catch(error){message.className="message error";message.textContent=error.message;}
+        await emailServiceRequest("/config",{
+            method:"POST",
+            body:JSON.stringify({
+                fromName:$("smtpFromName").value.trim(),
+                fromEmail:$("smtpFromEmail").value.trim(),
+                host:$("smtpHost").value.trim(),
+                port:Number($("smtpPort").value||587),
+                secure:$("smtpSecure").value==="true",
+                user:$("smtpUser").value.trim(),
+                pass:$("smtpPass").value
+            })
+        });
+        $("smtpPass").value="";
+        message.className="message success";
+        message.textContent="SMTP ayarları sunucuya kaydedildi.";
+        await loadEmailService();
+    }catch(error){
+        message.className="message error";
+        message.textContent=error.message;
+    }
 });
+
 $("smtpTestButton").addEventListener("click",async()=>{
-    const message=$("smtpMessage");const to=prompt("Test e-postası hangi adrese gönderilsin?");if(!to)return;
-    message.className="message";message.textContent="Test e-postası gönderiliyor...";
-    try{await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to:to.trim()})});message.className="message success";message.textContent="Test e-postası gönderildi: "+to.trim();}
-    catch(error){message.className="message error";message.textContent="Gönderilemedi: "+error.message;}
+    const message=$("smtpMessage");
+    message.className="message";
+    message.textContent="Test e-postası gönderiliyor...";
+    try{
+        const to=prompt("Test e-postası hangi adrese gönderilsin?");
+        if(!to) return;
+        await emailServiceRequest("/test",{
+            method:"POST",
+            body:JSON.stringify({to:to.trim()})
+        });
+        message.className="message success";
+        message.textContent="Test e-postası gönderildi.";
+    }catch(error){
+        message.className="message error";
+        message.textContent=error.message;
+    }
 });
+
 $("verificationSaveButton").addEventListener("click",async()=>{
-    const message=$("verificationMessage");message.className="message";message.textContent="Kaydediliyor...";
-    try{await emailServiceRequest("/verification-config",{method:"POST",body:JSON.stringify({codeLength:Number($("verificationCodeLength").value),expiryMinutes:Number($("verificationExpiry").value),cooldownSeconds:Number($("verificationCooldown").value)})});message.className="message success";message.textContent="Doğrulama ayarları kaydedildi.";}
-    catch(error){message.className="message error";message.textContent=error.message;}
+    const message=$("verificationMessage");
+    message.className="message";
+    message.textContent="Kaydediliyor...";
+    try{
+        await emailServiceRequest("/verification-config",{
+            method:"POST",
+            body:JSON.stringify({
+                codeLength:Number($("verificationCodeLength").value),
+                expiryMinutes:Number($("verificationExpiry").value),
+                cooldownSeconds:Number($("verificationCooldown").value)
+            })
+        });
+        message.className="message success";
+        message.textContent="Doğrulama ayarları kaydedildi.";
+    }catch(error){
+        message.className="message error";
+        message.textContent=error.message;
+    }
 });
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>loadEmailService().catch(()=>{}));
+
+document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{
+    loadEmailService().catch(()=>{});
+});
 
 </script>
 </body>
 </html>
+
+<script type="module">
+/* =========================================================
+   MINEGRAM SMTP SERVİSİ - EK GÜVENLİK / AUTH BAĞLANTISI
+   Mevcut kodlara dokunulmaz veya silinmez.
+   Admin Firebase oturumunun ID token'ı, SMTP API isteklerine
+   otomatik olarak Authorization: Bearer ... olarak eklenir.
+   Böylece sunucudaki smtpAdminAuth kontrolü geçilebilir.
+   ========================================================= */
+(function installMinegramSmtpAuthBridge(){
+    const originalFetch = window.fetch.bind(window);
+
+    window.fetch = async function(input, init = {}) {
+        try {
+            const url = typeof input === "string"
+                ? input
+                : (input && input.url ? input.url : "");
+
+            if (url.includes("/api/admin/email-service")) {
+                const currentUser =
+                    (typeof auth !== "undefined" && auth)
+                        ? auth.currentUser
+                        : null;
+
+                if (currentUser) {
+                    const token = await currentUser.getIdToken();
+
+                    const headers = new Headers(
+                        init.headers ||
+                        (typeof input !== "string" && input && input.headers
+                            ? input.headers
+                            : undefined)
+                    );
+
+                    if (token) {
+                        headers.set("Authorization", "Bearer " + token);
+                    }
+
+                    init = {
+                        ...init,
+                        headers
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn("SMTP AUTH token ekleme hatası:", e);
+        }
+
+        return originalFetch(input, init);
+    };
+
+    console.log("Minegram SMTP Auth bağlantı köprüsü aktif.");
+})();
+</script>
