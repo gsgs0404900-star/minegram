@@ -32,7 +32,6 @@ body{
     width:100%;
     min-height:100vh;
     background:#000;
-    position:relative;
 }
 
 .topbar{
@@ -51,17 +50,13 @@ body{
     justify-content:center;
     color:#fff;
     font-size:34px;
-    font-weight:300;
-    line-height:1;
     cursor:pointer;
-    user-select:none;
 }
 
 .top-title{
     margin-left:15px;
     font-size:20px;
     font-weight:700;
-    color:#fff;
 }
 
 .content{
@@ -72,10 +67,8 @@ body{
 .title{
     text-align:center;
     font-size:30px;
-    line-height:1.15;
     font-weight:700;
     margin:0 0 34px;
-    color:#fff;
 }
 
 .description{
@@ -101,12 +94,10 @@ body{
     color:#fff;
     outline:none;
     font-size:12px;
-    font-family:Arial,Helvetica,sans-serif;
 }
 
 .password::placeholder{
     color:#777;
-    opacity:1;
 }
 
 .password:focus{
@@ -123,7 +114,6 @@ body{
     color:#888;
     font-size:11px;
     cursor:pointer;
-    padding:4px;
 }
 
 .message{
@@ -184,12 +174,10 @@ body{
 
     .title{
         font-size:42px;
-        margin-bottom:30px;
     }
 
     .description{
         font-size:21px;
-        line-height:1.5;
         margin-bottom:55px;
     }
 
@@ -233,10 +221,6 @@ body{
     .description{
         font-size:20px;
     }
-
-    .next-button{
-        width:100%;
-    }
 }
 </style>
 </head>
@@ -250,9 +234,6 @@ body{
         <div
             class="back"
             id="topBack"
-            aria-label="Geri"
-            role="button"
-            tabindex="0"
         >‹</div>
 
         <div class="top-title">
@@ -260,6 +241,7 @@ body{
         </div>
 
     </div>
+
 
     <main class="content">
 
@@ -292,22 +274,58 @@ body{
 
         </div>
 
-        <div id="message" class="message"></div>
+        <div
+            id="message"
+            class="message"
+        ></div>
 
         <button
             type="button"
             id="nextButton"
             class="next-button"
         >
-            İleri
+            Hesap Oluştur
         </button>
 
     </main>
 
 </div>
 
-<script>
-"use strict";
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut
+}
+from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+/* =========================================
+   FIREBASE
+========================================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+  authDomain: "mim-ea133.firebaseapp.com",
+  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mim-ea133",
+  storageBucket: "mim-ea133.firebasestorage.app",
+  messagingSenderId: "303525353436",
+  appId: "1:303525353436:web:082fc090b5025e19942119",
+  measurementId: "G-K962QE5P1R"
+};
+
+const app =
+    initializeApp(firebaseConfig);
+
+const auth =
+    getAuth(app);
 
 
 /* =========================================
@@ -331,10 +349,27 @@ const topBack =
 
 
 /* =========================================
+   E-POSTA
+========================================= */
+
+const email =
+    (
+        sessionStorage.getItem(
+            "minegram_register_email"
+        ) || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+/* =========================================
    MESAJ
 ========================================= */
 
-function showMessage(text, type = ""){
+function showMessage(
+    text,
+    success=false
+){
 
     message.textContent =
         text || "";
@@ -342,9 +377,11 @@ function showMessage(text, type = ""){
     message.className =
         "message";
 
-    if(type){
+    if(success){
 
-        message.classList.add(type);
+        message.classList.add(
+            "success"
+        );
 
     }
 
@@ -352,60 +389,56 @@ function showMessage(text, type = ""){
 
 
 /* =========================================
-   KULLANICI ADI
+   FIREBASE HATALARI
 ========================================= */
 
-const params =
-    new URLSearchParams(
-        window.location.search
-    );
+function firebaseError(error){
 
-const username =
-    (
-        params.get("username") ||
-        sessionStorage.getItem(
-            "minegram_register_username"
-        ) ||
-        ""
-    )
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase();
+    switch(error.code){
 
+        case "auth/email-already-in-use":
+            return "Bu e-posta adresi zaten kayıtlı. Giriş yap veya Şifremi unuttum seçeneğini kullan.";
 
-/* =========================================
-   KULLANICI ADINI SAKLA
-========================================= */
+        case "auth/invalid-email":
+            return "Geçerli bir e-posta adresi gir.";
 
-if(username){
+        case "auth/weak-password":
+            return "Şifre en az 6 karakter olmalı.";
 
-    sessionStorage.setItem(
-        "minegram_register_username",
-        username
-    );
+        case "auth/operation-not-allowed":
+            return "Firebase'de E-posta/Şifre girişi etkin değil.";
+
+        case "auth/network-request-failed":
+            return "İnternet bağlantısını kontrol et.";
+
+        case "auth/too-many-requests":
+            return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+
+        default:
+            return error.message ||
+                "Hesap oluşturulamadı.";
+    }
 
 }
 
 
 /* =========================================
-   KAYITLI ŞİFRE
+   E-POSTA YOKSA GERİ
 ========================================= */
 
-const savedPassword =
-    sessionStorage.getItem(
-        "minegram_register_password"
+if(!email){
+
+    showMessage(
+        "E-posta adresi bulunamadı. Kayıt işlemine yeniden başla."
     );
 
-if(savedPassword){
-
-    passwordInput.value =
-        savedPassword;
+    nextButton.disabled = true;
 
 }
 
 
 /* =========================================
-   ŞİFRE GÖSTER / GİZLE
+   ŞİFRE GÖSTER
 ========================================= */
 
 showPassword.addEventListener(
@@ -413,24 +446,16 @@ showPassword.addEventListener(
     function(){
 
         if(
-            passwordInput.type ===
-            "password"
+            passwordInput.type === "password"
         ){
 
-            passwordInput.type =
-                "text";
+            passwordInput.type = "text";
+            showPassword.textContent = "Gizle";
 
-            showPassword.textContent =
-                "Gizle";
+        }else{
 
-        }
-        else{
-
-            passwordInput.type =
-                "password";
-
-            showPassword.textContent =
-                "Göster";
+            passwordInput.type = "password";
+            showPassword.textContent = "Göster";
 
         }
 
@@ -442,88 +467,39 @@ showPassword.addEventListener(
    GERİ
 ========================================= */
 
-function goBack(){
-
-    let url =
-        "./kullanici-adi.html";
-
-    if(username){
-
-        url +=
-            "?username=" +
-            encodeURIComponent(username);
-
-    }
-
-    window.location.href =
-        url;
-
-}
-
-
 topBack.addEventListener(
     "click",
-    goBack
-);
-
-
-topBack.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter" ||
-            event.key === " "
-        ){
-
-            event.preventDefault();
-
-            goBack();
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   ŞİFRE DEĞİŞİNCE
-========================================= */
-
-passwordInput.addEventListener(
-    "input",
     function(){
 
-        showMessage("");
+        window.location.href =
+            "kayit.html";
 
     }
 );
 
 
 /* =========================================
-   İLERİ
+   HESAP OLUŞTUR
 ========================================= */
 
-function goNext(){
+async function createAccount(){
 
     const password =
         passwordInput.value;
 
 
-    /* KULLANICI ADI */
+    showMessage("");
 
-    if(!username){
+
+    if(!email){
 
         showMessage(
-            "Kullanıcı adı bulunamadı."
+            "E-posta adresi bulunamadı."
         );
 
         return;
-
     }
 
-
-    /* ŞİFRE */
 
     if(!password){
 
@@ -534,7 +510,6 @@ function goNext(){
         passwordInput.focus();
 
         return;
-
     }
 
 
@@ -547,66 +522,109 @@ function goNext(){
         passwordInput.focus();
 
         return;
-
     }
 
 
-    /* =====================================
-       ŞİFREYİ KAYDET
-    ===================================== */
-
-    sessionStorage.setItem(
-        "minegram_register_password",
-        password
-    );
-
-
-    /* =====================================
-       BUTONU KİLİTLE
-    ===================================== */
-
-    nextButton.disabled =
-        true;
+    nextButton.disabled = true;
 
     nextButton.textContent =
-        "Devam ediliyor...";
+        "Hesap oluşturuluyor...";
 
 
-    showMessage(
-        "Devam ediliyor...",
-        "success"
-    );
+    try{
+
+        /*
+         * FIREBASE HESABI
+         */
+
+        const credential =
+            await createUserWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
 
 
-    /* =====================================
-       İLETİŞİM SAYFASINA GİT
-    ===================================== */
-
-    const url =
-        "./iletisim-bilgileri.html?username=" +
-        encodeURIComponent(username);
+        const user =
+            credential.user;
 
 
-    setTimeout(
-        function(){
+        /*
+         * DOĞRULAMA E-POSTASI
+         */
 
-            window.location.href =
-                url;
+        await sendEmailVerification(user);
 
-        },
-        250
-    );
+
+        /*
+         * ŞİFREYİ HİÇBİR YERE KAYDETMİYORUZ.
+         */
+
+        sessionStorage.removeItem(
+            "minegram_register_email"
+        );
+
+
+        /*
+         * HESAP OLUŞTU.
+         * DOĞRULAMA YAPILANA KADAR ÇIKIŞ.
+         */
+
+        await signOut(auth);
+
+
+        showMessage(
+            "Hesabın oluşturuldu. E-posta adresine doğrulama bağlantısı gönderildi. Giriş yapmadan önce e-postanı doğrula.",
+            true
+        );
+
+
+        nextButton.textContent =
+            "Giriş Sayfasına Git";
+
+
+        nextButton.disabled = false;
+
+
+        nextButton.onclick =
+            function(){
+
+                window.location.href =
+                    "giris.html";
+
+            };
+
+
+    }catch(error){
+
+        console.error(
+            "[MINEGRAM FIREBASE REGISTER]",
+            error
+        );
+
+
+        showMessage(
+            firebaseError(error)
+        );
+
+
+        nextButton.disabled = false;
+
+        nextButton.textContent =
+            "Hesap Oluştur";
+
+    }
 
 }
 
 
 /* =========================================
-   İLERİ BUTONU
+   BUTON
 ========================================= */
 
 nextButton.addEventListener(
     "click",
-    goNext
+    createAccount
 );
 
 
@@ -622,29 +640,11 @@ passwordInput.addEventListener(
 
             event.preventDefault();
 
-            goNext();
+            createAccount();
 
         }
 
     }
-);
-
-
-/* =========================================
-   DEBUG
-========================================= */
-
-console.log(
-    "[MINEGRAM] Şifre sayfası hazır."
-);
-
-console.log(
-    "[MINEGRAM] Username:",
-    username
-);
-
-console.log(
-    "[MINEGRAM] Şifre kayıt akışı hazır."
 );
 
 </script>
