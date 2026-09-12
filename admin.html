@@ -1,4 +1,4 @@
--<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -103,7 +103,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <div class="content-grid">
   <div class="panel">
     <h2>📧 Minegram Panel SMTP Servisi</h2>
-    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP bilgileri doğrudan Supabase Auth Custom SMTP ayarlarına kaydedilir. SMTP şifresi HTML veya Firestore içinde tutulmaz; Supabase Management API üzerinden güvenli şekilde uygulanır.</p>
+    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP bilgileri doğrudan Minegram Admin Paneli tarafından yönetilir. Resend, Supabase Custom SMTP veya Render Environment Variables gerekmez.</p>
 
     <div class="input-group">
       <label>SMTP sağlayıcısı</label>
@@ -115,7 +115,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
         <option value="amazon-ses">Amazon SES</option>
         <option value="zoho">Zoho Mail</option>
       </select>
-      <small>Buradaki bilgiler Supabase Auth → Custom SMTP yapılandırmasına uygulanır. Resend ve Render sunucusundan doğrudan SMTP bağlantısı kullanılmaz.</small>
+      <small>Buradaki bilgiler yalnızca Minegram Admin Panelindeki SMTP servisi için kullanılır. Seçtiğin sağlayıcıdan doğrudan e-posta gönderilir.</small>
     </div>
 
     <div class="input-group">
@@ -201,7 +201,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
     <h3>Servis durumu</h3>
     <p id="smtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
-    <p style="color:#697386;font-size:13px">SMTP şifresi Firestore veya HTML içinde tutulmaz. Supabase Management API ile Auth Custom SMTP yapılandırmasına uygulanır.</p>
+    <p style="color:#697386;font-size:13px">SMTP şifresi Firestore veya HTML içine yazılmaz. Ayar sunucunun panel SMTP belleğinde tutulur.</p>
   </div>
 </div>
 </section>
@@ -604,16 +604,19 @@ $("settingsButton").addEventListener("click",async()=>{
 const EMAIL_SERVICE_API = "/api/admin/email-service";
 
 async function emailServiceRequest(path, options={}){
+    const currentUser = window.minegramAdminAuth?.currentUser || auth.currentUser;
+    if(!currentUser) throw new Error("Admin oturumu gerekli. Lütfen admin hesabıyla tekrar giriş yap.");
+    const token = await currentUser.getIdToken(true);
+    const headers = new Headers(options.headers || {});
+    headers.set("Content-Type","application/json");
+    headers.set("Authorization","Bearer " + token);
     const response = await fetch(EMAIL_SERVICE_API + path, {
         ...options,
-        headers: {
-            "Content-Type":"application/json",
-            ...(options.headers||{})
-        },
-        credentials:"include"
+        headers,
+        credentials:"same-origin"
     });
     const data = await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.error || data.message || "E-posta servisi isteği başarısız.");
+    if(!response.ok) throw new Error(data.error || data.message || `E-posta servisi isteği başarısız (HTTP ${response.status}).`);
     return data;
 }
 
@@ -634,12 +637,14 @@ async function loadEmailService(){
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-        if(!data.managementApiConfigured){
-            $("smtpMessage").className="message error";
-            $("smtpMessage").textContent="SMTP servisi doğrudan bu admin panelindeki sağlayıcı ayarlarıyla çalışır. Resend veya Panel SMTP gerekmez.";
+        if(data.mode==="direct-admin-panel-smtp"){
+            $("smtpMessage").className="message success";
+            $("smtpMessage").textContent="SMTP servisi doğrudan Admin Panelindeki sağlayıcı ayarlarıyla çalışıyor.";
         }
     }catch(error){
-        $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
+        $("smtpStatus").innerHTML='<span class="badge badge-red">● Bağlantı başarısız</span>';
+        $("smtpMessage").className="message error";
+        $("smtpMessage").textContent=error.message;
         console.warn("E-posta servisi:",error.message);
     }
 }
@@ -717,59 +722,6 @@ document.querySelector('[data-page="emailService"]').addEventListener("click",()
 });
 
 </script>
+<!-- Minegram Direct SMTP Admin V13 UI -->
 </body>
 </html>
-
-<script type="module">
-/* =========================================================
-   MINEGRAM SMTP SERVİSİ - EK GÜVENLİK / AUTH BAĞLANTISI
-   Mevcut kodlara dokunulmaz veya silinmez.
-   Admin Firebase oturumunun ID token'ı, SMTP API isteklerine
-   otomatik olarak Authorization: Bearer ... olarak eklenir.
-   Böylece sunucudaki smtpAdminAuth kontrolü geçilebilir.
-   ========================================================= */
-(function installMinegramSmtpAuthBridge(){
-    const originalFetch = window.fetch.bind(window);
-
-    window.fetch = async function(input, init = {}) {
-        try {
-            const url = typeof input === "string"
-                ? input
-                : (input && input.url ? input.url : "");
-
-            if (url.includes("/api/admin/email-service")) {
-                const currentUser =
-                    (window.minegramAdminAuth)
-                        ? window.minegramAdminAuth.currentUser
-                        : null;
-
-                if (currentUser) {
-                    const token = await currentUser.getIdToken();
-
-                    const headers = new Headers(
-                        init.headers ||
-                        (typeof input !== "string" && input && input.headers
-                            ? input.headers
-                            : undefined)
-                    );
-
-                    if (token) {
-                        headers.set("Authorization", "Bearer " + token);
-                    }
-
-                    init = {
-                        ...init,
-                        headers
-                    };
-                }
-            }
-        } catch (e) {
-            console.warn("SMTP AUTH token ekleme hatası:", e);
-        }
-
-        return originalFetch(input, init);
-    };
-
-    console.log("Minegram SMTP Auth bağlantı köprüsü aktif.");
-})();
-</script>
