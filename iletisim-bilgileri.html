@@ -273,6 +273,10 @@ body{
         </div>
 
         <div id="status" class="status"></div>
+<button id="resetEmailBtn" type="button"
+        style="display:none;width:100%;height:42px;margin-top:10px;border-radius:22px;border:1px solid #555;background:#000;color:#0095f6;font-size:12px;font-weight:700;cursor:pointer;">
+    Şifremi unuttum
+</button>
 
         <div class="bottom">
 
@@ -592,11 +596,14 @@ async function registerAccount(email){
 
     if(!response.ok){
 
-        throw new Error(
+        const error = new Error(
             result.error ||
             result.message ||
             "Kayıt sırasında bir hata oluştu."
         );
+        error.code = result.code || "";
+        error.status = response.status;
+        throw error;
 
     }
 
@@ -616,6 +623,72 @@ async function registerAccount(email){
 
 }
 
+
+
+/* =========================================================
+   V7 — FIREBASE ŞİFRE SIFIRLAMA
+========================================================= */
+
+const resetEmailBtn =
+    document.getElementById("resetEmailBtn");
+
+if (resetEmailBtn) {
+    resetEmailBtn.addEventListener("click", async function () {
+        const email =
+            String(contact.value || "").trim().toLowerCase();
+
+        if (!validEmail(email)) {
+            showStatus("Geçerli bir e-posta adresi gir.");
+            contact.focus();
+            return;
+        }
+
+        resetEmailBtn.disabled = true;
+        resetEmailBtn.textContent = "Gönderiliyor...";
+
+        try {
+            const response = await fetch(
+                "/api/auth/firebase-password-reset",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ email }),
+                    cache: "no-store"
+                }
+            );
+
+            const result =
+                await response.json().catch(() => ({}));
+
+            if (!response.ok || result.ok === false) {
+                throw new Error(
+                    result.error ||
+                    "Şifre sıfırlama e-postası gönderilemedi."
+                );
+            }
+
+            showStatus(
+                "Şifre sıfırlama e-postası gönderildi. Gmail'ini kontrol et.",
+                true
+            );
+
+            resetEmailBtn.textContent =
+                "E-posta gönderildi";
+        } catch (error) {
+            showStatus(
+                error?.message ||
+                "Şifre sıfırlama e-postası gönderilemedi."
+            );
+
+            resetEmailBtn.disabled = false;
+            resetEmailBtn.textContent =
+                "Şifremi unuttum";
+        }
+    });
+}
 
 /* =========================================================
    İLERİ
@@ -860,10 +933,16 @@ async function goNext(){
         );
 
 
-        showStatus(
-            error?.message ||
-            "Kayıt başarısız. Lütfen tekrar dene."
-        );
+        if (error?.code === "EMAIL_EXISTS" || error?.status === 409) {
+            showStatus(
+                "Bu e-posta adresi zaten kayıtlı. Giriş yap veya Şifremi unuttum seçeneğini kullan."
+            );
+        } else {
+            showStatus(
+                error?.message ||
+                "Kayıt başarısız. Lütfen tekrar dene."
+            );
+        }
 
     }
 
