@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+-<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -634,9 +634,9 @@ async function loadEmailService(){
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-        if(data.mode==="direct-admin-panel-smtp"){
-            $("smtpMessage").className="message success";
-            $("smtpMessage").textContent="SMTP servisi doğrudan Admin Panelindeki sağlayıcı ayarlarıyla çalışıyor.";
+        if(!data.managementApiConfigured){
+            $("smtpMessage").className="message error";
+            $("smtpMessage").textContent="SMTP servisi doğrudan bu admin panelindeki sağlayıcı ayarlarıyla çalışır. Resend veya Panel SMTP gerekmez.";
         }
     }catch(error){
         $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
