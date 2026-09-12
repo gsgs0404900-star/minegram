@@ -106,6 +106,19 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
     <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP parolası bu HTML dosyasında tutulmaz; sunucu tarafında Environment Variable olarak saklanmalıdır.</p>
 
     <div class="input-group">
+      <label>SMTP sağlayıcısı</label>
+      <select id="smtpProvider">
+        <option value="custom">Özel SMTP sağlayıcısı</option>
+        <option value="brevo">Brevo</option>
+        <option value="sendgrid">SendGrid</option>
+        <option value="postmark">Postmark</option>
+        <option value="amazon-ses">Amazon SES</option>
+        <option value="zoho">Zoho Mail</option>
+      </select>
+      <small>Sağlayıcı hesabındaki SMTP host, port, kullanıcı ve şifre/anahtarı aşağıya gir.</small>
+    </div>
+
+    <div class="input-group">
       <label>Gönderici adı</label>
       <input id="smtpFromName" placeholder="Minegram">
     </div>
@@ -590,16 +603,12 @@ $("settingsButton").addEventListener("click",async()=>{
 const EMAIL_SERVICE_API = "/api/admin/email-service";
 
 async function emailServiceRequest(path, options={}){
-    const currentUser = (typeof auth !== "undefined" && auth) ? auth.currentUser : null;
-    const headers = new Headers(options.headers || {});
-    headers.set("Content-Type","application/json");
-    if(currentUser){
-        const token = await currentUser.getIdToken(true);
-        headers.set("Authorization","Bearer " + token);
-    }
     const response = await fetch(EMAIL_SERVICE_API + path, {
         ...options,
-        headers,
+        headers: {
+            "Content-Type":"application/json",
+            ...(options.headers||{})
+        },
         credentials:"include"
     });
     const data = await response.json().catch(()=>({}));
@@ -614,6 +623,7 @@ async function loadEmailService(){
             ? '<span class="badge badge-green">● Aktif</span>'
             : '<span class="badge badge-red">● Yapılandırılmamış</span>';
 
+        if(data.provider) $("smtpProvider").value=data.provider;
         if(data.fromName) $("smtpFromName").value=data.fromName;
         if(data.fromEmail) $("smtpFromEmail").value=data.fromEmail;
         if(data.host) $("smtpHost").value=data.host;
@@ -623,6 +633,10 @@ async function loadEmailService(){
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
+        if(!data.managementApiConfigured){
+            $("smtpMessage").className="message error";
+            $("smtpMessage").textContent="Supabase Custom SMTP için Render'da SUPABASE_PROJECT_REF ve SUPABASE_ACCESS_TOKEN gerekli.";
+        }
     }catch(error){
         $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
         console.warn("E-posta servisi:",error.message);
@@ -637,6 +651,7 @@ $("smtpSaveButton").addEventListener("click",async()=>{
         await emailServiceRequest("/config",{
             method:"POST",
             body:JSON.stringify({
+                provider:$("smtpProvider").value,
                 fromName:$("smtpFromName").value.trim(),
                 fromEmail:$("smtpFromEmail").value.trim(),
                 host:$("smtpHost").value.trim(),
@@ -665,7 +680,7 @@ $("smtpTestButton").addEventListener("click",async()=>{
         if(!to) return;
         await emailServiceRequest("/test",{
             method:"POST",
-            body:JSON.stringify({to:to.trim()})
+            body:JSON.stringify({to})
         });
         message.className="message success";
         message.textContent="Test e-postası gönderildi.";
