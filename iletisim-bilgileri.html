@@ -799,6 +799,15 @@ async function goNext(){
             serverEmail
         );
 
+        // Firebase oturum bilgileri: doğrulama bağlantısından sonra
+        // güncel ID token alınarak server tarafında e-posta doğrulaması kontrol edilir.
+        if (result?.firebaseIdToken) {
+            sessionStorage.setItem("minegram_firebase_id_token", result.firebaseIdToken);
+        }
+        if (result?.firebaseRefreshToken) {
+            sessionStorage.setItem("minegram_firebase_refresh_token", result.firebaseRefreshToken);
+        }
+
 
         /* -------------------------------------------------
            BAŞARILI
@@ -821,7 +830,7 @@ async function goNext(){
             function(){
 
                 window.location.href =
-                    "./hesap-doğrulama.html?username=" +
+                    "./firebase-dogrulama.html?username=" +
                     encodeURIComponent(username) +
                     "&email=" +
                     encodeURIComponent(serverEmail);
