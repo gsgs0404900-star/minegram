@@ -254,8 +254,6 @@ async function loadAdminDataSafely(){
 
 let adminLoginInProgress=false;
 let adminVerified=false;
-console.log("MINEGRAM ADMIN WEB ORIGIN:", location.origin);
-console.log("MINEGRAM ADMIN PATH:", location.pathname);
 let usersUnsubscribe=null;
 let balancesUnsubscribe=null;
 let bankUnsubscribe=null;
@@ -317,7 +315,6 @@ onAuthStateChanged(auth,async user=>{
     }
 });
 
-// Internet/Render tanılama: butonun gerçekten submit olayını tetiklediğini görünür kılar.
 $("loginForm").addEventListener("submit",async event=>{
     event.preventDefault();
 
@@ -358,14 +355,7 @@ $("loginForm").addEventListener("submit",async event=>{
         $("loginScreen").classList.remove("hidden");
         $("adminApp").classList.add("hidden");
         $("loginMessage").className="message error";
-        const code=String(error?.code||"");
-        let friendly=error?.message||"Bilinmeyen hata";
-        if(code.includes("auth/unauthorized-domain")) friendly="Bu internet adresi Firebase Authentication → Authorized domains bölümüne eklenmemiş. Render alan adını Firebase'e eklemelisin.";
-        else if(code.includes("auth/invalid-credential")) friendly="E-posta veya şifre hatalı.";
-        else if(code.includes("auth/user-not-found")) friendly="Admin e-posta hesabı Firebase Authentication'da bulunamadı.";
-        else if(code.includes("auth/wrong-password")) friendly="Admin şifresi yanlış.";
-        else if(code.includes("permission-denied")) friendly="Firebase Firestore admins belgesine erişim izni yok. admins/ADMIN_UID güvenlik kuralını kontrol et.";
-        $("loginMessage").textContent="HATA: "+code+" - "+friendly;
+        $("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message;
     }finally{
         adminLoginInProgress=false;
     }
@@ -707,7 +697,7 @@ $("verificationSaveButton").addEventListener("click",async()=>{
         message.className="message error";
         message.textContent=error.message;
     }
-}
+});
 
 document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{
     loadEmailService().catch(()=>{});
@@ -776,5 +766,67 @@ if(document.readyState==="loading") document.addEventListener("DOMContentLoaded"
 else addNativeMailPanel();
 </script>
 
+
+
+<!-- =========================================================
+     MINEGRAM SMTP'SİZ TEST BUTONU OVERRIDE
+     Mevcut kod silinmeden eklenmiştir. Test maili yalnızca
+     Firebase admin hesabının e-postası minegramdestek@gmail.com
+     ise Firebase Authentication üzerinden gönderilir.
+     ========================================================= -->
+<script type="module">
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+const MINEGRAM_FIXED_ADMIN_EMAIL = "minegramdestek@gmail.com";
+const nativeAdminAuth = getAuth();
+
+function installNativeAdminMailOverride(){
+  const button = document.getElementById("smtpTestButton");
+  const message = document.getElementById("smtpMessage");
+  if(!button || button.dataset.nativeOverrideInstalled === "1") return;
+  button.dataset.nativeOverrideInstalled = "1";
+
+  button.addEventListener("click", async (event)=>{
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if(!nativeAdminAuth.currentUser){
+      message.className="message error";
+      message.textContent="Önce Admin olarak giriş yapmalısın.";
+      return;
+    }
+
+    const user=nativeAdminAuth.currentUser;
+    if((user.email||"").toLowerCase() !== MINEGRAM_FIXED_ADMIN_EMAIL){
+      message.className="message error";
+      message.textContent="Admin Firebase hesabının e-postası minegramdestek@gmail.com olmalı. Mevcut: "+(user.email||"yok");
+      return;
+    }
+
+    message.className="message";
+    message.textContent="minegramdestek@gmail.com adresine doğrulama e-postası gönderiliyor...";
+
+    try{
+      const idToken=await user.getIdToken(true);
+      const response=await fetch("/api/admin/email-service/test",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({idToken})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.error||"E-posta gönderilemedi.");
+
+      message.className="message success";
+      message.textContent="Test e-postası gönderildi: minegramdestek@gmail.com";
+    }catch(error){
+      message.className="message error";
+      message.textContent="Gönderilemedi: "+(error.message||error);
+    }
+  }, true);
+}
+
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",installNativeAdminMailOverride);
+else installNativeAdminMailOverride();
+</script>
 </body>
 </html>
