@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -5279,30 +5280,59 @@ async function smtpAdminAuth(req, res, next) {
   }
 }
 
-function publicSupabaseAuthConfig(data) {
+let panelSmtpConfig = {
+  provider: "custom",
+  fromName: "Minegram",
+  fromEmail: "",
+  host: "",
+  port: 587,
+  secure: false,
+  user: "",
+  pass: "",
+  codeLength: 6,
+  expiryMinutes: 10,
+  cooldownSeconds: 60
+};
+
+let panelSmtpTransporter = null;
+
+function buildPanelSmtpTransporter() {
+  if (!panelSmtpConfig.host || !panelSmtpConfig.user || !panelSmtpConfig.pass) {
+    throw new Error("SMTP sağlayıcısını önce Admin Panelinden kaydet.");
+  }
+  panelSmtpTransporter = nodemailer.createTransport({
+    host: panelSmtpConfig.host,
+    port: Number(panelSmtpConfig.port || 587),
+    secure: Boolean(panelSmtpConfig.secure),
+    auth: { user: panelSmtpConfig.user, pass: panelSmtpConfig.pass },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
+  });
+  return panelSmtpTransporter;
+}
+
+function publicPanelSmtpConfig() {
   return {
-    configured: Boolean(data?.smtp_host && data?.smtp_user && data?.smtp_admin_email),
-    provider: "supabase-custom-smtp",
-    fromName: data?.smtp_sender_name || "Minegram",
-    fromEmail: data?.smtp_admin_email || "",
-    host: data?.smtp_host || "",
-    port: Number(data?.smtp_port || 587),
-    secure: Number(data?.smtp_port || 587) === 465,
-    user: data?.smtp_user || "",
-    codeLength: Number(data?.mailer_otp_length || 6),
-    expiryMinutes: Math.max(1, Math.round(Number(data?.mailer_otp_exp || 600) / 60)),
-    cooldownSeconds: Number(data?.smtp_max_frequency || 60),
-    managementApiConfigured: Boolean(SUPABASE_PROJECT_REF && SUPABASE_ACCESS_TOKEN)
+    ok: true,
+    configured: Boolean(panelSmtpConfig.host && panelSmtpConfig.user && panelSmtpConfig.pass && panelSmtpConfig.fromEmail),
+    provider: panelSmtpConfig.provider,
+    fromName: panelSmtpConfig.fromName,
+    fromEmail: panelSmtpConfig.fromEmail,
+    host: panelSmtpConfig.host,
+    port: Number(panelSmtpConfig.port),
+    secure: Boolean(panelSmtpConfig.secure),
+    user: panelSmtpConfig.user,
+    codeLength: Number(panelSmtpConfig.codeLength),
+    expiryMinutes: Number(panelSmtpConfig.expiryMinutes),
+    cooldownSeconds: Number(panelSmtpConfig.cooldownSeconds),
+    managementApiConfigured: true,
+    mode: "direct-admin-panel-smtp"
   };
 }
 
 app.get("/api/admin/email-service/status", smtpAdminAuth, async (req, res) => {
-  try {
-    const data = await supabaseManagementGetAuthConfig();
-    res.json({ ok:true, ...publicSupabaseAuthConfig(data) });
-  } catch (e) {
-    res.status(500).json({ ok:false, error:e?.message || "Supabase Auth ayarları okunamadı." });
-  }
+  res.json(publicPanelSmtpConfig());
 });
 
 app.post("/api/admin/email-service/config", smtpAdminAuth, async (req, res) => {
@@ -5314,34 +5344,35 @@ app.post("/api/admin/email-service/config", smtpAdminAuth, async (req, res) => {
     const user = String(body.user || "").trim();
     const pass = String(body.pass || "");
     const port = Number(body.port || 587);
-    if (!fromEmail || !host || !user) throw new Error("Gönderici e-posta, SMTP sunucusu ve SMTP kullanıcı gerekli.");
+    const secure = Boolean(body.secure);
+    if (!fromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) throw new Error("Geçerli bir gönderici e-posta adresi gir.");
+    if (!host || !user || !pass) throw new Error("SMTP sunucusu, kullanıcı ve şifre gerekli.");
     if (![465,587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
-    if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) throw new Error("SUPABASE_PROJECT_REF veya SUPABASE_ACCESS_TOKEN Render Environment Variables içinde eksik.");
+    if (port === 465 && !secure) throw new Error("465 portu için SSL / 465 seçilmelidir.");
+    if (port === 587 && secure) throw new Error("587 portu için STARTTLS / 587 seçilmelidir.");
 
-    const patch = {
-      external_email_enabled: true,
-      smtp_admin_email: fromEmail,
-      smtp_host: host,
-      smtp_port: String(port),
-      smtp_user: user,
-      smtp_sender_name: fromName,
-      ...(pass ? { smtp_pass: pass } : {})
-    };
     const codeLength = Number(body.codeLength || 6);
     const expiryMinutes = Number(body.expiryMinutes || 10);
     const cooldownSeconds = Number(body.cooldownSeconds || 60);
     if (![6,8].includes(codeLength)) throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
     if (![5,10,15,30].includes(expiryMinutes)) throw new Error("Geçerlilik süresi geçersiz.");
     if (![60,120,300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
-    patch.mailer_otp_length = codeLength;
-    patch.mailer_otp_exp = expiryMinutes * 60;
-    patch.smtp_max_frequency = cooldownSeconds;
 
-    const data = await supabaseManagementAuthConfig(patch);
-    res.json({ ok:true, ...publicSupabaseAuthConfig(data) });
+    const nextConfig = { provider: String(body.provider || "custom"), fromName, fromEmail, host, port, secure, user, pass, codeLength, expiryMinutes, cooldownSeconds };
+    const testTransporter = nodemailer.createTransport({
+      host, port, secure,
+      auth: { user, pass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000
+    });
+    await testTransporter.verify();
+    panelSmtpConfig = nextConfig;
+    panelSmtpTransporter = testTransporter;
+    res.json(publicPanelSmtpConfig());
   } catch (e) {
-    console.error("SUPABASE CUSTOM SMTP CONFIG ERROR:", e?.message || e);
-    res.status(400).json({ ok:false, error:e?.message || "Supabase Custom SMTP kaydedilemedi." });
+    console.error("DIRECT PANEL SMTP CONFIG ERROR:", e?.message || e);
+    res.status(400).json({ ok:false, error:e?.message || "SMTP ayarları kaydedilemedi." });
   }
 });
 
@@ -5349,12 +5380,18 @@ app.post("/api/admin/email-service/test", smtpAdminAuth, async (req, res) => {
   try {
     const to = String(req.body?.to || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) throw new Error("Geçerli bir test e-posta adresi gir.");
-    // Supabase Auth'un kendi OTP e-postasını tetikler. Böylece test doğrudan
-    // Supabase Custom SMTP üzerinden geçer; Render sunucusu SMTP'ye bağlanmaz.
-    await supabaseAuthOtp(to);
-    res.json({ ok:true, mode:"supabase-custom-smtp", to });
+    const transporter = panelSmtpTransporter || buildPanelSmtpTransporter();
+    await transporter.verify();
+    const info = await transporter.sendMail({
+      from: panelSmtpConfig.fromName ? `"${panelSmtpConfig.fromName.replace(/"/g,'')}" <${panelSmtpConfig.fromEmail}>` : panelSmtpConfig.fromEmail,
+      to,
+      subject: "Minegram test e-postası",
+      text: "Bu e-posta Minegram Admin Panelindeki SMTP sağlayıcısı üzerinden gönderildi.\n\nSMTP bağlantısı başarılı.",
+      html: "<h2>Minegram</h2><p>Bu e-posta Admin Panelindeki SMTP sağlayıcısı üzerinden gönderildi.</p><p><b>SMTP bağlantısı başarılı.</b></p>"
+    });
+    res.json({ ok:true, mode:"direct-admin-panel-smtp", to, messageId: info.messageId || null });
   } catch (e) {
-    console.error("SUPABASE SMTP TEST ERROR:", e?.message || e);
+    console.error("DIRECT PANEL SMTP TEST ERROR:", e?.message || e);
     res.status(400).json({ ok:false, error:e?.message || "Test e-postası gönderilemedi." });
   }
 });
@@ -5367,14 +5404,62 @@ app.post("/api/admin/email-service/verification-config", smtpAdminAuth, async (r
     if (![6,8].includes(codeLength)) throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
     if (![5,10,15,30].includes(expiryMinutes)) throw new Error("Geçerlilik süresi geçersiz.");
     if (![60,120,300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
-    const data = await supabaseManagementAuthConfig({
-      mailer_otp_length: codeLength,
-      mailer_otp_exp: expiryMinutes * 60,
-      smtp_max_frequency: cooldownSeconds
-    });
-    res.json({ ok:true, ...publicSupabaseAuthConfig(data) });
+    panelSmtpConfig.codeLength = codeLength;
+    panelSmtpConfig.expiryMinutes = expiryMinutes;
+    panelSmtpConfig.cooldownSeconds = cooldownSeconds;
+    res.json(publicPanelSmtpConfig());
   } catch (e) {
     res.status(400).json({ ok:false, error:e?.message || "Doğrulama ayarları kaydedilemedi." });
+  }
+});
+
+// Uygulamanın doğrulama kodu göndermesi için doğrudan panel SMTP'si.
+const panelVerificationCodes = new Map();
+
+async function sendPanelVerificationCode(email, purpose = "signup") {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) throw new Error("E-posta adresi gerekli.");
+  const transporter = panelSmtpTransporter || buildPanelSmtpTransporter();
+  const code = Array.from({length: panelSmtpConfig.codeLength}, () => crypto.randomInt(0,10)).join("");
+  const expiresAt = Date.now() + panelSmtpConfig.expiryMinutes * 60 * 1000;
+  panelVerificationCodes.set(normalized, { code, expiresAt, purpose, sentAt: Date.now() });
+  await transporter.sendMail({
+    from: panelSmtpConfig.fromName ? `"${panelSmtpConfig.fromName.replace(/"/g,'')}" <${panelSmtpConfig.fromEmail}>` : panelSmtpConfig.fromEmail,
+    to: normalized,
+    subject: "Minegram doğrulama kodun",
+    text: `Minegram doğrulama kodun: ${code}\n\nKod ${panelSmtpConfig.expiryMinutes} dakika geçerlidir.`,
+    html: `<div style="font-family:Arial,sans-serif"><h2>Minegram</h2><p>Doğrulama kodun:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px">${code}</div><p>Kod ${panelSmtpConfig.expiryMinutes} dakika geçerlidir.</p></div>`
+  });
+  return { code, expiresAt };
+}
+
+app.post("/api/email/send-verification", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email) throw new Error("E-posta adresi gerekli.");
+    const existing = panelVerificationCodes.get(email);
+    if (existing && Date.now() - existing.sentAt < panelSmtpConfig.cooldownSeconds * 1000) {
+      throw new Error(`Yeni kod için ${panelSmtpConfig.cooldownSeconds} saniye bekle.`);
+    }
+    await sendPanelVerificationCode(email, String(req.body?.purpose || "signup"));
+    res.json({ ok:true, message:"Doğrulama kodu gönderildi." });
+  } catch (e) {
+    res.status(400).json({ ok:false, error:e?.message || "Doğrulama kodu gönderilemedi." });
+  }
+});
+
+app.post("/api/email/verify-code", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const code = String(req.body?.code || "").trim();
+    const entry = panelVerificationCodes.get(email);
+    if (!entry) throw new Error("Aktif doğrulama kodu bulunamadı.");
+    if (Date.now() > entry.expiresAt) { panelVerificationCodes.delete(email); throw new Error("Doğrulama kodunun süresi doldu."); }
+    if (entry.code !== code) throw new Error("Doğrulama kodu yanlış.");
+    panelVerificationCodes.delete(email);
+    res.json({ ok:true, verified:true });
+  } catch (e) {
+    res.status(400).json({ ok:false, verified:false, error:e?.message || "Kod doğrulanamadı." });
   }
 });
 
