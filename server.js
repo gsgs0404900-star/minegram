@@ -5316,7 +5316,9 @@ function saveSmtpPublicConfig() {
 }
 
 async function verifyFirebaseAdminToken(req) {
-  const token = bearer(req);
+  const authHeader = String(req.headers.authorization || "").trim();
+  const headerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const token = headerToken || String(req.headers["x-firebase-id-token"] || "").trim();
   if (!token) throw new Error("Admin oturumu gerekli.");
   if (!FIREBASE_WEB_API_KEY) throw new Error("FIREBASE_WEB_API_KEY eksik.");
 
