@@ -5377,6 +5377,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
 
   const net = await import("net");
   const tls = await import("tls");
+  const dns = await import("dns");
 
   const host = String(smtpRuntime.host).trim();
   const user = String(smtpRuntime.user).trim();
@@ -5385,19 +5386,40 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   const toEmail = smtpEscapeAddress(to);
   const preferredPort = Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587);
 
-  const connect = (port, secure) => new Promise((resolve, reject) => {
+  // Render/Node bazı ortamlarda smtp.gmail.com için IPv6 + IPv4
+  // adreslerini aynı anda deneyip AggregateError döndürebiliyor.
+  // Gmail SMTP bağlantısını IPv4'e sabitleyerek bunu engelliyoruz.
+  const resolveIPv4 = () => new Promise((resolve, reject) => {
+    dns.lookup(host, { family: 4 }, (err, address) => {
+      if (err) return reject(err);
+      resolve(address);
+    });
+  });
+
+  const connect = async (port, secure) => new Promise(async (resolve, reject) => {
     let settled = false;
+    let ipv4;
+    try {
+      ipv4 = await resolveIPv4();
+    } catch (e) {
+      reject(new Error(`Gmail SMTP DNS çözülemedi: ${e?.message || e}`));
+      return;
+    }
     const options = {
-      host,
+      host: ipv4,
       port,
       servername: host,
       timeout: 25000,
-      rejectUnauthorized: true
+      rejectUnauthorized: true,
+      family: 4
     };
     const fail = (err) => {
       if (settled) return;
       settled = true;
-      reject(err instanceof Error ? err : new Error(String(err)));
+      const msg = err?.errors
+        ? err.errors.map(x => x?.message || String(x)).join(" | ")
+        : (err?.message || String(err));
+      reject(new Error(msg));
     };
     let socket;
     if (secure) {
