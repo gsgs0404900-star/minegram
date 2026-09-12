@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#000000">
+
 <title>Şifremi unuttum - Minegram</title>
 
 <style>
@@ -50,16 +51,13 @@ body{
     color:#fff;
     font-size:34px;
     font-weight:300;
-    line-height:1;
     cursor:pointer;
-    user-select:none;
 }
 
 .top-title{
     margin-left:15px;
     font-size:20px;
     font-weight:700;
-    color:#fff;
 }
 
 .content{
@@ -73,7 +71,6 @@ body{
     line-height:1.15;
     font-weight:700;
     margin:0 0 34px;
-    color:#fff;
 }
 
 .description{
@@ -83,8 +80,7 @@ body{
     margin:0 0 65px;
 }
 
-.input,
-.phone-input{
+.input{
     display:block;
     width:100%;
     height:39px;
@@ -95,17 +91,13 @@ body{
     color:#fff;
     outline:none;
     font-size:12px;
-    font-family:Arial,Helvetica,sans-serif;
 }
 
-.input::placeholder,
-.phone-input::placeholder{
+.input::placeholder{
     color:#777;
-    opacity:1;
 }
 
-.input:focus,
-.phone-input:focus{
+.input:focus{
     border-color:#555;
 }
 
@@ -113,7 +105,7 @@ body{
     display:block;
     width:100%;
     height:37px;
-    margin-top:8px;
+    margin-top:18px;
     border:0;
     border-radius:22px;
     background:#2677b5;
@@ -123,34 +115,9 @@ body{
     cursor:pointer;
 }
 
-.continue-btn:active{
-    transform:scale(.99);
-}
-
 .continue-btn:disabled{
     opacity:.6;
     cursor:not-allowed;
-}
-
-.other-method{
-    display:block;
-    width:100%;
-    margin-top:12px;
-    text-align:center;
-    color:#008cff;
-    font-size:12px;
-    font-weight:400;
-    text-decoration:none;
-    cursor:pointer;
-    line-height:1.4;
-}
-
-.other-method:hover{
-    text-decoration:underline;
-}
-
-.phone-screen{
-    display:none;
 }
 
 .message{
@@ -164,6 +131,19 @@ body{
 
 .message.success{
     color:#55b8ff;
+}
+
+.login-link{
+    display:block;
+    margin-top:25px;
+    text-align:center;
+    color:#008cff;
+    font-size:12px;
+    text-decoration:none;
+}
+
+.login-link:hover{
+    text-decoration:underline;
 }
 
 @media(max-width:600px){
@@ -185,14 +165,13 @@ body{
     }
 
     .content{
-        width:calc(100% - 120px);
+        width:calc(100% - 40px);
         max-width:714px;
         margin:105px auto 0;
     }
 
     .title{
         font-size:42px;
-        margin-bottom:30px;
     }
 
     .description{
@@ -201,8 +180,7 @@ body{
         margin-bottom:55px;
     }
 
-    .input,
-    .phone-input{
+    .input{
         height:68px;
         padding:0 20px;
         font-size:18px;
@@ -212,20 +190,17 @@ body{
 
     .continue-btn{
         height:58px;
-        margin-top:18px;
         font-size:20px;
         border-radius:32px;
     }
 
-    .other-method{
-        margin-top:25px;
-        font-size:18px;
-        font-weight:700;
-        color:#62b5f5;
-    }
-
     .message{
         font-size:14px;
+    }
+
+    .login-link{
+        font-size:18px;
+        font-weight:700;
     }
 }
 
@@ -251,318 +226,170 @@ body{
 
 <div class="page">
 
-<div class="topbar">
+    <div class="topbar">
 
-    <div
-        class="back"
-        onclick="goBack()"
-        aria-label="Geri"
-    >‹</div>
+        <div
+            class="back"
+            id="backButton"
+        >‹</div>
 
-    <div class="top-title">
-        Şifremi unuttum
+        <div class="top-title">
+            Şifremi unuttum
+        </div>
+
     </div>
 
-</div>
 
+    <main class="content">
 
-<!-- =========================================
-     E-POSTA / KULLANICI ADI
-========================================= -->
+        <h1 class="title">
+            Şifreni sıfırla
+        </h1>
 
-<main
-    class="content"
-    id="emailScreen"
->
+        <p class="description">
+            Hesabına kayıtlı e-posta adresini gir. Sana şifreni sıfırlayabileceğin bir bağlantı gönderelim.
+        </p>
 
-    <h1 class="title">
-        Profilini bul
-    </h1>
+        <input
+            type="email"
+            id="email"
+            class="input"
+            placeholder="E-posta adresi"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+        >
 
-    <p class="description">
-        Hesabını bulmak için e-posta adresini veya kullanıcı adını gir.
-    </p>
+        <button
+            type="button"
+            id="continueButton"
+            class="continue-btn"
+        >
+            Sıfırlama bağlantısı gönder
+        </button>
 
-    <input
-        type="text"
-        id="emailUsername"
-        class="input"
-        placeholder="E-posta adresi veya kullanıcı adı"
-        autocomplete="username"
-        autocapitalize="none"
-        spellcheck="false"
-    >
+        <div
+            id="message"
+            class="message"
+        ></div>
 
-    <button
-        type="button"
-        id="emailContinue"
-        class="continue-btn"
-    >
-        Devam
-    </button>
+        <a
+            href="giris.html"
+            class="login-link"
+        >
+            Giriş ekranına dön
+        </a>
 
-    <div
-        id="emailMessage"
-        class="message"
-    ></div>
-
-    <a
-        href="javascript:void(0)"
-        class="other-method"
-        id="phoneMethod"
-    >
-        Cep telefonu numarasıyla bul
-    </a>
-
-    <a
-        href="./giris.html"
-        class="other-method"
-        style="margin-top:25px;"
-    >
-        Giriş ekranına dön
-    </a>
-
-</main>
-
-
-<!-- =========================================
-     TELEFON
-========================================= -->
-
-<main
-    class="content phone-screen"
-    id="phoneScreen"
->
-
-    <h1 class="title">
-        Profilini bul
-    </h1>
-
-    <p class="description">
-        Hesabını bulmak için cep telefonu numaranı gir.
-    </p>
-
-    <input
-        type="tel"
-        id="phoneNumber"
-        class="phone-input"
-        placeholder="Cep telefonu numarası"
-        autocomplete="tel"
-    >
-
-    <button
-        type="button"
-        id="phoneContinue"
-        class="continue-btn"
-    >
-        Devam
-    </button>
-
-    <div
-        id="phoneMessage"
-        class="message"
-    ></div>
-
-    <a
-        href="javascript:void(0)"
-        class="other-method"
-        id="emailMethod"
-    >
-        E-posta adresi veya kullanıcı adıyla bul
-    </a>
-
-</main>
+    </main>
 
 </div>
 
 
-<script>
-"use strict";
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
+  getAuth,
+  sendPasswordResetEmail
+}
+from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
 
 /* =========================================
-   API
+   FIREBASE
 ========================================= */
 
-const API = "/api";
+const firebaseConfig = {
+  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+  authDomain: "mim-ea133.firebaseapp.com",
+  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mim-ea133",
+  storageBucket: "mim-ea133.firebasestorage.app",
+  messagingSenderId: "303525353436",
+  appId: "1:303525353436:web:082fc090b5025e19942119",
+  measurementId: "G-K962QE5P1R"
+};
 
-/*
- * DOĞRULAMA SAYFASININ ADRESİ
- *
- * Aynı klasörde olması gerekiyor.
- */
-const VERIFICATION_PAGE =
-    new URL(
-        "./hesap-doğrulama.html",
-        window.location.href
-    ).href;
+const app =
+    initializeApp(firebaseConfig);
+
+const auth =
+    getAuth(app);
 
 
 /* =========================================
    ELEMENTLER
 ========================================= */
 
-const emailScreen =
-    document.getElementById("emailScreen");
+const emailInput =
+    document.getElementById("email");
 
-const phoneScreen =
-    document.getElementById("phoneScreen");
+const continueButton =
+    document.getElementById(
+        "continueButton"
+    );
 
-const emailUsername =
-    document.getElementById("emailUsername");
+const message =
+    document.getElementById("message");
 
-const phoneNumber =
-    document.getElementById("phoneNumber");
-
-const emailContinue =
-    document.getElementById("emailContinue");
-
-const phoneContinue =
-    document.getElementById("phoneContinue");
-
-const phoneMethod =
-    document.getElementById("phoneMethod");
-
-const emailMethod =
-    document.getElementById("emailMethod");
+const backButton =
+    document.getElementById("backButton");
 
 
 /* =========================================
    MESAJ
 ========================================= */
 
-function showMessage(id,text,type){
-
-    const el =
-        document.getElementById(id);
-
-    if(!el){
-        return;
-    }
-
-    el.textContent =
-        String(text || "");
-
-    el.className =
-        "message" +
-        (
-            type === "success"
-                ? " success"
-                : ""
-        );
-}
-
-
-function clearMessage(id){
-
-    showMessage(
-        id,
-        "",
-        ""
-    );
-}
-
-
-/* =========================================
-   GİRİŞ EKRANINA GİT
-========================================= */
-
-function goLogin(){
-
-    window.location.href =
-        "./giris.html";
-}
-
-
-/* =========================================
-   DOĞRULAMA SAYFASINA GİT
-========================================= */
-
-function goVerification(
-    identifier,
-    mode,
-    email
+function showMessage(
+    text,
+    success=false
 ){
 
-    /*
-     * Bilgileri geçici olarak sakla.
-     * Böylece URL'de sorun olsa bile
-     * doğrulama sayfası bilgileri bulabilir.
-     */
+    message.textContent =
+        text || "";
 
-    try{
+    message.className =
+        "message";
 
-        sessionStorage.setItem(
-            "minegram_recovery_identifier",
-            String(identifier || "")
-        );
+    if(success){
 
-        sessionStorage.setItem(
-            "minegram_recovery_mode",
-            String(mode || "")
-        );
-
-        sessionStorage.setItem(
-            "minegram_recovery_email",
-            String(email || "")
-        );
-
-        sessionStorage.setItem(
-            "minegram_recovery_started",
-            "1"
-        );
-
-    }catch(error){
-
-        console.warn(
-            "sessionStorage kullanılamadı:",
-            error
+        message.classList.add(
+            "success"
         );
 
     }
 
+}
 
-    /*
-     * URL oluştur
-     */
 
-    const url =
-        new URL(
-            VERIFICATION_PAGE
-        );
+/* =========================================
+   FIREBASE HATA
+========================================= */
 
-    url.searchParams.set(
-        "identifier",
-        String(identifier || "")
-    );
+function firebaseError(error){
 
-    url.searchParams.set(
-        "mode",
-        String(mode || "")
-    );
+    switch(error.code){
 
-    if(email){
+        case "auth/invalid-email":
+            return "Geçerli bir e-posta adresi gir.";
 
-        url.searchParams.set(
-            "email",
-            String(email)
-        );
+        case "auth/user-not-found":
+            return "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.";
+
+        case "auth/too-many-requests":
+            return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+
+        case "auth/network-request-failed":
+            return "İnternet bağlantısını kontrol et.";
+
+        default:
+            return error.message ||
+                "Şifre sıfırlama bağlantısı gönderilemedi.";
 
     }
 
-
-    console.log(
-        "[MINEGRAM] DOĞRULAMA SAYFASINA GİDİLİYOR:",
-        url.href
-    );
-
-
-    /*
-     * BEKLEME YOK.
-     * Direkt yönlendir.
-     */
-
-    window.location.href =
-        url.href;
 }
 
 
@@ -570,499 +397,113 @@ function goVerification(
    GERİ
 ========================================= */
 
-function goBack(){
+backButton.addEventListener(
+    "click",
+    function(){
 
-    if(
-        phoneScreen &&
-        phoneScreen.style.display === "block"
-    ){
+        window.location.href =
+            "giris.html";
 
-        showEmailScreen();
-
-        return;
     }
-
-    goLogin();
-}
+);
 
 
 /* =========================================
-   E-POSTA EKRANI
+   ŞİFRE SIFIRLAMA
 ========================================= */
 
-function showEmailScreen(){
+async function resetPassword(){
 
-    if(!emailScreen || !phoneScreen){
-        return;
-    }
-
-    phoneScreen.style.display =
-        "none";
-
-    emailScreen.style.display =
-        "block";
-
-    clearMessage(
-        "phoneMessage"
-    );
-
-    setTimeout(function(){
-
-        if(emailUsername){
-            emailUsername.focus();
-        }
-
-    },100);
-}
+    const email =
+        emailInput.value
+            .trim()
+            .toLowerCase();
 
 
-/* =========================================
-   TELEFON EKRANI
-========================================= */
-
-function showPhoneScreen(){
-
-    if(!emailScreen || !phoneScreen){
-        return;
-    }
-
-    emailScreen.style.display =
-        "none";
-
-    phoneScreen.style.display =
-        "block";
-
-    clearMessage(
-        "emailMessage"
-    );
-
-    setTimeout(function(){
-
-        if(phoneNumber){
-            phoneNumber.focus();
-        }
-
-    },100);
-}
+    showMessage("");
 
 
-/* =========================================
-   JSON CEVABI
-========================================= */
-
-async function readResponse(response){
-
-    const raw =
-        await response.text();
-
-    let data = {};
-
-    try{
-
-        data =
-            raw
-                ? JSON.parse(raw)
-                : {};
-
-    }catch{
-
-        data = {
-            error:
-                raw ||
-                "Sunucudan geçersiz cevap geldi."
-        };
-
-    }
-
-    console.log(
-        "[MINEGRAM API]",
-        response.status,
-        data
-    );
-
-    return data;
-}
-
-
-/* =========================================
-   E-POSTA / KULLANICI ADI
-========================================= */
-
-async function continueEmail(){
-
-    const value =
-        String(
-            emailUsername?.value || ""
-        )
-        .trim()
-        .replace(/^@/,"");
-
-    clearMessage(
-        "emailMessage"
-    );
-
-    if(!value){
+    if(!email){
 
         showMessage(
-            "emailMessage",
-            "Lütfen e-posta adresini veya kullanıcı adını gir.",
-            "error"
+            "E-posta adresini gir."
         );
 
-        emailUsername?.focus();
+        emailInput.focus();
 
         return;
     }
 
 
-    emailContinue.disabled =
-        true;
+    continueButton.disabled = true;
 
-    emailContinue.textContent =
-        "Kontrol ediliyor...";
+    continueButton.textContent =
+        "Gönderiliyor...";
 
 
     try{
 
-        const response =
-            await fetch(
-                API + "/forgot/start",
-                {
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json",
-
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body:JSON.stringify({
-
-                        identifier:value,
-
-                        /*
-                         * E-posta VE kullanıcı adı
-                         * destekleniyor.
-                         */
-                        mode:
-                            value.includes("@")
-                                ? "email"
-                                : "username"
-
-                    }),
-
-                    cache:"no-store",
-
-                    credentials:"same-origin"
-                }
-            );
-
-
-        const data =
-            await readResponse(
-                response
-            );
-
-
-        if(
-            !response.ok ||
-            data.ok !== true
-        ){
-
-            throw new Error(
-                data.error ||
-                "Bu bilgilerle eşleşen hesap bulunamadı."
-            );
-        }
+        await sendPasswordResetEmail(
+            auth,
+            email
+        );
 
 
         /*
          * BAŞARILI
          */
 
-        const targetEmail =
-            String(
-                data.email ||
-                ""
-            ).trim();
-
-
         showMessage(
-            "emailMessage",
-            "Doğrulama kodu gönderildi. Yönlendiriliyorsun...",
-            "success"
+            "Şifre sıfırlama bağlantısı e-posta adresine gönderildi. E-postanı kontrol et.",
+            true
         );
 
 
-        /*
-         * ARTIK BEKLEME YOK.
-         * Direkt doğrulama sayfasına git.
-         */
-
-        goVerification(
-            value,
-            value.includes("@")
-                ? "email"
-                : "username",
-            targetEmail
-        );
+        continueButton.textContent =
+            "Bağlantı gönderildi";
 
 
     }catch(error){
 
         console.error(
-            "[MINEGRAM FORGOT EMAIL ERROR]",
+            "[MINEGRAM FIREBASE PASSWORD RESET]",
             error
         );
 
+
         showMessage(
-            "emailMessage",
-            error?.message ||
-            "Bir hata oluştu. Lütfen tekrar dene.",
-            "error"
+            firebaseError(error)
         );
 
 
-        emailContinue.disabled =
+        continueButton.disabled =
             false;
 
-        emailContinue.textContent =
-            "Devam";
+        continueButton.textContent =
+            "Sıfırlama bağlantısı gönder";
 
-        return;
     }
 
 }
 
 
-/* =========================================
-   TELEFON
-========================================= */
-
-async function continuePhone(){
-
-    const value =
-        String(
-            phoneNumber?.value || ""
-        ).trim();
-
-    clearMessage(
-        "phoneMessage"
-    );
-
-    if(!value){
-
-        showMessage(
-            "phoneMessage",
-            "Lütfen cep telefonu numaranı gir.",
-            "error"
-        );
-
-        phoneNumber?.focus();
-
-        return;
-    }
-
-
-    phoneContinue.disabled =
-        true;
-
-    phoneContinue.textContent =
-        "Kontrol ediliyor...";
-
-
-    try{
-
-        const response =
-            await fetch(
-                API + "/forgot/start",
-                {
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json",
-
-                        "Accept":
-                            "application/json"
-                    },
-
-                    body:JSON.stringify({
-
-                        identifier:value,
-
-                        mode:"phone"
-
-                    }),
-
-                    cache:"no-store",
-
-                    credentials:"same-origin"
-                }
-            );
-
-
-        const data =
-            await readResponse(
-                response
-            );
-
-
-        if(
-            !response.ok ||
-            data.ok !== true
-        ){
-
-            throw new Error(
-                data.error ||
-                "Bu telefon numarasıyla eşleşen hesap bulunamadı."
-            );
-        }
-
-
-        const targetEmail =
-            String(
-                data.email ||
-                ""
-            ).trim();
-
-
-        showMessage(
-            "phoneMessage",
-            "Doğrulama kodu gönderildi. Yönlendiriliyorsun...",
-            "success"
-        );
-
-
-        /*
-         * DİREKT DOĞRULAMA SAYFASI
-         */
-
-        goVerification(
-            value,
-            "phone",
-            targetEmail
-        );
-
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM FORGOT PHONE ERROR]",
-            error
-        );
-
-        showMessage(
-            "phoneMessage",
-            error?.message ||
-            "Bir hata oluştu. Lütfen tekrar dene.",
-            "error"
-        );
-
-
-        phoneContinue.disabled =
-            false;
-
-        phoneContinue.textContent =
-            "Devam";
-
-        return;
-    }
-
-}
-
-
-/* =========================================
-   EVENTLER
-========================================= */
-
-emailContinue.addEventListener(
+continueButton.addEventListener(
     "click",
-    continueEmail
-);
-
-phoneContinue.addEventListener(
-    "click",
-    continuePhone
+    resetPassword
 );
 
 
-phoneMethod.addEventListener(
-    "click",
-    function(){
-
-        showPhoneScreen();
-
-    }
-);
-
-
-emailMethod.addEventListener(
-    "click",
-    function(){
-
-        showEmailScreen();
-
-    }
-);
-
-
-emailUsername.addEventListener(
+emailInput.addEventListener(
     "keydown",
     function(event){
 
-        if(
-            event.key === "Enter"
-        ){
+        if(event.key === "Enter"){
 
             event.preventDefault();
 
-            continueEmail();
+            resetPassword();
 
         }
-
-    }
-);
-
-
-phoneNumber.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Enter"
-        ){
-
-            event.preventDefault();
-
-            continuePhone();
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   BAŞLANGIÇ
-========================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function(){
-
-        showEmailScreen();
-
-        console.log(
-            "[MINEGRAM] Şifre sıfırlama sistemi hazır."
-        );
-
-        console.log(
-            "[MINEGRAM] Doğrulama sayfası:",
-            VERIFICATION_PAGE
-        );
 
     }
 );
