@@ -219,6 +219,7 @@ const firebaseConfig={apiKey:"AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo",authDomai
 
 const firebaseApp=initializeApp(firebaseConfig);
 const auth=getAuth(firebaseApp);
+window.minegramAdminAuth = auth;
 const db=getFirestore(firebaseApp);
 
 const ADMIN_UID="QJqw9moQk8XgpHcFo89bAVPk3uh1";
@@ -738,8 +739,8 @@ document.querySelector('[data-page="emailService"]').addEventListener("click",()
 
             if (url.includes("/api/admin/email-service")) {
                 const currentUser =
-                    (typeof auth !== "undefined" && auth)
-                        ? auth.currentUser
+                    (window.minegramAdminAuth)
+                        ? window.minegramAdminAuth.currentUser
                         : null;
 
                 if (currentUser) {
