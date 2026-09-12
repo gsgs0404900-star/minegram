@@ -702,6 +702,36 @@ async function firebaseSignUp(email, password) {
   return data;
 }
 
+
+async function firebaseSignInAndSendVerifyEmail(email, password) {
+  const signInResponse = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, returnSecureToken: true })
+    }
+  );
+
+  const signInData = await signInResponse.json().catch(() => ({}));
+
+  if (!signInResponse.ok) {
+    throw new Error(signInData?.error?.message || "Mevcut Firebase hesabına giriş yapılamadı.");
+  }
+
+  const idToken = String(signInData?.idToken || "").trim();
+  if (!idToken) throw new Error("Firebase oturum anahtarı alınamadı.");
+
+  await firebaseSendVerifyEmail(idToken);
+
+  return {
+    localId: signInData.localId,
+    idToken: signInData.idToken,
+    refreshToken: signInData.refreshToken,
+    email: signInData.email
+  };
+}
+
 async function firebaseSendVerifyEmail(idToken) {
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
