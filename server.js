@@ -10,6 +10,21 @@ import fs from "fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// Admin paneli Render dışında (ör. localhost:5500) açıldığında
+// SMTP API isteklerinin Authorization header ile ulaşabilmesi için CORS.
+app.use((req,res,next)=>{
+  const origin=req.headers.origin;
+  if(origin && (origin === "https://minegram-hwns.onrender.com" || origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))){
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  }
+  if(req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT) || 3000;
