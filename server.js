@@ -1872,6 +1872,7 @@ app.get(
 ========================================================= */
 app.post("/api/forgot/start",async(req,res)=>{try{const found=await resolveRecoveryEmail(req.body?.identifier,req.body?.mode||"email");if(!found?.email)return res.status(404).json({ok:false,error:"Hesap bulunamadı."});const {error}=await client().auth.resetPasswordForEmail(found.email,{redirectTo:`${publicOrigin(req)}/`});if(error)throw error;return res.json({ok:true,nativeEmailVerification:true,email:found.email,maskedEmail:maskEmail(found.email),message:`Şifre sıfırlama bağlantısı ${found.email} adresine gönderildi.`});}catch(e){console.error("NATIVE FORGOT START ERROR:",e);return res.status(400).json({ok:false,error:e?.message||"Şifre sıfırlama e-postası gönderilemedi."});}});
 
+/* =========================================================
    FORGOT VERIFY
 ========================================================= */
 
@@ -4291,7 +4292,8 @@ app.post("/api/admin/email-service/test",async(req,res)=>{try{const to=normalize
 app.post("/api/admin/email-service/config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",smtpRequired:false,resendRequired:false,message:"E-posta ayarları Supabase Dashboard > Authentication > Email bölümünden yönetilir."}));
 app.post("/api/admin/email-service/verification-config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",message:"Native Supabase Auth doğrulama bağlantısı kullanılır; 6/8 haneli SMTP kod ayarı yoktur."}));
 
-FALLBACK
+/* =========================================================
+   FALLBACK
 ========================================================= */
 
 app.use(
