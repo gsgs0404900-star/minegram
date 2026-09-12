@@ -5391,28 +5391,29 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   const tls = await import("tls");
   let socket;
 
-  const connectSocket = async (secure) => new Promise((resolve, reject) => {
+  const connectSocket = async (secure) => {
     let options;
     try {
       options = await smtpConnectionOptions();
     } catch (e) {
-      reject(new Error(`SMTP sunucusu IPv4 olarak çözülemedi: ${e?.message || e}`));
-      return;
+      throw new Error(`SMTP sunucusu IPv4 olarak çözülemedi: ${e?.message || e}`);
     }
-    let s;
-    let settled = false;
-    const fail = e => {
-      if (!settled) { settled = true; reject(e); }
-      else s.destroy();
-    };
-    if (secure) {
-      s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
-    } else {
-      s = net.createConnection(options, () => { settled = true; resolve(s); });
-    }
-    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
-    s.once("error", fail);
-  });
+    return new Promise((resolve, reject) => {
+      let s;
+      let settled = false;
+      const fail = e => {
+        if (!settled) { settled = true; reject(e); }
+        else s.destroy();
+      };
+      if (secure) {
+        s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
+      } else {
+        s = net.createConnection(options, () => { settled = true; resolve(s); });
+      }
+      s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
+      s.once("error", fail);
+    });
+  };
 
   socket = await connectSocket(!!smtpRuntime.secure);
   let buffer = "";
