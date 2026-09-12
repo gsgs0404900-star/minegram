@@ -1129,6 +1129,90 @@ app.post(
       } catch (firebaseError) {
         console.error("FIREBASE REGISTRATION ERROR:", firebaseError);
 
+        const firebaseMessage = String(firebaseError?.message || "");
+
+        /*
+         * EMAIL_EXISTS:
+         * Firebase'de bu e-posta daha önce oluşturulmuşsa yeni kullanıcı
+         * oluşturmaya çalışma. Girilen mevcut şifre ile oturum açıp
+         * doğrulama e-postasını yeniden gönder.
+         *
+         * Güvenlik nedeniyle şifre yanlışsa mevcut Firebase hesabına
+         * erişmeye çalışılmaz; normal hata döndürülür.
+         */
+        if (firebaseMessage.includes("EMAIL_EXISTS")) {
+          try {
+            const existingFirebase = await firebaseSignInAndSendVerifyEmail(
+              email,
+              password
+            );
+
+            createdFirebaseIdToken =
+              String(existingFirebase.idToken || "").trim();
+            createdFirebaseRefreshToken =
+              String(existingFirebase.refreshToken || "").trim();
+
+            if (!createdFirebaseIdToken || !createdFirebaseRefreshToken) {
+              throw new Error("Mevcut Firebase hesabı için oturum bilgisi alınamadı.");
+            }
+
+            console.log(
+              "[MINEGRAM] EMAIL_EXISTS: mevcut Firebase hesabı kullanıldı ve doğrulama e-postası yeniden gönderildi."
+            );
+
+            createdAuthUserId = null;
+
+            return res.json({
+              ok: true,
+              existingFirebaseAccount: true,
+              needsEmailVerification: true,
+              message:
+                "Bu e-posta zaten kayıtlı. Firebase doğrulama e-postası yeniden gönderildi.",
+              maskedEmail: maskEmail(email),
+              firebaseIdToken: createdFirebaseIdToken,
+              firebaseRefreshToken: createdFirebaseRefreshToken,
+              email,
+              user: {
+                id: authUser.id,
+                email: authUser.email,
+                username,
+                displayName
+              }
+            });
+          } catch (existingError) {
+            console.error(
+              "FIREBASE EXISTING ACCOUNT RECOVERY ERROR:",
+              existingError
+            );
+
+            const existingMessage =
+              String(existingError?.message || "");
+
+            /*
+             * Mevcut Firebase hesabı ile giriş başarısızsa, az önce
+             * oluşturduğumuz Supabase kullanıcısını temizle.
+             */
+            try {
+              await admin.auth.admin.deleteUser(authUser.id);
+            } catch (cleanupError) {
+              console.error(
+                "SUPABASE CLEANUP AFTER FIREBASE EXISTING ERROR:",
+                cleanupError
+              );
+            }
+
+            createdAuthUserId = null;
+
+            return res.status(400).json({
+              ok: false,
+              code: "FIREBASE_EMAIL_EXISTS_LOGIN_ERROR",
+              error:
+                existingMessage ||
+                "Bu e-posta Firebase'de zaten kayıtlı. Mevcut hesabın şifresini kontrol et."
+            });
+          }
+        }
+
         try {
           await admin.auth.admin.deleteUser(authUser.id);
         } catch (cleanupError) {
@@ -1140,11 +1224,12 @@ app.post(
         createdFirebaseIdToken = null;
         createdFirebaseRefreshToken = null;
 
-        const message = String(firebaseError?.message || "");
         return res.status(400).json({
           ok: false,
           code: "FIREBASE_EMAIL_ERROR",
-          error: message || "Firebase doğrulama e-postası gönderilemedi."
+          error:
+            firebaseMessage ||
+            "Firebase doğrulama e-postası gönderilemedi."
         });
       }
 
