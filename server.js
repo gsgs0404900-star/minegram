@@ -6,6 +6,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
+import dns from "dns";
+
+// Render gibi ortamlarda IPv6 yönlendirmesi yoksa SMTP bağlantısını IPv4'e önceliklendir. Bu, ENETUNREACH ...:465 hatasını önler.
+try { dns.setDefaultResultOrder("ipv4first"); } catch (_) {}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -5367,7 +5371,8 @@ function smtpConnectionOptions() {
     host: smtpRuntime.host,
     port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
     servername: smtpRuntime.host,
-    timeout: 20000
+    timeout: 20000,
+    family: 4
   };
 }
 
@@ -5389,7 +5394,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
       else s.destroy();
     };
     if (secure) {
-      s = tls.connect(options, () => { settled = true; resolve(s); });
+      s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
     } else {
       s = net.createConnection(options, () => { settled = true; resolve(s); });
     }
@@ -5449,7 +5454,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
       await command("STARTTLS", [220]);
       socket.removeAllListeners("data");
       socket = await new Promise((resolve, reject) => {
-        const upgraded = tls.connect({ socket, servername: smtpRuntime.host }, () => resolve(upgraded));
+        const upgraded = tls.connect({ socket, servername: smtpRuntime.host, family: 4 }, () => resolve(upgraded));
         upgraded.once("error", reject);
       });
       attachReader(socket);
