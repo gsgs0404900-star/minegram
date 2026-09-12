@@ -110,13 +110,14 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <div class="content-grid">
   <div class="panel">
     <h2>📧 E-posta / Doğrulama</h2>
-    <p>Kullanıcı kayıt sırasında hangi Gmail/e-posta adresini yazarsa doğrulama kodu doğrudan o adrese gönderilir.</p>
-    <div class="input-group"><label>Mail servisi</label><select id="mailProvider"><option value="resend">Resend</option></select></div>
+    <p>Resend kullanılmaz. Kullanıcı kayıt sırasında hangi Gmail/e-posta adresini yazarsa 6 haneli doğrulama kodu doğrudan o adrese gönderilir.</p>
+    <div class="input-group"><label>SMTP sunucusu</label><input id="smtpHost" placeholder="smtp.gmail.com"></div>
+    <div class="input-group"><label>SMTP portu</label><select id="smtpPort"><option value="465">465 (SSL)</option><option value="587">587 (STARTTLS)</option></select></div>
+    <div class="input-group"><label>SMTP kullanıcı e-postası</label><input id="smtpUser" type="email" placeholder="minegramdestek@gmail.com"></div>
     <div class="input-group"><label>Gönderici adı</label><input id="smtpFromName" placeholder="Minegram"></div>
-    <div class="input-group"><label>Gönderici e-posta</label><input id="smtpFromEmail" type="email" placeholder="admin@minegram.com"></div>
-    <div class="input-group"><label>Resend doğrulanmış gönderici</label><input id="resendFrom" placeholder="admin@minegram.com"></div>
-    <p style="color:#697386;font-size:13px">Resend API anahtarı HTML'e yazılmaz. Render → Environment Variables içinde <b>RESEND_API_KEY</b> olarak tutulur.</p>
-    <div class="actions"><button id="smtpSaveButton" class="btn btn-primary">Doğrulama servisini kaydet</button><button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button></div>
+    <div class="input-group"><label>Gönderici e-posta</label><input id="smtpFromEmail" type="email" placeholder="minegramdestek@gmail.com"></div>
+    <p style="color:#697386;font-size:13px">SMTP şifresi güvenlik için HTML'e kaydedilmez. Render Environment Variables içinde <b>SMTP_PASS</b> olarak tutulur.</p>
+    <div class="actions"><button id="smtpSaveButton" class="btn btn-primary">SMTP ayarlarını kaydet</button><button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button></div>
     <div id="smtpMessage" class="message"></div>
   </div>
   <div class="panel">
@@ -521,13 +522,12 @@ $("settingsButton").addEventListener("click",async()=>{
 });
 
 /* =========================================================
-   MINEGRAM RESEND E-POSTA / DOĞRULAMA
-   ========================================================= */
+   MINEGRAM SMTP E-POSTA / DOĞRULAMA
+========================================================= */
 const EMAIL_SERVICE_API = "/api/admin/email-service";
 async function emailServiceRequest(path, options={}){
     const user=auth.currentUser;
     if(!user) throw new Error("Önce Admin olarak giriş yapmalısın.");
-    // forceRefresh=true kullanılmaz: securetoken refresh hatasını tetiklemesin.
     const idToken=await user.getIdToken(false);
     const response=await fetch(EMAIL_SERVICE_API+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+idToken,...(options.headers||{})},credentials:"include"});
     const data=await response.json().catch(()=>({}));
@@ -537,10 +537,12 @@ async function emailServiceRequest(path, options={}){
 async function loadEmailService(){
     try{
         const data=await emailServiceRequest("/status");
-        $("smtpStatus").innerHTML=data.configured?'<span class="badge badge-green">● Resend aktif</span>':'<span class="badge badge-red">● Resend yapılandırılmamış</span>';
+        $("smtpStatus").innerHTML=data.configured?'<span class="badge badge-green">● SMTP aktif</span>':'<span class="badge badge-red">● SMTP yapılandırılmamış</span>';
+        if(data.host) $("smtpHost").value=data.host;
+        if(data.port) $("smtpPort").value=String(data.port);
+        if(data.user) $("smtpUser").value=data.user;
         if(data.fromName) $("smtpFromName").value=data.fromName;
         if(data.fromEmail) $("smtpFromEmail").value=data.fromEmail;
-        if(data.from) $("resendFrom").value=data.from;
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
@@ -549,8 +551,8 @@ async function loadEmailService(){
 $("smtpSaveButton").addEventListener("click",async()=>{
     const message=$("smtpMessage");message.className="message";message.textContent="Kaydediliyor...";
     try{
-        await emailServiceRequest("/config",{method:"POST",body:JSON.stringify({provider:"resend",fromName:$("smtpFromName").value.trim(),fromEmail:$("smtpFromEmail").value.trim(),from:$("resendFrom").value.trim()})});
-        message.className="message success";message.textContent="Resend doğrulama servisi kaydedildi.";await loadEmailService();
+        await emailServiceRequest("/config",{method:"POST",body:JSON.stringify({host:$("smtpHost").value.trim(),port:Number($("smtpPort").value),secure:Number($("smtpPort").value)===465,user:$("smtpUser").value.trim(),fromName:$("smtpFromName").value.trim(),fromEmail:$("smtpFromEmail").value.trim()})});
+        message.className="message success";message.textContent="SMTP doğrulama servisi kaydedildi.";await loadEmailService();
     }catch(error){message.className="message error";message.textContent=error.message;}
 });
 $("smtpTestButton").addEventListener("click",async()=>{
