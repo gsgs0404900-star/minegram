@@ -5376,34 +5376,18 @@ function smtpEscapeAddress(value) {
   return v;
 }
 
-async function smtpConnectionOptions() {
-  const dns = await import("dns");
-  const host = String(smtpRuntime.host || "").trim();
-  if (!host) throw new Error("SMTP host boş.");
-  let address = host;
-  try {
-    const resolved = await dns.promises.lookup(host, { family: 4, all: false });
-    address = resolved.address;
-  } catch (e) {
-    throw new Error(`SMTP host çözülemedi (${host}): ${e?.message || e}`);
-  }
+function smtpConnectionOptions(portOverride) {
+  const host = String(smtpRuntime.host || '').trim();
+  const configuredPort = Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587);
+  const port = Number(portOverride) || configuredPort;
   return {
-    host: address,
-    port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
+    host,
+    port,
     servername: host,
-    timeout: 30000,
-    family: 4
+    timeout: 15000,
+    noDelay: true,
+    keepAlive: false
   };
-}
-
-function formatSmtpNetworkError(e) {
-  if (e?.name === "AggregateError" || Array.isArray(e?.errors)) {
-    const parts = (e.errors || []).map(x => `${x.code || "ERR"}${x.address ? ` ${x.address}` : ""}${x.port ? `:${x.port}` : ""}: ${x.message || x}`).join(" | ");
-    return `SMTP bağlantı hatası: ${parts || e.message || "AggregateError"}`;
-  }
-  if (e?.code === "ECONNREFUSED") return `SMTP bağlantısı reddedildi: ${e.address || smtpRuntime.host}:${e.port || smtpRuntime.port}`;
-  if (e?.code === "ETIMEDOUT" || e?.code === "ESOCKETTIMEDOUT") return `SMTP bağlantısı zaman aşımına uğradı: ${e.address || smtpRuntime.host}:${e.port || smtpRuntime.port}`;
-  return e?.message || String(e);
 }
 
 async function sendSmtpEmail({ to, subject, text, html }) {
@@ -5415,27 +5399,55 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   const tls = await import("tls");
   let socket;
 
-  const connectSocket = (secure) => new Promise((resolve, reject) => {
-    smtpConnectionOptions().then(options => {
-      let s;
-      let settled = false;
-      const fail = e => {
-        if (!settled) { settled = true; reject(formatSmtpNetworkError(e)); }
-        else if (s) s.destroy();
-      };
-      if (secure) {
-        s = tls.connect({ ...options, family: 4 }, () => { settled = true; resolve(s); });
+  const connectSocket = (secure, portOverride) => new Promise((resolve, reject) => {
+    const options = smtpConnectionOptions(portOverride);
+    let s;
+    let settled = false;
+    const finishError = (e) => {
+      const err = e instanceof Error ? e : new Error(String(e || "SMTP bağlantı hatası."));
+      if (!settled) {
+        settled = true;
+        try { s?.destroy(); } catch {}
+        reject(err);
       } else {
-        s = net.createConnection({ ...options, family: 4 }, () => { settled = true; resolve(s); });
+        try { s?.destroy(); } catch {}
       }
-      s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
-      s.once("error", fail);
-    }).catch(reject);
-    return;
-    /* unreachable legacy block */
-    const options = smtpConnectionOptions();
-
+    };
+    const onConnect = () => {
+      if (settled) return;
+      settled = true;
+      resolve(s);
+    };
+    try {
+      if (secure) {
+        s = tls.connect({ ...options, rejectUnauthorized: true }, onConnect);
+      } else {
+        s = net.createConnection(options, onConnect);
+      }
+      s.setTimeout(15000, () => finishError(new Error(`SMTP ${options.host}:${options.port} bağlantısı zaman aşımına uğradı.`)));
+      s.once("error", finishError);
+    } catch (e) {
+      finishError(e);
+    }
   });
+
+  const configuredPort = Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587);
+  const ports = [configuredPort, configuredPort === 465 ? 587 : 465].filter((p, i, a) => a.indexOf(p) === i);
+  let firstError = null;
+
+  for (const port of ports) {
+    try {
+      socket = await connectSocket(!!smtpRuntime.secure || port === 465, port);
+      break;
+    } catch (e) {
+      firstError = e;
+      console.warn(`SMTP bağlantı denemesi başarısız (${smtpRuntime.host}:${port}):`, e?.message || e);
+    }
+  }
+
+  if (!socket) {
+    throw new Error(`SMTP sunucusuna bağlanılamadı (${smtpRuntime.host}). ${firstError?.message || "Host/port dış bağlantısı erişilemiyor."}`);
+  }
 
   socket = await connectSocket(!!smtpRuntime.secure);
   let buffer = "";
