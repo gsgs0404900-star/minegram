@@ -97,6 +97,30 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
 <section id="announcements" class="section"><div class="panel"><h2>📢 Duyuru yayınla</h2><div class="input-group"><label>Başlık</label><input id="announcementTitle" placeholder="Duyuru başlığı"></div><div class="input-group"><label>Mesaj</label><textarea id="announcementText" placeholder="Duyuru metni"></textarea></div><button id="announcementButton" class="btn btn-primary">Duyuruyu yayınla</button><div id="announcementMessage" class="message"></div></div></section>
 
+<section id="emailService" class="section">
+<div class="content-grid">
+<div class="panel">
+<h2>📧 E-posta / Doğrulama</h2>
+<p>Minegram kayıt sırasında kullanıcının yazdığı e-posta adresine doğrulama kodu gönderir. Alıcı adresi sabit değildir; her kullanıcı kendi adresini alır.</p>
+<div class="input-group"><label>Gönderici adı</label><input id="verifyFromName" placeholder="Minegram"></div>
+<div class="input-group"><label>Gönderici e-posta</label><input id="verifyFromEmail" type="email" placeholder="admin@minegram.com"></div>
+<div class="input-group"><label>Mail servisi</label><select id="verifyMailMode"><option value="resend">Resend</option><option value="firebase">Firebase Authentication</option></select></div>
+<div class="actions"><button id="verifySaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button><button id="verifyTestButton" class="btn btn-success">Test e-postası gönder</button></div>
+<div id="verifyMessage" class="message"></div>
+</div>
+<div class="panel">
+<h2>🔐 Kod Ayarları</h2>
+<div class="input-group"><label>Kod uzunluğu</label><select id="verifyCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
+<div class="input-group"><label>Kod geçerlilik süresi</label><select id="verifyExpiry"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
+<div class="input-group"><label>Tekrar gönderme süresi</label><select id="verifyCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
+<div class="panel" style="margin-top:18px;background:#f8fafc">
+<b>Çalışma şekli</b>
+<p style="margin-bottom:0;color:#475467;font-size:14px;line-height:1.5">Örneğin kullanıcı kayıt sırasında <b>kullanici@gmail.com</b> yazarsa doğrulama kodu yalnızca <b>kullanici@gmail.com</b> adresine gönderilir. Admin e-postası alıcı olarak kullanılmaz.</p>
+</div>
+</div>
+</div>
+</section>
+
 <section id="settings" class="section"><div class="panel"><h2>⚙️ Sistem ayarları</h2><div class="input-group"><label>Site adı</label><input id="siteName" placeholder="Minegram"></div><button id="settingsButton" class="btn btn-primary">Ayarları kaydet</button><div id="settingsMessage" class="message"></div></div></section>
 </main>
 </div>
@@ -474,6 +498,57 @@ $("settingsButton").addEventListener("click",async()=>{
         $("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi.";
     }catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}
 });
+</script>
+
+<script type="module">
+// Minegram doğrulama yönetimi: kayıt olan kullanıcının kendi e-posta adresi alıcıdır.
+const VERIFY_API = "/api/admin/email-service";
+async function verifyRequest(path, options={}) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Önce Admin olarak giriş yapmalısın.");
+  const idToken = await user.getIdToken(true);
+  const response = await fetch(VERIFY_API + path, {
+    method: options.method || "GET",
+    headers: {"Content-Type":"application/json", "Authorization":"Bearer " + idToken, ...(options.headers||{})},
+    body: options.body,
+    credentials: "include"
+  });
+  const data = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(data.error || data.message || "Doğrulama servisi hatası.");
+  return data;
+}
+async function loadVerifySettings(){
+  try {
+    const d = await verifyRequest("/status");
+    if (d.fromName) $("verifyFromName").value=d.fromName;
+    if (d.fromEmail) $("verifyFromEmail").value=d.fromEmail;
+    if (d.mode) $("verifyMailMode").value=d.mode;
+    if (d.codeLength) $("verifyCodeLength").value=String(d.codeLength);
+    if (d.expiryMinutes) $("verifyExpiry").value=String(d.expiryMinutes);
+    if (d.cooldownSeconds) $("verifyCooldown").value=String(d.cooldownSeconds);
+  } catch(e) { console.warn("Doğrulama ayarları:", e.message); }
+}
+$("verifySaveButton").addEventListener("click", async ()=>{
+  const m=$("verifyMessage"); m.className="message"; m.textContent="Kaydediliyor...";
+  try {
+    await verifyRequest("/config", {method:"POST", body:JSON.stringify({
+      fromName:$("verifyFromName").value.trim(), fromEmail:$("verifyFromEmail").value.trim(), mode:$("verifyMailMode").value,
+      codeLength:Number($("verifyCodeLength").value), expiryMinutes:Number($("verifyExpiry").value), cooldownSeconds:Number($("verifyCooldown").value)
+    })});
+    m.className="message success"; m.textContent="Doğrulama ayarları kaydedildi.";
+  } catch(e) { m.className="message error"; m.textContent=e.message; }
+});
+$("verifyTestButton").addEventListener("click", async ()=>{
+  const m=$("verifyMessage");
+  const to=prompt("Test kodu hangi e-posta adresine gönderilsin?");
+  if(!to) return;
+  m.className="message"; m.textContent="Test kodu gönderiliyor...";
+  try {
+    await verifyRequest("/test", {method:"POST", body:JSON.stringify({to})});
+    m.className="message success"; m.textContent="Test e-postası gönderildi: " + to;
+  } catch(e) { m.className="message error"; m.textContent=e.message; }
+});
+document.querySelector('[data-page="emailService"]').addEventListener("click", loadVerifySettings);
 </script>
 </body>
 </html>
