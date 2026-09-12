@@ -254,6 +254,8 @@ async function loadAdminDataSafely(){
 
 let adminLoginInProgress=false;
 let adminVerified=false;
+console.log("MINEGRAM ADMIN WEB ORIGIN:", location.origin);
+console.log("MINEGRAM ADMIN PATH:", location.pathname);
 let usersUnsubscribe=null;
 let balancesUnsubscribe=null;
 let bankUnsubscribe=null;
@@ -315,6 +317,7 @@ onAuthStateChanged(auth,async user=>{
     }
 });
 
+// Internet/Render tanılama: butonun gerçekten submit olayını tetiklediğini görünür kılar.
 $("loginForm").addEventListener("submit",async event=>{
     event.preventDefault();
 
@@ -355,7 +358,14 @@ $("loginForm").addEventListener("submit",async event=>{
         $("loginScreen").classList.remove("hidden");
         $("adminApp").classList.add("hidden");
         $("loginMessage").className="message error";
-        $("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message;
+        const code=String(error?.code||"");
+        let friendly=error?.message||"Bilinmeyen hata";
+        if(code.includes("auth/unauthorized-domain")) friendly="Bu internet adresi Firebase Authentication → Authorized domains bölümüne eklenmemiş. Render alan adını Firebase'e eklemelisin.";
+        else if(code.includes("auth/invalid-credential")) friendly="E-posta veya şifre hatalı.";
+        else if(code.includes("auth/user-not-found")) friendly="Admin e-posta hesabı Firebase Authentication'da bulunamadı.";
+        else if(code.includes("auth/wrong-password")) friendly="Admin şifresi yanlış.";
+        else if(code.includes("permission-denied")) friendly="Firebase Firestore admins belgesine erişim izni yok. admins/ADMIN_UID güvenlik kuralını kontrol et.";
+        $("loginMessage").textContent="HATA: "+code+" - "+friendly;
     }finally{
         adminLoginInProgress=false;
     }
