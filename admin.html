@@ -102,20 +102,20 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <section id="emailService" class="section">
 <div class="content-grid">
   <div class="panel">
-    <h2>📧 Minegram Doğrulama E-posta Servisi</h2>
-    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP parolası bu HTML dosyasında tutulmaz; sunucu tarafında Environment Variable olarak saklanmalıdır.</p>
+    <h2>📧 Minegram Panel SMTP Servisi</h2>
+    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP bilgileri doğrudan Supabase Auth Custom SMTP ayarlarına kaydedilir. SMTP şifresi HTML veya Firestore içinde tutulmaz; Supabase Management API üzerinden güvenli şekilde uygulanır.</p>
 
     <div class="input-group">
       <label>SMTP sağlayıcısı</label>
       <select id="smtpProvider">
-        <option value="custom">Özel SMTP sağlayıcısı</option>
+        <option value="custom">Panel SMTP</option>
         <option value="brevo">Brevo</option>
         <option value="sendgrid">SendGrid</option>
         <option value="postmark">Postmark</option>
         <option value="amazon-ses">Amazon SES</option>
         <option value="zoho">Zoho Mail</option>
       </select>
-      <small>Sağlayıcı hesabındaki SMTP host, port, kullanıcı ve şifre/anahtarı aşağıya gir.</small>
+      <small>Buradaki bilgiler Supabase Auth → Custom SMTP yapılandırmasına uygulanır. Resend ve Render sunucusundan doğrudan SMTP bağlantısı kullanılmaz.</small>
     </div>
 
     <div class="input-group">
@@ -153,8 +153,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
     </div>
 
     <div class="input-group">
-      <label>SMTP şifresi / anahtarı</label>
-      <input id="smtpPass" type="password" autocomplete="new-password" placeholder="Sunucu tarafında saklanır">
+      <label>SMTP şifresi</label>
+      <input id="smtpPass" type="password" autocomplete="new-password" placeholder="Panel SMTP içinde uygulanır">
     </div>
 
     <div class="actions">
@@ -201,7 +201,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
     <h3>Servis durumu</h3>
     <p id="smtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
-    <p style="color:#697386;font-size:13px">SMTP kullanıcı adı ve şifresi güvenlik nedeniyle Firestore'a yazılmaz. Gerçek gizli bilgiler sunucu Environment Variables bölümünde tutulmalıdır.</p>
+    <p style="color:#697386;font-size:13px">SMTP şifresi Firestore veya HTML içinde tutulmaz. Supabase Management API ile Auth Custom SMTP yapılandırmasına uygulanır.</p>
   </div>
 </div>
 </section>
@@ -634,9 +634,9 @@ async function loadEmailService(){
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-        if(!data.managementApiConfigured){
-            $("smtpMessage").className="message error";
-            $("smtpMessage").textContent="Supabase Custom SMTP için Render'da SUPABASE_PROJECT_REF ve SUPABASE_ACCESS_TOKEN gerekli.";
+        if(data.mode==="direct-admin-panel-smtp"){
+            $("smtpMessage").className="message success";
+            $("smtpMessage").textContent="SMTP servisi doğrudan Admin Panelindeki sağlayıcı ayarlarıyla çalışıyor.";
         }
     }catch(error){
         $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
@@ -664,7 +664,7 @@ $("smtpSaveButton").addEventListener("click",async()=>{
         });
         $("smtpPass").value="";
         message.className="message success";
-        message.textContent="SMTP ayarları sunucuya kaydedildi.";
+        message.textContent="Panel SMTP ayarları kaydedildi.";
         await loadEmailService();
     }catch(error){
         message.className="message error";
