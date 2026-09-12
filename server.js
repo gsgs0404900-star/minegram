@@ -5366,12 +5366,18 @@ function smtpEscapeAddress(value) {
   return v;
 }
 
-function smtpConnectionOptions() {
+async function smtpConnectionOptions() {
+  // SMTP bağlantısında IPv6 yoluna hiç girmemek için hostu önce gerçek IPv4
+  // adresine çözüyoruz. Böylece Render/Node'un IPv6 seçmesi nedeniyle oluşan
+  // ENETUNREACH ve bazı IPv6 timeout durumları tamamen devre dışı kalır.
+  const dns = await import("dns");
+  const lookup = dns.promises.lookup;
+  const resolved = await lookup(String(smtpRuntime.host), { family: 4, all: false });
   return {
-    host: smtpRuntime.host,
+    host: resolved.address,
     port: Number(smtpRuntime.port) || (smtpRuntime.secure ? 465 : 587),
     servername: smtpRuntime.host,
-    timeout: 20000,
+    timeout: 30000,
     family: 4
   };
 }
@@ -5386,7 +5392,13 @@ async function sendSmtpEmail({ to, subject, text, html }) {
   let socket;
 
   const connectSocket = (secure) => new Promise((resolve, reject) => {
-    const options = smtpConnectionOptions();
+    let options;
+    try {
+      options = await smtpConnectionOptions();
+    } catch (e) {
+      reject(new Error(`SMTP sunucusu IPv4 olarak çözülemedi: ${e?.message || e}`));
+      return;
+    }
     let s;
     let settled = false;
     const fail = e => {
@@ -5398,7 +5410,7 @@ async function sendSmtpEmail({ to, subject, text, html }) {
     } else {
       s = net.createConnection(options, () => { settled = true; resolve(s); });
     }
-    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı.")));
+    s.setTimeout(30000, () => fail(new Error("SMTP bağlantısı zaman aşımına uğradı. Host/port dış bağlantısı erişilemiyor.")));
     s.once("error", fail);
   });
 
