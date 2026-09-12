@@ -4288,7 +4288,58 @@ app.get(
    Resend yok. Gmail SMTP yok. Render SMTP portu yok.
 ========================================================= */
 app.get("/api/admin/email-service/status",(req,res)=>res.json({ok:true,configured:true,mode:"supabase-auth-native",provider:"Supabase Auth",smtpRequired:false,resendRequired:false,message:"E-posta doğrulama ve şifre sıfırlama Supabase Auth tarafından gönderilir."}));
-app.post("/api/admin/email-service/test",async(req,res)=>{try{const to=normalizeEmail(req.body?.to);if(!to)return res.status(400).json({ok:false,error:"Test e-postası için alıcı e-posta gerekli."});const {error}=await client().auth.resetPasswordForEmail(to,{redirectTo:`${publicOrigin(req)}/`});if(error)throw error;res.json({ok:true,sent:true,to,mode:"supabase-auth-native"});}catch(e){res.status(400).json({ok:false,error:e?.message||"Supabase Auth e-postası gönderilemedi."});}});
+app.post("/api/admin/email-service/test", async (req, res) => {
+  try {
+    const to = normalizeEmail(req.body?.to);
+    if (!to) {
+      return res.status(400).json({
+        ok: false,
+        error: "Test e-postası için alıcı e-posta gerekli."
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Geçerli bir e-posta adresi gir."
+      });
+    }
+
+    // Supabase Auth, resetPasswordForEmail çağrısında mevcut olmayan
+    // hesaplar için güvenlik nedeniyle hata vermeyebilir ve e-posta
+    // göndermeden başarılı cevap döndürebilir. Bu nedenle admin testinde
+    // OTP gönderimi kullanılır. shouldCreateUser=true olduğunda Supabase
+    // Auth, adres mevcut değilse gerekli Auth kullanıcısını oluşturup
+    // doğrulama OTP'sini gönderir. Böylece test gerçekten e-posta
+    // sağlayıcısına teslim edilmek üzere kuyruğa alınır.
+    const { error } = await client().auth.signInWithOtp({
+      email: to,
+      options: {
+        shouldCreateUser: true,
+        data: {
+          minegram_email_test: true
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    return res.json({
+      ok: true,
+      sent: true,
+      accepted: true,
+      to,
+      mode: "supabase-auth-otp",
+      message: `Supabase Auth OTP e-postayı ${to} adresine gönderim için kabul etti. Teslimat Supabase Auth e-posta sağlayıcısına bağlıdır.`
+    });
+  } catch (e) {
+    console.error("SUPABASE AUTH EMAIL TEST ERROR:", e);
+    return res.status(400).json({
+      ok: false,
+      error: e?.message || "Supabase Auth test e-postası gönderilemedi."
+    });
+  }
+});
 app.post("/api/admin/email-service/config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",smtpRequired:false,resendRequired:false,message:"E-posta ayarları Supabase Dashboard > Authentication > Email bölümünden yönetilir."}));
 app.post("/api/admin/email-service/verification-config",(req,res)=>res.json({ok:true,mode:"supabase-auth-native",message:"Native Supabase Auth doğrulama bağlantısı kullanılır; 6/8 haneli SMTP kod ayarı yoktur."}));
 
