@@ -732,6 +732,28 @@ async function firebaseSignInAndSendVerifyEmail(email, password) {
   };
 }
 
+
+async function firebaseEmailExists(email) {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifier: String(email || "").trim().toLowerCase(),
+        continueUri: "https://minegram.com/"
+      })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const code = String(data?.error?.message || "");
+    if (code === "EMAIL_NOT_FOUND") return false;
+    throw new Error(code || "Firebase e-posta kontrolü başarısız.");
+  }
+  return data?.registered === true;
+}
+
 async function firebaseSendVerifyEmail(idToken) {
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(MINEGRAM_FIREBASE_WEB_API_KEY)}`,
