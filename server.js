@@ -1164,28 +1164,100 @@ app.post(
          */
         if (firebaseMessage.includes("EMAIL_EXISTS")) {
           console.log(
-            "[MINEGRAM] EMAIL_EXISTS: e-posta Firebase'de zaten kayıtlı. Mevcut hesabın şifresiyle otomatik giriş yapılmayacak."
+            "[MINEGRAM] EMAIL_EXISTS: Firebase'de aynı e-posta ile eski hesap aranıyor."
           );
 
-          // Firebase'deki mevcut hesabın şifresini bilmeden oturum açmaya
-          // çalışmak INVALID_LOGIN_CREDENTIALS üretir. Bu nedenle mevcut
-          // hesabı ele geçirmeye/şifresini tahmin etmeye çalışmıyoruz.
+          /*
+           * ÖNEMLİ:
+           * Kullanıcı adı Minegram'da kayıtlı olmasa bile Firebase Auth'ta
+           * daha önce yarım kalmış bir hesap bulunabilir. Bu durumda yeni
+           * hesap oluşturulamaz.
+           *
+           * Eğer eski Firebase hesabı HENÜZ E-POSTA DOĞRULAMAMIŞSA,
+           * bu hesabı eski/yarım kayıt olarak kabul edip siler ve yeni
+           * kayıt akışını bir kez tekrarlarız. Böylece kullanıcı adına
+           * bakarak yanlış "hesap zaten kayıtlı" mesajı verilmez.
+           *
+           * Eğer eski hesap DOĞRULANMIŞSA, kesinlikle silinmez.
+           */
           try {
-            await admin.auth.admin.deleteUser(authUser.id);
-          } catch (cleanupError) {
+            const oldFirebaseUser = await admin.auth.getUserByEmail(email);
+
+            if (!oldFirebaseUser.emailVerified) {
+              console.log(
+                "[MINEGRAM] Eski Firebase hesabı doğrulanmamış. Yarım kayıt temizleniyor."
+              );
+
+              await admin.auth.deleteUser(oldFirebaseUser.uid);
+
+              firebaseData = await firebaseSignUp(email, password);
+              createdFirebaseIdToken = String(firebaseData.idToken || "").trim();
+              createdFirebaseRefreshToken = String(firebaseData.refreshToken || "").trim();
+
+              if (!createdFirebaseIdToken || !createdFirebaseRefreshToken) {
+                throw new Error("Firebase oturumu oluşturulamadı.");
+              }
+
+              await firebaseSendVerifyEmail(createdFirebaseIdToken);
+
+              console.log(
+                "[MINEGRAM] Eski doğrulanmamış Firebase hesabı temizlendi ve yeni doğrulama e-postası gönderildi."
+              );
+            } else {
+              console.log(
+                "[MINEGRAM] Firebase hesabı e-posta doğrulaması yapılmış; hesap silinmeyecek."
+              );
+
+              try {
+                await admin.auth.admin.deleteUser(authUser.id);
+              } catch (cleanupError) {
+                console.error(
+                  "SUPABASE CLEANUP AFTER VERIFIED FIREBASE EMAIL EXISTS ERROR:",
+                  cleanupError
+                );
+              }
+
+              createdAuthUserId = null;
+
+              return res.status(409).json({
+                ok: false,
+                code: "EMAIL_EXISTS_VERIFIED",
+                error: "Bu e-posta adresi Firebase'de doğrulanmış bir hesaba ait. Giriş yap veya Şifremi unuttum seçeneğini kullan."
+              });
+            }
+          } catch (existingFirebaseError) {
+            const existingCode =
+              String(existingFirebaseError?.errorInfo?.code || existingFirebaseError?.code || "");
+
+            if (
+              existingCode === "auth/user-not-found" ||
+              existingCode === "USER_NOT_FOUND"
+            ) {
+              throw firebaseError;
+            }
+
             console.error(
-              "SUPABASE CLEANUP AFTER FIREBASE EMAIL EXISTS ERROR:",
-              cleanupError
+              "[MINEGRAM] EMAIL_EXISTS temizleme/kontrol hatası:",
+              existingFirebaseError
             );
+
+            try {
+              await admin.auth.admin.deleteUser(authUser.id);
+            } catch (cleanupError) {
+              console.error(
+                "SUPABASE CLEANUP AFTER FIREBASE EMAIL EXISTS ERROR:",
+                cleanupError
+              );
+            }
+
+            createdAuthUserId = null;
+
+            return res.status(409).json({
+              ok: false,
+              code: "EMAIL_EXISTS",
+              error: "Bu e-posta Firebase'de zaten kullanılıyor. Giriş veya şifre sıfırlama ile devam et."
+            });
           }
-
-          createdAuthUserId = null;
-
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_EXISTS",
-            error: "Bu e-posta adresi zaten kayıtlı. Giriş yap veya Şifremi unuttum seçeneğini kullan."
-          });
         }
 
         try {
