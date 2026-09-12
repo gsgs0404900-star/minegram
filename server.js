@@ -5318,36 +5318,51 @@ function saveSmtpPublicConfig() {
 async function verifyFirebaseAdminToken(req) {
   const authHeader = String(req.headers.authorization || "").trim();
   const headerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
-  const token = headerToken || String(req.headers["x-firebase-id-token"] || "").trim();
-  if (!token) throw new Error("Admin oturumu gerekli.");
-  if (!FIREBASE_WEB_API_KEY) throw new Error("FIREBASE_WEB_API_KEY eksik.");
+  const backupToken = String(req.headers["x-firebase-id-token"] || "").trim();
+  const token = headerToken || backupToken;
+
+  if (!token) {
+    throw new Error("Firebase ID token gönderilmedi.");
+  }
+  if (!FIREBASE_WEB_API_KEY) {
+    throw new Error("FIREBASE_WEB_API_KEY eksik.");
+  }
 
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify({ idToken: token })
     }
   );
+
   const data = await response.json().catch(() => ({}));
   const firebaseUser = data?.users?.[0];
+
   if (!response.ok || !firebaseUser?.localId) {
-    throw new Error(data?.error?.message || "Firebase admin oturumu doğrulanamadı.");
+    const firebaseMessage = data?.error?.message || `HTTP ${response.status}`;
+    throw new Error(`Firebase token doğrulaması başarısız: ${firebaseMessage}`);
   }
+
   if (firebaseUser.localId !== SMTP_ADMIN_UID) {
-    throw new Error("Bu Firebase hesabının SMTP admin yetkisi yok.");
+    throw new Error(`Bu Firebase hesabı SMTP admin değil. UID: ${firebaseUser.localId}`);
   }
+
   return firebaseUser;
 }
 
 async function smtpAdminAuth(req, res, next) {
   try {
-    await verifyFirebaseAdminToken(req);
-    next();
+    req.smtpAdmin = await verifyFirebaseAdminToken(req);
+    return next();
   } catch (e) {
-    console.error("SMTP ADMIN AUTH ERROR:", e?.message || e);
-    res.status(401).json({ ok: false, error: "Admin oturumu gerekli." });
+    const message = e?.message || "Admin oturumu doğrulanamadı.";
+    console.error("SMTP ADMIN AUTH ERROR:", message);
+    return res.status(401).json({ ok: false, error: message });
   }
 }
 
