@@ -5099,9 +5099,26 @@ async function sendSmtpEmail({ to, subject, html, text: textBody }) {
 
 /* Eski fonksiyon adını koruyoruz; kayıt ve şifre sıfırlama kodlarının diğer bölümleri değişmeden çalışır. */
 async function sendMailGatewayEmail(args) {
-  const provider = String(process.env.MAIL_API_PROVIDER || "gmail_api").trim().toLowerCase();
-  if (provider === "smtp") return sendSmtpEmail(args);
-  return sendGmailApiEmail(args);
+  // Admin Panelinde SMTP ayarı yapıldıysa kayıt/doğrulama mailleri
+  // doğrudan o SMTP servisi üzerinden gönderilir. Böylece ayrıca
+  // MAIL_API_PROVIDER=smtp ayarı yapmak gerekmez.
+  const forcedProvider = String(process.env.MAIL_API_PROVIDER || "").trim().toLowerCase();
+  const smtpReady = Boolean(
+    String(smtpRuntime.host || env("SMTP_HOST") || "").trim() &&
+    String(smtpRuntime.user || env("SMTP_USER") || "").trim() &&
+    String(env("SMTP_PASS") || "").trim() &&
+    String(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || smtpRuntime.user || env("SMTP_USER") || "").trim()
+  );
+
+  if (forcedProvider === "smtp" || (!forcedProvider && smtpReady)) {
+    return sendSmtpEmail(args);
+  }
+
+  if (forcedProvider === "gmail_api" || !smtpReady) {
+    return sendGmailApiEmail(args);
+  }
+
+  return sendSmtpEmail(args);
 }
 
 app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
