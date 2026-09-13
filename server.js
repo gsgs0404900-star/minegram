@@ -5466,6 +5466,90 @@ app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req, re
 
 
 /* =========================================================
+   MINEGRAM MAIL GATEWAY — ADMIN PANEL UYUMLU
+   Gateway Token isteğe bağlıdır. MAIL_GATEWAY_TOKEN boşsa
+   token olmadan istek kabul edilir.
+========================================================= */
+const MAIL_GATEWAY_TOKEN = env("MAIL_GATEWAY_TOKEN");
+
+function gatewayAuth(req, res, next) {
+  const required = String(MAIL_GATEWAY_TOKEN || "").trim();
+  if (!required) return next();
+
+  const authHeader = String(req.headers.authorization || "").trim();
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const gatewayToken = String(req.headers["x-mail-gateway-token"] || "").trim();
+  const supplied = bearerToken || gatewayToken;
+
+  if (supplied !== required) {
+    return res.status(401).json({
+      ok: false,
+      success: false,
+      error: "Geçersiz Mail Gateway Token."
+    });
+  }
+  next();
+}
+
+function gatewayPayload(body = {}) {
+  return {
+    to: body.to || body.email || body.recipient || body.recipientEmail,
+    subject: body.subject || "Minegram",
+    html: body.html || body.messageHtml || body.contentHtml || "",
+    text: body.text || body.message || body.content || ""
+  };
+}
+
+app.get("/api/mail-gateway/status", (req, res) => {
+  const config = smtpPublicConfig();
+  res.json({
+    ok: true,
+    success: true,
+    service: "Minegram Mail Gateway",
+    configured: config.configured,
+    tokenRequired: Boolean(MAIL_GATEWAY_TOKEN),
+    fromName: config.fromName,
+    fromEmail: config.fromEmail
+  });
+});
+
+app.post("/api/send-mail", gatewayAuth, async (req, res) => {
+  try {
+    const payload = gatewayPayload(req.body || {});
+    if (!payload.to) throw new Error("Alıcı e-posta adresi gerekli.");
+    if (!payload.html && !payload.text) throw new Error("E-posta içeriği gerekli.");
+
+    await sendSmtpEmail(payload);
+    res.json({
+      ok: true,
+      success: true,
+      message: "E-posta başarıyla gönderildi."
+    });
+  } catch (e) {
+    console.error("MAIL GATEWAY ERROR:", e?.message || e);
+    res.status(400).json({
+      ok: false,
+      success: false,
+      error: e?.message || "E-posta gönderilemedi."
+    });
+  }
+});
+
+/* Bazı admin panellerinin kullandığı alternatif gateway yolları */
+app.post("/api/mail-gateway/send", gatewayAuth, async (req, res) => {
+  try {
+    const payload = gatewayPayload(req.body || {});
+    if (!payload.to) throw new Error("Alıcı e-posta adresi gerekli.");
+    if (!payload.html && !payload.text) throw new Error("E-posta içeriği gerekli.");
+    await sendSmtpEmail(payload);
+    res.json({ ok: true, success: true, message: "E-posta başarıyla gönderildi." });
+  } catch (e) {
+    res.status(400).json({ ok: false, success: false, error: e?.message || "E-posta gönderilemedi." });
+  }
+});
+
+
+/* =========================================================
    FALLBACK
 ========================================================= */
 
