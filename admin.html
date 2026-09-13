@@ -102,53 +102,34 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <section id="emailService" class="section">
 <div class="content-grid">
   <div class="panel">
-    <h2>📧 Minegram Doğrulama E-posta Servisi</h2>
-    <p>Kayıt olan kullanıcının girdiği e-posta adresine doğrulama kodu gönderilir. SMTP parolası bu HTML dosyasında tutulmaz; sunucu tarafında Environment Variable olarak saklanmalıdır.</p>
+    <h2>📧 Minegram HTTPS Mail Gateway</h2>
+    <p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi yalnızca HTTPS Mail Gateway üzerinden yapılır. Gmail SMTP / SMTP soketi kullanılmaz.</p>
+
+    <div class="input-group">
+      <label>Mail Gateway URL</label>
+      <input id="gatewayUrl" type="url" placeholder="https://alanadiniz.com/api/send-mail">
+    </div>
+
+    <div class="input-group">
+      <label>Mail Gateway Token (isteğe bağlı)</label>
+      <input id="gatewayToken" type="password" autocomplete="new-password" placeholder="Bearer token">
+    </div>
 
     <div class="input-group">
       <label>Gönderici adı</label>
-      <input id="smtpFromName" placeholder="Minegram">
+      <input id="gatewayFromName" placeholder="Minegram">
     </div>
 
     <div class="input-group">
       <label>Gönderici e-posta</label>
-      <input id="smtpFromEmail" type="email" placeholder="noreply@alanadiniz.com">
-    </div>
-
-    <div class="input-group">
-      <label>SMTP sunucusu</label>
-      <input id="smtpHost" placeholder="smtp.example.com">
-    </div>
-
-    <div class="form-grid">
-      <div class="input-group">
-        <label>SMTP portu</label>
-        <input id="smtpPort" type="number" value="587">
-      </div>
-      <div class="input-group">
-        <label>Şifreleme</label>
-        <select id="smtpSecure">
-          <option value="false">STARTTLS / 587</option>
-          <option value="true">SSL / 465</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>SMTP kullanıcı</label>
-      <input id="smtpUser" autocomplete="off" placeholder="SMTP kullanıcı adı">
-    </div>
-
-    <div class="input-group">
-      <label>SMTP şifresi / anahtarı</label>
-      <input id="smtpPass" type="password" autocomplete="new-password" placeholder="Sunucu tarafında saklanır">
+      <input id="gatewayFromEmail" type="email" placeholder="noreply@alanadiniz.com">
     </div>
 
     <div class="actions">
-      <button id="smtpSaveButton" class="btn btn-primary">Servis ayarlarını kaydet</button>
-      <button id="smtpTestButton" class="btn btn-success">Test e-postası gönder</button>
+      <button id="gatewaySaveButton" class="btn btn-primary">Gateway ayarlarını kaydet</button>
+      <button id="gatewayTestButton" class="btn btn-success">Gateway test e-postası gönder</button>
     </div>
-    <div id="smtpMessage" class="message"></div>
+    <div id="gatewayMessage" class="message"></div>
   </div>
 
   <div class="panel">
@@ -187,8 +168,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
     <hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
 
     <h3>Servis durumu</h3>
-    <p id="smtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
-    <p style="color:#697386;font-size:13px">SMTP kullanıcı adı ve şifresi güvenlik nedeniyle Firestore'a yazılmaz. Gerçek gizli bilgiler sunucu Environment Variables bölümünde tutulmalıdır.</p>
+    <p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
+    <p style="color:#697386;font-size:13px">Gateway Token sunucu tarafında kullanılır. HTML dosyasında SMTP bağlantı bilgileri bulunmaz.</p>
   </div>
 </div>
 </section>
@@ -584,20 +565,14 @@ $("settingsButton").addEventListener("click",async()=>{
 });
 
 /* =========================================================
-   MINEGRAM DOĞRULAMA E-POSTA SERVİSİ
-   Gizli SMTP parolası istemciye/Firestore'a yazılmaz.
-   Sunucu endpoint'i:
-     GET  /api/admin/email-service/status
-     POST /api/admin/email-service/config
-     POST /api/admin/email-service/test
-   ========================================================= */
+   MINEGRAM HTTPS MAIL GATEWAY + DOĞRULAMA SERVİSİ
+   Minegram kodu üretir/doğrular; gönderim HTTPS Gateway üzerinden yapılır.
+========================================================= */
 const EMAIL_SERVICE_API = "/api/admin/email-service";
 
 async function emailServiceRequest(path, options={}){
     let currentUser = currentAdminUser || auth.currentUser;
-    if(!currentUser){
-        throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
-    }
+    if(!currentUser) throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
 
     async function doRequest(forceRefresh){
         const token = await currentUser.getIdToken(forceRefresh);
@@ -605,12 +580,7 @@ async function emailServiceRequest(path, options={}){
         headers.set("Content-Type","application/json");
         headers.set("Authorization","Bearer " + token);
         headers.set("X-Firebase-ID-Token", token);
-        return fetch(EMAIL_SERVICE_API + path, {
-            ...options,
-            headers,
-            credentials:"same-origin",
-            cache:"no-store"
-        });
+        return fetch(EMAIL_SERVICE_API + path, {...options, headers, credentials:"same-origin", cache:"no-store"});
     }
 
     let response = await doRequest(false);
@@ -619,86 +589,68 @@ async function emailServiceRequest(path, options={}){
         currentUser = auth.currentUser || currentUser;
         response = await doRequest(true);
     }
-
     const data = await response.json().catch(()=>({}));
-    if(!response.ok){
-        throw new Error(data.error || data.message || `E-posta servisi HTTP ${response.status}`);
-    }
+    if(!response.ok) throw new Error(data.error || data.message || `E-posta servisi HTTP ${response.status}`);
     return data;
 }
 
 async function loadEmailService(){
     try{
         const data = await emailServiceRequest("/status");
-        $("smtpStatus").innerHTML = data.configured
-            ? '<span class="badge badge-green">● Aktif</span>'
-            : '<span class="badge badge-red">● Yapılandırılmamış</span>';
-
-        if(data.fromName) $("smtpFromName").value=data.fromName;
-        if(data.fromEmail) $("smtpFromEmail").value=data.fromEmail;
-        if(data.host) $("smtpHost").value=data.host;
-        if(data.port) $("smtpPort").value=data.port;
-        if(typeof data.secure==="boolean") $("smtpSecure").value=String(data.secure);
-        if(data.user) $("smtpUser").value=data.user;
+        $("gatewayStatus").innerHTML = data.configured
+            ? '<span class="badge badge-green">● HTTPS Gateway Aktif</span>'
+            : '<span class="badge badge-red">● Gateway Yapılandırılmamış</span>';
+        if(data.gatewayUrl) $("gatewayUrl").value=data.gatewayUrl;
+        if(data.fromName) $("gatewayFromName").value=data.fromName;
+        if(data.fromEmail) $("gatewayFromEmail").value=data.fromEmail;
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
+        // Token güvenlik nedeniyle status yanıtında geri gönderilmez.
     }catch(error){
-        $("smtpStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
-        console.warn("E-posta servisi:",error.message);
+        $("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
+        console.warn("Mail Gateway:",error.message);
     }
 }
 
-$("smtpSaveButton").addEventListener("click",async()=>{
-    const message=$("smtpMessage");
-    message.className="message";
-    message.textContent="Kaydediliyor...";
+$("gatewaySaveButton").addEventListener("click",async()=>{
+    const message=$("gatewayMessage");
+    message.className="message"; message.textContent="Kaydediliyor...";
     try{
         await emailServiceRequest("/config",{
             method:"POST",
             body:JSON.stringify({
-                fromName:$("smtpFromName").value.trim(),
-                fromEmail:$("smtpFromEmail").value.trim(),
-                host:$("smtpHost").value.trim(),
-                port:Number($("smtpPort").value||587),
-                secure:$("smtpSecure").value==="true",
-                user:$("smtpUser").value.trim(),
-                pass:$("smtpPass").value
+                gatewayUrl:$("gatewayUrl").value.trim(),
+                gatewayToken:$("gatewayToken").value,
+                fromName:$("gatewayFromName").value.trim(),
+                fromEmail:$("gatewayFromEmail").value.trim()
             })
         });
-        $("smtpPass").value="";
+        $("gatewayToken").value="";
         message.className="message success";
-        message.textContent="SMTP ayarları sunucuya kaydedildi.";
+        message.textContent="HTTPS Mail Gateway ayarları kaydedildi.";
         await loadEmailService();
     }catch(error){
-        message.className="message error";
-        message.textContent=error.message;
+        message.className="message error"; message.textContent=error.message;
     }
 });
 
-$("smtpTestButton").addEventListener("click",async()=>{
-    const message=$("smtpMessage");
-    message.className="message";
-    message.textContent="Test e-postası gönderiliyor...";
+$("gatewayTestButton").addEventListener("click",async()=>{
+    const message=$("gatewayMessage");
+    const to=prompt("Test e-postası hangi adrese gönderilsin?");
+    if(!to) return;
+    message.className="message"; message.textContent="Gateway üzerinden test e-postası gönderiliyor...";
     try{
-        const to=prompt("Test e-postası hangi adrese gönderilsin?");
-        if(!to) return;
-        await emailServiceRequest("/test",{
-            method:"POST",
-            body:JSON.stringify({to})
-        });
-        message.className="message success";
-        message.textContent="Test e-postası gönderildi.";
+        await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});
+        message.className="message success"; message.textContent="Test e-postası HTTPS Mail Gateway üzerinden gönderildi.";
     }catch(error){
-        message.className="message error";
-        message.textContent=error.message;
+        message.className="message error"; message.textContent=error.message;
     }
 });
 
 $("verificationSaveButton").addEventListener("click",async()=>{
     const message=$("verificationMessage");
-    message.className="message";
-    message.textContent="Kaydediliyor...";
+    message.className="message"; message.textContent="Kaydediliyor...";
     try{
         await emailServiceRequest("/verification-config",{
             method:"POST",
@@ -708,19 +660,14 @@ $("verificationSaveButton").addEventListener("click",async()=>{
                 cooldownSeconds:Number($("verificationCooldown").value)
             })
         });
-        message.className="message success";
-        message.textContent="Doğrulama ayarları kaydedildi.";
+        message.className="message success"; message.textContent="Doğrulama ayarları kaydedildi.";
     }catch(error){
-        message.className="message error";
-        message.textContent=error.message;
+        message.className="message error"; message.textContent=error.message;
     }
 });
 
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{
-    loadEmailService().catch(()=>{});
-});
+document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{ loadEmailService().catch(()=>{}); });
 
 </script>
 </body>
 </html>
-
