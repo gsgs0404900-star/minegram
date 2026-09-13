@@ -1316,31 +1316,6 @@ function publicOrigin(req) {
   return `${String(proto).split(",")[0].trim()}://${req.get("host")}`;
 }
 
-function maskEmail(email) {
-  const [
-    u,
-    d
-  ] =
-    String(email).split("@");
-
-  if (!u || !d) {
-    return email;
-  }
-
-  const shown =
-    u.length <= 2
-      ? u[0] + "*"
-      : u.slice(0, 2) +
-        "*".repeat(
-          Math.max(
-            1,
-            u.length - 2
-          )
-        );
-
-  return `${shown}@${d}`;
-}
-
 function normalizeRecoveryPhone(
   value
 ) {
