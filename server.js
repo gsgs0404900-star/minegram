@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -1734,342 +1735,6 @@ function normalizeRecoveryPhone(
 
   return digits;
 }
-
-/* =========================================================
-   PASSWORD RESET CHECK
-   sifremi-unuttum.html -> yeni-sifre.html
-========================================================= */
-
-const directPasswordResetTokens = new Map();
-
-
-function createDirectResetToken(){
-
-  return crypto
-    .randomBytes(32)
-    .toString("hex");
-
-}
-
-
-function cleanupDirectResetTokens(){
-
-  const now = Date.now();
-
-  for(
-    const [token, data] of
-    directPasswordResetTokens.entries()
-  ){
-
-    if(
-      !data ||
-      !data.expires ||
-      data.expires <= now
-    ){
-
-      directPasswordResetTokens.delete(
-        token
-      );
-
-    }
-
-  }
-
-}
-
-
-app.post(
-  "/api/password-reset/check",
-
-  async (req, res) => {
-
-    try{
-
-      cleanupDirectResetTokens();
-
-
-      const username =
-        normalizeUsername(
-          req.body?.username
-        );
-
-
-      if(!username){
-
-        return res.status(400).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Kullanıcı adını gir."
-
-        });
-
-      }
-
-
-      if(!CONFIG_OK){
-
-        return res.status(500).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Sunucu yapılandırması eksik."
-
-        });
-
-      }
-
-
-      if(!SUPABASE_SERVICE_ROLE_KEY){
-
-        return res.status(500).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Sunucu yetkilendirmesi eksik."
-
-        });
-
-      }
-
-
-      const admin =
-        adminClient();
-
-
-      /* =====================================
-         1. PROFİLİ KULLANICI ADI İLE BUL
-      ===================================== */
-
-      const {
-        data: profiles,
-        error: profileError
-      } = await admin
-        .from("profiles")
-        .select("*")
-        .ilike(
-          "username",
-          username
-        )
-        .limit(1);
-
-
-      if(profileError){
-
-        console.error(
-          "[PASSWORD RESET PROFILE ERROR]",
-          profileError
-        );
-
-        throw profileError;
-
-      }
-
-
-      const profile =
-        Array.isArray(profiles)
-          ? profiles[0]
-          : null;
-
-
-      if(!profile){
-
-        return res.status(404).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Kullanıcı bulunamadı."
-
-        });
-
-      }
-
-
-      /* =====================================
-         2. AUTH USER ID BUL
-      ===================================== */
-
-      const authUserId =
-        profile.auth_user_id ||
-        profile.id;
-
-
-      if(!authUserId){
-
-        return res.status(404).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Kullanıcı hesabı bulunamadı."
-
-        });
-
-      }
-
-
-      /* =====================================
-         3. SUPABASE AUTH KULLANICISI
-      ===================================== */
-
-      const {
-        data: userData,
-        error: userError
-      } =
-        await admin
-          .auth
-          .admin
-          .getUserById(
-            authUserId
-          );
-
-
-      if(
-        userError ||
-        !userData?.user
-      ){
-
-        console.error(
-          "[PASSWORD RESET AUTH ERROR]",
-          userError
-        );
-
-        return res.status(404).json({
-
-          success: false,
-
-          ok: false,
-
-          message:
-            "Kullanıcı hesabı bulunamadı."
-
-        });
-
-      }
-
-
-      const authUser =
-        userData.user;
-
-
-      /* =====================================
-         4. GÜVENLİ RESET TOKEN
-      ===================================== */
-
-      const resetToken =
-        createDirectResetToken();
-
-
-      directPasswordResetTokens.set(
-        resetToken,
-        {
-
-          userId:
-            authUser.id,
-
-          username:
-            profile.username,
-
-          email:
-            authUser.email || "",
-
-          createdAt:
-            Date.now(),
-
-          expires:
-            Date.now() +
-            (
-              10 *
-              60 *
-              1000
-            )
-
-        }
-      );
-
-
-      console.log(
-        "[PASSWORD RESET ACCOUNT FOUND]",
-        profile.username
-      );
-
-
-      /* =====================================
-         BAŞARILI
-      ===================================== */
-
-      return res.json({
-
-        success: true,
-
-        ok: true,
-
-        resetToken:
-          resetToken,
-
-        reset_token:
-          resetToken,
-
-        token:
-          resetToken,
-
-        username:
-          profile.username,
-
-        user: {
-
-          id:
-            authUser.id,
-
-          username:
-            profile.username
-
-        },
-
-        message:
-          "Kullanıcı bulundu."
-
-      });
-
-
-    }catch(error){
-
-      console.error(
-        "[PASSWORD RESET CHECK ERROR]",
-        error
-      );
-
-
-      return res.status(500).json({
-
-        success: false,
-
-        ok: false,
-
-        message:
-          "Kullanıcı kontrol edilirken hata oluştu."
-
-      });
-
-    }
-
-  }
-
-);
 
 
 /* =========================================================
@@ -5569,37 +5234,77 @@ app.get(
 ========================================================= */
 const MAIL_ADMIN_UID = env("MAIL_ADMIN_UID") || "QJqw9moQk8XgpHcFo89bAVPk3uh1";
 const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
-const emailConfigFile = path.join(__dirname, "minegram-email-config.json");
+const smtpConfigFile = path.join(__dirname, "minegram-smtp-config.json");
 
 let smtpRuntime = {
-  provider: "brevo",
-  gatewayUrl: "https://api.brevo.com/v3/smtp/email",
+  host: env("SMTP_HOST"),
+  port: Number(env("SMTP_PORT")) || 587,
+  user: env("SMTP_USER"),
   fromName: env("MAIL_FROM_NAME") || "Minegram",
-  fromEmail: env("MAIL_FROM_EMAIL") || "",
-  apiKey: env("BREVO_API_KEY"),
+  fromEmail: env("MAIL_FROM_EMAIL") || env("SMTP_USER"),
   codeLength: Number(env("VERIFICATION_CODE_LENGTH")) || 6,
   expiryMinutes: Number(env("VERIFICATION_EXPIRY_MINUTES")) || 10,
   cooldownSeconds: Number(env("VERIFICATION_COOLDOWN_SECONDS")) || 60
 };
-try {
-  if (fs.existsSync(emailConfigFile)) {
-    const saved = JSON.parse(fs.readFileSync(emailConfigFile, "utf8"));
-    smtpRuntime = { ...smtpRuntime, ...saved, apiKey: env("BREVO_API_KEY") || smtpRuntime.apiKey || "" };
-  }
-} catch (e) { console.error("EMAIL CONFIG LOAD ERROR:", e?.message || e); }
 
-function emailEscapeHeader(value) { return String(value || "").replace(/[\r\n]/g, " ").trim(); }
+try {
+  if (fs.existsSync(smtpConfigFile)) {
+    const saved = JSON.parse(fs.readFileSync(smtpConfigFile, "utf8"));
+    smtpRuntime = {
+      ...smtpRuntime,
+      ...saved,
+      host: env("SMTP_HOST") || saved.host || "",
+      port: Number(env("SMTP_PORT")) || Number(saved.port) || 587,
+      user: env("SMTP_USER") || saved.user || "",
+      fromName: env("MAIL_FROM_NAME") || saved.fromName || "Minegram",
+      fromEmail: env("MAIL_FROM_EMAIL") || saved.fromEmail || env("SMTP_USER") || saved.user || ""
+    };
+  }
+} catch (e) {
+  console.error("SMTP CONFIG LOAD ERROR:", e?.message || e);
+}
+
+function emailEscapeHeader(value) {
+  return String(value || "").replace(/[\r\n]/g, " ").trim();
+}
+
 function emailAddress(value, fieldName = "E-posta adresi") {
   const v = emailEscapeHeader(value);
-  if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new Error(`${fieldName} geçersiz.`);
+  if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+    throw new Error(`${fieldName} geçersiz.`);
+  }
   return v;
 }
+
 function saveSmtpPublicConfig() {
-  const safe = { provider:"brevo", gatewayUrl:"https://api.brevo.com/v3/smtp/email", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"", codeLength:Number(smtpRuntime.codeLength)||6, expiryMinutes:Number(smtpRuntime.expiryMinutes)||10, cooldownSeconds:Number(smtpRuntime.cooldownSeconds)||60 };
-  fs.writeFileSync(emailConfigFile, JSON.stringify(safe,null,2), "utf8");
+  const safe = {
+    host: smtpRuntime.host || "",
+    port: Number(smtpRuntime.port) || 587,
+    user: smtpRuntime.user || "",
+    fromName: smtpRuntime.fromName || "Minegram",
+    fromEmail: smtpRuntime.fromEmail || "",
+    codeLength: Number(smtpRuntime.codeLength) || 6,
+    expiryMinutes: Number(smtpRuntime.expiryMinutes) || 10,
+    cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60
+  };
+  fs.writeFileSync(smtpConfigFile, JSON.stringify(safe, null, 2), "utf8");
 }
+
 function smtpPublicConfig() {
-  return { ok:true, configured:Boolean((smtpRuntime.apiKey||env("BREVO_API_KEY")) && smtpRuntime.fromEmail), provider:"brevo", gatewayUrl:"https://api.brevo.com/v3/smtp/email", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"", hasApiKey:Boolean(smtpRuntime.apiKey||env("BREVO_API_KEY")), codeLength:Number(smtpRuntime.codeLength)||6, expiryMinutes:Number(smtpRuntime.expiryMinutes)||10, cooldownSeconds:Number(smtpRuntime.cooldownSeconds)||60 };
+  const passConfigured = Boolean(env("SMTP_PASS"));
+  return {
+    ok: true,
+    configured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.fromEmail && passConfigured),
+    host: smtpRuntime.host || "",
+    port: Number(smtpRuntime.port) || 587,
+    user: smtpRuntime.user || "",
+    fromName: smtpRuntime.fromName || "Minegram",
+    fromEmail: smtpRuntime.fromEmail || "",
+    hasSmtpPassword: passConfigured,
+    codeLength: Number(smtpRuntime.codeLength) || 6,
+    expiryMinutes: Number(smtpRuntime.expiryMinutes) || 10,
+    cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60
+  };
 }
 
 async function verifyFirebaseAdminToken(req) {
@@ -5645,39 +5350,120 @@ async function smtpAdminAuth(req, res, next) {
   }
 }
 
-async function sendBrevoEmail({ to, subject, html, text: textBody }) {
-  const recipient = emailAddress(to, "Alıcı e-posta adresi");
-  const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL"), "Gönderici e-posta adresi");
-  const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
-  const apiKey = String(smtpRuntime.apiKey || env("BREVO_API_KEY") || "").trim();
-  if (!apiKey) throw new Error("BREVO_API_KEY ayarlanmadı.");
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", { method:"POST", headers:{"Content-Type":"application/json","api-key":apiKey,"Accept":"application/json"}, body:JSON.stringify({sender:{email:fromEmail,name:fromName},to:[{email:recipient}],subject:emailEscapeHeader(subject),htmlContent:html||undefined,textContent:textBody||""}) });
-  const data = await response.json().catch(()=>({}));
-  if (!response.ok) throw new Error(data?.message || data?.code || `Brevo HTTP ${response.status}`);
-  return data;
-}
-async function sendMailGatewayEmail(args) { return sendBrevoEmail(args); }
+function smtpTransport() {
+  const host = String(smtpRuntime.host || env("SMTP_HOST") || "").trim();
+  const port = Number(smtpRuntime.port || env("SMTP_PORT") || 587);
+  const user = String(smtpRuntime.user || env("SMTP_USER") || "").trim();
+  const pass = String(env("SMTP_PASS") || "");
+  const fromEmail = String(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || user || "").trim();
 
-app.get("/api/admin/email-service/status", smtpAdminAuth, (req,res)=>res.json(smtpPublicConfig()));
-app.post("/api/admin/email-service/config", smtpAdminAuth, (req,res)=>{
+  if (!host) throw new Error("SMTP_HOST ayarlanmadı.");
+  if (![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
+  if (!user) throw new Error("SMTP_USER ayarlanmadı.");
+  if (!pass) throw new Error("SMTP_PASS ayarlanmadı.");
+  if (!fromEmail) throw new Error("Gönderici e-posta ayarlanmadı. MAIL_FROM_EMAIL veya SMTP_USER ayarlayın.");
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
+  });
+}
+
+async function sendSmtpEmail({ to, subject, html, text: textBody }) {
+  const recipient = emailAddress(to, "Alıcı e-posta adresi");
+  const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || smtpRuntime.user || env("SMTP_USER"), "Gönderici e-posta adresi");
+  const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
+
+  const transporter = smtpTransport();
+  await transporter.sendMail({
+    from: `${fromName} <${fromEmail}>`,
+    to: recipient,
+    subject: emailEscapeHeader(subject),
+    html: html || undefined,
+    text: textBody || ""
+  });
+  return true;
+}
+
+/* Eski fonksiyon adını koruyoruz; kayıt ve şifre sıfırlama kodlarının diğer bölümleri değişmeden çalışır. */
+async function sendMailGatewayEmail(args) {
+  return sendSmtpEmail(args);
+}
+
+app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
+  res.json(smtpPublicConfig());
+});
+
+app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
   try {
-    const body=req.body||{};
-    const fromName=emailEscapeHeader(body.fromName||smtpRuntime.fromName||"Minegram");
-    const fromEmail=emailAddress(body.fromEmail||smtpRuntime.fromEmail||env("MAIL_FROM_EMAIL"),"Gönderici e-posta adresi");
-    const key=String(body.gatewayToken||body.apiKey||"").trim();
-    smtpRuntime={...smtpRuntime,fromName,fromEmail,apiKey:key||smtpRuntime.apiKey||env("BREVO_API_KEY")||"",gatewayUrl:"https://api.brevo.com/v3/smtp/email"};
+    const body = req.body || {};
+    const host = emailEscapeHeader(body.host || body.smtpHost || smtpRuntime.host || env("SMTP_HOST"));
+    const port = Number(body.port || body.smtpPort || smtpRuntime.port || 587);
+    const user = emailEscapeHeader(body.user || body.smtpUser || smtpRuntime.user || env("SMTP_USER"));
+    const fromName = emailEscapeHeader(body.fromName || smtpRuntime.fromName || "Minegram");
+    const suppliedFromEmail = emailEscapeHeader(body.fromEmail || "");
+    const fromEmail = suppliedFromEmail
+      ? emailAddress(suppliedFromEmail, "Gönderici e-posta adresi")
+      : (smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || user || "");
+
+    if (!host) throw new Error("SMTP host gerekli.");
+    if (![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
+    if (!user) throw new Error("SMTP kullanıcı adı gerekli.");
+    if (!fromEmail) throw new Error("Gönderici e-posta adresi gerekli.");
+
+    smtpRuntime = { ...smtpRuntime, host, port, user, fromName, fromEmail };
     saveSmtpPublicConfig();
-    res.json({...smtpPublicConfig(),message:"Brevo HTTPS e-posta ayarları kaydedildi."});
-  } catch(e){res.status(400).json({ok:false,error:e?.message||"E-posta ayarları kaydedilemedi."});}
+
+    /* Güvenlik: SMTP şifresi admin panelinden dosyaya kaydedilmez. */
+    return res.json({
+      ...smtpPublicConfig(),
+      ok: true,
+      message: env("SMTP_PASS")
+        ? "SMTP ayarları kaydedildi. SMTP şifresi sunucu ortam değişkeninden kullanılıyor."
+        : "SMTP ayarları kaydedildi ancak SMTP_PASS sunucuda ayarlanmalı."
+    });
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
+  }
 });
-app.post("/api/admin/email-service/test", smtpAdminAuth, async (req,res)=>{
-  try { const to=emailAddress(req.body?.to,"Test alıcı e-posta adresi"); await sendBrevoEmail({to,subject:"Minegram test e-postası",text:"Minegram Brevo HTTPS e-posta servisi başarıyla çalışıyor.",html:"<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>Brevo HTTPS e-posta servisi başarıyla çalışıyor.</p></div>"}); res.json({ok:true,message:"Test e-postası gönderildi."}); }
-  catch(e){console.error("BREVO TEST ERROR:",e?.message||e);res.status(400).json({ok:false,error:e?.message||"Test e-postası gönderilemedi."});}
+
+app.post("/api/admin/email-service/test", smtpAdminAuth, async (req, res) => {
+  try {
+    const to = emailAddress(req.body?.to, "Test alıcı e-posta adresi");
+    await sendSmtpEmail({
+      to,
+      subject: "Minegram SMTP test e-postası",
+      text: "Minegram doğrudan SMTP e-posta servisi başarıyla çalışıyor.",
+      html: "<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>Doğrudan SMTP e-posta servisi başarıyla çalışıyor.</p></div>"
+    });
+    res.json({ ok: true, message: "Test e-postası gönderildi." });
+  } catch (e) {
+    console.error("SMTP TEST ERROR:", e?.message || e);
+    res.status(400).json({ ok: false, error: e?.message || "Test e-postası gönderilemedi." });
+  }
 });
-app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req,res)=>{
-  try { const {codeLength,expiryMinutes,cooldownSeconds}=req.body||{}; const c=Number(codeLength),x=Number(expiryMinutes),d=Number(cooldownSeconds); if(![6,8].includes(c))throw new Error("Kod uzunluğu 6 veya 8 olmalı."); if(![5,10,15,30].includes(x))throw new Error("Geçerlilik süresi geçersiz."); if(![60,120,300].includes(d))throw new Error("Gönderim aralığı geçersiz."); smtpRuntime={...smtpRuntime,codeLength:c,expiryMinutes:x,cooldownSeconds:d}; saveSmtpPublicConfig();res.json({ok:true,codeLength:c,expiryMinutes:x,cooldownSeconds:d}); }
-  catch(e){res.status(400).json({ok:false,error:e?.message||"Doğrulama ayarları kaydedilemedi."});}
+
+app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req, res) => {
+  try {
+    const codeLength = Number(req.body?.codeLength);
+    const expiryMinutes = Number(req.body?.expiryMinutes);
+    const cooldownSeconds = Number(req.body?.cooldownSeconds);
+    if (![6, 8].includes(codeLength)) throw new Error("Kod uzunluğu 6 veya 8 olmalı.");
+    if (![5, 10, 15, 30].includes(expiryMinutes)) throw new Error("Geçerlilik süresi geçersiz.");
+    if (![60, 120, 300].includes(cooldownSeconds)) throw new Error("Gönderim aralığı geçersiz.");
+    smtpRuntime = { ...smtpRuntime, codeLength, expiryMinutes, cooldownSeconds };
+    saveSmtpPublicConfig();
+    res.json({ ok: true, codeLength, expiryMinutes, cooldownSeconds });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e?.message || "Doğrulama ayarları kaydedilemedi." });
+  }
 });
+
 
 /* =========================================================
    FALLBACK
