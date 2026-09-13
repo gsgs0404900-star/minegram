@@ -383,7 +383,6 @@ Göster
 
 </div>
 
-
 <div class="field">
 
 <div class="label">
@@ -412,7 +411,6 @@ Göster
 
 </div>
 
-
 <button
     class="main-button"
     id="submitButton"
@@ -432,39 +430,48 @@ Göster
 
 </div>
 
-
 <script>
 "use strict";
 
+/*
+=========================================================
+ MINEGRAM - YENİ ŞİFRE
+
+ ESKİ AKIŞ:
+
+ Şifre değiştir
+       ↓
+ /api/forgot/reset-password
+       ↓
+ /api/login
+       ↓
+ HATA
+       ↓
+ index.html'e GİDEMİYOR
+
+ YENİ AKIŞ:
+
+ Şifre değiştir
+       ↓
+ /api/forgot/reset-password
+       ↓
+ BAŞARILI
+       ↓
+ TOKEN VARSA KAYDET
+       ↓
+ RESET BİLGİLERİNİ TEMİZLE
+       ↓
+ /index.html
+
+ ÖNEMLİ:
+ /api/login ARTIK ÇAĞRILMIYOR.
+=========================================================
+*/
+
 
 /* =========================================================
-   MINEGRAM - YENİ ŞİFRE
-   =========================================================
-
-   hesap-doğrulama.html
-          ↓
-   /api/forgot/verify
-          ↓
-      resetToken
-          ↓
-   yeni-sifre.html
-          ↓
-   /api/forgot/reset-password
-          ↓
-        /api/login
-          ↓
-      TOKEN KAYDET
-          ↓
-       index.html
-
+   API
 ========================================================= */
-
-
-/*
-   ÇOK ÖNEMLİ:
-
-   giris.html ile AYNI API kullanılıyor.
-*/
 
 const API =
     "https://minegram-hwns.onrender.com/api";
@@ -654,7 +661,7 @@ function showStatus(
 
 
 /* =========================================================
-   ŞİFRE GÖSTER
+   ŞİFRE GÖSTER / GİZLE
 ========================================================= */
 
 function togglePassword(
@@ -692,7 +699,7 @@ function togglePassword(
 
 
 /* =========================================================
-   E-POSTA KUTUSU
+   EMAIL KUTUSU
 ========================================================= */
 
 function updateEmailBox(){
@@ -720,31 +727,8 @@ function updateEmailBox(){
 
 
 /* =========================================================
-   INPUT TEMİZLEME
-========================================================= */
-
-passwordInput.addEventListener(
-    "input",
-    function(){
-
-        showStatus("");
-
-    }
-);
-
-
-confirmInput.addEventListener(
-    "input",
-    function(){
-
-        showStatus("");
-
-    }
-);
-
-
-/* =========================================================
-   LOGIN TOKEN BUL
+   TOKEN BUL
+   RESET CEVABINDA TOKEN FARKLI FORMATTA OLABİLİR
 ========================================================= */
 
 function extractToken(data){
@@ -754,7 +738,6 @@ function extractToken(data){
         return "";
 
     }
-
 
     const candidates = [
 
@@ -773,10 +756,17 @@ function extractToken(data){
 
         data.data?.session?.access_token,
         data.data?.session?.accessToken,
-        data.data?.session?.token
+        data.data?.session?.token,
+
+        data.auth?.access_token,
+        data.auth?.accessToken,
+        data.auth?.token,
+
+        data.data?.auth?.access_token,
+        data.data?.auth?.accessToken,
+        data.data?.auth?.token
 
     ];
-
 
     for(
         const value
@@ -797,7 +787,6 @@ function extractToken(data){
 
     }
 
-
     return "";
 
 }
@@ -814,7 +803,6 @@ function extractUser(data){
         return null;
 
     }
-
 
     return (
 
@@ -864,7 +852,6 @@ function extractProfile(data){
         return null;
 
     }
-
 
     return (
 
@@ -923,236 +910,64 @@ function extractRefreshToken(data){
 
 
 /* =========================================================
-   LOGIN YAP
+   RESET CEVABINDAN OTURUM KAYDET
 ========================================================= */
 
-async function loginAfterReset(
-    usernameOrEmail,
-    password
-){
-
-    let response = null;
-
-
-    for(
-        let attempt = 1;
-        attempt <= 3;
-        attempt++
-    ){
-
-        try{
-
-            response =
-                await fetch(
-                    API + "/login",
-                    {
-
-                        method:"POST",
-
-                        headers:{
-                            "Content-Type":
-                                "application/json",
-
-                            "Accept":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify({
-
-                                identifier:
-                                    usernameOrEmail,
-
-                                username:
-                                    usernameOrEmail,
-
-                                email:
-                                    usernameOrEmail,
-
-                                password:
-                                    password
-
-                            }),
-
-                        cache:
-                            "no-store",
-
-                        credentials:
-                            "include"
-
-                    }
-                );
-
-
-            break;
-
-
-        }catch(error){
-
-            console.warn(
-                "[MINEGRAM RESET LOGIN RETRY]",
-                attempt,
-                error
-            );
-
-
-            if(
-                attempt < 3
-            ){
-
-                await new Promise(
-                    resolve =>
-                        setTimeout(
-                            resolve,
-                            2000 * attempt
-                        )
-                );
-
-            }
-
-        }
-
-    }
-
-
-    if(!response){
-
-        throw new Error(
-            "Şifre değiştirildi fakat sunucuya bağlanılamadı."
-        );
-
-    }
-
-
-    const raw =
-        await response.text();
-
-
-    let data = {};
-
-
-    try{
-
-        data =
-            raw
-                ? JSON.parse(raw)
-                : {};
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM LOGIN JSON ERROR]",
-            error
-        );
-
-        data = {};
-
-    }
-
-
-    console.log(
-        "[MINEGRAM RESET LOGIN STATUS]",
-        response.status
-    );
-
-
-    console.log(
-        "[MINEGRAM RESET LOGIN RESPONSE]",
-        data
-    );
-
-
-    if(
-        !response.ok ||
-        data.ok === false
-    ){
-
-        throw new Error(
-
-            data.error ||
-
-            data.message ||
-
-            (
-                response.status === 401
-                    ? "Yeni şifreyle otomatik giriş yapılamadı."
-                    : "Otomatik giriş başarısız."
-            )
-
-        );
-
-    }
-
-
-    return data;
-
-}
-
-
-/* =========================================================
-   OTURUMU KAYDET
-========================================================= */
-
-function saveLoginSession(
-    loginData
+function saveResetSession(
+    data
 ){
 
     const token =
         extractToken(
-            loginData
+            data
         );
-
-
-    if(!token){
-
-        throw new Error(
-            "Şifre değiştirildi fakat giriş tokenı alınamadı."
-        );
-
-    }
-
 
     const user =
         extractUser(
-            loginData
+            data
         );
-
 
     const profile =
         extractProfile(
-            loginData
+            data
         );
-
 
     const refreshToken =
         extractRefreshToken(
-            loginData
+            data
         );
 
 
     /*
-       ESNEK OLARAK TÜM UYUMLU TOKENLARI KAYDET
+    TOKEN VARSA KAYDET.
+
+    Reset endpoint token döndürmüyorsa
+    burada hata vermiyoruz.
     */
 
-    localStorage.setItem(
-        "minegram_token",
-        token
-    );
+    if(token){
 
-    localStorage.setItem(
-        "minegram_supabase_token",
-        token
-    );
+        localStorage.setItem(
+            "minegram_token",
+            token
+        );
 
-    localStorage.setItem(
-        "minegram_access_token",
-        token
-    );
+        localStorage.setItem(
+            "minegram_supabase_token",
+            token
+        );
 
-    localStorage.setItem(
-        "access_token",
-        token
-    );
+        localStorage.setItem(
+            "minegram_access_token",
+            token
+        );
+
+        localStorage.setItem(
+            "access_token",
+            token
+        );
+
+    }
 
 
     if(refreshToken){
@@ -1168,7 +983,7 @@ function saveLoginSession(
 
 
     /*
-       USER
+    USER
     */
 
     if(user){
@@ -1222,7 +1037,7 @@ function saveLoginSession(
 
 
     /*
-       PROFILE
+    PROFILE
     */
 
     if(profile){
@@ -1238,8 +1053,8 @@ function saveLoginSession(
 
 
     /*
-       Eğer login cevabında username/email
-       farklı yerde geldiyse onları da yakala.
+    RESET CEVABINDAN GELEN
+    USERNAME / EMAIL
     */
 
     const finalUsername =
@@ -1247,9 +1062,11 @@ function saveLoginSession(
 
         profile?.username ||
 
-        loginData?.username ||
+        data?.username ||
 
-        loginData?.data?.username ||
+        data?.data?.username ||
+
+        recoveryIdentifier ||
 
         "";
 
@@ -1259,9 +1076,9 @@ function saveLoginSession(
 
         profile?.email ||
 
-        loginData?.email ||
+        data?.email ||
 
-        loginData?.data?.email ||
+        data?.data?.email ||
 
         email ||
 
@@ -1293,29 +1110,157 @@ function saveLoginSession(
 
 
     /*
-       SON KONTROL
+    USER YOKSA EN AZINDAN RECOVERY
+    BİLGİLERİNİ KAYDET.
     */
 
-    const savedToken =
-        localStorage.getItem(
-            "minegram_token"
+    if(
+        !localStorage.getItem(
+            "minegram_username"
+        ) &&
+        recoveryIdentifier &&
+        !recoveryIdentifier.includes("@")
+    ){
+
+        localStorage.setItem(
+            "minegram_username",
+            recoveryIdentifier
         );
 
+    }
 
-    if(!savedToken){
 
-        throw new Error(
-            "Oturum tarayıcıya kaydedilemedi."
+    if(
+        !localStorage.getItem(
+            "minegram_email"
+        ) &&
+        email
+    ){
+
+        localStorage.setItem(
+            "minegram_email",
+            email
         );
 
     }
 
 
     console.log(
-        "[MINEGRAM RESET] Oturum kaydedildi."
+        "[MINEGRAM RESET] Reset cevabı işlendi."
+    );
+
+    console.log(
+        "[MINEGRAM RESET] Token var:",
+        !!token
     );
 
 }
+
+
+/* =========================================================
+   RESET BİLGİLERİNİ TEMİZLE
+========================================================= */
+
+function clearResetData(){
+
+    const resetKeys = [
+
+        "minegram_password_reset_token",
+
+        "minegram_reset_token",
+
+        "resetToken",
+
+        "minegram_recovery_id",
+
+        "recoveryId",
+
+        "recovery_id",
+
+        "minegram_recovery_identifier",
+
+        "minegram_recovery_username",
+
+        "minegram_recovery_mode",
+
+        "minegram_recovery_email"
+
+    ];
+
+
+    for(
+        const key
+        of resetKeys
+    ){
+
+        sessionStorage.removeItem(
+            key
+        );
+
+        localStorage.removeItem(
+            key
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   INDEX'E GİT
+========================================================= */
+
+function openIndex(){
+
+    /*
+    Burada LOGIN ÇAĞRISI YOK.
+
+    Şifre değişikliği zaten başarılı oldu.
+    */
+
+    console.log(
+        "[MINEGRAM RESET] index.html açılıyor."
+    );
+
+
+    submitButton.textContent =
+        "Minegram açılıyor...";
+
+
+    /*
+    Absolute URL yerine mevcut site
+    kökünden index.html.
+    */
+
+    window.location.replace(
+        "/index.html"
+    );
+
+}
+
+
+/* =========================================================
+   INPUT TEMİZLEME
+========================================================= */
+
+passwordInput.addEventListener(
+    "input",
+    function(){
+
+        showStatus("");
+
+    }
+);
+
+
+confirmInput.addEventListener(
+    "input",
+    function(){
+
+        showStatus("");
+
+    }
+);
 
 
 /* =========================================================
@@ -1345,7 +1290,7 @@ document
 
 
         /* ================================================
-           TOKEN
+           TOKEN KONTROLÜ
         ================================================ */
 
         if(!resetToken){
@@ -1361,7 +1306,7 @@ document
 
 
         /* ================================================
-           ŞİFRE
+           ŞİFRE KONTROLÜ
         ================================================ */
 
         if(
@@ -1397,9 +1342,12 @@ document
         }
 
 
+        /* ================================================
+           BUTON
+        ================================================ */
+
         submitButton.disabled =
             true;
-
 
         submitButton.textContent =
             "Şifre değiştiriliyor...";
@@ -1407,9 +1355,8 @@ document
 
         try{
 
-
             /* ============================================
-               1 — ŞİFREYİ DEĞİŞTİR
+               ŞİFREYİ DEĞİŞTİR
             ============================================ */
 
             const response =
@@ -1464,6 +1411,10 @@ document
                 );
 
 
+            /* ============================================
+               CEVAP
+            ============================================ */
+
             const raw =
                 await response.text();
 
@@ -1485,6 +1436,8 @@ document
                     error
                 );
 
+                data = {};
+
             }
 
 
@@ -1499,6 +1452,10 @@ document
                 data
             );
 
+
+            /* ============================================
+               HATA
+            ============================================ */
 
             if(
                 !response.ok ||
@@ -1519,254 +1476,55 @@ document
 
 
             /* ============================================
-               2 — LOGIN IDENTIFIER BUL
+               BAŞARILI
             ============================================ */
 
-            const account =
-                data?.account ||
-
-                data?.user ||
-
-                data?.profile ||
-
-                data?.data?.account ||
-
-                data?.data?.user ||
-
-                data?.data?.profile ||
-
-                {};
-
-
-            const accountUsername =
-                account?.username ||
-                data?.username ||
-                data?.data?.username ||
-                "";
-
-
-            const accountEmail =
-                account?.email ||
-                data?.email ||
-                data?.data?.email ||
-                email ||
-                "";
-
-
-            /*
-               Öncelik:
-
-               1. username
-               2. email
-               3. recoveryIdentifier
-               4. recovery email
-            */
-
-            const loginIdentifier =
-                String(
-
-                    accountUsername ||
-
-                    accountEmail ||
-
-                    recoveryIdentifier ||
-
-                    email ||
-
-                    ""
-
-                ).trim();
-
-
-            if(!loginIdentifier){
-
-                throw new Error(
-                    "Şifre değiştirildi fakat hesabın kullanıcı adı/e-postası bulunamadı."
-                );
-
-            }
-
-
             console.log(
-                "[MINEGRAM RESET LOGIN IDENTIFIER]",
-                loginIdentifier
+                "[MINEGRAM RESET] Şifre başarıyla değiştirildi."
             );
 
 
+            /*
+            Reset cevabında token/user/profile varsa
+            kaydet.
+            */
+
+            saveResetSession(
+                data
+            );
+
+
+            /* ============================================
+               RESET VERİLERİNİ TEMİZLE
+            ============================================ */
+
+            clearResetData();
+
+
+            /* ============================================
+               BAŞARI MESAJI
+            ============================================ */
+
             showStatus(
-                "Şifre başarıyla değiştirildi. Hesabın açılıyor...",
+                "Şifre başarıyla değiştirildi. Minegram açılıyor...",
                 "success"
             );
 
 
             submitButton.textContent =
-                "Hesap açılıyor...";
-
-
-            /* ============================================
-               3 — ESKİ OTURUMU TEMİZLE
-            ============================================ */
-
-            const sessionKeys = [
-
-                "minegram_token",
-
-                "minegram_supabase_token",
-
-                "minegram_access_token",
-
-                "minegram_refresh_token",
-
-                "supabase_token",
-
-                "access_token",
-
-                "minegram_user_id",
-
-                "minegram_username",
-
-                "minegram_email",
-
-                "minegram_user",
-
-                "minegram_profile",
-
-                "minegram_firebase_token",
-
-                "minegram_firebase_uid",
-
-                "minegram_firebase_email"
-
-            ];
-
-
-            for(
-                const key
-                of sessionKeys
-            ){
-
-                localStorage.removeItem(
-                    key
-                );
-
-                sessionStorage.removeItem(
-                    key
-                );
-
-            }
-
-
-            /* ============================================
-               4 — YENİ ŞİFREYLE OTOMATİK LOGIN
-            ============================================ */
-
-            const loginData =
-                await loginAfterReset(
-                    loginIdentifier,
-                    password
-                );
-
-
-            /* ============================================
-               5 — TOKEN + USER + PROFILE KAYDET
-            ============================================ */
-
-            saveLoginSession(
-                loginData
-            );
-
-
-            /* ============================================
-               6 — RESET BİLGİLERİNİ TEMİZLE
-            ============================================ */
-
-            const resetKeys = [
-
-                "minegram_password_reset_token",
-
-                "minegram_reset_token",
-
-                "resetToken",
-
-                "minegram_recovery_id",
-
-                "recoveryId",
-
-                "recovery_id",
-
-                "minegram_recovery_identifier",
-
-                "minegram_recovery_username",
-
-                "minegram_recovery_mode",
-
-                "minegram_recovery_email"
-
-            ];
-
-
-            for(
-                const key
-                of resetKeys
-            ){
-
-                sessionStorage.removeItem(
-                    key
-                );
-
-                localStorage.removeItem(
-                    key
-                );
-
-            }
-
-
-            /* ============================================
-               7 — TOKEN SON KONTROL
-            ============================================ */
-
-            const finalToken =
-                localStorage.getItem(
-                    "minegram_token"
-                );
-
-
-            if(!finalToken){
-
-                throw new Error(
-                    "Oturum oluşturuldu ancak token kaydedilemedi."
-                );
-
-            }
-
-
-            console.log(
-                "[MINEGRAM RESET] Şifre değiştirildi."
-            );
-
-            console.log(
-                "[MINEGRAM RESET] Otomatik giriş başarılı."
-            );
-
-            console.log(
-                "[MINEGRAM RESET] index.html açılıyor."
-            );
-
-
-            /* ============================================
-               8 — DOĞRUDAN INDEX.HTML
-            ============================================ */
-
-            submitButton.textContent =
                 "Minegram açılıyor...";
 
+
+            /* ============================================
+               INDEX.HTML
+
+               ARTIK /api/login YOK.
+            ============================================ */
 
             setTimeout(
                 function(){
 
-                    window.location.replace(
-                        "/index.html"
-                    );
+                    openIndex();
 
                 },
                 500
