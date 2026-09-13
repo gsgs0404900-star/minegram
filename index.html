@@ -758,6 +758,26 @@ body{
   }
 
 }
+
+/* =======================================================
+   MINEGRAM CANLI YAYIN - WEB
+======================================================= */
+.minegram-live-fab{width:42px;height:42px;border:0;background:transparent;color:#eee;display:grid;place-items:center;cursor:pointer;font-size:20px}
+.minegram-live-badge{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;color:#ff5252;font-weight:700}
+.minegram-live-modal{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:11000;display:none;align-items:center;justify-content:center}
+.minegram-live-modal.open{display:flex}
+.minegram-live-sheet{width:min(520px,100vw);height:100%;background:#050505;position:relative;overflow:hidden}
+.minegram-live-video{width:100%;height:100%;object-fit:cover;background:#111;display:block}
+.minegram-live-top{position:absolute;top:18px;left:14px;right:14px;display:flex;align-items:center;gap:10px;z-index:3}
+.minegram-live-title{flex:1;min-width:0;color:#fff}
+.minegram-live-title strong{display:block;font-size:14px}.minegram-live-title span{display:block;font-size:11px;color:#ddd;margin-top:3px}
+.minegram-live-pill{background:rgba(0,0,0,.6);border-radius:20px;padding:7px 10px;color:#fff;font-size:12px;font-weight:700}
+.minegram-live-close{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer}
+.minegram-live-bottom{position:absolute;left:14px;right:14px;bottom:20px;z-index:3}
+.minegram-live-input{width:100%;height:44px;border:1px solid rgba(255,255,255,.35);border-radius:22px;background:rgba(0,0,0,.5);color:#fff;padding:0 16px;outline:none}
+.minegram-live-actions{display:flex;gap:8px;margin-top:9px}.minegram-live-actions button{flex:1;height:42px;border:0;border-radius:21px;cursor:pointer;font-weight:700}.minegram-live-start{background:#ff5252;color:#fff}.minegram-live-end{background:#fff;color:#111}
+.minegram-live-list{position:absolute;top:90px;left:14px;right:14px;z-index:2;display:flex;flex-direction:column;gap:8px}.minegram-live-card{background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;color:#fff;cursor:pointer}.minegram-live-card b{font-size:13px}.minegram-live-card span{display:block;font-size:11px;color:#ccc;margin-top:3px}
+
 </style>
 
 <meta
@@ -792,6 +812,7 @@ Minegram
 </div>
 
 <div class="top-actions">
+    <button id="minegramLiveFab" class="minegram-live-fab" onclick="openMinegramLive()" aria-label="Canlı yayın">🔴</button>
 
 <button
 class="icon-btn"
@@ -920,6 +941,24 @@ Profil
 
 </div>
 
+<div id="minegramLiveModal" class="minegram-live-modal" onclick="closeMinegramLive(event)">
+  <div class="minegram-live-sheet" onclick="event.stopPropagation()">
+    <video id="minegramLiveVideo" class="minegram-live-video" autoplay playsinline muted></video>
+    <div class="minegram-live-top">
+      <div class="minegram-live-title"><strong id="minegramLiveName">@Minegram</strong><span id="minegramLiveTitle">Canlı yayın</span></div>
+      <div id="minegramLiveViewers" class="minegram-live-pill">👁 0</div>
+      <button class="minegram-live-close" onclick="closeMinegramLive()">×</button>
+    </div>
+    <div id="minegramLiveList" class="minegram-live-list"></div>
+    <div class="minegram-live-bottom">
+      <input id="minegramLiveTitleInput" class="minegram-live-input" placeholder="Canlı yayın başlığı">
+      <div class="minegram-live-actions">
+        <button class="minegram-live-start" onclick="startMinegramWebLive()">🔴 Canlıyı başlat</button>
+        <button class="minegram-live-end" onclick="endMinegramWebLive()">⏹ Bitir</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="storyViewer" class="story-viewer" onclick="closeStory(event)">
   <div class="story-stage" onclick="event.stopPropagation()">
     <div id="storyProgress" class="story-progress"></div>
@@ -2420,6 +2459,7 @@ onclick="sendComment()"
 
       item.className=
         "story has-story";
+      item.setAttribute("data-story-username", group.username);
 
       if(Array.isArray(group.stories) && group.stories.some(function(story){ return !isStorySeen(story); }))
         item.classList.add("has-new-story");
@@ -7655,6 +7695,85 @@ document.addEventListener(
 
 init();
 
+</script>
+
+
+<script>
+/* =======================================================
+   MINEGRAM CANLI YAYIN - WEB API
+   Mevcut /api/live backend ile aynı metadata sistemini kullanır.
+======================================================= */
+(function(){
+  let liveStream=null;
+  let minegramOwnLive=null;
+  let livePoll=null;
+  const liveModal=()=>document.getElementById('minegramLiveModal');
+  const video=()=>document.getElementById('minegramLiveVideo');
+  function username(){ return String(localStorage.getItem('minegram_username')||localStorage.getItem('username')||'Minegram').replace(/^@/,''); }
+  async function refreshLives(){
+    try{
+      const result=await api('/live');
+      const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
+      const list=document.getElementById('minegramLiveList');
+      if(!list)return;
+      list.innerHTML=lives.map(l=>`<div class="minegram-live-card" data-user="${esc(String(l.username||''))}"><b>🔴 @${esc(String(l.username||'Minegram'))}</b><span>${esc(String(l.title||'Canlı yayın'))} • 👁 ${Number(l.viewerCount||0)}</span></div>`).join('');
+      updateMinegramLiveBadges();
+      list.querySelectorAll('.minegram-live-card').forEach(card=>card.addEventListener('click',()=>{
+        const u=card.getAttribute('data-user')||'';
+        document.getElementById('minegramLiveName').textContent='🔴 @'+u;
+        document.getElementById('minegramLiveTitle').textContent='Canlı yayın';
+        document.getElementById('minegramLiveViewers').textContent='👁 Canlı';
+      }));
+    }catch(e){}
+  }
+  async function updateMinegramLiveBadges(){
+    try{
+      const result=await api('/live');
+      const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
+      const liveNames=new Set(lives.map(l=>String(l.username||'').replace(/^@/,'').toLowerCase()).filter(Boolean));
+      document.querySelectorAll('[data-story-username]').forEach(el=>{
+        const name=String(el.getAttribute('data-story-username')||'').toLowerCase();
+        let badge=el.querySelector('.minegram-live-badge');
+        if(liveNames.has(name)){
+          if(!badge){ badge=document.createElement('div'); badge.className='minegram-live-badge'; badge.textContent='🔴 CANLI YAYINDA'; const label=el.lastElementChild; if(label) label.appendChild(badge); }
+        }else if(badge){ badge.remove(); }
+      });
+    }catch(e){}
+  }
+  window.updateMinegramLiveBadges=updateMinegramLiveBadges;
+  setInterval(updateMinegramLiveBadges,10000);
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(updateMinegramLiveBadges,1200));
+
+  window.openMinegramLive=async function(){
+    const m=liveModal(); if(!m)return; m.classList.add('open');
+    document.getElementById('minegramLiveName').textContent='@'+username();
+    await refreshLives();
+    clearInterval(livePoll); livePoll=setInterval(refreshLives,10000);
+  };
+  window.startMinegramWebLive=async function(){
+    try{
+      if(!liveStream){ liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true}); video().srcObject=liveStream; }
+      const title=(document.getElementById('minegramLiveTitleInput').value||'Canlı yayın').trim();
+      const result=await api('/live/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title})});
+      minegramOwnLive=result?.live||result||{username:username(),title};
+      document.getElementById('minegramLiveName').textContent='🔴 @'+username();
+      document.getElementById('minegramLiveTitle').textContent=title;
+      await refreshLives();
+      alert('Canlı yayın başlatıldı.');
+    }catch(e){ alert(e?.message||'Canlı yayın başlatılamadı.'); }
+  };
+  window.endMinegramWebLive=async function(){
+    try{ await api('/live/end',{method:'POST'}); }catch(e){}
+    if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}
+    if(video())video().srcObject=null; minegramOwnLive=null; await refreshLives();
+  };
+  window.closeMinegramLive=function(e){
+    if(e&&e.target!==e.currentTarget)return;
+    liveModal()?.classList.remove('open'); clearInterval(livePoll);
+    /* Yayını kapatmak için Bitir butonu kullanılmalı; modal kapanınca yayın sürer. */
+  };
+  window.addEventListener('beforeunload',()=>{ if(liveStream) liveStream.getTracks().forEach(t=>t.stop()); });
+})();
 </script>
 
 </body>
