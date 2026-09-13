@@ -3053,6 +3053,21 @@ app.get(
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
+      const targetIsPrivate = !!(
+        target.settings?.private_account ??
+        target.settings?.privateAccount ??
+        target.settings?.private
+      );
+      if (targetIsPrivate && String(target.id) !== String(req.user.id)) {
+        const { data: allowedFollow } = await adminClient()
+          .from("follows")
+          .select("follower_id")
+          .eq("follower_id", req.user.id)
+          .eq("following_id", target.id)
+          .maybeSingle();
+        if (!allowedFollow) return res.json([]);
+      }
+
       const highlightUserId = target.auth_user_id || target.id;
       const { data, error } = await adminClient()
         .from("highlights")
@@ -3681,7 +3696,8 @@ app.get(
             profiles(
               username,
               display_name,
-              avatar_url
+              avatar_url,
+              settings
             )
           `)
           .gte(
@@ -3703,10 +3719,25 @@ app.get(
       }
 
       const activeStories = await filterActiveStories(data || []);
+      const storyUserIds = [...new Set(activeStories.map(s => s?.user_id).filter(Boolean))];
+      const allowedFollowing = new Set();
+      if (storyUserIds.length) {
+        const { data: followed } = await adminClient()
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", req.user.id)
+          .in("following_id", storyUserIds);
+        (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
+      }
+      const visibleStories = activeStories.filter(story => {
+        const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
+        const settings = profile?.settings || {};
+        const isPrivate = !!(settings.private_account ?? settings.privateAccount ?? settings.private);
+        if (!isPrivate) return true;
+        return String(story.user_id) === String(req.user.id) || allowedFollowing.has(String(story.user_id));
+      });
 
-      res.json(
-        activeStories
-      );
+      res.json(visibleStories);
     } catch (e) {
       res.status(500).json({
         error:
@@ -4303,7 +4334,7 @@ app.post(
       }
 
       if (
-        target.id ===
+        (target.auth_user_id || target.id) ===
         req.user.id
       ) {
         return res.status(400).json({
@@ -4349,41 +4380,51 @@ app.post(
         });
       }
 
-      const {
-        error
-      } =
-        await req.sb
-          .from("follows")
-          .insert({
-            follower_id:
-              req.user.id,
+      const settings = target.settings || {};
+      const isPrivate = !!(
+        settings.private_account ??
+        settings.privateAccount ??
+        settings.private
+      );
 
-            following_id:
-              target.id
-          });
+      if (isPrivate) {
+        const admin = adminClient();
+        const { data: existingRequest } = await admin
+          .from("notifications")
+          .select("id")
+          .eq("user_id", target.id)
+          .eq("from_user_id", req.user.id)
+          .eq("type", "follow_request")
+          .eq("read", false)
+          .maybeSingle();
 
-      if (error) {
-        throw error;
+        if (existingRequest) return res.json({ following: false, pending: true });
+
+        await addNotification({
+          userId: target.id,
+          fromUserId: req.user.id,
+          type: "follow_request",
+          text: `@${req.user.username} sana takip isteği gönderdi`
+        });
+        return res.json({ following: false, pending: true });
       }
 
+      const { error } = await req.sb
+        .from("follows")
+        .insert({
+          follower_id: req.user.id,
+          following_id: target.id
+        });
+      if (error) throw error;
+
       await addNotification({
-        userId:
-          target.id,
-
-        fromUserId:
-          req.user.id,
-
-        type:
-          "follow",
-
-        text:
-          `@${req.user.username} seni takip etti`
+        userId: target.id,
+        fromUserId: req.user.id,
+        type: "follow",
+        text: `@${req.user.username} seni takip etti`
       });
 
-      res.json({
-        following:
-          true
-      });
+      res.json({ following: true, pending: false });
 
     } catch (e) {
       res.status(400).json({
@@ -4393,6 +4434,82 @@ app.post(
     }
   }
 );
+
+
+/* =========================================================
+   FOLLOW REQUESTS
+========================================================= */
+
+app.post("/api/follow-requests/accept", auth, async (req, res) => {
+  try {
+    const username = normalizeUsername(req.body?.username);
+    if (!username) return res.status(400).json({ error: "Kullanıcı gerekli" });
+    const requester = await findProfile(req.sb, username);
+    if (!requester) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const admin = adminClient();
+    const { data: request, error: requestError } = await admin
+      .from("notifications")
+      .select("id,from_user_id,user_id")
+      .eq("user_id", req.user.id)
+      .eq("from_user_id", requester.id)
+      .eq("type", "follow_request")
+      .eq("read", false)
+      .maybeSingle();
+    if (requestError) throw requestError;
+    if (!request) return res.status(404).json({ error: "Bekleyen takip isteği bulunamadı" });
+
+    const { data: existingFollow } = await admin.from("follows")
+      .select("follower_id,following_id")
+      .eq("follower_id", requester.id)
+      .eq("following_id", req.user.id)
+      .maybeSingle();
+    if (!existingFollow) {
+      const { error: followError } = await admin.from("follows").insert({
+        follower_id: requester.id,
+        following_id: req.user.id
+      });
+      if (followError && !String(followError.message || "").toLowerCase().includes("duplicate")) throw followError;
+    }
+
+    await admin.from("notifications").update({ read: true }).eq("id", request.id);
+    await addNotification({
+      userId: requester.id,
+      fromUserId: req.user.id,
+      type: "follow_accepted",
+      text: `@${req.user.username} takip isteğini kabul etti. Sen de takip et.`
+    });
+    return res.json({ ok: true, accepted: true, username: req.user.username });
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Takip isteği onaylanamadı" });
+  }
+});
+
+app.post("/api/follow-requests/reject", auth, async (req, res) => {
+  try {
+    const username = normalizeUsername(req.body?.username);
+    if (!username) return res.status(400).json({ error: "Kullanıcı gerekli" });
+    const requester = await findProfile(req.sb, username);
+    if (!requester) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const admin = adminClient();
+    const { data: request, error: requestError } = await admin
+      .from("notifications")
+      .select("id")
+      .eq("user_id", req.user.id)
+      .eq("from_user_id", requester.id)
+      .eq("type", "follow_request")
+      .eq("read", false)
+      .maybeSingle();
+    if (requestError) throw requestError;
+    if (!request) return res.status(404).json({ error: "Bekleyen takip isteği bulunamadı" });
+
+    await admin.from("notifications").update({ read: true }).eq("id", request.id);
+    return res.json({ ok: true, rejected: true });
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Takip isteği reddedilemedi" });
+  }
+});
 
 
 /* =========================================================
@@ -4421,6 +4538,21 @@ app.get(
         return res.status(404).json({
           error: "Kullanıcı bulunamadı"
         });
+      }
+
+      const targetIsPrivate = !!(
+        target.settings?.private_account ??
+        target.settings?.privateAccount ??
+        target.settings?.private
+      );
+      if (targetIsPrivate && String(target.id) !== String(req.user.id)) {
+        const { data: allowedFollow } = await adminClient()
+          .from("follows")
+          .select("follower_id")
+          .eq("follower_id", req.user.id)
+          .eq("following_id", target.id)
+          .maybeSingle();
+        if (!allowedFollow) return res.json([]);
       }
 
       const postsSb = adminClient();
