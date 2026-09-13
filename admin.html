@@ -102,32 +102,21 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <section id="emailService" class="section">
 <div class="content-grid">
   <div class="panel">
-    <h2>📧 Minegram HTTPS Mail Gateway</h2>
-    <p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi yalnızca HTTPS Mail Gateway üzerinden yapılır. Gmail SMTP / SMTP soketi kullanılmaz.</p>
+    <h2>📧 Gmail HTTPS E-posta Servisi</h2>
+    <p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi Gmail API üzerinden HTTPS ile yapılır. SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.</p>
 
     <div class="input-group">
-      <label>Mail Gateway URL</label>
-      <input id="gatewayUrl" type="url" placeholder="https://alanadiniz.com/api/send-mail">
-    </div>
-
-    <div class="input-group">
-      <label>Mail Gateway Token (isteğe bağlı)</label>
-      <input id="gatewayToken" type="password" autocomplete="new-password" placeholder="Bearer token">
+      <label>Gönderici Gmail</label>
+      <input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email">
     </div>
 
     <div class="input-group">
       <label>Gönderici adı</label>
-      <input id="gatewayFromName" placeholder="Minegram">
-    </div>
-
-    <div class="input-group">
-      <label>Gönderici e-posta</label>
-      <input id="gatewayFromEmail" type="email" placeholder="noreply@alanadiniz.com">
+      <input id="gatewayFromName" placeholder="Minegram" value="Minegram">
     </div>
 
     <div class="actions">
-      <button id="gatewaySaveButton" class="btn btn-primary">Gateway ayarlarını kaydet</button>
-      <button id="gatewayTestButton" class="btn btn-success">Gateway test e-postası gönder</button>
+      <button id="gatewayTestButton" class="btn btn-success">Test e-postası gönder</button>
     </div>
     <div id="gatewayMessage" class="message"></div>
   </div>
@@ -169,7 +158,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
     <h3>Servis durumu</h3>
     <p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
-    <p style="color:#697386;font-size:13px">Gateway Token sunucu tarafında kullanılır. HTML dosyasında SMTP bağlantı bilgileri bulunmaz.</p>
+    <p style="color:#697386;font-size:13px">Gmail Client ID, Client Secret ve Refresh Token admin.html içinde tutulmaz. Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
   </div>
 </div>
 </section>
@@ -565,8 +554,8 @@ $("settingsButton").addEventListener("click",async()=>{
 });
 
 /* =========================================================
-   MINEGRAM HTTPS MAIL GATEWAY + DOĞRULAMA SERVİSİ
-   Minegram kodu üretir/doğrular; gönderim HTTPS Gateway üzerinden yapılır.
+   MINEGRAM GMAIL HTTPS + DOĞRULAMA SERVİSİ
+   Gmail OAuth bilgileri sunucuda tutulur; admin.html'e yazılmaz.
 ========================================================= */
 const EMAIL_SERVICE_API = "/api/admin/email-service";
 
@@ -584,73 +573,54 @@ async function emailServiceRequest(path, options={}){
     }
 
     let response = await doRequest(false);
-    if(response.status === 401){
+    if(response.status===401){
         await currentUser.reload().catch(()=>{});
-        currentUser = auth.currentUser || currentUser;
-        response = await doRequest(true);
+        currentUser=auth.currentUser||currentUser;
+        response=await doRequest(true);
     }
-    const data = await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.error || data.message || `E-posta servisi HTTP ${response.status}`);
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);
     return data;
 }
 
 async function loadEmailService(){
     try{
-        const data = await emailServiceRequest("/status");
-        $("gatewayStatus").innerHTML = data.configured
-            ? '<span class="badge badge-green">● HTTPS Gateway Aktif</span>'
-            : '<span class="badge badge-red">● Gateway Yapılandırılmamış</span>';
-        if(data.gatewayUrl) $("gatewayUrl").value=data.gatewayUrl;
+        const data=await emailServiceRequest("/status");
+        const active=Boolean(data.configured);
+        $("gatewayStatus").innerHTML=active
+          ? '<span class="badge badge-green">● Gmail HTTPS Aktif</span>'
+          : '<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';
         if(data.fromName) $("gatewayFromName").value=data.fromName;
         if(data.fromEmail) $("gatewayFromEmail").value=data.fromEmail;
         if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
         if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
         if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-        // Token güvenlik nedeniyle status yanıtında geri gönderilmez.
     }catch(error){
         $("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
-        console.warn("Mail Gateway:",error.message);
+        console.warn("Gmail HTTPS:",error.message);
     }
 }
-
-$("gatewaySaveButton").addEventListener("click",async()=>{
-    const message=$("gatewayMessage");
-    message.className="message"; message.textContent="Kaydediliyor...";
-    try{
-        await emailServiceRequest("/config",{
-            method:"POST",
-            body:JSON.stringify({
-                gatewayUrl:$("gatewayUrl").value.trim(),
-                gatewayToken:$("gatewayToken").value,
-                fromName:$("gatewayFromName").value.trim(),
-                fromEmail:$("gatewayFromEmail").value.trim()
-            })
-        });
-        $("gatewayToken").value="";
-        message.className="message success";
-        message.textContent="HTTPS Mail Gateway ayarları kaydedildi.";
-        await loadEmailService();
-    }catch(error){
-        message.className="message error"; message.textContent=error.message;
-    }
-});
 
 $("gatewayTestButton").addEventListener("click",async()=>{
     const message=$("gatewayMessage");
     const to=prompt("Test e-postası hangi adrese gönderilsin?");
     if(!to) return;
-    message.className="message"; message.textContent="Gateway üzerinden test e-postası gönderiliyor...";
+    message.className="message";
+    message.textContent="Gmail HTTPS üzerinden test e-postası gönderiliyor...";
     try{
         await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});
-        message.className="message success"; message.textContent="Test e-postası HTTPS Mail Gateway üzerinden gönderildi.";
+        message.className="message success";
+        message.textContent="Test e-postası Gmail HTTPS üzerinden gönderildi.";
     }catch(error){
-        message.className="message error"; message.textContent=error.message;
+        message.className="message error";
+        message.textContent=error.message;
     }
 });
 
 $("verificationSaveButton").addEventListener("click",async()=>{
     const message=$("verificationMessage");
-    message.className="message"; message.textContent="Kaydediliyor...";
+    message.className="message";
+    message.textContent="Kaydediliyor...";
     try{
         await emailServiceRequest("/verification-config",{
             method:"POST",
@@ -660,13 +630,15 @@ $("verificationSaveButton").addEventListener("click",async()=>{
                 cooldownSeconds:Number($("verificationCooldown").value)
             })
         });
-        message.className="message success"; message.textContent="Doğrulama ayarları kaydedildi.";
+        message.className="message success";
+        message.textContent="Doğrulama ayarları kaydedildi.";
     }catch(error){
-        message.className="message error"; message.textContent=error.message;
+        message.className="message error";
+        message.textContent=error.message;
     }
 });
 
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{ loadEmailService().catch(()=>{}); });
+document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{loadEmailService().catch(()=>{});});
 
 </script>
 </body>
