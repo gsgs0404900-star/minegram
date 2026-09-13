@@ -3200,12 +3200,18 @@ app.post(
           loginResult?.error || "Supabase session alınamadı."
         );
         passwordResetTokens.delete(resetToken);
-        return res.status(500).json({
-          ok: false,
+
+        // Şifre kesin olarak değiştirildi. Supabase oturumu bu istekte
+        // üretilemezse frontend /api/login ile ikinci kez giriş yapabilsin.
+        return res.json({
+          ok: true,
           passwordChanged: true,
+          loggedIn: false,
           needsLogin: true,
-          code: "RESET_SESSION_FAILED",
-          error: "Şifre değişti ancak otomatik oturum oluşturulamadı. Lütfen tekrar giriş yap."
+          code: "RESET_SESSION_FALLBACK_LOGIN",
+          email: String(userData.user.email || entry.email || "").trim().toLowerCase(),
+          user: userData.user,
+          message: "Şifre değiştirildi. Oturum yeniden oluşturuluyor."
         });
       }
 
