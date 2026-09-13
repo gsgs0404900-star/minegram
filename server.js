@@ -3871,7 +3871,7 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const { data, error } = await req.sb
+      const { data, error } = await adminClient()
         .from("comments")
         .select(`
           id,
