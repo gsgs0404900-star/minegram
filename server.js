@@ -663,28 +663,6 @@ app.get(
    REGISTER + 6 HANELİ E-POSTA DOĞRULAMA
    ========================================================= */
 
-// Kayıt ve doğrulama kodlarının ortak çalışma ayarları.
-// Bu tanım sendRegistrationCode/createVerificationCode kullanılmadan önce
-// module scope seviyesinde yapılır; böylece mailGatewayRuntime ReferenceError
-// oluşmaz. Admin panelindeki doğrulama ayarları ayrıca smtpRuntime üzerinden
-// yönetilebilir.
-const mailGatewayRuntime = {
-  codeLength: 6,
-  expiryMinutes: 10,
-  cooldownSeconds: 60
-};
-
-/* Mail doğrulama ayarları kayıt rotalarından önce güvenli şekilde okunur.
-   smtpRuntime dosyanın ilerleyen bölümünde başlatılır; bu fonksiyon yalnızca
-   endpoint çağrıldığı anda çalıştığı için TDZ/ReferenceError oluşturmaz. */
-function getMailGatewayRuntime() {
-  return {
-    codeLength: Number(typeof smtpRuntime !== "undefined" ? smtpRuntime?.codeLength : 6) === 8 ? 8 : 6,
-    expiryMinutes: Number(typeof smtpRuntime !== "undefined" ? smtpRuntime?.expiryMinutes : 10) || 10,
-    cooldownSeconds: Number(typeof smtpRuntime !== "undefined" ? smtpRuntime?.cooldownSeconds : 60) || 60
-  };
-}
-
 const registrationCodes = new Map();
 const registrationRate = new Map();
 
@@ -693,7 +671,7 @@ function normalizeEmail(value) {
 }
 
 function createVerificationCode() {
-  const length = Number(getMailGatewayRuntime().codeLength) === 8 ? 8 : 6;
+  const length = Number(mailGatewayRuntime?.codeLength) === 8 ? 8 : 6;
   const min = length === 8 ? 10000000 : 100000;
   const max = length === 8 ? 100000000 : 1000000;
   return crypto.randomInt(min, max).toString();
@@ -709,7 +687,7 @@ function registrationAllowed(email) {
   const last = registrationRate.get(key) || 0;
 
   // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
-  return now - last >= (Number(getMailGatewayRuntime().cooldownSeconds) || 60) * 1000;
+  return now - last >= (Number(mailGatewayRuntime?.cooldownSeconds) || 60) * 1000;
 }
 
 async function sendRegistrationCode(email, code) {
@@ -723,11 +701,11 @@ async function sendRegistrationCode(email, code) {
         <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
           ${code}
         </div>
-        <p style="color:#666">Bu kod ${(Number(getMailGatewayRuntime().expiryMinutes) || 10)} dakika geçerlidir.</p>
+        <p style="color:#666">Bu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
     `,
-    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod ${Number(getMailGatewayRuntime().expiryMinutes) || 10} dakika geçerlidir.`
+    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod ${Number(mailGatewayRuntime?.expiryMinutes) || 10} dakika geçerlidir.`
   });
 }
 
@@ -1381,7 +1359,7 @@ app.post(
         return res.status(429).json({
           ok: false,
           error:
-            `Yeni kod göndermek için ${Number(getMailGatewayRuntime().cooldownSeconds) || 60} saniye bekle.`
+            `Yeni kod göndermek için ${Number(mailGatewayRuntime?.cooldownSeconds) || 60} saniye bekle.`
         });
       }
 
@@ -2597,6 +2575,12 @@ app.get(
    OAuth2 refresh token ile yetkilendirilir.
 ========================================================= */
 
+const mailGatewayRuntime = {
+  codeLength: 6,
+  expiryMinutes: 10,
+  cooldownSeconds: 60
+};
+
 function gmailConfig() {
   return {
     clientId: String(process.env.GMAIL_CLIENT_ID || "").trim(),
@@ -2851,9 +2835,9 @@ app.post(
           <div style="font-size:32px;font-weight:700;letter-spacing:8px">
             ${code}
           </div>
-          <p>Bu kod ${(Number(getMailGatewayRuntime().expiryMinutes) || 10)} dakika geçerlidir.</p>
+          <p>Bu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
         </div>`,
-        text: `Minegram doğrulama kodun: ${code}\nBu kod ${(Number(getMailGatewayRuntime().expiryMinutes) || 10)} dakika geçerlidir.`
+        text: `Minegram doğrulama kodun: ${code}\nBu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.`
       });
 
       res.json({
@@ -3204,79 +3188,9 @@ app.post(
 
       passwordResetTokens.delete(resetToken);
 
-      // Şifre değişikliğinden sonra kullanıcıyı tekrar giriş ekranına
-      // düşürmemek için yeni Supabase oturumu oluşturulur.
-      // Frontend bu tokenları localStorage/sessionStorage'a kaydedebilir.
-      let sessionData = null;
-      let sessionError = null;
-
-      try {
-        const loginResult = await client().auth.signInWithPassword({
-          email: userData.user.email,
-          password
-        });
-        sessionData = loginResult?.data || null;
-        sessionError = loginResult?.error || null;
-      } catch (loginError) {
-        sessionError = loginError;
-      }
-
-      if (!sessionData?.session?.access_token) {
-        console.error(
-          "RESET PASSWORD SESSION ERROR:",
-          sessionError?.message || sessionError || "Oturum oluşturulamadı."
-        );
-
-        return res.status(500).json({
-          ok: false,
-          passwordChanged: true,
-          needsLogin: true,
-          code: "RESET_SESSION_FAILED",
-          error: "Şifre değişti ancak otomatik oturum oluşturulamadı. Lütfen tekrar deneyin."
-        });
-      }
-
-      let profile = null;
-      try {
-        const profileResult = await admin
-          .from("profiles")
-          .select("*")
-          .or(`id.eq.${entry.userId},auth_user_id.eq.${entry.userId}`)
-          .limit(1)
-          .maybeSingle();
-        profile = profileResult?.data || null;
-      } catch (profileError) {
-        console.warn(
-          "RESET PASSWORD PROFILE READ ERROR:",
-          profileError?.message || profileError
-        );
-      }
-
-      const accessToken = sessionData.session.access_token;
-      const refreshToken = sessionData.session.refresh_token || null;
-
       return res.json({
         ok: true,
-        passwordChanged: true,
-        token: accessToken,
-        access_token: accessToken,
-        refreshToken,
-        refresh_token: refreshToken,
-        session: {
-          access_token: accessToken,
-          refresh_token: refreshToken
-        },
-        data: {
-          access_token: accessToken,
-          refresh_token: refreshToken
-        },
-        user: profile ? safeUser(profile) : {
-          id: entry.userId,
-          username: profile?.username || "",
-          displayName: profile?.display_name || profile?.username || ""
-        },
-        profile: profile ? safeUser(profile) : null,
-        message: "Şifren başarıyla değiştirildi ve oturum açıldı."
+        message: "Şifren başarıyla değiştirildi."
       });
     } catch (e) {
       console.error("RESET PASSWORD ERROR:", e);
