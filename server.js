@@ -4566,7 +4566,7 @@ app.get(
         await req.sb
           .from("profiles")
           .select(
-            "id,username,display_name,bio,avatar_url,verified"
+            "id,username,display_name,bio,avatar_url,verified,settings"
           )
           .or(
             `username.ilike.%${q}%,display_name.ilike.%${q}%`
