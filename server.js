@@ -5651,6 +5651,383 @@ app.post("/api/mail-gateway/send", gatewayAuth, async (req, res) => {
 
 
 /* =========================================================
+   MINEGRAM INTERNATIONAL SMS OTP — TWILIO VERIFY
+   Mevcut giriş/kayıt/şifre sıfırlama sistemine dokunmaz.
+   Twilio Verify HTTP API kullanır; ek npm paketi gerekmez.
+========================================================= */
+
+const phoneOtpRuntime = {
+  enabled: String(env("TWILIO_VERIFY_ENABLED") || "false").toLowerCase() === "true",
+  accountSid: env("TWILIO_ACCOUNT_SID"),
+  authToken: env("TWILIO_AUTH_TOKEN"),
+  serviceSid: env("TWILIO_VERIFY_SERVICE_SID"),
+  channel: (env("TWILIO_VERIFY_CHANNEL") || "sms").toLowerCase(),
+  locale: env("TWILIO_VERIFY_LOCALE"),
+  cooldownSeconds: Math.max(0, Number(env("PHONE_OTP_COOLDOWN_SECONDS")) || 60),
+  maxSendsPerHour: Math.max(1, Number(env("PHONE_OTP_MAX_SENDS_PER_HOUR")) || 5)
+};
+
+const phoneOtpRate = new Map();
+
+function phoneOtpConfigured() {
+  return Boolean(
+    phoneOtpRuntime.enabled &&
+    /^AC[a-zA-Z0-9]{20,}$/.test(phoneOtpRuntime.accountSid) &&
+    phoneOtpRuntime.authToken &&
+    /^VA[a-zA-Z0-9]{20,}$/.test(phoneOtpRuntime.serviceSid) &&
+    ["sms", "call", "whatsapp"].includes(phoneOtpRuntime.channel)
+  );
+}
+
+function normalizeInternationalPhone(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  // Uluslararası E.164: + ülke kodu + numara.
+  // Boşluk/parantez/tire kabul edilir ve temizlenir.
+  const cleaned = raw.replace(/[\s().-]/g, "");
+  if (!/^\+\d{8,15}$/.test(cleaned)) return "";
+  return cleaned;
+}
+
+function maskPhoneNumber(phone) {
+  const p = String(phone || "");
+  if (p.length < 8) return "***";
+  return `${p.slice(0, 4)}${"*".repeat(Math.max(3, p.length - 7))}${p.slice(-3)}`;
+}
+
+function phoneOtpRateKey(phone) {
+  return normalizeInternationalPhone(phone);
+}
+
+function phoneOtpCheckRate(phone) {
+  const key = phoneOtpRateKey(phone);
+  const now = Date.now();
+  const hourMs = 60 * 60 * 1000;
+  const entry = phoneOtpRate.get(key) || { sentAt: [] };
+
+  entry.sentAt = entry.sentAt.filter(ts => now - ts < hourMs);
+  const last = entry.sentAt.length ? entry.sentAt[entry.sentAt.length - 1] : 0;
+  const cooldownLeft = Math.max(
+    0,
+    phoneOtpRuntime.cooldownSeconds * 1000 - (now - last)
+  );
+
+  if (cooldownLeft > 0) {
+    return {
+      ok: false,
+      code: "COOLDOWN",
+      retryAfterSeconds: Math.ceil(cooldownLeft / 1000),
+      remainingThisHour: Math.max(0, phoneOtpRuntime.maxSendsPerHour - entry.sentAt.length)
+    };
+  }
+
+  if (entry.sentAt.length >= phoneOtpRuntime.maxSendsPerHour) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((hourMs - (now - entry.sentAt[0])) / 1000)
+    );
+    return {
+      ok: false,
+      code: "HOURLY_LIMIT",
+      retryAfterSeconds,
+      remainingThisHour: 0
+    };
+  }
+
+  return {
+    ok: true,
+    entry,
+    remainingThisHour: Math.max(0, phoneOtpRuntime.maxSendsPerHour - entry.sentAt.length)
+  };
+}
+
+function phoneOtpRecordSend(phone, entry) {
+  entry.sentAt.push(Date.now());
+  phoneOtpRate.set(phoneOtpRateKey(phone), entry);
+}
+
+function twilioBasicAuthHeader() {
+  return "Basic " + Buffer.from(
+    `${phoneOtpRuntime.accountSid}:${phoneOtpRuntime.authToken}`,
+    "utf8"
+  ).toString("base64");
+}
+
+async function twilioVerifyRequest(pathname, params) {
+  if (!phoneOtpConfigured()) {
+    throw new Error("SMS OTP servisi yapılandırılmamış. Twilio Environment Variables kontrol edilmeli.");
+  }
+
+  const response = await fetch(
+    `https://verify.twilio.com/v2/Services/${encodeURIComponent(phoneOtpRuntime.serviceSid)}${pathname}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: twilioBasicAuthHeader(),
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams(params).toString()
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.detail ||
+      data?.error_message ||
+      `Twilio Verify hatası (${response.status})`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.twilioCode = data?.code || null;
+    throw error;
+  }
+
+  return data;
+}
+
+async function sendPhoneOtp(phone) {
+  const normalized = normalizeInternationalPhone(phone);
+  if (!normalized) {
+    const error = new Error("Telefon numarası uluslararası formatta olmalı. Örnek: +905551112233");
+    error.code = "INVALID_PHONE";
+    throw error;
+  }
+
+  if (!phoneOtpConfigured()) {
+    const error = new Error("SMS OTP servisi yapılandırılmamış. Render Environment Variables ve deploy edilen server.js kontrol edilmeli.");
+    error.code = "SMS_OTP_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const rate = phoneOtpCheckRate(normalized);
+  if (!rate.ok) {
+    const error = new Error(
+      rate.code === "HOURLY_LIMIT"
+        ? `Saatlik SMS gönderim limitine ulaşıldı. ${rate.retryAfterSeconds} saniye sonra tekrar deneyin.`
+        : `Yeni kod göndermek için ${rate.retryAfterSeconds} saniye bekleyin.`
+    );
+    error.code = rate.code;
+    error.retryAfterSeconds = rate.retryAfterSeconds;
+    throw error;
+  }
+
+  const params = {
+    To: normalized,
+    Channel: phoneOtpRuntime.channel
+  };
+
+  if (phoneOtpRuntime.locale) params.Locale = phoneOtpRuntime.locale;
+
+  const data = await twilioVerifyRequest("/Verifications", params);
+  phoneOtpRecordSend(normalized, rate.entry);
+
+  return {
+    phone: normalized,
+    maskedPhone: maskPhoneNumber(normalized),
+    status: data?.status || "pending",
+    channel: phoneOtpRuntime.channel,
+    remainingThisHour: Math.max(
+      0,
+      phoneOtpRuntime.maxSendsPerHour - rate.entry.sentAt.length
+    )
+  };
+}
+
+async function verifyPhoneOtp(phone, code) {
+  const normalized = normalizeInternationalPhone(phone);
+  const cleanCode = String(code ?? "").replace(/\D/g, "").slice(0, 10);
+
+  if (!normalized) {
+    const error = new Error("Telefon numarası uluslararası formatta olmalı. Örnek: +905551112233");
+    error.code = "INVALID_PHONE";
+    throw error;
+  }
+
+  if (!/^\d{4,10}$/.test(cleanCode)) {
+    const error = new Error("Geçerli bir doğrulama kodu girin.");
+    error.code = "INVALID_CODE";
+    throw error;
+  }
+
+  if (!phoneOtpConfigured()) {
+    const error = new Error("SMS OTP servisi yapılandırılmamış. Render Environment Variables ve deploy edilen server.js kontrol edilmeli.");
+    error.code = "SMS_OTP_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const data = await twilioVerifyRequest("/VerificationCheck", {
+    To: normalized,
+    Code: cleanCode
+  });
+
+  return {
+    phone: normalized,
+    maskedPhone: maskPhoneNumber(normalized),
+    verified: data?.status === "approved",
+    status: data?.status || "pending",
+    valid: data?.valid === true || data?.status === "approved"
+  };
+}
+
+function phoneOtpPublicConfig() {
+  return {
+    ok: true,
+    configured: phoneOtpConfigured(),
+    enabled: phoneOtpRuntime.enabled,
+    channel: phoneOtpRuntime.channel,
+    codeLength: 6,
+    phoneFormat: "E.164 (+ülke kodu + numara)",
+    cooldownSeconds: phoneOtpRuntime.cooldownSeconds,
+    maxSendsPerHour: phoneOtpRuntime.maxSendsPerHour,
+    provider: "twilio_verify"
+  };
+}
+
+// Durum endpointi: gizli Twilio bilgilerini ASLA döndürmez.
+app.get("/api/phone-otp/status", (req, res) => {
+  return res.json(phoneOtpPublicConfig());
+});
+
+// SMS gönder — kayıt/doğrulama ekranı tarafından oturumsuz kullanılabilir.
+app.post("/api/phone-otp/send", async (req, res) => {
+  try {
+    const result = await sendPhoneOtp(req.body?.phone || req.body?.phoneNumber || req.body?.telefon);
+    return res.json({
+      ok: true,
+      success: true,
+      message: "Doğrulama kodu SMS ile gönderildi.",
+      ...result
+    });
+  } catch (e) {
+    console.error("PHONE OTP SEND ERROR:", e?.message || e);
+    const status = e?.code === "SMS_OTP_NOT_CONFIGURED" ? 503
+      : e?.code === "INVALID_PHONE" ? 400
+      : e?.code === "COOLDOWN" || e?.code === "HOURLY_LIMIT" ? 429
+      : 400;
+
+    return res.status(status).json({
+      ok: false,
+      success: false,
+      code: e?.code || "SMS_SEND_ERROR",
+      error: e?.message || "SMS doğrulama kodu gönderilemedi.",
+      retryAfterSeconds: e?.retryAfterSeconds || undefined
+    });
+  }
+});
+
+// Yeniden gönder — aynı güvenlik limitlerini kullanır.
+app.post("/api/phone-otp/resend", async (req, res) => {
+  try {
+    const result = await sendPhoneOtp(req.body?.phone || req.body?.phoneNumber || req.body?.telefon);
+    return res.json({
+      ok: true,
+      success: true,
+      message: "Yeni doğrulama kodu gönderildi.",
+      ...result
+    });
+  } catch (e) {
+    console.error("PHONE OTP RESEND ERROR:", e?.message || e);
+    const status = e?.code === "SMS_OTP_NOT_CONFIGURED" ? 503
+      : e?.code === "INVALID_PHONE" ? 400
+      : e?.code === "COOLDOWN" || e?.code === "HOURLY_LIMIT" ? 429
+      : 400;
+
+    return res.status(status).json({
+      ok: false,
+      success: false,
+      code: e?.code || "SMS_RESEND_ERROR",
+      error: e?.message || "SMS doğrulama kodu yeniden gönderilemedi.",
+      retryAfterSeconds: e?.retryAfterSeconds || undefined
+    });
+  }
+});
+
+// SMS kodunu doğrula.
+app.post("/api/phone-otp/verify", async (req, res) => {
+  try {
+    const result = await verifyPhoneOtp(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.code || req.body?.otp || req.body?.verificationCode
+    );
+
+    if (!result.verified) {
+      return res.status(400).json({
+        ok: false,
+        verified: false,
+        success: false,
+        code: "INVALID_CODE",
+        error: "Doğrulama kodu geçersiz veya henüz onaylanmadı.",
+        status: result.status
+      });
+    }
+
+    return res.json({
+      ok: true,
+      verified: true,
+      success: true,
+      message: "Telefon numarası başarıyla doğrulandı.",
+      phone: result.phone,
+      maskedPhone: result.maskedPhone,
+      status: result.status
+    });
+  } catch (e) {
+    console.error("PHONE OTP VERIFY ERROR:", e?.message || e);
+    const status = e?.code === "SMS_OTP_NOT_CONFIGURED" ? 503
+      : e?.code === "INVALID_PHONE" || e?.code === "INVALID_CODE" ? 400
+      : 400;
+
+    return res.status(status).json({
+      ok: false,
+      verified: false,
+      success: false,
+      code: e?.code || "SMS_VERIFY_ERROR",
+      error: e?.message || "Telefon doğrulaması başarısız."
+    });
+  }
+});
+
+// Eski/alternatif frontend adlarıyla uyumluluk.
+app.post("/api/phone/send-code", async (req, res) => {
+  try {
+    const result = await sendPhoneOtp(req.body?.phone || req.body?.phoneNumber || req.body?.telefon);
+    return res.json({ ok: true, success: true, ...result });
+  } catch (e) {
+    const status = e?.code === "SMS_OTP_NOT_CONFIGURED" ? 503
+      : e?.code === "INVALID_PHONE" ? 400
+      : e?.code === "COOLDOWN" || e?.code === "HOURLY_LIMIT" ? 429
+      : 400;
+    return res.status(status).json({ ok: false, success: false, code: e?.code || "SMS_SEND_ERROR", error: e?.message || "SMS gönderilemedi." });
+  }
+});
+
+app.post("/api/phone/verify-code", async (req, res) => {
+  try {
+    const result = await verifyPhoneOtp(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.code || req.body?.otp || req.body?.verificationCode
+    );
+    if (!result.verified) {
+      return res.status(400).json({ ok: false, verified: false, success: false, code: "INVALID_CODE", error: "Doğrulama kodu geçersiz.", status: result.status });
+    }
+    return res.json({ ok: true, verified: true, success: true, phone: result.phone, maskedPhone: result.maskedPhone, status: result.status });
+  } catch (e) {
+    const status = e?.code === "SMS_OTP_NOT_CONFIGURED" ? 503
+      : e?.code === "INVALID_PHONE" || e?.code === "INVALID_CODE" ? 400
+      : 400;
+    return res.status(status).json({ ok: false, verified: false, success: false, code: e?.code || "SMS_VERIFY_ERROR", error: e?.message || "Telefon doğrulaması başarısız." });
+  }
+});
+
+console.log(
+  `SMS OTP: ${phoneOtpConfigured() ? "YAPILANDIRILDI" : "YAPILANDIRILMADI"}` +
+  ` | provider=twilio_verify | channel=${phoneOtpRuntime.channel}`
+);
+
+
+/* =========================================================
    FALLBACK
 ========================================================= */
 
