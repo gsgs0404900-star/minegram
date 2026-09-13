@@ -247,17 +247,18 @@ body{
         </h1>
 
         <p class="description">
-            Hesabına kayıtlı e-posta adresini gir. Sana şifreni sıfırlayabileceğin bir bağlantı gönderelim.
+            Hesabına ait kullanıcı adını gir. Yeni şifre oluşturma adımına geçelim.
         </p>
 
         <input
-            type="email"
-            id="email"
+            type="text"
+            id="username"
             class="input"
-            placeholder="E-posta adresi"
-            autocomplete="email"
+            placeholder="Kullanıcı adı"
+            autocomplete="username"
             autocapitalize="none"
             spellcheck="false"
+            maxlength="32"
         >
 
         <button
@@ -265,7 +266,7 @@ body{
             id="continueButton"
             class="continue-btn"
         >
-            Sıfırlama bağlantısı gönder
+            Devam et
         </button>
 
         <div
@@ -285,229 +286,66 @@ body{
 </div>
 
 
-<script type="module">
+<script>
+"use strict";
 
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+const usernameInput = document.getElementById("username");
+const continueButton = document.getElementById("continueButton");
+const message = document.getElementById("message");
+const backButton = document.getElementById("backButton");
 
-import {
-  getAuth,
-  sendPasswordResetEmail
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-
-/* =========================================
-   FIREBASE
-========================================= */
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-  authDomain: "mim-ea133.firebaseapp.com",
-  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mim-ea133",
-  storageBucket: "mim-ea133.firebasestorage.app",
-  messagingSenderId: "303525353436",
-  appId: "1:303525353436:web:082fc090b5025e19942119",
-  measurementId: "G-K962QE5P1R"
-};
-
-const app =
-    initializeApp(firebaseConfig);
-
-const auth =
-    getAuth(app);
-
-
-/* =========================================
-   ELEMENTLER
-========================================= */
-
-const emailInput =
-    document.getElementById("email");
-
-const continueButton =
-    document.getElementById(
-        "continueButton"
-    );
-
-const message =
-    document.getElementById("message");
-
-const backButton =
-    document.getElementById("backButton");
-
-
-/* =========================================
-   MESAJ
-========================================= */
-
-function showMessage(
-    text,
-    success=false
-){
-
-    message.textContent =
-        text || "";
-
-    message.className =
-        "message";
-
-    if(success){
-
-        message.classList.add(
-            "success"
-        );
-
-    }
-
+function showMessage(text, success=false){
+    message.textContent = text || "";
+    message.className = "message";
+    if(success) message.classList.add("success");
 }
 
-
-/* =========================================
-   FIREBASE HATA
-========================================= */
-
-function firebaseError(error){
-
-    switch(error.code){
-
-        case "auth/invalid-email":
-            return "Geçerli bir e-posta adresi gir.";
-
-        case "auth/user-not-found":
-            return "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.";
-
-        case "auth/too-many-requests":
-            return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
-
-        case "auth/network-request-failed":
-            return "İnternet bağlantısını kontrol et.";
-
-        default:
-            return error.message ||
-                "Şifre sıfırlama bağlantısı gönderilemedi.";
-
-    }
-
-}
-
-
-/* =========================================
-   GERİ
-========================================= */
-
-backButton.addEventListener(
-    "click",
-    function(){
-
-        window.location.href =
-            "giris.html";
-
-    }
-);
-
-
-/* =========================================
-   ŞİFRE SIFIRLAMA
-========================================= */
+backButton.addEventListener("click", () => {
+    window.location.href = "giris.html";
+});
 
 async function resetPassword(){
-
-    const email =
-        emailInput.value
-            .trim()
-            .toLowerCase();
-
-
+    const username = usernameInput.value.trim().toLowerCase();
     showMessage("");
 
-
-    if(!email){
-
-        showMessage(
-            "E-posta adresini gir."
-        );
-
-        emailInput.focus();
-
+    if(!username){
+        showMessage("Kullanıcı adını gir.");
+        usernameInput.focus();
         return;
     }
 
-
     continueButton.disabled = true;
-
-    continueButton.textContent =
-        "Gönderiliyor...";
-
+    continueButton.textContent = "Kontrol ediliyor...";
 
     try{
+        const response = await fetch("/api/password-reset/check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username })
+        });
+        const data = await response.json().catch(() => ({}));
 
-        await sendPasswordResetEmail(
-            auth,
-            email
-        );
-
-
-        /*
-         * BAŞARILI
-         */
-
-        showMessage(
-            "Şifre sıfırlama bağlantısı e-posta adresine gönderildi. E-postanı kontrol et.",
-            true
-        );
-
-
-        continueButton.textContent =
-            "Bağlantı gönderildi";
-
-
-    }catch(error){
-
-        console.error(
-            "[MINEGRAM FIREBASE PASSWORD RESET]",
-            error
-        );
-
-
-        showMessage(
-            firebaseError(error)
-        );
-
-
-        continueButton.disabled =
-            false;
-
-        continueButton.textContent =
-            "Sıfırlama bağlantısı gönder";
-
-    }
-
-}
-
-
-continueButton.addEventListener(
-    "click",
-    resetPassword
-);
-
-
-emailInput.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Enter"){
-
-            event.preventDefault();
-
-            resetPassword();
-
+        if(!response.ok || !data.success){
+            throw new Error(data.message || "Kullanıcı bulunamadı.");
         }
 
+        sessionStorage.setItem("minegram_reset_username", username);
+        window.location.href = "yeni-sifre.html";
+    }catch(error){
+        console.error("[MINEGRAM PASSWORD RESET]", error);
+        showMessage(error.message || "Sunucuya bağlanılamadı.");
+        continueButton.disabled = false;
+        continueButton.textContent = "Devam et";
     }
-);
+}
 
+continueButton.addEventListener("click", resetPassword);
+usernameInput.addEventListener("keydown", event => {
+    if(event.key === "Enter"){
+        event.preventDefault();
+        resetPassword();
+    }
+});
 </script>
 
 </body>
