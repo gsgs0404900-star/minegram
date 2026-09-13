@@ -671,7 +671,7 @@ function normalizeEmail(value) {
 }
 
 function createVerificationCode() {
-  const length = Number(mailGatewayRuntime?.codeLength) === 8 ? 8 : 6;
+  const length = Number(smtpRuntime?.codeLength) === 8 ? 8 : 6;
   const min = length === 8 ? 10000000 : 100000;
   const max = length === 8 ? 100000000 : 1000000;
   return crypto.randomInt(min, max).toString();
@@ -687,7 +687,7 @@ function registrationAllowed(email) {
   const last = registrationRate.get(key) || 0;
 
   // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
-  return now - last >= (Number(mailGatewayRuntime?.cooldownSeconds) || 60) * 1000;
+  return now - last >= (Number(smtpRuntime?.cooldownSeconds) || 60) * 1000;
 }
 
 async function sendRegistrationCode(email, code) {
@@ -701,11 +701,11 @@ async function sendRegistrationCode(email, code) {
         <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
           ${code}
         </div>
-        <p style="color:#666">Bu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
+        <p style="color:#666">Bu kod ${(Number(smtpRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
     `,
-    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod ${Number(mailGatewayRuntime?.expiryMinutes) || 10} dakika geçerlidir.`
+    text: `Minegram e-posta doğrulama kodun: ${code}\nBu kod ${Number(smtpRuntime?.expiryMinutes) || 10} dakika geçerlidir.`
   });
 }
 
@@ -1359,7 +1359,7 @@ app.post(
         return res.status(429).json({
           ok: false,
           error:
-            `Yeni kod göndermek için ${Number(mailGatewayRuntime?.cooldownSeconds) || 60} saniye bekle.`
+            `Yeni kod göndermek için ${Number(smtpRuntime?.cooldownSeconds) || 60} saniye bekle.`
         });
       }
 
@@ -2767,9 +2767,9 @@ app.post(
           <div style="font-size:32px;font-weight:700;letter-spacing:8px">
             ${code}
           </div>
-          <p>Bu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
+          <p>Bu kod ${(Number(smtpRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
         </div>`,
-        text: `Minegram doğrulama kodun: ${code}\nBu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.`
+        text: `Minegram doğrulama kodun: ${code}\nBu kod ${(Number(smtpRuntime?.expiryMinutes) || 10)} dakika geçerlidir.`
       });
 
       res.json({
@@ -5292,6 +5292,7 @@ function saveSmtpPublicConfig() {
 
 function smtpPublicConfig() {
   const passConfigured = Boolean(env("SMTP_PASS"));
+  const publicBaseUrl = String(env("PUBLIC_BASE_URL") || "").trim().replace(/\/$/, "");
   return {
     ok: true,
     configured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.fromEmail && passConfigured),
@@ -5303,7 +5304,13 @@ function smtpPublicConfig() {
     hasSmtpPassword: passConfigured,
     codeLength: Number(smtpRuntime.codeLength) || 6,
     expiryMinutes: Number(smtpRuntime.expiryMinutes) || 10,
-    cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60
+    cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60,
+    // Mevcut admin.html eski "HTTPS Mail Gateway" alanlarını kullanıyor.
+    // Aynı server.js içindeki /api/send-mail endpoint'ini göstererek geriye dönük uyumluluk sağlıyoruz.
+    gatewayUrl: publicBaseUrl ? `${publicBaseUrl}/api/send-mail` : "/api/send-mail",
+    gatewayConfigured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.fromEmail && passConfigured),
+    gatewayTokenRequired: Boolean(env("MAIL_GATEWAY_TOKEN")),
+    gatewayTokenConfigured: Boolean(env("MAIL_GATEWAY_TOKEN"))
   };
 }
 
@@ -5350,28 +5357,58 @@ async function smtpAdminAuth(req, res, next) {
   }
 }
 
-function smtpTransport() {
+function smtpBaseConfig() {
   const host = String(smtpRuntime.host || env("SMTP_HOST") || "").trim();
-  const port = Number(smtpRuntime.port || env("SMTP_PORT") || 587);
+  const configuredPort = Number(smtpRuntime.port || env("SMTP_PORT") || 587);
   const user = String(smtpRuntime.user || env("SMTP_USER") || "").trim();
   const pass = String(env("SMTP_PASS") || "");
   const fromEmail = String(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || user || "").trim();
 
   if (!host) throw new Error("SMTP_HOST ayarlanmadı.");
-  if (![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
+  if (![465, 587].includes(configuredPort)) throw new Error("SMTP portu 465 veya 587 olmalı.");
   if (!user) throw new Error("SMTP_USER ayarlanmadı.");
   if (!pass) throw new Error("SMTP_PASS ayarlanmadı.");
   if (!fromEmail) throw new Error("Gönderici e-posta ayarlanmadı. MAIL_FROM_EMAIL veya SMTP_USER ayarlayın.");
 
+  return { host, configuredPort, user, pass, fromEmail };
+}
+
+function createSmtpTransport(config, port) {
   return nodemailer.createTransport({
-    host,
+    host: config.host,
     port,
     secure: port === 465,
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000
+    auth: { user: config.user, pass: config.pass },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    dnsTimeout: 15000,
+    tls: {
+      servername: config.host,
+      minVersion: "TLSv1.2"
+    }
   });
+}
+
+async function smtpTransport() {
+  const config = smtpBaseConfig();
+  const ports = [config.configuredPort, config.configuredPort === 587 ? 465 : 587];
+  let lastError = null;
+
+  for (const port of ports) {
+    const transporter = createSmtpTransport(config, port);
+    try {
+      await transporter.verify();
+      return { transporter, port, config };
+    } catch (error) {
+      lastError = error;
+      try { transporter.close(); } catch {}
+      console.error(`SMTP bağlantı testi başarısız (${config.host}:${port}):`, error?.message || error);
+    }
+  }
+
+  const detail = lastError?.code ? ` [${lastError.code}]` : "";
+  throw new Error(`SMTP sunucusuna bağlanılamadı: ${config.host}. 587 ve 465 portları denendi.${detail} ${lastError?.message || ""}`.trim());
 }
 
 async function sendSmtpEmail({ to, subject, html, text: textBody }) {
@@ -5379,14 +5416,18 @@ async function sendSmtpEmail({ to, subject, html, text: textBody }) {
   const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || smtpRuntime.user || env("SMTP_USER"), "Gönderici e-posta adresi");
   const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
 
-  const transporter = smtpTransport();
-  await transporter.sendMail({
-    from: `${fromName} <${fromEmail}>`,
-    to: recipient,
-    subject: emailEscapeHeader(subject),
-    html: html || undefined,
-    text: textBody || ""
-  });
+  const connection = await smtpTransport();
+  try {
+    await connection.transporter.sendMail({
+      from: `${fromName} <${fromEmail}>`,
+      to: recipient,
+      subject: emailEscapeHeader(subject),
+      html: html || undefined,
+      text: textBody || ""
+    });
+  } finally {
+    try { connection.transporter.close(); } catch {}
+  }
   return true;
 }
 
@@ -5402,6 +5443,23 @@ app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
 app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
   try {
     const body = req.body || {};
+
+    // Eski admin.html gatewayUrl/gatewayToken alanlarını gönderiyor.
+    // Bu sürümde gönderim yine aynı server.js içindeki SMTP üzerinden yapılır.
+    // gatewayUrl yalnızca arayüz uyumluluğu içindir; SMTP host/port/user Render env'den gelir.
+    const gatewayUrl = String(body.gatewayUrl || "").trim();
+    if (gatewayUrl) {
+      try {
+        const parsed = new URL(gatewayUrl, `${req.protocol}://${req.get("host")}`);
+        const path = parsed.pathname.replace(/\/+$/, "");
+        if (path !== "/api/send-mail") {
+          throw new Error("Mail Gateway URL bu server.js içindeki /api/send-mail adresini göstermeli.");
+        }
+      } catch (gatewayError) {
+        throw new Error(gatewayError?.message || "Mail Gateway URL geçersiz.");
+      }
+    }
+
     const host = emailEscapeHeader(body.host || body.smtpHost || smtpRuntime.host || env("SMTP_HOST"));
     const port = Number(body.port || body.smtpPort || smtpRuntime.port || 587);
     const user = emailEscapeHeader(body.user || body.smtpUser || smtpRuntime.user || env("SMTP_USER"));
@@ -5424,8 +5482,8 @@ app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
       ...smtpPublicConfig(),
       ok: true,
       message: env("SMTP_PASS")
-        ? "SMTP ayarları kaydedildi. SMTP şifresi sunucu ortam değişkeninden kullanılıyor."
-        : "SMTP ayarları kaydedildi ancak SMTP_PASS sunucuda ayarlanmalı."
+        ? "SMTP ayarları kaydedildi. Admin paneli artık bu server.js içindeki SMTP servisiyle uyumlu."
+        : "SMTP ayarları kaydedildi ancak SMTP_PASS Render Environment Variables içinde ayarlanmalı."
     });
   } catch (e) {
     return res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
