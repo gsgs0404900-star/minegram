@@ -797,6 +797,18 @@ body{
   "
 >
 
+
+<style>
+/* KARŞI TARAF HİKAYE ETKİLEŞİM BUTONLARI */
+.story-interaction-bar{position:absolute;left:12px;right:12px;bottom:18px;z-index:8;display:flex;align-items:center;gap:8px;padding:9px 10px;background:rgba(10,10,12,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:18px}
+.story-interaction-btn{height:42px;min-width:42px;padding:0 13px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.09);color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;cursor:pointer}
+.story-interaction-btn:active{transform:scale(.96)}
+.story-interaction-btn.liked{color:#ff4d6d;border-color:rgba(255,77,109,.45);background:rgba(255,77,109,.12)}
+.story-interaction-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.story-interaction-btn.liked svg{fill:currentColor}
+.story-interaction-btn.message{background:#fff;color:#111;border-color:#fff;flex:1}
+@media(max-width:380px){.story-interaction-bar{gap:5px;padding:7px}.story-interaction-btn{padding:0 9px;font-size:12px;min-width:38px}.story-interaction-btn.message{flex:1}}
+</style>
 </head>
 
 <body>
@@ -967,17 +979,34 @@ Profil
     <button class="story-close" onclick="closeStory()" aria-label="Kapat">×</button>
     <button class="story-prev" onclick="previousStory()" aria-label="Önceki"></button>
     <div id="storyMediaWrap"></div>
+
+<div id="storyInteractionBar" class="story-interaction-bar" style="display:none" onclick="event.stopPropagation()">
+  <button id="storyLikeButton" class="story-interaction-btn" onclick="toggleCurrentStoryLike()" aria-label="Beğen">
+    <svg viewBox="0 0 24 24"><path d="M20.8 8.6c0 5.5-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.6A4.6 4.6 0 0 1 12 6.2a4.6 4.6 0 0 1 8.8 2.4Z"/></svg><span id="storyLikeText">Beğen</span>
+  </button>
+  <button class="story-interaction-btn" onclick="commentCurrentStory()" aria-label="Yorum">
+    <svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-8.5 8A9.5 9.5 0 0 1 7 18.3L3 20l1.7-4A8.7 8.7 0 0 1 4 11.5a8 8 0 0 1 8-8 8 8 0 0 1 8 8Z"/></svg><span>Yorum</span>
+  </button>
+  <button class="story-interaction-btn" onclick="shareCurrentOtherStory()" aria-label="Paylaş">
+    <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg><span>Paylaş</span>
+  </button>
+  <button class="story-interaction-btn message" onclick="messageCurrentStoryOwner()" aria-label="Mesaj gönder">
+    <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.3 9.8 9.8 0 0 1-4.1-.9L3 21l1.9-4.2A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3Z"/></svg><span>Mesaj gönder</span>
+  </button>
+</div>
     <button class="story-next" onclick="nextStory()" aria-label="Sonraki"></button>
     <div id="storyMore" class="story-more-menu" onclick="event.stopPropagation()">
-      <button class="story-menu-primary" onclick="shareCurrentStory()">Gönder / Paylaş</button>
-      <button class="story-menu-outline" onclick="showStoryViewers()">Görüntüleyenler</button>
-      <button class="story-menu-outline" onclick="copyCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
-      <button class="story-menu-outline" onclick="closeStoryMore()">Daha fazla</button>
-      <button class="story-menu-text" onclick="downloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
-      <button class="story-menu-text" onclick="highlightCurrentStory()">Öne çıkar</button>
-      <button class="story-menu-text" onclick="toggleStoryComments()">Yorum yapmayı kapat</button>
-      <button class="story-menu-text" onclick="goStorySettings()">Hikaye ayarlarına git</button>
-      <button class="story-menu-text" onclick="hideCurrentStory()">Hikayeyi gizle</button>
+      <button id="storyOwnerShareButton" class="story-menu-primary" onclick="shareCurrentStory()">Gönder / Paylaş</button>
+      <button id="storyOwnerViewersButton" class="story-menu-outline" onclick="showStoryViewers()">Görüntüleyenler</button>
+      <button id="storyOwnerCopyButton" class="story-menu-outline" onclick="copyCurrentStory()">WhatsApp / Bağlantıyı kopyala / Facebook / Messenger</button>
+      <button id="storyOtherReportButton" class="story-menu-text danger" onclick="reportCurrentStory()" style="display:none">Şikayet et</button>
+      <button id="storyOtherMuteButton" class="story-menu-text" onclick="muteCurrentStoryOwner()" style="display:none">Sessize al</button>
+      <button id="storyOwnerMoreButton" class="story-menu-outline" onclick="closeStoryMore()">Daha fazla</button>
+      <button id="storyOwnerDownloadButton" class="story-menu-text" onclick="downloadCurrentStory()">Videoyu / fotoğrafı kaydet</button>
+      <button id="storyOwnerHighlightButton" class="story-menu-text" onclick="highlightCurrentStory()">Öne çıkar</button>
+      <button id="storyOwnerCommentsButton" class="story-menu-text" onclick="toggleStoryComments()">Yorum yapmayı kapat</button>
+      <button id="storyOwnerSettingsButton" class="story-menu-text" onclick="goStorySettings()">Hikaye ayarlarına git</button>
+      <button id="storyOwnerHideButton" class="story-menu-text" onclick="hideCurrentStory()">Hikayeyi gizle</button>
       <button id="storyDeleteButton" class="story-menu-text danger" onclick="deleteCurrentStory()">Sil</button>
     </div>
   </div>
@@ -2965,10 +2994,21 @@ onclick="sendComment()"
         "open"
       );
 
-    const deleteButton=document.getElementById("storyDeleteButton");
-    if(deleteButton){
-      deleteButton.style.display=isMyStory(item) ? "block" : "none";
-    }
+    const ownStory=isMyStory(item);
+    const ownerOnlyIds=[
+      "storyOwnerShareButton","storyOwnerViewersButton","storyOwnerCopyButton",
+      "storyOwnerMoreButton","storyOwnerDownloadButton","storyOwnerHighlightButton",
+      "storyOwnerCommentsButton","storyOwnerSettingsButton","storyOwnerHideButton",
+      "storyDeleteButton"
+    ];
+    ownerOnlyIds.forEach(function(id){
+      const el=document.getElementById(id);
+      if(el) el.style.display=ownStory ? (id==="storyDeleteButton" ? "block" : "block") : "none";
+    });
+    ["storyOtherReportButton","storyOtherMuteButton"].forEach(function(id){
+      const el=document.getElementById(id);
+      if(el) el.style.display=ownStory ? "none" : "block";
+    });
 
     renderProgress();
 
@@ -3583,6 +3623,39 @@ onclick="sendComment()"
   window.showViewerActions=function(name){
     alert("@"+name+" için işlemler");
   };
+
+  /* =======================================================
+     KARŞI TARAF HİKAYE MENÜSÜ
+  ======================================================= */
+
+  window.reportCurrentStory=function(){
+    const item=currentStory();
+    if(!item || isMyStory(item)) return;
+    const owner=String(item.username||item.userId||"Minegram").replace(/^@/,"").trim();
+    closeStoryMore();
+    const ok=window.confirm("@"+owner+" kullanıcısının hikayesini şikayet etmek istiyor musun?");
+    if(!ok) return;
+    try{
+      localStorage.setItem("minegram_story_reported_"+String(item.id||""),"1");
+    }catch(e){}
+    if(typeof toast === "function") toast("Hikaye şikayet edildi"); else alert("Hikaye şikayet edildi");
+  };
+
+  window.muteCurrentStoryOwner=function(){
+    const item=currentStory();
+    if(!item || isMyStory(item)) return;
+    const owner=String(item.username||item.userId||"").replace(/^@/,"").trim();
+    if(!owner) return;
+    closeStoryMore();
+    try{
+      const key="minegram_muted_story_users";
+      const list=JSON.parse(localStorage.getItem(key)||"[]");
+      if(!list.some(x=>String(x).toLowerCase()===owner.toLowerCase())) list.push(owner);
+      localStorage.setItem(key,JSON.stringify(list));
+    }catch(e){}
+    if(typeof toast === "function") toast("@"+owner+" sessize alındı"); else alert("@"+owner+" sessize alındı");
+  };
+
 
   /* =======================================================
      İNDİR
@@ -7776,5 +7849,81 @@ init();
 })();
 </script>
 
+
+<script>
+/* KARŞI TARAF HİKAYE ETKİLEŞİMLERİ */
+(function(){
+  function storyInteractionKey(item){ return "minegram_story_liked_"+String(item?.id||""); }
+  function otherStoryOwner(item){ return String(item?.username||item?.userId||"").replace(/^@/,"").trim(); }
+  function isOtherStory(item){ return !!item && typeof isMyStory === "function" && !isMyStory(item); }
+
+  window.updateStoryInteractionBar=function(){
+    const bar=document.getElementById("storyInteractionBar");
+    const item=typeof currentStory === "function" ? currentStory() : null;
+    if(!bar) return;
+    const show=isOtherStory(item);
+    bar.style.display=show ? "flex" : "none";
+    if(!show) return;
+    let liked=false;
+    try{ liked=localStorage.getItem(storyInteractionKey(item))==="1"; }catch(e){}
+    const btn=document.getElementById("storyLikeButton");
+    const txt=document.getElementById("storyLikeText");
+    if(btn) btn.classList.toggle("liked",liked);
+    if(txt) txt.textContent=liked?"Beğenildi":"Beğen";
+  };
+
+  window.toggleCurrentStoryLike=function(){
+    const item=typeof currentStory === "function" ? currentStory() : null;
+    if(!isOtherStory(item)) return;
+    const key=storyInteractionKey(item);
+    let liked=false;
+    try{ liked=localStorage.getItem(key)==="1"; if(liked) localStorage.removeItem(key); else localStorage.setItem(key,"1"); }catch(e){}
+    updateStoryInteractionBar();
+    if(typeof toast === "function") toast(liked?"Beğeni kaldırıldı":"Hikaye beğenildi");
+  };
+
+  window.commentCurrentStory=function(){
+    const item=typeof currentStory === "function" ? currentStory() : null;
+    if(!isOtherStory(item)) return;
+    const owner=otherStoryOwner(item);
+    const text=window.prompt("@"+owner+" hikayesine yorum yaz:");
+    if(!text || !text.trim()) return;
+    try{
+      const key="minegram_story_comments_"+String(item.id||"");
+      const list=JSON.parse(localStorage.getItem(key)||"[]");
+      list.push({username:getLocalUsername?getLocalUsername():"Minegram",text:text.trim(),createdAt:Date.now()});
+      localStorage.setItem(key,JSON.stringify(list));
+    }catch(e){}
+    if(typeof toast === "function") toast("Yorum eklendi"); else alert("Yorum eklendi");
+  };
+
+  window.shareCurrentOtherStory=function(){
+    const item=typeof currentStory === "function" ? currentStory() : null;
+    if(!isOtherStory(item)) return;
+    const owner=otherStoryOwner(item);
+    const text="@"+owner+" Minegram'da bir hikaye paylaştı.";
+    const url=location.href;
+    if(navigator.share){ navigator.share({title:"Minegram hikayesi",text,url}).catch(()=>{}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>{if(typeof toast === "function") toast("Hikaye bağlantısı kopyalandı");}).catch(()=>{}); }
+  };
+
+  window.messageCurrentStoryOwner=function(){
+    const item=typeof currentStory === "function" ? currentStory() : null;
+    if(!isOtherStory(item)) return;
+    const owner=otherStoryOwner(item);
+    try{
+      localStorage.setItem("minegram_open_chat_user",owner);
+      localStorage.setItem("minegram_chat_username",owner);
+    }catch(e){}
+    location.href="sohbet.html";
+  };
+
+  const originalRenderViewer=window.renderViewer;
+  if(typeof originalRenderViewer === "function"){
+    window.renderViewer=function(){ originalRenderViewer.apply(this,arguments); setTimeout(updateStoryInteractionBar,0); };
+  }
+  document.addEventListener("DOMContentLoaded",function(){ setTimeout(updateStoryInteractionBar,300); });
+})();
+</script>
 </body>
 </html>
