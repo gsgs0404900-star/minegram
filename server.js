@@ -5650,6 +5650,515 @@ app.post("/api/mail-gateway/send", gatewayAuth, async (req, res) => {
 });
 
 
+
+function maskPhoneNumber(phone) {
+  const value = normalizeInternationalPhone(phone);
+  if (!value) return "";
+  if (value.length <= 7) return value;
+  return `${value.slice(0, 4)}${"*".repeat(Math.max(2, value.length - 7))}${value.slice(-3)}`;
+}
+
+
+/* =========================================================
+   MINEGRAM ULUSLARARASI TELEFON SMS OTP — TWILIO VERIFY
+   - Mevcut e-posta OTP / giriş / kayıt sistemine dokunmaz.
+   - Twilio Verify kodu üretir, SMS'i gönderir ve kodu doğrular.
+   - Telefonlar E.164 (+ülke kodu...) formatına çevrilir.
+   - OTP kodu sunucuda düz metin olarak tutulmaz.
+   - Yeniden gönderim ve kötüye kullanım için sunucu tarafında cooldown vardır.
+========================================================= */
+
+const TWILIO_VERIFY_ENABLED =
+  String(env("TWILIO_VERIFY_ENABLED") || "true").toLowerCase() !== "false";
+
+const TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID");
+const TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN");
+const TWILIO_VERIFY_SERVICE_SID = env("TWILIO_VERIFY_SERVICE_SID");
+const TWILIO_VERIFY_CHANNEL = String(env("TWILIO_VERIFY_CHANNEL") || "sms").toLowerCase();
+const TWILIO_VERIFY_LOCALE = env("TWILIO_VERIFY_LOCALE");
+const PHONE_OTP_COOLDOWN_SECONDS = Math.max(
+  30,
+  Number(env("PHONE_OTP_COOLDOWN_SECONDS")) || 60
+);
+const PHONE_OTP_MAX_SENDS_PER_HOUR = Math.max(
+  1,
+  Number(env("PHONE_OTP_MAX_SENDS_PER_HOUR")) || 5
+);
+
+const phoneOtpRate = new Map();
+
+function twilioVerifyConfigured() {
+  return Boolean(
+    TWILIO_VERIFY_ENABLED &&
+    TWILIO_ACCOUNT_SID &&
+    TWILIO_AUTH_TOKEN &&
+    TWILIO_VERIFY_SERVICE_SID
+  );
+}
+
+function normalizeInternationalPhone(phone, countryCode = "") {
+  let raw = String(phone ?? "").trim();
+  let cc = String(countryCode ?? "").trim();
+
+  if (!raw) return "";
+
+  /* Kullanıcı +90 5xx... veya 905xx... gönderebilir. */
+  if (raw.startsWith("+")) {
+    raw = `+${raw.slice(1).replace(/\D/g, "")}`;
+  } else {
+    const digits = raw.replace(/\D/g, "");
+    const countryDigits = cc.replace(/\D/g, "");
+
+    if (countryDigits) {
+      const local = digits.replace(/^0+/, "");
+      raw = `+${countryDigits}${local}`;
+    } else if (digits) {
+      raw = `+${digits}`;
+    }
+  }
+
+  /* E.164: + ve toplam 8-15 rakam. */
+  if (!/^\+[1-9]\d{7,14}$/.test(raw)) return "";
+  return raw;
+}
+
+function phoneOtpKey(phone) {
+  return normalizeInternationalPhone(phone);
+}
+
+function phoneOtpWindow(phone) {
+  const key = phoneOtpKey(phone);
+  if (!key) return null;
+
+  const now = Date.now();
+  let item = phoneOtpRate.get(key);
+
+  if (!item || now - item.windowStartedAt >= 60 * 60 * 1000) {
+    item = {
+      windowStartedAt: now,
+      sends: 0,
+      lastSentAt: 0
+    };
+    phoneOtpRate.set(key, item);
+  }
+
+  return item;
+}
+
+function phoneOtpCanSend(phone) {
+  const item = phoneOtpWindow(phone);
+  if (!item) {
+    return { ok: false, error: "Geçerli bir uluslararası telefon numarası gerekli." };
+  }
+
+  const now = Date.now();
+  const elapsed = now - Number(item.lastSentAt || 0);
+  const cooldownMs = PHONE_OTP_COOLDOWN_SECONDS * 1000;
+
+  if (item.lastSentAt && elapsed < cooldownMs) {
+    return {
+      ok: false,
+      code: "PHONE_OTP_COOLDOWN",
+      retryAfterSeconds: Math.ceil((cooldownMs - elapsed) / 1000),
+      error: `Yeni kod göndermek için ${Math.ceil((cooldownMs - elapsed) / 1000)} saniye bekle.`
+    };
+  }
+
+  if (item.sends >= PHONE_OTP_MAX_SENDS_PER_HOUR) {
+    return {
+      ok: false,
+      code: "PHONE_OTP_HOURLY_LIMIT",
+      retryAfterSeconds: Math.ceil((60 * 60 * 1000 - (now - item.windowStartedAt)) / 1000),
+      error: "Bu telefon numarası için saatlik SMS doğrulama sınırına ulaşıldı."
+    };
+  }
+
+  return { ok: true, item };
+}
+
+function twilioBasicAuthHeader() {
+  return `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`;
+}
+
+async function twilioVerifyRequest(pathname, params) {
+  if (!twilioVerifyConfigured()) {
+    throw new Error(
+      "Twilio SMS OTP yapılandırması eksik. TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN ve TWILIO_VERIFY_SERVICE_SID gerekli."
+    );
+  }
+
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value !== undefined && value !== null && String(value) !== "") {
+      body.set(key, String(value));
+    }
+  }
+
+  const response = await fetch(
+    `https://verify.twilio.com/v2/Services/${encodeURIComponent(TWILIO_VERIFY_SERVICE_SID)}${pathname}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: twilioBasicAuthHeader(),
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.detail ||
+      data?.error_message ||
+      `Twilio Verify hatası (${response.status}).`;
+
+    const error = new Error(message);
+    error.twilioStatus = response.status;
+    error.twilioCode = data?.code || null;
+    throw error;
+  }
+
+  return data;
+}
+
+async function startPhoneOtpVerification(phone) {
+  const normalizedPhone = normalizeInternationalPhone(phone);
+  if (!normalizedPhone) {
+    const error = new Error(
+      "Telefon numarası uluslararası formatta olmalı. Örnek: +905551112233"
+    );
+    error.code = "INVALID_PHONE";
+    throw error;
+  }
+
+  const rate = phoneOtpCanSend(normalizedPhone);
+  if (!rate.ok) {
+    const error = new Error(rate.error);
+    error.code = rate.code;
+    error.retryAfterSeconds = rate.retryAfterSeconds;
+    throw error;
+  }
+
+  const params = {
+    To: normalizedPhone,
+    Channel: TWILIO_VERIFY_CHANNEL === "whatsapp" ? "whatsapp" : "sms"
+  };
+
+  /* Twilio Verify ülke koduna göre mesaj dilini otomatik belirleyebilir.
+     İstenirse Render'da TWILIO_VERIFY_LOCALE ile sabit dil verilebilir. */
+  if (TWILIO_VERIFY_LOCALE) {
+    params.Locale = TWILIO_VERIFY_LOCALE;
+  }
+
+  const data = await twilioVerifyRequest("/Verifications", params);
+
+  const item = phoneOtpWindow(normalizedPhone);
+  if (item) {
+    item.lastSentAt = Date.now();
+    item.sends += 1;
+    phoneOtpRate.set(normalizedPhone, item);
+  }
+
+  return {
+    phone: normalizedPhone,
+    status: data?.status || "pending",
+    sid: data?.sid || null,
+    channel: params.Channel
+  };
+}
+
+async function checkPhoneOtpVerification(phone, code) {
+  const normalizedPhone = normalizeInternationalPhone(phone);
+  const verificationCode = String(code || "").replace(/\D/g, "");
+
+  if (!normalizedPhone) {
+    const error = new Error(
+      "Telefon numarası uluslararası formatta olmalı. Örnek: +905551112233"
+    );
+    error.code = "INVALID_PHONE";
+    throw error;
+  }
+
+  if (!/^\d{4,10}$/.test(verificationCode)) {
+    const error = new Error("Doğrulama kodu geçersiz.");
+    error.code = "INVALID_CODE";
+    throw error;
+  }
+
+  const data = await twilioVerifyRequest("/VerificationCheck", {
+    To: normalizedPhone,
+    Code: verificationCode
+  });
+
+  if (data?.status === "approved") {
+    phoneOtpRate.delete(normalizedPhone);
+    return {
+      verified: true,
+      status: "approved",
+      phone: normalizedPhone
+    };
+  }
+
+  return {
+    verified: false,
+    status: data?.status || "pending",
+    phone: normalizedPhone
+  };
+}
+
+function phoneOtpErrorResponse(res, error) {
+  const code = error?.code || error?.twilioCode || "PHONE_OTP_ERROR";
+  const status =
+    code === "PHONE_OTP_COOLDOWN" ? 429 :
+    code === "PHONE_OTP_HOURLY_LIMIT" ? 429 :
+    code === "INVALID_PHONE" || code === "INVALID_CODE" ? 400 :
+    400;
+
+  return res.status(status).json({
+    ok: false,
+    verified: false,
+    code,
+    retryAfterSeconds: error?.retryAfterSeconds || undefined,
+    error: error?.message || "Telefon doğrulama işlemi başarısız."
+  });
+}
+
+/* SMS OTP servisi durumunu frontend/admin paneli okuyabilir. */
+app.get("/api/phone-otp/status", (req, res) => {
+  res.json({
+    ok: true,
+    enabled: TWILIO_VERIFY_ENABLED,
+    configured: twilioVerifyConfigured(),
+    provider: "twilio_verify",
+    channel: TWILIO_VERIFY_CHANNEL === "whatsapp" ? "whatsapp" : "sms",
+    codeLength: 6,
+    cooldownSeconds: PHONE_OTP_COOLDOWN_SECONDS,
+    maxSendsPerHour: PHONE_OTP_MAX_SENDS_PER_HOUR,
+    international: true
+  });
+});
+
+/*
+ * Telefon doğrulama kodu gönder.
+ * Body örneği:
+ * { "phone": "+905551112233" }
+ * veya
+ * { "countryCode": "+90", "phone": "5551112233" }
+ */
+app.post("/api/phone-otp/send", async (req, res) => {
+  try {
+    if (!twilioVerifyConfigured()) {
+      return res.status(503).json({
+        ok: false,
+        code: "PHONE_OTP_NOT_CONFIGURED",
+        error: "Uluslararası SMS OTP servisi henüz yapılandırılmadı. Render Environment değişkenlerini ekleyin."
+      });
+    }
+
+    const phone = normalizeInternationalPhone(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.countryCode || req.body?.country_code || req.body?.ulkeKodu
+    );
+
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_PHONE",
+        error: "Geçerli bir uluslararası telefon numarası gir. Örnek: +905551112233"
+      });
+    }
+
+    const result = await startPhoneOtpVerification(phone);
+
+    return res.json({
+      ok: true,
+      sent: true,
+      phone: result.phone,
+      maskedPhone: maskPhoneNumber(result.phone),
+      status: result.status,
+      channel: result.channel,
+      message: "6 haneli telefon doğrulama kodu gönderildi."
+    });
+  } catch (error) {
+    console.error("PHONE OTP SEND ERROR:", error?.message || error);
+    return phoneOtpErrorResponse(res, error);
+  }
+});
+
+/* Frontend uyumluluk alias'ı. */
+app.post("/api/phone/send-code", async (req, res) => {
+  try {
+    if (!twilioVerifyConfigured()) {
+      return res.status(503).json({
+        ok: false,
+        code: "PHONE_OTP_NOT_CONFIGURED",
+        error: "Uluslararası SMS OTP servisi henüz yapılandırılmadı."
+      });
+    }
+
+    const phone = normalizeInternationalPhone(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.countryCode || req.body?.country_code || req.body?.ulkeKodu
+    );
+
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_PHONE",
+        error: "Geçerli bir uluslararası telefon numarası gerekli."
+      });
+    }
+
+    const result = await startPhoneOtpVerification(phone);
+    return res.json({
+      ok: true,
+      sent: true,
+      phone: result.phone,
+      maskedPhone: maskPhoneNumber(result.phone),
+      status: result.status,
+      channel: result.channel,
+      message: "6 haneli telefon doğrulama kodu gönderildi."
+    });
+  } catch (error) {
+    console.error("PHONE SEND-CODE ERROR:", error?.message || error);
+    return phoneOtpErrorResponse(res, error);
+  }
+});
+
+app.post("/api/phone-otp/resend", async (req, res) => {
+  try {
+    if (!twilioVerifyConfigured()) {
+      return res.status(503).json({
+        ok: false,
+        code: "PHONE_OTP_NOT_CONFIGURED",
+        error: "Uluslararası SMS OTP servisi henüz yapılandırılmadı."
+      });
+    }
+
+    const phone = normalizeInternationalPhone(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.countryCode || req.body?.country_code || req.body?.ulkeKodu
+    );
+
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_PHONE",
+        error: "Geçerli bir uluslararası telefon numarası gerekli."
+      });
+    }
+
+    const result = await startPhoneOtpVerification(phone);
+
+    return res.json({
+      ok: true,
+      sent: true,
+      phone: result.phone,
+      maskedPhone: maskPhoneNumber(result.phone),
+      status: result.status,
+      channel: result.channel,
+      message: "Yeni 6 haneli telefon doğrulama kodu gönderildi."
+    });
+  } catch (error) {
+    console.error("PHONE OTP RESEND ERROR:", error?.message || error);
+    return phoneOtpErrorResponse(res, error);
+  }
+});
+
+/*
+ * SMS OTP kodunu doğrula.
+ * Body örneği: { "phone": "+905551112233", "code": "123456" }
+ */
+app.post("/api/phone-otp/verify", async (req, res) => {
+  try {
+    if (!twilioVerifyConfigured()) {
+      return res.status(503).json({
+        ok: false,
+        code: "PHONE_OTP_NOT_CONFIGURED",
+        error: "Uluslararası SMS OTP servisi henüz yapılandırılmadı."
+      });
+    }
+
+    const phone = normalizeInternationalPhone(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.countryCode || req.body?.country_code || req.body?.ulkeKodu
+    );
+    const code = String(
+      req.body?.code || req.body?.otp || req.body?.verificationCode || ""
+    ).trim();
+
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_PHONE",
+        error: "Geçerli bir uluslararası telefon numarası gerekli."
+      });
+    }
+
+    if (!/^\d{4,10}$/.test(code)) {
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_CODE",
+        error: "Doğrulama kodu geçersiz."
+      });
+    }
+
+    const result = await checkPhoneOtpVerification(phone, code);
+
+    if (!result.verified) {
+      return res.status(400).json({
+        ok: false,
+        verified: false,
+        code: "PHONE_OTP_NOT_APPROVED",
+        status: result.status,
+        error: "Telefon doğrulama kodu yanlış, süresi dolmuş veya artık geçerli değil."
+      });
+    }
+
+    return res.json({
+      ok: true,
+      verified: true,
+      phone: result.phone,
+      maskedPhone: maskPhoneNumber(result.phone),
+      status: "approved",
+      message: "Telefon numarası başarıyla doğrulandı."
+    });
+  } catch (error) {
+    console.error("PHONE OTP VERIFY ERROR:", error?.message || error);
+    return phoneOtpErrorResponse(res, error);
+  }
+});
+
+/* Alternatif doğrulama yolu. */
+app.post("/api/phone/verify-code", async (req, res) => {
+  try {
+    const phone = normalizeInternationalPhone(
+      req.body?.phone || req.body?.phoneNumber || req.body?.telefon,
+      req.body?.countryCode || req.body?.country_code || req.body?.ulkeKodu
+    );
+    const code = String(req.body?.code || req.body?.otp || req.body?.verificationCode || "").trim();
+
+    if (!phone || !/^\d{4,10}$/.test(code)) {
+      return res.status(400).json({ ok: false, verified: false, code: "INVALID_INPUT", error: "Telefon ve doğrulama kodu gerekli." });
+    }
+
+    const result = await checkPhoneOtpVerification(phone, code);
+    return res.status(result.verified ? 200 : 400).json({
+      ok: result.verified,
+      verified: result.verified,
+      phone: result.phone,
+      status: result.status,
+      message: result.verified ? "Telefon numarası başarıyla doğrulandı." : "Telefon doğrulaması başarısız."
+    });
+  } catch (error) {
+    console.error("PHONE VERIFY-CODE ERROR:", error?.message || error);
+    return phoneOtpErrorResponse(res, error);
+  }
+});
+
 /* =========================================================
    FALLBACK
 ========================================================= */
