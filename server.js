@@ -1735,6 +1735,342 @@ function normalizeRecoveryPhone(
   return digits;
 }
 
+/* =========================================================
+   PASSWORD RESET CHECK
+   sifremi-unuttum.html -> yeni-sifre.html
+========================================================= */
+
+const directPasswordResetTokens = new Map();
+
+
+function createDirectResetToken(){
+
+  return crypto
+    .randomBytes(32)
+    .toString("hex");
+
+}
+
+
+function cleanupDirectResetTokens(){
+
+  const now = Date.now();
+
+  for(
+    const [token, data] of
+    directPasswordResetTokens.entries()
+  ){
+
+    if(
+      !data ||
+      !data.expires ||
+      data.expires <= now
+    ){
+
+      directPasswordResetTokens.delete(
+        token
+      );
+
+    }
+
+  }
+
+}
+
+
+app.post(
+  "/api/password-reset/check",
+
+  async (req, res) => {
+
+    try{
+
+      cleanupDirectResetTokens();
+
+
+      const username =
+        normalizeUsername(
+          req.body?.username
+        );
+
+
+      if(!username){
+
+        return res.status(400).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Kullanıcı adını gir."
+
+        });
+
+      }
+
+
+      if(!CONFIG_OK){
+
+        return res.status(500).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Sunucu yapılandırması eksik."
+
+        });
+
+      }
+
+
+      if(!SUPABASE_SERVICE_ROLE_KEY){
+
+        return res.status(500).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Sunucu yetkilendirmesi eksik."
+
+        });
+
+      }
+
+
+      const admin =
+        adminClient();
+
+
+      /* =====================================
+         1. PROFİLİ KULLANICI ADI İLE BUL
+      ===================================== */
+
+      const {
+        data: profiles,
+        error: profileError
+      } = await admin
+        .from("profiles")
+        .select("*")
+        .ilike(
+          "username",
+          username
+        )
+        .limit(1);
+
+
+      if(profileError){
+
+        console.error(
+          "[PASSWORD RESET PROFILE ERROR]",
+          profileError
+        );
+
+        throw profileError;
+
+      }
+
+
+      const profile =
+        Array.isArray(profiles)
+          ? profiles[0]
+          : null;
+
+
+      if(!profile){
+
+        return res.status(404).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Kullanıcı bulunamadı."
+
+        });
+
+      }
+
+
+      /* =====================================
+         2. AUTH USER ID BUL
+      ===================================== */
+
+      const authUserId =
+        profile.auth_user_id ||
+        profile.id;
+
+
+      if(!authUserId){
+
+        return res.status(404).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Kullanıcı hesabı bulunamadı."
+
+        });
+
+      }
+
+
+      /* =====================================
+         3. SUPABASE AUTH KULLANICISI
+      ===================================== */
+
+      const {
+        data: userData,
+        error: userError
+      } =
+        await admin
+          .auth
+          .admin
+          .getUserById(
+            authUserId
+          );
+
+
+      if(
+        userError ||
+        !userData?.user
+      ){
+
+        console.error(
+          "[PASSWORD RESET AUTH ERROR]",
+          userError
+        );
+
+        return res.status(404).json({
+
+          success: false,
+
+          ok: false,
+
+          message:
+            "Kullanıcı hesabı bulunamadı."
+
+        });
+
+      }
+
+
+      const authUser =
+        userData.user;
+
+
+      /* =====================================
+         4. GÜVENLİ RESET TOKEN
+      ===================================== */
+
+      const resetToken =
+        createDirectResetToken();
+
+
+      directPasswordResetTokens.set(
+        resetToken,
+        {
+
+          userId:
+            authUser.id,
+
+          username:
+            profile.username,
+
+          email:
+            authUser.email || "",
+
+          createdAt:
+            Date.now(),
+
+          expires:
+            Date.now() +
+            (
+              10 *
+              60 *
+              1000
+            )
+
+        }
+      );
+
+
+      console.log(
+        "[PASSWORD RESET ACCOUNT FOUND]",
+        profile.username
+      );
+
+
+      /* =====================================
+         BAŞARILI
+      ===================================== */
+
+      return res.json({
+
+        success: true,
+
+        ok: true,
+
+        resetToken:
+          resetToken,
+
+        reset_token:
+          resetToken,
+
+        token:
+          resetToken,
+
+        username:
+          profile.username,
+
+        user: {
+
+          id:
+            authUser.id,
+
+          username:
+            profile.username
+
+        },
+
+        message:
+          "Kullanıcı bulundu."
+
+      });
+
+
+    }catch(error){
+
+      console.error(
+        "[PASSWORD RESET CHECK ERROR]",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        success: false,
+
+        ok: false,
+
+        message:
+          "Kullanıcı kontrol edilirken hata oluştu."
+
+      });
+
+    }
+
+  }
+
+);
+
 
 /* =========================================================
    FORGOT PASSWORD - FIND ACCOUNT
