@@ -2,70 +2,880 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Yeni şifre - Minegram</title>
+
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-body{min-height:100vh;overflow-x:hidden}.page{width:100%;min-height:100vh;background:#000}
-.topbar{width:100%;height:60px;display:flex;align-items:center;padding-left:38px}.back{width:25px;height:35px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:300;cursor:pointer}.top-title{margin-left:15px;font-size:20px;font-weight:700}
-.content{width:317px;margin:115px auto 0}.title{text-align:center;font-size:30px;line-height:1.15;font-weight:700;margin:0 0 34px}.description{font-size:18px;line-height:1.45;color:#bdbdbd;margin:0 0 40px}
-.input{display:block;width:100%;height:39px;padding:0 10px;margin-top:12px;border:1px solid #252525;border-radius:6px;background:#050505;color:#fff;outline:none;font-size:12px}.input::placeholder{color:#777}.input:focus{border-color:#555}
-.continue-btn{display:block;width:100%;height:37px;margin-top:18px;border:0;border-radius:22px;background:#2677b5;color:#000;font-size:12px;font-weight:700;cursor:pointer}.continue-btn:disabled{opacity:.6;cursor:not-allowed}
-.message{min-height:18px;margin-top:12px;text-align:center;font-size:11px;line-height:1.4;color:#ff5c5c}.message.success{color:#55b8ff}
-@media(max-width:600px){.topbar{height:70px;padding-left:28px}.back{width:30px;height:38px;font-size:38px}.top-title{margin-left:12px;font-size:21px}.content{width:calc(100% - 40px);max-width:714px;margin:105px auto 0}.title{font-size:42px}.description{font-size:21px;line-height:1.5;margin-bottom:30px}.input{height:68px;padding:0 20px;font-size:18px;border:2px solid #686868;border-radius:9px}.continue-btn{height:58px;font-size:20px;border-radius:32px}.message{font-size:14px}}
-@media(max-width:430px){.content{width:calc(100% - 40px);margin-top:65px}.title{font-size:38px}.description{font-size:20px}}
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    min-height:100dvh;
+    overflow-x:hidden;
+}
+
+button,input{
+    font-family:inherit;
+}
+
+.page{
+    width:100%;
+    min-height:100vh;
+    min-height:100dvh;
+    background:#000;
+    padding:max(18px,env(safe-area-inset-top)) 0 calc(28px + env(safe-area-inset-bottom));
+}
+
+.header{
+    width:100%;
+    height:60px;
+    display:flex;
+    align-items:center;
+    padding-left:38px;
+}
+
+.back{
+    width:25px;
+    height:35px;
+    border:0;
+    background:transparent;
+    color:#fff;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+}
+
+.back svg{
+    width:25px;
+    height:35px;
+    stroke:currentColor;
+    stroke-width:3;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.header-title{
+    margin-left:15px;
+    font-size:20px;
+    line-height:1;
+    font-weight:700;
+    letter-spacing:-.3px;
+}
+
+.content{
+    width:317px;
+    margin:115px auto 0;
+}
+
+h1{
+    margin:0 0 34px;
+    font-size:30px;
+    line-height:1.15;
+    font-weight:700;
+    letter-spacing:-.5px;
+}
+
+.subtitle{
+    margin:0 0 38px;
+    color:#bdbdbd;
+    font-size:18px;
+    line-height:1.45;
+}
+
+.form{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+}
+
+.label{
+    margin-bottom:9px;
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+}
+
+.input{
+    width:100%;
+    height:48px;
+    padding:0 14px;
+    border:1px solid #252525;
+    border-radius:9px;
+    background:#050505;
+    color:#fff;
+    outline:none;
+    font-size:15px;
+    transition:.15s;
+}
+
+.input:focus{
+    border-color:#2677b5;
+}
+
+.field{
+    margin-bottom:18px;
+}
+
+.password-wrap{
+    position:relative;
+}
+
+.password-wrap .input{
+    padding-right:48px;
+}
+
+.show-password{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    border:0;
+    background:transparent;
+    color:#999;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.main-button{
+    width:100%;
+    height:48px;
+    border:0;
+    border-radius:24px;
+    background:#2677b5;
+    color:#000;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.15s;
+    margin-top:4px;
+}
+
+.main-button:hover{
+    opacity:.92;
+}
+
+.main-button:active{
+    transform:scale(.99);
+}
+
+.main-button:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+.status{
+    display:none;
+    min-height:18px;
+    margin-top:14px;
+    font-size:12px;
+    line-height:1.4;
+}
+
+.status.show{
+    display:block;
+}
+
+.status.error{
+    color:#ff5c5c;
+}
+
+.status.success{
+    color:#63e6be;
+}
+
+.email-box{
+    width:100%;
+    min-height:48px;
+    padding:13px 14px;
+    margin-bottom:22px;
+    border:1px solid #252525;
+    border-radius:9px;
+    background:#050505;
+    color:#bdbdbd;
+    font-size:13px;
+    line-height:1.4;
+    word-break:break-word;
+}
+
+@media(max-width:600px){
+
+    .page{
+        padding-left:28px;
+        padding-right:28px;
+    }
+
+    .header{
+        height:70px;
+        padding-left:0;
+    }
+
+    .back{
+        width:30px;
+        height:38px;
+    }
+
+    .back svg{
+        width:30px;
+        height:38px;
+    }
+
+    .header-title{
+        margin-left:15px;
+        font-size:21px;
+    }
+
+    .content{
+        width:calc(100% - 120px);
+        max-width:714px;
+        margin:105px auto 0;
+    }
+
+    h1{
+        margin-bottom:30px;
+        font-size:42px;
+    }
+
+    .subtitle{
+        margin-bottom:36px;
+        font-size:21px;
+        line-height:1.5;
+    }
+
+    .label{
+        font-size:15px;
+        margin-bottom:10px;
+    }
+
+    .input{
+        height:58px;
+        border:2px solid #252525;
+        border-radius:9px;
+        font-size:18px;
+    }
+
+    .main-button{
+        height:58px;
+        border-radius:32px;
+        font-size:20px;
+    }
+
+    .status{
+        font-size:14px;
+    }
+
+    .email-box{
+        border:2px solid #252525;
+        font-size:15px;
+    }
+}
+
+@media(max-width:430px){
+
+    .content{
+        width:calc(100% - 40px);
+        margin-top:65px;
+    }
+
+    h1{
+        font-size:38px;
+    }
+
+    .subtitle{
+        font-size:20px;
+    }
+
+    .input{
+        height:55px;
+    }
+
+    .main-button{
+        height:55px;
+        font-size:18px;
+    }
+}
 </style>
 </head>
+
 <body>
-<div class="page"><div class="topbar"><div class="back" id="back">‹</div><div class="top-title">Yeni şifre</div></div>
+
+<div class="page">
+
+<header class="header">
+
+<button class="back" type="button" onclick="goBack()" aria-label="Geri">
+<svg viewBox="0 0 32 32">
+<path d="M20 5 L9 16 L20 27"></path>
+<path d="M10 16 H27"></path>
+</svg>
+</button>
+
+<div class="header-title">Yeni şifre</div>
+
+</header>
+
 <main class="content">
-<h1 class="title">Yeni şifre oluştur</h1>
-<p class="description">Yeni şifreni belirle. Şifren değiştirildiğinde Minegram hesabın otomatik olarak açık kalacak.</p>
-<input id="password" class="input" type="password" placeholder="Yeni şifre" autocomplete="new-password" maxlength="128">
-<input id="confirm" class="input" type="password" placeholder="Yeni şifreyi tekrar gir" autocomplete="new-password" maxlength="128">
-<button id="save" class="continue-btn">Şifreyi değiştir</button>
-<div id="message" class="message"></div>
-</main></div>
+
+<h1>Yeni şifreni oluştur</h1>
+
+<div class="subtitle">
+Hesabını doğruladın. Şimdi yeni şifreni oluşturabilirsin.
+</div>
+
+<div class="email-box" id="emailBox">
+Şifre sıfırlama oturumu doğrulandı.
+</div>
+
+<form class="form" id="resetForm">
+
+<div class="field">
+
+<div class="label">
+Yeni şifre
+</div>
+
+<div class="password-wrap">
+
+<input
+class="input"
+id="password"
+type="password"
+autocomplete="new-password"
+placeholder="Yeni şifren"
+>
+
+<button
+type="button"
+class="show-password"
+onclick="togglePassword('password',this)"
+>
+Göster
+</button>
+
+</div>
+
+</div>
+
+<div class="field">
+
+<div class="label">
+Yeni şifre tekrar
+</div>
+
+<div class="password-wrap">
+
+<input
+class="input"
+id="confirmPassword"
+type="password"
+autocomplete="new-password"
+placeholder="Yeni şifreni tekrar yaz"
+>
+
+<button
+type="button"
+class="show-password"
+onclick="togglePassword('confirmPassword',this)"
+>
+Göster
+</button>
+
+</div>
+
+</div>
+
+<button
+class="main-button"
+id="submitButton"
+type="submit"
+>
+Şifreyi değiştir
+</button>
+
+<div class="status" id="status"></div>
+
+</form>
+
+</main>
+</div>
+
 <script>
 "use strict";
-const passwordInput=document.getElementById("password"),confirmInput=document.getElementById("confirm"),saveButton=document.getElementById("save"),message=document.getElementById("message");
-function show(text,success=false){message.textContent=text||"";message.className="message"+(success?" success":"")}
-function first(...v){for(const x of v){if(x!==undefined&&x!==null&&String(x).trim()&&String(x)!=="null"&&String(x)!=="undefined")return String(x).trim()}return ""}
-function getS(key){return sessionStorage.getItem(key)||localStorage.getItem(key)||""}
-function saveSession(data){
- const session=data?.session||{};const nested=data?.data||{};
- const access=first(data?.token,data?.access_token,data?.accessToken,data?.supabaseAccessToken,session.access_token,nested.access_token);
- const refresh=first(data?.refreshToken,data?.refresh_token,session.refresh_token,nested.refresh_token);
- if(!access)return false;
- const keys=["minegram_token","minegram_supabase_token","minegram_access_token","supabase_token","access_token"];
- for(const k of keys){localStorage.setItem(k,access);sessionStorage.setItem(k,access)}
- if(refresh){localStorage.setItem("minegram_refresh_token",refresh);localStorage.setItem("refresh_token",refresh);localStorage.setItem("supabase_refresh_token",refresh)}
- if(data?.user)localStorage.setItem("minegram_user",JSON.stringify(data.user));
- if(data?.profile)localStorage.setItem("minegram_profile",JSON.stringify(data.profile));
- return true;
+
+/* =========================================================
+   MINEGRAM - YENİ ŞİFRE
+   AKIŞ:
+
+   hesap-doğrulama.html
+          ↓
+      /api/forgot/verify
+          ↓
+       resetToken
+          ↓
+      yeni-sifre.html
+          ↓
+   /api/forgot/reset-password
+========================================================= */
+
+const API="/api";
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+/* =========================================================
+   RESET TOKEN BUL
+========================================================= */
+
+let resetToken =
+    (
+        params.get("token") ||
+        params.get("resetToken") ||
+        params.get("reset_token") ||
+        params.get("recoveryToken") ||
+        sessionStorage.getItem("minegram_password_reset_token") ||
+        sessionStorage.getItem("minegram_reset_token") ||
+        sessionStorage.getItem("resetToken") ||
+        localStorage.getItem("minegram_password_reset_token") ||
+        localStorage.getItem("minegram_reset_token") ||
+        ""
+    ).trim();
+
+/* =========================================================
+   EMAIL
+========================================================= */
+
+let email =
+    (
+        params.get("email") ||
+        sessionStorage.getItem("minegram_recovery_email") ||
+        ""
+    )
+    .trim()
+    .toLowerCase();
+
+/* =========================================================
+   ELEMENTLER
+========================================================= */
+
+const passwordInput =
+    document.getElementById(
+        "password"
+    );
+
+const confirmInput =
+    document.getElementById(
+        "confirmPassword"
+    );
+
+const submitButton =
+    document.getElementById(
+        "submitButton"
+    );
+
+const status =
+    document.getElementById(
+        "status"
+    );
+
+const emailBox =
+    document.getElementById(
+        "emailBox"
+    );
+
+/* =========================================================
+   GERİ
+========================================================= */
+
+function goBack(){
+
+    if(history.length > 1){
+
+        history.back();
+
+    }else{
+
+        window.location.href =
+            "giris.html";
+    }
 }
-function clearReset(){["minegram_password_reset_token","minegram_reset_token","resetToken"].forEach(k=>{sessionStorage.removeItem(k);localStorage.removeItem(k)})}
-const resetToken=first(new URLSearchParams(location.search).get("token"),getS("minegram_password_reset_token"),getS("minegram_reset_token"),getS("resetToken"));
-if(!resetToken){saveButton.disabled=true;show("Şifre sıfırlama oturumu bulunamadı. İşlemi yeniden başlat.")}
-document.getElementById("back").onclick=()=>location.href="sifremi-unuttum.html";
-async function changePassword(){
- const password=passwordInput.value,confirm=confirmInput.value;
- if(!resetToken){show("Şifre sıfırlama oturumu bulunamadı.");return}
- if(password.length<6){show("Yeni şifre en az 6 karakter olmalı.");return}
- if(password!==confirm){show("Şifreler eşleşmiyor.");return}
- saveButton.disabled=true;saveButton.textContent="Değiştiriliyor...";show("Şifren değiştiriliyor...");
- try{
-  const r=await fetch("/api/forgot/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({resetToken,reset_token:resetToken,token:resetToken,password,newPassword:password,confirmPassword:confirm})});
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok||data.ok!==true)throw new Error(data.error||data.message||"Şifre değiştirilemedi.");
-  if(!saveSession(data))throw new Error("Şifre değişti ancak oturum anahtarı alınamadı.");
-  clearReset();show("Şifre değiştirildi. Oturum açıldı.",true);
-  setTimeout(()=>location.replace("index.html"),300);
- }catch(e){show(e?.message||"Şifre değiştirilemedi.");saveButton.disabled=false;saveButton.textContent="Şifreyi değiştir"}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function showStatus(
+    text,
+    type=""
+){
+
+    status.className =
+        "status";
+
+    status.textContent =
+        text || "";
+
+    if(text){
+
+        status.classList.add(
+            "show"
+        );
+
+        if(type){
+
+            status.classList.add(
+                type
+            );
+        }
+    }
 }
-saveButton.onclick=changePassword;
-confirmInput.addEventListener("keydown",e=>{if(e.key==="Enter")changePassword()});
+
+/* =========================================================
+   ŞİFRE GÖSTER / GİZLE
+========================================================= */
+
+function togglePassword(
+    id,
+    button
+){
+
+    const input =
+        document.getElementById(
+            id
+        );
+
+    if(
+        input.type ===
+        "password"
+    ){
+
+        input.type =
+            "text";
+
+        button.textContent =
+            "Gizle";
+
+    }else{
+
+        input.type =
+            "password";
+
+        button.textContent =
+            "Göster";
+    }
+}
+
+/* =========================================================
+   EMAIL KUTUSU
+========================================================= */
+
+function updateEmailBox(){
+
+    if(email){
+
+        emailBox.textContent =
+            "Hesabın doğrulandı: " +
+            email;
+
+    }else{
+
+        emailBox.textContent =
+            "Hesabın doğrulandı. Yeni şifreni oluşturabilirsin.";
+    }
+}
+
+/* =========================================================
+   ŞİFRE INPUT
+========================================================= */
+
+passwordInput.addEventListener(
+    "input",
+    function(){
+
+        showStatus("");
+    }
+);
+
+confirmInput.addEventListener(
+    "input",
+    function(){
+
+        showStatus("");
+    }
+);
+
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
+
+document
+.getElementById("resetForm")
+.addEventListener(
+    "submit",
+    async function(event){
+
+        event.preventDefault();
+
+        showStatus("");
+
+        const password =
+            passwordInput.value;
+
+        const confirmPassword =
+            confirmInput.value;
+
+        /* -------------------------------------------------
+           TOKEN KONTROLÜ
+        ------------------------------------------------- */
+
+        if(!resetToken){
+
+            showStatus(
+                "Şifre sıfırlama oturumu bulunamadı. Lütfen işlemi yeniden başlat.",
+                "error"
+            );
+
+            return;
+        }
+
+        /* -------------------------------------------------
+           ŞİFRE KONTROLÜ
+        ------------------------------------------------- */
+
+        if(password.length < 6){
+
+            showStatus(
+                "Yeni şifre en az 6 karakter olmalı.",
+                "error"
+            );
+
+            passwordInput.focus();
+
+            return;
+        }
+
+        if(password !== confirmPassword){
+
+            showStatus(
+                "Şifreler aynı değil.",
+                "error"
+            );
+
+            confirmInput.focus();
+
+            return;
+        }
+
+        /* -------------------------------------------------
+           BUTON
+        ------------------------------------------------- */
+
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "Şifre değiştiriliyor...";
+
+        try{
+
+            const response =
+                await fetch(
+                    API +
+                    "/forgot/reset-password",
+                    {
+                        method:"POST",
+
+                        headers:{
+                            "Content-Type":
+                                "application/json",
+
+                            "Accept":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                resetToken:
+                                    resetToken,
+
+                                reset_token:
+                                    resetToken,
+
+                                token:
+                                    resetToken,
+
+                                recoveryToken:
+                                    resetToken,
+
+                                password:
+                                    password,
+
+                                newPassword:
+                                    password,
+
+                                confirmPassword:
+                                    confirmPassword
+                            }),
+
+                        cache:
+                            "no-store"
+                    }
+                );
+
+            const data =
+                await response
+                .json()
+                .catch(
+                    () => ({})
+                );
+
+            /* -------------------------------------------------
+               HATA
+            ------------------------------------------------- */
+
+            if(
+                !response.ok ||
+                data.ok === false
+            ){
+
+                throw new Error(
+                    data.error ||
+                    data.message ||
+                    "Şifre değiştirilemedi."
+                );
+            }
+
+            /* -------------------------------------------------
+               BAŞARILI
+            ------------------------------------------------- */
+
+            showStatus(
+                "Şifren başarıyla değiştirildi. Giriş sayfasına yönlendiriliyorsun...",
+                "success"
+            );
+
+            /* -------------------------------------------------
+               TOKEN TEMİZLE
+            ------------------------------------------------- */
+
+            sessionStorage.removeItem(
+                "minegram_password_reset_token"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_reset_token"
+            );
+
+            sessionStorage.removeItem(
+                "resetToken"
+            );
+
+            localStorage.removeItem(
+                "minegram_password_reset_token"
+            );
+
+            localStorage.removeItem(
+                "minegram_reset_token"
+            );
+
+            /* Recovery bilgilerini de temizle */
+
+            sessionStorage.removeItem(
+                "minegram_recovery_id"
+            );
+
+            sessionStorage.removeItem(
+                "recoveryId"
+            );
+
+            sessionStorage.removeItem(
+                "recovery_id"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_recovery_identifier"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_recovery_username"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_recovery_mode"
+            );
+
+            sessionStorage.removeItem(
+                "minegram_recovery_email"
+            );
+
+            /* -------------------------------------------------
+               GİRİŞ SAYFASINA GİT
+            ------------------------------------------------- */
+
+            setTimeout(
+                function(){
+
+                    window.location.href =
+                        "index.html";
+
+                },
+                1200
+            );
+
+        }catch(error){
+
+            console.error(
+                "[MINEGRAM RESET PASSWORD]",
+                error
+            );
+
+            showStatus(
+                error.message ||
+                "Şifre değiştirilemedi.",
+                "error"
+            );
+
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "Şifreyi değiştir";
+        }
+    }
+);
+
+/* =========================================================
+   SAYFA AÇILINCA
+========================================================= */
+
+updateEmailBox();
+
+/*
+   Token yoksa kullanıcıya açık hata göster.
+*/
+
+if(!resetToken){
+
+    showStatus(
+        "Şifre sıfırlama anahtarı bulunamadı. Lütfen şifre sıfırlama işlemini baştan başlat.",
+        "error"
+    );
+}
 </script>
-</body></html>
+
+</body>
+</html>
