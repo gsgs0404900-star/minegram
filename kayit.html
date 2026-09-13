@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -83,7 +84,7 @@ body{
     margin:0 0 65px;
 }
 
-.email-input{
+.username-input{
     display:block;
     width:100%;
     height:39px;
@@ -96,11 +97,11 @@ body{
     font-size:12px;
 }
 
-.email-input::placeholder{
+.username-input::placeholder{
     color:#777;
 }
 
-.email-input:focus{
+.username-input:focus{
     border-color:#555;
 }
 
@@ -171,7 +172,7 @@ body{
         margin-bottom:55px;
     }
 
-    .email-input{
+    .username-input{
         height:68px;
         padding:0 20px;
         font-size:18px;
@@ -208,73 +209,75 @@ body{
     }
 }
 </style>
+
 </head>
 
 <body>
 
 <div class="page">
 
-    <div class="topbar">
+```
+<div class="topbar">
 
-        <div
-            class="back"
-            id="backButton"
-            aria-label="Geri"
-        >‹</div>
+    <div
+        class="back"
+        id="backButton"
+        aria-label="Geri"
+    >‹</div>
 
-        <div class="top-title">
-            Kayıt ol
-        </div>
-
+    <div class="top-title">
+        Kayıt ol
     </div>
-
-
-    <main class="content">
-
-        <h1 class="title">
-            Hesap oluştur
-        </h1>
-
-        <p class="description">
-            Minegram hesabın için e-posta adresini gir.
-        </p>
-
-        <input
-            type="email"
-            id="email"
-            class="email-input"
-            placeholder="E-posta adresi"
-            autocomplete="email"
-            autocapitalize="none"
-            spellcheck="false"
-            maxlength="254"
-        >
-
-        <div
-            id="message"
-            class="message"
-        ></div>
-
-        <button
-            type="button"
-            id="nextButton"
-            class="next-button"
-        >
-            İleri
-        </button>
-
-    </main>
 
 </div>
 
+
+<main class="content">
+
+    <h1 class="title">
+        Kullanıcı adı oluştur
+    </h1>
+
+    <p class="description">
+        Minegram hesabın için benzersiz bir kullanıcı adı seç.
+    </p>
+
+    <input
+        type="text"
+        id="username"
+        class="username-input"
+        placeholder="Kullanıcı adı"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+        maxlength="30"
+    >
+
+    <div
+        id="message"
+        class="message"
+    ></div>
+
+    <button
+        type="button"
+        id="nextButton"
+        class="next-button"
+    >
+        İleri
+    </button>
+
+</main>
+```
+
+</div>
 
 <script>
 
 "use strict";
 
 
-const emailInput =
-    document.getElementById("email");
+const usernameInput =
+    document.getElementById("username");
 
 const nextButton =
     document.getElementById("nextButton");
@@ -306,9 +309,22 @@ function showMessage(
 }
 
 
-function validEmail(email){
+/*
+ * Kullanıcı adı kuralları:
+ *
+ * - En az 3 karakter
+ * - En fazla 30 karakter
+ * - Harf
+ * - Rakam
+ * - Alt çizgi
+ * - Nokta
+ */
 
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+function validUsername(username){
+
+    return /^[a-zA-Z0-9_.]{3,30}$/.test(
+        username
+    );
 
 }
 
@@ -334,8 +350,8 @@ backButton.addEventListener(
 
 function goNext(){
 
-    const email =
-        emailInput.value
+    const username =
+        usernameInput.value
             .trim()
             .toLowerCase();
 
@@ -343,26 +359,39 @@ function goNext(){
     showMessage("");
 
 
-    if(!email){
+    if(!username){
 
         showMessage(
-            "E-posta adresini gir."
+            "Kullanıcı adını gir."
         );
 
-        emailInput.focus();
+        usernameInput.focus();
 
         return;
 
     }
 
 
-    if(!validEmail(email)){
+    if(username.length < 3){
 
         showMessage(
-            "Geçerli bir e-posta adresi gir."
+            "Kullanıcı adı en az 3 karakter olmalı."
         );
 
-        emailInput.focus();
+        usernameInput.focus();
+
+        return;
+
+    }
+
+
+    if(!validUsername(username)){
+
+        showMessage(
+            "Sadece harf, rakam, nokta ve alt çizgi kullanabilirsin."
+        );
+
+        usernameInput.focus();
 
         return;
 
@@ -370,13 +399,13 @@ function goNext(){
 
 
     /*
-     * SADECE E-POSTA SAKLANIYOR.
-     * ŞİFRE HENÜZ YOK.
+     * Kullanıcı adı saklanıyor.
+     * Sonraki kayıt sayfasında kullanılacak.
      */
 
     sessionStorage.setItem(
-        "minegram_register_email",
-        email
+        "minegram_register_username",
+        username
     );
 
 
@@ -398,7 +427,7 @@ nextButton.addEventListener(
 );
 
 
-emailInput.addEventListener(
+usernameInput.addEventListener(
     "keydown",
     function(event){
 
