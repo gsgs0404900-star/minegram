@@ -717,8 +717,14 @@ app.post(
       const username =
         normalizeUsername(req.body?.username);
 
-      const email =
+      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
+      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
+      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
+      const suppliedEmail =
         normalizeEmail(req.body?.email);
+
+      const email =
+        suppliedEmail || `${username}@users.minegram.invalid`;
 
       const password =
         String(req.body?.password || "");
@@ -735,24 +741,6 @@ app.post(
           ok: false,
           code: "USERNAME_REQUIRED",
           error: "Kullanıcı adı gerekli."
-        });
-      }
-
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          code: "EMAIL_REQUIRED",
-          error: "E-posta gerekli."
-        });
-      }
-
-      if (
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-      ) {
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_EMAIL",
-          error: "Geçerli bir e-posta adresi gir."
         });
       }
 
@@ -788,15 +776,6 @@ app.post(
           ok: false,
           code: "SERVICE_ROLE_MISSING",
           error: "SUPABASE_SERVICE_ROLE_KEY eksik."
-        });
-      }
-
-      if (!registrationAllowed(email)) {
-        return res.status(429).json({
-          ok: false,
-          code: "CODE_RATE_LIMIT",
-          error:
-            "Bu e-posta adresine yeni kod göndermek için 60 saniye bekle."
         });
       }
 
@@ -901,7 +880,8 @@ app.post(
         await admin.auth.admin.createUser({
           email,
           password,
-          email_confirm: false,
+          // Kullanıcı adı ile kayıt yapıldığı için e-posta doğrulaması yok.
+          email_confirm: true,
           user_metadata: {
             username,
             display_name: displayName
@@ -1040,76 +1020,15 @@ app.post(
         });
       }
 
-      /*
-       * 6 HANELİ KOD ÜRET VE E-POSTAYA GÖNDER
-       */
-      const code = createVerificationCode();
-
-      registrationCodes.set(
-        registrationKey(email),
-        {
-          code,
-          userId: authUser.id,
-          email,
-          expires: Date.now() + (Number(mailGatewayRuntime?.expiryMinutes) || 10) * 60 * 1000,
-          attempts: 0,
-          username,
-          displayName
-        }
-      );
-
-      registrationRate.set(
-        registrationKey(email),
-        Date.now()
-      );
-
-      try {
-        await sendRegistrationCode(
-          email,
-          code
-        );
-      } catch (mailError) {
-        console.error(
-          "REGISTRATION EMAIL ERROR:",
-          mailError
-        );
-
-        registrationCodes.delete(
-          registrationKey(email)
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP AFTER MAIL ERROR:",
-            cleanupError
-          );
-        }
-
-        return res.status(500).json({
-          ok: false,
-          code: "EMAIL_SEND_ERROR",
-          error:
-            mailError?.message ||
-            "Doğrulama e-postası gönderilemedi."
-        });
-      }
-
+      // KULLANICI ADI İLE KAYIT TAMAMLANDI — e-posta/doğrulama yok.
       createdAuthUserId = null;
 
       return res.json({
         ok: true,
-        needsEmailVerification: true,
-        message:
-          "Devam ettiğinizde, e-posta adresinize 6 haneli bir doğrulama kodu gönderilecektir.",
-        maskedEmail: maskEmail(email),
-        email,
+        needsEmailVerification: false,
+        message: "Hesabın başarıyla oluşturuldu.",
         user: {
           id: authUser.id,
-          email: authUser.email,
           username,
           displayName
         }
@@ -1154,8 +1073,14 @@ app.post(
   "/api/register/verify",
   async (req, res) => {
     try {
-      const email =
+      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
+      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
+      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
+      const suppliedEmail =
         normalizeEmail(req.body?.email);
+
+      const email =
+        suppliedEmail || `${username}@users.minegram.invalid`;
 
       const code =
         String(req.body?.code || "")
@@ -1403,8 +1328,14 @@ app.post(
   "/api/register/resend",
   async (req, res) => {
     try {
-      const email =
+      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
+      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
+      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
+      const suppliedEmail =
         normalizeEmail(req.body?.email);
+
+      const email =
+        suppliedEmail || `${username}@users.minegram.invalid`;
 
       if (!email) {
         return res.status(400).json({
@@ -5294,33 +5225,123 @@ app.get(
 
 
 /* =========================================================
-   MINEGRAM SERVER.JS YEREL DOĞRULAMA SERVİSİ
-   Harici SMTP/API yok. Kodlar server.js tarafından üretilir,
-   bellekte doğrulanır ve sunucu loguna/test yanıtına yazılır.
+   MINEGRAM DOĞRUDAN SMTP E-POSTA SERVİSİ — V3
+   - Render / HTTPS Mail Gateway kullanılmaz.
+   - Gmail SMTP veya başka SMTP sağlayıcısı doğrudan kullanılır.
+   - Admin yetkisi Firebase ID token ile kontrol edilir.
+   - SMTP şifresi dosyaya/Firestore'a yazılmaz.
 ========================================================= */
 const MAIL_ADMIN_UID = env("MAIL_ADMIN_UID") || "QJqw9moQk8XgpHcFo89bAVPk3uh1";
 const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
-const localConfigFile = path.join(__dirname, "minegram-verification-config.json");
-let smtpRuntime = { fromName: "Minegram", fromEmail: "", codeLength: 6, expiryMinutes: 10, cooldownSeconds: 60 };
-try { if (fs.existsSync(localConfigFile)) smtpRuntime = { ...smtpRuntime, ...JSON.parse(fs.readFileSync(localConfigFile,"utf8")) }; } catch(e) { console.error("VERIFICATION CONFIG LOAD ERROR:",e.message); }
-const mailGatewayRuntime = smtpRuntime;
-function emailEscapeHeader(v){ return String(v||"").replace(/[\r\n]/g," ").trim(); }
-function emailAddress(v, fieldName="E-posta adresi"){ v=emailEscapeHeader(v); if(!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new Error(`${fieldName} geçersiz.`); return v; }
-function saveSmtpPublicConfig(){ fs.writeFileSync(localConfigFile, JSON.stringify({fromName:smtpRuntime.fromName,fromEmail:smtpRuntime.fromEmail,codeLength:smtpRuntime.codeLength,expiryMinutes:smtpRuntime.expiryMinutes,cooldownSeconds:smtpRuntime.cooldownSeconds},null,2)); }
-function smtpPublicConfig(){ return { ok:true, configured:true, mode:"server-js-local", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"", codeLength:Number(smtpRuntime.codeLength)||6, expiryMinutes:Number(smtpRuntime.expiryMinutes)||10, cooldownSeconds:Number(smtpRuntime.cooldownSeconds)||60 }; }
-async function verifyFirebaseAdminToken(req){
- const authHeader=String(req.headers.authorization||"").trim(); const token=authHeader.replace(/^Bearer\s+/i,"").trim()||String(req.headers["x-firebase-id-token"]||"").trim();
- if(!token) throw new Error("Admin oturumu gerekli. Firebase ID token gönderilmedi."); if(!FIREBASE_WEB_API_KEY) throw new Error("FIREBASE_WEB_API_KEY eksik.");
- const response=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idToken:token})});
- const data=await response.json().catch(()=>({})); const u=data?.users?.[0]; if(!response.ok||!u?.localId) throw new Error("Firebase admin oturumu doğrulanamadı."); if(u.localId!==MAIL_ADMIN_UID) throw new Error("Bu Firebase hesabının Minegram admin yetkisi yok."); return u;
-}
-async function smtpAdminAuth(req,res,next){ try{ req.smtpAdmin=await verifyFirebaseAdminToken(req); next(); }catch(e){ res.status(401).json({ok:false,error:e.message}); } }
-async function sendMailGatewayEmail({to,subject,text}){ const recipient=emailAddress(to,"Alıcı e-posta adresi"); console.log("MINEGRAM LOCAL VERIFICATION:",{recipient,subject,text}); return {ok:true,mode:"local",recipient}; }
-app.get("/api/admin/email-service/status",smtpAdminAuth,(req,res)=>res.json(smtpPublicConfig()));
-app.post("/api/admin/email-service/config",smtpAdminAuth,(req,res)=>{ const b=req.body||{}; smtpRuntime.fromName=emailEscapeHeader(b.fromName||smtpRuntime.fromName||"Minegram"); smtpRuntime.fromEmail=emailEscapeHeader(b.fromEmail||smtpRuntime.fromEmail||""); saveSmtpPublicConfig(); res.json({...smtpPublicConfig(),message:"Yerel server.js doğrulama ayarları kaydedildi."}); });
-app.post("/api/admin/email-service/test",smtpAdminAuth,(req,res)=>{ const to=emailAddress(req.body?.to,"Test adresi"); const code=createVerificationCode(); console.log(`MINEGRAM TEST CODE for ${to}: ${code}`); res.json({ok:true,message:"E-posta gönderilmedi; yerel test kodu üretildi.",testCode:code,mode:"server-js-local"}); });
-app.post("/api/admin/email-service/verification-config",smtpAdminAuth,(req,res)=>{ try{ const {codeLength,expiryMinutes,cooldownSeconds}=req.body||{}; if(![6,8].includes(Number(codeLength))) throw new Error("Kod uzunluğu 6 veya 8 olmalı."); if(![5,10,15,30].includes(Number(expiryMinutes))) throw new Error("Geçerlilik süresi geçersiz."); if(![60,120,300].includes(Number(cooldownSeconds))) throw new Error("Gönderim aralığı geçersiz."); smtpRuntime.codeLength=Number(codeLength); smtpRuntime.expiryMinutes=Number(expiryMinutes); smtpRuntime.cooldownSeconds=Number(cooldownSeconds); saveSmtpPublicConfig(); res.json({ok:true,codeLength:smtpRuntime.codeLength,expiryMinutes:smtpRuntime.expiryMinutes,cooldownSeconds:smtpRuntime.cooldownSeconds}); }catch(e){res.status(400).json({ok:false,error:e.message});} });
+const emailConfigFile = path.join(__dirname, "minegram-email-config.json");
 
+let smtpRuntime = {
+  provider: "brevo",
+  gatewayUrl: "https://api.brevo.com/v3/smtp/email",
+  fromName: env("MAIL_FROM_NAME") || "Minegram",
+  fromEmail: env("MAIL_FROM_EMAIL") || "",
+  apiKey: env("BREVO_API_KEY"),
+  codeLength: Number(env("VERIFICATION_CODE_LENGTH")) || 6,
+  expiryMinutes: Number(env("VERIFICATION_EXPIRY_MINUTES")) || 10,
+  cooldownSeconds: Number(env("VERIFICATION_COOLDOWN_SECONDS")) || 60
+};
+try {
+  if (fs.existsSync(emailConfigFile)) {
+    const saved = JSON.parse(fs.readFileSync(emailConfigFile, "utf8"));
+    smtpRuntime = { ...smtpRuntime, ...saved, apiKey: env("BREVO_API_KEY") || smtpRuntime.apiKey || "" };
+  }
+} catch (e) { console.error("EMAIL CONFIG LOAD ERROR:", e?.message || e); }
+
+function emailEscapeHeader(value) { return String(value || "").replace(/[\r\n]/g, " ").trim(); }
+function emailAddress(value, fieldName = "E-posta adresi") {
+  const v = emailEscapeHeader(value);
+  if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new Error(`${fieldName} geçersiz.`);
+  return v;
+}
+function saveSmtpPublicConfig() {
+  const safe = { provider:"brevo", gatewayUrl:"https://api.brevo.com/v3/smtp/email", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"", codeLength:Number(smtpRuntime.codeLength)||6, expiryMinutes:Number(smtpRuntime.expiryMinutes)||10, cooldownSeconds:Number(smtpRuntime.cooldownSeconds)||60 };
+  fs.writeFileSync(emailConfigFile, JSON.stringify(safe,null,2), "utf8");
+}
+function smtpPublicConfig() {
+  return { ok:true, configured:Boolean((smtpRuntime.apiKey||env("BREVO_API_KEY")) && smtpRuntime.fromEmail), provider:"brevo", gatewayUrl:"https://api.brevo.com/v3/smtp/email", fromName:smtpRuntime.fromName||"Minegram", fromEmail:smtpRuntime.fromEmail||"", hasApiKey:Boolean(smtpRuntime.apiKey||env("BREVO_API_KEY")), codeLength:Number(smtpRuntime.codeLength)||6, expiryMinutes:Number(smtpRuntime.expiryMinutes)||10, cooldownSeconds:Number(smtpRuntime.cooldownSeconds)||60 };
+}
+
+async function verifyFirebaseAdminToken(req) {
+  const authHeader = String(req.headers.authorization || "").trim();
+  const headerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const backupToken = String(req.headers["x-firebase-id-token"] || "").trim();
+  const token = headerToken || backupToken;
+  if (!token) throw new Error("Admin oturumu gerekli. Firebase ID token gönderilmedi.");
+  if (!FIREBASE_WEB_API_KEY) throw new Error("FIREBASE_WEB_API_KEY eksik.");
+
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ idToken: token })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  const firebaseUser = data?.users?.[0];
+  if (!response.ok || !firebaseUser?.localId) {
+    throw new Error(`Firebase admin oturumu doğrulanamadı: ${data?.error?.message || `HTTP ${response.status}`}`);
+  }
+
+  /*
+     Önce mevcut Minegram admin UID'si kontrol edilir.
+     Böylece admin panelindeki Firebase hesabı ile aynı hesap çalışır.
+  */
+  if (firebaseUser.localId !== MAIL_ADMIN_UID) {
+    throw new Error("Bu Firebase hesabının Minegram admin yetkisi yok.");
+  }
+  return firebaseUser;
+}
+
+async function smtpAdminAuth(req, res, next) {
+  try {
+    req.smtpAdmin = await verifyFirebaseAdminToken(req);
+    return next();
+  } catch (e) {
+    const message = e?.message || "Admin oturumu doğrulanamadı.";
+    console.error("SMTP ADMIN AUTH ERROR:", message);
+    return res.status(401).json({ ok: false, error: message });
+  }
+}
+
+async function sendBrevoEmail({ to, subject, html, text: textBody }) {
+  const recipient = emailAddress(to, "Alıcı e-posta adresi");
+  const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL"), "Gönderici e-posta adresi");
+  const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
+  const apiKey = String(smtpRuntime.apiKey || env("BREVO_API_KEY") || "").trim();
+  if (!apiKey) throw new Error("BREVO_API_KEY ayarlanmadı.");
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", { method:"POST", headers:{"Content-Type":"application/json","api-key":apiKey,"Accept":"application/json"}, body:JSON.stringify({sender:{email:fromEmail,name:fromName},to:[{email:recipient}],subject:emailEscapeHeader(subject),htmlContent:html||undefined,textContent:textBody||""}) });
+  const data = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(data?.message || data?.code || `Brevo HTTP ${response.status}`);
+  return data;
+}
+async function sendMailGatewayEmail(args) { return sendBrevoEmail(args); }
+
+app.get("/api/admin/email-service/status", smtpAdminAuth, (req,res)=>res.json(smtpPublicConfig()));
+app.post("/api/admin/email-service/config", smtpAdminAuth, (req,res)=>{
+  try {
+    const body=req.body||{};
+    const fromName=emailEscapeHeader(body.fromName||smtpRuntime.fromName||"Minegram");
+    const fromEmail=emailAddress(body.fromEmail||smtpRuntime.fromEmail||env("MAIL_FROM_EMAIL"),"Gönderici e-posta adresi");
+    const key=String(body.gatewayToken||body.apiKey||"").trim();
+    smtpRuntime={...smtpRuntime,fromName,fromEmail,apiKey:key||smtpRuntime.apiKey||env("BREVO_API_KEY")||"",gatewayUrl:"https://api.brevo.com/v3/smtp/email"};
+    saveSmtpPublicConfig();
+    res.json({...smtpPublicConfig(),message:"Brevo HTTPS e-posta ayarları kaydedildi."});
+  } catch(e){res.status(400).json({ok:false,error:e?.message||"E-posta ayarları kaydedilemedi."});}
+});
+app.post("/api/admin/email-service/test", smtpAdminAuth, async (req,res)=>{
+  try { const to=emailAddress(req.body?.to,"Test alıcı e-posta adresi"); await sendBrevoEmail({to,subject:"Minegram test e-postası",text:"Minegram Brevo HTTPS e-posta servisi başarıyla çalışıyor.",html:"<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>Brevo HTTPS e-posta servisi başarıyla çalışıyor.</p></div>"}); res.json({ok:true,message:"Test e-postası gönderildi."}); }
+  catch(e){console.error("BREVO TEST ERROR:",e?.message||e);res.status(400).json({ok:false,error:e?.message||"Test e-postası gönderilemedi."});}
+});
+app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req,res)=>{
+  try { const {codeLength,expiryMinutes,cooldownSeconds}=req.body||{}; const c=Number(codeLength),x=Number(expiryMinutes),d=Number(cooldownSeconds); if(![6,8].includes(c))throw new Error("Kod uzunluğu 6 veya 8 olmalı."); if(![5,10,15,30].includes(x))throw new Error("Geçerlilik süresi geçersiz."); if(![60,120,300].includes(d))throw new Error("Gönderim aralığı geçersiz."); smtpRuntime={...smtpRuntime,codeLength:c,expiryMinutes:x,cooldownSeconds:d}; saveSmtpPublicConfig();res.json({ok:true,codeLength:c,expiryMinutes:x,cooldownSeconds:d}); }
+  catch(e){res.status(400).json({ok:false,error:e?.message||"Doğrulama ayarları kaydedilemedi."});}
+});
 
 /* =========================================================
    FALLBACK
