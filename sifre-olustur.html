@@ -24,7 +24,7 @@ function refresh(){next.disabled=!valid(); if(password2.value&&password.value!==
 next.onclick=async()=>{if(!valid())return;next.disabled=true;next.textContent="Gönderiliyor...";show("Doğrulama kodu e-postana gönderiliyor...");
 try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},credentials:"include",cache:"no-store",body:JSON.stringify({username,email:email.value.trim().toLowerCase(),password:password.value,displayName:username})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Kayıt başarısız.");
 sessionStorage.setItem("minegram_register_email",d.email||email.value.trim().toLowerCase());sessionStorage.setItem("minegram_register_registration_id",d.registrationId||"");sessionStorage.setItem("minegram_register_password",password.value);sessionStorage.setItem("minegram_register_account_number",String(d.accountNumber||""));
-window.location.href="/dogrulama.html?mode=register&registrationId="+encodeURIComponent(d.registrationId)+"&email="+encodeURIComponent(d.email||email.value.trim().toLowerCase())+"&username="+encodeURIComponent(username);
+window.location.href="/hesap-doğrulama.html?mode=register&registrationId="+encodeURIComponent(d.registrationId||"")+"&email="+encodeURIComponent(d.email||email.value.trim().toLowerCase())+"&username="+encodeURIComponent(username);
 }catch(e){show(e.message||"Kayıt başarısız.");next.disabled=false;next.textContent="İleri"}}
 if(!username){show("Kullanıcı adı bulunamadı. Kayıt işlemine baştan başla.");next.disabled=true}
 refresh();
