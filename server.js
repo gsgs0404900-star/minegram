@@ -660,34 +660,81 @@ app.get(
 );
 
 /* =========================================================
-   REGISTER + 6 HANELİ E-POSTA DOĞRULAMA
+   REGISTER + 6 HANELİ E-POSTA DOĞRULAMA + GMAIL BAŞINA 20 HESAP
    ========================================================= */
 
 const registrationCodes = new Map();
 const registrationRate = new Map();
+const MAX_ACCOUNTS_PER_EMAIL = 20;
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
 function createVerificationCode() {
-  const length = Number(mailGatewayRuntime?.codeLength) === 8 ? 8 : 6;
-  const min = length === 8 ? 10000000 : 100000;
-  const max = length === 8 ? 100000000 : 1000000;
-  return crypto.randomInt(min, max).toString();
+  // Kayıt doğrulaması her zaman 6 hanelidir.
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
-function registrationKey(email) {
-  return normalizeEmail(email);
+function registrationKey(registrationId) {
+  return String(registrationId || "").trim();
 }
 
 function registrationAllowed(email) {
-  const key = registrationKey(email);
+  const key = normalizeEmail(email);
   const now = Date.now();
   const last = registrationRate.get(key) || 0;
-
-  // Aynı adrese 60 saniyede birden fazla kod gönderilmesini engelle.
   return now - last >= (Number(mailGatewayRuntime?.cooldownSeconds) || 60) * 1000;
+}
+
+function maskEmail(email) {
+  const [u, d] = String(email || "").split("@");
+  if (!u || !d) return String(email || "");
+  const shown = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "*".repeat(Math.max(1, u.length - 2));
+  return `${shown}@${d}`;
+}
+
+async function listAllAuthUsersForRegistration() {
+  const admin = adminClient();
+  const all = [];
+  for (let page = 1; page <= 100; page++) {
+    const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (result?.error) throw result.error;
+    const users = result?.data?.users || [];
+    all.push(...users);
+    if (users.length < 1000) break;
+  }
+  return all;
+}
+
+async function countMinegramAccountsForEmail(email) {
+  const wanted = normalizeEmail(email);
+  if (!wanted) return 0;
+
+  const users = await listAllAuthUsersForRegistration();
+  let count = 0;
+
+  for (const user of users) {
+    const meta = user?.user_metadata || {};
+    const contact = normalizeEmail(
+      meta.minegram_contact_email ||
+      meta.contact_email ||
+      meta.registration_email ||
+      ""
+    );
+
+    // Yeni sistem: gerçek Gmail metadata'da tutulur.
+    if (contact === wanted) {
+      count++;
+      continue;
+    }
+
+    // Eski Minegram hesapları: Auth e-postası gerçek Gmail ise onları da say.
+    const authEmail = normalizeEmail(user?.email || "");
+    if (authEmail === wanted) count++;
+  }
+
+  return count;
 }
 
 async function sendRegistrationCode(email, code) {
@@ -697,10 +744,8 @@ async function sendRegistrationCode(email, code) {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#111">
         <h2 style="margin:0 0 16px">Minegram</h2>
-        <p style="font-size:16px">Hesabını doğrulamak için 6 haneli kodun:</p>
-        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">
-          ${code}
-        </div>
+        <p style="font-size:16px">Minegram hesabını oluşturmak için 6 haneli doğrulama kodun:</p>
+        <div style="font-size:36px;font-weight:700;letter-spacing:10px;margin:24px 0">${code}</div>
         <p style="color:#666">Bu kod ${(Number(mailGatewayRuntime?.expiryMinutes) || 10)} dakika geçerlidir.</p>
         <p style="color:#666">Bu kodu kimseyle paylaşma.</p>
       </div>
@@ -709,709 +754,294 @@ async function sendRegistrationCode(email, code) {
   });
 }
 
-app.post(
-  "/api/register",
-  async (req, res) => {
-    let createdAuthUserId = null;
+app.post("/api/register", async (req, res) => {
+  let createdAuthUserId = null;
 
-    try {
-      const username =
-        normalizeUsername(req.body?.username);
+  try {
+    const username = normalizeUsername(req.body?.username);
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const displayName = String(req.body?.displayName || username).trim().slice(0, 80);
 
-      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
-      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
-      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
-      const suppliedEmail =
-        normalizeEmail(req.body?.email);
+    if (!username) return res.status(400).json({ ok:false, code:"USERNAME_REQUIRED", error:"Kullanıcı adı gerekli." });
+    if (!email || !email.includes("@")) return res.status(400).json({ ok:false, code:"EMAIL_REQUIRED", error:"Kayıt için geçerli bir e-posta adresi gerekli." });
+    if (password.length < 6) return res.status(400).json({ ok:false, code:"PASSWORD_TOO_SHORT", error:"Şifre en az 6 karakter olmalı." });
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) return res.status(400).json({ ok:false, code:"INVALID_USERNAME", error:"Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan." });
+    if (!CONFIG_OK) return res.status(500).json({ ok:false, code:"SUPABASE_CONFIG_ERROR", error:"Supabase yapılandırması eksik." });
+    if (!SUPABASE_SERVICE_ROLE_KEY) return res.status(500).json({ ok:false, code:"SERVICE_ROLE_MISSING", error:"SUPABASE_SERVICE_ROLE_KEY eksik." });
 
-      const email =
-        suppliedEmail || `${username}@users.minegram.invalid`;
+    const admin = adminClient();
 
-      const password =
-        String(req.body?.password || "");
+    const { data: existingProfile, error: usernameCheckError } = await admin
+      .from("profiles")
+      .select("id,username,auth_user_id")
+      .eq("username", username)
+      .limit(1)
+      .maybeSingle();
 
-      const displayName =
-        String(
-          req.body?.displayName || username
-        )
-          .trim()
-          .slice(0, 80);
+    if (usernameCheckError) return res.status(500).json({ ok:false, code:"USERNAME_CHECK_ERROR", error:"Kullanıcı adı kontrol edilirken hata oluştu." });
+    if (existingProfile) return res.status(409).json({ ok:false, code:"USERNAME_TAKEN", error:"Bu kullanıcı adı zaten alınmış." });
 
-      if (!username) {
-        return res.status(400).json({
-          ok: false,
-          code: "USERNAME_REQUIRED",
-          error: "Kullanıcı adı gerekli."
-        });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({
-          ok: false,
-          code: "PASSWORD_TOO_SHORT",
-          error: "Şifre en az 6 karakter olmalı."
-        });
-      }
-
-      if (
-        !/^[a-z0-9._]{3,30}$/.test(username)
-      ) {
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_USERNAME",
-          error:
-            "Kullanıcı adı 3-30 karakter olmalı; sadece harf, sayı, nokta ve alt çizgi kullan."
-        });
-      }
-
-      if (!CONFIG_OK) {
-        return res.status(500).json({
-          ok: false,
-          code: "SUPABASE_CONFIG_ERROR",
-          error: "Supabase yapılandırması eksik."
-        });
-      }
-
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({
-          ok: false,
-          code: "SERVICE_ROLE_MISSING",
-          error: "SUPABASE_SERVICE_ROLE_KEY eksik."
-        });
-      }
-
-      const admin = adminClient();
-
-      /* Kullanıcı adı kontrolü */
-      const {
-        data: existingProfile,
-        error: usernameCheckError
-      } = await admin
-        .from("profiles")
-        .select("id,username,auth_user_id")
-        .eq("username", username)
-        .limit(1)
-        .maybeSingle();
-
-      if (usernameCheckError) {
-        console.error(
-          "USERNAME CHECK ERROR:",
-          usernameCheckError
-        );
-
-        return res.status(500).json({
-          ok: false,
-          code: "USERNAME_CHECK_ERROR",
-          error:
-            "Kullanıcı adı kontrol edilirken hata oluştu."
-        });
-      }
-
-      if (existingProfile) {
-        return res.status(409).json({
-          ok: false,
-          code: "USERNAME_TAKEN",
-          error: "Bu kullanıcı adı zaten alınmış."
-        });
-      }
-
-      /* E-posta kontrolü */
-      try {
-        let emailAlreadyExists = false;
-
-        for (let page = 1; page <= 20; page++) {
-          const result =
-            await admin.auth.admin.listUsers({
-              page,
-              perPage: 1000
-            });
-
-          const users =
-            result?.data?.users || [];
-
-          if (result?.error) {
-            console.error(
-              "EMAIL CHECK ERROR:",
-              result.error
-            );
-            break;
-          }
-
-          if (
-            users.some(
-              u =>
-                normalizeEmail(u?.email) === email
-            )
-          ) {
-            emailAlreadyExists = true;
-            break;
-          }
-
-          if (users.length < 1000) {
-            break;
-          }
-        }
-
-        if (emailAlreadyExists) {
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_TAKEN",
-            error:
-              "Bu e-posta adresi zaten kullanılıyor."
-          });
-        }
-      } catch (emailCheckError) {
-        console.error(
-          "EMAIL PRECHECK ERROR:",
-          emailCheckError?.message ||
-            emailCheckError
-        );
-      }
-
-      /*
-       * ÖNEMLİ:
-       * Supabase'in kendi confirmation mailini kullanmıyoruz.
-       * Hesabı email_confirm:false olarak oluşturuyoruz.
-       * 6 haneli kodu Minegram'ın kendi doğrulama sistemi ile SMTP üzerinden gönderiyoruz.
-       */
-      const {
-        data: created,
-        error: createError
-      } =
-        await admin.auth.admin.createUser({
-          email,
-          password,
-          // Kullanıcı adı ile kayıt yapıldığı için e-posta doğrulaması yok.
-          email_confirm: true,
-          user_metadata: {
-            username,
-            display_name: displayName
-          }
-        });
-
-      if (createError) {
-        console.error(
-          "AUTH CREATE ERROR:",
-          createError
-        );
-
-        const message =
-          String(createError.message || "");
-
-        if (
-          /already registered/i.test(message) ||
-          /already exists/i.test(message) ||
-          /user already registered/i.test(message)
-        ) {
-          return res.status(409).json({
-            ok: false,
-            code: "EMAIL_TAKEN",
-            error:
-              "Bu e-posta adresi zaten kullanılıyor."
-          });
-        }
-
-        return res.status(400).json({
-          ok: false,
-          code: "SIGNUP_ERROR",
-          error:
-            message || "Kayıt başarısız."
-        });
-      }
-
-      const authUser = created?.user;
-
-      if (!authUser?.id) {
-        return res.status(400).json({
-          ok: false,
-          code: "USER_CREATE_FAILED",
-          error: "Kullanıcı oluşturulamadı."
-        });
-      }
-
-      createdAuthUserId = authUser.id;
-
-      /* Profil oluştur / mevcut trigger profilini kullan */
-      let profile = null;
-      let profileError = null;
-
-      // Bazı Minegram Supabase projelerinde Auth kullanıcısı oluşunca
-      // profiles satırı trigger ile otomatik oluşturuluyor. Böyle bir satır
-      // varsa ikinci kez INSERT yapıp 23505 almamak için önce buluyoruz.
-      const existingProfileResult = await admin
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
-      if (existingProfileResult.error) {
-        console.error("PROFILE LOOKUP ERROR:", existingProfileResult.error);
-      }
-
-      if (existingProfileResult.data) {
-        const updateResult = await admin
-          .from("profiles")
-          .update({
-            username,
-            display_name: displayName
-          })
-          .eq("id", authUser.id)
-          .select("*")
-          .single();
-
-        profile = updateResult.data;
-        profileError = updateResult.error;
-      } else {
-        const insertResult = await admin
-          .from("profiles")
-          .insert({
-            id: authUser.id,
-            auth_user_id: authUser.id,
-            username,
-            display_name: displayName,
-            bio: "",
-            avatar_url: null,
-            verified: false,
-            settings: {}
-          })
-          .select("*")
-          .single();
-
-        profile = insertResult.data;
-        profileError = insertResult.error;
-
-        // Aynı anda bir DB trigger satırı oluşturduysa tekrar okuyup devam et.
-        if (profileError?.code === "23505") {
-          const retryProfile = await admin
-            .from("profiles")
-            .select("*")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-          if (retryProfile.data) {
-            profile = retryProfile.data;
-            profileError = null;
-          }
-        }
-      }
-
-      if (profileError) {
-        console.error(
-          "PROFILE CREATE ERROR:",
-          profileError
-        );
-
-        try {
-          await admin.auth.admin.deleteUser(
-            authUser.id
-          );
-        } catch (cleanupError) {
-          console.error(
-            "AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-
-        createdAuthUserId = null;
-
-        return res.status(500).json({
-          ok: false,
-          code: "PROFILE_CREATE_ERROR",
-          error: "Profil oluşturulamadı."
-        });
-      }
-
-      // KULLANICI ADI İLE KAYIT TAMAMLANDI — e-posta/doğrulama yok.
-      createdAuthUserId = null;
-
-      return res.json({
-        ok: true,
-        needsEmailVerification: false,
-        message: "Hesabın başarıyla oluşturuldu.",
-        user: {
-          id: authUser.id,
-          username,
-          displayName
-        }
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER ERROR:",
-        e
-      );
-
-      if (createdAuthUserId) {
-        try {
-          await adminClient()
-            .auth.admin.deleteUser(
-              createdAuthUserId
-            );
-        } catch (cleanupError) {
-          console.error(
-            "FINAL AUTH CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-      }
-
-      return res.status(500).json({
-        ok: false,
-        code: "REGISTER_ERROR",
-        error:
-          e?.message ||
-          "Kayıt başarısız."
+    // Aynı Gmail ile en fazla 20 Minegram hesabı.
+    const accountCount = await countMinegramAccountsForEmail(email);
+    if (accountCount >= MAX_ACCOUNTS_PER_EMAIL) {
+      return res.status(409).json({
+        ok:false,
+        code:"EMAIL_ACCOUNT_LIMIT",
+        limit:MAX_ACCOUNTS_PER_EMAIL,
+        accountCount,
+        error:"Bu e-posta adresiyle en fazla 20 Minegram hesabı oluşturabilirsin."
       });
     }
+
+    // Supabase Auth e-posta alanı benzersiz olduğu için gerçek Gmail'i Auth'a koymuyoruz.
+    // Kullanıcının gerçek Gmail'i metadata'da tutulur ve doğrulama kodu oraya gönderilir.
+    const authEmail = `${crypto.randomUUID()}@users.minegram.invalid`;
+
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        username,
+        display_name: displayName,
+        minegram_contact_email: email,
+        registration_email: email
+      }
+    });
+
+    if (createError) {
+      console.error("AUTH CREATE ERROR:", createError);
+      return res.status(400).json({ ok:false, code:"SIGNUP_ERROR", error:String(createError.message || "Kayıt başarısız.") });
+    }
+
+    const authUser = created?.user;
+    if (!authUser?.id) return res.status(400).json({ ok:false, code:"USER_CREATE_FAILED", error:"Kullanıcı oluşturulamadı." });
+    createdAuthUserId = authUser.id;
+
+    let profile = null;
+    let profileError = null;
+
+    const existingProfileResult = await admin
+      .from("profiles")
+      .select("*")
+      .eq("id", authUser.id)
+      .maybeSingle();
+
+    if (existingProfileResult.data) {
+      const updatePayload = { username, display_name: displayName };
+      const updateResult = await admin.from("profiles").update(updatePayload).eq("id", authUser.id).select("*").single();
+      profile = updateResult.data;
+      profileError = updateResult.error;
+    } else {
+      const insertResult = await admin.from("profiles").insert({
+        id: authUser.id,
+        auth_user_id: authUser.id,
+        username,
+        display_name: displayName,
+        email,
+        bio: "",
+        avatar_url: null,
+        verified: false,
+        settings: {}
+      }).select("*").single();
+
+      profile = insertResult.data;
+      profileError = insertResult.error;
+
+      if (profileError?.code === "23505") {
+        const retryProfile = await admin.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
+        if (retryProfile.data) { profile = retryProfile.data; profileError = null; }
+      }
+
+      // Eski şemalarda email kolonu olmayabilir. Profil oluşturma zaten başarılıysa devam et.
+      if (profileError && /email/i.test(String(profileError.message || ""))) {
+        const fallback = await admin.from("profiles").insert({
+          id: authUser.id,
+          auth_user_id: authUser.id,
+          username,
+          display_name: displayName,
+          bio: "",
+          avatar_url: null,
+          verified: false,
+          settings: {}
+        }).select("*").single();
+        profile = fallback.data;
+        profileError = fallback.error;
+      }
+    }
+
+    if (profileError) {
+      console.error("PROFILE CREATE ERROR:", profileError);
+      try { await admin.auth.admin.deleteUser(authUser.id); } catch (cleanupError) { console.error("AUTH CLEANUP ERROR:", cleanupError); }
+      createdAuthUserId = null;
+      return res.status(500).json({ ok:false, code:"PROFILE_CREATE_ERROR", error:"Profil oluşturulamadı." });
+    }
+
+    const registrationId = crypto.randomBytes(24).toString("hex");
+    const code = createVerificationCode();
+    const expires = Date.now() + 10 * 60 * 1000;
+
+    registrationCodes.set(registrationId, {
+      registrationId,
+      userId: authUser.id,
+      username,
+      displayName,
+      email,
+      authEmail,
+      password,
+      code,
+      expires,
+      attempts: 0
+    });
+    registrationRate.set(email, Date.now());
+
+    try {
+      await sendRegistrationCode(email, code);
+    } catch (mailError) {
+      registrationCodes.delete(registrationId);
+      try { await admin.auth.admin.deleteUser(authUser.id); } catch (cleanupError) { console.error("AUTH MAIL CLEANUP ERROR:", cleanupError); }
+      createdAuthUserId = null;
+      console.error("REGISTER MAIL ERROR:", mailError);
+      return res.status(502).json({ ok:false, code:"EMAIL_SEND_FAILED", error:"Doğrulama kodu e-posta adresine gönderilemedi. Admin Panelindeki e-posta servisini kontrol et." });
+    }
+
+    createdAuthUserId = null;
+    return res.json({
+      ok:true,
+      needsEmailVerification:true,
+      registrationId,
+      email,
+      maskedEmail:maskEmail(email),
+      accountNumber:accountCount + 1,
+      accountLimit:MAX_ACCOUNTS_PER_EMAIL,
+      message:"Doğrulama kodu e-posta adresine gönderildi."
+    });
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
+    if (createdAuthUserId) {
+      try { await adminClient().auth.admin.deleteUser(createdAuthUserId); } catch (cleanupError) { console.error("FINAL AUTH CLEANUP ERROR:", cleanupError); }
+    }
+    return res.status(500).json({ ok:false, code:"REGISTER_ERROR", error:e?.message || "Kayıt başarısız." });
   }
-);
+});
 
 /* =========================================================
    REGISTER VERIFY
    ========================================================= */
 
-app.post(
-  "/api/register/verify",
-  async (req, res) => {
+app.post("/api/register/verify", async (req, res) => {
+  try {
+    const registrationId = registrationKey(req.body?.registrationId || req.body?.registration_id);
+    const email = normalizeEmail(req.body?.email);
+    const code = String(req.body?.code || "").replace(/\D/g, "").slice(0, 6);
+
+    if (!registrationId) return res.status(400).json({ ok:false, error:"Kayıt doğrulama oturumu bulunamadı. Lütfen yeniden kayıt ol." });
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok:false, error:"6 haneli doğrulama kodunu gir." });
+
+    const entry = registrationCodes.get(registrationId);
+    if (!entry) return res.status(400).json({ ok:false, error:"Doğrulama kodu bulunamadı. Yeni kayıt başlat." });
+
+    if (email && email !== normalizeEmail(entry.email)) return res.status(400).json({ ok:false, error:"E-posta adresi kayıtla eşleşmiyor." });
+    if (!entry.expires || entry.expires < Date.now()) {
+      registrationCodes.delete(registrationId);
+      return res.status(400).json({ ok:false, code:"CODE_EXPIRED", error:"Kodun süresi dolmuş. Yeni kod iste." });
+    }
+    if (entry.attempts >= 5) {
+      registrationCodes.delete(registrationId);
+      return res.status(429).json({ ok:false, code:"TOO_MANY_ATTEMPTS", error:"Çok fazla yanlış kod girildi. Yeniden kayıt başlat." });
+    }
+    if (entry.code !== code) {
+      entry.attempts = Number(entry.attempts || 0) + 1;
+      if (entry.attempts >= 5) registrationCodes.delete(registrationId);
+      return res.status(400).json({ ok:false, code:"INVALID_CODE", error:"Kod yanlış. Lütfen tekrar kontrol et." });
+    }
+
+    const admin = adminClient();
+    const { data: userData, error: userError } = await admin.auth.admin.getUserById(entry.userId);
+    if (userError || !userData?.user) {
+      registrationCodes.delete(registrationId);
+      return res.status(404).json({ ok:false, code:"USER_NOT_FOUND", error:"Kayıt bulunamadı. Lütfen yeniden kayıt ol." });
+    }
+
+    // Özel Minegram kodu doğru: Auth hesabı zaten kullanılabilir durumda.
+    // Gerçek Gmail metadata'da tutulmaya devam eder.
+    await admin.auth.admin.updateUserById(entry.userId, {
+      email_confirm: true,
+      user_metadata: {
+        ...(userData.user.user_metadata || {}),
+        minegram_contact_email: entry.email,
+        registration_email: entry.email,
+        username: entry.username,
+        display_name: entry.displayName
+      }
+    });
+
+    registrationCodes.delete(registrationId);
+
+    // Kullanıcı adı + şifre ile doğrudan giriş için gerçek Auth e-postasını kullan.
+    let loginData = null;
+    let loginError = null;
     try {
-      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
-      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
-      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
-      const suppliedEmail =
-        normalizeEmail(req.body?.email);
+      const result = await client().auth.signInWithPassword({ email: entry.authEmail, password: entry.password });
+      loginData = result?.data || null;
+      loginError = result?.error || null;
+    } catch (e) { loginError = e; }
 
-      const email =
-        suppliedEmail || `${username}@users.minegram.invalid`;
-
-      const code =
-        String(req.body?.code || "")
-          .replace(/\D/g, "")
-          .slice(0, 6);
-
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          error: "E-posta gerekli."
-        });
-      }
-
-      if (!/^\d{6}$/.test(code)) {
-        return res.status(400).json({
-          ok: false,
-          error: "6 haneli doğrulama kodunu gir."
-        });
-      }
-
-      const key = registrationKey(email);
-      const entry = registrationCodes.get(key);
-
-      if (!entry) {
-        return res.status(400).json({
-          ok: false,
-          error: "Doğrulama kodu bulunamadı. Yeni kod iste."
-        });
-      }
-
-      if (!entry.expires || entry.expires < Date.now()) {
-        registrationCodes.delete(key);
-
-        return res.status(400).json({
-          ok: false,
-          code: "CODE_EXPIRED",
-          error: "Kodun süresi dolmuş. Yeni kod iste."
-        });
-      }
-
-      if (entry.attempts >= 5) {
-        registrationCodes.delete(key);
-
-        return res.status(429).json({
-          ok: false,
-          code: "TOO_MANY_ATTEMPTS",
-          error: "Çok fazla yanlış kod girildi. Yeni kod iste."
-        });
-      }
-
-      if (entry.code !== code) {
-        entry.attempts = Number(entry.attempts || 0) + 1;
-
-        if (entry.attempts >= 5) {
-          registrationCodes.delete(key);
-
-          return res.status(429).json({
-            ok: false,
-            code: "TOO_MANY_ATTEMPTS",
-            error: "Çok fazla yanlış kod girildi. Yeni kod iste."
-          });
-        }
-
-        return res.status(400).json({
-          ok: false,
-          code: "INVALID_CODE",
-          error: "Kod yanlış. Lütfen tekrar kontrol et."
-        });
-      }
-
-      /*
-       * BURASI MINEGRAM'IN BAĞIMSIZ E-POSTA DOĞRULAMA KISMI.
-       *
-       * Kodun üretilmesi, saklanması, süresi, deneme sayısı
-       * ve SMTP ile gönderilmesi Minegram tarafındadır.
-       *
-       * Supabase/Firebase'in kendi doğrulama e-postasını kullanmıyoruz.
-       *
-       * Mevcut Minegram hesabının giriş yapabilmesi için,
-       * hesap hâlâ Supabase Auth üzerinde tutulduğu sürece,
-       * yalnızca son adımda email_confirm işareti güncellenir.
-       * Bu, Supabase'in e-posta doğrulama sistemini kullanmak değildir.
-       */
-      let updatedUser = null;
-
-      try {
-        const admin = adminClient();
-
-        const {
-          data: userData,
-          error: userError
-        } = await admin.auth.admin.getUserById(entry.userId);
-
-        if (userError || !userData?.user) {
-          console.error(
-            "REGISTER VERIFY USER LOOKUP ERROR:",
-            userError
-          );
-
-          return res.status(404).json({
-            ok: false,
-            code: "USER_NOT_FOUND",
-            error: "Kayıt bulunamadı. Lütfen yeniden kayıt ol."
-          });
-        }
-
-        updatedUser = userData.user;
-
-        /*
-         * Minegram kodu doğru kabul edildi.
-         * Supabase Auth hesabı kullanıldığı için login sırasında
-         * "Email not confirmed" engelini kaldırıyoruz.
-         */
-        const {
-          data: confirmedData,
-          error: confirmError
-        } = await admin.auth.admin.updateUserById(
-          entry.userId,
-          {
-            email_confirm: true
-          }
-        );
-
-        if (confirmError) {
-          console.error(
-            "REGISTER EMAIL CONFIRM ERROR:",
-            confirmError
-          );
-
-          return res.status(500).json({
-            ok: false,
-            code: "EMAIL_CONFIRM_FAILED",
-            error:
-              "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
-          });
-        }
-
-        updatedUser =
-          confirmedData?.user ||
-          updatedUser;
-
-      } catch (confirmException) {
-        console.error(
-          "REGISTER EMAIL CONFIRM EXCEPTION:",
-          confirmException?.message || confirmException
-        );
-
-        return res.status(500).json({
-          ok: false,
-          code: "EMAIL_CONFIRM_FAILED",
-          error:
-            "E-posta doğrulaması tamamlanamadı. Lütfen tekrar deneyin."
-        });
-      }
-
-      // Kod bir kez başarıyla kullanıldıktan sonra silinir.
-      registrationCodes.delete(key);
-
-      /*
-       * Otomatik giriş:
-       * Frontend şifre gönderiyorsa mevcut davranışı koruyoruz.
-       * Şifre gönderilmiyorsa doğrulama başarılı döner ve normal
-       * giriş ekranından devam edilebilir.
-       */
-      let loginData = null;
-      let loginError = null;
-
-      const password =
-        String(req.body?.password || "");
-
-      if (password) {
-        try {
-          const anon = client();
-
-          const loginResult =
-            await anon.auth.signInWithPassword({
-              email: entry.email,
-              password
-            });
-
-          loginData = loginResult?.data || null;
-          loginError = loginResult?.error || null;
-        } catch (e) {
-          loginError = e;
-        }
-      }
-
-      if (
-        loginError ||
-        !loginData?.session
-      ) {
-        return res.json({
-          ok: true,
-          verified: true,
-          needsLogin: true,
-          message:
-            "E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
-          user: {
-            id:
-              updatedUser?.id ||
-              entry.userId,
-            email: entry.email,
-            username: entry.username,
-            displayName: entry.displayName
-          }
-        });
-      }
-
+    if (!loginData?.session) {
       return res.json({
-        ok: true,
-        verified: true,
-        token:
-          loginData.session.access_token,
-        user: {
-          id:
-            updatedUser?.id ||
-            entry.userId,
-          email: entry.email,
-          username: entry.username,
-          displayName: entry.displayName
-        }
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER VERIFY ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Doğrulama başarısız."
+        ok:true,
+        verified:true,
+        needsLogin:true,
+        message:"E-posta başarıyla doğrulandı. Şimdi giriş yapabilirsin.",
+        user:{ id:entry.userId, email:entry.email, username:entry.username, displayName:entry.displayName },
+        authEmail:entry.authEmail
       });
     }
+
+    return res.json({
+      ok:true,
+      verified:true,
+      token:loginData.session.access_token,
+      user:{ id:entry.userId, email:entry.email, username:entry.username, displayName:entry.displayName },
+      authEmail:entry.authEmail
+    });
+  } catch (e) {
+    console.error("REGISTER VERIFY ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Doğrulama başarısız." });
   }
-);
+});
 
 /* =========================================================
    REGISTER RESEND
    ========================================================= */
 
-app.post(
-  "/api/register/resend",
-  async (req, res) => {
-    try {
-      // E-posta kullanılmayan kullanıcı adı tabanlı kayıt.
-      // Auth altyapısı e-posta istediği için sunucu içinde benzersiz bir
-      // dahili adres oluşturulur; kullanıcı bunu görmez ve e-posta gönderilmez.
-      const suppliedEmail =
-        normalizeEmail(req.body?.email);
+app.post("/api/register/resend", async (req, res) => {
+  try {
+    const registrationId = registrationKey(req.body?.registrationId || req.body?.registration_id);
+    if (!registrationId) return res.status(400).json({ ok:false, error:"Kayıt doğrulama oturumu bulunamadı." });
 
-      const email =
-        suppliedEmail || `${username}@users.minegram.invalid`;
+    const entry = registrationCodes.get(registrationId);
+    if (!entry) return res.status(404).json({ ok:false, error:"Bekleyen bir kayıt bulunamadı." });
 
-      if (!email) {
-        return res.status(400).json({
-          ok: false,
-          error: "E-posta gerekli."
-        });
-      }
-
-      const key = registrationKey(email);
-      const entry = registrationCodes.get(key);
-
-      if (!entry) {
-        return res.status(404).json({
-          ok: false,
-          error: "Bekleyen bir kayıt bulunamadı."
-        });
-      }
-
-      if (!registrationAllowed(email)) {
-        return res.status(429).json({
-          ok: false,
-          error:
-            `Yeni kod göndermek için ${Number(mailGatewayRuntime?.cooldownSeconds) || 60} saniye bekle.`
-        });
-      }
-
-      /*
-       * Yeni kod tamamen Minegram tarafından üretilir.
-       * Firebase/Supabase'in confirmation mail servisi kullanılmaz.
-       */
-      const code = createVerificationCode();
-
-      entry.code = code;
-      entry.expires =
-        Date.now() + 10 * 60 * 1000;
-      entry.attempts = 0;
-
-      registrationCodes.set(
-        key,
-        entry
-      );
-
-      registrationRate.set(
-        key,
-        Date.now()
-      );
-
-      await sendRegistrationCode(
-        email,
-        code
-      );
-
-      return res.json({
-        ok: true,
-        message:
-          "Yeni 6 haneli doğrulama kodu gönderildi.",
-        maskedEmail:
-          maskEmail(email)
-      });
-
-    } catch (e) {
-      console.error(
-        "REGISTER RESEND ERROR:",
-        e
-      );
-
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Yeni kod gönderilemedi."
-      });
+    if (!registrationAllowed(entry.email)) {
+      return res.status(429).json({ ok:false, error:`Yeni kod göndermek için ${Number(mailGatewayRuntime?.cooldownSeconds) || 60} saniye bekle.` });
     }
+
+    const code = createVerificationCode();
+    entry.code = code;
+    entry.expires = Date.now() + 10 * 60 * 1000;
+    entry.attempts = 0;
+    registrationCodes.set(registrationId, entry);
+    registrationRate.set(entry.email, Date.now());
+
+    await sendRegistrationCode(entry.email, code);
+    return res.json({ ok:true, message:"Yeni 6 haneli doğrulama kodu gönderildi.", email:entry.email, maskedEmail:maskEmail(entry.email) });
+  } catch (e) {
+    console.error("REGISTER RESEND ERROR:", e);
+    return res.status(500).json({ ok:false, error:e?.message || "Yeni kod gönderilemedi." });
   }
-);
+});
 
 /* =========================================================
    LOGIN
@@ -2381,9 +2011,12 @@ async function resolveRecoveryEmail(
 
         if (!error && data?.user?.id) {
           authUser = data.user;
-          email = String(data.user.email || profile.email || "")
-            .trim()
-            .toLowerCase();
+          email = String(
+            data.user.user_metadata?.minegram_contact_email ||
+            profile.email ||
+            data.user.email ||
+            ""
+          ).trim().toLowerCase();
         }
       } catch (e) {
         console.log("RECOVERY USERNAME AUTH HATASI:", e?.message || e);
@@ -2400,9 +2033,12 @@ async function resolveRecoveryEmail(
 
         if (!error && data?.user?.id) {
           authUser = data.user;
-          email = String(data.user.email || profile.email)
-            .trim()
-            .toLowerCase();
+          email = String(
+            data.user.user_metadata?.minegram_contact_email ||
+            profile.email ||
+            data.user.email ||
+            ""
+          ).trim().toLowerCase();
         }
       } catch (e) {
         console.log("RECOVERY PROFILE EMAIL AUTH HATASI:", e?.message || e);
