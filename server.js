@@ -4227,7 +4227,7 @@ app.get(
         data,
         error
       } =
-        await req.sb
+        await adminClient()
           .from("notifications")
           .select("*")
           .eq(
@@ -4343,10 +4343,13 @@ app.post(
         });
       }
 
+      const followAdmin = adminClient();
+      const targetUserId = target.auth_user_id || target.id;
+
       const {
         data: existing
       } =
-        await req.sb
+        await followAdmin
           .from("follows")
           .select(
             "follower_id,following_id"
@@ -4357,12 +4360,12 @@ app.post(
           )
           .eq(
             "following_id",
-            target.id
+            targetUserId
           )
           .maybeSingle();
 
       if (existing) {
-        await req.sb
+        await followAdmin
           .from("follows")
           .delete()
           .eq(
@@ -4371,7 +4374,7 @@ app.post(
           )
           .eq(
             "following_id",
-            target.id
+            targetUserId
           );
 
         return res.json({
@@ -4392,7 +4395,7 @@ app.post(
         const { data: existingRequest } = await admin
           .from("notifications")
           .select("id")
-          .eq("user_id", target.id)
+          .eq("user_id", targetUserId)
           .eq("from_user_id", req.user.id)
           .eq("type", "follow_request")
           .eq("read", false)
@@ -4401,7 +4404,7 @@ app.post(
         if (existingRequest) return res.json({ following: false, pending: true });
 
         await addNotification({
-          userId: target.id,
+          userId: targetUserId,
           fromUserId: req.user.id,
           type: "follow_request",
           text: `@${req.user.username} sana takip isteği gönderdi`
@@ -4409,16 +4412,16 @@ app.post(
         return res.json({ following: false, pending: true });
       }
 
-      const { error } = await req.sb
+      const { error } = await followAdmin
         .from("follows")
         .insert({
           follower_id: req.user.id,
-          following_id: target.id
+          following_id: targetUserId
         });
       if (error) throw error;
 
       await addNotification({
-        userId: target.id,
+        userId: targetUserId,
         fromUserId: req.user.id,
         type: "follow",
         text: `@${req.user.username} seni takip etti`
