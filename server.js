@@ -663,6 +663,12 @@ app.get(
    REGISTER + 6 HANELİ E-POSTA DOĞRULAMA + GMAIL BAŞINA 20 HESAP
    ========================================================= */
 
+const mailGatewayRuntime = {
+  codeLength: 6,
+  expiryMinutes: 10,
+  cooldownSeconds: 60
+};
+
 const registrationCodes = new Map();
 const registrationRate = new Map();
 const MAX_ACCOUNTS_PER_EMAIL = 20;
