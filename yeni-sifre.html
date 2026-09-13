@@ -215,7 +215,23 @@ async function resetPassword(){
     //    yeni şifreyi kullanarak aynı hesapta otomatik giriş yap.
     if(!loggedIn){
       showMessage("Şifre değiştirildi. Hesabın açılıyor...",true);
-      loggedIn=await loginFallback(email || identifier,password);
+      const resetEmail = first(
+        data?.email,
+        data?.user?.email,
+        data?.profile?.email,
+        data?.data?.user?.email,
+        email,
+        identifier
+      );
+      const resetUsername = first(
+        data?.user?.username,
+        data?.profile?.username,
+        data?.data?.user?.username,
+        params.get("username"),
+        sessionStorage.getItem("minegram_recovery_username"),
+        sessionStorage.getItem("minegram_reset_username")
+      );
+      loggedIn=await loginFallback(resetEmail || resetUsername,password);
     }
 
     if(!loggedIn){
