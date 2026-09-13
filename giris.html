@@ -7,7 +7,9 @@
 <title>Minegram - Giriş</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box
+}
 
 html,body{
   margin:0;
@@ -19,7 +21,9 @@ html,body{
   font-family:Arial,Helvetica,sans-serif
 }
 
-body{min-height:100vh}
+body{
+  min-height:100vh
+}
 
 .login-page{
   width:100%;
@@ -54,8 +58,13 @@ body{min-height:100vh}
   font-size:12px
 }
 
-.field::placeholder{color:#777}
-.field:focus{border-color:#555}
+.field::placeholder{
+  color:#777
+}
+
+.field:focus{
+  border-color:#555
+}
 
 .login-btn{
   width:100%;
@@ -69,7 +78,9 @@ body{min-height:100vh}
   font-size:12px
 }
 
-.login-btn:hover{background:#348dca}
+.login-btn:hover{
+  background:#348dca
+}
 
 .login-btn:disabled{
   opacity:.6;
@@ -101,11 +112,13 @@ body{min-height:100vh}
 }
 
 @media(max-width:600px){
+
   .login-box{
     width:calc(100% - 40px);
     max-width:365px;
     margin-top:90px
   }
+
 }
 </style>
 </head>
@@ -116,17 +129,25 @@ body{min-height:100vh}
 
   <div class="login-box">
 
-    <div class="logo">Minegram</div>
+    <div class="logo">
+      Minegram
+    </div>
+
+
+    <!-- KULLANICI ADI -->
 
     <input
-      id="email"
+      id="username"
       class="field"
-      type="email"
-      autocomplete="email"
+      type="text"
+      autocomplete="username"
       autocapitalize="none"
       spellcheck="false"
-      placeholder="E-posta"
+      placeholder="Kullanıcı adı"
     >
+
+
+    <!-- ŞİFRE -->
 
     <input
       id="password"
@@ -136,6 +157,9 @@ body{min-height:100vh}
       placeholder="Şifre"
     >
 
+
+    <!-- GİRİŞ -->
+
     <button
       id="loginBtn"
       class="login-btn"
@@ -144,12 +168,18 @@ body{min-height:100vh}
       Giriş Yap
     </button>
 
+
+    <!-- ŞİFREMİ UNUTTUM -->
+
     <a
       class="forgot"
       href="sifremi-unuttum.html"
     >
       Şifremi unuttum
     </a>
+
+
+    <!-- KAYIT -->
 
     <a
       href="kayit.html"
@@ -158,7 +188,13 @@ body{min-height:100vh}
       Hesabın yok mu? Kayıt ol
     </a>
 
-    <div id="message" class="message"></div>
+
+    <!-- MESAJ -->
+
+    <div
+      id="message"
+      class="message"
+    ></div>
 
   </div>
 
@@ -167,14 +203,15 @@ body{min-height:100vh}
 
 <script type="module">
 
-import { initializeApp }
+import {
+  initializeApp
+}
 from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
 
 import {
   getAuth,
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut
+  signInWithEmailAndPassword
 }
 from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
@@ -184,32 +221,61 @@ from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 ========================================= */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
-  authDomain: "mim-ea133.firebaseapp.com",
-  databaseURL: "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mim-ea133",
-  storageBucket: "mim-ea133.firebasestorage.app",
-  messagingSenderId: "303525353436",
-  appId: "1:303525353436:web:082fc090b5025e19942119",
-  measurementId: "G-K962QE5P1R"
+
+  apiKey:
+    "AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+
+  authDomain:
+    "mim-ea133.firebaseapp.com",
+
+  databaseURL:
+    "https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+
+  projectId:
+    "mim-ea133",
+
+  storageBucket:
+    "mim-ea133.firebasestorage.app",
+
+  messagingSenderId:
+    "303525353436",
+
+  appId:
+    "1:303525353436:web:082fc090b5025e19942119",
+
+  measurementId:
+    "G-K962QE5P1R"
+
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+
+/* =========================================
+   FIREBASE BAŞLAT
+========================================= */
+
+const app =
+  initializeApp(firebaseConfig);
+
+
+const auth =
+  getAuth(app);
 
 
 /* =========================================
    ELEMENTLER
 ========================================= */
 
-const emailInput =
-  document.getElementById("email");
+const usernameInput =
+  document.getElementById("username");
+
 
 const passwordInput =
   document.getElementById("password");
 
+
 const loginBtn =
   document.getElementById("loginBtn");
+
 
 const message =
   document.getElementById("message");
@@ -219,95 +285,214 @@ const message =
    MESAJ
 ========================================= */
 
-function showMessage(text, success=false){
+function showMessage(
+  text,
+  success = false
+){
 
-  message.textContent = text || "";
+  message.textContent =
+    text || "";
+
 
   message.style.color =
-    success ? "#35c759" : "#ff4d4d";
+    success
+      ? "#35c759"
+      : "#ff4d4d";
 
 }
 
 
 /* =========================================
-   FIREBASE HATA MESAJLARI
+   KULLANICI ADINI
+   FIREBASE GİRİŞ ADRESİNE ÇEVİR
+
+   KAYIT SAYFASIYLA
+   AYNI SİSTEM
 ========================================= */
 
-function firebaseError(error){
+function usernameToInternalEmail(
+  name
+){
 
-  switch(error.code){
+  return (
+    encodeURIComponent(name)
+      .replace(/%/g, "_")
+      +
+      "@minegram-user.invalid"
+  );
 
-    case "auth/invalid-email":
-      return "Geçerli bir e-posta adresi gir.";
+}
+
+
+/* =========================================
+   HATA MESAJLARI
+========================================= */
+
+function firebaseError(
+  error
+){
+
+  switch(
+    error.code
+  ){
 
     case "auth/invalid-credential":
+
     case "auth/wrong-password":
+
     case "auth/user-not-found":
-      return "E-posta veya şifre yanlış.";
+
+      return
+        "Kullanıcı adı veya şifre yanlış.";
+
 
     case "auth/user-disabled":
-      return "Bu hesap devre dışı bırakılmış.";
+
+      return
+        "Bu hesap devre dışı bırakılmış.";
+
 
     case "auth/too-many-requests":
-      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+
+      return
+        "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+
 
     case "auth/network-request-failed":
-      return "İnternet bağlantısını kontrol et.";
+
+      return
+        "İnternet bağlantısını kontrol et.";
+
+
+    case "auth/invalid-email":
+
+      return
+        "Kullanıcı adı geçersiz.";
+
 
     default:
-      return error.message || "Giriş yapılamadı.";
+
+      return
+        "Giriş yapılamadı. Kullanıcı adını ve şifreni kontrol et.";
+
   }
 
 }
 
 
 /* =========================================
-   GİRİŞ
+   GİRİŞ YAP
 ========================================= */
 
 async function login(){
 
-  const email =
-    emailInput.value.trim().toLowerCase();
+
+  /* -----------------------------------------
+     KULLANICI ADI
+  ----------------------------------------- */
+
+  const username =
+    usernameInput.value
+      .trim()
+      .toLowerCase();
+
+
+  /* -----------------------------------------
+     ŞİFRE
+  ----------------------------------------- */
 
   const password =
     passwordInput.value;
 
 
+  /* -----------------------------------------
+     MESAJ TEMİZLE
+  ----------------------------------------- */
+
   showMessage("");
 
 
-  if(!email){
+  /* -----------------------------------------
+     KULLANICI ADI BOŞ
+  ----------------------------------------- */
 
-    showMessage("E-posta adresini gir.");
+  if(
+    !username
+  ){
 
-    emailInput.focus();
+    showMessage(
+      "Kullanıcı adını gir."
+    );
+
+
+    usernameInput.focus();
+
 
     return;
+
   }
 
 
-  if(!password){
+  /* -----------------------------------------
+     ŞİFRE BOŞ
+  ----------------------------------------- */
 
-    showMessage("Şifreni gir.");
+  if(
+    !password
+  ){
+
+    showMessage(
+      "Şifreni gir."
+    );
+
 
     passwordInput.focus();
 
+
     return;
+
   }
 
 
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Giriş yapılıyor...";
+  /* -----------------------------------------
+     KULLANICI ADINI
+     DAHİLİ FIREBASE ADRESİNE ÇEVİR
+  ----------------------------------------- */
 
+  const internalEmail =
+    usernameToInternalEmail(
+      username
+    );
+
+
+  /* -----------------------------------------
+     BUTON
+  ----------------------------------------- */
+
+  loginBtn.disabled =
+    true;
+
+
+  loginBtn.textContent =
+    "Giriş yapılıyor...";
+
+
+  /* =========================================
+     FIREBASE GİRİŞ
+  ========================================= */
 
   try{
 
+
     const credential =
       await signInWithEmailAndPassword(
+
         auth,
-        email,
+
+        internalEmail,
+
         password
+
       );
 
 
@@ -315,54 +500,22 @@ async function login(){
       credential.user;
 
 
-    /*
-     * E-POSTA DOĞRULAMA KONTROLÜ
-     */
-
-    await user.reload();
-
-
-    if(!user.emailVerified){
-
-      /*
-       * Yeni doğrulama e-postası gönder
-       */
-
-      try{
-
-        await sendEmailVerification(user);
-
-      }catch(_){
-
-        /*
-         * Çok kısa sürede tekrar gönderildiyse
-         * giriş yine engellenir.
-         */
-
-      }
+    console.log(
+      "[MINEGRAM LOGIN SUCCESS]",
+      user.uid
+    );
 
 
-      await signOut(auth);
-
-
-      showMessage(
-        "E-posta adresin henüz doğrulanmamış. Yeni doğrulama bağlantısı gönderildi."
-      );
-
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Giriş Yap";
-
-      return;
-    }
-
-
-    /*
-     * BAŞARILI
-     */
+    /* -----------------------------------------
+       BAŞARILI
+    ----------------------------------------- */
 
     showMessage(
+
       "Giriş başarılı. Yönlendiriliyorsun...",
+
       true
+
     );
 
 
@@ -370,29 +523,61 @@ async function login(){
       "Giriş başarılı";
 
 
-    setTimeout(function(){
+    /* -----------------------------------------
+       ANA SAYFA
+    ----------------------------------------- */
 
-      window.location.href =
-        "index.html";
+    setTimeout(
 
-    },500);
+      function(){
+
+        window.location.href =
+          "index.html";
+
+      },
+
+      500
+
+    );
 
 
-  }catch(error){
+  }
+
+
+  /* =========================================
+     HATA
+  ========================================= */
+
+  catch(
+    error
+  ){
+
 
     console.error(
-      "[MINEGRAM FIREBASE LOGIN]",
+
+      "[MINEGRAM LOGIN ERROR]",
+
       error
+
     );
 
 
     showMessage(
-      firebaseError(error)
+
+      firebaseError(
+        error
+      )
+
     );
 
 
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Giriş Yap";
+    loginBtn.disabled =
+      false;
+
+
+    loginBtn.textContent =
+      "Giriş Yap";
+
 
   }
 
@@ -400,48 +585,79 @@ async function login(){
 
 
 /* =========================================
-   BUTON
+   GİRİŞ BUTONU
 ========================================= */
 
 loginBtn.addEventListener(
+
   "click",
+
   login
+
 );
 
 
 /* =========================================
-   ENTER
+   KULLANICI ADI ENTER
 ========================================= */
 
-emailInput.addEventListener(
-  "keydown",
-  function(event){
+usernameInput.addEventListener(
 
-    if(event.key === "Enter"){
+  "keydown",
+
+  function(
+    event
+  ){
+
+
+    if(
+      event.key === "Enter"
+    ){
+
 
       event.preventDefault();
+
 
       passwordInput.focus();
 
+
     }
 
+
   }
+
 );
 
 
-passwordInput.addEventListener(
-  "keydown",
-  function(event){
+/* =========================================
+   ŞİFRE ENTER
+========================================= */
 
-    if(event.key === "Enter"){
+passwordInput.addEventListener(
+
+  "keydown",
+
+  function(
+    event
+  ){
+
+
+    if(
+      event.key === "Enter"
+    ){
+
 
       event.preventDefault();
 
+
       login();
+
 
     }
 
+
   }
+
 );
 
 </script>
