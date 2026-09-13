@@ -5436,10 +5436,13 @@ function smtpTransport() {
     host,
     port,
     secure: port === 465,
+    requireTLS: port === 587,
     auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+    dnsTimeout: 30000,
+    tls: { minVersion: "TLSv1.2", servername: host }
   });
 }
 
@@ -5449,6 +5452,18 @@ async function sendSmtpEmail({ to, subject, html, text: textBody }) {
   const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
 
   const transporter = smtpTransport();
+  try {
+    await transporter.verify();
+  } catch (error) {
+    console.error("SMTP CONNECTION ERROR:", {
+      code: error?.code,
+      command: error?.command,
+      message: error?.message,
+      host: smtpRuntime.host || env("SMTP_HOST"),
+      port: smtpRuntime.port || env("SMTP_PORT")
+    });
+    throw new Error(`SMTP bağlantısı kurulamadı: ${error?.code || error?.message || "Connection timeout"}`);
+  }
   await transporter.sendMail({
     from: `${fromName} <${fromEmail}>`,
     to: recipient,
