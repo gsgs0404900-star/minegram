@@ -841,35 +841,555 @@ document
             );
 
             /* -------------------------------------------------
-               GİRİŞ SAYFASINA GİT
+   ŞİFRE DEĞİŞTİKTEN SONRA OTOMATİK OTURUM OLUŞTUR
+------------------------------------------------- */
 
-               Email'i URL'ye sadece giriş sayfasının
-               isterse kullanabilmesi için taşıyoruz.
-               Şifre ASLA URL'ye yazılmaz.
+showStatus(
+    "Şifre değiştirildi. Oturum oluşturuluyor...",
+    "success"
+);
 
-               ÖNEMLİ:
-               Burada index.html'e doğrudan gitmiyoruz.
-               Kullanıcı giris.html üzerinden yeniden
-               giriş yapacak ve giris.html mevcut
-               saveSession() koduyla tüm oturumu oluşturacak.
-            ------------------------------------------------- */
+try{
 
-            setTimeout(
-                function(){
+    /*
+       Email yoksa recovery bilgilerinden tekrar bul
+    */
 
-                    const loginUrl =
-                        email
-                            ? "giris.html?email=" +
-                              encodeURIComponent(email)
-                            : "giris.html";
+    let loginIdentifier =
+        email ||
+        sessionStorage.getItem(
+            "minegram_recovery_email"
+        ) ||
+        "";
 
-                   window.location.replace(
-                   "index.html"
-                    );
+    loginIdentifier =
+        String(loginIdentifier || "")
+        .trim()
+        .toLowerCase();
 
+
+    /*
+       EMAIL YOKSA OTOMATİK LOGIN YAPILAMAZ
+    */
+
+    if(!loginIdentifier){
+
+        console.warn(
+            "[MINEGRAM RESET] Email bulunamadı."
+        );
+
+        window.location.replace(
+            "giris.html"
+        );
+
+        return;
+    }
+
+
+    /*
+       YENİ ŞİFRE İLE LOGIN
+    */
+
+    const loginResponse =
+        await fetch(
+            API + "/login",
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                        "application/json",
+
+                    "Accept":
+                        "application/json"
                 },
-                1200
+
+                body:
+                    JSON.stringify({
+
+                        identifier:
+                            loginIdentifier,
+
+                        username:
+                            loginIdentifier,
+
+                        email:
+                            loginIdentifier,
+
+                        password:
+                            password
+                    }),
+
+                cache:
+                    "no-store"
+            }
+        );
+
+
+    const loginData =
+        await loginResponse
+        .json()
+        .catch(
+            () => ({})
+        );
+
+
+    console.log(
+        "[MINEGRAM AUTO LOGIN STATUS]",
+        loginResponse.status
+    );
+
+    console.log(
+        "[MINEGRAM AUTO LOGIN RESPONSE]",
+        loginData
+    );
+
+
+    /*
+       LOGIN BAŞARISIZSA
+    */
+
+    if(
+        !loginResponse.ok ||
+        loginData.ok === false
+    ){
+
+        console.warn(
+            "[MINEGRAM AUTO LOGIN] Başarısız",
+            loginData
+        );
+
+        showStatus(
+            "Şifren değiştirildi. Otomatik giriş yapılamadı, giriş sayfasına yönlendiriliyorsun...",
+            "success"
+        );
+
+        setTimeout(
+            function(){
+
+                window.location.replace(
+                    "giris.html?email=" +
+                    encodeURIComponent(
+                        loginIdentifier
+                    )
+                );
+
+            },
+            1200
+        );
+
+        return;
+    }
+
+
+    /*
+       TOKEN BUL
+    */
+
+    function extractLoginToken(data){
+
+        if(!data){
+            return "";
+        }
+
+        const candidates=[
+
+            data.access_token,
+            data.accessToken,
+            data.token,
+            data.supabaseAccessToken,
+
+            data.session?.access_token,
+            data.session?.accessToken,
+            data.session?.token,
+
+            data.data?.access_token,
+            data.data?.accessToken,
+            data.data?.token,
+
+            data.data?.session?.access_token,
+            data.data?.session?.accessToken,
+            data.data?.session?.token
+
+        ];
+
+        for(
+            const value of candidates
+        ){
+
+            if(
+                value &&
+                typeof value === "string" &&
+                value.trim() &&
+                value !== "null" &&
+                value !== "undefined"
+            ){
+
+                return value.trim();
+
+            }
+
+        }
+
+        return "";
+    }
+
+
+    /*
+       USER BUL
+    */
+
+    function extractLoginUser(data){
+
+        if(!data){
+            return null;
+        }
+
+        return (
+
+            data.user ||
+
+            data.profile ||
+
+            data.data?.user ||
+
+            data.data?.profile ||
+
+            (
+                Array.isArray(data.profiles)
+                    ? data.profiles[0]
+                    : null
+            ) ||
+
+            (
+                Array.isArray(
+                    data.data?.profiles
+                )
+                    ? data.data.profiles[0]
+                    : null
+            ) ||
+
+            null
+
+        );
+    }
+
+
+    const token =
+        extractLoginToken(
+            loginData
+        );
+
+
+    /*
+       TOKEN GELMEDİYSE
+    */
+
+    if(!token){
+
+        console.error(
+            "[MINEGRAM AUTO LOGIN] Token yok.",
+            loginData
+        );
+
+        showStatus(
+            "Şifren değiştirildi ancak oturum oluşturulamadı. Giriş sayfasına yönlendiriliyorsun...",
+            "success"
+        );
+
+        setTimeout(
+            function(){
+
+                window.location.replace(
+                    "giris.html?email=" +
+                    encodeURIComponent(
+                        loginIdentifier
+                    )
+                );
+
+            },
+            1200
+        );
+
+        return;
+    }
+
+
+    /*
+       USER
+    */
+
+    const user =
+        extractLoginUser(
+            loginData
+        );
+
+
+    /*
+       REFRESH TOKEN
+    */
+
+    const refreshToken =
+
+        loginData.refresh_token ||
+
+        loginData.refreshToken ||
+
+        loginData.session?.refresh_token ||
+
+        loginData.data?.refresh_token ||
+
+        loginData.data?.refreshToken ||
+
+        loginData.data?.session?.refresh_token ||
+
+        "";
+
+
+    /*
+       ESKİ OTURUMLARI TEMİZLE
+    */
+
+    const sessionKeys=[
+
+        "minegram_token",
+        "minegram_supabase_token",
+        "minegram_access_token",
+        "minegram_refresh_token",
+
+        "supabase_token",
+        "access_token",
+
+        "minegram_user_id",
+        "minegram_username",
+        "minegram_email",
+
+        "minegram_user",
+        "minegram_profile",
+
+        "minegram_firebase_token",
+        "minegram_firebase_uid",
+        "minegram_firebase_email"
+
+    ];
+
+
+    for(
+        const key of sessionKeys
+    ){
+
+        localStorage.removeItem(
+            key
+        );
+
+    }
+
+
+    /*
+       ANA TOKEN
+    */
+
+    localStorage.setItem(
+        "minegram_token",
+        token
+    );
+
+
+    /*
+       SUPABASE TOKEN
+    */
+
+    localStorage.setItem(
+        "minegram_supabase_token",
+        token
+    );
+
+
+    /*
+       ACCESS TOKEN
+    */
+
+    localStorage.setItem(
+        "minegram_access_token",
+        token
+    );
+
+
+    localStorage.setItem(
+        "access_token",
+        token
+    );
+
+
+    /*
+       REFRESH TOKEN
+    */
+
+    if(refreshToken){
+
+        localStorage.setItem(
+            "minegram_refresh_token",
+            String(refreshToken)
+        );
+
+    }
+
+
+    /*
+       USER KAYDET
+    */
+
+    if(user){
+
+        localStorage.setItem(
+            "minegram_user",
+            JSON.stringify(user)
+        );
+
+
+        if(user.id != null){
+
+            localStorage.setItem(
+                "minegram_user_id",
+                String(user.id)
             );
+
+        }
+
+
+        if(user.username){
+
+            localStorage.setItem(
+                "minegram_username",
+                String(user.username)
+            );
+
+        }
+
+
+        if(user.email){
+
+            localStorage.setItem(
+                "minegram_email",
+                String(user.email)
+            );
+
+        }
+
+    }else{
+
+        /*
+           Login cevabında user yoksa
+           email'i yine kaydet.
+        */
+
+        localStorage.setItem(
+            "minegram_email",
+            loginIdentifier
+        );
+
+    }
+
+
+    /*
+       PROFILE
+    */
+
+    const profile =
+        loginData.profile ||
+        loginData.data?.profile ||
+        null;
+
+
+    if(profile){
+
+        localStorage.setItem(
+            "minegram_profile",
+            JSON.stringify(profile)
+        );
+
+    }
+
+
+    /*
+       TOKEN GERÇEKTEN KAYDEDİLDİ Mİ?
+    */
+
+    const savedToken =
+        localStorage.getItem(
+            "minegram_token"
+        );
+
+
+    if(!savedToken){
+
+        throw new Error(
+            "Oturum tokenı tarayıcıya kaydedilemedi."
+        );
+
+    }
+
+
+    console.log(
+        "[MINEGRAM AUTO LOGIN] Oturum oluşturuldu."
+    );
+
+
+    /*
+       ARTIK INDEX'E GİDEBİLİR
+    */
+
+    showStatus(
+        "Giriş başarılı. Minegram açılıyor...",
+        "success"
+    );
+
+
+    submitButton.textContent =
+        "Giriş başarılı";
+
+
+    setTimeout(
+        function(){
+
+            window.location.replace(
+                "index.html"
+            );
+
+        },
+        500
+    );
+
+
+}catch(autoLoginError){
+
+    console.error(
+        "[MINEGRAM AUTO LOGIN ERROR]",
+        autoLoginError
+    );
+
+
+    showStatus(
+        "Şifren değiştirildi. Giriş sayfasına yönlendiriliyorsun...",
+        "success"
+    );
+
+
+    setTimeout(
+        function(){
+
+            window.location.replace(
+                "giris.html?email=" +
+                encodeURIComponent(
+                    email
+                )
+            );
+
+        },
+        1200
+    );
+
+}
 
         }catch(error){
 
