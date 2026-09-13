@@ -58,6 +58,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <button data-page="bank">🏦 Banka / Ödeme</button>
 <button data-page="announcements">📢 Duyurular</button>
 <button data-page="emailService">📧 E-posta / Doğrulama</button>
+<button data-page="phoneOtp">📱 Telefon / SMS OTP</button>
 <button data-page="settings">⚙️ Ayarlar</button>
 </div>
 </aside>
@@ -98,68 +99,47 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 
 <section id="announcements" class="section"><div class="panel"><h2>📢 Duyuru yayınla</h2><div class="input-group"><label>Başlık</label><input id="announcementTitle" placeholder="Duyuru başlığı"></div><div class="input-group"><label>Mesaj</label><textarea id="announcementText" placeholder="Duyuru metni"></textarea></div><button id="announcementButton" class="btn btn-primary">Duyuruyu yayınla</button><div id="announcementMessage" class="message"></div></div></section>
 
-
 <section id="emailService" class="section">
 <div class="content-grid">
-  <div class="panel">
-    <h2>📧 Gmail HTTPS E-posta Servisi</h2>
-    <p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi Gmail API üzerinden HTTPS ile yapılır. SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.</p>
+<div class="panel">
+<h2>📧 Gmail HTTPS E-posta Servisi</h2>
+<p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi Gmail API üzerinden HTTPS ile yapılır. SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.</p>
+<div class="input-group"><label>Gönderici Gmail</label><input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email"></div>
+<div class="input-group"><label>Gönderici adı</label><input id="gatewayFromName" placeholder="Minegram" value="Minegram"></div>
+<div class="actions"><button id="gatewayTestButton" class="btn btn-success">Test e-postası gönder</button></div>
+<div id="gatewayMessage" class="message"></div>
+</div>
+<div class="panel">
+<h2>🔐 Doğrulama Ayarları</h2>
+<div class="input-group"><label>Kod uzunluğu</label><select id="verificationCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
+<div class="input-group"><label>Kod geçerlilik süresi</label><select id="verificationExpiry"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
+<div class="input-group"><label>Gönderim aralığı</label><select id="verificationCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
+<button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
+<div id="verificationMessage" class="message"></div>
+<hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
+<h3>Servis durumu</h3><p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
+<p style="color:#697386;font-size:13px">Gmail Client ID, Client Secret ve Refresh Token admin.html içinde tutulmaz. Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
+</div>
+</div>
+</section>
 
-    <div class="input-group">
-      <label>Gönderici Gmail</label>
-      <input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email">
-    </div>
-
-    <div class="input-group">
-      <label>Gönderici adı</label>
-      <input id="gatewayFromName" placeholder="Minegram" value="Minegram">
-    </div>
-
-    <div class="actions">
-      <button id="gatewayTestButton" class="btn btn-success">Test e-postası gönder</button>
-    </div>
-    <div id="gatewayMessage" class="message"></div>
-  </div>
-
-  <div class="panel">
-    <h2>🔐 Doğrulama Ayarları</h2>
-
-    <div class="input-group">
-      <label>Kod uzunluğu</label>
-      <select id="verificationCodeLength">
-        <option value="6">6 hane</option>
-        <option value="8">8 hane</option>
-      </select>
-    </div>
-
-    <div class="input-group">
-      <label>Kod geçerlilik süresi</label>
-      <select id="verificationExpiry">
-        <option value="5">5 dakika</option>
-        <option value="10">10 dakika</option>
-        <option value="15">15 dakika</option>
-        <option value="30">30 dakika</option>
-      </select>
-    </div>
-
-    <div class="input-group">
-      <label>Gönderim aralığı</label>
-      <select id="verificationCooldown">
-        <option value="60">60 saniye</option>
-        <option value="120">2 dakika</option>
-        <option value="300">5 dakika</option>
-      </select>
-    </div>
-
-    <button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
-    <div id="verificationMessage" class="message"></div>
-
-    <hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
-
-    <h3>Servis durumu</h3>
-    <p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
-    <p style="color:#697386;font-size:13px">Gmail Client ID, Client Secret ve Refresh Token admin.html içinde tutulmaz. Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
-  </div>
+<section id="phoneOtp" class="section">
+<div class="content-grid">
+<div class="panel">
+<h2>📱 Uluslararası Telefon / SMS OTP</h2>
+<p>Telefon doğrulama kodları SMS üzerinden gönderilir. Uluslararası numaralarda ülke kodunu <b>+</b> ile birlikte kullan: ör. <b>+905551112233</b>.</p>
+<div class="input-group"><label>Test telefon numarası</label><input id="phoneOtpTestNumber" type="tel" placeholder="+905551112233" autocomplete="tel"></div>
+<div class="actions"><button id="phoneOtpTestButton" class="btn btn-success">Test SMS gönder</button></div>
+<div id="phoneOtpTestMessage" class="message"></div>
+</div>
+<div class="panel">
+<h2>🔐 SMS OTP Servis Durumu</h2>
+<p id="phoneOtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
+<div class="input-group"><label>Kanal</label><input id="phoneOtpChannel" value="sms" readonly></div>
+<div class="input-group"><label>Kod uzunluğu</label><input value="6 hane" readonly></div>
+<div class="input-group"><label>Telefon biçimi</label><input value="Uluslararası E.164 (+ülke kodu...)" readonly></div>
+<p style="color:#697386;font-size:13px">Twilio hesap bilgileri admin.html içinde tutulmaz. SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
+</div>
 </div>
 </section>
 
@@ -173,473 +153,91 @@ import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "htt
 import {getFirestore,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,setDoc,increment,serverTimestamp,query,limit,onSnapshot,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119",measurementId:"G-K962QE5P1R"};
-
 const firebaseApp=initializeApp(firebaseConfig);
 const auth=getAuth(firebaseApp);
 const db=getFirestore(firebaseApp);
-
 const ADMIN_UID="QJqw9moQk8XgpHcFo89bAVPk3uh1";
-
 const $=id=>document.getElementById(id);
 function escapeHTML(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function money(value){return Number(value||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺"}
 function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return timestamp.toDate().toLocaleString("tr-TR")}
+async function checkAdmin(uid){if(uid!==ADMIN_UID)return false;const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));return adminDocument.exists()&&adminDocument.data().active===true}
 
-async function checkAdmin(uid){
-    if(uid!==ADMIN_UID)return false;
-    const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));
-    return adminDocument.exists() && adminDocument.data().active===true;
-}
-
-/* PANEL VERİLERİNİ TEK TEK YÜKLE.
-   Bir koleksiyon hata verse bile admin oturumu kapanmaz. */
 async function loadAdminDataSafely(){
-    const loaders=[
-        ["Dashboard",loadDashboard],
-        ["Kullanıcılar",loadUsers],
-        ["Gönderiler",loadPosts],
-        ["Şikâyetler",loadReports],
-        ["Sorun Bildirimleri",loadProblemReports],
-        ["Mavi Tik",loadVerification],
-        ["Bakiye",loadBalances],
-        ["Banka / Ödeme",loadBankTransactions]
-    ];
-
-    for(const [name,loader] of loaders){
-        try{
-            await loader();
-            console.log(name+" yüklendi.");
-        }catch(error){
-            console.error(name+" yüklenemedi:",error);
-        }
-    }
+const loaders=[["Dashboard",loadDashboard],["Kullanıcılar",loadUsers],["Gönderiler",loadPosts],["Şikâyetler",loadReports],["Sorun Bildirimleri",loadProblemReports],["Mavi Tik",loadVerification],["Bakiye",loadBalances],["Banka / Ödeme",loadBankTransactions]];
+for(const [name,loader] of loaders){try{await loader();console.log(name+" yüklendi.")}catch(error){console.error(name+" yüklenemedi:",error)}}
 }
-
-let adminLoginInProgress=false;
-let adminVerified=false;
-let currentAdminUser=null;
-let usersUnsubscribe=null;
-let balancesUnsubscribe=null;
-let bankUnsubscribe=null;
-
-async function openAdminPanel(user){
-    currentAdminUser=user;
-    adminVerified=true;
-    $("loginScreen").classList.add("hidden");
-    $("adminApp").classList.remove("hidden");
-    $("adminEmail").textContent=user.email||user.uid;
-    $("loginMessage").textContent="";
-    console.log("ADMIN PANELİ AÇILDI. UID:",user.uid);
-
-    /* Buradaki hatalar artık giriş ekranına geri göndermez. */
-    await loadAdminDataSafely();
-    watchProblemReports();
-    watchLiveFinance();
-}
-
+let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null;
+async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();watchProblemReports();watchLiveFinance()}
 onAuthStateChanged(auth,async user=>{
-    if(!user){
-        currentAdminUser=null;
-        adminVerified=false;
-        $("loginScreen").classList.remove("hidden");
-        $("adminApp").classList.add("hidden");
-        return;
-    }
-
-    console.log("AUTH STATE UID:",user.uid);
-    console.log("ADMIN UID:",ADMIN_UID);
-
-    if(adminLoginInProgress || adminVerified){
-        console.log("Admin oturumu doğrulandı; observer ikinci kontrolü atladı.");
-        return;
-    }
-
-    try{
-        $("loginMessage").className="message";
-        $("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";
-
-        const admin=await checkAdmin(user.uid);
-
-        if(!admin){
-            console.error("ADMIN DEĞİL / YETKİ YOK. UID:",user.uid);
-            await signOut(auth);
-            $("loginScreen").classList.remove("hidden");
-            $("adminApp").classList.add("hidden");
-            $("loginMessage").className="message error";
-            $("loginMessage").textContent="Bu Firebase hesabı admin olarak yetkilendirilmemiş.";
-            return;
-        }
-
-        await openAdminPanel(user);
-
-    }catch(error){
-        console.error("ADMIN KONTROL HATASI:",error);
-        $("loginScreen").classList.remove("hidden");
-        $("adminApp").classList.add("hidden");
-        $("loginMessage").className="message error";
-        $("loginMessage").textContent="Admin kontrolü başarısız: "+error.message;
-    }
+if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
+if(adminLoginInProgress||adminVerified)return;
+try{$("loginMessage").className="message";$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";const admin=await checkAdmin(user.uid);if(!admin){await signOut(auth);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Bu Firebase hesabı admin olarak yetkilendirilmemiş.";return}await openAdminPanel(user)}
+catch(error){console.error("ADMIN KONTROL HATASI:",error);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Admin kontrolü başarısız: "+error.message}
 });
-
 $("loginForm").addEventListener("submit",async event=>{
-    event.preventDefault();
-
-    const email=$("loginEmail").value.trim();
-    const password=$("loginPassword").value;
-
-    $("loginMessage").className="message";
-    $("loginMessage").textContent="Firebase ile giriş yapılıyor...";
-    adminLoginInProgress=true;
-
-    try{
-        const credential=await signInWithEmailAndPassword(auth,email,password);
-
-        console.log("FIREBASE AUTH BAŞARILI");
-        console.log("GİRİŞ YAPAN UID:",credential.user.uid);
-        console.log("BEKLENEN ADMIN UID:",ADMIN_UID);
-
-        if(credential.user.uid!==ADMIN_UID){
-            throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);
-        }
-
-        const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));
-
-        if(!adminDocument.exists()){
-            throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");
-        }
-
-        if(adminDocument.data().active!==true){
-            throw new Error("Admin hesabında active değeri true değil.");
-        }
-
-        await openAdminPanel(credential.user);
-
-    }catch(error){
-        console.error("GERÇEK LOGIN HATASI:",error);
-        adminVerified=false;
-        if(auth.currentUser)await signOut(auth).catch(()=>{});
-        $("loginScreen").classList.remove("hidden");
-        $("adminApp").classList.add("hidden");
-        $("loginMessage").className="message error";
-        $("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message;
-    }finally{
-        adminLoginInProgress=false;
-    }
+event.preventDefault();const email=$("loginEmail").value.trim(),password=$("loginPassword").value;$("loginMessage").className="message";$("loginMessage").textContent="Firebase ile giriş yapılıyor...";adminLoginInProgress=true;
+try{const credential=await signInWithEmailAndPassword(auth,email,password);if(credential.user.uid!==ADMIN_UID)throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));if(!adminDocument.exists())throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");if(adminDocument.data().active!==true)throw new Error("Admin hesabında active değeri true değil.");await openAdminPanel(credential.user)}
+catch(error){console.error("GERÇEK LOGIN HATASI:",error);adminVerified=false;if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message}
+finally{adminLoginInProgress=false}
 });
-
-$("logoutButton").addEventListener("click",async()=>{
-    currentAdminUser=null;
-    adminVerified=false;
-    adminLoginInProgress=false;
-    await signOut(auth);
-});
-
-document.querySelectorAll(".menu button").forEach(button=>{
-    button.addEventListener("click",()=>{
-        document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));
-        button.classList.add("active");
-        document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));
-        const page=button.dataset.page;
-        $(page).classList.add("active");
-        $("pageTitle").textContent=button.textContent.trim();
-    });
-});
+$("logoutButton").addEventListener("click",async()=>{currentAdminUser=null;adminVerified=false;adminLoginInProgress=false;await signOut(auth)});
+document.querySelectorAll(".menu button").forEach(button=>{button.addEventListener("click",()=>{document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));button.classList.add("active");document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));const page=button.dataset.page;$(page).classList.add("active");$("pageTitle").textContent=button.textContent.trim()})});
 
 async function loadDashboard(){
-    const users=await getDocs(collection(db,"users"));
-    const activeUsers=users.docs.filter(item=>{const u=item.data();return !(u.deleted===true||u.isDeleted===true||u.deletedAt||u.status==="deleted")});
-    let posts=0,reports=0,totalBalance=0;
-    try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){console.warn("posts:",e.message)}
-    try{
-        const r=await getDocs(collection(db,"reports"));
-        r.forEach(item=>{if(item.data().status!=="resolved")reports++});
-    }catch(e){console.warn("reports:",e.message)}
-    let problemReports=0;
-    try{
-        const r=await getDocs(query(collection(db,"problemReports"),limit(200)));
-        r.forEach(item=>{if((item.data().status||"pending")!=="resolved")problemReports++});
-    }catch(e){console.warn("problemReports:",e.message)}
-    activeUsers.forEach(item=>{totalBalance+=Number(item.data().balance||0)});
-    $("totalUsers").textContent=activeUsers.length;
-    $("totalPosts").textContent=posts;
-    $("totalReports").textContent=reports;
-    $("totalProblemReports").textContent=problemReports;
-    $("totalBalance").textContent=money(totalBalance);
-    if($("balanceTotalLive")) $("balanceTotalLive").textContent=money(totalBalance);
+const users=await getDocs(collection(db,"users"));const activeUsers=users.docs.filter(item=>{const u=item.data();return !(u.deleted===true||u.isDeleted===true||u.deletedAt||u.status==="deleted")});let posts=0,reports=0,totalBalance=0;
+try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}
+try{const r=await getDocs(collection(db,"reports"));r.forEach(item=>{if(item.data().status!=="resolved")reports++})}catch(e){}
+let problemReports=0;try{const r=await getDocs(query(collection(db,"problemReports"),limit(200)));r.forEach(item=>{if((item.data().status||"pending")!=="resolved")problemReports++})}catch(e){}
+activeUsers.forEach(item=>{totalBalance+=Number(item.data().balance||0)});$("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent=problemReports;$("totalBalance").textContent=money(totalBalance);if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance)
 }
-
 let allUsers=[];
-async function loadUsers(){
-    const snapshot=await getDocs(collection(db,"users"));
-    allUsers=[];
-    snapshot.forEach(item=>{
-        const data=item.data();
-        // Silinmiş kullanıcılar admin panelindeki aktif kullanıcı listesine alınmaz.
-        if(data.deleted===true || data.isDeleted===true || data.deletedAt || data.status==="deleted") return;
-        allUsers.push({id:item.id,...data});
-    });
-    renderUsers();
-}
-function renderUsers(){
-    const search=$("userSearch").value.trim().toLowerCase();
-    const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search));
-    $("usersTable").innerHTML=users.map(user=>`<tr>
-<td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td>
-<td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td>
-<td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td>
-<td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button>
-<button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");
-    if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>';
-}
+async function loadUsers(){const snapshot=await getDocs(collection(db,"users"));allUsers=[];snapshot.forEach(item=>{const data=item.data();if(data.deleted===true||data.isDeleted===true||data.deletedAt||data.status==="deleted")return;allUsers.push({id:item.id,...data})});renderUsers()}
+function renderUsers(){const search=$("userSearch").value.trim().toLowerCase();const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search));$("usersTable").innerHTML=users.map(user=>`<tr><td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>'}
 $("userSearch").addEventListener("input",renderUsers);
 window.toggleUser=async(uid,disabled)=>{await updateDoc(doc(db,"users",uid),{disabled:!disabled});await loadUsers();await loadDashboard()};
 window.selectBalanceUser=uid=>{$("balanceUid").value=uid;document.querySelector('[data-page="balance"]').click()};
-
-async function loadPosts(){
-    const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));
-    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||"-")}</td><td>${escapeHTML(String(post.text||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("");
-}
+async function loadPosts(){const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));$("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||"-")}</td><td>${escapeHTML(String(post.text||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")}
 window.deletePost=async id=>{if(!confirm("Bu gönderiyi silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"posts",id));await loadPosts();await loadDashboard()};
-
-async function loadReports(){
-    const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));
-    $("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${report.status!=="resolved"?`<button class="btn btn-small btn-success" onclick="resolveReport('${escapeHTML(item.id)}')">Çözüldü</button>`:"-"}</td></tr>`}).join("");
-}
+async function loadReports(){const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));$("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${report.status!=="resolved"?`<button class="btn btn-small btn-success" onclick="resolveReport('${escapeHTML(item.id)}')">Çözüldü</button>`:"-"}</td></tr>`}).join("")}
 window.resolveReport=async id=>{await updateDoc(doc(db,"reports",id),{status:"resolved",resolvedAt:serverTimestamp(),resolvedBy:auth.currentUser.uid});await loadReports();await loadDashboard()};
-
 let problemReportsUnsubscribe=null;
-
-async function loadProblemReports(){
-    const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));
-    const rows=snapshot.docs.map(item=>{
-        const r=item.data();
-        const photos=Array.isArray(r.photos)?r.photos:[];
-        const photoHtml=photos.length?photos.map((src,i)=>`<a href="${escapeHTML(src)}" target="_blank" rel="noopener"><img src="${escapeHTML(src)}" alt="Fotoğraf ${i+1}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-right:4px;border:1px solid #444"></a>`).join(""):'-';
-        const status=r.status||"pending";
-        const statusHtml=status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':status==="in_progress"?'<span class="badge badge-blue">İnceleniyor</span>':'<span class="badge badge-red">Bekliyor</span>';
-        const actions=status==="resolved"?'—':`<button class="btn btn-small btn-primary" onclick="updateProblemReport('${escapeHTML(item.id)}','in_progress')">İnceleniyor</button> <button class="btn btn-small btn-success" onclick="updateProblemReport('${escapeHTML(item.id)}','resolved')">Çözüldü</button>`;
-        return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>${photoHtml}</td><td>${dateText(r.createdAt)}</td><td>${statusHtml}</td><td>${actions} <button class="btn btn-small btn-danger" onclick="deleteProblemReport('${escapeHTML(item.id)}')">Sil</button></td></tr>`;
-    });
-    $("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
-}
-
-window.updateProblemReport=async(id,status)=>{
-    await updateDoc(doc(db,"problemReports",id),{status,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid});
-    await loadProblemReports();
-    await loadDashboard();
-};
-
-window.deleteProblemReport=async id=>{
-    if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;
-    await deleteDoc(doc(db,"problemReports",id));
-    await loadProblemReports();
-    await loadDashboard();
-};
-function watchProblemReports(){
-    if(problemReportsUnsubscribe) problemReportsUnsubscribe();
-    problemReportsUnsubscribe=onSnapshot(
-        query(collection(db,"problemReports"),limit(200)),
-        ()=>{ loadProblemReports().catch(error=>console.error("Sorun bildirimleri yenilenemedi:",error)); loadDashboard().catch(()=>{}); },
-        error=>console.error("Sorun bildirimleri canlı dinleme hatası:",error)
-    );
-}
-
-
-async function loadVerification(){
-    const snapshot=await getDocs(collection(db,"users"));
-    const activeUsers=snapshot.docs.filter(item=>{
-        const user=item.data();
-        return !(user.deleted===true || user.isDeleted===true || user.deletedAt || user.status==="deleted");
-    });
-    $("verificationTable").innerHTML=activeUsers.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">${user.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`}).join("");
-}
+async function loadProblemReports(){const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));const rows=snapshot.docs.map(item=>{const r=item.data(),photos=Array.isArray(r.photos)?r.photos:[],photoHtml=photos.length?photos.map((src,i)=>`<a href="${escapeHTML(src)}" target="_blank" rel="noopener"><img src="${escapeHTML(src)}" alt="Fotoğraf ${i+1}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-right:4px;border:1px solid #444"></a>`).join(""):"-",status=r.status||"pending",statusHtml=status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':status==="in_progress"?'<span class="badge badge-blue">İnceleniyor</span>':'<span class="badge badge-red">Bekliyor</span>',actions=status==="resolved"?'—':`<button class="btn btn-small btn-primary" onclick="updateProblemReport('${escapeHTML(item.id)}','in_progress')">İnceleniyor</button> <button class="btn btn-small btn-success" onclick="updateProblemReport('${escapeHTML(item.id)}','resolved')">Çözüldü</button>`;return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>${photoHtml}</td><td>${dateText(r.createdAt)}</td><td>${statusHtml}</td><td>${actions} <button class="btn btn-small btn-danger" onclick="deleteProblemReport('${escapeHTML(item.id)}')">Sil</button></td></tr>`});$("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>'}
+window.updateProblemReport=async(id,status)=>{await updateDoc(doc(db,"problemReports",id),{status,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid});await loadProblemReports();await loadDashboard()};
+window.deleteProblemReport=async id=>{if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"problemReports",id));await loadProblemReports();await loadDashboard()};
+function watchProblemReports(){if(problemReportsUnsubscribe)problemReportsUnsubscribe();problemReportsUnsubscribe=onSnapshot(query(collection(db,"problemReports"),limit(200)),()=>{loadProblemReports().catch(error=>console.error("Sorun bildirimleri yenilenemedi:",error));loadDashboard().catch(()=>{})},error=>console.error("Sorun bildirimleri canlı dinleme hatası:",error))}
+async function loadVerification(){const snapshot=await getDocs(collection(db,"users"));const activeUsers=snapshot.docs.filter(item=>{const user=item.data();return !(user.deleted===true||user.isDeleted===true||user.deletedAt||user.status==="deleted")});$("verificationTable").innerHTML=activeUsers.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">${user.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`}).join("")}
 window.toggleVerified=async(uid,currentValue)=>{await updateDoc(doc(db,"users",uid),{verified:!currentValue});await loadVerification();await loadUsers()};
+$("balanceButton").addEventListener("click",async()=>{const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}try{const delta=type==="credit"?amount:-amount;await updateDoc(doc(db,"users",uid),{balance:increment(delta)});await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});$("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";$("balanceAmount").value="";$("balanceNote").value="";await loadBalances();await loadUsers();await loadDashboard()}catch(error){$("balanceMessage").className="message error";$("balanceMessage").textContent=error.message}});
+async function loadBalances(){const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));$("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>'}
+async function loadBankTransactions(){const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));let pendingTotal=0;$("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);const bankInfo=data.iban||data.bankAccount||data.bank||data.account||"-",status=data.status||"pending",statusHtml=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>',actions=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">Reddet</button>`:"-";return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${statusHtml}</td><td>${actions}</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal)}
+window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransactions",id),snap=await getDoc(ref);if(!snap.exists())return;const data=snap.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(status==="approved"&&isWithdraw&&data.status!=="approved"){const amount=Number(data.amount||0);if(amount<=0)throw new Error("Geçersiz çekim tutarı.");await runTransaction(db,async tx=>{const userRef=doc(db,"users",data.uid),userSnap=await tx.get(userRef);if(!userSnap.exists())throw new Error("Kullanıcı bulunamadı.");const current=Number(userSnap.data().balance||0);if(current<amount)throw new Error("Kullanıcının bakiyesi çekim için yetersiz.");tx.update(userRef,{balance:current-amount});tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid})});await addDoc(collection(db,"balances"),{uid:data.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()})}else await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});await loadBankTransactions();await loadBalances();await loadUsers();await loadDashboard()}catch(error){alert("İşlem başarısız: "+error.message)}};
+function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{allUsers=[];snap.forEach(item=>{const data=item.data();if(data.deleted===true||data.isDeleted===true||data.deletedAt||data.status==="deleted")return;allUsers.push({id:item.id,...data})});renderUsers();let total=0;allUsers.forEach(u=>total+=Number(u.balance||0));if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalUsers"))$("totalUsers").textContent=allUsers.length;if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
+$("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}});
+$("settingsButton").addEventListener("click",async()=>{const siteName=$("siteName").value.trim();try{await setDoc(doc(db,"settings","config"),{siteName,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi."}catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}});
 
-$("balanceButton").addEventListener("click",async()=>{
-    const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();
-    if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}
-    try{
-        const delta=type==="credit"?amount:-amount;
-        await updateDoc(doc(db,"users",uid),{balance:increment(delta)});
-        await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});
-        $("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";
-        $("balanceAmount").value="";$("balanceNote").value="";
-        await loadBalances();await loadUsers();await loadDashboard();
-    }catch(error){$("balanceMessage").className="message error";$("balanceMessage").textContent=error.message}
-});
+const EMAIL_SERVICE_API="/api/admin/email-service";
+async function emailServiceRequest(path,options={}){let currentUser=currentAdminUser||auth.currentUser;if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(EMAIL_SERVICE_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);return data}
+async function loadEmailService(){try{const data=await emailServiceRequest("/status"),active=Boolean(data.configured);$("gatewayStatus").innerHTML=active?'<span class="badge badge-green">● Gmail HTTPS Aktif</span>':'<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';if(data.fromName)$("gatewayFromName").value=data.fromName;if(data.fromEmail)$("gatewayFromEmail").value=data.fromEmail;if(data.codeLength)$("verificationCodeLength").value=String(data.codeLength);if(data.expiryMinutes)$("verificationExpiry").value=String(data.expiryMinutes);if(data.cooldownSeconds)$("verificationCooldown").value=String(data.cooldownSeconds)}catch(error){$("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';console.warn("Gmail HTTPS:",error.message)}}
+$("gatewayTestButton").addEventListener("click",async()=>{const message=$("gatewayMessage"),to=prompt("Test e-postası hangi adrese gönderilsin?");if(!to)return;message.className="message";message.textContent="Gmail HTTPS üzerinden test e-postası gönderiliyor...";try{await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});message.className="message success";message.textContent="Test e-postası Gmail HTTPS üzerinden gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
+$("verificationSaveButton").addEventListener("click",async()=>{const message=$("verificationMessage");message.className="message";message.textContent="Kaydediliyor...";try{await emailServiceRequest("/verification-config",{method:"POST",body:JSON.stringify({codeLength:Number($("verificationCodeLength").value),expiryMinutes:Number($("verificationExpiry").value),cooldownSeconds:Number($("verificationCooldown").value)})});message.className="message success";message.textContent="Doğrulama ayarları kaydedildi."}catch(error){message.className="message error";message.textContent=error.message}});
+document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{loadEmailService().catch(()=>{})});
 
-async function loadBalances(){
-    const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));
-    $("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
+const PHONE_OTP_API="/api/phone-otp";
+async function phoneOtpRequest(path,options={}){
+let currentUser=currentAdminUser||auth.currentUser;
+if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
+async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(PHONE_OTP_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}
+let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}
+const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`SMS servisi HTTP ${response.status}`);return data
 }
-
-async function loadBankTransactions(){
-    const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));
-    let pendingTotal=0;
-    $("bankTable").innerHTML=snapshot.docs.map(item=>{
-        const data=item.data();
-        const type=String(data.type||data.transactionType||"withdraw").toLowerCase();
-        const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";
-        if(isWithdraw && (data.status||"pending")==="pending") pendingTotal+=Number(data.amount||0);
-        const bankInfo=data.iban||data.bankAccount||data.bank||data.account||"-";
-        const status=data.status||"pending";
-        const statusHtml=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>';
-        const actions=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">Reddet</button>`:"-";
-        return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${statusHtml}</td><td>${actions}</td></tr>`;
-    }).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
-    if($("pendingWithdrawTotal")) $("pendingWithdrawTotal").textContent=money(pendingTotal);
+async function loadPhoneOtpService(){
+const status=$("phoneOtpStatus");
+try{const data=await phoneOtpRequest("/status");if(data.enabled&&data.configured){status.className="message success";status.innerHTML='<span class="badge badge-green">● SMS OTP Aktif</span> Kanal: '+escapeHTML(data.channel||"sms")}else{status.className="message error";status.innerHTML='<span class="badge badge-red">● SMS OTP Yapılandırılmamış</span>'}}
+catch(error){status.className="message error";status.textContent="SMS servisi kontrol edilemedi: "+error.message}
 }
-
-window.updateBankTransaction=async(id,status)=>{
-    try{
-        const ref=doc(db,"bankTransactions",id);
-        const snap=await getDoc(ref);
-        if(!snap.exists()) return;
-        const data=snap.data();
-        const type=String(data.type||data.transactionType||"withdraw").toLowerCase();
-        const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";
-        if(status==="approved" && isWithdraw && data.status!=="approved"){
-            const amount=Number(data.amount||0);
-            if(amount<=0) throw new Error("Geçersiz çekim tutarı.");
-            await runTransaction(db,async tx=>{
-                const userRef=doc(db,"users",data.uid);
-                const userSnap=await tx.get(userRef);
-                if(!userSnap.exists()) throw new Error("Kullanıcı bulunamadı.");
-                const current=Number(userSnap.data().balance||0);
-                if(current<amount) throw new Error("Kullanıcının bakiyesi çekim için yetersiz.");
-                tx.update(userRef,{balance:current-amount});
-                tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});
-            });
-            await addDoc(collection(db,"balances"),{uid:data.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});
-        }else{
-            await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});
-        }
-        await loadBankTransactions(); await loadBalances(); await loadUsers(); await loadDashboard();
-    }catch(error){alert("İşlem başarısız: "+error.message)}
-};
-
-function watchLiveFinance(){
-    if(usersUnsubscribe) usersUnsubscribe();
-    if(balancesUnsubscribe) balancesUnsubscribe();
-    if(bankUnsubscribe) bankUnsubscribe();
-    usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{
-        allUsers=[];
-        snap.forEach(item=>{const data=item.data();if(data.deleted===true||data.isDeleted===true||data.deletedAt||data.status==="deleted")return;allUsers.push({id:item.id,...data});});
-        renderUsers();
-        let total=0; allUsers.forEach(u=>total+=Number(u.balance||0));
-        if($("balanceTotalLive")) $("balanceTotalLive").textContent=money(total);
-        if($("totalUsers")) $("totalUsers").textContent=allUsers.length;
-        if($("totalBalance")) $("totalBalance").textContent=money(total);
-    },e=>console.error("Kullanıcı canlı dinleme hatası:",e));
-    balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));
-    bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e));
-}
-
-$("announcementButton").addEventListener("click",async()=>{
-    const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();
-    if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}
-    try{
-        await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});
-        $("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";
-        $("announcementTitle").value="";$("announcementText").value="";
-    }catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}
-});
-
-$("settingsButton").addEventListener("click",async()=>{
-    const siteName=$("siteName").value.trim();
-    try{
-        await setDoc(doc(db,"settings","config"),{siteName,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});
-        $("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi.";
-    }catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}
-});
-
-/* =========================================================
-   MINEGRAM GMAIL HTTPS + DOĞRULAMA SERVİSİ
-   Gmail OAuth bilgileri sunucuda tutulur; admin.html'e yazılmaz.
-========================================================= */
-const EMAIL_SERVICE_API = "/api/admin/email-service";
-
-async function emailServiceRequest(path, options={}){
-    let currentUser = currentAdminUser || auth.currentUser;
-    if(!currentUser) throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
-
-    async function doRequest(forceRefresh){
-        const token = await currentUser.getIdToken(forceRefresh);
-        const headers = new Headers(options.headers || {});
-        headers.set("Content-Type","application/json");
-        headers.set("Authorization","Bearer " + token);
-        headers.set("X-Firebase-ID-Token", token);
-        return fetch(EMAIL_SERVICE_API + path, {...options, headers, credentials:"same-origin", cache:"no-store"});
-    }
-
-    let response = await doRequest(false);
-    if(response.status===401){
-        await currentUser.reload().catch(()=>{});
-        currentUser=auth.currentUser||currentUser;
-        response=await doRequest(true);
-    }
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);
-    return data;
-}
-
-async function loadEmailService(){
-    try{
-        const data=await emailServiceRequest("/status");
-        const active=Boolean(data.configured);
-        $("gatewayStatus").innerHTML=active
-          ? '<span class="badge badge-green">● Gmail HTTPS Aktif</span>'
-          : '<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';
-        if(data.fromName) $("gatewayFromName").value=data.fromName;
-        if(data.fromEmail) $("gatewayFromEmail").value=data.fromEmail;
-        if(data.codeLength) $("verificationCodeLength").value=String(data.codeLength);
-        if(data.expiryMinutes) $("verificationExpiry").value=String(data.expiryMinutes);
-        if(data.cooldownSeconds) $("verificationCooldown").value=String(data.cooldownSeconds);
-    }catch(error){
-        $("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
-        console.warn("Gmail HTTPS:",error.message);
-    }
-}
-
-$("gatewayTestButton").addEventListener("click",async()=>{
-    const message=$("gatewayMessage");
-    const to=prompt("Test e-postası hangi adrese gönderilsin?");
-    if(!to) return;
-    message.className="message";
-    message.textContent="Gmail HTTPS üzerinden test e-postası gönderiliyor...";
-    try{
-        await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});
-        message.className="message success";
-        message.textContent="Test e-postası Gmail HTTPS üzerinden gönderildi.";
-    }catch(error){
-        message.className="message error";
-        message.textContent=error.message;
-    }
-});
-
-$("verificationSaveButton").addEventListener("click",async()=>{
-    const message=$("verificationMessage");
-    message.className="message";
-    message.textContent="Kaydediliyor...";
-    try{
-        await emailServiceRequest("/verification-config",{
-            method:"POST",
-            body:JSON.stringify({
-                codeLength:Number($("verificationCodeLength").value),
-                expiryMinutes:Number($("verificationExpiry").value),
-                cooldownSeconds:Number($("verificationCooldown").value)
-            })
-        });
-        message.className="message success";
-        message.textContent="Doğrulama ayarları kaydedildi.";
-    }catch(error){
-        message.className="message error";
-        message.textContent=error.message;
-    }
-});
-
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{loadEmailService().catch(()=>{});});
-
+$("phoneOtpTestButton").addEventListener("click",async()=>{const phone=$("phoneOtpTestNumber").value.trim(),message=$("phoneOtpTestMessage");if(!phone){message.className="message error";message.textContent="Telefon numarası gerekli.";return}message.className="message";message.textContent="SMS gönderiliyor...";try{const data=await phoneOtpRequest("/send",{method:"POST",body:JSON.stringify({phone})});message.className="message success";message.textContent=data.message||"Doğrulama SMS'i gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
+document.querySelector('[data-page="phoneOtp"]').addEventListener("click",()=>{loadPhoneOtpService().catch(()=>{})});
 </script>
 </body>
 </html>
