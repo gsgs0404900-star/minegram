@@ -1,178 +1,58 @@
 <!DOCTYPE html>
-
 <html lang="tr">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kayıt ol - Minegram</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>Şifremi unuttum - Minegram</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-.page{min-height:100vh;background:#000}
-.topbar{height:60px;display:flex;align-items:center;padding-left:38px}
-.back{width:25px;height:35px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;cursor:pointer}
-.top-title{margin-left:15px;font-size:20px;font-weight:700}
-.content{width:317px;margin:90px auto 0}
-.title{text-align:center;font-size:30px;margin:0 0 28px}
-.description{font-size:16px;line-height:1.5;color:#aaa;margin:0 0 28px;text-align:center}
-.field{width:100%;height:48px;background:#050505;color:#fff;border:1px solid #333;border-radius:8px;padding:0 14px;margin-bottom:12px;outline:none}
-.field:focus{border-color:#777}
-.next{width:100%;height:48px;border:0;border-radius:24px;background:#2677b5;color:#000;font-weight:700;cursor:pointer;margin-top:10px}
-.next:disabled{opacity:.55;cursor:not-allowed}
-.msg{text-align:center;min-height:20px;margin-top:14px;font-size:13px;color:#ff6464}
-.success{color:#55d98b}
-.small{text-align:center;color:#777;font-size:12px;margin-top:18px;line-height:1.5}
-@media(max-width:430px){
-.content{width:calc(100% - 40px);margin-top:65px}
-.title{font-size:28px}
-}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;}
+body{min-height:100vh;overflow-x:hidden}.page{width:100%;min-height:100vh;background:#000}
+.topbar{width:100%;height:60px;display:flex;align-items:center;padding-left:38px}.back{width:25px;height:35px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:300;cursor:pointer}.top-title{margin-left:15px;font-size:20px;font-weight:700}.content{width:317px;margin:115px auto 0}.title{text-align:center;font-size:30px;line-height:1.15;font-weight:700;margin:0 0 34px}.description{font-size:18px;line-height:1.45;color:#bdbdbd;margin:0 0 65px}.input{display:block;width:100%;height:39px;padding:0 10px;border:1px solid #252525;border-radius:6px;background:#050505;color:#fff;outline:none;font-size:12px}.input::placeholder{color:#777}.input:focus{border-color:#555}.continue-btn{display:block;width:100%;height:37px;margin-top:18px;border:0;border-radius:22px;background:#2677b5;color:#000;font-size:12px;font-weight:700;cursor:pointer}.continue-btn:disabled{opacity:.6;cursor:not-allowed}.message{min-height:18px;margin-top:12px;text-align:center;font-size:11px;line-height:1.4;color:#ff5c5c}.message.success{color:#55b8ff}.login-link{display:block;margin-top:25px;text-align:center;color:#008cff;font-size:12px;text-decoration:none}.login-link:hover{text-decoration:underline}
+@media(max-width:600px){.topbar{height:70px;padding-left:28px}.back{width:30px;height:38px;font-size:38px}.top-title{margin-left:12px;font-size:21px}.content{width:calc(100% - 40px);max-width:714px;margin:105px auto 0}.title{font-size:42px}.description{font-size:21px;line-height:1.5;margin-bottom:55px}.input{height:68px;padding:0 20px;font-size:18px;border:2px solid #686868;border-radius:9px}.continue-btn{height:58px;font-size:20px;border-radius:32px}.message{font-size:14px}.login-link{font-size:18px;font-weight:700}}
+@media(max-width:430px){.content{width:calc(100% - 40px);margin-top:65px}.title{font-size:38px}.description{font-size:20px}}
 </style>
 </head>
-
 <body>
 <div class="page">
-<div class="topbar">
-<div class="back" onclick="history.back()">‹</div>
-<div class="top-title">Kayıt ol</div>
-</div>
-
+<div class="topbar"><div class="back" id="backButton">‹</div><div class="top-title">Şifremi unuttum</div></div>
 <main class="content">
-<h1 class="title">Hesabını oluştur</h1>
-
-<p class="description">
-Kullanıcı adın için bir şifre ve doğrulama kodunun gönderileceği e-posta adresini gir.
-</p>
-
-<input id="email" class="field" type="email" autocomplete="email" placeholder="E-posta adresi">
-<input id="password" class="field" type="password" autocomplete="new-password" placeholder="Şifre (en az 6 karakter)">
-<input id="password2" class="field" type="password" autocomplete="new-password" placeholder="Şifreyi tekrar yaz">
-
-<button id="next" class="next" disabled>İleri</button>
-
-<div id="msg" class="msg"></div>
-
-<div class="small">
-Aynı e-posta adresiyle en fazla 20 Minegram hesabı oluşturabilirsin.
-</div>
-</main>
-</div>
-
+<h1 class="title">Şifreni sıfırla</h1>
+<p class="description">Hesabına ait kullanıcı adını gir. Yeni şifre oluşturma adımına geçelim.</p>
+<input type="text" id="username" class="input" placeholder="Kullanıcı adı" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+<button type="button" id="continueButton" class="continue-btn">Devam et</button>
+<div id="message" class="message"></div>
+<a href="giris.html" class="login-link">Giriş ekranına dön</a>
+</main></div>
 <script>
-(() => {
 "use strict";
-
-const $=id=>document.getElementById(id),
-email=$("email"),
-password=$("password"),
-password2=$("password2"),
-next=$("next"),
-msg=$("msg");
-
-const username=(sessionStorage.getItem("minegram_register_username")||"").trim().toLowerCase();
-
-function show(t,ok=false){
-msg.textContent=t||"";
-msg.className="msg"+(ok?" success":"");
+const usernameInput=document.getElementById("username");
+const continueButton=document.getElementById("continueButton");
+const message=document.getElementById("message");
+const backButton=document.getElementById("backButton");
+function showMessage(text,success=false){message.textContent=text||"";message.className="message";if(success)message.classList.add("success");}
+function normalizeUsername(value){return String(value||"").trim().replace(/^@+/ ,"").toLowerCase();}
+backButton.addEventListener("click",()=>{window.location.href="giris.html";});
+async function resetPassword(){
+ const username=normalizeUsername(usernameInput.value);showMessage("");
+ if(!username){showMessage("Kullanıcı adını gir.");usernameInput.focus();return;}
+ continueButton.disabled=true;continueButton.textContent="Kontrol ediliyor...";
+ try{
+  const response=await fetch("/api/forgot-password/find-account",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier:username,mode:"username"})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok!==true)throw new Error(data.error||data.message||"Kullanıcı bulunamadı.");
+  const account=data.account||{};const foundUsername=normalizeUsername(account.username||username);
+  sessionStorage.setItem("minegram_reset_username",foundUsername);
+  sessionStorage.setItem("minegram_reset_identifier",foundUsername);
+  if(account.email)sessionStorage.setItem("minegram_reset_email",String(account.email));
+  if(account.maskedEmail)sessionStorage.setItem("minegram_reset_masked_email",String(account.maskedEmail));
+  if(account.id)sessionStorage.setItem("minegram_reset_account_id",String(account.id));
+  window.location.href="yeni-sifre.html";
+ }catch(error){console.error("[MINEGRAM PASSWORD RESET]",error);showMessage(error?.message||"Sunucuya bağlanılamadı.");continueButton.disabled=false;continueButton.textContent="Devam et";}
 }
-
-function valid(){
-return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())
-&&password.value.length>=6
-&&password.value===password2.value
-&&!!username;
-}
-
-function refresh(){
-next.disabled=!valid();
-
-if(password2.value&&password.value!==password2.value)
-show("Şifreler eşleşmiyor.");
-else if(username)
-show("");
-}
-
-[email,password,password2].forEach(x=>x.addEventListener("input",refresh));
-
-next.onclick=async()=>{
-if(!valid())return;
-
-next.disabled=true;
-next.textContent="Gönderiliyor...";
-show("Doğrulama kodu e-postana gönderiliyor...");
-
-try{
-
-const r=await fetch("/api/register",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Accept":"application/json"
-},
-credentials:"include",
-cache:"no-store",
-body:JSON.stringify({
-username,
-email:email.value.trim().toLowerCase(),
-password:password.value,
-displayName:username
-})
-});
-
-const d=await r.json().catch(()=>({}));
-
-if(!r.ok)
-throw new Error(d.error||"Kayıt başarısız.");
-
-sessionStorage.setItem(
-"minegram_register_email",
-d.email||email.value.trim().toLowerCase()
-);
-
-sessionStorage.setItem(
-"minegram_register_registration_id",
-d.registrationId||""
-);
-
-sessionStorage.setItem(
-"minegram_register_password",
-password.value
-);
-
-sessionStorage.setItem(
-"minegram_register_account_number",
-String(d.accountNumber||"")
-);
-
-/* =========================================================
-   KAYIT SONRASI HESAP DOĞRULAMA SAYFASINA GEÇ
-========================================================= */
-
-window.location.href=
-"/hesap-doğrulama.html?mode=register"
-+"&registrationId="+encodeURIComponent(d.registrationId)
-+"&email="+encodeURIComponent(
-d.email||email.value.trim().toLowerCase()
-)
-+"&username="+encodeURIComponent(username);
-
-}catch(e){
-
-show(e.message||"Kayıt başarısız.");
-next.disabled=false;
-next.textContent="İleri";
-
-}
-
-};
-
-if(!username){
-show("Kullanıcı adı bulunamadı. Kayıt işlemine baştan başla.");
-next.disabled=true;
-}
-
-refresh();
-
-})();
+continueButton.addEventListener("click",resetPassword);
+usernameInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();resetPassword();}});
 </script>
-
 </body>
 </html>
