@@ -5290,29 +5290,35 @@ function saveSmtpPublicConfig() {
   fs.writeFileSync(smtpConfigFile, JSON.stringify(safe, null, 2), "utf8");
 }
 
-function smtpPublicConfig() {
-  const passConfigured = Boolean(env("SMTP_PASS"));
+function mailPublicConfig() {
+  const provider = String(env("MAIL_API_PROVIDER") || "resend").trim().toLowerCase();
+  const apiKeyConfigured = Boolean(env("RESEND_API_KEY"));
   const publicBaseUrl = String(env("PUBLIC_BASE_URL") || "").trim().replace(/\/$/, "");
+  const fromEmail = String(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || "").trim();
+  const fromName = String(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram").trim();
   return {
     ok: true,
-    configured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.fromEmail && passConfigured),
+    provider,
+    configured: provider === "resend" ? Boolean(apiKeyConfigured && fromEmail) : Boolean(smtpRuntime.host && smtpRuntime.user && fromEmail && env("SMTP_PASS")),
+    apiKeyConfigured,
     host: smtpRuntime.host || "",
     port: Number(smtpRuntime.port) || 587,
     user: smtpRuntime.user || "",
-    fromName: smtpRuntime.fromName || "Minegram",
-    fromEmail: smtpRuntime.fromEmail || "",
-    hasSmtpPassword: passConfigured,
+    fromName,
+    fromEmail,
+    hasSmtpPassword: Boolean(env("SMTP_PASS")),
     codeLength: Number(smtpRuntime.codeLength) || 6,
     expiryMinutes: Number(smtpRuntime.expiryMinutes) || 10,
     cooldownSeconds: Number(smtpRuntime.cooldownSeconds) || 60,
-    // Mevcut admin.html eski "HTTPS Mail Gateway" alanlarını kullanıyor.
-    // Aynı server.js içindeki /api/send-mail endpoint'ini göstererek geriye dönük uyumluluk sağlıyoruz.
     gatewayUrl: publicBaseUrl ? `${publicBaseUrl}/api/send-mail` : "/api/send-mail",
-    gatewayConfigured: Boolean(smtpRuntime.host && smtpRuntime.user && smtpRuntime.fromEmail && passConfigured),
+    gatewayConfigured: provider === "resend" ? Boolean(apiKeyConfigured && fromEmail) : Boolean(smtpRuntime.host && smtpRuntime.user && fromEmail && env("SMTP_PASS")),
     gatewayTokenRequired: Boolean(env("MAIL_GATEWAY_TOKEN")),
     gatewayTokenConfigured: Boolean(env("MAIL_GATEWAY_TOKEN"))
   };
 }
+
+// Eski admin paneli değişmeden çalışsın diye eski isim korunuyor.
+const smtpPublicConfig = mailPublicConfig;
 
 async function verifyFirebaseAdminToken(req) {
   const authHeader = String(req.headers.authorization || "").trim();
@@ -5335,11 +5341,6 @@ async function verifyFirebaseAdminToken(req) {
   if (!response.ok || !firebaseUser?.localId) {
     throw new Error(`Firebase admin oturumu doğrulanamadı: ${data?.error?.message || `HTTP ${response.status}`}`);
   }
-
-  /*
-     Önce mevcut Minegram admin UID'si kontrol edilir.
-     Böylece admin panelindeki Firebase hesabı ile aynı hesap çalışır.
-  */
   if (firebaseUser.localId !== MAIL_ADMIN_UID) {
     throw new Error("Bu Firebase hesabının Minegram admin yetkisi yok.");
   }
@@ -5352,7 +5353,7 @@ async function smtpAdminAuth(req, res, next) {
     return next();
   } catch (e) {
     const message = e?.message || "Admin oturumu doğrulanamadı.";
-    console.error("SMTP ADMIN AUTH ERROR:", message);
+    console.error("MAIL ADMIN AUTH ERROR:", message);
     return res.status(401).json({ ok: false, error: message });
   }
 }
@@ -5363,13 +5364,11 @@ function smtpBaseConfig() {
   const user = String(smtpRuntime.user || env("SMTP_USER") || "").trim();
   const pass = String(env("SMTP_PASS") || "");
   const fromEmail = String(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || user || "").trim();
-
   if (!host) throw new Error("SMTP_HOST ayarlanmadı.");
   if (![465, 587].includes(configuredPort)) throw new Error("SMTP portu 465 veya 587 olmalı.");
   if (!user) throw new Error("SMTP_USER ayarlanmadı.");
   if (!pass) throw new Error("SMTP_PASS ayarlanmadı.");
   if (!fromEmail) throw new Error("Gönderici e-posta ayarlanmadı. MAIL_FROM_EMAIL veya SMTP_USER ayarlayın.");
-
   return { host, configuredPort, user, pass, fromEmail };
 }
 
@@ -5383,10 +5382,7 @@ function createSmtpTransport(config, port) {
     greetingTimeout: 30000,
     socketTimeout: 30000,
     dnsTimeout: 15000,
-    tls: {
-      servername: config.host,
-      minVersion: "TLSv1.2"
-    }
+    tls: { servername: config.host, minVersion: "TLSv1.2" }
   });
 }
 
@@ -5394,7 +5390,6 @@ async function smtpTransport() {
   const config = smtpBaseConfig();
   const ports = [config.configuredPort, config.configuredPort === 587 ? 465 : 587];
   let lastError = null;
-
   for (const port of ports) {
     const transporter = createSmtpTransport(config, port);
     try {
@@ -5406,7 +5401,6 @@ async function smtpTransport() {
       console.error(`SMTP bağlantı testi başarısız (${config.host}:${port}):`, error?.message || error);
     }
   }
-
   const detail = lastError?.code ? ` [${lastError.code}]` : "";
   throw new Error(`SMTP sunucusuna bağlanılamadı: ${config.host}. 587 ve 465 portları denendi.${detail} ${lastError?.message || ""}`.trim());
 }
@@ -5415,7 +5409,6 @@ async function sendSmtpEmail({ to, subject, html, text: textBody }) {
   const recipient = emailAddress(to, "Alıcı e-posta adresi");
   const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || smtpRuntime.user || env("SMTP_USER"), "Gönderici e-posta adresi");
   const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
-
   const connection = await smtpTransport();
   try {
     await connection.transporter.sendMail({
@@ -5431,9 +5424,40 @@ async function sendSmtpEmail({ to, subject, html, text: textBody }) {
   return true;
 }
 
-/* Eski fonksiyon adını koruyoruz; kayıt ve şifre sıfırlama kodlarının diğer bölümleri değişmeden çalışır. */
+async function sendResendEmail({ to, subject, html, text: textBody }) {
+  const apiKey = String(env("RESEND_API_KEY") || "").trim();
+  if (!apiKey) throw new Error("RESEND_API_KEY Render Environment Variables içinde ayarlanmadı.");
+
+  const recipient = emailAddress(to, "Alıcı e-posta adresi");
+  const fromEmail = emailAddress(smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || "", "Gönderici e-posta adresi");
+  const fromName = emailEscapeHeader(smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      from: `${fromName} <${fromEmail}>`,
+      to: [recipient],
+      subject: emailEscapeHeader(subject),
+      html: html || undefined,
+      text: textBody || undefined
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data?.message || data?.error || `HTTP ${response.status}`;
+    throw new Error(`Resend e-posta gönderimi başarısız: ${detail}`);
+  }
+  return data?.id || true;
+}
+
 async function sendMailGatewayEmail(args) {
-  return sendSmtpEmail(args);
+  const provider = String(env("MAIL_API_PROVIDER") || "resend").trim().toLowerCase();
+  if (provider === "smtp") return sendSmtpEmail(args);
+  return sendResendEmail(args);
 }
 
 app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
@@ -5443,65 +5467,53 @@ app.get("/api/admin/email-service/status", smtpAdminAuth, (req, res) => {
 app.post("/api/admin/email-service/config", smtpAdminAuth, (req, res) => {
   try {
     const body = req.body || {};
-
-    // Eski admin.html gatewayUrl/gatewayToken alanlarını gönderiyor.
-    // Bu sürümde gönderim yine aynı server.js içindeki SMTP üzerinden yapılır.
-    // gatewayUrl yalnızca arayüz uyumluluğu içindir; SMTP host/port/user Render env'den gelir.
     const gatewayUrl = String(body.gatewayUrl || "").trim();
     if (gatewayUrl) {
-      try {
-        const parsed = new URL(gatewayUrl, `${req.protocol}://${req.get("host")}`);
-        const path = parsed.pathname.replace(/\/+$/, "");
-        if (path !== "/api/send-mail") {
-          throw new Error("Mail Gateway URL bu server.js içindeki /api/send-mail adresini göstermeli.");
-        }
-      } catch (gatewayError) {
-        throw new Error(gatewayError?.message || "Mail Gateway URL geçersiz.");
-      }
+      const parsed = new URL(gatewayUrl, `${req.protocol}://${req.get("host")}`);
+      const path = parsed.pathname.replace(/\/+$/, "");
+      if (path !== "/api/send-mail") throw new Error("Mail Gateway URL bu server.js içindeki /api/send-mail adresini göstermeli.");
     }
 
     const host = emailEscapeHeader(body.host || body.smtpHost || smtpRuntime.host || env("SMTP_HOST"));
     const port = Number(body.port || body.smtpPort || smtpRuntime.port || 587);
     const user = emailEscapeHeader(body.user || body.smtpUser || smtpRuntime.user || env("SMTP_USER"));
-    const fromName = emailEscapeHeader(body.fromName || smtpRuntime.fromName || "Minegram");
+    const fromName = emailEscapeHeader(body.fromName || smtpRuntime.fromName || env("MAIL_FROM_NAME") || "Minegram");
     const suppliedFromEmail = emailEscapeHeader(body.fromEmail || "");
     const fromEmail = suppliedFromEmail
       ? emailAddress(suppliedFromEmail, "Gönderici e-posta adresi")
       : (smtpRuntime.fromEmail || env("MAIL_FROM_EMAIL") || user || "");
 
-    if (!host) throw new Error("SMTP host gerekli.");
-    if (![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
-    if (!user) throw new Error("SMTP kullanıcı adı gerekli.");
-    if (!fromEmail) throw new Error("Gönderici e-posta adresi gerekli.");
+    if (host && ![465, 587].includes(port)) throw new Error("SMTP portu 465 veya 587 olmalı.");
+    if (host && !user) throw new Error("SMTP kullanıcı adı gerekli.");
+    if (!fromEmail) throw new Error("Gönderici e-posta adresi gerekli. Resend için MAIL_FROM_EMAIL ayarlayın.");
 
-    smtpRuntime = { ...smtpRuntime, host, port, user, fromName, fromEmail };
+    smtpRuntime = { ...smtpRuntime, host, port: port || 587, user, fromName, fromEmail };
     saveSmtpPublicConfig();
-
-    /* Güvenlik: SMTP şifresi admin panelinden dosyaya kaydedilmez. */
     return res.json({
       ...smtpPublicConfig(),
       ok: true,
-      message: env("SMTP_PASS")
-        ? "SMTP ayarları kaydedildi. Admin paneli artık bu server.js içindeki SMTP servisiyle uyumlu."
-        : "SMTP ayarları kaydedildi ancak SMTP_PASS Render Environment Variables içinde ayarlanmalı."
+      message: String(env("MAIL_API_PROVIDER") || "resend").toLowerCase() === "smtp"
+        ? (env("SMTP_PASS") ? "SMTP ayarları kaydedildi." : "SMTP ayarları kaydedildi ancak SMTP_PASS Render Environment Variables içinde ayarlanmalı.")
+        : (env("RESEND_API_KEY") ? "Resend ayarları kaydedildi. Gönderim HTTP API üzerinden yapılacak." : "Resend seçili. RESEND_API_KEY Render Environment Variables içinde ayarlanmalı.")
     });
   } catch (e) {
-    return res.status(400).json({ ok: false, error: e?.message || "SMTP ayarları kaydedilemedi." });
+    return res.status(400).json({ ok: false, error: e?.message || "E-posta ayarları kaydedilemedi." });
   }
 });
 
 app.post("/api/admin/email-service/test", smtpAdminAuth, async (req, res) => {
   try {
     const to = emailAddress(req.body?.to, "Test alıcı e-posta adresi");
-    await sendSmtpEmail({
+    const provider = String(env("MAIL_API_PROVIDER") || "resend").trim().toLowerCase();
+    await sendMailGatewayEmail({
       to,
-      subject: "Minegram SMTP test e-postası",
-      text: "Minegram doğrudan SMTP e-posta servisi başarıyla çalışıyor.",
-      html: "<div style=\"font-family:Arial,sans-serif;padding:24px\"><h2>Minegram</h2><p>Doğrudan SMTP e-posta servisi başarıyla çalışıyor.</p></div>"
+      subject: "Minegram e-posta servis test e-postası",
+      text: `Minegram e-posta servisi başarıyla çalışıyor. Sağlayıcı: ${provider}`,
+      html: `<div style="font-family:Arial,sans-serif;padding:24px"><h2>Minegram</h2><p>E-posta servisi başarıyla çalışıyor.</p><p>Sağlayıcı: <b>${provider}</b></p></div>`
     });
-    res.json({ ok: true, message: "Test e-postası gönderildi." });
+    res.json({ ok: true, message: `Test e-postası gönderildi. Sağlayıcı: ${provider}` });
   } catch (e) {
-    console.error("SMTP TEST ERROR:", e?.message || e);
+    console.error("MAIL TEST ERROR:", e?.message || e);
     res.status(400).json({ ok: false, error: e?.message || "Test e-postası gönderilemedi." });
   }
 });
@@ -5522,7 +5534,6 @@ app.post("/api/admin/email-service/verification-config", smtpAdminAuth, (req, re
   }
 });
 
-
 /* =========================================================
    MINEGRAM MAIL GATEWAY — ADMIN PANEL UYUMLU
    Gateway Token isteğe bağlıdır. MAIL_GATEWAY_TOKEN boşsa
@@ -5533,19 +5544,11 @@ const MAIL_GATEWAY_TOKEN = env("MAIL_GATEWAY_TOKEN");
 function gatewayAuth(req, res, next) {
   const required = String(MAIL_GATEWAY_TOKEN || "").trim();
   if (!required) return next();
-
   const authHeader = String(req.headers.authorization || "").trim();
   const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
   const gatewayToken = String(req.headers["x-mail-gateway-token"] || "").trim();
   const supplied = bearerToken || gatewayToken;
-
-  if (supplied !== required) {
-    return res.status(401).json({
-      ok: false,
-      success: false,
-      error: "Geçersiz Mail Gateway Token."
-    });
-  }
+  if (supplied !== required) return res.status(401).json({ ok: false, success: false, error: "Geçersiz Mail Gateway Token." });
   next();
 }
 
@@ -5564,6 +5567,7 @@ app.get("/api/mail-gateway/status", (req, res) => {
     ok: true,
     success: true,
     service: "Minegram Mail Gateway",
+    provider: config.provider,
     configured: config.configured,
     tokenRequired: Boolean(MAIL_GATEWAY_TOKEN),
     fromName: config.fromName,
@@ -5576,36 +5580,25 @@ app.post("/api/send-mail", gatewayAuth, async (req, res) => {
     const payload = gatewayPayload(req.body || {});
     if (!payload.to) throw new Error("Alıcı e-posta adresi gerekli.");
     if (!payload.html && !payload.text) throw new Error("E-posta içeriği gerekli.");
-
-    await sendSmtpEmail(payload);
-    res.json({
-      ok: true,
-      success: true,
-      message: "E-posta başarıyla gönderildi."
-    });
+    await sendMailGatewayEmail(payload);
+    res.json({ ok: true, success: true, message: "E-posta başarıyla gönderildi." });
   } catch (e) {
     console.error("MAIL GATEWAY ERROR:", e?.message || e);
-    res.status(400).json({
-      ok: false,
-      success: false,
-      error: e?.message || "E-posta gönderilemedi."
-    });
+    res.status(400).json({ ok: false, success: false, error: e?.message || "E-posta gönderilemedi." });
   }
 });
 
-/* Bazı admin panellerinin kullandığı alternatif gateway yolları */
 app.post("/api/mail-gateway/send", gatewayAuth, async (req, res) => {
   try {
     const payload = gatewayPayload(req.body || {});
     if (!payload.to) throw new Error("Alıcı e-posta adresi gerekli.");
     if (!payload.html && !payload.text) throw new Error("E-posta içeriği gerekli.");
-    await sendSmtpEmail(payload);
+    await sendMailGatewayEmail(payload);
     res.json({ ok: true, success: true, message: "E-posta başarıyla gönderildi." });
   } catch (e) {
     res.status(400).json({ ok: false, success: false, error: e?.message || "E-posta gönderilemedi." });
   }
 });
-
 
 /* =========================================================
    FALLBACK
