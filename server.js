@@ -5305,7 +5305,11 @@ try { nodemailer = await import("nodemailer"); } catch (e) {
   console.error("Nodemailer bulunamadı. npm install çalıştırın.");
 }
 
-const MAIL_ADMIN_UID = "QJqw9moQk8XgpHcFo89bAVPk3uh1";
+// Admin yetkisi: öncelikle ortam değişkeninden alınır. Eski Minegram UID
+// yalnızca geriye dönük uyumluluk için varsayılan olarak tutulur.
+const MAIL_ADMIN_UID = env("MAIL_ADMIN_UID") || "QJqw9moQk8XgpHcFo89bAVPk3uh1";
+const FIREBASE_WEB_API_KEY = env("FIREBASE_WEB_API_KEY") || "AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo";
+const MAIL_ADMIN_EMAIL = env("MAIL_ADMIN_EMAIL") || "minegramdestek@gmail.com";
 const mailConfigFile = path.join(__dirname, "minegram-mail-smtp-config.json");
 let mailRuntime = {
   fromName: env("MAIL_FROM_NAME") || "Minegram",
@@ -5347,12 +5351,45 @@ function saveMailConfig(){
 }
 async function verifyMailAdminToken(req){
   const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"").trim();
-  if(!token) throw new Error("Admin oturumu gerekli.");
-  const sb=client(token);
-  const {data:{user},error}=await sb.auth.getUser(token);
-  if(error || !user) throw new Error("Admin oturumu geçersiz.");
-  if(MAIL_ADMIN_UID && user.id !== MAIL_ADMIN_UID) throw new Error("Bu hesap e-posta servisi yöneticisi değil.");
-  return user;
+  const firebaseToken=String(req.headers["x-firebase-id-token"]||"").trim();
+  const bearer=token || firebaseToken;
+  if(!bearer) throw new Error("Admin oturumu gerekli.");
+
+  // 1) Eski Minegram/Supabase oturumlarını destekle.
+  try {
+    const sb=client(bearer);
+    const result=await sb.auth.getUser(bearer);
+    const user=result?.data?.user;
+    if(user){
+      if(MAIL_ADMIN_UID && user.id !== MAIL_ADMIN_UID && String(user.email||"").toLowerCase() !== MAIL_ADMIN_EMAIL.toLowerCase()) throw new Error("Bu hesap e-posta servisi yöneticisi değil.");
+      return user;
+    }
+  } catch(e) {
+    // Firebase ID token ise Supabase bunu doğal olarak reddeder; aşağıda Firebase
+    // doğrulamasına geçilir. Diğer hatalar da aynı şekilde Firebase ile denenir.
+  }
+
+  // 2) Admin panel Firebase Authentication kullanıyorsa Firebase ID tokenını doğrula.
+  if(!FIREBASE_WEB_API_KEY) throw new Error("Admin oturumu geçersiz. FIREBASE_WEB_API_KEY eksik.");
+  let response;
+  try {
+    response=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({idToken:bearer})
+    });
+  } catch(e) {
+    throw new Error("Firebase admin oturumu doğrulanamadı: " + (e?.message || "bağlantı hatası"));
+  }
+  const data=await response.json().catch(()=>({}));
+  const firebaseUser=data?.users?.[0];
+  if(!response.ok || !firebaseUser?.localId){
+    throw new Error("Admin oturumu geçersiz.");
+  }
+  if(MAIL_ADMIN_UID && firebaseUser.localId !== MAIL_ADMIN_UID && String(firebaseUser.email||"").toLowerCase() !== MAIL_ADMIN_EMAIL.toLowerCase()){
+    throw new Error("Bu Firebase hesabı e-posta servisi yöneticisi değil.");
+  }
+  return {id:firebaseUser.localId,email:firebaseUser.email||"",firebase:true};
 }
 async function mailAdminAuth(req,res,next){
   try { req.mailAdmin=await verifyMailAdminToken(req); next(); }
