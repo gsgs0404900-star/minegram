@@ -3,52 +3,651 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+
 <title>Şifre oluştur - Minegram</title>
+
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-body{min-height:100vh}.page{min-height:100vh}.topbar{height:60px;display:flex;align-items:center;padding-left:38px}
-.back{font-size:34px;cursor:pointer}.top-title{margin-left:15px;font-size:20px;font-weight:700}
-.content{width:317px;margin:115px auto}.title{text-align:center;font-size:30px}.description{font-size:18px;line-height:1.45;color:#bdbdbd;margin:34px 0 65px}
-.password-box{position:relative}.password{width:100%;height:48px;padding:0 60px 0 12px;background:#050505;border:1px solid #444;border-radius:8px;color:#fff}
-.show-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#aaa;cursor:pointer}
-.message{min-height:20px;margin-top:12px;text-align:center;font-size:13px;color:#ff5c5c}.message.success{color:#55b8ff}
-.next-button{width:100%;height:48px;margin-top:25px;border:0;border-radius:24px;background:#2677b5;color:#000;font-weight:700;cursor:pointer}
-.next-button:disabled{opacity:.6}
-@media(max-width:600px){.content{width:calc(100% - 40px);margin-top:65px}.title{font-size:38px}.description{font-size:20px}.password{height:68px;font-size:18px}.next-button{height:58px;font-size:18px}}
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    min-height:100%;
+    background:#000;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    overflow-x:hidden;
+}
+
+.page{
+    width:100%;
+    min-height:100vh;
+    background:#000;
+    position:relative;
+}
+
+.topbar{
+    width:100%;
+    height:60px;
+    display:flex;
+    align-items:center;
+    padding-left:38px;
+}
+
+.back{
+    width:25px;
+    height:35px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:34px;
+    font-weight:300;
+    line-height:1;
+    cursor:pointer;
+    user-select:none;
+}
+
+.top-title{
+    margin-left:15px;
+    font-size:20px;
+    font-weight:700;
+    color:#fff;
+}
+
+.content{
+    width:317px;
+    margin:115px auto 0;
+}
+
+.title{
+    text-align:center;
+    font-size:30px;
+    line-height:1.15;
+    font-weight:700;
+    margin:0 0 34px;
+    color:#fff;
+}
+
+.description{
+    font-size:18px;
+    line-height:1.45;
+    color:#bdbdbd;
+    margin:0 0 65px;
+}
+
+.password-box{
+    position:relative;
+    width:100%;
+}
+
+.password{
+    display:block;
+    width:100%;
+    height:39px;
+    padding:0 42px 0 10px;
+    border:1px solid #252525;
+    border-radius:6px;
+    background:#050505;
+    color:#fff;
+    outline:none;
+    font-size:12px;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+.password::placeholder{
+    color:#777;
+    opacity:1;
+}
+
+.password:focus{
+    border-color:#555;
+}
+
+.show-password{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    border:0;
+    background:transparent;
+    color:#888;
+    font-size:11px;
+    cursor:pointer;
+    padding:4px;
+}
+
+.message{
+    min-height:18px;
+    margin-top:12px;
+    text-align:center;
+    font-size:11px;
+    line-height:1.4;
+    color:#ff5c5c;
+}
+
+.message.success{
+    color:#55b8ff;
+}
+
+.next-button{
+    display:block;
+    width:317px;
+    height:37px;
+    margin:28px auto 0;
+    border:0;
+    border-radius:22px;
+    background:#2677b5;
+    color:#000;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.next-button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+@media(max-width:600px){
+
+    .topbar{
+        height:70px;
+        padding-left:28px;
+    }
+
+    .back{
+        width:30px;
+        height:38px;
+        font-size:38px;
+    }
+
+    .top-title{
+        margin-left:12px;
+        font-size:21px;
+    }
+
+    .content{
+        width:calc(100% - 40px);
+        max-width:714px;
+        margin:105px auto 0;
+    }
+
+    .title{
+        font-size:42px;
+        margin-bottom:30px;
+    }
+
+    .description{
+        font-size:21px;
+        line-height:1.5;
+        margin-bottom:55px;
+    }
+
+    .password{
+        height:68px;
+        padding:0 55px 0 20px;
+        font-size:18px;
+        border:2px solid #686868;
+        border-radius:9px;
+    }
+
+    .show-password{
+        right:17px;
+        font-size:14px;
+    }
+
+    .message{
+        font-size:14px;
+    }
+
+    .next-button{
+        width:100%;
+        height:58px;
+        margin:25px auto 30px;
+        font-size:20px;
+        border-radius:32px;
+    }
+}
+
+@media(max-width:430px){
+
+    .content{
+        width:calc(100% - 40px);
+        margin-top:65px;
+    }
+
+    .title{
+        font-size:38px;
+    }
+
+    .description{
+        font-size:20px;
+    }
+
+    .next-button{
+        width:100%;
+    }
+}
 </style>
 </head>
-<body><div class="page">
-<div class="topbar"><div class="back" id="topBack">‹</div><div class="top-title">Kayıt ol</div></div>
-<main class="content">
-<h1 class="title">Şifre oluştur</h1>
-<p class="description">Hesabını korumak için güçlü bir şifre oluştur.</p>
-<div class="password-box"><input id="password" class="password" type="password" placeholder="Şifre" autocomplete="new-password" maxlength="128"><button type="button" id="showPassword" class="show-password">Göster</button></div>
-<div id="message" class="message"></div>
-<button type="button" id="nextButton" class="next-button">Hesap Oluştur</button>
-</main></div>
+
+<body>
+
+<div class="page">
+
+    <div class="topbar">
+
+        <div
+            class="back"
+            id="topBack"
+            aria-label="Geri"
+            role="button"
+            tabindex="0"
+        >‹</div>
+
+        <div class="top-title">
+            Kayıt ol
+        </div>
+
+    </div>
+
+    <main class="content">
+
+        <h1 class="title">
+            Şifre oluştur
+        </h1>
+
+        <p class="description">
+            Hesabını korumak için güçlü bir şifre oluştur.
+        </p>
+
+        <div class="password-box">
+
+            <input
+                id="password"
+                class="password"
+                type="password"
+                placeholder="Şifre"
+                autocomplete="new-password"
+                maxlength="128"
+            >
+
+            <button
+                type="button"
+                id="showPassword"
+                class="show-password"
+            >
+                Göster
+            </button>
+
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <button
+            type="button"
+            id="nextButton"
+            class="next-button"
+        >
+            İleri
+        </button>
+
+    </main>
+
+</div>
+
 <script>
-const passwordInput=document.getElementById("password"),nextButton=document.getElementById("nextButton"),message=document.getElementById("message");
-const username=(sessionStorage.getItem("minegram_register_username")||"").trim().toLowerCase();
-function showMessage(t,s=false){message.textContent=t||"";message.className="message"+(s?" success":"")}
-document.getElementById("showPassword").onclick=()=>{const h=passwordInput.type==="password";passwordInput.type=h?"text":"password";document.getElementById("showPassword").textContent=h?"Gizle":"Göster"};
-document.getElementById("topBack").onclick=()=>location.href="kayit.html";
-async function createAccount(){
- const password=passwordInput.value;
- showMessage("");
- if(!username){showMessage("Kullanıcı adı bulunamadı. Kayıt işlemine yeniden başla.");return}
- if(password.length<6){showMessage("Şifren en az 6 karakter olmalı.");passwordInput.focus();return}
- nextButton.disabled=true;nextButton.textContent="Hesap oluşturuluyor...";
- try{
-  const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password,displayName:username})});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok||!d.ok) throw new Error(d.error||"Hesap oluşturulamadı.");
-  sessionStorage.removeItem("minegram_register_username");
-  showMessage("Hesabın başarıyla oluşturuldu. Şimdi kullanıcı adın ve şifren ile giriş yapabilirsin.",true);
-  nextButton.textContent="Giriş Sayfasına Git";nextButton.disabled=false;
-  nextButton.onclick=()=>location.href="giris.html";
- }catch(e){showMessage(e.message||"Hesap oluşturulamadı.");nextButton.disabled=false;nextButton.textContent="Hesap Oluştur"}
+"use strict";
+
+
+/* =========================================
+   ELEMENTLER
+========================================= */
+
+const passwordInput =
+    document.getElementById("password");
+
+const nextButton =
+    document.getElementById("nextButton");
+
+const message =
+    document.getElementById("message");
+
+const showPassword =
+    document.getElementById("showPassword");
+
+const topBack =
+    document.getElementById("topBack");
+
+
+/* =========================================
+   MESAJ
+========================================= */
+
+function showMessage(text, type = ""){
+
+    message.textContent =
+        text || "";
+
+    message.className =
+        "message";
+
+    if(type){
+
+        message.classList.add(type);
+
+    }
+
 }
-nextButton.addEventListener("click",createAccount);
-passwordInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();createAccount()}});
-</script></body></html>
+
+
+/* =========================================
+   KULLANICI ADI
+========================================= */
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const username =
+    (
+        params.get("username") ||
+        sessionStorage.getItem(
+            "minegram_register_username"
+        ) ||
+        ""
+    )
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+
+
+/* =========================================
+   KULLANICI ADINI SAKLA
+========================================= */
+
+if(username){
+
+    sessionStorage.setItem(
+        "minegram_register_username",
+        username
+    );
+
+}
+
+
+/* =========================================
+   KAYITLI ŞİFRE
+========================================= */
+
+const savedPassword =
+    sessionStorage.getItem(
+        "minegram_register_password"
+    );
+
+if(savedPassword){
+
+    passwordInput.value =
+        savedPassword;
+
+}
+
+
+/* =========================================
+   ŞİFRE GÖSTER / GİZLE
+========================================= */
+
+showPassword.addEventListener(
+    "click",
+    function(){
+
+        if(
+            passwordInput.type ===
+            "password"
+        ){
+
+            passwordInput.type =
+                "text";
+
+            showPassword.textContent =
+                "Gizle";
+
+        }
+        else{
+
+            passwordInput.type =
+                "password";
+
+            showPassword.textContent =
+                "Göster";
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   GERİ
+========================================= */
+
+function goBack(){
+
+    let url =
+        "./kullanici-adi.html";
+
+    if(username){
+
+        url +=
+            "?username=" +
+            encodeURIComponent(username);
+
+    }
+
+    window.location.href =
+        url;
+
+}
+
+
+topBack.addEventListener(
+    "click",
+    goBack
+);
+
+
+topBack.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Enter" ||
+            event.key === " "
+        ){
+
+            event.preventDefault();
+
+            goBack();
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   ŞİFRE DEĞİŞİNCE
+========================================= */
+
+passwordInput.addEventListener(
+    "input",
+    function(){
+
+        showMessage("");
+
+    }
+);
+
+
+/* =========================================
+   İLERİ
+========================================= */
+
+function goNext(){
+
+    const password =
+        passwordInput.value;
+
+
+    /* KULLANICI ADI */
+
+    if(!username){
+
+        showMessage(
+            "Kullanıcı adı bulunamadı."
+        );
+
+        return;
+
+    }
+
+
+    /* ŞİFRE */
+
+    if(!password){
+
+        showMessage(
+            "Lütfen bir şifre oluştur."
+        );
+
+        passwordInput.focus();
+
+        return;
+
+    }
+
+
+    if(password.length < 6){
+
+        showMessage(
+            "Şifren en az 6 karakter olmalı."
+        );
+
+        passwordInput.focus();
+
+        return;
+
+    }
+
+
+    /* =====================================
+       ŞİFREYİ KAYDET
+    ===================================== */
+
+    sessionStorage.setItem(
+        "minegram_register_password",
+        password
+    );
+
+
+    /* =====================================
+       BUTONU KİLİTLE
+    ===================================== */
+
+    nextButton.disabled =
+        true;
+
+    nextButton.textContent =
+        "Devam ediliyor...";
+
+
+    showMessage(
+        "Devam ediliyor...",
+        "success"
+    );
+
+
+    /* =====================================
+       İLETİŞİM SAYFASINA GİT
+    ===================================== */
+
+    const url =
+        "./iletisim-bilgileri.html?username=" +
+        encodeURIComponent(username);
+
+
+    setTimeout(
+        function(){
+
+            window.location.href =
+                url;
+
+        },
+        250
+    );
+
+}
+
+
+/* =========================================
+   İLERİ BUTONU
+========================================= */
+
+nextButton.addEventListener(
+    "click",
+    goNext
+);
+
+
+/* =========================================
+   ENTER
+========================================= */
+
+passwordInput.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            goNext();
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   DEBUG
+========================================= */
+
+console.log(
+    "[MINEGRAM] Şifre sayfası hazır."
+);
+
+console.log(
+    "[MINEGRAM] Username:",
+    username
+);
+
+console.log(
+    "[MINEGRAM] Şifre kayıt akışı hazır."
+);
+
+</script>
+
+</body>
+</html>
