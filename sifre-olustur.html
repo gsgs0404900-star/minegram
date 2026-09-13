@@ -1,32 +1,178 @@
 <!DOCTYPE html>
+
 <html lang="tr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kayıt ol - Minegram</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}.page{min-height:100vh;background:#000}.topbar{height:60px;display:flex;align-items:center;padding-left:38px}.back{width:25px;height:35px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;cursor:pointer}.top-title{margin-left:15px;font-size:20px;font-weight:700}.content{width:317px;margin:90px auto 0}.title{text-align:center;font-size:30px;margin:0 0 28px}.description{font-size:16px;line-height:1.5;color:#aaa;margin:0 0 28px;text-align:center}.field{width:100%;height:48px;background:#050505;color:#fff;border:1px solid #333;border-radius:8px;padding:0 14px;margin-bottom:12px;outline:none}.field:focus{border-color:#777}.next{width:100%;height:48px;border:0;border-radius:24px;background:#2677b5;color:#000;font-weight:700;cursor:pointer;margin-top:10px}.next:disabled{opacity:.55;cursor:not-allowed}.msg{text-align:center;min-height:20px;margin-top:14px;font-size:13px;color:#ff6464}.success{color:#55d98b}.small{text-align:center;color:#777;font-size:12px;margin-top:18px;line-height:1.5}@media(max-width:430px){.content{width:calc(100% - 40px);margin-top:65px}.title{font-size:28px}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
+.page{min-height:100vh;background:#000}
+.topbar{height:60px;display:flex;align-items:center;padding-left:38px}
+.back{width:25px;height:35px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;cursor:pointer}
+.top-title{margin-left:15px;font-size:20px;font-weight:700}
+.content{width:317px;margin:90px auto 0}
+.title{text-align:center;font-size:30px;margin:0 0 28px}
+.description{font-size:16px;line-height:1.5;color:#aaa;margin:0 0 28px;text-align:center}
+.field{width:100%;height:48px;background:#050505;color:#fff;border:1px solid #333;border-radius:8px;padding:0 14px;margin-bottom:12px;outline:none}
+.field:focus{border-color:#777}
+.next{width:100%;height:48px;border:0;border-radius:24px;background:#2677b5;color:#000;font-weight:700;cursor:pointer;margin-top:10px}
+.next:disabled{opacity:.55;cursor:not-allowed}
+.msg{text-align:center;min-height:20px;margin-top:14px;font-size:13px;color:#ff6464}
+.success{color:#55d98b}
+.small{text-align:center;color:#777;font-size:12px;margin-top:18px;line-height:1.5}
+@media(max-width:430px){
+.content{width:calc(100% - 40px);margin-top:65px}
+.title{font-size:28px}
+}
 </style>
 </head>
-<body><div class="page"><div class="topbar"><div class="back" onclick="history.back()">‹</div><div class="top-title">Kayıt ol</div></div>
-<main class="content"><h1 class="title">Hesabını oluştur</h1><p class="description">Kullanıcı adın için bir şifre ve doğrulama kodunun gönderileceği e-posta adresini gir.</p>
+
+<body>
+<div class="page">
+<div class="topbar">
+<div class="back" onclick="history.back()">‹</div>
+<div class="top-title">Kayıt ol</div>
+</div>
+
+<main class="content">
+<h1 class="title">Hesabını oluştur</h1>
+
+<p class="description">
+Kullanıcı adın için bir şifre ve doğrulama kodunun gönderileceği e-posta adresini gir.
+</p>
+
 <input id="email" class="field" type="email" autocomplete="email" placeholder="E-posta adresi">
 <input id="password" class="field" type="password" autocomplete="new-password" placeholder="Şifre (en az 6 karakter)">
 <input id="password2" class="field" type="password" autocomplete="new-password" placeholder="Şifreyi tekrar yaz">
-<button id="next" class="next" disabled>İleri</button><div id="msg" class="msg"></div><div class="small">Aynı e-posta adresiyle en fazla 20 Minegram hesabı oluşturabilirsin.</div></main></div>
+
+<button id="next" class="next" disabled>İleri</button>
+
+<div id="msg" class="msg"></div>
+
+<div class="small">
+Aynı e-posta adresiyle en fazla 20 Minegram hesabı oluşturabilirsin.
+</div>
+</main>
+</div>
+
 <script>
-(() => {"use strict";
-const $=id=>document.getElementById(id), email=$("email"), password=$("password"), password2=$("password2"), next=$("next"), msg=$("msg");
+(() => {
+"use strict";
+
+const $=id=>document.getElementById(id),
+email=$("email"),
+password=$("password"),
+password2=$("password2"),
+next=$("next"),
+msg=$("msg");
+
 const username=(sessionStorage.getItem("minegram_register_username")||"").trim().toLowerCase();
-function show(t,ok=false){msg.textContent=t||"";msg.className="msg"+(ok?" success":"")}
-function valid(){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())&&password.value.length>=6&&password.value===password2.value&&!!username}
-function refresh(){next.disabled=!valid(); if(password2.value&&password.value!==password2.value)show("Şifreler eşleşmiyor."); else if(username)show("")}
+
+function show(t,ok=false){
+msg.textContent=t||"";
+msg.className="msg"+(ok?" success":"");
+}
+
+function valid(){
+return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())
+&&password.value.length>=6
+&&password.value===password2.value
+&&!!username;
+}
+
+function refresh(){
+next.disabled=!valid();
+
+if(password2.value&&password.value!==password2.value)
+show("Şifreler eşleşmiyor.");
+else if(username)
+show("");
+}
+
 [email,password,password2].forEach(x=>x.addEventListener("input",refresh));
-next.onclick=async()=>{if(!valid())return;next.disabled=true;next.textContent="Gönderiliyor...";show("Doğrulama kodu e-postana gönderiliyor...");
-try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},credentials:"include",cache:"no-store",body:JSON.stringify({username,email:email.value.trim().toLowerCase(),password:password.value,displayName:username})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Kayıt başarısız.");
-sessionStorage.setItem("minegram_register_email",d.email||email.value.trim().toLowerCase());sessionStorage.setItem("minegram_register_registration_id",d.registrationId||"");sessionStorage.setItem("minegram_register_password",password.value);sessionStorage.setItem("minegram_register_account_number",String(d.accountNumber||""));
-window.location.href="/dogrulama.html?mode=register&registrationId="+encodeURIComponent(d.registrationId)+"&email="+encodeURIComponent(d.email||email.value.trim().toLowerCase())+"&username="+encodeURIComponent(username);
-}catch(e){show(e.message||"Kayıt başarısız.");next.disabled=false;next.textContent="İleri"}}
-if(!username){show("Kullanıcı adı bulunamadı. Kayıt işlemine baştan başla.");next.disabled=true}
+
+next.onclick=async()=>{
+if(!valid())return;
+
+next.disabled=true;
+next.textContent="Gönderiliyor...";
+show("Doğrulama kodu e-postana gönderiliyor...");
+
+try{
+
+const r=await fetch("/api/register",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Accept":"application/json"
+},
+credentials:"include",
+cache:"no-store",
+body:JSON.stringify({
+username,
+email:email.value.trim().toLowerCase(),
+password:password.value,
+displayName:username
+})
+});
+
+const d=await r.json().catch(()=>({}));
+
+if(!r.ok)
+throw new Error(d.error||"Kayıt başarısız.");
+
+sessionStorage.setItem(
+"minegram_register_email",
+d.email||email.value.trim().toLowerCase()
+);
+
+sessionStorage.setItem(
+"minegram_register_registration_id",
+d.registrationId||""
+);
+
+sessionStorage.setItem(
+"minegram_register_password",
+password.value
+);
+
+sessionStorage.setItem(
+"minegram_register_account_number",
+String(d.accountNumber||"")
+);
+
+/* =========================================================
+   KAYIT SONRASI HESAP DOĞRULAMA SAYFASINA GEÇ
+========================================================= */
+
+window.location.href=
+"/hesap-doğrulama.html?mode=register"
++"&registrationId="+encodeURIComponent(d.registrationId)
++"&email="+encodeURIComponent(
+d.email||email.value.trim().toLowerCase()
+)
++"&username="+encodeURIComponent(username);
+
+}catch(e){
+
+show(e.message||"Kayıt başarısız.");
+next.disabled=false;
+next.textContent="İleri";
+
+}
+
+};
+
+if(!username){
+show("Kullanıcı adı bulunamadı. Kayıt işlemine baştan başla.");
+next.disabled=true;
+}
+
 refresh();
+
 })();
-</script></body></html>
+</script>
+
+</body>
+</html>
