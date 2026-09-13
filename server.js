@@ -3053,10 +3053,11 @@ app.get(
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const { data, error } = await req.sb
+      const highlightUserId = target.auth_user_id || target.id;
+      const { data, error } = await adminClient()
         .from("highlights")
         .select("*")
-        .eq("user_id", target.id)
+        .eq("user_id", highlightUserId)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
 
@@ -3673,7 +3674,7 @@ app.get(
         data,
         error
       } =
-        await req.sb
+        await adminClient()
           .from("stories")
           .select(`
             *,
