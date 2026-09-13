@@ -373,6 +373,11 @@ async function addNotification({
     });
 }
 
+
+// Aktif canlı yayınlar sunucu belleğinde tutulur. Böylece aynı anda bağlı diğer
+// cihazlar canlı yayını keşfedebilir. Sunucu yeniden başlarsa aktif yayınlar sıfırlanır.
+const activeMinegramLives = new Map();
+
 async function hydratePosts(
   sb,
   posts,
@@ -3570,6 +3575,85 @@ app.delete(
     }
   }
 );
+
+
+/* =========================================================
+   LIVE STREAMS
+========================================================= */
+
+app.post(
+  "/api/live/start",
+  auth,
+  async (req, res) => {
+    try {
+      const username = req.user.username || "Kullanıcı";
+      const title = String(req.body?.title || "").trim();
+      const live = {
+        userId: req.user.id,
+        username,
+        title,
+        startedAt: new Date().toISOString()
+      };
+      activeMinegramLives.set(String(req.user.id), live);
+
+      const admin = adminClient();
+      const { data: followers, error: followerError } = await admin
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", req.user.id);
+      if (followerError) throw followerError;
+
+      // Public hesapta takip edenlere; gizli hesapta ise zaten onaylanmış
+      // takipçilere bildirim gider. Takip ilişkisi onaylanmış olmanın kanıtıdır.
+      const recipients = [...new Set((followers || []).map(x => x.follower_id).filter(Boolean))];
+      for (const followerId of recipients) {
+        await addNotification({
+          userId: followerId,
+          fromUserId: req.user.id,
+          type: "live_started",
+          text: `🔴 @${username} canlı yayın başlattı`
+        });
+      }
+
+      return res.json({ ok: true, live });
+    } catch (e) {
+      return res.status(400).json({ error: e?.message || "Canlı yayın başlatılamadı" });
+    }
+  }
+);
+
+app.post(
+  "/api/live/end",
+  auth,
+  async (req, res) => {
+    activeMinegramLives.delete(String(req.user.id));
+    return res.json({ ok: true });
+  }
+);
+
+app.get(
+  "/api/live",
+  auth,
+  async (req, res) => {
+    try {
+      const admin = adminClient();
+      const { data: followingRows, error } = await admin
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", req.user.id);
+      if (error) throw error;
+
+      const allowed = new Set([String(req.user.id), ...(followingRows || []).map(x => String(x.following_id))]);
+      const lives = [...activeMinegramLives.values()]
+        .filter(live => allowed.has(String(live.userId)))
+        .map(live => ({ ...live }));
+      return res.json(lives);
+    } catch (e) {
+      return res.status(400).json({ error: e?.message || "Canlı yayınlar alınamadı" });
+    }
+  }
+);
+
 
 /* =========================================================
    STORIES CREATE
