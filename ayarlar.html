@@ -2373,7 +2373,7 @@ previewGrid.appendChild(item);
 
 document.getElementById(
 'sendReport'
-).onclick=function(){
+).onclick=async function(){
 
 const text=
 document.getElementById(
@@ -2387,13 +2387,86 @@ toast(
 );
 
 return;
-
 }
 
-toast(
-'Sorun bildirimi hazır. Backend bağlantısı bekleniyor.'
-);
+const button=document.getElementById('sendReport');
+if(button.disabled)return;
+button.disabled=true;
+button.textContent='Gönderiliyor...';
 
+toast('Sorun bildirimi gönderiliyor...');
+
+try{
+  const tokenKeys=[
+    'minegram_token',
+    'minegram_supabase_token',
+    'minegram_access_token',
+    'supabase_token',
+    'access_token'
+  ];
+  let token='';
+  for(const key of tokenKeys){
+    const value=localStorage.getItem(key);
+    if(value){token=value;break;}
+  }
+
+  const attachments=[];
+  for(const file of selectedPhotos.slice(0,2)){
+    const data=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||''));
+      reader.onerror=()=>reject(new Error('Fotoğraf okunamadı'));
+      reader.readAsDataURL(file);
+    });
+    attachments.push({
+      filename:file.name,
+      contentType:file.type || 'image/jpeg',
+      data:String(data).replace(/^data:image\/[^;]+;base64,/,'')
+    });
+  }
+
+  const headers={
+    'Content-Type':'application/json'
+  };
+  if(token){
+    headers['Authorization']='Bearer '+token;
+  }
+
+  const response=await fetch('/api/problem-reports',{
+    method:'POST',
+    headers:headers,
+    credentials:'include',
+    body:JSON.stringify({
+      description:text.slice(0,2000),
+      attachments:attachments
+    })
+  });
+
+  let result={};
+  try{result=await response.json();}catch(_){result={};}
+
+  if(!response.ok){
+    throw new Error(
+      result.error ||
+      result.message ||
+      ('HTTP '+response.status)
+    );
+  }
+
+  document.getElementById('reportText').value='';
+  selectedPhotos=[];
+  photoInput.value='';
+  renderPreviews();
+  toast('Sorun bildirimin destek ekibine gönderildi');
+
+}catch(error){
+  console.error('Minegram problem report error:',error);
+  toast(error?.message || 'Sorun bildirimi gönderilemedi');
+
+}finally{
+  button.disabled=false;
+  button.textContent='Gönder';
+}
 };
 
 
