@@ -4326,13 +4326,54 @@ function logout(){
    PROFILE URL
 ========================================================= */
 
-function profileUrl(username){
+function profileUrl(username, userId){
+
+  const cleanUsername=String(username||"").replace(/^@/,"").trim();
+  const cleanUserId=String(userId||"").trim();
+
+  /* Profil sayfasının mevcut kullanıcıyı göstermemesi için hedef profili
+     sessionStorage'a açıkça aktar. profile.html bu kaydı kullanabilir. */
+  try{
+    const currentProfileRaw=localStorage.getItem("minegram_profile");
+    let currentProfile={};
+    try{ currentProfile=currentProfileRaw ? JSON.parse(currentProfileRaw) : {}; }catch(e){}
+
+    const targetProfile={
+      ...currentProfile,
+      username:cleanUsername,
+      id:cleanUserId || currentProfile.id || currentProfile.userId || "",
+      userId:cleanUserId || currentProfile.userId || currentProfile.id || "",
+      avatar:currentProfile.avatar || currentProfile.avatar_url || "",
+      displayName:currentProfile.displayName || currentProfile.display_name || cleanUsername
+    };
+
+    sessionStorage.setItem("minegram_selected_profile",JSON.stringify(targetProfile));
+    sessionStorage.setItem("minegram_profile_target_username",cleanUsername);
+    if(cleanUserId) sessionStorage.setItem("minegram_profile_target_id",cleanUserId);
+  }catch(e){}
 
   return (
     "profile.html?user="+
-    encodeURIComponent(username)
+    encodeURIComponent(cleanUsername)+
+    (cleanUserId ? "&userId="+encodeURIComponent(cleanUserId) : "")
   );
 
+}
+
+function openMinegramProfileFromPost(event, element){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const username=String(element?.getAttribute("data-profile-username") || element?.getAttribute("data-story-username") || "").replace(/^@/,"").trim();
+  const userId=String(element?.getAttribute("data-profile-user-id") || element?.getAttribute("data-story-user-id") || "").trim();
+  if(!username){
+    toast("Profil kullanıcısı bulunamadı");
+    return;
+  }
+
+  location.href=profileUrl(username,userId);
 }
 
 
@@ -4492,8 +4533,10 @@ function renderPost(p){
           class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          data-profile-username="${esc(rawUsername)}"
+          data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
-          onclick="event.preventDefault(); event.stopPropagation(); location.href=profileUrl(this.getAttribute('data-story-username') || '');"
+          onclick="openMinegramProfileFromPost(event,this)"
         >
           ${(() => {
             const postAvatar =
@@ -4513,7 +4556,9 @@ function renderPost(p){
 
         <div
           class="username"
-          onclick="location.href='${profileUrl(username)}'"
+          data-profile-username="${esc(rawUsername)}"
+          data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          onclick="openMinegramProfileFromPost(event,this)"
         >
           @${username}
         </div>
