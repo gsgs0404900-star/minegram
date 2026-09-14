@@ -207,15 +207,22 @@ body{
   margin:0
 }
 
+.post-head .avatar.small.post-story-avatar{
+  cursor:pointer;
+  position:relative;
+  z-index:20;
+}
+
+.post-head .avatar.small.post-story-has-story{
+  outline:2px solid #777 !important;
+  outline-offset:3px;
+}
+
 .post-head .avatar.small.post-story-new{
   outline:2px solid #e53935 !important;
   outline-offset:3px;
   position:relative;
   z-index:20;
-  cursor:pointer;
-}
-
-.post-head .avatar.small.post-story-avatar{
   cursor:pointer;
 }
 
@@ -2134,6 +2141,9 @@ onclick="sendComment()"
     window.__minegramOpenStoryGroup = function(group,index){
       if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
     };
+    if(typeof window.updateMinegramPostStoryRings === "function"){
+      window.updateMinegramPostStoryRings();
+    }
 
     storyGroups.forEach(function(group){
       group.stories.sort(function(a,b){
@@ -4364,6 +4374,7 @@ window.updateMinegramPostStoryRings=function(){
       if(!story || !story.id) return false;
       try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
     });
+    el.classList.toggle("post-story-has-story",has);
     el.classList.toggle("post-story-new",unseen);
     el.title=has ? "Hikayeyi aç" : "";
   });
@@ -4391,6 +4402,16 @@ function renderPost(p){
         .charAt(0)
         .toUpperCase()
     );
+
+  const postAvatar =
+    p.user?.avatar_url ||
+    p.user?.avatarUrl ||
+    p.user?.photoURL ||
+    p.user?.photoUrl ||
+    p.avatar_url ||
+    p.avatarUrl ||
+    p.profileImage ||
+    "";
 
 
   const liked=
@@ -4473,7 +4494,9 @@ function renderPost(p){
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
           onclick="openMinegramStoryFromPostAvatar(event,this)"
         >
-          ${initial}
+          ${postAvatar
+            ? `<img src="${esc(postAvatar)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block">`
+            : initial}
         </div>
 
         <div
