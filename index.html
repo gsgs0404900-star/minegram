@@ -7771,31 +7771,45 @@ init();
 </script>
 
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 <script>
 /* =======================================================
-   MINEGRAM CANLI YAYIN - WEB API
-   Mevcut /api/live backend ile aynı metadata sistemini kullanır.
+   MINEGRAM CANLI YAYIN - GERÇEK WEBRTC
+   Android + Web aynı PeerJS kimlik sistemiyle bağlanır.
 ======================================================= */
 (function(){
   let liveStream=null;
-  let minegramOwnLive=null;
+  let livePeer=null;
+  let liveCall=null;
   let livePoll=null;
+  let minegramOwnLive=null;
   const liveModal=()=>document.getElementById('minegramLiveModal');
   const video=()=>document.getElementById('minegramLiveVideo');
-  function username(){ return String(localStorage.getItem('minegram_username')||localStorage.getItem('username')||'Minegram').replace(/^@/,''); }
+  function username(){ return String(localStorage.getItem('minegram_username')||localStorage.getItem('username')||'Minegram').replace(/^@/,'').trim(); }
+  function peerId(u){ return String(u||'Minegram').replace(/^@/,'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,50)||'minegram_live'; }
+  function dummyStream(){
+    const c=document.createElement('canvas'); c.width=2; c.height=2;
+    const x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,2,2);
+    return c.captureStream(1);
+  }
+  function stopPeer(){
+    try{ if(liveCall) liveCall.close(); }catch(e){}
+    try{ if(livePeer) livePeer.destroy(); }catch(e){}
+    liveCall=null; livePeer=null;
+  }
   async function refreshLives(){
     try{
       const result=await api('/live');
       const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
-      const list=document.getElementById('minegramLiveList');
-      if(!list)return;
-      list.innerHTML=lives.map(l=>`<div class="minegram-live-card" data-user="${esc(String(l.username||''))}"><b>🔴 @${esc(String(l.username||'Minegram'))}</b><span>${esc(String(l.title||'Canlı yayın'))} • 👁 ${Number(l.viewerCount||0)}</span></div>`).join('');
+      const list=document.getElementById('minegramLiveList'); if(!list)return;
+      list.innerHTML=lives.map(l=>`<div class="minegram-live-card" data-user="${esc(String(l.username||''))}" data-title="${esc(String(l.title||'Canlı yayın'))}"><b>🔴 @${esc(String(l.username||'Minegram'))}</b><span>${esc(String(l.title||'Canlı yayın'))} • 👁 ${Number(l.viewerCount||0)}</span></div>`).join('');
       updateMinegramLiveBadges();
       list.querySelectorAll('.minegram-live-card').forEach(card=>card.addEventListener('click',()=>{
         const u=card.getAttribute('data-user')||'';
-        document.getElementById('minegramLiveName').textContent='🔴 @'+u;
-        document.getElementById('minegramLiveTitle').textContent='Canlı yayın';
-        document.getElementById('minegramLiveViewers').textContent='👁 Canlı';
+        const t=card.getAttribute('data-title')||'Canlı yayın';
+        if(u && u.toLowerCase()===username().toLowerCase()) return;
+        startMinegramWebViewer(u,t);
       }));
     }catch(e){}
   }
@@ -7805,11 +7819,9 @@ init();
       const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
       const liveNames=new Set(lives.map(l=>String(l.username||'').replace(/^@/,'').toLowerCase()).filter(Boolean));
       document.querySelectorAll('[data-story-username]').forEach(el=>{
-        const name=String(el.getAttribute('data-story-username')||'').toLowerCase();
-        let badge=el.querySelector('.minegram-live-badge');
-        if(liveNames.has(name)){
-          if(!badge){ badge=document.createElement('div'); badge.className='minegram-live-badge'; badge.textContent='🔴 CANLI YAYINDA'; const label=el.lastElementChild; if(label) label.appendChild(badge); }
-        }else if(badge){ badge.remove(); }
+        const name=String(el.getAttribute('data-story-username')||'').toLowerCase(); let badge=el.querySelector('.minegram-live-badge');
+        if(liveNames.has(name)){ if(!badge){ badge=document.createElement('div'); badge.className='minegram-live-badge'; badge.textContent='🔴 CANLI YAYINDA'; const label=el.lastElementChild; if(label) label.appendChild(badge); } }
+        else if(badge) badge.remove();
       });
     }catch(e){}
   }
@@ -7820,32 +7832,65 @@ init();
   window.openMinegramLive=async function(){
     const m=liveModal(); if(!m)return; m.classList.add('open');
     document.getElementById('minegramLiveName').textContent='@'+username();
-    await refreshLives();
-    clearInterval(livePoll); livePoll=setInterval(refreshLives,10000);
+    await refreshLives(); clearInterval(livePoll); livePoll=setInterval(refreshLives,10000);
   };
+
   window.startMinegramWebLive=async function(){
     try{
-      if(!liveStream){ liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true}); video().srcObject=liveStream; }
+      if(!window.Peer) throw new Error('Canlı bağlantı servisi yüklenemedi.');
+      if(!liveStream) liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
       const title=(document.getElementById('minegramLiveTitleInput').value||'Canlı yayın').trim();
+      stopPeer();
+      livePeer=new Peer(peerId(username()),{debug:0});
+      await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error('Canlı bağlantı servisi zaman aşımına uğradı.')),10000);
+        livePeer.on('open',()=>{clearTimeout(timer);resolve();});
+        livePeer.on('error',e=>{clearTimeout(timer);reject(e);});
+      });
+      livePeer.on('call',call=>{ try{ call.answer(liveStream); liveCall=call; }catch(e){} });
       const result=await api('/live/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title})});
       minegramOwnLive=result?.live||result||{username:username(),title};
+      const v=video(); if(v){v.srcObject=liveStream;v.muted=true;v.play().catch(()=>{});}
       document.getElementById('minegramLiveName').textContent='🔴 @'+username();
       document.getElementById('minegramLiveTitle').textContent=title;
-      await refreshLives();
-      alert('Canlı yayın başlatıldı.');
-    }catch(e){ alert(e?.message||'Canlı yayın başlatılamadı.'); }
+      await refreshLives(); alert('Canlı yayın başlatıldı.');
+    }catch(e){ stopPeer(); if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;} alert(e?.message||'Canlı yayın başlatılamadı.'); }
   };
+
+  window.startMinegramWebViewer=async function(target,title){
+    try{
+      if(!window.Peer) throw new Error('Canlı bağlantı servisi yüklenemedi.');
+      const clean=String(target||'').replace(/^@/,'').trim(); if(!clean)return;
+      stopPeer();
+      const v=video(); if(v){v.srcObject=null;v.muted=false;v.controls=false;}
+      document.getElementById('minegramLiveName').textContent='🔴 @'+clean;
+      document.getElementById('minegramLiveTitle').textContent=title||'Canlı yayın';
+      liveModal()?.classList.add('open');
+      livePeer=new Peer(undefined,{debug:0});
+      livePeer.on('error',e=>{ const t=document.getElementById('minegramLiveTitle'); if(t)t.textContent=e?.type==='peer-unavailable'?'Yayın artık aktif değil':'Canlı bağlantısı kurulamadı'; });
+      livePeer.on('open',()=>{
+        try{
+          liveCall=livePeer.call(peerId(clean),dummyStream());
+          if(!liveCall)return;
+          liveCall.on('stream',stream=>{ if(v){v.srcObject=stream;v.muted=false;v.playsInline=true;v.play().catch(()=>{});} });
+          liveCall.on('close',()=>{if(v)v.srcObject=null;});
+          liveCall.on('error',()=>{});
+        }catch(e){}
+      });
+    }catch(e){ alert(e?.message||'Canlı yayın açılamadı.'); }
+  };
+
   window.endMinegramWebLive=async function(){
     try{ await api('/live/end',{method:'POST'}); }catch(e){}
+    stopPeer();
     if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}
     if(video())video().srcObject=null; minegramOwnLive=null; await refreshLives();
   };
   window.closeMinegramLive=function(e){
     if(e&&e.target!==e.currentTarget)return;
     liveModal()?.classList.remove('open'); clearInterval(livePoll);
-    /* Yayını kapatmak için Bitir butonu kullanılmalı; modal kapanınca yayın sürer. */
+    /* Yayın Bitir'e basılana kadar yayıncı Peer bağlantısı açık kalır. */
   };
-  window.addEventListener('beforeunload',()=>{ if(liveStream) liveStream.getTracks().forEach(t=>t.stop()); });
 })();
 </script>
 
