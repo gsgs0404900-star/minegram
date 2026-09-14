@@ -5065,8 +5065,37 @@ async function load(){
    const mine=
    String(currentProfile.id)===String(me.id);
 
+   const privateProfile = !!(
+     currentProfile.isPrivate ??
+     currentProfile.privateAccount ??
+     currentProfile.private ??
+     currentProfile.accountPrivate ??
+     (String(currentProfile.privacy||'').toLowerCase()==='private')
+   );
+
    const edit=
    document.getElementById('editBtn');
+
+   const shareBtn=
+   document.getElementById('shareBtn');
+
+   if(shareBtn){
+     if(mine){
+       shareBtn.hidden=false;
+       shareBtn.innerHTML='♧ &nbsp;Profil paylaş';
+       shareBtn.onclick=shareProfile;
+     }else if(!privateProfile || currentProfile.followingByMe){
+       shareBtn.hidden=false;
+       shareBtn.innerHTML='▣ &nbsp;Mesaj Gönder';
+       shareBtn.onclick=()=>{
+         const u=String(currentProfile?.username||'').replace(/^@/,'').trim();
+         if(!u)return;
+         location.href='mesajlar.html?username='+encodeURIComponent(u);
+       };
+     }else{
+       shareBtn.hidden=true;
+     }
+   }
 
    edit.textContent=
    mine
@@ -5749,8 +5778,7 @@ document.getElementById('editSave')
 
 };
 
-document.getElementById('shareBtn')
-.onclick=async()=>{
+async function shareProfile(){
 
  if(!currentProfile)return;
 
@@ -5781,7 +5809,10 @@ document.getElementById('shareBtn')
 
  }
 
-};
+}
+
+document.getElementById('shareBtn')
+.onclick=shareProfile;
 
 document.getElementById('photoShareBtn')
 .onclick=()=>location.href='index.html#create';
