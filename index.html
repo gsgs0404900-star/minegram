@@ -2625,6 +2625,20 @@ onclick="sendComment()"
     try{ return localStorage.getItem("minegram_story_seen_" + item.id) === "1"; }catch(e){ return false; }
   }
 
+  /* Story avatarını güvenli şekilde üret. Android uygulamadaki avatar
+     mantığıyla: profil fotoğrafı varsa fotoğraf, yoksa kullanıcı baş harfi. */
+  function createAvatar(group){
+    const avatar = String(group?.avatar || "").trim();
+    const name = String(group?.displayName || group?.username || "M").trim();
+    const initial = esc(name.charAt(0).toUpperCase() || "M");
+
+    if(avatar){
+      return `<img class="story-image" src="${esc(avatar)}" alt="${esc(name)}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;display:block">`;
+    }
+
+    return `<span style="width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#3f91cc;color:#eee;font-size:21px">${initial}</span>`;
+  }
+
   function renderStoryBar(){
 
     const container=
