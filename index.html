@@ -4751,9 +4751,13 @@ function logout(){
 
 function profileUrl(username){
 
+  const clean=String(username||"")
+    .replace(/^@/,"")
+    .trim();
+
   return (
-    "profile.html?user="+
-    encodeURIComponent(username)
+    "profile.html?username="+
+    encodeURIComponent(clean)
   );
 
 }
@@ -4785,8 +4789,20 @@ function openMinegramPost(post){
       JSON.stringify(post)
     );
 
+    const postUsername =
+      post.user?.username ||
+      post.author?.username ||
+      post.authorUsername ||
+      post.author_username ||
+      post.username ||
+      post.user_name ||
+      post.handle ||
+      post.ownerUsername ||
+      post.owner_username ||
+      "";
+
     const profile={
-      username:post.user?.username || post.username || "minegram",
+      username:postUsername,
       avatar:post.user?.avatar || post.avatar || post.user?.avatar_url || "",
       displayName:post.user?.displayName || post.displayName || post.user?.display_name || "",
       verified:!!(post.user?.verified || post.verified)
@@ -5097,7 +5113,7 @@ function renderPost(p){
       <div class="caption">
 
         <b
-          onclick="location.href='${profileUrl(username)}'"
+          onclick="event.stopPropagation(); location.href=profileUrl('${esc(rawUsername)}')"
         >
           @${username}
         </b>
