@@ -4327,39 +4327,8 @@ function logout(){
 ========================================================= */
 
 function profileUrl(username, userId){
-
   const cleanUsername=String(username||"").replace(/^@/,"").trim();
-  const cleanUserId=String(userId||"").trim();
-
-  /* Profil sayfasının mevcut kullanıcıyı göstermemesi için hedef profili
-     sessionStorage'a açıkça aktar. profile.html bu kaydı kullanabilir. */
-  try{
-    const currentProfileRaw=localStorage.getItem("minegram_profile");
-    let currentProfile={};
-    try{ currentProfile=currentProfileRaw ? JSON.parse(currentProfileRaw) : {}; }catch(e){}
-
-    const targetProfile={
-      ...currentProfile,
-      username:cleanUsername,
-      id:cleanUserId || currentProfile.id || currentProfile.userId || "",
-      userId:cleanUserId || currentProfile.userId || currentProfile.id || "",
-      avatar:currentProfile.avatar || currentProfile.avatar_url || "",
-      displayName:currentProfile.displayName || currentProfile.display_name || cleanUsername
-    };
-
-    sessionStorage.setItem("minegram_selected_profile",JSON.stringify(targetProfile));
-    sessionStorage.setItem("minegram_profile_target_username",cleanUsername);
-    if(cleanUserId) sessionStorage.setItem("minegram_profile_target_id",cleanUserId);
-  }catch(e){}
-
-  /* profile.html hedef kullanıcıyı `username` parametresinden okuyor.
-     `user` kullanılırsa profile.html target=null kalıyor ve giriş yapan
-     kullanıcının profiline geri dönüyor. */
-  return (
-    "profile.html?username="+
-    encodeURIComponent(cleanUsername)
-  );
-
+  return "profile.html?username="+encodeURIComponent(cleanUsername);
 }
 
 function openMinegramProfileFromPost(event, element){
@@ -4531,14 +4500,14 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div
+        <a
           class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
-          data-story-username="${esc(rawUsername)}"
-          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          href="${profileUrl(rawUsername)}"
           data-profile-username="${esc(rawUsername)}"
           data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
-          title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
-          onclick="openMinegramProfileFromPost(event,this)"
+          title="@${esc(rawUsername)} profilini aç"
+          onclick="event.stopPropagation()"
+          style="text-decoration:none;color:inherit;display:grid;place-items:center"
         >
           ${(() => {
             const postAvatar =
@@ -4554,7 +4523,7 @@ function renderPost(p){
               ? `<img src="${esc(postAvatar)}" alt="" loading="lazy">`
               : initial;
           })()}
-        </div>
+        </a>
 
         <div
           class="username"
