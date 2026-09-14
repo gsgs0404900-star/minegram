@@ -4493,7 +4493,7 @@ function renderPost(p){
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
-          onclick="openMinegramStoryFromPostAvatar(event,this)"
+          onclick="event.preventDefault(); event.stopPropagation(); location.href=profileUrl(this.getAttribute('data-story-username') || '');"
         >
           ${(() => {
             const postAvatar =
