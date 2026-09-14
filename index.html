@@ -8107,6 +8107,11 @@ init();
   let liveLastOffer="";
   let liveSeenCandidates=new Set();
   let liveSeenComments=new Set();
+  /* Android LiveFrameRelayPublisher ile aynı yayın taşıma sistemi. */
+  let liveFrameTimer=null;
+  let liveFrameCanvas=null;
+  let liveFrameCtx=null;
+  let liveFramePoll=null;
 
   const modal=()=>document.getElementById("minegramLiveModal");
   const sheet=()=>document.getElementById("minegramLiveSheet");
@@ -8391,6 +8396,136 @@ init();
     return pc;
   }
 
+  /* =========================================================
+     ANDROID LiveFrameRelayPublisher İLE AYNI SİSTEM
+     Firestore: minegram_live_frames/{username}
+     Alanlar: username, frame (base64 JPEG), timestamp
+     WebRTC/ICE yerine düşük gecikmeli JPEG kare aktarımı kullanılır.
+  ========================================================= */
+  const LIVE_FRAMES_COLLECTION="minegram_live_frames";
+
+  function liveFrameDocUrl(owner){
+    const id=docId(owner);
+    return "https://firestore.googleapis.com/v1/projects/"+
+      encodeURIComponent(FIREBASE_PROJECT)+"/databases/"+
+      encodeURIComponent(FIREBASE_DB)+"/documents/"+
+      LIVE_FRAMES_COLLECTION+"/"+encodeURIComponent(id);
+  }
+
+  async function writeLiveFrame(owner,frame){
+    const token=await getFirebaseStoryToken();
+    const url=liveFrameDocUrl(owner);
+    const response=await fetch(url,{
+      method:"PATCH",
+      headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+      cache:"no-store",
+      body:JSON.stringify({fields:{
+        username:{stringValue:String(owner||"")},
+        frame:{stringValue:String(frame||"")},
+        timestamp:{integerValue:String(Date.now())}
+      }})
+    });
+    if(!response.ok){
+      const j=await response.json().catch(()=>({}));
+      throw new Error(j?.error?.message||("HTTP "+response.status));
+    }
+  }
+
+  async function readLiveFrame(owner){
+    const token=await getFirebaseStoryToken();
+    const response=await fetch(liveFrameDocUrl(owner),{
+      headers:{Authorization:"Bearer "+token},
+      cache:"no-store"
+    });
+    if(response.status===404)return null;
+    const j=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(j?.error?.message||("HTTP "+response.status));
+    const f=j?.fields||{};
+    return {
+      username:fromFirestoreValue(f.username),
+      frame:fromFirestoreValue(f.frame),
+      timestamp:Number(fromFirestoreValue(f.timestamp)||0)
+    };
+  }
+
+  async function deleteLiveFrame(owner){
+    try{
+      const token=await getFirebaseStoryToken();
+      await fetch(liveFrameDocUrl(owner),{
+        method:"DELETE",
+        headers:{Authorization:"Bearer "+token},
+        cache:"no-store"
+      });
+    }catch(_){ }
+  }
+
+  function stopLiveFrameTransport(){
+    if(liveFrameTimer){clearInterval(liveFrameTimer);liveFrameTimer=null;}
+    if(liveFramePoll){clearInterval(liveFramePoll);liveFramePoll=null;}
+    liveFrameCanvas=null;
+    liveFrameCtx=null;
+  }
+
+  function startLiveFramePublisher(owner){
+    if(!liveStream)return;
+    stopLiveFrameTransport();
+    const v=video();
+    liveFrameCanvas=document.createElement("canvas");
+    liveFrameCanvas.width=360;
+    liveFrameCanvas.height=640;
+    liveFrameCtx=liveFrameCanvas.getContext("2d",{alpha:false,willReadFrequently:false});
+
+    const publish=async()=>{
+      try{
+        if(!liveStream||!v||v.readyState<2||!liveFrameCtx)return;
+        const vw=v.videoWidth||640;
+        const vh=v.videoHeight||360;
+        const targetRatio=360/640;
+        const sourceRatio=vw/vh;
+        let sx=0,sy=0,sw=vw,sh=vh;
+        if(sourceRatio>targetRatio){
+          sw=Math.round(vh*targetRatio); sx=Math.round((vw-sw)/2);
+        }else if(sourceRatio<targetRatio){
+          sh=Math.round(vw/targetRatio); sy=Math.round((vh-sh)/2);
+        }
+        liveFrameCtx.drawImage(v,sx,sy,sw,sh,0,0,360,640);
+        const dataUrl=liveFrameCanvas.toDataURL("image/jpeg",0.62);
+        const encoded=dataUrl.split(",")[1]||"";
+        if(encoded.length<900000){
+          await writeLiveFrame(owner,encoded);
+        }
+      }catch(e){
+        console.warn("Minegram canlı kare gönderilemedi",e);
+      }
+    };
+    publish();
+    liveFrameTimer=setInterval(publish,600);
+  }
+
+  async function startLiveFrameViewer(owner){
+    stopLiveFrameTransport();
+    const v=video();
+    const poll=async()=>{
+      try{
+        const data=await readLiveFrame(owner);
+        if(!data?.frame)return;
+        if(data.timestamp && Date.now()-data.timestamp>10000){
+          setStatus("Canlı görüntü bekleniyor...");
+          return;
+        }
+        v.srcObject=null;
+        v.src="data:image/jpeg;base64,"+data.frame;
+        v.poster="";
+        v.play().catch(()=>{});
+        setStatus("Canlı yayın aktif");
+      }catch(e){
+        console.warn("Minegram canlı kare okunamadı",e);
+      }
+    };
+    await poll();
+    liveFramePoll=setInterval(poll,700);
+  }
+
   async function pollCandidates(owner,isHost,session){
     const docs=await readCandidates(owner);
     for(const d of docs){
@@ -8438,7 +8573,6 @@ init();
   async function viewerConnect(owner,title){
     liveTarget=owner;
     liveSession=crypto.randomUUID();
-    liveSeenCandidates=new Set();
     liveSeenComments=new Set();
 
     setMode("viewer");
@@ -8448,27 +8582,9 @@ init();
     modal()?.classList.add("open");
     document.getElementById("minegramLiveSetup").classList.add("hidden");
     document.getElementById("minegramLivePermission").classList.remove("open");
+    document.getElementById("minegramLiveCamera").style.display="none";
 
-    const pc=await makePeer(false,owner);
-    const offer=await pc.createOffer({offerToReceiveVideo:true,offerToReceiveAudio:true});
-    await pc.setLocalDescription(offer);
-    await writeSignal(owner,{sessionId:liveSession,offer:offer.sdp,updatedAt:Date.now()});
-
-    let answered=false;
-    livePoll=setInterval(async()=>{
-      const sig=await readSignal(owner);
-      if(!sig)return;
-      const ans=String(sig.answer||"");
-      const ansSid=String(sig.answerSessionId||"");
-      if(ans && ansSid===liveSession && !answered){
-        answered=true;
-        try{await pc.setRemoteDescription({type:"answer",sdp:ans});}catch(_){}
-      }
-      if(sig.sessionId && String(sig.sessionId)!==liveSession && answered===false){
-        // Host başka bir izleyicinin oturumunu aldıysa bu izleyici yeniden teklif göndermez.
-      }
-    },700);
-    liveCandidatePoll=setInterval(()=>pollCandidates(owner,false,liveSession),900);
+    await startLiveFrameViewer(owner);
     liveCommentPoll=setInterval(()=>loadLiveComments(owner),2500);
     await loadLiveComments(owner);
   }
@@ -8477,7 +8593,39 @@ init();
     try{
       const title=(document.getElementById("minegramLiveTitleInput").value||"Canlı yayın").trim()||"Canlı yayın";
       if(!navigator.mediaDevices?.getUserMedia)throw new Error("Bu tarayıcı kamera ve mikrofon erişimini desteklemiyor.");
-      liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:liveFacing},audio:true});
+
+      /*
+       * Android uygulamasındaki LiveFrameRelayPublisher ile aynı mantık:
+       * kamera -> JPEG kare -> Firestore minegram_live_frames/{username}.
+       * WebRTC/RTCPeerConnection kullanılmaz.
+       */
+      const hasVideo=!!liveStream?.getVideoTracks?.().some(t=>t.readyState==="live");
+      const hasAudio=!!liveStream?.getAudioTracks?.().some(t=>t.readyState==="live");
+      if(!hasVideo || !hasAudio){
+        if(liveStream){try{liveStream.getTracks().forEach(t=>t.stop());}catch(_){} liveStream=null;}
+        try{
+          liveStream=await navigator.mediaDevices.getUserMedia({
+            video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
+            audio:true
+          });
+        }catch(firstError){
+          const name=String(firstError?.name||"");
+          let devices=[];
+          try{devices=await navigator.mediaDevices.enumerateDevices();}catch(_){ }
+          const hasCam=devices.some(d=>d.kind==="videoinput");
+          const hasMic=devices.some(d=>d.kind==="audioinput");
+          if(name==="NotFoundError"||name==="DevicesNotFoundError"||!hasCam||!hasMic){
+            throw new Error(!hasCam&&!hasMic
+              ? "Kamera ve mikrofon bulunamadı. Edge'de kamera/mikrofon bağlı ve izinli olmalı."
+              : !hasCam
+                ? "Kamera bulunamadı. Edge kamera iznini ve kameranın başka uygulama tarafından kullanılmadığını kontrol et."
+                : !hasMic
+                  ? "Mikrofon bulunamadı. Edge mikrofon iznini ve mikrofon bağlantısını kontrol et."
+                  : "Kamera ve mikrofon açılamadı: "+(firstError?.message||name));
+          }
+          throw firstError;
+        }
+      }
 
       const profile=await api("/users/"+encodeURIComponent(cleanUser())).catch(()=>null);
       const settings=profile?.settings||{};
@@ -8499,8 +8647,10 @@ init();
       liveStarted=true;
       setMode("host");
 
+      stopLiveFrameTransport();
       const v=video();
       v.srcObject=liveStream;
+      v.removeAttribute("src");
       v.muted=true;
       v.playsInline=true;
       v.play().catch(()=>{});
@@ -8511,23 +8661,19 @@ init();
       document.getElementById("minegramLiveSetup").classList.add("hidden");
       document.getElementById("minegramLivePermission").classList.remove("open");
       document.getElementById("minegramLiveCamera").style.display="grid";
-      const box=document.getElementById("minegramLiveComments");
-      if(box)box.dataset.items=JSON.stringify([{username:"Minegram",text:"Minegram'a hoş geldiniz! 🎉"}]);
       renderComments([{username:"Minegram",text:"Minegram'a hoş geldiniz! 🎉"}]);
 
-      await writeSignal(cleanUser(),{
-        sessionId:"",
-        offer:"",
-        answer:"",
-        answerSessionId:"",
-        updatedAt:Date.now()
-      });
-      hostListenOffers();
+      /* Android'daki Firestore frame belgesini temiz başlayarak oluştur. */
+      await deleteLiveFrame(cleanUser());
+      startLiveFramePublisher(cleanUser());
       liveCommentPoll=setInterval(()=>loadLiveComments(cleanUser()),2500);
       await loadLiveComments(cleanUser());
       setStatus("Canlı yayın aktif");
     }catch(e){
-      stopLocalStream();stopPc();clearTimers();
+      stopLiveFrameTransport();
+      stopLocalStream();
+      stopPc();
+      clearTimers();
       document.getElementById("minegramLivePermission").classList.remove("open");
       alert(e?.message||"Canlı yayın başlatılamadı.");
     }
@@ -8536,14 +8682,28 @@ init();
   window.startMinegramWebLive=startHost;
 
   window.requestMinegramLivePermission=function(){
-    navigator.mediaDevices?.getUserMedia({video:{facingMode:liveFacing},audio:true})
+    if(!navigator.mediaDevices?.getUserMedia){
+      alert("Bu tarayıcı kamera ve mikrofon erişimini desteklemiyor.");
+      return;
+    }
+    // İzin akışında akışı bir kez al; startHost() aynı akışı kullanır.
+    navigator.mediaDevices.getUserMedia({video:true,audio:true})
       .then(stream=>{
-        liveStream?.getTracks().forEach(t=>t.stop());
+        liveStream?.getTracks().forEach(t=>{try{t.stop();}catch(_){}});
         liveStream=stream;
         document.getElementById("minegramLivePermission").classList.remove("open");
         startHost();
       })
-      .catch(()=>alert("Kamera ve mikrofon izni verilmedi."));
+      .catch(err=>{
+        const name=String(err?.name||"");
+        if(name==="NotFoundError" || name==="DevicesNotFoundError"){
+          alert("Kamera veya mikrofon cihazı bulunamadı. Cihaz bağlantısını ve Edge kamera/mikrofon izinlerini kontrol et.");
+        }else if(name==="NotAllowedError" || name==="PermissionDeniedError"){
+          alert("Kamera ve mikrofon izni verilmedi. Edge adres çubuğundaki kamera simgesinden izin ver.");
+        }else{
+          alert(err?.message||"Kamera ve mikrofon açılamadı.");
+        }
+      });
   };
 
   window.hideMinegramLivePermission=function(){
@@ -8552,22 +8712,26 @@ init();
 
   window.switchMinegramLiveCamera=async function(){
     if(liveMode!=="host"||!liveStream)return;
+    const oldFacing=liveFacing;
     liveFacing=liveFacing==="user"?"environment":"user";
     try{
-      const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:liveFacing},audio:true});
+      /* Android Camera2Enumerator'daki ön/arka kamera değişiminin web karşılığı.
+         Mikrofonu ikinci kez açma; yalnızca yeni video track al. */
+      const next=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:liveFacing}}
+      });
       const oldVideo=liveStream.getVideoTracks()[0];
       const newVideo=next.getVideoTracks()[0];
-      const sender=livePc?.getSenders().find(x=>x.track?.kind==="video");
-      if(sender)await sender.replaceTrack(newVideo);
       if(oldVideo)oldVideo.stop();
-      liveStream.removeTrack(oldVideo);
+      if(oldVideo)liveStream.removeTrack(oldVideo);
       liveStream.addTrack(newVideo);
       video().srcObject=liveStream;
       video().muted=true;
-      video().play().catch(()=>{});
-    }catch(_){
-      liveFacing=liveFacing==="user"?"environment":"user";
-      alert("Kamera değiştirilemedi.");
+      video().playsInline=true;
+      await video().play().catch(()=>{});
+    }catch(e){
+      liveFacing=oldFacing;
+      alert(e?.message||"Kamera değiştirilemedi.");
     }
   };
 
@@ -8766,6 +8930,7 @@ init();
   }
 
   window.openMinegramLive=async function(){
+    stopLiveFrameTransport();
     clearTimers();stopPc();resetVideo();liveMode="";
     const m=modal();if(!m)return;
     setMode("");
@@ -8788,9 +8953,12 @@ init();
   window.endMinegramWebLive=async function(){
     if(liveMode!=="host")return;
     try{await api("/live/end",{method:"POST"});}catch(_){}
+    stopLiveFrameTransport();
+    try{await deleteLiveFrame(cleanUser());}catch(_){}
     try{
       await firebaseLiveRequest(docUrl(cleanUser()),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fields({sessionId:"",offer:"",answer:"",answerSessionId:"",updatedAt:Date.now()})})});
     }catch(_){}
+    stopLiveFrameTransport();
     stopPc();stopLocalStream();clearTimers();resetVideo();
     liveStarted=false;liveMode="";
     modal()?.classList.remove("open");
@@ -8801,6 +8969,7 @@ init();
   window.closeMinegramLive=function(e){
     if(e && e.target!==e.currentTarget)return;
     if(liveMode==="host" && liveStarted)return; // Yayın bitir'e basılana kadar canlı açık.
+    stopLiveFrameTransport();
     stopPc();stopLocalStream();clearTimers();resetVideo();
     liveMode="";
     modal()?.classList.remove("open");
@@ -8815,6 +8984,7 @@ init();
 
   // Uygulamadaki sistemde yayın açma ekranında kamera/mikrofon izinleri ayrı kontrol edilir.
   window.__minegramCloseEverything=function(){
+    stopLiveFrameTransport();
     stopPc();stopLocalStream();clearTimers();resetVideo();liveMode="";liveStarted=false;
   };
 
