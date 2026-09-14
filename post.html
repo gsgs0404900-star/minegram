@@ -210,20 +210,34 @@ body{
 .post-head .avatar.small.post-story-avatar{
   cursor:pointer;
   position:relative;
-  z-index:20;
+  z-index:2;
+  box-sizing:border-box;
 }
 
+/* Gönderi avatarı: Story varsa gri, yeni/bakılmamışsa kırmızı.
+   border kullanıyoruz; .post { overflow:hidden } olduğu için outline dışarıdan kesiliyordu. */
 .post-head .avatar.small.post-story-has-story{
-  outline:2px solid #777 !important;
-  outline-offset:3px;
+  border:3px solid #777 !important;
+  box-sizing:border-box !important;
+  padding:2px !important;
 }
 
 .post-head .avatar.small.post-story-new{
-  outline:2px solid #e53935 !important;
-  outline-offset:3px;
+  border:3px solid #e53935 !important;
+  box-sizing:border-box !important;
+  padding:2px !important;
   position:relative;
-  z-index:20;
-  cursor:pointer;
+  z-index:3;
+}
+
+.post-head .avatar.small.post-story-avatar > img{
+  width:100% !important;
+  height:100% !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  display:block !important;
 }
 
 .plus{
@@ -2141,9 +2155,6 @@ onclick="sendComment()"
     window.__minegramOpenStoryGroup = function(group,index){
       if(group && Array.isArray(group.stories) && group.stories.length) openGroup(group, Number(index)||0);
     };
-    if(typeof window.updateMinegramPostStoryRings === "function"){
-      window.updateMinegramPostStoryRings();
-    }
 
     storyGroups.forEach(function(group){
       group.stories.sort(function(a,b){
@@ -4403,16 +4414,6 @@ function renderPost(p){
         .toUpperCase()
     );
 
-  const postAvatar =
-    p.user?.avatar_url ||
-    p.user?.avatarUrl ||
-    p.user?.photoURL ||
-    p.user?.photoUrl ||
-    p.avatar_url ||
-    p.avatarUrl ||
-    p.profileImage ||
-    "";
-
 
   const liked=
     !!p.likedByMe;
@@ -4488,15 +4489,26 @@ function renderPost(p){
       <div class="post-head">
 
         <div
-          class="avatar small post-story-avatar${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
+          class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
           onclick="openMinegramStoryFromPostAvatar(event,this)"
         >
-          ${postAvatar
-            ? `<img src="${esc(postAvatar)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block">`
-            : initial}
+          ${(() => {
+            const postAvatar =
+              p.user?.avatar_url ||
+              p.user?.avatarUrl ||
+              p.user?.photoURL ||
+              p.user?.photoUrl ||
+              p.avatar_url ||
+              p.avatarUrl ||
+              p.profileImage ||
+              "";
+            return postAvatar
+              ? `<img src="${esc(postAvatar)}" alt="" loading="lazy">`
+              : initial;
+          })()}
         </div>
 
         <div
