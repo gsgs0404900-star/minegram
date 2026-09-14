@@ -3952,8 +3952,7 @@ async function renderHighlights(){
   const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
   const section=document.getElementById('highlightsSection');
   const box=document.getElementById('highlights');
-  section.hidden=!mine;
-  if(!mine)return;
+  if(!section||!box)return;
 
   let items=[];
   try{
@@ -3975,11 +3974,13 @@ async function renderHighlights(){
   // Tek kaynak Supabase API'dir. localStorage/Firebase'deki eski hesap verileri
   // yeni hesaba taşınmaz ve web/Android aynı kayıtları görür.
   box.innerHTML='';
-  const add=document.createElement('button');
-  add.className='highlight add-highlight';
-  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
-  add.onclick=addHighlight;
-  box.appendChild(add);
+  if(mine){
+    const add=document.createElement('button');
+    add.className='highlight add-highlight';
+    add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+    add.onclick=addHighlight;
+    box.appendChild(add);
+  }
 
   items.forEach((item,i)=>{
     const b=document.createElement('button'); b.className='highlight';
@@ -3988,6 +3989,9 @@ async function renderHighlights(){
     box.appendChild(b);
   });
   storyItems=items;
+  // Öne çıkanlar bölümü başkasının profilinde de gösterilir;
+  // kendi profilinde ayrıca "Yeni" ekleme butonu bulunur.
+  section.hidden=!(mine || items.length);
 }
 
 async function addHighlight(){
