@@ -2757,24 +2757,6 @@ html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.min
 #shareBtn[hidden]{display:none!important}
 .highlights-section{margin-top:38px!important}
 .highlights-section h2{font-size:27px!important;font-weight:700!important}
-
-<style id="minegramProfilePublicCleanup">
-/* Profil ekranının altında kalan eski lacivert/ayar alanı görünmesin. */
-.account-actions{display:none!important}
-/* Sayfanın sonunda eklenmiş renkli alt alan olmasın. */
-html,body,.app{background:#000!important}
-/* Android referansındaki öne çıkanlar bölümü her profilde görünür. */
-.highlights-section{display:block!important}
-.highlights-section[hidden]{display:none!important}
-.highlights{display:flex;align-items:flex-start;gap:18px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
-.highlights::-webkit-scrollbar{display:none}
-.highlight{flex:0 0 88px;width:88px;background:none;border:0;color:#fff;padding:0;text-align:center}
-.highlight-cover{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#111;border:2px solid #777}
-.highlight-cover img{width:100%;height:100%;object-fit:cover;display:block}
-.highlight-title{display:block;margin-top:7px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.highlight.add-highlight .highlight-cover{border-style:dashed}
-</style>
-
 </style>
 </head>    
     
@@ -2823,7 +2805,7 @@ html,body,.app{background:#000!important}
 </div>
 <input id="profilePhotoInput" class="profile-photo-input" type="file" accept="image/*">    
     
-<section id="highlightsSection" class="highlights-section">    
+<section id="highlightsSection" class="highlights-section" hidden>    
   <h2>Öne çıkanlar</h2>    
   <div id="highlights" class="highlights"></div>    
 </section>    
@@ -3679,13 +3661,11 @@ async function saveFirebaseHighlights(items){
 }
 
 async function renderHighlights(){
-  const mine=!!(currentProfile&&me&&String(currentProfile.id)===String(me.id));
+  const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
   const section=document.getElementById('highlightsSection');
   const box=document.getElementById('highlights');
-  if(!section||!box||!currentProfile?.username)return;
-
-  // Öne çıkanlar hem kendi profilinde hem de başkasının profilinde görünür.
-  section.hidden=false;
+  section.hidden=!mine;
+  if(!mine)return;
 
   let items=[];
   try{
@@ -3704,27 +3684,22 @@ async function renderHighlights(){
     console.warn('[PROFILE] Sunucu öne çıkanları okunamadı',e);
   }
 
-  // Sadece profil sahibi kendi profilindeyse "Yeni" ekleme kutusu gösterilir.
+  // Tek kaynak Supabase API'dir. localStorage/Firebase'deki eski hesap verileri
+  // yeni hesaba taşınmaz ve web/Android aynı kayıtları görür.
   box.innerHTML='';
-  if(mine){
-    const add=document.createElement('button');
-    add.className='highlight add-highlight';
-    add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
-    add.onclick=addHighlight;
-    box.appendChild(add);
-  }
+  const add=document.createElement('button');
+  add.className='highlight add-highlight';
+  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+  add.onclick=addHighlight;
+  box.appendChild(add);
 
   items.forEach((item,i)=>{
-    const b=document.createElement('button');
-    b.className='highlight';
+    const b=document.createElement('button'); b.className='highlight';
     b.innerHTML='<span class="highlight-cover">'+(item.image?'<img src="'+escapeHtml(item.image)+'" alt="">':'★')+'</span><span class="highlight-title">'+escapeHtml(item.title||'Öne çıkan')+'</span>';
     b.onclick=()=>openHighlightView(i);
     box.appendChild(b);
   });
   storyItems=items;
-
-  // Hiç öne çıkan yoksa başlık/boş alan görünmesin.
-  section.hidden=items.length===0 && !mine;
 }
 
 async function addHighlight(){
