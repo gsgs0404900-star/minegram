@@ -2990,6 +2990,11 @@ html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.min
 #shareBtn[hidden]{display:none!important}
 .highlights-section{margin-top:38px!important}
 .highlights-section h2{font-size:27px!important;font-weight:700!important}
+
+/* PROFİLDE ALTTAKİ KOYU LACİVERT MENÜYÜ GİZLE */
+html,body{padding-bottom:0!important;}
+.app{padding-bottom:0!important;}
+.nav{display:none!important;}
 </style>
 </head>    
     
@@ -5570,11 +5575,30 @@ document.getElementById('profilePhotoInput')?.addEventListener('change',e=>{
   if(file) changeProfilePhoto(file);
 });
 
+function updateFollowButtonImmediate(following){
+ const btn=document.getElementById('editBtn');
+ if(!btn)return;
+ btn.textContent=following?'Takibi Bırak':'Takip Et';
+ btn.classList.add('primary');
+}
+
 document.getElementById('editBtn').onclick=async()=>{
 
  if(!currentProfile)return;
 
  if(String(currentProfile.id)!==String(me.id)){
+
+   const wasFollowing=!!(
+     currentProfile.followingByMe ??
+     currentProfile.following_by_me ??
+     currentProfile.isFollowing ??
+     currentProfile.is_following
+   );
+   const nextFollowing=!wasFollowing;
+
+   // Butona basıldığı anda görünümü değiştir; sunucu yanıtını bekletme.
+   currentProfile.followingByMe=nextFollowing;
+   updateFollowButtonImmediate(nextFollowing);
 
    try{
 
@@ -5587,10 +5611,14 @@ document.getElementById('editBtn').onclick=async()=>{
        {method:'POST'}
      );
 
-     await load();
+     // Sunucu senkronizasyonu arka planda yapılır; buton beklemez.
+     load().catch(()=>{});
 
    }catch(e){
 
+     // İşlem başarısızsa eski duruma anında dön.
+     currentProfile.followingByMe=wasFollowing;
+     updateFollowButtonImmediate(wasFollowing);
      toast(e.message);
 
    }
