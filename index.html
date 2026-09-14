@@ -4889,15 +4889,13 @@ window.updateMinegramPostStoryRings=function(){
 function renderPost(p){
 
   const rawUsername =
-    p.user?.username ||
-    p.author?.username ||
-    p.authorUsername ||
-    p.author_username ||
-    p.username ||
-    p.user_name ||
-    p.handle ||
-    p.ownerUsername ||
-    p.owner_username ||
+    p.user?.username || p.user?.userName || p.user?.handle ||
+    p.author?.username || p.author?.userName || p.author?.handle ||
+    p.authorUsername || p.author_username || p.authorName ||
+    p.username || p.user_name || p.handle ||
+    p.ownerUsername || p.owner_username ||
+    p.owner?.username || p.owner?.userName || p.owner?.handle ||
+    p.profile?.username || p.profile?.userName || p.profile?.handle ||
     "";
 
   const username = esc(rawUsername || "M");
@@ -4991,7 +4989,7 @@ function renderPost(p){
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
-          onclick="openMinegramStoryFromPostAvatar(event,this)"
+          onclick="event.stopPropagation(); const post=window.__minegramFeedPosts?.find(function(x){return String(x?.id ?? x?.postId ?? x?._id ?? x?.uuid ?? '')===String(this.closest('.post')?.dataset?.id||'')}); if(hasMinegramStoryForPost(post)){ openMinegramStoryFromPostAvatar(event,this); } else { location.href=profileUrl(this.getAttribute('data-story-username')||''); }"
         >
           ${initial}
         </div>
@@ -5703,6 +5701,17 @@ async function loadFeed(){
             )
         );
   }
+
+  apiPosts = apiPosts.map(function(post){
+    if(!post || typeof post !== 'object') return post;
+    const owner=post.user || post.author || post.owner || post.profile || {};
+    if(!post.username && owner.username) post.username=owner.username;
+    if(!post.user_name && owner.userName) post.user_name=owner.userName;
+    if(!post.handle && owner.handle) post.handle=owner.handle;
+    if(!post.authorUsername && owner.username) post.authorUsername=owner.username;
+    if(!post.userId) post.userId=owner.id || owner.userId || owner.uid || post.authorId || post.ownerId || post.ownerUid || post.owner_id || '';
+    return post;
+  });
 
   /* Firebase public-post koleksiyonu artık feed kaynağı değildir. */
   firebasePosts=[];
