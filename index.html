@@ -2533,28 +2533,83 @@ onclick="sendComment()"
     loadingStories=true;
 
     try{
-      // Firebase/local eski hikayeleri KULLANMA. Tek kaynak Supabase API.
-      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+      /*
+        Uygulamadaki Story sistemiyle aynı davranış:
+        Önce API hikayelerini al, ardından uygulamanın
+        Firebase Story kayıtlarını da ekle. Böylece
+        uygulamadan paylaşılmış hikayeler web sitesinde de
+        görünür. İki kaynakta aynı hikaye varsa tek kez göster.
+      */
+      let serverStories=[];
+      let firebaseStories=[];
 
-      const result = await api("/stories");
-      const list = Array.isArray(result)
-        ? result
-        : (Array.isArray(result?.stories) ? result.stories : []);
+      try{
+        const result = await api("/stories");
+        const list = Array.isArray(result)
+          ? result
+          : (Array.isArray(result?.stories) ? result.stories : []);
 
-      stories = list.map(normalizeStory).filter(Boolean);
+        serverStories = list.map(normalizeStory).filter(Boolean);
+      }catch(error){
+        console.warn("STORY API LOAD ERROR:", error);
+      }
+
+      /* Uygulamanın kullandığı Firebase public story kaynağını da oku. */
+      try{
+        if(typeof firebaseLoadMinegramStories === "function") {
+          firebaseStories = await firebaseLoadMinegramStories();
+        }
+      }catch(error){
+        console.warn("FIREBASE STORY LOAD ERROR:", error);
+      }
+
+      const merged = new Map();
+
+      [...serverStories, ...firebaseStories].forEach(function(story){
+        if(!story || !story.media) return;
+
+        const key = String(
+          story.id ||
+          ((story.username || "").toLowerCase() + "_" + (story.createdAt || ""))
+        );
+
+        if(!merged.has(key)){
+          merged.set(key, story);
+        }else{
+          /* API kaydında profil/avatar bilgisi daha doluysa onu koru. */
+          const current=merged.get(key);
+          merged.set(key, {
+            ...current,
+            ...story,
+            avatar: story.avatar || current.avatar || "",
+            displayName: story.displayName || current.displayName || story.username
+          });
+        }
+      });
+
+      stories = Array.from(merged.values());
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
       if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
-      // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
-      try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
+      try{
+        localStorage.setItem("minegram_story_v2", JSON.stringify(stories));
+      }catch(e){}
 
     }catch(error){
-      console.error("STORY API LOAD ERROR:", error);
-      stories=[];
+      console.error("STORY LOAD ERROR:", error);
+      /* Ağ kaynakları tamamen başarısızsa mevcut önbelleği de koru. */
+      try{
+        const cached=JSON.parse(localStorage.getItem("minegram_story_v2") || "[]");
+        stories=Array.isArray(cached) ? cached.map(normalizeStory).filter(Boolean) : [];
+      }catch(e){
+        stories=[];
+      }
+      cleanStories();
       buildStoryGroups();
       renderStoryBar();
+      if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
     }finally{
       loadingStories=false;
     }
