@@ -4872,18 +4872,19 @@ window.updateMinegramPostStoryRings=function(){
 
 function renderPost(p){
 
-  const username=
-    esc(
-      p.user?.username ||
-      p.username ||
-      "minegram"
-    );
-
-
-  const rawUsername=
+  const rawUsername =
     p.user?.username ||
+    p.author?.username ||
+    p.authorUsername ||
+    p.author_username ||
     p.username ||
-    "M";
+    p.user_name ||
+    p.handle ||
+    p.ownerUsername ||
+    p.owner_username ||
+    "";
+
+  const username = esc(rawUsername || "M");
 
 
   const initial=
@@ -4981,7 +4982,7 @@ function renderPost(p){
 
         <div
           class="username"
-          onclick="location.href='${profileUrl(username)}'"
+          onclick="event.stopPropagation(); location.href=profileUrl('${esc(rawUsername)}')"
         >
           @${username}
         </div>
@@ -9149,6 +9150,10 @@ init();
 
   document.addEventListener("DOMContentLoaded",function(){
     setTimeout(updateMinegramNotificationBadge,500);
+  });
+
+  window.addEventListener("pageshow",function(){
+    setTimeout(updateMinegramNotificationBadge,200);
   });
 
   setInterval(updateMinegramNotificationBadge,5000);
