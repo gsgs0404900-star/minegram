@@ -785,11 +785,17 @@ app.post("/api/problem-reports", auth, async (req, res) => {
       </div>`;
     const text = `Minegram Sorun Bildirimi\nKullanıcı: ${username || "Bilinmiyor"}\nE-posta: ${email || "Bilinmiyor"}\n\n${description}`;
 
+    const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments
+      .filter(a => a && typeof a.data === "string" && a.data.length <= 8 * 1024 * 1024)
+      .slice(0, 2)
+      .map(a => ({ filename: String(a.filename || "foto.jpg").slice(0, 120), contentType: String(a.contentType || "image/jpeg").slice(0, 100), data: String(a.data).replace(/^data:[^;]+;base64,/, "") })) : [];
+
     await sendGmailApiEmail({
       to: "minegramdestek@gmail.com",
       subject,
       html,
-      text
+      text,
+      attachments
     });
 
     return res.json({ ok: true, message: "Sorun bildirimi gönderildi." });
@@ -2286,7 +2292,7 @@ function mimeHeader(value) {
     .trim();
 }
 
-function buildGmailRawMessage({ to, subject, html, text: textBody }) {
+function buildGmailRawMessage({ to, subject, html, text: textBody, attachments = [] }) {
   const c = gmailConfig();
   const fromName = mimeHeader(c.fromName || "Minegram");
   const fromEmail = mimeHeader(c.userEmail);
@@ -2295,42 +2301,70 @@ function buildGmailRawMessage({ to, subject, html, text: textBody }) {
   const plain = String(textBody || "").replace(/\r?\n/g, "\r\n");
   const markup = String(html || "").replace(/\r?\n/g, "\r\n");
 
+  const cleanAttachments = Array.isArray(attachments) ? attachments.filter(a => a && a.data).slice(0, 2) : [];
+  const mixedBoundary = `minegram_mixed_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const altBoundary = `minegram_alt_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const headers = [
     `From: ${fromName} <${fromEmail}>`,
     `To: ${recipient}`,
     `Subject: ${safeSubject}`,
     "MIME-Version: 1.0",
-    "Content-Type: multipart/alternative; boundary=minegram_boundary_7f2a9"
+    cleanAttachments.length ? `Content-Type: multipart/mixed; boundary=${mixedBoundary}` : `Content-Type: multipart/alternative; boundary=${altBoundary}`
   ].join("\r\n");
 
-  const raw = [
-    headers,
-    "",
-    "--minegram_boundary_7f2a9",
+  const alternative = [
+    `--${altBoundary}`,
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
     "",
     plain,
     "",
-    "--minegram_boundary_7f2a9",
+    `--${altBoundary}`,
     "Content-Type: text/html; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
     "",
     markup || `<div>${plain.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`,
     "",
-    "--minegram_boundary_7f2a9--",
-    ""
+    `--${altBoundary}--`
   ].join("\r\n");
 
-  return base64UrlUtf8(raw);
+  const parts = cleanAttachments.length ? [
+    headers,
+    "",
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary=${altBoundary}`,
+    "",
+    alternative
+  ] : [headers, "", alternative];
+
+  if (cleanAttachments.length) {
+    for (const a of cleanAttachments) {
+      const filename = mimeHeader(a.filename || "foto.jpg").replace(/[\\/]/g, "_");
+      const contentType = mimeHeader(a.contentType || "image/jpeg");
+      const data = String(a.data || "").replace(/[^A-Za-z0-9+/=]/g, "");
+      parts.push(
+        `--${mixedBoundary}`,
+        `Content-Type: ${contentType}; name="${filename}"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${filename}"`,
+        "",
+        data.match(/.{1,76}/g)?.join("\r\n") || ""
+      );
+    }
+    parts.push(`--${mixedBoundary}--`, "");
+  } else {
+    parts.push("");
+  }
+
+  return base64UrlUtf8(parts.join("\r\n"));
 }
 
-async function sendGmailApiEmail({ to, subject, html, text: textBody }) {
+async function sendGmailApiEmail({ to, subject, html, text: textBody, attachments = [] }) {
   const c = gmailConfig();
   if (!c.userEmail) throw new Error("GMAIL_USER_EMAIL veya MAIL_FROM_EMAIL gerekli.");
 
   const accessToken = await gmailAccessToken();
-  const raw = buildGmailRawMessage({ to, subject, html, text: textBody });
+  const raw = buildGmailRawMessage({ to, subject, html, text: textBody, attachments });
 
   const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
