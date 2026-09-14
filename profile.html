@@ -2962,6 +2962,27 @@ html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.min
 .minegram-premium-music{position:fixed;left:14px;bottom:14px;z-index:9999;padding:8px 12px;border-radius:20px;background:rgba(0,0,0,.72);color:#fff;font-size:12px}
 </style>
 
+<style id="minegramAndroidProfileAppearance">
+.profile{padding:28px 34px 0!important}
+.top{display:grid!important;grid-template-columns:88px minmax(0,1fr)!important;align-items:start!important;gap:28px!important}
+.profile-avatar-wrap,.profile-avatar-wrap #avatar{width:88px!important;height:88px!important}
+.profile-summary{min-width:0!important}
+.profile-summary .username{font-size:29px!important;line-height:1.08!important;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.active-status{font-size:17px;color:#fff;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.active-status.online{color:#22c55e}
+.profile-summary .stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:28px!important;gap:0!important;width:100%!important}
+.profile-summary .stat b{font-size:22px!important;line-height:1.05!important}
+.profile-summary .stat span{font-size:16px!important;margin-top:8px!important}
+.username-wrap{margin-top:0!important}
+.username-wrap #display,.username-wrap #bio{display:none!important}
+.actions{margin-top:30px!important;gap:16px!important}
+.actions button{height:58px!important;border-radius:30px!important;font-size:18px!important}
+.actions .primary{background:#63b1ed!important;border-color:#63b1ed!important;color:#30206d!important}
+#shareBtn{border:2px solid #777!important;background:#000!important;color:#63b1ed!important}
+.highlights-section{margin-top:38px!important}
+.highlights-section h2{font-size:27px!important;margin-bottom:14px!important}
+@media(max-width:520px){.profile{padding-left:34px!important;padding-right:34px!important}.top{grid-template-columns:88px minmax(0,1fr)!important;gap:28px!important}.profile-summary .username{font-size:28px!important}.active-status{font-size:16px!important}}
+</style>
 </head>    
     
 <body>    
@@ -2970,46 +2991,37 @@ html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.min
     
 <header class="header">    
   <button class="back" id="backBtn" aria-label="Geri">‹</button>    
-  <div class="title">Profil</div>    
+  <div class="title" id="headerUsername">Profil</div>    
   <button class="headmore" id="menuBtn" aria-label="Menü">☰</button>    
 </header>    
     
 <main class="profile">    
     
-<section class="top">    
+<section class="top">
   <div class="profile-avatar-wrap">
     <div id="avatar" class="avatar">M</div>
     <button id="profilePhotoBtn" class="profile-photo-btn" type="button" aria-label="Profil fotoğrafını değiştir" title="Profil fotoğrafını değiştir">＋</button>
-  </div>    
-    
-  <section class="stats">    
-    <button class="stat" id="postsStat">    
-      <b id="postCount">0</b>    
-      <span>Gönderi</span>    
-    </button>    
-    
-    <button class="stat" id="followersStat">    
-      <b id="followers">0</b>    
-      <span>Takipçi</span>    
-    </button>    
-    
-    <button class="stat" id="followingStat">    
-      <b id="following">0</b>    
-      <span>Takip</span>    
-    </button>    
-  </section>    
-</section>    
-    
-<section class="username-wrap">    
-  <div id="username" class="username">@minegram</div>    
-  <div id="display" class="display"></div>    
-  <div id="bio" class="bio"></div>    
-    
-  <div id="profileExtra" class="profile-extra" style="display:none">    
-    <div id="profilePronounsDisplay"></div>    
-    <a id="profileLinkDisplay" href="#" target="_blank" rel="noopener" style="display:none"></a>    
-    <div id="profileGenderDisplay"></div>    
-  </div>    
+  </div>
+
+  <div class="profile-summary">
+    <div id="username" class="username">@minegram</div>
+    <div id="activeStatus" class="active-status">Şimdi aktif</div>
+    <section class="stats">
+      <button class="stat" id="postsStat"><b id="postCount">0</b><span>Gönderi</span></button>
+      <button class="stat" id="followersStat"><b id="followers">0</b><span>Takipçi</span></button>
+      <button class="stat" id="followingStat"><b id="following">0</b><span>Takip</span></button>
+    </section>
+  </div>
+</section>
+
+<section class="username-wrap">
+  <div id="display" class="display"></div>
+  <div id="bio" class="bio"></div>
+  <div id="profileExtra" class="profile-extra" style="display:none">
+    <div id="profilePronounsDisplay"></div>
+    <a id="profileLinkDisplay" href="#" target="_blank" rel="noopener" style="display:none"></a>
+    <div id="profileGenderDisplay"></div>
+  </div>
 </section>    
     
 <div class="actions">    
@@ -5040,6 +5052,21 @@ async function load(){
      :''
    );
 
+   const headerUsername=document.getElementById('headerUsername');
+   if(headerUsername) headerUsername.textContent=currentProfile.username||'Profil';
+
+   const activeStatus=document.getElementById('activeStatus');
+   if(activeStatus){
+     const activeRaw=currentProfile.isActive ?? currentProfile.active ?? currentProfile.online ?? currentProfile.isOnline;
+     const lastActive=currentProfile.lastActiveAt || currentProfile.last_active_at || currentProfile.lastSeenAt || currentProfile.last_seen_at;
+     let activeText='Şimdi aktif';
+     if(activeRaw===false){
+       activeText=lastActive ? ('Son görülme: '+new Date(lastActive).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})) : 'Şu anda aktif değil';
+     }
+     activeStatus.textContent=activeText;
+     activeStatus.classList.toggle('online',activeRaw!==false);
+   }
+
    document.getElementById('display')
    .textContent=
    currentProfile.displayName||'';
@@ -5088,7 +5115,13 @@ async function load(){
        shareBtn.hidden=false;
        shareBtn.innerHTML='▣ &nbsp;Mesaj Gönder';
        shareBtn.onclick=()=>{
-         const u=String(currentProfile?.username||'').replace(/^@/,'').trim();
+         // Profilde hangi kullanıcı görüntüleniyorsa mesaj hedefi KESİNLİKLE o kullanıcıdır.
+         const u=String(
+           currentProfile?.username ||
+           currentProfile?.handle ||
+           target ||
+           ''
+         ).replace(/^@/,'').trim();
          if(!u)return;
          location.href='mesaj.html?username='+encodeURIComponent(u);
        };
