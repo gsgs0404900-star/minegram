@@ -909,6 +909,31 @@ body{
 .minegram-live-viewer .minegram-live-actions .minegram-live-close-viewer{display:block!important;flex:1;background:#fff;color:#111}
 .minegram-live-host .minegram-live-setup,
 .minegram-live-viewer .minegram-live-setup{display:none}
+
+.minegram-notification-button{
+  position:relative;
+}
+
+.minegram-notification-badge{
+  position:absolute;
+  top:1px;
+  right:0px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#e53935;
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  line-height:18px;
+  text-align:center;
+  border:2px solid #000;
+  box-sizing:border-box;
+  display:none;
+  z-index:5;
+}
+
 </style>
 
 <meta
@@ -971,7 +996,7 @@ Minegram
     </button>
 
 <button
-class="icon-btn"
+class="icon-btn minegram-notification-button"
 onclick="location.href='bildirimler.html'"
 aria-label="Bildirimler"
 >
@@ -979,6 +1004,7 @@ aria-label="Bildirimler"
 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
 <path d="M10 21h4"/>
 </svg>
+<span id="minegramNotificationBadge" class="minegram-notification-badge" aria-hidden="true">0</span>
 </button>
 
 <button
@@ -9072,5 +9098,62 @@ init();
   document.addEventListener("DOMContentLoaded",function(){ setTimeout(updateStoryInteractionBar,300); });
 })();
 </script>
+
+<script>
+/* =========================================================
+   BİLDİRİM ROZETİ — OKUNMAMIŞ BİLDİRİM SAYISI
+========================================================= */
+(function(){
+  const badgeId="minegramNotificationBadge";
+
+  function unreadNotificationCount(result){
+    const list = Array.isArray(result) ? result : (
+      Array.isArray(result?.notifications) ? result.notifications : (
+        Array.isArray(result?.data) ? result.data : (
+          Array.isArray(result?.items) ? result.items : []
+        )
+      )
+    );
+
+    return list.filter(n => !(
+      n?.read === true ||
+      n?.isRead === true ||
+      n?.seen === true
+    )).length;
+  }
+
+  async function updateMinegramNotificationBadge(){
+    const badge=document.getElementById(badgeId);
+    if(!badge) return;
+
+    try{
+      if(typeof api !== "function"){ return; }
+      const result=await api("/notifications");
+      const count=unreadNotificationCount(result);
+
+      if(count>0){
+        badge.textContent=count>99 ? "99+" : String(count);
+        badge.style.display="block";
+        badge.setAttribute("aria-hidden","false");
+      }else{
+        badge.textContent="0";
+        badge.style.display="none";
+        badge.setAttribute("aria-hidden","true");
+      }
+    }catch(error){
+      console.warn("[NOTIFICATION BADGE]",error);
+    }
+  }
+
+  window.updateMinegramNotificationBadge=updateMinegramNotificationBadge;
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(updateMinegramNotificationBadge,500);
+  });
+
+  setInterval(updateMinegramNotificationBadge,5000);
+})();
+</script>
+
 </body>
 </html>
