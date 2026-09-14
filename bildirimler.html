@@ -872,6 +872,28 @@ function notificationType(n){
     }
 
     if(
+        type.includes('follow_request') ||
+        type.includes('follow-request') ||
+        type.includes('followrequest') ||
+        type.includes('takip_iste') ||
+        type.includes('takip-iste') ||
+        type.includes('takipiste') ||
+        type.includes('pending')
+    ){
+        return 'follow_request';
+    }
+
+    if(
+        type.includes('follow_accepted') ||
+        type.includes('follow-accepted') ||
+        type.includes('followaccepted') ||
+        type.includes('takip_kabul') ||
+        type.includes('takip-kabul')
+    ){
+        return 'follow_accepted';
+    }
+
+    if(
         type.includes('follow') ||
         type.includes('takip')
     ){
@@ -896,14 +918,38 @@ function notificationType(n){
 
 function notificationUsername(n){
 
-    return (
+    const direct =
         n.username ||
         n.actor?.username ||
         n.fromUser?.username ||
+        n.from_user?.username ||
         n.user?.username ||
         n.sender?.username ||
-        'minegram'
+        n.requester?.username ||
+        n.requesterUsername ||
+        n.actor_username ||
+        n.from_username ||
+        n.user_username ||
+        n.sender_username ||
+        n.handle;
+
+    if(direct){
+        return String(direct).replace(/^@/,'').trim();
+    }
+
+    // Backend kullanıcı adını ayrı alanda göndermiyorsa
+    // bildirim metnindeki @kullanici adını kullan.
+    const text = String(
+        n.message || n.text || n.content || n.description || ''
     );
+    const match = text.match(/@([A-Za-z0-9._-]+)/);
+    if(match && match[1]){
+        return match[1];
+    }
+
+    // Son çare olarak mevcut kullanıcının adını KESİNLİKLE
+    // başkasının adı gibi göstermemek için boş bırak.
+    return '';
 
 }
 
@@ -1277,7 +1323,7 @@ function renderNotification(n){
 
             <div class="notification-text">
 
-                <b>@${esc(username)}</b>
+                ${username ? `<b>@${esc(username)}</b>` : ''}
 
                 ${notificationMessage(n)}
 
