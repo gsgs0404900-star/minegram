@@ -257,6 +257,23 @@ body{
     color:#eee;
 }
 
+.follow-actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+}
+
+.follow-actions .follow-btn{
+    min-width:72px;
+}
+
+.follow-btn.request-reject{
+    background:#222;
+    border-color:#3a3a3a;
+    color:#eee;
+}
+
 .unread-dot{
     width:8px;
     height:8px;
@@ -438,6 +455,15 @@ body{
         height:32px;
         font-size:11px;
         padding:0 9px;
+    }
+
+    .follow-actions{
+        gap:5px;
+    }
+
+    .follow-actions .follow-btn{
+        min-width:60px;
+        padding:0 7px;
     }
 
     .mark-all{
@@ -750,8 +776,10 @@ async function api(path,opt={}){
 
 function profileUrl(username){
 
-    return 'profile.html?user=' +
-        encodeURIComponent(username || '');
+    return 'profile.html?username=' +
+        encodeURIComponent(
+            String(username || '').replace(/^@/,'').trim()
+        );
 
 }
 
@@ -940,6 +968,14 @@ function notificationMessage(n){
         return 'yorumuna yanıt verdi.';
     }
 
+    if(isFollowRequestNotification(n)){
+        return 'seni takip etmek istiyor.';
+    }
+
+    if(isFollowAcceptedNotification(n)){
+        return 'takip isteğini kabul etti.';
+    }
+
     if(type === 'follow'){
         return 'seni takip etmeye başladı.';
     }
@@ -1053,6 +1089,105 @@ function postThumbnailHTML(n){
 
 
 /* =====================================================
+   TAKİP / TAKİP İSTEĞİ DURUMU
+===================================================== */
+
+/*
+ * Android bildirim sistemiyle aynı mantık:
+ * follow_request  -> Onayla + Reddet
+ * follow_accepted -> Sen de Takip Et
+ * normal follow  -> Sen de Takip Et
+ */
+function isFollowRequestNotification(n){
+    const type = String(
+        n.type || n.notificationType || n.kind || ''
+    ).toLowerCase();
+
+    return (
+        type === 'follow_request' ||
+        type === 'follow-request' ||
+        type.includes('follow_request') ||
+        type.includes('follow request') ||
+        type.includes('takip_iste') ||
+        type.includes('takip iste')
+    );
+}
+
+function isFollowAcceptedNotification(n){
+    const type = String(
+        n.type || n.notificationType || n.kind || ''
+    ).toLowerCase();
+
+    return (
+        type === 'follow_accepted' ||
+        type === 'follow-accepted' ||
+        type.includes('follow_accepted') ||
+        type.includes('follow accepted') ||
+        type.includes('takip_kabul') ||
+        type.includes('takip kabul')
+    );
+}
+
+function isPrivateNotificationUser(n){
+    const candidates = [
+        n.isPrivate,
+        n.private,
+        n.privateAccount,
+        n.is_private,
+        n.account?.isPrivate,
+        n.profile?.isPrivate,
+        n.user?.isPrivate,
+        n.user?.is_private,
+        n.actor?.isPrivate,
+        n.actor?.is_private,
+        n.fromUser?.isPrivate,
+        n.fromUser?.is_private,
+        n.sender?.isPrivate,
+        n.sender?.is_private
+    ];
+
+    return candidates.some(v =>
+        v === true ||
+        String(v || '').toLowerCase() === 'true' ||
+        String(v || '').toLowerCase() === 'private' ||
+        String(v || '').toLowerCase() === 'gizli'
+    );
+}
+
+function followButtonHTML(username, following, mode='follow'){
+    const safeUsername = esc(username);
+
+    if(mode === 'request'){
+        return `
+        <div class="follow-actions" data-follow-actions="request">
+            <button
+                class="follow-btn"
+                type="button"
+                onclick="followRequestAction(event,'${safeUsername}','accept')">
+                Onayla
+            </button>
+            <button
+                class="follow-btn request-reject"
+                type="button"
+                onclick="followRequestAction(event,'${safeUsername}','reject')">
+                Reddet
+            </button>
+        </div>
+        `;
+    }
+
+    return `
+    <button
+        class="follow-btn ${following?'following':''}"
+        type="button"
+        onclick="followAction(event,'${safeUsername}',${!!following})">
+        ${following ? 'Takiptesin' : 'Sen de Takip Et'}
+    </button>
+    `;
+}
+
+
+/* =====================================================
    BİLDİRİM RENDER
 ===================================================== */
 
@@ -1089,20 +1224,32 @@ function renderNotification(n){
             n.isFollowing
         );
 
+    const followRequest =
+        isFollowRequestNotification(n);
+
+    const followAccepted =
+        isFollowAcceptedNotification(n);
+
     let action = '';
 
-    if(type === 'follow'){
+    if(followRequest){
 
-        action = `
-        <button
-            class="follow-btn ${followState?'following':''}"
-            type="button"
-            onclick="followAction(event,'${esc(username)}',${followState})">
+        action = followButtonHTML(
+            username,
+            false,
+            'request'
+        );
 
-            ${followState?'Takiptesin':'Takip Et'}
+    }else if(
+        type === 'follow' ||
+        followAccepted
+    ){
 
-        </button>
-        `;
+        action = followButtonHTML(
+            username,
+            followState,
+            'follow'
+        );
 
     }else{
 
@@ -1532,6 +1679,104 @@ async function markAllRead(){
 
 
 /* =====================================================
+   TAKİP İSTEĞİ ONAY / RED
+===================================================== */
+
+async function followRequestAction(
+    event,
+    username,
+    decision
+){
+
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+
+    if(!username || button.dataset.loading === '1'){
+        return;
+    }
+
+    const actions = button.closest('.follow-actions');
+
+    if(!actions){
+        return;
+    }
+
+    actions.querySelectorAll('button').forEach(
+        b => b.disabled = true
+    );
+
+    try{
+
+        const endpoint =
+            decision === 'accept'
+                ? '/follow-requests/accept'
+                : '/follow-requests/reject';
+
+        await api(
+            endpoint,
+            {
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body:JSON.stringify({
+                    username:username
+                })
+            }
+        );
+
+        if(decision === 'accept'){
+
+            /*
+             * Android'deki sistemle aynı:
+             * İstek kabul edilince bildirim kaybolmuyor.
+             * Onun yerine "Sen de Takip Et" çıkıyor.
+             */
+            actions.outerHTML = followButtonHTML(
+                username,
+                false,
+                'follow'
+            );
+
+            toast(
+                '@'+username+' takip isteği kabul edildi.'
+            );
+
+        }else{
+
+            /*
+             * Reddedilen istekte aksiyonları kaldır.
+             */
+            actions.outerHTML = `
+                <span style="color:#777;font-size:12px;">
+                    İstek reddedildi
+                </span>
+            `;
+
+            toast(
+                '@'+username+' takip isteği reddedildi.'
+            );
+
+        }
+
+    }catch(error){
+
+        actions.querySelectorAll('button').forEach(
+            b => b.disabled = false
+        );
+
+        toast(
+            error.message ||
+            'Takip isteği işlemi başarısız.'
+        );
+
+    }
+
+}
+
+
+/* =====================================================
    TAKİP BUTONU
 ===================================================== */
 
@@ -1562,7 +1807,7 @@ async function followAction(
     button.textContent =
         next
             ? 'Takiptesin'
-            : 'Takip Et';
+            : 'Sen de Takip Et';
 
     button.classList.toggle(
         'following',
@@ -1598,7 +1843,7 @@ async function followAction(
             button.textContent =
                 result.following
                     ? 'Takiptesin'
-                    : 'Takip Et';
+                    : 'Sen de Takip Et';
 
         }
 
@@ -1652,7 +1897,7 @@ async function followAction(
             button.textContent =
                 currentlyFollowing
                     ? 'Takiptesin'
-                    : 'Takip Et';
+                    : 'Sen de Takip Et';
 
             toast(
                 error.message ||
