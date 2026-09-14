@@ -1420,6 +1420,21 @@ async function loadNotifications(){
         const notifications =
             normalizeNotifications(result);
 
+        // Kullanıcı bildirimler sayfasını açtığında mevcut bildirimler görülmüş kabul edilir.
+        const unreadOnOpen = notifications.filter(n => !(
+            n?.read === true || n?.isRead === true || n?.seen === true
+        ));
+        if(unreadOnOpen.length){
+            try{
+                await api('/notifications/read-all',{method:'POST'});
+            }catch{
+                try{
+                    await api('/notifications/mark-all-read',{method:'POST'});
+                }catch{}
+            }
+            notifications.forEach(n => { n.read=true; n.isRead=true; n.seen=true; });
+        }
+
         if(!notifications.length){
 
             list.innerHTML = `
