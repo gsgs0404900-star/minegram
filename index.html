@@ -2426,7 +2426,9 @@ onclick="sendComment()"
 
     const keys=[
       "minegram_username",
-      "username"
+      "username",
+      "minegram_user_name",
+      "user_name"
     ];
 
     for(const key of keys){
@@ -2440,6 +2442,9 @@ onclick="sendComment()"
           .trim();
 
     }
+
+    const savedId=localStorage.getItem("minegram_user_id");
+    if(savedId) return String(savedId).trim();
 
     const user=
       localStorage.getItem(
@@ -2456,6 +2461,7 @@ onclick="sendComment()"
         return String(
           obj.username ||
           obj.user_name ||
+          obj.userName ||
           ""
         )
         .replace(/^@/,"")
@@ -2972,7 +2978,53 @@ onclick="sendComment()"
         body: formData
       });
 
-      const normalizedUploaded = normalizeStory(uploaded);
+      let normalizedUploaded = normalizeStory(uploaded);
+
+      /*
+        Uygulama tarafındaki gibi: /api/stories POST cevabı bazı
+        sunucularda yalnızca id/media döndürebilir. Böyle bir cevapta
+        hikayeyi "minegram" adlı ayrı kullanıcıya düşürme; mevcut web
+        oturumundaki gerçek kullanıcı bilgileriyle tamamla.
+      */
+      if (normalizedUploaded) {
+        const localUser = (() => {
+          try { return JSON.parse(localStorage.getItem("minegram_user") || "null") || {}; }
+          catch (_) { return {}; }
+        })();
+        const ownUsername = String(
+          localUser.username ||
+          localUser.user_name ||
+          localUser.userName ||
+          getLocalUsername() ||
+          ""
+        ).replace(/^@/, "").trim();
+        const ownUserId = String(
+          localUser.id ||
+          localUser.user_id ||
+          getCurrentUserId() ||
+          ""
+        ).trim();
+
+        if (!normalizedUploaded.username || normalizedUploaded.username.toLowerCase() === "minegram") {
+          normalizedUploaded.username = ownUsername || normalizedUploaded.username;
+        }
+        if (!normalizedUploaded.userId && ownUserId) {
+          normalizedUploaded.userId = ownUserId;
+        }
+        if (!normalizedUploaded.displayName || normalizedUploaded.displayName === "minegram") {
+          normalizedUploaded.displayName =
+            localUser.display_name ||
+            localUser.displayName ||
+            normalizedUploaded.username;
+        }
+        if (!normalizedUploaded.avatar) {
+          normalizedUploaded.avatar =
+            localUser.avatar_url ||
+            localUser.avatarUrl ||
+            "";
+        }
+      }
+
       if (!normalizedUploaded) {
         throw new Error("Sunucu hikaye kaydı döndürmedi.");
       }
