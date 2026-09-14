@@ -1097,8 +1097,12 @@ if(!myUsername){
 }
 
 
+const messageParams = new URLSearchParams(location.search);
 const targetUsername =
-"test";
+(messageParams.get("username") || "")
+  .replace(/^@/, "")
+  .trim();
+
 
 
 /* =====================================================
@@ -1124,6 +1128,22 @@ const toast =
 document.getElementById(
     "toast"
 );
+
+// Sohbet ekranındaki kullanıcı adı/avatar da URL'deki gerçek hedef kullanıcıyı gösterir.
+(function applyMessageTargetUI(){
+    const title = document.querySelector("#profileHeader .name");
+    const profileText = document.querySelector("#profileHeader .profile");
+    const avatarSmall = document.querySelector("#profileHeader .avatar-small");
+    const avatarLarge = document.querySelector(".profile-card .avatar-large");
+    if(title) title.textContent = targetUsername || "Kullanıcı";
+    if(profileText) profileText.textContent = targetUsername ? ("@" + targetUsername) : "Profil";
+    if(avatarSmall) avatarSmall.textContent = (targetUsername || "K").charAt(0).toUpperCase();
+    if(avatarLarge) avatarLarge.textContent = (targetUsername || "K").charAt(0).toUpperCase();
+    const link = document.getElementById("profileLink");
+    if(link && targetUsername){
+        link.href = "profile.html?username=" + encodeURIComponent(targetUsername);
+    }
+})();
 
 const menu =
 document.getElementById(
@@ -3144,8 +3164,10 @@ event=>{
 
 function openProfile(){
 
+    const u = String(targetUsername || "").replace(/^@/, "").trim();
+    if(!u) return;
     window.location.href =
-    "profile.html";
+    "profile.html?username=" + encodeURIComponent(u);
 
 }
 
