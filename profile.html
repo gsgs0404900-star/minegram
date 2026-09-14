@@ -2990,6 +2990,18 @@ html.minegram-premium-active[data-premium-frame="pink"] .profile-avatar,html.min
 .highlights-section{margin-top:38px!important}
 .highlights-section h2{font-size:27px!important;font-weight:700!important}
 </style>
+<style id="minegramProfileFinalFix">
+/* Profil referans görünümü: web altındaki lacivert sabit menüyü kaldır. */
+html,body{padding-bottom:0!important;}
+.app{padding-bottom:0!important;}
+.nav{display:none!important;}
+/* Öne çıkanlar her kullanıcının kendi profilinde gösterilir; kendi profilinde Yeni de kalır. */
+.highlights-section{display:block;}
+.highlights-section[hidden]{display:none!important;}
+.actions button{height:58px!important;border-radius:30px!important;}
+.actions .primary{background:#63b1ed!important;border-color:#63b1ed!important;color:#30206d!important;}
+#shareBtn{background:#000!important;border:2px solid #777!important;color:#63b1ed!important;}
+</style>
 </head>    
     
 <body>    
@@ -3947,8 +3959,7 @@ async function renderHighlights(){
   const mine=currentProfile&&me&&String(currentProfile.id)===String(me.id);
   const section=document.getElementById('highlightsSection');
   const box=document.getElementById('highlights');
-  section.hidden=!mine;
-  if(!mine)return;
+  if(!section||!box)return;
 
   let items=[];
   try{
@@ -3970,11 +3981,14 @@ async function renderHighlights(){
   // Tek kaynak Supabase API'dir. localStorage/Firebase'deki eski hesap verileri
   // yeni hesaba taşınmaz ve web/Android aynı kayıtları görür.
   box.innerHTML='';
-  const add=document.createElement('button');
-  add.className='highlight add-highlight';
-  add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
-  add.onclick=addHighlight;
-  box.appendChild(add);
+
+  if(mine){
+    const add=document.createElement('button');
+    add.className='highlight add-highlight';
+    add.innerHTML='<span class="highlight-cover">＋</span><span class="highlight-title">Yeni</span>';
+    add.onclick=addHighlight;
+    box.appendChild(add);
+  }
 
   items.forEach((item,i)=>{
     const b=document.createElement('button'); b.className='highlight';
@@ -3983,6 +3997,7 @@ async function renderHighlights(){
     box.appendChild(b);
   });
   storyItems=items;
+  section.hidden = !(mine || items.length);
 }
 
 async function addHighlight(){
@@ -5060,6 +5075,31 @@ async function load(){
      '/api/users/'+
      encodeURIComponent(username)
    );
+
+   // Bazı sunucu yanıtlarında followingByMe alanı gelmeyebilir.
+   // Bu durumda takipçiler listesinden mevcut kullanıcının takip durumunu netleştir.
+   if(String(currentProfile.id)!==String(me.id) &&
+      currentProfile.followingByMe===undefined &&
+      currentProfile.isFollowing===undefined &&
+      currentProfile.followedByMe===undefined){
+     try{
+       const followerData=await api('/api/users/'+encodeURIComponent(username)+'/followers');
+       const followerList=Array.isArray(followerData)
+         ? followerData
+         : (Array.isArray(followerData?.users)
+           ? followerData.users
+           : (Array.isArray(followerData?.followers)?followerData.followers:[]));
+       const meId=String(me?.id||'');
+       const meUsername=String(me?.username||'').replace(/^@/,'').toLowerCase();
+       currentProfile.followingByMe=followerList.some(u=>{
+         const uid=String(u?.id||u?.userId||u?.user_id||'');
+         const un=String(u?.username||u?.handle||'').replace(/^@/,'').toLowerCase();
+         return (meId && uid===meId) || (meUsername && un===meUsername);
+       });
+     }catch(_e){
+       // Sunucu alanı varsa onu kullan; ek endpoint yoksa varsayılan davranış korunur.
+     }
+   }
 
    document.getElementById('username')
    .innerHTML=
