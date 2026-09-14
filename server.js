@@ -795,7 +795,8 @@ app.post("/api/problem-reports", auth, async (req, res) => {
       subject,
       html,
       text,
-      attachments
+      attachments,
+      replyTo: email
     });
 
     return res.json({ ok: true, message: "Sorun bildirimi gönderildi." });
@@ -2292,11 +2293,12 @@ function mimeHeader(value) {
     .trim();
 }
 
-function buildGmailRawMessage({ to, subject, html, text: textBody, attachments = [] }) {
+function buildGmailRawMessage({ to, subject, html, text: textBody, attachments = [], replyTo = "" }) {
   const c = gmailConfig();
   const fromName = mimeHeader(c.fromName || "Minegram");
   const fromEmail = mimeHeader(c.userEmail);
   const recipient = mimeHeader(emailAddress(to, "Alıcı e-posta adresi"));
+  const safeReplyTo = String(replyTo || "").trim() ? mimeHeader(emailAddress(replyTo, "Yanıt e-posta adresi")) : "";
   const safeSubject = mimeHeader(subject || "Minegram");
   const plain = String(textBody || "").replace(/\r?\n/g, "\r\n");
   const markup = String(html || "").replace(/\r?\n/g, "\r\n");
@@ -2308,6 +2310,7 @@ function buildGmailRawMessage({ to, subject, html, text: textBody, attachments =
     `From: ${fromName} <${fromEmail}>`,
     `To: ${recipient}`,
     `Subject: ${safeSubject}`,
+    ...(safeReplyTo ? [`Reply-To: ${safeReplyTo}`] : []),
     "MIME-Version: 1.0",
     cleanAttachments.length ? `Content-Type: multipart/mixed; boundary=${mixedBoundary}` : `Content-Type: multipart/alternative; boundary=${altBoundary}`
   ].join("\r\n");
@@ -2359,12 +2362,12 @@ function buildGmailRawMessage({ to, subject, html, text: textBody, attachments =
   return base64UrlUtf8(parts.join("\r\n"));
 }
 
-async function sendGmailApiEmail({ to, subject, html, text: textBody, attachments = [] }) {
+async function sendGmailApiEmail({ to, subject, html, text: textBody, attachments = [], replyTo = "" }) {
   const c = gmailConfig();
   if (!c.userEmail) throw new Error("GMAIL_USER_EMAIL veya MAIL_FROM_EMAIL gerekli.");
 
   const accessToken = await gmailAccessToken();
-  const raw = buildGmailRawMessage({ to, subject, html, text: textBody, attachments });
+  const raw = buildGmailRawMessage({ to, subject, html, text: textBody, attachments, replyTo });
 
   const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
