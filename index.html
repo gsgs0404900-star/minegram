@@ -61,6 +61,80 @@ body{
   cursor:pointer
 }
 
+.minegram-live-story{
+  cursor:pointer;
+  flex:0 0 68px;
+  width:68px;
+  text-align:center;
+  font-size:10px;
+  color:#aaa;
+  user-select:none;
+}
+.minegram-live-story:active{transform:scale(.96)}
+.minegram-live-story-avatar{
+  width:58px;
+  height:58px;
+  margin:auto;
+  border-radius:50%;
+  border:2px solid #e53935;
+  padding:2px;
+  background:#111;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  position:relative;
+}
+.minegram-live-story-avatar img{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+}
+.minegram-live-story-avatar .minegram-live-dot{
+  position:absolute;
+  right:-1px;
+  bottom:-1px;
+  min-width:22px;
+  height:18px;
+  padding:0 4px;
+  border-radius:9px;
+  background:#e53935;
+  color:#fff;
+  font-size:8px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.minegram-live-story-name{
+  margin-top:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#fff;
+}
+.minegram-live-badge{
+  display:block;
+  margin-top:2px;
+  color:#ff4b4b;
+  font-size:8px;
+  font-weight:800;
+  line-height:10px;
+}
+
+.minegram-live-top-button{
+  flex:none;
+}
+.minegram-live-camera-icon{
+  width:23px;
+  height:23px;
+}
+.minegram-live-top-button:active{
+  transform:scale(.94);
+}
+
+
 .svg{
   width:23px;
   height:23px;
@@ -760,24 +834,61 @@ body{
 }
 
 /* =======================================================
-   MINEGRAM CANLI YAYIN - WEB
+   MINEGRAM CANLI YAYIN - ANDROID İLE AYNI SİSTEM
+   Firestore signaling: minegram_live_webrtc
 ======================================================= */
 .minegram-live-fab{width:42px;height:42px;border:0;background:transparent;color:#eee;display:grid;place-items:center;cursor:pointer;font-size:20px}
 .minegram-live-badge{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;color:#ff5252;font-weight:700}
-.minegram-live-modal{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:11000;display:none;align-items:center;justify-content:center}
+.minegram-live-modal{position:fixed;inset:0;background:#000;z-index:11000;display:none;align-items:center;justify-content:center}
 .minegram-live-modal.open{display:flex}
-.minegram-live-sheet{width:min(520px,100vw);height:100%;background:#050505;position:relative;overflow:hidden}
+.minegram-live-sheet{width:min(520px,100vw);height:100%;background:#000;position:relative;overflow:hidden}
 .minegram-live-video{width:100%;height:100%;object-fit:cover;background:#111;display:block}
-.minegram-live-top{position:absolute;top:18px;left:14px;right:14px;display:flex;align-items:center;gap:10px;z-index:3}
+.minegram-live-setup{position:absolute;inset:0;background:#000;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;color:#fff}
+.minegram-live-setup.hidden{display:none!important}
+.minegram-live-setup-icon{font-size:72px;line-height:1;margin-bottom:16px}
+.minegram-live-setup h2{margin:0 0 10px;font-size:26px}
+.minegram-live-setup p{margin:0 0 7px;color:#ccc;text-align:center;line-height:1.4}
+.minegram-live-followers{font-weight:700;margin-bottom:18px}
+.minegram-live-title-input{width:100%;height:52px;border:1px solid #666;border-radius:8px;background:#111;color:#fff;padding:0 15px;font-size:16px;outline:none;margin-bottom:12px}
+.minegram-live-title-input:focus{border-color:#fff}
+.minegram-live-start-main{width:100%;height:48px;border:0;border-radius:24px;background:#64b5f6;color:#17366b;font-size:15px;font-weight:700;cursor:pointer}
+.minegram-live-back{margin-top:12px;width:100%;height:44px;border:0;background:transparent;color:#fff;font-size:15px;cursor:pointer}
+.minegram-live-permission{position:absolute;inset:0;background:#000;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.minegram-live-permission.open{display:flex}
+.minegram-live-permission-icon{font-size:64px;margin-bottom:16px}
+.minegram-live-permission h3{font-size:20px;margin:0 0 10px}
+.minegram-live-permission p{color:#ccc;margin:0 0 18px}
+.minegram-live-permission button{width:100%;height:46px;border:0;border-radius:23px;background:#fff;color:#111;font-weight:700;cursor:pointer}
+.minegram-live-top{position:absolute;top:18px;left:14px;right:14px;display:flex;align-items:center;gap:8px;z-index:5}
 .minegram-live-title{flex:1;min-width:0;color:#fff}
-.minegram-live-title strong{display:block;font-size:14px}.minegram-live-title span{display:block;font-size:11px;color:#ddd;margin-top:3px}
-.minegram-live-pill{background:rgba(0,0,0,.6);border-radius:20px;padding:7px 10px;color:#fff;font-size:12px;font-weight:700}
-.minegram-live-close{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer}
-.minegram-live-bottom{position:absolute;left:14px;right:14px;bottom:20px;z-index:3}
-.minegram-live-input{width:100%;height:44px;border:1px solid rgba(255,255,255,.35);border-radius:22px;background:rgba(0,0,0,.5);color:#fff;padding:0 16px;outline:none}
-.minegram-live-actions{display:flex;gap:8px;margin-top:9px}.minegram-live-actions button{flex:1;height:42px;border:0;border-radius:21px;cursor:pointer;font-weight:700}.minegram-live-start{background:#ff5252;color:#fff}.minegram-live-end{background:#fff;color:#111}
-.minegram-live-list{position:absolute;top:90px;left:14px;right:14px;z-index:2;display:flex;flex-direction:column;gap:8px}.minegram-live-card{background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;color:#fff;cursor:pointer}.minegram-live-card b{font-size:13px}.minegram-live-card span{display:block;font-size:11px;color:#ccc;margin-top:3px}
-
+.minegram-live-title strong{display:block;font-size:14px}.minegram-live-title span{display:block;font-size:12px;color:#ddd;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.minegram-live-pill{background:rgba(0,0,0,.55);border-radius:20px;padding:7px 10px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+.minegram-live-close,.minegram-live-camera{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:25px;cursor:pointer;display:grid;place-items:center}
+.minegram-live-camera{font-size:23px}
+.minegram-live-comments{position:absolute;left:14px;right:14px;bottom:128px;z-index:5;max-height:210px;overflow:hidden;display:flex;flex-direction:column;gap:5px}
+.minegram-live-comment{align-self:flex-start;max-width:92%;background:rgba(0,0,0,.52);border-radius:15px;padding:7px 10px;color:#fff;font-size:12px;line-height:1.25}
+.minegram-live-comment b{margin-right:5px}
+.minegram-live-comment-input{position:absolute;left:14px;right:14px;bottom:76px;height:44px;border:1px solid rgba(255,255,255,.35);border-radius:22px;background:rgba(0,0,0,.55);color:#fff;padding:0 16px;outline:none;z-index:5}
+.minegram-live-actions{position:absolute;left:14px;right:14px;bottom:20px;display:flex;gap:8px;z-index:5}
+.minegram-live-actions button{flex:1;height:42px;border:0;border-radius:21px;cursor:pointer;font-weight:700}
+.minegram-live-send{background:#fff;color:#111}
+.minegram-live-end{background:#ff5252;color:#fff}
+.minegram-live-viewer-actions{display:none}
+.minegram-live-list{position:absolute;left:14px;right:14px;top:90px;z-index:4;display:flex;flex-direction:column;gap:8px;max-height:45vh;overflow:auto}
+.minegram-live-card{background:rgba(0,0,0,.68);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px;color:#fff;cursor:pointer}
+.minegram-live-card b{font-size:13px}.minegram-live-card span{display:block;font-size:11px;color:#ccc;margin-top:3px}
+.minegram-live-list-title{color:#fff;font-size:13px;font-weight:700;margin-bottom:2px}
+.minegram-live-status{position:absolute;left:14px;top:88px;z-index:5;color:#fff;font-size:12px;background:rgba(0,0,0,.5);padding:7px 10px;border-radius:16px;display:none}
+.minegram-live-status.open{display:block}
+.minegram-live-host-controls{display:none}
+.minegram-live-host-controls.open{display:block}
+.minegram-live-viewer .minegram-live-host-controls,
+.minegram-live-viewer .minegram-live-comment-input{display:none}
+.minegram-live-viewer .minegram-live-actions{bottom:20px}
+.minegram-live-viewer .minegram-live-actions button{display:none}
+.minegram-live-viewer .minegram-live-actions .minegram-live-close-viewer{display:block!important;flex:1;background:#fff;color:#111}
+.minegram-live-host .minegram-live-setup,
+.minegram-live-viewer .minegram-live-setup{display:none}
 </style>
 
 <meta
@@ -824,7 +935,18 @@ Minegram
 </div>
 
 <div class="top-actions">
-    <button id="minegramLiveFab" class="minegram-live-fab" onclick="openMinegramLive()" aria-label="Canlı yayın">🔴</button>
+    <button
+      id="minegramLiveFab"
+      class="icon-btn minegram-live-top-button"
+      onclick="openMinegramLive()"
+      aria-label="Canlı Yayın"
+      title="Canlı Yayın"
+    >
+      <svg class="svg minegram-live-camera-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="6" width="13" height="12" rx="2"></rect>
+        <path d="m16 10 5-3v10l-5-3"></path>
+      </svg>
+    </button>
 
 <button
 class="icon-btn"
@@ -954,23 +1076,53 @@ Profil
 </div>
 
 <div id="minegramLiveModal" class="minegram-live-modal" onclick="closeMinegramLive(event)">
-  <div class="minegram-live-sheet" onclick="event.stopPropagation()">
+  <div id="minegramLiveSheet" class="minegram-live-sheet" onclick="event.stopPropagation()">
     <video id="minegramLiveVideo" class="minegram-live-video" autoplay playsinline muted></video>
+
+    <div id="minegramLiveSetup" class="minegram-live-setup">
+      <div class="minegram-live-setup-icon">📺</div>
+      <h2>🔴 Canlı Yayın</h2>
+      <p>Artık takipçi sınırı olmadan canlı yayın açabilirsin.</p>
+      <div id="minegramLiveFollowers" class="minegram-live-followers">0 takipçi</div>
+      <input id="minegramLiveTitleInput" class="minegram-live-title-input" placeholder="Canlı yayın başlığı" maxlength="120">
+      <button class="minegram-live-start-main" onclick="startMinegramWebLive()">🔴 Canlı yayını başlat</button>
+      <button class="minegram-live-back" onclick="closeMinegramLive()">Geri</button>
+
+      <div id="minegramLiveList" style="width:100%;margin-top:18px"></div>
+    </div>
+
+    <div id="minegramLivePermission" class="minegram-live-permission">
+      <div class="minegram-live-permission-icon">📹</div>
+      <h3>Kamera izni gerekli</h3>
+      <p>Canlı yayın için kamera ve mikrofon izni vermelisin.</p>
+      <button onclick="requestMinegramLivePermission()">Kamera ve mikrofonu aç</button>
+      <button class="minegram-live-back" onclick="hideMinegramLivePermission()">Geri</button>
+    </div>
+
     <div class="minegram-live-top">
-      <div class="minegram-live-title"><strong id="minegramLiveName">@Minegram</strong><span id="minegramLiveTitle">Canlı yayın</span></div>
-      <div id="minegramLiveViewers" class="minegram-live-pill">👁 0</div>
+      <div class="minegram-live-title">
+        <strong id="minegramLiveName">@Minegram</strong>
+        <span id="minegramLiveTitle">Canlı yayın</span>
+      </div>
+      <div id="minegramLiveViewers" class="minegram-live-pill">👁 0 izliyor</div>
+      <button id="minegramLiveCamera" class="minegram-live-camera" onclick="switchMinegramLiveCamera()" aria-label="Kamerayı değiştir">🔄</button>
       <button class="minegram-live-close" onclick="closeMinegramLive()">×</button>
     </div>
-    <div id="minegramLiveList" class="minegram-live-list"></div>
-    <div class="minegram-live-bottom">
-      <input id="minegramLiveTitleInput" class="minegram-live-input" placeholder="Canlı yayın başlığı">
-      <div class="minegram-live-actions">
-        <button class="minegram-live-start" onclick="startMinegramWebLive()">🔴 Canlıyı başlat</button>
-        <button class="minegram-live-end" onclick="endMinegramWebLive()">⏹ Bitir</button>
-      </div>
+
+    <div id="minegramLiveStatus" class="minegram-live-status"></div>
+    <div id="minegramLiveComments" class="minegram-live-comments"></div>
+
+    <input id="minegramLiveCommentInput" class="minegram-live-comment-input" placeholder="Yorum yaz..." maxlength="300"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();sendMinegramLiveComment()}">
+
+    <div class="minegram-live-actions">
+      <button class="minegram-live-send" onclick="sendMinegramLiveComment()">Gönder</button>
+      <button class="minegram-live-end" onclick="endMinegramWebLive()">⏹ Canlı yayını bitir</button>
+      <button class="minegram-live-close-viewer" onclick="closeMinegramLive()">Kapat</button>
     </div>
   </div>
 </div>
+
 <div id="storyViewer" class="story-viewer" onclick="closeStory(event)">
   <div class="story-stage" onclick="event.stopPropagation()">
     <div id="storyProgress" class="story-progress"></div>
@@ -2706,6 +2858,13 @@ onclick="sendComment()"
     container.appendChild(
       storyItems
     );
+
+    /* Canlı yayınları Story alanına da ekle/güncelle. */
+    setTimeout(function(){
+      if(typeof window.updateMinegramLiveBadges==="function"){
+        window.updateMinegramLiveBadges();
+      }
+    },0);
 
   }
 
@@ -7771,128 +7930,756 @@ init();
 </script>
 
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 
 <script>
 /* =======================================================
-   MINEGRAM CANLI YAYIN - GERÇEK WEBRTC
-   Android + Web aynı PeerJS kimlik sistemiyle bağlanır.
+   MINEGRAM CANLI YAYIN - ANDROID LiveStreamScreen İLE AYNI
+   - Firebase anonim oturum
+   - Firestore: minegram_live_webrtc
+   - WebRTC: Google STUN
+   - /api/live/start + /api/live/end
+   - Firebase minegram_live_comments + API yorumları
 ======================================================= */
 (function(){
+  const SIGNAL_COLLECTION="minegram_live_webrtc";
+  const LIVE_COMMENTS_COLLECTION="minegram_live_comments";
+  const FIREBASE_PROJECT="mim-ea133";
+  const FIREBASE_DB="(default)";
+  const FIREBASE_API_KEY="AIzaSyBgJjz0LOWY2DO55h3sxsovBIlBOGjJwIo";
+
   let liveStream=null;
-  let livePeer=null;
-  let liveCall=null;
+  let livePc=null;
   let livePoll=null;
-  let minegramOwnLive=null;
-  const liveModal=()=>document.getElementById('minegramLiveModal');
-  const video=()=>document.getElementById('minegramLiveVideo');
-  function username(){ return String(localStorage.getItem('minegram_username')||localStorage.getItem('username')||'Minegram').replace(/^@/,'').trim(); }
-  function peerId(u){ return String(u||'Minegram').replace(/^@/,'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,50)||'minegram_live'; }
-  function dummyStream(){
-    const c=document.createElement('canvas'); c.width=2; c.height=2;
-    const x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,2,2);
-    return c.captureStream(1);
+  let liveCandidatePoll=null;
+  let liveCommentPoll=null;
+  let liveMode="";
+  let liveTarget="";
+  let liveSession="";
+  let liveCurrentSession="";
+  let liveStarted=false;
+  let liveFacing="user";
+  let liveLastOffer="";
+  let liveSeenCandidates=new Set();
+  let liveSeenComments=new Set();
+
+  const modal=()=>document.getElementById("minegramLiveModal");
+  const sheet=()=>document.getElementById("minegramLiveSheet");
+  const video=()=>document.getElementById("minegramLiveVideo");
+  const cleanUser=()=>String(
+    localStorage.getItem("minegram_username") ||
+    localStorage.getItem("username") ||
+    "Minegram"
+  ).replace(/^@/,"").trim();
+
+  function docId(u){
+    return String(u||"live").replace(/^@/,"").toLowerCase()
+      .replace(/[^a-z0-9_-]/g,"_").slice(0,120) || "live";
   }
-  function stopPeer(){
-    try{ if(liveCall) liveCall.close(); }catch(e){}
-    try{ if(livePeer) livePeer.destroy(); }catch(e){}
-    liveCall=null; livePeer=null;
+
+  function docUrl(u){
+    return "https://firestore.googleapis.com/v1/projects/"+
+      encodeURIComponent(FIREBASE_PROJECT)+"/databases/"+
+      encodeURIComponent(FIREBASE_DB)+"/documents/"+
+      SIGNAL_COLLECTION+"/"+encodeURIComponent(docId(u));
   }
-  async function refreshLives(){
+
+  function subCollectionUrl(u){
+    return docUrl(u)+"/candidates";
+  }
+
+  function fv(v){
+    if(typeof v==="boolean") return {booleanValue:v};
+    if(typeof v==="number" && Number.isInteger(v)) return {integerValue:String(v)};
+    if(typeof v==="number") return {doubleValue:v};
+    return {stringValue:String(v??"")};
+  }
+
+  function fields(obj){
+    const out={};
+    Object.entries(obj||{}).forEach(([k,v])=>out[k]=fv(v));
+    return out;
+  }
+
+  function fromFirestoreValue(v){
+    if(!v) return null;
+    if(v.stringValue!==undefined) return v.stringValue;
+    if(v.integerValue!==undefined) return Number(v.integerValue);
+    if(v.doubleValue!==undefined) return Number(v.doubleValue);
+    if(v.booleanValue!==undefined) return v.booleanValue;
+    if(v.timestampValue!==undefined) return v.timestampValue;
+    return null;
+  }
+
+  function firestoreFields(doc){
+    const out={};
+    Object.entries(doc?.fields||{}).forEach(([k,v])=>out[k]=fromFirestoreValue(v));
+    return out;
+  }
+
+  async function firebaseLiveRequest(url,opt={}){
+    const idToken=await getFirebaseStoryToken();
+    const headers={...(opt.headers||{}),Authorization:"Bearer "+idToken};
+    let r=await fetch(url,{...opt,headers,cache:"no-store"});
+    if(r.status===401 || r.status===403){
+      sessionStorage.removeItem("minegram_firebase_story_token");
+      const fresh=await getFirebaseStoryToken();
+      r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:"Bearer "+fresh},cache:"no-store"});
+    }
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j?.error?.message||j?.error||("HTTP "+r.status));
+    return j;
+  }
+
+  async function writeSignal(u,obj){
+    return firebaseLiveRequest(docUrl(u),{
+      method:"PATCH",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({fields:fields(obj)})
+    });
+  }
+
+  async function readSignal(u){
     try{
-      const result=await api('/live');
-      const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
-      const list=document.getElementById('minegramLiveList'); if(!list)return;
-      list.innerHTML=lives.map(l=>`<div class="minegram-live-card" data-user="${esc(String(l.username||''))}" data-title="${esc(String(l.title||'Canlı yayın'))}"><b>🔴 @${esc(String(l.username||'Minegram'))}</b><span>${esc(String(l.title||'Canlı yayın'))} • 👁 ${Number(l.viewerCount||0)}</span></div>`).join('');
-      updateMinegramLiveBadges();
-      list.querySelectorAll('.minegram-live-card').forEach(card=>card.addEventListener('click',()=>{
-        const u=card.getAttribute('data-user')||'';
-        const t=card.getAttribute('data-title')||'Canlı yayın';
-        if(u && u.toLowerCase()===username().toLowerCase()) return;
-        startMinegramWebViewer(u,t);
-      }));
-    }catch(e){}
+      const j=await firebaseLiveRequest(docUrl(u),{method:"GET"});
+      return firestoreFields(j);
+    }catch(_){return null;}
   }
-  async function updateMinegramLiveBadges(){
+
+  async function addCandidate(u,obj){
+    return firebaseLiveRequest(subCollectionUrl(u),{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({fields:fields(obj)})
+    });
+  }
+
+  async function readCandidates(u){
     try{
-      const result=await api('/live');
-      const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
-      const liveNames=new Set(lives.map(l=>String(l.username||'').replace(/^@/,'').toLowerCase()).filter(Boolean));
-      document.querySelectorAll('[data-story-username]').forEach(el=>{
-        const name=String(el.getAttribute('data-story-username')||'').toLowerCase(); let badge=el.querySelector('.minegram-live-badge');
-        if(liveNames.has(name)){ if(!badge){ badge=document.createElement('div'); badge.className='minegram-live-badge'; badge.textContent='🔴 CANLI YAYINDA'; const label=el.lastElementChild; if(label) label.appendChild(badge); } }
-        else if(badge) badge.remove();
+      const j=await firebaseLiveRequest(subCollectionUrl(u)+"?pageSize=300",{method:"GET"});
+      return (j.documents||[]).map(d=>({id:d.name?.split("/").pop(),...firestoreFields(d)}));
+    }catch(_){return [];}
+  }
+
+  function resetVideo(){
+    const v=video();
+    if(!v)return;
+    try{v.pause();}catch(_){}
+    v.srcObject=null;
+  }
+
+  function stopPc(){
+    try{if(livePc)livePc.onicecandidate=null;}catch(_){}
+    try{if(livePc)livePc.close();}catch(_){}
+    livePc=null;
+  }
+
+  function stopLocalStream(){
+    if(liveStream){
+      liveStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});
+      liveStream=null;
+    }
+  }
+
+  function clearTimers(){
+    clearInterval(livePoll); clearInterval(liveCandidatePoll); clearInterval(liveCommentPoll);
+    livePoll=liveCandidatePoll=liveCommentPoll=null;
+  }
+
+  function setMode(mode){
+    liveMode=mode;
+    const sh=sheet();
+    if(sh) sh.classList.toggle("minegram-live-host",mode==="host");
+    if(sh) sh.classList.toggle("minegram-live-viewer",mode==="viewer");
+    document.getElementById("minegramLiveCamera")?.style.setProperty("display",mode==="host"?"grid":"none");
+    const end=document.querySelector(".minegram-live-end");
+    if(end) end.style.display=mode==="host"?"block":"none";
+    const send=document.querySelector(".minegram-live-send");
+    if(send) send.style.display=mode==="viewer"?"none":"block";
+    const inp=document.getElementById("minegramLiveCommentInput");
+    if(inp) inp.style.display="block";
+    const closeViewer=document.querySelector(".minegram-live-close-viewer");
+    if(closeViewer) closeViewer.style.display=mode==="viewer"?"block":"none";
+  }
+
+  function renderComments(comments){
+    const el=document.getElementById("minegramLiveComments");
+    if(!el)return;
+    const arr=(comments||[]).slice(-6);
+    el.innerHTML=arr.map(c=>
+      `<div class="minegram-live-comment"><b>@${esc(String(c.username||"Kullanıcı"))}</b>${esc(String(c.text||""))}</div>`
+    ).join("");
+  }
+
+  async function loadLiveComments(owner){
+    if(!owner)return;
+    try{
+      const j=await firebaseLiveRequest(
+        "https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(FIREBASE_PROJECT)+
+        "/databases/"+encodeURIComponent(FIREBASE_DB)+
+        "/documents:runQuery",
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            structuredQuery:{
+              from:[{collectionId:LIVE_COMMENTS_COLLECTION}],
+              where:{fieldFilter:{
+                field:{fieldPath:"liveUsernameLower"},
+                op:"EQUAL",
+                value:{stringValue:owner.toLowerCase()}
+              }},
+              limit:100
+            }
+          })
+        }
+      );
+      const arr=[];
+      for(const row of (Array.isArray(j)?j:[])){
+        if(!row.document)continue;
+        const f=firestoreFields(row.document);
+        const key=row.document.name||JSON.stringify(f);
+        if(liveSeenComments.has(key))continue;
+        liveSeenComments.add(key);
+        if(String(f.text||"").trim()) arr.push({username:f.username||"Kullanıcı",text:f.text});
+      }
+      if(arr.length){
+        const box=document.getElementById("minegramLiveComments");
+        const old=box?.dataset.items?JSON.parse(box.dataset.items):[];
+        const merged=[...old,...arr].slice(-30);
+        if(box)box.dataset.items=JSON.stringify(merged);
+        renderComments(merged);
+      }
+    }catch(_){}
+
+    // API tarafı da Android ile aynı şekilde kullanılır.
+    try{
+      const j=await api("/live/comments?live_username="+encodeURIComponent(owner)+"&ts="+Date.now());
+      const arr=Array.isArray(j)?j:(Array.isArray(j?.comments)?j.comments:(Array.isArray(j?.data)?j.data:[]));
+      if(arr.length){
+        const box=document.getElementById("minegramLiveComments");
+        const old=box?.dataset.items?JSON.parse(box.dataset.items):[];
+        const merged=[...old,...arr.map(c=>({username:c.username||c.author||"Kullanıcı",text:c.text||c.message||""}))].filter(c=>c.text).slice(-30);
+        if(box)box.dataset.items=JSON.stringify(merged);
+        renderComments(merged);
+      }
+    }catch(_){}
+  }
+
+  async function sendFirebaseComment(owner,text){
+    await firebaseLiveRequest(
+      "https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(FIREBASE_PROJECT)+
+      "/databases/"+encodeURIComponent(FIREBASE_DB)+"/documents/"+LIVE_COMMENTS_COLLECTION,
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({fields:fields({
+          liveUsername:owner,
+          liveUsernameLower:owner.toLowerCase(),
+          username:cleanUser(),
+          text,
+          avatarUrl:"",
+          createdAt:Date.now()
+        })})
+      }
+    );
+  }
+
+  async function sendMinegramLiveComment(){
+    const inp=document.getElementById("minegramLiveCommentInput");
+    const text=String(inp?.value||"").trim();
+    const owner=liveMode==="viewer"?liveTarget:cleanUser();
+    if(!text||!owner)return;
+    inp.value="";
+
+    const box=document.getElementById("minegramLiveComments");
+    const old=box?.dataset.items?JSON.parse(box.dataset.items):[];
+    const merged=[...old,{username:cleanUser(),text}].slice(-30);
+    if(box)box.dataset.items=JSON.stringify(merged);
+    renderComments(merged);
+
+    try{
+      await api("/live/comments",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({live_username:owner,text,message:text})
       });
-    }catch(e){}
+    }catch(_){}
+
+    try{await sendFirebaseComment(owner,text);}catch(_){}
   }
-  window.updateMinegramLiveBadges=updateMinegramLiveBadges;
-  setInterval(updateMinegramLiveBadges,10000);
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(updateMinegramLiveBadges,1200));
+  window.sendMinegramLiveComment=sendMinegramLiveComment;
+
+  async function makePeer(isHost,target){
+    const pc=new RTCPeerConnection({
+      iceServers:[
+        {urls:"stun:stun.l.google.com:19302"},
+        {urls:"stun:stun1.l.google.com:19302"}
+      ]
+    });
+    livePc=pc;
+    pc.onicecandidate=e=>{
+      if(!e.candidate)return;
+      const sid=isHost?(liveCurrentSession||liveSession):liveSession;
+      addCandidate(target,{
+        side:isHost?"host":"viewer",
+        sessionId:sid,
+        sdpMid:e.candidate.sdpMid||"0",
+        sdpMLineIndex:e.candidate.sdpMLineIndex??0,
+        candidate:e.candidate.candidate,
+        createdAt:Date.now()
+      }).catch(()=>{});
+    };
+    pc.onconnectionstatechange=()=>{
+      if(["failed","disconnected"].includes(pc.connectionState)){
+        setStatus("Canlı görüntü bağlantısı kesildi.");
+      }
+    };
+    pc.ontrack=e=>{
+      const v=video();
+      if(v && e.streams?.[0]){
+        v.srcObject=e.streams[0];
+        v.muted=isHost;
+        v.play().catch(()=>{});
+      }
+    };
+    return pc;
+  }
+
+  async function pollCandidates(owner,isHost,session){
+    const docs=await readCandidates(owner);
+    for(const d of docs){
+      if(d.side!==(isHost?"viewer":"host"))continue;
+      if(String(d.sessionId||"")!==String(session||""))continue;
+      if(liveSeenCandidates.has(d.id))continue;
+      liveSeenCandidates.add(d.id);
+      try{
+        if(livePc && livePc.remoteDescription){
+          await livePc.addIceCandidate(new RTCIceCandidate({
+            sdpMid:d.sdpMid||"0",
+            sdpMLineIndex:Number(d.sdpMLineIndex||0),
+            candidate:d.candidate
+          }));
+        }
+      }catch(_){}
+    }
+  }
+
+  async function hostListenOffers(){
+    const owner=cleanUser();
+    livePoll=setInterval(async()=>{
+      const sig=await readSignal(owner);
+      if(!sig)return;
+      const offer=String(sig.offer||"");
+      const sid=String(sig.sessionId||"");
+      if(!offer||!sid||sid===liveCurrentSession)return;
+      liveCurrentSession=sid;
+      liveSession=sid;
+      liveSeenCandidates=new Set();
+
+      try{stopPc();}catch(_){}
+      const pc=await makePeer(true,owner);
+      pc.ondatachannel=()=>{};
+      await pc.setRemoteDescription({type:"offer",sdp:offer});
+      const answer=await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await writeSignal(owner,{sessionId:sid,offer,answer:answer.sdp,answerSessionId:sid,updatedAt:Date.now()});
+      await pollCandidates(owner,true,sid);
+    },1000);
+
+    liveCandidatePoll=setInterval(()=>pollCandidates(owner,true,liveCurrentSession),1000);
+  }
+
+  async function viewerConnect(owner,title){
+    liveTarget=owner;
+    liveSession=crypto.randomUUID();
+    liveSeenCandidates=new Set();
+    liveSeenComments=new Set();
+
+    setMode("viewer");
+    document.getElementById("minegramLiveName").textContent="🔴 @"+owner;
+    document.getElementById("minegramLiveTitle").textContent=title||"Canlı yayın";
+    document.getElementById("minegramLiveViewers").textContent="👁 Canlı";
+    modal()?.classList.add("open");
+    document.getElementById("minegramLiveSetup").classList.add("hidden");
+    document.getElementById("minegramLivePermission").classList.remove("open");
+
+    const pc=await makePeer(false,owner);
+    const offer=await pc.createOffer({offerToReceiveVideo:true,offerToReceiveAudio:true});
+    await pc.setLocalDescription(offer);
+    await writeSignal(owner,{sessionId:liveSession,offer:offer.sdp,updatedAt:Date.now()});
+
+    let answered=false;
+    livePoll=setInterval(async()=>{
+      const sig=await readSignal(owner);
+      if(!sig)return;
+      const ans=String(sig.answer||"");
+      const ansSid=String(sig.answerSessionId||"");
+      if(ans && ansSid===liveSession && !answered){
+        answered=true;
+        try{await pc.setRemoteDescription({type:"answer",sdp:ans});}catch(_){}
+      }
+      if(sig.sessionId && String(sig.sessionId)!==liveSession && answered===false){
+        // Host başka bir izleyicinin oturumunu aldıysa bu izleyici yeniden teklif göndermez.
+      }
+    },700);
+    liveCandidatePoll=setInterval(()=>pollCandidates(owner,false,liveSession),900);
+    liveCommentPoll=setInterval(()=>loadLiveComments(owner),2500);
+    await loadLiveComments(owner);
+  }
+
+  async function startHost(){
+    try{
+      const title=(document.getElementById("minegramLiveTitleInput").value||"Canlı yayın").trim()||"Canlı yayın";
+      if(!navigator.mediaDevices?.getUserMedia)throw new Error("Bu tarayıcı kamera ve mikrofon erişimini desteklemiyor.");
+      liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:liveFacing},audio:true});
+
+      const profile=await api("/users/"+encodeURIComponent(cleanUser())).catch(()=>null);
+      const settings=profile?.settings||{};
+      const isPrivate=!!(
+        settings.private_account||settings.privateAccount||settings.private||
+        profile?.private_account||profile?.privateAccount||profile?.private
+      );
+      if(isPrivate)throw new Error("Gizli hesap: canlı yayın diğer hesaplara gösterilmiyor.");
+
+      const result=await api("/live/start",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({title})
+      });
+      const live=result?.live||result||{username:cleanUser(),title};
+      liveTarget=cleanUser();
+      liveSession=crypto.randomUUID();
+      liveCurrentSession="";
+      liveStarted=true;
+      setMode("host");
+
+      const v=video();
+      v.srcObject=liveStream;
+      v.muted=true;
+      v.playsInline=true;
+      v.play().catch(()=>{});
+
+      document.getElementById("minegramLiveName").textContent="🔴 CANLI @"+cleanUser();
+      document.getElementById("minegramLiveTitle").textContent=title;
+      document.getElementById("minegramLiveViewers").textContent="👁 "+Number(live.viewerCount||1)+" izliyor";
+      document.getElementById("minegramLiveSetup").classList.add("hidden");
+      document.getElementById("minegramLivePermission").classList.remove("open");
+      document.getElementById("minegramLiveCamera").style.display="grid";
+      const box=document.getElementById("minegramLiveComments");
+      if(box)box.dataset.items=JSON.stringify([{username:"Minegram",text:"Minegram'a hoş geldiniz! 🎉"}]);
+      renderComments([{username:"Minegram",text:"Minegram'a hoş geldiniz! 🎉"}]);
+
+      await writeSignal(cleanUser(),{
+        sessionId:"",
+        offer:"",
+        answer:"",
+        answerSessionId:"",
+        updatedAt:Date.now()
+      });
+      hostListenOffers();
+      liveCommentPoll=setInterval(()=>loadLiveComments(cleanUser()),2500);
+      await loadLiveComments(cleanUser());
+      setStatus("Canlı yayın aktif");
+    }catch(e){
+      stopLocalStream();stopPc();clearTimers();
+      document.getElementById("minegramLivePermission").classList.remove("open");
+      alert(e?.message||"Canlı yayın başlatılamadı.");
+    }
+  }
+
+  window.startMinegramWebLive=startHost;
+
+  window.requestMinegramLivePermission=function(){
+    navigator.mediaDevices?.getUserMedia({video:{facingMode:liveFacing},audio:true})
+      .then(stream=>{
+        liveStream?.getTracks().forEach(t=>t.stop());
+        liveStream=stream;
+        document.getElementById("minegramLivePermission").classList.remove("open");
+        startHost();
+      })
+      .catch(()=>alert("Kamera ve mikrofon izni verilmedi."));
+  };
+
+  window.hideMinegramLivePermission=function(){
+    document.getElementById("minegramLivePermission").classList.remove("open");
+  };
+
+  window.switchMinegramLiveCamera=async function(){
+    if(liveMode!=="host"||!liveStream)return;
+    liveFacing=liveFacing==="user"?"environment":"user";
+    try{
+      const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:liveFacing},audio:true});
+      const oldVideo=liveStream.getVideoTracks()[0];
+      const newVideo=next.getVideoTracks()[0];
+      const sender=livePc?.getSenders().find(x=>x.track?.kind==="video");
+      if(sender)await sender.replaceTrack(newVideo);
+      if(oldVideo)oldVideo.stop();
+      liveStream.removeTrack(oldVideo);
+      liveStream.addTrack(newVideo);
+      video().srcObject=liveStream;
+      video().muted=true;
+      video().play().catch(()=>{});
+    }catch(_){
+      liveFacing=liveFacing==="user"?"environment":"user";
+      alert("Kamera değiştirilemedi.");
+    }
+  };
+
+  window.updateMinegramLiveBadges=async function(){
+    try{
+      const result=await api("/live");
+      const lives=Array.isArray(result)
+        ? result
+        : (Array.isArray(result?.lives)?result.lives:[]);
+
+      const cleanLives=lives
+        .map(l=>({
+          username:String(l?.username||"").replace(/^@/,"").trim(),
+          title:String(l?.title||"Canlı yayın"),
+          avatar:String(l?.avatar||l?.avatarUrl||l?.profileImage||l?.profile_image||""),
+          viewerCount:Number(l?.viewerCount||0)
+        }))
+        .filter(l=>l.username);
+
+      const liveNames=new Set(
+        cleanLives.map(l=>l.username.toLowerCase())
+      );
+
+      /* Story'si olan kullanıcıda canlı yayını Story halkasının üzerinde göster. */
+      document.querySelectorAll("[data-story-username]").forEach(el=>{
+        const name=String(el.getAttribute("data-story-username")||"")
+          .replace(/^@/,"").trim().toLowerCase();
+
+        let badge=el.querySelector(".minegram-live-badge");
+
+        if(liveNames.has(name)){
+          const live=cleanLives.find(x=>x.username.toLowerCase()===name);
+
+          if(!badge){
+            badge=document.createElement("div");
+            badge.className="minegram-live-badge";
+            const label=el.lastElementChild;
+            if(label) label.appendChild(badge);
+          }
+
+          badge.textContent="🔴 CANLI YAYINDA";
+
+          /* Story tıklamasında canlıyı açabilmek için bilgi bırak. */
+          el.setAttribute("data-live-title",live?.title||"Canlı yayın");
+          el.setAttribute("data-live-active","1");
+
+          if(!el.dataset.minegramLiveClickBound){
+            el.dataset.minegramLiveClickBound="1";
+            el.addEventListener("contextmenu",function(e){e.preventDefault();});
+          }
+        }else if(badge){
+          badge.remove();
+          el.removeAttribute("data-live-active");
+          el.removeAttribute("data-live-title");
+        }
+      });
+
+      /*
+       * Story'si olmayan ama canlı yayın açmış kullanıcı da Story bölümünde
+       * görünmeli. Böylece uygulamadaki gibi canlı yayın Story alanında kaybolmaz.
+       */
+      const storyItems=document.getElementById("storyItems");
+      if(storyItems){
+        storyItems.querySelectorAll(".minegram-live-story").forEach(el=>{
+          const u=String(el.getAttribute("data-story-username")||"")
+            .replace(/^@/,"").trim().toLowerCase();
+          if(!liveNames.has(u)) el.remove();
+        });
+
+        const existingStoryNames=new Set(
+          Array.from(document.querySelectorAll("[data-story-username]"))
+            .map(el=>String(el.getAttribute("data-story-username")||"")
+              .replace(/^@/,"").trim().toLowerCase())
+            .filter(Boolean)
+        );
+
+        for(const live of cleanLives){
+          const key=live.username.toLowerCase();
+
+          /* Zaten normal Story kartı varsa ayrı kart oluşturma. */
+          if(existingStoryNames.has(key)) continue;
+          if(storyItems.querySelector(
+            `.minegram-live-story[data-story-username="${CSS.escape(live.username)}"]`
+          )) continue;
+
+          const item=document.createElement("div");
+          item.className="minegram-live-story";
+          item.setAttribute("data-story-username",live.username);
+          item.setAttribute("data-live-title",live.title);
+          item.innerHTML=`
+            <div class="minegram-live-story-avatar">
+              ${
+                live.avatar
+                  ? `<img src="${esc(live.avatar)}" alt="@${esc(live.username)}">`
+                  : `<span style="font-size:22px">👤</span>`
+              }
+              <span class="minegram-live-dot">CANLI</span>
+            </div>
+            <div class="minegram-live-story-name">@${esc(live.username)}</div>
+          `;
+
+          item.onclick=async function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            try{
+              await viewerConnect(live.username,live.title);
+            }catch(err){
+              alert(err?.message||"Canlı yayın açılamadı.");
+            }
+          };
+
+          storyItems.appendChild(item);
+        }
+      }
+
+      /*
+       * Yayıncı kendi canlısını açtıysa "Hikayen" kartında da CANLI durumu görünsün.
+       */
+      const mine=cleanLives.find(
+        l=>l.username.toLowerCase()===cleanUser().toLowerCase()
+      );
+      const myStory=document.getElementById("myStory");
+      const myLabel=document.getElementById("storyLabel");
+
+      if(myStory){
+        let ownBadge=myStory.querySelector(".minegram-live-badge");
+        if(mine){
+          if(!ownBadge){
+            ownBadge=document.createElement("div");
+            ownBadge.className="minegram-live-badge";
+            if(myLabel) myLabel.appendChild(ownBadge);
+          }
+          ownBadge.textContent="🔴 CANLI YAYINDA";
+          myStory.setAttribute("data-live-active","1");
+          myStory.setAttribute("data-live-title",mine.title);
+        }else if(ownBadge){
+          ownBadge.remove();
+          myStory.removeAttribute("data-live-active");
+          myStory.removeAttribute("data-live-title");
+        }
+      }
+
+    }catch(_){}
+  };
+
+  if(!window.__minegramLiveStoryTimer){
+    window.__minegramLiveStoryTimer=setInterval(function(){
+      if(typeof window.updateMinegramLiveBadges==="function"){
+        window.updateMinegramLiveBadges();
+      }
+    },5000);
+  }
+
+  async function refreshLives(){
+    const list=document.getElementById("minegramLiveList");
+    if(!list)return;
+    try{
+      const result=await api("/live");
+      const lives=Array.isArray(result)?result:(Array.isArray(result?.lives)?result.lives:[]);
+      const others=lives.filter(l=>String(l.username||"").replace(/^@/,"").toLowerCase()!==cleanUser().toLowerCase());
+      if(!others.length){
+        list.innerHTML='<div class="minegram-live-list-title">Aktif canlı yayın yok.</div>';
+        return;
+      }
+      list.innerHTML='<div class="minegram-live-list-title">Aktif canlı yayınlar</div>'+
+        others.map(l=>{
+          const u=esc(String(l.username||""));
+          const t=esc(String(l.title||"Canlı yayın"));
+          return `<div class="minegram-live-card" data-user="${u}" data-title="${t}">
+            <b>🔴 @${u}</b>
+            <span>${t} • 👁 ${Number(l.viewerCount||0)} izliyor</span>
+          </div>`;
+        }).join("");
+      list.querySelectorAll(".minegram-live-card").forEach(card=>{
+        card.onclick=()=>{
+          const u=card.dataset.user||"";
+          const t=card.dataset.title||"Canlı yayın";
+          viewerConnect(u,t).catch(e=>alert(e?.message||"Canlı yayın açılamadı."));
+        };
+      });
+    }catch(_){
+      list.innerHTML='<div class="minegram-live-list-title">Aktif canlı yayınlar yüklenemedi.</div>';
+    }
+  }
+
+  async function loadFollowerCount(){
+    const el=document.getElementById("minegramLiveFollowers");
+    if(!el)return;
+    try{
+      const p=await api("/users/"+encodeURIComponent(cleanUser()));
+      const n=Number(
+        p?.followersCount??p?.followerCount??p?.followers?.length??0
+      );
+      el.textContent=n+" takipçi";
+    }catch(_){el.textContent="0 takipçi";}
+  }
 
   window.openMinegramLive=async function(){
-    const m=liveModal(); if(!m)return; m.classList.add('open');
-    document.getElementById('minegramLiveName').textContent='@'+username();
-    await refreshLives(); clearInterval(livePoll); livePoll=setInterval(refreshLives,10000);
-  };
-
-  window.startMinegramWebLive=async function(){
-    try{
-      if(!window.Peer) throw new Error('Canlı bağlantı servisi yüklenemedi.');
-      if(!liveStream) liveStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
-      const title=(document.getElementById('minegramLiveTitleInput').value||'Canlı yayın').trim();
-      stopPeer();
-      livePeer=new Peer(peerId(username()),{debug:0});
-      await new Promise((resolve,reject)=>{
-        const timer=setTimeout(()=>reject(new Error('Canlı bağlantı servisi zaman aşımına uğradı.')),10000);
-        livePeer.on('open',()=>{clearTimeout(timer);resolve();});
-        livePeer.on('error',e=>{clearTimeout(timer);reject(e);});
-      });
-      livePeer.on('call',call=>{ try{ call.answer(liveStream); liveCall=call; }catch(e){} });
-      const result=await api('/live/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title})});
-      minegramOwnLive=result?.live||result||{username:username(),title};
-      const v=video(); if(v){v.srcObject=liveStream;v.muted=true;v.play().catch(()=>{});}
-      document.getElementById('minegramLiveName').textContent='🔴 @'+username();
-      document.getElementById('minegramLiveTitle').textContent=title;
-      await refreshLives(); alert('Canlı yayın başlatıldı.');
-    }catch(e){ stopPeer(); if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;} alert(e?.message||'Canlı yayın başlatılamadı.'); }
-  };
-
-  window.startMinegramWebViewer=async function(target,title){
-    try{
-      if(!window.Peer) throw new Error('Canlı bağlantı servisi yüklenemedi.');
-      const clean=String(target||'').replace(/^@/,'').trim(); if(!clean)return;
-      stopPeer();
-      const v=video(); if(v){v.srcObject=null;v.muted=false;v.controls=false;}
-      document.getElementById('minegramLiveName').textContent='🔴 @'+clean;
-      document.getElementById('minegramLiveTitle').textContent=title||'Canlı yayın';
-      liveModal()?.classList.add('open');
-      livePeer=new Peer(undefined,{debug:0});
-      livePeer.on('error',e=>{ const t=document.getElementById('minegramLiveTitle'); if(t)t.textContent=e?.type==='peer-unavailable'?'Yayın artık aktif değil':'Canlı bağlantısı kurulamadı'; });
-      livePeer.on('open',()=>{
-        try{
-          liveCall=livePeer.call(peerId(clean),dummyStream());
-          if(!liveCall)return;
-          liveCall.on('stream',stream=>{ if(v){v.srcObject=stream;v.muted=false;v.playsInline=true;v.play().catch(()=>{});} });
-          liveCall.on('close',()=>{if(v)v.srcObject=null;});
-          liveCall.on('error',()=>{});
-        }catch(e){}
-      });
-    }catch(e){ alert(e?.message||'Canlı yayın açılamadı.'); }
+    clearTimers();stopPc();resetVideo();liveMode="";
+    const m=modal();if(!m)return;
+    setMode("");
+    m.classList.add("open");
+    document.getElementById("minegramLiveSetup").classList.remove("hidden");
+    document.getElementById("minegramLivePermission").classList.remove("open");
+    document.getElementById("minegramLiveName").textContent="@"+cleanUser();
+    document.getElementById("minegramLiveTitle").textContent="Canlı yayın";
+    document.getElementById("minegramLiveViewers").textContent="👁 0 izliyor";
+    document.getElementById("minegramLiveTitleInput").value="";
+    document.getElementById("minegramLiveCamera").style.display="none";
+    const box=document.getElementById("minegramLiveComments");
+    if(box)box.dataset.items="[]";
+    renderComments([]);
+    await loadFollowerCount();
+    await refreshLives();
+    updateMinegramLiveBadges();
   };
 
   window.endMinegramWebLive=async function(){
-    try{ await api('/live/end',{method:'POST'}); }catch(e){}
-    stopPeer();
-    if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}
-    if(video())video().srcObject=null; minegramOwnLive=null; await refreshLives();
+    if(liveMode!=="host")return;
+    try{await api("/live/end",{method:"POST"});}catch(_){}
+    try{
+      await firebaseLiveRequest(docUrl(cleanUser()),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:fields({sessionId:"",offer:"",answer:"",answerSessionId:"",updatedAt:Date.now()})})});
+    }catch(_){}
+    stopPc();stopLocalStream();clearTimers();resetVideo();
+    liveStarted=false;liveMode="";
+    modal()?.classList.remove("open");
+    await refreshLives();
+    updateMinegramLiveBadges();
   };
+
   window.closeMinegramLive=function(e){
-    if(e&&e.target!==e.currentTarget)return;
-    liveModal()?.classList.remove('open'); clearInterval(livePoll);
-    /* Yayın Bitir'e basılana kadar yayıncı Peer bağlantısı açık kalır. */
+    if(e && e.target!==e.currentTarget)return;
+    if(liveMode==="host" && liveStarted)return; // Yayın bitir'e basılana kadar canlı açık.
+    stopPc();stopLocalStream();clearTimers();resetVideo();
+    liveMode="";
+    modal()?.classList.remove("open");
   };
+
+  function setStatus(text){
+    const el=document.getElementById("minegramLiveStatus");
+    if(!el)return;
+    el.textContent=text||"";
+    el.classList.toggle("open",!!text);
+  }
+
+  // Uygulamadaki sistemde yayın açma ekranında kamera/mikrofon izinleri ayrı kontrol edilir.
+  window.__minegramCloseEverything=function(){
+    stopPc();stopLocalStream();clearTimers();resetVideo();liveMode="";liveStarted=false;
+  };
+
+  setInterval(updateMinegramLiveBadges,10000);
+  document.addEventListener("DOMContentLoaded",()=>{
+    setTimeout(updateMinegramLiveBadges,1200);
+  });
 })();
 </script>
+
 
 
 <script>
