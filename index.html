@@ -2628,7 +2628,14 @@ onclick="sendComment()"
             userId:group.userId,
             username:group.username
           })
-      );
+      ).sort(function(a,b){
+        const aUnread = Array.isArray(a.stories) && a.stories.some(function(story){ return !isStorySeen(story); });
+        const bUnread = Array.isArray(b.stories) && b.stories.some(function(story){ return !isStorySeen(story); });
+        if(aUnread !== bUnread) return aUnread ? -1 : 1;
+        const aLatest = Math.max.apply(null, (a.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
+        const bLatest = Math.max.apply(null, (b.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
+        return bLatest - aLatest;
+      });
 
 
     groups.forEach(group=>{
@@ -4120,7 +4127,7 @@ onclick="sendComment()"
 
   setInterval(function(){
     loadStories();
-  }, 60000);
+  }, 5000);
 
 });
 
