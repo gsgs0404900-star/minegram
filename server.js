@@ -765,6 +765,40 @@ async function sendRegistrationCode(email, code) {
   });
 }
 
+app.post("/api/problem-reports", auth, async (req, res) => {
+  try {
+    const description = String(req.body?.description || "").trim().slice(0, 2000);
+    if (!description) return res.status(400).json({ ok: false, error: "Sorun açıklaması gerekli." });
+
+    const username = String(req.user?.username || req.authUser?.user_metadata?.username || "").trim();
+    const email = String(req.user?.email || req.authUser?.email || "").trim();
+    const subject = `Minegram Sorun Bildirimi${username ? ` - @${username}` : ""}`;
+    const safe = (v) => String(v || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[c]));
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;padding:24px;color:#111">
+        <h2>Minegram Sorun Bildirimi</h2>
+        <p><b>Kullanıcı:</b> ${safe(username || "Bilinmiyor")}</p>
+        <p><b>E-posta:</b> ${safe(email || "Bilinmiyor")}</p>
+        <p><b>Tarih:</b> ${new Date().toLocaleString("tr-TR")}</p>
+        <hr>
+        <p style="white-space:pre-wrap">${safe(description)}</p>
+      </div>`;
+    const text = `Minegram Sorun Bildirimi\nKullanıcı: ${username || "Bilinmiyor"}\nE-posta: ${email || "Bilinmiyor"}\n\n${description}`;
+
+    await sendGmailApiEmail({
+      to: "minegramdestek@gmail.com",
+      subject,
+      html,
+      text
+    });
+
+    return res.json({ ok: true, message: "Sorun bildirimi gönderildi." });
+  } catch (e) {
+    console.error("PROBLEM REPORT ERROR:", e?.message || e);
+    return res.status(500).json({ ok: false, error: e?.message || "Sorun bildirimi gönderilemedi." });
+  }
+});
+
 app.post("/api/register", async (req, res) => {
   let createdAuthUserId = null;
 
