@@ -351,26 +351,58 @@ async function addNotification({
   postId = null,
   text
 }) {
-  if (userId === fromUserId) {
-    return;
-  }
-
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     return;
   }
 
-  const admin =
-    adminClient();
+  const admin = adminClient();
 
-  await admin
+  const rawUserId = String(userId || "").trim();
+  const rawFromUserId = String(fromUserId || "").trim();
+  if (!rawUserId || !rawFromUserId || rawUserId === rawFromUserId) return;
+
+  // notifications.user_id / from_user_id Auth UUID beklediğinde,
+  // posts.user_id veya profiles.id eski profil kimliği olsa bile doğru Auth
+  // kimliğini bul. Böylece özellikle yorum bildirimleri kaybolmaz.
+  let targetAuthId = rawUserId;
+  let senderAuthId = rawFromUserId;
+
+  try {
+    const target = await admin
+      .from("profiles")
+      .select("id,auth_user_id")
+      .or(`id.eq.${rawUserId},auth_user_id.eq.${rawUserId}`)
+      .limit(1)
+      .maybeSingle();
+    if (target?.data) targetAuthId = String(target.data.auth_user_id || target.data.id || rawUserId);
+  } catch (_) {}
+
+  try {
+    const sender = await admin
+      .from("profiles")
+      .select("id,auth_user_id")
+      .or(`id.eq.${rawFromUserId},auth_user_id.eq.${rawFromUserId}`)
+      .limit(1)
+      .maybeSingle();
+    if (sender?.data) senderAuthId = String(sender.data.auth_user_id || sender.data.id || rawFromUserId);
+  } catch (_) {}
+
+  if (targetAuthId === senderAuthId) return;
+
+  const { error } = await admin
     .from("notifications")
     .insert({
-      user_id: userId,
+      user_id: targetAuthId,
       type,
-      from_user_id: fromUserId,
+      from_user_id: senderAuthId,
       post_id: postId,
       text
     });
+
+  if (error) {
+    console.error("NOTIFICATION INSERT ERROR:", error.message || error);
+    throw error;
+  }
 }
 
 
@@ -4513,9 +4545,13 @@ app.get(
         await adminClient()
           .from("notifications")
           .select("*")
-          .eq(
+          .in(
             "user_id",
-            req.user.id
+            [...new Set([
+              req.user?.id,
+              req.user?.auth_user_id,
+              req.authUser?.id
+            ].filter(Boolean).map(String))]
           )
           .order(
             "created_at",
