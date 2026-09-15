@@ -656,9 +656,27 @@ async function checkSession(){
     }
 
 
-    await response
+    const me = await response
       .json()
       .catch(()=>({}));
+
+    /* GERÇEK OTURUMDAKİ HESAP KULLANICI ADI */
+    const realUsername =
+      me?.username ||
+      me?.user?.username ||
+      me?.profile?.username ||
+      me?.data?.username ||
+      me?.data?.user?.username ||
+      me?.data?.profile?.username ||
+      me?.user_metadata?.username ||
+      me?.user_metadata?.user_name ||
+      me?.user_metadata?.preferred_username ||
+      me?.email?.split?.("@")[0] ||
+      "";
+
+    if (realUsername) {
+      window.minegramCurrentUser = String(realUsername).trim();
+    }
 
 
   }catch(error){
@@ -691,7 +709,7 @@ async function checkSession(){
    BAŞLAT
 ========================= */
 
-checkSession();
+window.minegramSessionReady = checkSession();
 
 </script>
 
@@ -700,7 +718,7 @@ checkSession();
 (function(){
  const DB='minegram_reels_db', STORE='reels';
  let dbPromise;
- function username(){return localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'kullanici'}
+ function username(){return String(window.minegramCurrentUser||localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'').trim()||'kullanici'}
  function db(){
   if(dbPromise)return dbPromise;
   dbPromise=new Promise((resolve,reject)=>{
@@ -735,8 +753,10 @@ checkSession();
  function comments(un){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>'+esc(un)+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');function add(){if(input.value.trim()){const d=document.createElement('div');d.textContent=input.value.trim();d.style.padding='8px 0';list.appendChild(d);input.value=''}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
  function share(r){const text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share)navigator.share({text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Reels mesajı panoya kopyalandı.')).catch(()=>alert(text));else alert(text)}
  async function pickFile(){const input=document.getElementById('reelFileInput');if(!input)return;input.value='';input.click()}
- function picker(){const input=document.getElementById('reelFileInput');if(!input)return;input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');input.value='';return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;a.push({id,username:username(),description:'Yeni Reels 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.');}input.value='';})}
- function init(){
+ function picker(){const input=document.getElementById('reelFileInput');if(!input)return;input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');input.value='';return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;const creator=username();
+     a.push({id,username:creator,creatorUsername:creator,description:'Yeni Reels 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.');}input.value='';})}
+ async function init(){
+  try{if(window.minegramSessionReady) await window.minegramSessionReady}catch(e){}
   picker();
   const btn=document.getElementById('reelAddButton');
   if(btn)btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pickFile()});
