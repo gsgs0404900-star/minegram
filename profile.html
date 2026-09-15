@@ -5245,44 +5245,98 @@ async function openUserList(type){
  try{
    if(!currentProfile) throw new Error('Profil bulunamadı.');
 
-   /* Liste endpointleri bazı sunucularda HTML/SPA döndürdüğü için
-      artık /followers veya /following adresine istek atmıyoruz.
-      Önce profil JSON içindeki gerçek listeleri kullanıyoruz. */
-   let sourceUsers = type==='followers'
-     ? (currentProfile.followers || currentProfile.followerUsers ||
-        currentProfile.follower_users || currentProfile.followersList ||
-        currentProfile.followers_list || [])
-     : (currentProfile.following || currentProfile.followingUsers ||
-        currentProfile.following_users || currentProfile.followingList ||
-        currentProfile.following_list || []);
+   const keyName=type==='followers' ? 'followers' : 'following';
+   const listKeys=type==='followers'
+     ? ['followers','followerUsers','follower_users','followersList','followers_list','followerList','follower_list','followersData','followerData','data.followers','data.followerUsers','user.followers','user.followerUsers']
+     : ['following','followingUsers','following_users','followingList','following_list','followedUsers','followed_users','followingData','data.following','data.followingUsers','user.following','user.followingUsers'];
 
-   /* Profil cevabında liste yoksa tarayıcıdaki Minegram listesini kullan. */
-   if(!Array.isArray(sourceUsers) || !sourceUsers.length){
-     try{
-       const key=type==='followers' ? 'minegram_followers' : 'minegram_following';
-       const local=JSON.parse(localStorage.getItem(key)||'[]');
-       if(Array.isArray(local)) sourceUsers=local;
-     }catch(e){}
+   /* Profil cevabında liste bazen iç içe obje içinde geliyor. Sayı olan
+      followers/following alanını kullanıcı listesi sanma. */
+   function pickList(obj, keys){
+     for(const key of keys){
+       const parts=key.split('.');
+       let value=obj;
+       for(const part of parts){
+         if(value==null) break;
+         value=value[part];
+       }
+       if(Array.isArray(value) && value.length) return value;
+     }
+     return [];
    }
 
-   if(!Array.isArray(sourceUsers)) sourceUsers=[];
+   let sourceUsers=pickList(currentProfile,listKeys);
 
-   const users=sourceUsers.map(u=>{
-     if(typeof u==='string') return {username:u,displayName:u,avatar:''};
-     return u||{};
-   }).filter(u=>u&&(u.username||u.handle));
+   /* Profil JSON'u yalnızca sayaç içeriyorsa, mevcut sunucudaki olası
+      kullanıcı-listesi rotalarını sırayla dene. HTML dönen rota atlanır. */
+   if(!sourceUsers.length){
+     const username=encodeURIComponent(currentProfile.username);
+     const endpoints=type==='followers'
+       ? [
+           '/users/'+username+'/followers',
+           '/followers/'+username,
+           '/api/followers/'+username,
+           '/api/users/'+username+'/followers'
+         ]
+       : [
+           '/users/'+username+'/following',
+           '/following/'+username,
+           '/api/following/'+username,
+           '/api/users/'+username+'/following'
+         ];
+
+     for(const endpoint of endpoints){
+       try{
+         const data=await api(endpoint);
+         const found=Array.isArray(data)
+           ? data
+           : pickList(data,['users',keyName,'data.'+keyName,'data.users','user.'+keyName,'profile.'+keyName]);
+         if(Array.isArray(found) && found.length){
+           sourceUsers=found;
+           break;
+         }
+       }catch(_e){
+         /* HTML/404 olan rota bir sonraki rotaya geçsin. */
+       }
+     }
+   }
+
+   /* Aynı tarayıcıda daha önce kaydedilmiş Minegram listesi varsa onu kullan. */
+   if(!sourceUsers.length){
+     try{
+       const localKeys=type==='followers'
+         ? ['minegram_followers','followers']
+         : ['minegram_following','following'];
+       for(const key of localKeys){
+         const local=JSON.parse(localStorage.getItem(key)||'[]');
+         if(Array.isArray(local) && local.length){
+           sourceUsers=local;
+           break;
+         }
+       }
+     }catch(_e){}
+   }
+
+   const users=(Array.isArray(sourceUsers)?sourceUsers:[])
+     .map(u=>typeof u==='string'
+       ? {username:u,displayName:u,avatar:''}
+       : (u||{}))
+     .filter(u=>u&&(u.username||u.handle||u.name));
 
    const body=document.getElementById('usersBody');
 
    if(!users.length){
-     body.innerHTML='<div class="list-empty">Henüz kullanıcı yok</div>';
+     const count=Number(currentProfile[keyName]||0);
+     body.innerHTML=count>0
+       ? '<div class="list-empty">'+count+' kişi var, ancak sunucu kullanıcı listesini göndermiyor.</div>'
+       : '<div class="list-empty">Henüz kullanıcı yok</div>';
      return;
    }
 
    body.innerHTML=users.map(u=>{
-     const username=u.username||u.handle||'';
+     const username=u.username||u.handle||u.name||'';
      const name=u.displayName||u.name||username;
-     const avatar=u.avatar||u.profileImage||u.profile_image||'';
+     const avatar=u.avatar||u.profileImage||u.profile_image||u.photoURL||u.photoUrl||'';
      const following=!!(u.followingByMe ?? u.following_by_me ??
                          u.isFollowing ?? u.is_following ??
                          (type==='following'));
