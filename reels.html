@@ -326,12 +326,12 @@ body{
 
 
 <style id="minegram-reels-system">
-.reels-feed{width:100%;display:flex;flex-direction:column;gap:14px;}
+.reels-discover-tags{display:flex;align-items:center;gap:8px;overflow:auto;padding:4px 2px 8px}.discover-tag{border:0;background:#eee;color:#111;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;white-space:nowrap}.reels-feed{width:100%;display:flex;flex-direction:column;gap:14px;}
 .reel-card{position:relative;width:100%;height:calc(100vh - 150px);min-height:520px;background:#000;border-radius:18px;overflow:hidden;scroll-snap-align:start;}
 .reel-card video{width:100%;height:100%;object-fit:cover;background:#000;display:block;}
 .reel-overlay{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.72),transparent 38%);}
 .reel-info{position:absolute;left:18px;bottom:18px;color:#fff;z-index:3;text-shadow:0 1px 4px #000;}
-.reel-user{font-size:18px;font-weight:700}.reel-desc{margin-top:6px;font-size:14px}
+.reel-user{font-size:18px;font-weight:700}.reel-user-tag{display:inline-flex;align-items:center;color:#fff;text-decoration:none;background:rgba(0,0,0,.42);padding:6px 10px;border-radius:999px;font-size:16px;font-weight:800}.reel-user-tag:hover{background:rgba(255,255,255,.18)}.reel-desc{margin-top:6px;font-size:14px}
 .reel-actions{position:absolute;right:12px;bottom:18px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff}
 .reel-action{border:0;background:rgba(0,0,0,.35);color:#fff;width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:23px;display:flex;align-items:center;justify-content:center}
 .reel-count{font-size:13px;margin-bottom:7px}.reel-view{font-size:13px;margin:3px 0 8px}
@@ -717,10 +717,10 @@ checkSession();
   let reels=[]; try{reels=await load()}catch(e){console.error(e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sayfayı yenileyip tekrar deneyin.</small></div>';return}
   box.innerHTML='';
   if(!reels.length){box.innerHTML='<div class="empty"><strong>Henüz Reel yok</strong><small>İlk videoyu sen paylaş.</small></div>';return}
-  const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);
+  const creators=[...new Set(reels.map(r=>String(r.username||'').trim()).filter(Boolean))]; const discover=document.createElement('div');discover.className='reels-discover-tags';discover.innerHTML='<b>Keşfet</b> '+creators.map(u=>'<button type="button" class="discover-tag" data-creator="'+esc(u)+'">@'+esc(u)+'</button>').join('');box.appendChild(discover); creators.forEach(u=>{const b=[...discover.querySelectorAll('.discover-tag')].find(x=>x.dataset.creator===u);if(b)b.onclick=()=>openCreator(u)}); const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);
   reels.forEach(r=>{
    const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;
-   card.innerHTML='<video playsinline muted loop preload="metadata"></video><div class="reel-overlay"></div><div class="reel-info"><div class="reel-user">@'+esc(r.username)+'</div><div class="reel-desc">'+esc(r.description||'')+'</div></div><div class="reel-actions"><button class="reel-action like" type="button">♥</button><div class="reel-count">'+(Number(r.likes)||0)+'</div><div class="reel-view">◉ '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button">💬</button><button class="reel-action share" type="button">➤</button></div>';
+   card.innerHTML='<video playsinline muted loop preload="metadata"></video><div class="reel-overlay"></div><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(r.username||'')+'" data-creator="'+esc(r.username||'')+'">@'+esc(r.username||'')+'</a><div class="reel-desc">'+esc(r.description||'')+'</div></div><div class="reel-actions"><button class="reel-action like" type="button">♥</button><div class="reel-count">'+(Number(r.likes)||0)+'</div><div class="reel-view">◉ '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button">💬</button><button class="reel-action share" type="button">➤</button></div>';
    const video=card.querySelector('video');
    if(r.mediaBlob){video.src=URL.createObjectURL(r.mediaBlob)} else if(r.mediaUri){video.src=r.mediaUri} else if(r.mediaData){video.src=r.mediaData}
    card.querySelector('.like').onclick=async()=>{r._liked=!r._liked;r.likes=Math.max(0,(Number(r.likes)||0)+(r._liked?1:-1));card.querySelector('.reel-count').textContent=r.likes;await saveAll(reels)};
@@ -731,6 +731,7 @@ checkSession();
   const io=new IntersectionObserver(entries=>entries.forEach(async e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.6){document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});const id=e.target.dataset.id;const k=username()+'_'+id;const seen=JSON.parse(localStorage.getItem('minegram_reel_views')||'{}');if(!seen[k]){seen[k]=1;localStorage.setItem('minegram_reel_views',JSON.stringify(seen));const a=await load(),r=a.find(x=>String(x.id)===String(id));if(r){r.views=(Number(r.views)||0)+1;await saveAll(a);const el=e.target.querySelector('.reel-view');if(el)el.textContent='◉ '+r.views}}}else v.pause()}),{threshold:[.6]});
   document.querySelectorAll('.reel-card').forEach(x=>io.observe(x));
  }
+ function openCreator(u){u=String(u||'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
  function comments(un){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>'+esc(un)+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');function add(){if(input.value.trim()){const d=document.createElement('div');d.textContent=input.value.trim();d.style.padding='8px 0';list.appendChild(d);input.value=''}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
  function share(r){const text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share)navigator.share({text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Reels mesajı panoya kopyalandı.')).catch(()=>alert(text));else alert(text)}
  async function pickFile(){const input=document.getElementById('reelFileInput');if(!input)return;input.value='';input.click()}
