@@ -1,768 +1,115 @@
 <!doctype html>
-
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <title>Reels - Minegram</title>
-
 <style>
-*{
-  box-sizing:border-box;
-}
-
-html,body{
-  margin:0;
-  width:100%;
-  min-height:100%;
-  background:#000;
-  color:#eee;
-  font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-  padding-bottom:76px;
-  overflow-x:hidden;
-}
-
-.app{
-  width:100%;
-  min-height:100vh;
-  background:#000;
-}
-
-/* =========================
-   ÜST BAR
-========================= */
-
-.top{
-  height:70px;
-
-  display:flex;
-  align-items:center;
-
-  padding:0 22px;
-
-  border-bottom:1px solid #202020;
-
-  position:sticky;
-  top:0;
-
-  background:#000;
-
-  z-index:50;
-}
-
-.top b{
-  font-size:21px;
-}
-
-
-/* =========================
-   ORTA ALAN
-========================= */
-
-.page{
-  width:min(680px,100%);
-
-  margin:0 auto;
-
-  padding:22px 20px 40px;
-}
-
-
-/* =========================
-   REELS ALANI
-========================= */
-
-.reels-box{
-
-  width:100%;
-
-  min-height:calc(100vh - 150px);
-
-  display:flex;
-
-  align-items:center;
-
-  justify-content:center;
-}
-
-.empty{
-
-  width:100%;
-
-  text-align:center;
-
-  color:#999;
-}
-
-.empty svg{
-
-  width:52px;
-  height:52px;
-
-  margin:0 auto;
-
-  display:block;
-
-  fill:none;
-
-  stroke:currentColor;
-
-  stroke-width:1.8;
-
-  stroke-linecap:round;
-
-  stroke-linejoin:round;
-}
-
-.empty strong{
-
-  display:block;
-
-  color:#ddd;
-
-  margin-top:14px;
-
-  font-size:16px;
-}
-
-.empty small{
-
-  display:block;
-
-  margin-top:6px;
-
-  color:#888;
-
-  font-size:13px;
-}
-
-
-/* =========================
-   ALT MENÜ
-   ARA.HTML İLE AYNI
-========================= */
-
-.nav{
-
-  position:fixed;
-
-  left:0;
-  right:0;
-  bottom:0;
-
-  width:100%;
-
-  height:76px;
-
-  background:#121018;
-
-  border-top:1px solid #201d27;
-
-  display:flex;
-
-  align-items:stretch;
-
-  z-index:9999;
-
-  padding:
-    5px
-    max(8px, calc((100% - 760px) / 2))
-    env(safe-area-inset-bottom);
-}
-
-
-/* MENÜ BUTONLARI */
-
-.nav a{
-
-  flex:1 1 0;
-
-  height:66px;
-
-  min-width:0;
-
-  display:flex;
-
-  flex-direction:column;
-
-  align-items:center;
-
-  justify-content:center;
-
-  gap:3px;
-
-  color:#ddd;
-
-  text-decoration:none;
-
-  font-size:9px;
-
-  -webkit-tap-highlight-color:transparent;
-}
-
-
-/* İKON ALANI */
-
-.nav-icon{
-
-  width:45px;
-
-  height:32px;
-
-  border-radius:18px;
-
-  display:grid;
-
-  place-items:center;
-
-  flex:none;
-}
-
-
-/* AKTİF */
-
-.nav a.active .nav-icon{
-
-  background:#3b3150;
-}
-
-
-/* SVG */
-
-.svg{
-
-  width:21px;
-
-  height:21px;
-
-  fill:none;
-
-  stroke:currentColor;
-
-  stroke-width:1.8;
-
-  stroke-linecap:round;
-
-  stroke-linejoin:round;
-}
-
-
-/* =========================
-   MOBİL
-========================= */
-
-@media(max-width:699px){
-
-  .top{
-
-    height:62px;
-
-    padding:0 14px;
-  }
-
-
-  .page{
-
-    width:100%;
-
-    padding:18px 14px 35px;
-  }
-
-
-  .reels-box{
-
-    min-height:calc(100vh - 145px);
-  }
-
-
-  .nav{
-
-    height:76px;
-
-    padding:
-      5px
-      8px
-      env(safe-area-inset-bottom);
-  }
-
-
-  .nav a{
-
-    height:66px;
-  }
-
-
-  .nav-icon{
-
-    width:45px;
-
-    height:32px;
-  }
-
-}
-
-
-/* =========================
-   MASAÜSTÜ
-========================= */
-
-@media(min-width:700px){
-
-  .nav{
-
-    padding-left:
-      calc((100% - 760px) / 2);
-
-    padding-right:
-      calc((100% - 760px) / 2);
-  }
-
-}
-</style>
-
-
-<style id="minegram-reels-system">
-.reels-discover-tags{display:flex;align-items:center;gap:8px;overflow:auto;padding:4px 2px 8px}.discover-tag{border:0;background:#eee;color:#111;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;white-space:nowrap}.reels-feed{width:100%;display:flex;flex-direction:column;gap:14px;}
-.reel-card{position:relative;width:100%;height:calc(100vh - 150px);min-height:520px;background:#000;border-radius:18px;overflow:hidden;scroll-snap-align:start;}
-.reel-card video{width:100%;height:100%;object-fit:cover;background:#000;display:block;}
-.reel-overlay{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.72),transparent 38%);}
-.reel-info{position:absolute;left:18px;bottom:18px;color:#fff;z-index:3;text-shadow:0 1px 4px #000;}
-.reel-user{font-size:18px;font-weight:700}.reel-user-tag{display:inline-flex;align-items:center;color:#fff;text-decoration:none;background:rgba(0,0,0,.42);padding:6px 10px;border-radius:999px;font-size:16px;font-weight:800}.reel-user-tag:hover{background:rgba(255,255,255,.18)}.reel-desc{margin-top:6px;font-size:14px}
-.reel-actions{position:absolute;right:12px;bottom:18px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff}
-.reel-action{border:0;background:rgba(0,0,0,.35);color:#fff;width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:23px;display:flex;align-items:center;justify-content:center}
-.reel-count{font-size:13px;margin-bottom:7px}.reel-view{font-size:13px;margin:3px 0 8px}
-.reels-back{position:fixed;top:78px;left:14px;z-index:10000;border:0;background:rgba(0,0,0,.55);color:#fff;width:42px;height:42px;border-radius:50%;font-size:25px;cursor:pointer}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+body{padding:0}
+#reelsApp{position:fixed;inset:0;background:#000;overflow:hidden}
+.reels-box{position:absolute;inset:0;background:#000;overflow-y:auto;overflow-x:hidden;scroll-snap-type:y mandatory;scrollbar-width:none}
+.reels-box::-webkit-scrollbar{display:none}
+.reels-feed{width:100%;min-height:100%;display:flex;flex-direction:column}
+.reel-card{position:relative;width:100%;height:100dvh;min-height:100vh;background:#000;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
+.reel-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;display:block}
+.reel-card:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.28) 20%,transparent 46%,rgba(0,0,0,.08) 100%)}
+.reels-back{position:fixed;top:24px;left:28px;z-index:50;width:62px;height:62px;padding:0;border:0;background:transparent;color:#fff;font-size:62px;line-height:52px;font-weight:300;cursor:pointer;text-shadow:0 2px 5px rgba(0,0,0,.65)}
+#reelAddButton{position:fixed;top:24px;right:28px;z-index:50;width:120px;height:120px;border-radius:30px;border:0;background:#573b9b;color:#fff;font-size:60px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:none;user-select:none;text-decoration:none}
 #reelFileInput{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-#reelAddButton{position:fixed!important;left:50%!important;bottom:88px!important;transform:translateX(-50%)!important;width:58px!important;height:58px!important;border-radius:50%!important;border:0!important;background:#3b3150!important;color:#fff!important;font-size:36px!important;font-weight:700!important;line-height:1!important;display:flex!important;align-items:center!important;justify-content:center!important;z-index:2147483647!important;cursor:pointer!important;box-shadow:0 4px 18px rgba(0,0,0,.45)!important;user-select:none}
-.reel-comments{position:fixed;left:0;right:0;bottom:0;height:55%;background:rgba(0,0,0,.94);z-index:2147483646;color:#fff;border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:8px}
-.reel-comments-head{display:flex;align-items:center;padding:8px}.reel-comments-head b{flex:1}.reel-comments-list{flex:1;overflow:auto;padding:12px}.reel-comments-input{display:flex;gap:8px;padding:8px}.reel-comments-input input{flex:1;background:#111;color:#fff;border:1px solid #555;border-radius:10px;padding:12px}.reel-comments-input button{border:0;background:#3b3150;color:#fff;border-radius:10px;padding:0 15px}
-@media(max-width:699px){.reel-card{height:calc(100vh - 145px);min-height:0;border-radius:0}.reels-back{top:70px}.reel-info{bottom:15px}.reel-actions{bottom:15px}#reelAddButton{bottom:84px!important}}
+.reel-info{position:absolute;left:40px;right:180px;bottom:92px;z-index:10;color:#fff;text-shadow:0 2px 5px rgba(0,0,0,.8)}
+.reel-user-tag{display:inline-flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:36px;line-height:1.1;font-weight:700;letter-spacing:-.5px}
+.verified{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1684dc;color:#fff;font-size:23px;font-weight:700;text-shadow:none}
+.reel-desc{margin-top:22px;font-size:28px;line-height:1.2;font-weight:400}
+.reel-actions{position:absolute;right:35px;bottom:86px;z-index:20;width:100px;display:flex;flex-direction:column;align-items:center;color:#fff;text-align:center}
+.reel-action{width:70px;height:70px;border:0;background:transparent;color:#fff;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:54px;line-height:1;text-shadow:0 2px 5px rgba(0,0,0,.8)}
+.reel-count{font-size:28px;line-height:1;margin:5px 0 22px;font-weight:400;text-shadow:0 2px 5px rgba(0,0,0,.8)}
+.reel-view{font-size:28px;line-height:1;margin:0 0 22px;font-weight:400;text-shadow:0 2px 5px rgba(0,0,0,.8)}
+.reel-view-icon{font-size:40px;vertical-align:-3px;margin-right:4px}
+.like.liked{color:#ff2d55}
+.comment{font-size:58px}
+.share{font-size:60px;margin-top:2px}
+.empty{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:12px}
+.empty strong{font-size:28px}.empty small{font-size:18px;color:#aaa}
+.reel-comments{position:fixed;left:0;right:0;bottom:0;height:55%;background:rgba(0,0,0,.96);z-index:100;color:#fff;border-radius:24px 24px 0 0;display:flex;flex-direction:column;padding:12px}
+.reel-comments-head{display:flex;align-items:center;padding:12px 8px;font-size:18px}.reel-comments-head b{flex:1}.reel-comments-head button{background:transparent;color:#fff;border:0;font-size:22px;cursor:pointer}
+.reel-comments-list{flex:1;overflow:auto;padding:12px}.reel-comments-input{display:flex;gap:8px;padding:8px}.reel-comments-input input{flex:1;background:#151515;color:#fff;border:1px solid #444;border-radius:12px;padding:13px}.reel-comments-input button{border:0;background:#573b9b;color:#fff;border-radius:12px;padding:0 18px;cursor:pointer}
+@media(max-width:700px){
+  .reels-back{top:20px;left:24px;width:54px;height:54px;font-size:54px}
+  #reelAddButton{top:18px;right:24px;width:120px;height:120px;border-radius:29px;font-size:58px}
+  .reel-info{left:40px;right:130px;bottom:92px}
+  .reel-user-tag{font-size:30px;gap:8px}.verified{width:31px;height:31px;font-size:20px}.reel-desc{font-size:23px;margin-top:18px}
+  .reel-actions{right:30px;bottom:78px;width:76px}.reel-action{width:64px;height:64px;font-size:50px}.reel-count,.reel-view{font-size:23px}.reel-view-icon{font-size:34px}
+}
+@media(max-width:420px){
+  .reels-back{left:14px}.reel-info{left:22px;right:95px;bottom:72px}.reel-user-tag{font-size:23px}.verified{width:25px;height:25px;font-size:16px}.reel-desc{font-size:18px;margin-top:12px}.reel-actions{right:12px;bottom:58px}.reel-action{width:54px;height:54px;font-size:42px}.reel-count,.reel-view{font-size:18px;margin-bottom:15px}.reel-view-icon{font-size:28px}
+  #reelAddButton{top:16px;right:12px;width:78px;height:78px;border-radius:22px;font-size:46px}
+}
 </style>
 </head>
-
 <body>
-
-<div class="app">
-
-  <!-- =========================
-       ÜST
-  ========================== -->
-
-  <header class="top">
-
-<b>Reels</b>
-
-  </header>
-
-  <!-- =========================
-       REELS
-  ========================== -->
-
-  <main class="page">
-
-<div class="reels-box">
-
-  <div class="empty">
-
-
-    <svg viewBox="0 0 24 24">
-
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="16"
-        rx="2"
-      />
-
-      <path
-        d="M3 9h18"
-      />
-
-      <path
-        d="M8 4l3 5"
-      />
-
-      <path
-        d="M13 4l3 5"
-      />
-
-    </svg>
-
-
-    <strong>
-      Henüz Reel yok
-    </strong>
-
-
-    <small>
-      İlk videoyu sen paylaş.
-    </small>
-
-
-  </div>
-
-</div>
-
-  </main>
-
-
+<div id="reelsApp">
+  <div class="reels-box" id="reelsBox"></div>
   <input id="reelFileInput" type="file" accept="video/*">
-  <label id="reelAddButton" for="reelFileInput" aria-label="Reels ekle">+</label>
-  <button class="reels-back" type="button" aria-label="Geri">‹</button>
-
-  <!-- =========================
-       ALT MENÜ
-       ARA.HTML İLE AYNI
-  ========================== -->
-
-  <nav class="nav">
-
-<!-- ANA SAYFA -->
-
-<a href="index.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <path
-        d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Ana Sayfa
-  </span>
-
-</a>
-
-
-<!-- ARA -->
-
-<a href="ara.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <circle
-        cx="11"
-        cy="11"
-        r="6.5"
-      />
-
-      <path
-        d="m16 16 5 5"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Ara
-  </span>
-
-</a>
-
-
-<!-- OLUŞTUR -->
-
-<a href="olustur.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <rect
-        x="4"
-        y="4"
-        width="16"
-        height="16"
-        rx="4"
-      />
-
-      <path
-        d="M12 8v8"
-      />
-
-      <path
-        d="M8 12h8"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Oluştur
-  </span>
-
-</a>
-
-
-<!-- REELS -->
-
-<a
-  class="active"
-  href="reels.html"
->
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="16"
-        rx="2"
-      />
-
-      <path
-        d="M3 9h18"
-      />
-
-      <path
-        d="M8 4l3 5"
-      />
-
-      <path
-        d="M13 4l3 5"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Reels
-  </span>
-
-</a>
-
-
-<!-- PROFİL -->
-
-<a href="profile.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-      />
-
-      <path
-        d="M5 20a7 7 0 0 1 14 0"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Profil
-  </span>
-
-</a>
-
-  </nav>
-
+  <button id="reelAddButton" type="button" aria-label="Reels ekle">+</button>
+  <button class="reels-back" id="reelsBack" type="button" aria-label="Geri">‹</button>
 </div>
 
 <script>
-
-/* =========================
-   API
-========================= */
-
 const API="/api";
-
-
-/* =========================
-   TOKEN
-========================= */
-
-let token =
-  localStorage.getItem("minegram_token") ||
-  localStorage.getItem("minegram_supabase_token") ||
-  null;
-
-
-/* =========================
-   API KONTROL
-========================= */
-
+let token=localStorage.getItem("minegram_token")||localStorage.getItem("minegram_supabase_token")||null;
 async function checkSession(){
-
-  /* TOKEN YOKSA GİRİŞ */
-
-  if(!token){
-
-    location.replace("giris.html");
-
-    return;
-  }
-
-
+  if(!token){location.replace("giris.html");return}
   try{
-
-    const response =
-      await fetch(
-        API + "/me",
-        {
-          headers:{
-            Authorization:
-              "Bearer " + token
-          }
-        }
-      );
-
-
-    if(!response.ok){
-
-      throw new Error(
-        "Oturum geçersiz"
-      );
-
-    }
-
-
-    const me = await response
-      .json()
-      .catch(()=>({}));
-
-    /* GERÇEK OTURUMDAKİ HESAP KULLANICI ADI */
-    const realUsername =
-      me?.username ||
-      me?.user?.username ||
-      me?.profile?.username ||
-      me?.data?.username ||
-      me?.data?.user?.username ||
-      me?.data?.profile?.username ||
-      me?.user_metadata?.username ||
-      me?.user_metadata?.user_name ||
-      me?.user_metadata?.preferred_username ||
-      me?.email?.split?.("@")[0] ||
-      "";
-
-    if (realUsername) {
-      window.minegramCurrentUser = String(realUsername).trim();
-    }
-
-
+    const response=await fetch(API+"/me",{headers:{Authorization:"Bearer "+token}});
+    if(!response.ok)throw new Error("Oturum geçersiz");
+    const me=await response.json().catch(()=>({}));
+    const realUsername=me?.username||me?.user?.username||me?.profile?.username||me?.data?.username||me?.data?.user?.username||me?.data?.profile?.username||me?.user_metadata?.username||me?.user_metadata?.user_name||me?.user_metadata?.preferred_username||me?.email?.split?.("@")[0]||"";
+    if(realUsername)window.minegramCurrentUser=String(realUsername).trim();
   }catch(error){
-
-    console.warn(
-      "[REELS /me]",
-      error
-    );
-
-
-    localStorage.removeItem(
-      "minegram_token"
-    );
-
-    localStorage.removeItem(
-      "minegram_supabase_token"
-    );
-
-
-    location.replace(
-      "giris.html"
-    );
-
+    console.warn("[REELS /me]",error);
+    localStorage.removeItem("minegram_token");localStorage.removeItem("minegram_supabase_token");location.replace("giris.html");
   }
-
 }
-
-
-/* =========================
-   BAŞLAT
-========================= */
-
-window.minegramSessionReady = checkSession();
-
+window.minegramSessionReady=checkSession();
 </script>
 
-
-<script id="minegram-reels-system-js">
+<script>
 (function(){
- const DB='minegram_reels_db', STORE='reels';
- let dbPromise;
+ const DB='minegram_reels_db',STORE='reels';let dbPromise;
  function username(){return String(window.minegramCurrentUser||localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'').trim()||'kullanici'}
- function db(){
-  if(dbPromise)return dbPromise;
-  dbPromise=new Promise((resolve,reject)=>{
-   const r=indexedDB.open(DB,1);
-   r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE)){r.result.createObjectStore(STORE,{keyPath:'id'})}};
-   r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error);
-  }); return dbPromise;
- }
- async function load(){const d=await db();return new Promise((res,rej)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})}
+ function db(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});return dbPromise}
+ async function load(){const d=await db();return new Promise((res,rej)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).getAll();q.onsuccess=()=>res((q.result||[]).sort((a,b)=>Number(a.id)-Number(b.id)));q.onerror=()=>rej(q.error)})}
  async function saveAll(a){const d=await db();return new Promise((res,rej)=>{const tx=d.transaction(STORE,'readwrite'),st=tx.objectStore(STORE);st.clear();a.forEach(x=>st.put(x));tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function openCreator(u){u=String(u||'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
+ function comments(un){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>'+esc(un)+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');function add(){if(input.value.trim()){const d=document.createElement('div');d.textContent=input.value.trim();d.style.padding='9px 0';list.appendChild(d);input.value=''}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
+ function share(r){const text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share)navigator.share({text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Reels mesajı panoya kopyalandı.')).catch(()=>alert(text));else alert(text)}
+ function playVisible(card){const v=card.querySelector('video');document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{})}
  async function render(){
-  const box=document.querySelector('.reels-box'); if(!box)return;
-  let reels=[]; try{reels=await load()}catch(e){console.error(e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sayfayı yenileyip tekrar deneyin.</small></div>';return}
+  const box=document.getElementById('reelsBox');if(!box)return;let reels=[];try{reels=await load()}catch(e){console.error(e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sayfayı yenileyip tekrar deneyin.</small></div>';return}
   box.innerHTML='';
   if(!reels.length){box.innerHTML='<div class="empty"><strong>Henüz Reel yok</strong><small>İlk videoyu sen paylaş.</small></div>';return}
-  const creators=[...new Set(reels.map(r=>String(r.username||'').trim()).filter(Boolean))]; const discover=document.createElement('div');discover.className='reels-discover-tags';discover.innerHTML='<b>Keşfet</b> '+creators.map(u=>'<button type="button" class="discover-tag" data-creator="'+esc(u)+'">@'+esc(u)+'</button>').join('');box.appendChild(discover); creators.forEach(u=>{const b=[...discover.querySelectorAll('.discover-tag')].find(x=>x.dataset.creator===u);if(b)b.onclick=()=>openCreator(u)}); const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);
+  const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);
   reels.forEach(r=>{
-   const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;
-   card.innerHTML='<video playsinline muted loop preload="metadata"></video><div class="reel-overlay"></div><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(r.username||'')+'" data-creator="'+esc(r.username||'')+'">@'+esc(r.username||'')+'</a><div class="reel-desc">'+esc(r.description||'')+'</div></div><div class="reel-actions"><button class="reel-action like" type="button">♥</button><div class="reel-count">'+(Number(r.likes)||0)+'</div><div class="reel-view">◉ '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button">💬</button><button class="reel-action share" type="button">➤</button></div>';
-   const video=card.querySelector('video');
-   if(r.mediaBlob){video.src=URL.createObjectURL(r.mediaBlob)} else if(r.mediaUri){video.src=r.mediaUri} else if(r.mediaData){video.src=r.mediaData}
-   card.querySelector('.like').onclick=async()=>{r._liked=!r._liked;r.likes=Math.max(0,(Number(r.likes)||0)+(r._liked?1:-1));card.querySelector('.reel-count').textContent=r.likes;await saveAll(reels)};
-   card.querySelector('.comment').onclick=()=>comments(r.username);
-   card.querySelector('.share').onclick=()=>share(r);
-   feed.appendChild(card);
+    const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;
+    const u=String(r.username||r.creatorUsername||'').trim()||'kullanici';
+    card.innerHTML='<video playsinline muted loop preload="metadata"></video><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(u)+'" data-creator="'+esc(u)+'">@'+esc(u)+'<span class="verified">✓</span></a><div class="reel-desc">'+esc(r.description||'Bugünün videosu 🔥')+'</div></div><div class="reel-actions"><button class="reel-action like" type="button" aria-label="Beğen">♡</button><div class="reel-count">'+(Number(r.likes)||0)+'</div><div class="reel-view"><span class="reel-view-icon">◉</span> '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button" aria-label="Yorum">▢</button><button class="reel-action share" type="button" aria-label="Paylaş">➤</button></div>';
+    const video=card.querySelector('video');if(r.mediaBlob)video.src=URL.createObjectURL(r.mediaBlob);else if(r.mediaUri)video.src=r.mediaUri;else if(r.mediaData)video.src=r.mediaData;
+    card.querySelector('.reel-user-tag').onclick=e=>{e.preventDefault();openCreator(u)};
+    card.querySelector('.like').onclick=async()=>{r._liked=!r._liked;r.likes=Math.max(0,(Number(r.likes)||0)+(r._liked?1:-1));const b=card.querySelector('.like');b.textContent=r._liked?'♥':'♡';b.classList.toggle('liked',r._liked);card.querySelector('.reel-count').textContent=r.likes;await saveAll(reels)};
+    card.querySelector('.comment').onclick=()=>comments(u);card.querySelector('.share').onclick=()=>share(r);
+    video.addEventListener('click',()=>{if(video.paused)video.play().catch(()=>{});else video.pause()});
+    feed.appendChild(card);
   });
-  const io=new IntersectionObserver(entries=>entries.forEach(async e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.6){document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});const id=e.target.dataset.id;const k=username()+'_'+id;const seen=JSON.parse(localStorage.getItem('minegram_reel_views')||'{}');if(!seen[k]){seen[k]=1;localStorage.setItem('minegram_reel_views',JSON.stringify(seen));const a=await load(),r=a.find(x=>String(x.id)===String(id));if(r){r.views=(Number(r.views)||0)+1;await saveAll(a);const el=e.target.querySelector('.reel-view');if(el)el.textContent='◉ '+r.views}}}else v.pause()}),{threshold:[.6]});
-  document.querySelectorAll('.reel-card').forEach(x=>io.observe(x));
+  const io=new IntersectionObserver(entries=>entries.forEach(async e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){playVisible(e.target);const id=e.target.dataset.id;const k=username()+'_'+id;let seen={};try{seen=JSON.parse(localStorage.getItem('minegram_reel_views')||'{}')}catch(x){}if(!seen[k]){seen[k]=1;localStorage.setItem('minegram_reel_views',JSON.stringify(seen));const a=await load(),r=a.find(x=>String(x.id)===String(id));if(r){r.views=(Number(r.views)||0)+1;await saveAll(a);const el=e.target.querySelector('.reel-view');if(el)el.innerHTML='<span class="reel-view-icon">◉</span> '+r.views}}}else v.pause()}),{threshold:[.65]});
+  box.querySelectorAll('.reel-card').forEach(x=>io.observe(x));
  }
- function openCreator(u){u=String(u||'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
- function comments(un){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>'+esc(un)+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');function add(){if(input.value.trim()){const d=document.createElement('div');d.textContent=input.value.trim();d.style.padding='8px 0';list.appendChild(d);input.value=''}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
- function share(r){const text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share)navigator.share({text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Reels mesajı panoya kopyalandı.')).catch(()=>alert(text));else alert(text)}
  async function pickFile(){const input=document.getElementById('reelFileInput');if(!input)return;input.value='';input.click()}
- function picker(){const input=document.getElementById('reelFileInput');if(!input)return;input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');input.value='';return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;const creator=username();
-     a.push({id,username:creator,creatorUsername:creator,description:'Yeni Reels 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.');}input.value='';})}
- async function init(){
-  try{if(window.minegramSessionReady) await window.minegramSessionReady}catch(e){}
-  picker();
-  const btn=document.getElementById('reelAddButton');
-  if(btn)btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pickFile()});
-  const back=document.querySelector('.reels-back');if(back)back.onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};
-  render();
- }
+ function picker(){const input=document.getElementById('reelFileInput');input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;const creator=username();a.push({id,username:creator,creatorUsername:creator,description:'Bugünün videosu 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();const last=document.querySelector('.reel-card:last-child');if(last)last.scrollIntoView({behavior:'smooth'});alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.')}input.value=''})}
+ async function init(){try{if(window.minegramSessionReady)await window.minegramSessionReady}catch(e){}picker();document.getElementById('reelAddButton').addEventListener('click',pickFile);document.getElementById('reelsBack').onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};await render()}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
