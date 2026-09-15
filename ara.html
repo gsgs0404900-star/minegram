@@ -526,7 +526,23 @@ async function searchUsers(){
                     : [];
 
 
-        if(!users.length){
+        let videoResults=[];
+        try{
+            const feedData=await api("/feed?ts="+Date.now());
+            const feed=Array.isArray(feedData)?feedData:(Array.isArray(feedData.posts)?feedData.posts:[]);
+            const needle=q.toLowerCase();
+            videoResults=feed.filter(post=>{
+                const u=post.user?.username||post.username||"";
+                const caption=post.caption||post.text||"";
+                const media=post.media||post.mediaUrl||post.media_url||post.url||post.fileUrl||post.file_url||post.video||post.videoUrl||post.video_url||post.reel||post.reelUrl||post.reel_url||"";
+                const type=post.mediaType||post.media_type||post.type||"";
+                const isVideo=/^video\//i.test(type)||String(type).toLowerCase()==="video"||/\.(mp4|webm|mov|m4v|3gp)(\?|#|$)/i.test(String(media));
+                return isVideo&&(String(u).toLowerCase().includes(needle)||String(caption).toLowerCase().includes(needle));
+            });
+        }catch(e){console.warn("[ARA /feed]",e)}
+
+
+        if(!users.length && !videoResults.length){
 
             results.innerHTML=`
                 <div class="empty">
@@ -539,7 +555,7 @@ async function searchUsers(){
         }
 
 
-        results.innerHTML=
+        const userHtml=
             users.map(user=>{
 
                 const username=
@@ -576,6 +592,16 @@ async function searchUsers(){
 
             }).join("");
 
+        const videoHtml=videoResults.map((post,index)=>{
+            const username=post.user?.username||post.username||"minegram";
+            const caption=post.caption||post.text||"";
+            const media=post.media||post.mediaUrl||post.media_url||post.url||post.fileUrl||post.file_url||post.video||post.videoUrl||post.video_url||post.reel||post.reelUrl||post.reel_url||"";
+            const id=post.id??index;
+            const payload=encodeURIComponent(JSON.stringify({id,username,description:caption,mediaUri:media,likes:Number(post.likes)||0,views:Number(post.views)||0}));
+            return `<div class="userrow" onclick="openReelFromSearch('${payload}')"><div class="avatar">🎥</div><div style="min-width:0;flex:1"><b>@${escapeHtml(username)}</b><div style="color:#999;font-size:12px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(caption||'Video / Reels')}</div></div><span class="profile-link">Reels ›</span></div>`;
+        }).join("");
+
+        results.innerHTML=(userHtml||"")+(videoHtml?`<div style="color:#aaa;font-size:12px;padding:18px 4px 6px">🎥 Videolar / Reels</div>${videoHtml}`:"");
 
     }catch(error){
 
@@ -605,6 +631,16 @@ function openProfile(username){
         encodeURIComponent(username);
 }
 
+
+function openReelFromSearch(payload){
+    try{
+        const selected=JSON.parse(decodeURIComponent(payload));
+        const existing=JSON.parse(localStorage.getItem("minegram_reels")||"[]");
+        const merged=[selected,...existing.filter(x=>String(x.id)!==String(selected.id)||String(x.mediaUri)!==String(selected.mediaUri))];
+        localStorage.setItem("minegram_reels",JSON.stringify(merged));
+        location.href="reels.html?reel="+encodeURIComponent(selected.id);
+    }catch(e){console.error(e);toast("Video açılamadı.")}
+}
 
 /* =========================
    OTURUM KONTROLÜ
