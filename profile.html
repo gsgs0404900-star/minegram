@@ -5234,213 +5234,112 @@ setInterval(updateProfileStoryRing,5000);
 
 async function openUserList(type){
 
- document.getElementById('usersTitle')
- .textContent=
- type==='followers'
- ?'Takipçiler'
- :'Takip Edilenler';
+ document.getElementById('usersTitle').textContent=
+   type==='followers' ? 'Takipçiler' : 'Takip Edilenler';
 
- document.getElementById('usersBody')
- .innerHTML=
- '<div class="list-empty">Yükleniyor...</div>';
+ document.getElementById('usersBody').innerHTML=
+   '<div class="list-empty">Yükleniyor...</div>';
 
  openModal('usersModal');
 
  try{
+   if(!currentProfile) throw new Error('Profil bulunamadı.');
 
-   const username=encodeURIComponent(currentProfile.username);
-   let data;
-   let lastError=null;
+   /* Liste endpointleri bazı sunucularda HTML/SPA döndürdüğü için
+      artık /followers veya /following adresine istek atmıyoruz.
+      Önce profil JSON içindeki gerçek listeleri kullanıyoruz. */
+   let sourceUsers = type==='followers'
+     ? (currentProfile.followers || currentProfile.followerUsers ||
+        currentProfile.follower_users || currentProfile.followersList ||
+        currentProfile.followers_list || [])
+     : (currentProfile.following || currentProfile.followingUsers ||
+        currentProfile.following_users || currentProfile.followingList ||
+        currentProfile.following_list || []);
 
-   /* Önce mevcut /api rotasını, çalışmıyorsa aynı endpointin
-      /users varyantını dene. Böylece SPA/static fallback yüzünden
-      HTML dönmesi liste ekranını bozmaz. */
-   for(const endpoint of [
-     '/users/'+username+'/'+type,
-     '/api/users/'+username+'/'+type
-   ]){
+   /* Profil cevabında liste yoksa tarayıcıdaki Minegram listesini kullan. */
+   if(!Array.isArray(sourceUsers) || !sourceUsers.length){
      try{
-       data=await api(endpoint);
-       break;
-     }catch(err){
-       lastError=err;
-     }
+       const key=type==='followers' ? 'minegram_followers' : 'minegram_following';
+       const local=JSON.parse(localStorage.getItem(key)||'[]');
+       if(Array.isArray(local)) sourceUsers=local;
+     }catch(e){}
    }
 
-   if(data===undefined){
-     throw lastError||new Error('Liste yüklenemedi.');
-   }
+   if(!Array.isArray(sourceUsers)) sourceUsers=[];
 
-   const users=
-   Array.isArray(data)
-   ?data
-   :(data.users||
-     data.followers||
-     data.following||
-     []);
+   const users=sourceUsers.map(u=>{
+     if(typeof u==='string') return {username:u,displayName:u,avatar:''};
+     return u||{};
+   }).filter(u=>u&&(u.username||u.handle));
 
-   const body=
-   document.getElementById('usersBody');
+   const body=document.getElementById('usersBody');
 
-   const validUsers=
-   users.filter(
-     u=>u&&(u.username||u.handle)
-   );
-
-   if(!validUsers.length){
-
-     body.innerHTML='';
+   if(!users.length){
+     body.innerHTML='<div class="list-empty">Henüz kullanıcı yok</div>';
      return;
-
    }
 
-   body.innerHTML=
-   validUsers.map(u=>{
+   body.innerHTML=users.map(u=>{
+     const username=u.username||u.handle||'';
+     const name=u.displayName||u.name||username;
+     const avatar=u.avatar||u.profileImage||u.profile_image||'';
+     const following=!!(u.followingByMe ?? u.following_by_me ??
+                         u.isFollowing ?? u.is_following ??
+                         (type==='following'));
 
-     const username=
-     u.username||u.handle||'';
-
-     const name=
-     u.displayName||
-     u.name||
-     username;
-
-     const avatar=
-     u.avatar||'';
-
-     const isAlreadyFollowing=!!(
-       u.followingByMe ??
-       u.following_by_me ??
-       u.isFollowing ??
-       u.is_following ??
-       (type==='following')
-     );
-
-     const actionText=
-     isAlreadyFollowing
-     ?'Takibi Bırak'
-     :'Takip Et';
-
-     // Android uygulamasındaki gibi her kullanıcı satırında
-     // takip durumu aynı buton üzerinden değiştirilebilir.
-     const actionClass='user-action';
-
-     return`
-
-     <div class="user-item">
-
-     <div class="user-avatar">
-
-     ${
-       avatar
-       ?'<img src="'+escapeHtml(avatar)+'" alt="">'
-       :escapeHtml(
-         (name||'M')[0].toUpperCase()
-       )
-     }
-
-     </div>
-
-     <div class="user-copy">
-
-     <div class="user-name">
-     ${escapeHtml(name)}
-     </div>
-
-     <div class="user-handle">
-     @${escapeHtml(username)}
-     </div>
-
-     </div>
-
-     <button
-     class="${actionClass} user-action-btn"
-     data-user="${escapeHtml(username)}"
-     data-type="${type}">
-     ${actionText}
-     </button>
-
-     </div>
-
-     `;
-
+     return `
+       <div class="user-item" data-profile="${escapeHtml(username)}">
+         <div class="user-avatar">
+           ${avatar ? '<img src="'+escapeHtml(avatar)+'" alt="">' :
+             escapeHtml((name||'M')[0].toUpperCase())}
+         </div>
+         <div class="user-copy">
+           <div class="user-name">${escapeHtml(name)}</div>
+           <div class="user-handle">@${escapeHtml(username)}</div>
+         </div>
+         <button class="user-action user-action-btn"
+           data-user="${escapeHtml(username)}"
+           data-following="${following?'1':'0'}">
+           ${following ? 'Takibi Bırak' : 'Takip Et'}
+         </button>
+       </div>`;
    }).join('');
 
-   body.querySelectorAll('.user-action-btn')
-   .forEach(b=>{
-
+   body.querySelectorAll('.user-action-btn').forEach(b=>{
      b.onclick=async e=>{
-
        e.stopPropagation();
-
        const username=b.dataset.user;
-
        if(!username)return;
 
-       // Android uygulamasındaki FollowListScreen gibi buton,
-       // hem Takip Et hem Takibi Bırak işlemini doğrudan yapar.
-       const wasFollowing=b.textContent.trim()==='Takibi Bırak';
+       const wasFollowing=b.dataset.following==='1';
        const nextFollowing=!wasFollowing;
-
+       b.dataset.following=nextFollowing?'1':'0';
        b.textContent=nextFollowing?'Takibi Bırak':'Takip Et';
-       b.classList.add('user-action');
 
        try{
-
-         await api(
-           '/users/'+
-           encodeURIComponent(username)+
-           '/follow',
-           {method:'POST'}
-         );
-
-         // Profildeki sayaç ve ana durum da arka planda senkronize olsun.
+         await api('/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});
          load().catch(()=>{});
-
        }catch(e){
-
+         b.dataset.following=wasFollowing?'1':'0';
          b.textContent=wasFollowing?'Takibi Bırak':'Takip Et';
-         toast(e.message);
-
+         toast(e.message||'Takip işlemi başarısız');
        }
-
      };
-
    });
 
-   body.querySelectorAll('.user-item')
-   .forEach(row=>{
-
-     row.onclick=(event)=>{
+   body.querySelectorAll('.user-item').forEach(row=>{
+     row.onclick=event=>{
        if(event.target.closest('.user-action-btn')) return;
-
-       const btn=
-       row.querySelector('.user-action-btn');
-
-       if(btn?.dataset.user){
-
-         location.href=
-         'profile.html?username='+
-         encodeURIComponent(
-           btn.dataset.user
-         );
-
-       }
-
+       const username=row.dataset.profile;
+       if(username) location.href='profile.html?username='+encodeURIComponent(username);
      };
-
    });
 
  }catch(e){
-
-   document.getElementById('usersBody')
-   .innerHTML=
-   '<div class="list-empty">Liste yüklenemedi.</div>';
-
-   toast(e.message);
-
+   document.getElementById('usersBody').innerHTML=
+     '<div class="list-empty">Liste yüklenemedi.</div>';
+   toast(e.message||'Liste yüklenemedi');
  }
-
 }
 
 document.getElementById('backBtn')?.addEventListener('click',()=>{
