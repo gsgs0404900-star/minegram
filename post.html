@@ -106,22 +106,42 @@ body{
 .story{cursor:pointer;user-select:none;position:relative;overflow:visible}
 .story:active{transform:scale(.96)}
 
-/* HİKAYEN: tek, ince kırmızı halka.
-   Halka avatarın tam içinde kalır; dışarı taşmaz ve + butonunu kapatmaz. */
-#myStory.has-new-story #storyAvatar{
-  border:2px solid #e53935 !important;
+/* ANDROID UYGULAMASINDAKİ STORY HALKASI
+   Yeni/okunmamış hikâyede pembe halka, okunmuş hikâyede gri halka. */
+.story.has-story .avatar{
+  border:3px solid #666 !important;
   box-sizing:border-box !important;
-  box-shadow:none !important;
-  overflow:visible !important;
+  padding:3px !important;
+  overflow:hidden !important;
+  background:#3f91cc !important;
 }
 
-/* + butonu halkanın DIŞINDA kalır. */
-#myStory.has-new-story #storyAvatar .story-image{
-  width:54px !important;
-  height:54px !important;
-  border-radius:50%;
-  object-fit:cover;
-  display:block;
+/* Uygulamadaki StoryRingAvatar ile birebir: yeni/okunmamış Story PINK halka. */
+.story.has-new-story .avatar,
+#myStory.has-new-story #storyAvatar{
+  border:3px solid #E1306C !important;
+  box-sizing:border-box !important;
+  padding:3px !important;
+  overflow:hidden !important;
+  background:#3f91cc !important;
+}
+
+.story.has-story .avatar .story-image,
+.story.has-new-story .avatar .story-image{
+  width:100% !important;
+  height:100% !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  display:block !important;
+}
+
+.story.has-story .avatar > span:not(.plus),
+.story.has-new-story .avatar > span:not(.plus){
+  width:100% !important;
+  height:100% !important;
+  border-radius:50% !important;
 }
 
 /* + sadece kendi küçük alanında kalsın ve halkanın üstünde olsun. */
@@ -2136,7 +2156,6 @@ onclick="sendComment()"
 
 
   /* =======================================================
-     STORY GRUPLARINI OLUŞTUR  /* =======================================================
      STORY GRUPLARINI OLUŞTUR
      Her kullanıcı için hikayeleri tek grupta toplar.
   ======================================================= */
@@ -2410,7 +2429,6 @@ onclick="sendComment()"
   }
 
   /* =======================================================
-     STORY BAR  /* =======================================================
      STORY BAR
   ======================================================= */
 
@@ -2480,7 +2498,14 @@ onclick="sendComment()"
             userId:group.userId,
             username:group.username
           })
-      );
+      ).sort(function(a,b){
+        const aUnread = Array.isArray(a.stories) && a.stories.some(function(story){ return !isStorySeen(story); });
+        const bUnread = Array.isArray(b.stories) && b.stories.some(function(story){ return !isStorySeen(story); });
+        if(aUnread !== bUnread) return aUnread ? -1 : 1;
+        const aLatest = Math.max.apply(null, (a.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
+        const bLatest = Math.max.apply(null, (b.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
+        return bLatest - aLatest;
+      });
 
 
     groups.forEach(group=>{
@@ -2492,6 +2517,7 @@ onclick="sendComment()"
 
       item.className=
         "story has-story";
+      item.setAttribute("data-story-username", group.username);
 
       if(Array.isArray(group.stories) && group.stories.some(function(story){ return !isStorySeen(story); }))
         item.classList.add("has-new-story");
@@ -2709,6 +2735,13 @@ onclick="sendComment()"
     container.appendChild(
       storyItems
     );
+
+    /* Canlı yayınları Story alanına da ekle/güncelle. */
+    setTimeout(function(){
+      if(typeof window.updateMinegramLiveBadges==="function"){
+        window.updateMinegramLiveBadges();
+      }
+    },0);
 
   }
 
@@ -4449,11 +4482,9 @@ window.updateMinegramPostStoryRings=function(){
       if(!story || !story.id) return false;
       try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
     });
-    el.classList.toggle("post-story-has-story",has);
     el.classList.toggle("post-story-new",unseen);
     el.title=has ? "Hikayeyi aç" : "";
   });
-};
 
 function renderPost(p){
 
@@ -4552,13 +4583,14 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <div
+        <a
           class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
-          data-story-username="${esc(rawUsername)}"
-          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
-          title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
-          onclick="event.stopPropagation(); const post=window.__minegramFeedPosts?.find(function(x){return String(x?.id ?? x?.postId ?? x?._id ?? x?.uuid ?? '')===String(this.closest('.post')?.dataset?.id||'')}); if(hasMinegramStoryForPost(post)){ openMinegramStoryFromPostAvatar(event,this); } else { location.href=profileUrl(this.getAttribute('data-story-username')||''); }"
-          style="display:grid;place-items:center"
+          href="${profileUrl(rawUsername)}"
+          data-profile-username="${esc(rawUsername)}"
+          data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
+          title="@${esc(rawUsername)} profilini aç"
+          onclick="event.stopPropagation()"
+          style="text-decoration:none;color:inherit;display:grid;place-items:center"
         >
           ${(() => {
             const postAvatar =
@@ -4574,7 +4606,7 @@ function renderPost(p){
               ? `<img src="${esc(postAvatar)}" alt="" loading="lazy">`
               : initial;
           })()}
-        </div>
+        </a>
 
         <div
           class="username"
