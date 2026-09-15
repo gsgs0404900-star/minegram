@@ -322,8 +322,9 @@ body{
   }
 
 }
-\n/* ANDROID REELS SİSTEMİ */\n.reel-add{position:absolute;right:14px;top:10px;width:42px;height:42px;border:0;border-radius:50%;background:#3b3150;color:#fff;font-size:27px;cursor:pointer}.top{position:sticky}.reels-box{position:relative;width:100%;min-height:calc(100vh - 145px);display:block}.reels-feed{display:none;width:100%;height:calc(100vh - 145px);overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000}.reels-feed::-webkit-scrollbar{display:none}.reel-card{position:relative;width:100%;height:100%;min-height:calc(100vh - 145px);overflow:hidden;scroll-snap-align:start;background:#000}.reel-video{width:100%;height:100%;object-fit:contain;background:#000;display:block}.reel-gradient{position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);pointer-events:none}.reel-info{position:absolute;left:18px;right:85px;bottom:22px;color:#fff;z-index:2;text-shadow:0 1px 3px #000}.reel-user{font-size:18px;font-weight:700}.reel-description{margin-top:6px;font-size:14px;line-height:1.35}.reel-actions{position:absolute;right:12px;bottom:15px;z-index:3;display:flex;flex-direction:column;align-items:center}.reel-action{border:0;background:transparent;color:#fff;width:52px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;text-shadow:0 1px 3px #000}.reel-action .ico{font-size:25px;line-height:25px}.reel-action small{font-size:11px}.reel-action.liked .ico{color:#f33}.reel-sound{position:absolute;right:15px;top:15px;z-index:4;border:0;border-radius:50%;width:42px;height:42px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}.reel-comments{position:fixed;left:0;right:0;bottom:76px;height:55vh;max-width:680px;margin:auto;background:rgba(0,0,0,.96);border:1px solid #252525;border-bottom:0;border-radius:22px 22px 0 0;z-index:10001;display:flex;flex-direction:column}.reel-comments-head{display:flex;align-items:center;padding:8px 8px 8px 16px;border-bottom:1px solid #242424;color:#fff}.reel-comments-head strong{flex:1}.reel-comments-head button{border:0;background:transparent;color:#fff;font-size:26px}.reel-comments-list{flex:1;overflow:auto;padding:12px;color:#fff}.reel-comment{padding:9px 4px;border-bottom:1px solid #222}.reel-comments-form{display:flex;gap:8px;padding:8px}.reel-comments-form input{flex:1;min-width:0;background:#111;border:1px solid #444;border-radius:12px;color:#fff;padding:11px}.reel-comments-form button{border:0;border-radius:12px;background:#3b3150;color:#fff;padding:0 15px}#reelPicker{display:none}.empty{display:flex;flex-direction:column;align-items:center;justify-content:center}@media(max-width:699px){.reel-add{right:8px;top:8px}.reel-card,.reels-feed{min-height:calc(100vh - 145px)}.reel-info{left:14px;bottom:18px}.reel-actions{right:7px;bottom:12px}}\n</style>
+</style>
 
+<style id="reels-add-fix">#reelAddButton{position:fixed!important;left:50%!important;bottom:88px!important;transform:translateX(-50%)!important;width:58px!important;height:58px!important;border:0!important;border-radius:50%!important;background:#3b3150!important;color:#fff!important;font-size:36px!important;font-weight:700!important;line-height:1!important;padding:0!important;margin:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important}#reelAddButton:active{transform:translateX(-50%) scale(.9)!important}</style>
 </head>
 
 <body>
@@ -334,7 +335,11 @@ body{
        ÜST
   ========================== -->
 
-  <header class="top"><b>Reels</b><button id="reelAdd" class="reel-add" type="button">+</button><input id="reelPicker" type="file" accept="video/*"></header>
+  <header class="top">
+
+<b>Reels</b>
+
+  </header>
 
   <!-- =========================
        REELS
@@ -342,9 +347,9 @@ body{
 
   <main class="page">
 
-<div id="reelsBox" class="reels-box">
+<div class="reels-box">
 
-  <div id="emptyState" class="empty">
+  <div class="empty">
 
 
     <svg viewBox="0 0 24 24">
@@ -383,7 +388,6 @@ body{
 
 
   </div>
-  <div id="reelsFeed" class="reels-feed"></div>
 
 </div>
 
@@ -572,7 +576,103 @@ body{
 
 </div>
 
-<script>\nconst DB_NAME="minegram_reels_db",STORE="reels";let reels=[];let urls=[];\nfunction openDB(){return new Promise((ok,no)=>{let r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:"id"})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}\nasync function all(){let d=await openDB();return new Promise((ok,no)=>{let r=d.transaction(STORE,"readonly").objectStore(STORE).getAll();r.onsuccess=()=>ok(r.result||[]);r.onerror=()=>no(r.error)})}\nasync function put(x){let d=await openDB();return new Promise((ok,no)=>{let tx=d.transaction(STORE,"readwrite");tx.objectStore(STORE).put(x);tx.oncomplete=ok;tx.onerror=()=>no(tx.error)})}\nfunction name(){return(localStorage.getItem("minegram_username")||localStorage.getItem("username")||"minegram").replace(/^@/,"")}\nfunction comments(r){document.getElementById("reelComments")?.remove();let b=document.createElement("section");b.id="reelComments";b.className="reel-comments";let h=document.createElement("div");h.className="reel-comments-head";h.innerHTML='<strong>'+esc(r.username)+' yorumları</strong><button type="button">×</button>';h.querySelector("button").onclick=()=>b.remove();let l=document.createElement("div");l.className="reel-comments-list";let a=JSON.parse(localStorage.getItem("rc_"+r.id)||"[]");if(!a.length)l.innerHTML='<div class="reel-comment" style="color:#888">Henüz yorum yok.</div>';a.forEach(x=>{let q=document.createElement("div");q.className="reel-comment";q.textContent=x;l.append(q)});let f=document.createElement("form");f.className="reel-comments-form";f.innerHTML='<input placeholder="Yorum yaz..." autocomplete="off"><button>Gönder</button>';f.onsubmit=e=>{e.preventDefault();let i=f.querySelector("input"),v=i.value.trim();if(!v)return;a.push(v);localStorage.setItem("rc_"+r.id,JSON.stringify(a));let q=document.createElement("div");q.className="reel-comment";q.textContent=v;l.append(q);l.scrollTop=l.scrollHeight;i.value=""};b.append(h,l,f);document.body.append(b)}\nfunction esc(s){let d=document.createElement("div");d.textContent=s||"";return d.innerHTML}\nfunction draw(){let f=document.getElementById("reelsFeed"),e=document.getElementById("emptyState");urls.forEach(x=>URL.revokeObjectURL(x));urls=[];f.innerHTML="";if(!reels.length){f.style.display="none";e.style.display="flex";return}e.style.display="none";f.style.display="block";reels.forEach(r=>{let c=document.createElement("article");c.className="reel-card";c.dataset.id=r.id;let v=document.createElement("video");v.className="reel-video";v.src=URL.createObjectURL(r.blob);urls.push(v.src);v.playsInline=true;v.loop=true;v.muted=true;let g=document.createElement("div");g.className="reel-gradient";let inf=document.createElement("div");inf.className="reel-info";inf.innerHTML='<div class="reel-user">@'+esc(r.username||"minegram")+'</div><div class="reel-description">'+esc(r.description||"Yeni Reels 🔥")+'</div>';let ac=document.createElement("div");ac.className="reel-actions";let liked=localStorage.getItem("rl_"+r.id)==="1",likes=Number(r.likes||0)+(liked?1:0);let lb=document.createElement("button");lb.className="reel-action";function dl(){lb.classList.toggle("liked",liked);lb.innerHTML='<span class="ico">'+(liked?"♥":"♡")+'</span><small>'+likes+'</small>'}dl();lb.onclick=()=>{liked=!liked;likes=Math.max(0,likes+(liked?1:-1));liked?localStorage.setItem("rl_"+r.id,"1"):localStorage.removeItem("rl_"+r.id);dl()};let vb=document.createElement("button");vb.className="reel-action";vb.innerHTML='<span class="ico">◉</span><small>'+Number(r.views||0)+'</small>';let cb=document.createElement("button");cb.className="reel-action";cb.innerHTML='<span class="ico">◌</span><small>Yorum</small>';cb.onclick=()=>comments(r);let sb=document.createElement("button");sb.className="reel-action";sb.innerHTML='<span class="ico">➤</span><small>Paylaş</small>';sb.onclick=async()=>{let x="🎬 @"+(r.username||"minegram")+" Reels: "+(r.description||"");try{if(navigator.share)await navigator.share({title:"Minegram Reels",text:x});else await navigator.clipboard.writeText(x)}catch(_){}};ac.append(lb,vb,cb,sb);let sound=document.createElement("button");sound.className="reel-sound";sound.textContent="🔇";sound.onclick=()=>{v.muted=!v.muted;sound.textContent=v.muted?"🔇":"🔊"};c.append(v,g,inf,ac,sound);f.append(c)});observe()}\nfunction observe(){let f=document.getElementById("reelsFeed"),vs=[...f.querySelectorAll("video")];window.ro?.disconnect();window.ro=new IntersectionObserver(es=>es.forEach(x=>{let v=x.target;if(x.isIntersecting&&x.intersectionRatio>=.7){vs.forEach(q=>{if(q!==v){q.pause();q.muted=true}});v.play().catch(()=>{});let id=v.closest(".reel-card").dataset.id;if(!localStorage.getItem("rv_"+id)){localStorage.setItem("rv_"+id,"1");let r=reels.find(q=>q.id===id);if(r){r.views=Number(r.views||0)+1;put(r).catch(()=>{});let s=v.closest(".reel-card").querySelector(".reel-action:nth-child(2) small");if(s)s.textContent=r.views}}}else v.pause()}),{root:f,threshold:.7});vs.forEach(v=>ro.observe(v))}\ndocument.getElementById("reelAdd").onclick=()=>document.getElementById("reelPicker").click();document.getElementById("reelPicker").onchange=async e=>{let file=e.target.files?.[0];e.target.value="";if(!file)return;let r={id:"reel_"+Date.now(),username:name(),description:"Yeni Reels 🔥",likes:0,views:0,createdAt:Date.now(),blob:file};await put(r);reels.unshift(r);draw()};\n(async()=>{try{reels=(await all()).sort((a,b)=>b.createdAt-a.createdAt)}catch(_){reels=[]}draw()})();\n</script>
+<script>
 
+/* =========================
+   API
+========================= */
+
+const API="/api";
+
+
+/* =========================
+   TOKEN
+========================= */
+
+let token =
+  localStorage.getItem("minegram_token") ||
+  localStorage.getItem("minegram_supabase_token") ||
+  null;
+
+
+/* =========================
+   API KONTROL
+========================= */
+
+async function checkSession(){
+
+  /* TOKEN YOKSA GİRİŞ */
+
+  if(!token){
+
+    location.replace("giris.html");
+
+    return;
+  }
+
+
+  try{
+
+    const response =
+      await fetch(
+        API + "/me",
+        {
+          headers:{
+            Authorization:
+              "Bearer " + token
+          }
+        }
+      );
+
+
+    if(!response.ok){
+
+      throw new Error(
+        "Oturum geçersiz"
+      );
+
+    }
+
+
+    await response
+      .json()
+      .catch(()=>({}));
+
+
+  }catch(error){
+
+    console.warn(
+      "[REELS /me]",
+      error
+    );
+
+
+    localStorage.removeItem(
+      "minegram_token"
+    );
+
+    localStorage.removeItem(
+      "minegram_supabase_token"
+    );
+
+
+    location.replace(
+      "giris.html"
+    );
+
+  }
+
+}
+
+
+/* =========================
+   BAŞLAT
+========================= */
+
+checkSession();
+
+</script>
+
+<input id="reelFileInput" type="file" accept="video/*" style="display:none"><button id="reelAddButton" type="button" aria-label="Reels ekle">+</button><script id="reels-add-fix">(function(){function init(){var b=document.getElementById("reelAddButton"),i=document.getElementById("reelFileInput");if(!b||!i)return;b.onclick=function(e){e.preventDefault();e.stopPropagation();i.click()};i.onchange=function(){var f=i.files&&i.files[0];if(!f)return;if(f.type&&!f.type.startsWith("video/")){alert("Lütfen bir video dosyası seç.");i.value="";return}var r=new FileReader;r.onload=function(){try{var k="minegram_reels",a=JSON.parse(localStorage.getItem(k)||"[]"),m=0;a.forEach(function(x){m=Math.max(m,Number(x.id)||0)});var u=localStorage.getItem("username")||localStorage.getItem("currentUser")||localStorage.getItem("minegram_username")||"kullanici";a.push({id:m+1,username:u,description:"Yeni Reels 🔥",likes:0,views:0,mediaData:r.result});localStorage.setItem(k,JSON.stringify(a));location.reload()}catch(e){console.error(e);alert("Video eklenemedi.")}};r.readAsDataURL(f);i.value=""}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init()})();</script>
 </body>
 </html>
