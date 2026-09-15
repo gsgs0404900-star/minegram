@@ -274,6 +274,52 @@ body{
     color:#eee;
 }
 
+
+/* =====================================================
+   YORUM BİLDİRİMİ / YORUM BEĞENİSİ
+===================================================== */
+
+.comment-preview{
+    margin-top:6px;
+    color:#a9a9a9;
+    font-size:12px;
+    line-height:17px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.comment-like-btn{
+    min-width:38px;
+    height:32px;
+    padding:0 9px;
+    border:1px solid #333;
+    border-radius:16px;
+    background:#111;
+    color:#aaa;
+    font-size:17px;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+}
+
+.comment-like-btn:hover{
+    background:#1b1b1b;
+}
+
+.comment-like-btn.liked{
+    color:#ff3b5c;
+    border-color:#5b2631;
+    background:#211014;
+}
+
+.notification-actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+}
+
 .unread-dot{
     width:8px;
     height:8px;
@@ -853,8 +899,27 @@ function notificationType(n){
             n.type ||
             n.notificationType ||
             n.kind ||
+            n.event ||
+            n.action ||
             ''
         ).toLowerCase();
+
+    /* Yorum beğenisi, gönderi beğenisinden ÖNCE kontrol edilmeli. */
+    if(
+        type.includes('comment_like') ||
+        type.includes('comment-like') ||
+        type.includes('commentlike') ||
+        type.includes('comment_liked') ||
+        type.includes('comment-liked') ||
+        type.includes('yorum_beğeni') ||
+        type.includes('yorum-begeni') ||
+        type.includes('yorum_begeni') ||
+        type.includes('yorumlike') ||
+        type.includes('liked_comment') ||
+        type.includes('commentlike')
+    ){
+        return 'comment_like';
+    }
 
     if(
         type.includes('like') ||
@@ -979,7 +1044,14 @@ function notificationPostId(n){
         n.postId ||
         n.post_id ||
         n.post?.id ||
+        n.comment?.postId ||
+        n.comment?.post_id ||
+        n.comment?.post?.id ||
         n.data?.postId ||
+        n.data?.post_id ||
+        n.data?.post?.id ||
+        n.data?.comment?.postId ||
+        n.data?.comment?.post_id ||
         ''
     );
 
@@ -990,20 +1062,139 @@ function notificationPostId(n){
    MESAJ
 ===================================================== */
 
+
+function notificationCommentId(n){
+    return String(
+        n.commentId ||
+        n.comment_id ||
+        n.comment?.id ||
+        n.comment?.commentId ||
+        n.data?.commentId ||
+        n.data?.comment_id ||
+        n.data?.comment?.id ||
+        ''
+    );
+}
+
+function notificationCommentText(n){
+    return String(
+        n.commentText ||
+        n.comment_text ||
+        n.comment?.text ||
+        n.comment?.content ||
+        n.comment?.message ||
+        n.data?.commentText ||
+        n.data?.comment_text ||
+        n.data?.comment?.text ||
+        n.data?.comment?.content ||
+        ''
+    ).trim();
+}
+
+function notificationCommentLikedByMe(n){
+    const values = [
+        n.commentLikedByMe,
+        n.comment_liked_by_me,
+        n.comment?.likedByMe,
+        n.comment?.liked_by_me,
+        n.comment?.isLiked,
+        n.comment?.is_liked,
+        n.data?.commentLikedByMe,
+        n.data?.comment_liked_by_me,
+        n.data?.comment?.likedByMe,
+        n.data?.comment?.liked_by_me
+    ];
+
+    for(const v of values){
+        if(typeof v === 'boolean') return v;
+        if(String(v || '').toLowerCase() === 'true') return true;
+        if(String(v || '').toLowerCase() === 'false') return false;
+    }
+
+    return false;
+}
+
+function notificationMedia(n){
+    return (
+        n.post?.media ||
+        n.post?.image ||
+        n.post?.imageUrl ||
+        n.post?.mediaUrl ||
+        n.post?.thumbnail ||
+        n.post?.thumbnailUrl ||
+        n.media ||
+        n.image ||
+        n.imageUrl ||
+        n.mediaUrl ||
+        n.thumbnail ||
+        n.thumbnailUrl ||
+        n.data?.post?.media ||
+        n.data?.post?.image ||
+        n.data?.media ||
+        n.data?.image ||
+        ''
+    );
+}
+
+function notificationMediaKind(n){
+    const raw = String(
+        n.post?.mediaType ||
+        n.post?.media_type ||
+        n.post?.type ||
+        n.mediaType ||
+        n.media_type ||
+        n.type ||
+        ''
+    ).toLowerCase();
+
+    if(
+        raw.includes('video') ||
+        raw.includes('reel') ||
+        raw.includes('mp4') ||
+        raw.includes('webm') ||
+        raw.includes('mov')
+    ){
+        return 'video';
+    }
+
+    return 'photo';
+}
+
+function notificationLikeText(n){
+    return notificationMediaKind(n) === 'video'
+        ? 'videosunu beğendi.'
+        : 'fotoğrafını beğendi.';
+}
+
 function notificationMessage(n){
 
     const type = notificationType(n);
 
-    if(n.message){
+    /* Sunucunun özel mesajı varsa onu koru. */
+    if(
+        n.message &&
+        type !== 'like' &&
+        type !== 'comment' &&
+        type !== 'comment_like'
+    ){
         return esc(n.message);
     }
 
-    if(n.text){
+    if(
+        n.text &&
+        type !== 'like' &&
+        type !== 'comment' &&
+        type !== 'comment_like'
+    ){
         return esc(n.text);
     }
 
+    if(type === 'comment_like'){
+        return 'yorumunu beğendi.';
+    }
+
     if(type === 'like'){
-        return 'gönderini beğendi.';
+        return notificationLikeText(n);
     }
 
     if(type === 'comment'){
@@ -1027,7 +1218,6 @@ function notificationMessage(n){
     }
 
     return 'seninle etkileşime geçti.';
-
 }
 
 
@@ -1038,6 +1228,10 @@ function notificationMessage(n){
 function notificationIcon(n){
 
     const type = notificationType(n);
+
+    if(type === 'comment_like'){
+        return '♥';
+    }
 
     if(type === 'like'){
         return '♥';
@@ -1110,12 +1304,7 @@ function avatarHTML(n){
 
 function postThumbnailHTML(n){
 
-    const media =
-        n.post?.media ||
-        n.post?.image ||
-        n.media ||
-        n.image ||
-        '';
+    const media = notificationMedia(n);
 
     if(!media){
         return '';
@@ -1130,7 +1319,6 @@ function postThumbnailHTML(n){
         >
     </div>
     `;
-
 }
 
 
@@ -1257,6 +1445,9 @@ function renderNotification(n){
     const postId =
         notificationPostId(n);
 
+    const commentId =
+        notificationCommentId(n);
+
     const time =
         n.createdAt ||
         n.created_at ||
@@ -1275,6 +1466,12 @@ function renderNotification(n){
 
     const followAccepted =
         isFollowAcceptedNotification(n);
+
+    const commentLike =
+        type === 'comment_like';
+
+    const commentText =
+        notificationCommentText(n);
 
     let action = '';
 
@@ -1297,14 +1494,32 @@ function renderNotification(n){
             'follow'
         );
 
+    }else if(commentLike && commentId){
+
+        const liked =
+            notificationCommentLikedByMe(n);
+
+        action = `
+        <div class="notification-actions">
+            ${postThumbnailHTML(n)}
+            <button
+                class="comment-like-btn ${liked?'liked':''}"
+                type="button"
+                aria-label="Yorumu beğen"
+                data-comment-like="1"
+                data-comment-id="${esc(commentId)}"
+                data-liked="${liked?'1':'0'}"
+                onclick="toggleNotificationCommentLike(event,this)"
+            >${liked?'♥':'♡'}</button>
+        </div>
+        `;
+
     }else{
 
-        action =
-            postThumbnailHTML(n) ||
+        action = postThumbnailHTML(n) ||
             `<div class="notification-icon">
                 ${notificationIcon(n)}
             </div>`;
-
     }
 
     return `
@@ -1314,6 +1529,7 @@ function renderNotification(n){
         data-notification-id="${esc(id)}"
         data-username="${esc(username)}"
         data-post-id="${esc(postId)}"
+        data-comment-id="${esc(commentId)}"
         onclick="openNotification(event,this)"
     >
 
@@ -1329,6 +1545,12 @@ function renderNotification(n){
 
             </div>
 
+            ${
+                commentText
+                    ? `<div class="comment-preview">“${esc(commentText)}”</div>`
+                    : ''
+            }
+
             <div class="notification-time">
 
                 ${esc(relativeTime(time))}
@@ -1337,7 +1559,11 @@ function renderNotification(n){
 
         </div>
 
-        ${action}
+        ${
+            commentLike && commentId
+                ? action
+                : action
+        }
 
         ${read?'':'<span class="unread-dot"></span>'}
 
@@ -1527,6 +1753,100 @@ async function loadNotifications(){
    BİLDİRİME TIKLAMA
 ===================================================== */
 
+
+async function toggleNotificationCommentLike(event,button){
+
+    event.stopPropagation();
+
+    const commentId =
+        button?.dataset?.commentId || '';
+
+    if(!commentId){
+        toast('Yorum kimliği bulunamadı');
+        return;
+    }
+
+    if(button.dataset.loading === '1'){
+        return;
+    }
+
+    button.dataset.loading = '1';
+
+    const wasLiked =
+        button.dataset.liked === '1' ||
+        button.classList.contains('liked');
+
+    const nextLiked = !wasLiked;
+
+    button.classList.toggle(
+        'liked',
+        nextLiked
+    );
+
+    button.dataset.liked =
+        nextLiked ? '1' : '0';
+
+    button.textContent =
+        nextLiked ? '♥' : '♡';
+
+    try{
+
+        const result =
+            await api(
+                '/comments/' +
+                encodeURIComponent(commentId) +
+                '/like',
+                {
+                    method:'POST'
+                }
+            );
+
+        const liked =
+            typeof result.liked === 'boolean'
+                ? result.liked
+                : nextLiked;
+
+        button.classList.toggle(
+            'liked',
+            liked
+        );
+
+        button.dataset.liked =
+            liked ? '1' : '0';
+
+        button.textContent =
+            liked ? '♥' : '♡';
+
+        toast(
+            liked
+                ? 'Yorum beğenildi'
+                : 'Yorum beğenisi kaldırıldı'
+        );
+
+    }catch(error){
+
+        button.classList.toggle(
+            'liked',
+            wasLiked
+        );
+
+        button.dataset.liked =
+            wasLiked ? '1' : '0';
+
+        button.textContent =
+            wasLiked ? '♥' : '♡';
+
+        toast(
+            error.message ||
+            'Yorum beğenisi işlemi başarısız.'
+        );
+
+    }finally{
+
+        button.dataset.loading = '0';
+    }
+}
+
 async function openNotification(event,element){
 
     /*
@@ -1535,7 +1855,8 @@ async function openNotification(event,element){
      */
 
     if(
-        event.target.closest('.follow-btn')
+        event.target.closest('.follow-btn') ||
+        event.target.closest('.comment-like-btn')
     ){
         return;
     }
