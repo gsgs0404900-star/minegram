@@ -106,42 +106,22 @@ body{
 .story{cursor:pointer;user-select:none;position:relative;overflow:visible}
 .story:active{transform:scale(.96)}
 
-/* ANDROID UYGULAMASINDAKİ STORY HALKASI
-   Yeni/okunmamış hikâyede pembe halka, okunmuş hikâyede gri halka. */
-.story.has-story .avatar{
-  border:3px solid #666 !important;
-  box-sizing:border-box !important;
-  padding:3px !important;
-  overflow:hidden !important;
-  background:#3f91cc !important;
-}
-
-/* Uygulamadaki StoryRingAvatar ile birebir: yeni/okunmamış Story PINK halka. */
-.story.has-new-story .avatar,
+/* HİKAYEN: tek, ince kırmızı halka.
+   Halka avatarın tam içinde kalır; dışarı taşmaz ve + butonunu kapatmaz. */
 #myStory.has-new-story #storyAvatar{
-  border:3px solid #E1306C !important;
+  border:2px solid #e53935 !important;
   box-sizing:border-box !important;
-  padding:3px !important;
-  overflow:hidden !important;
-  background:#3f91cc !important;
+  box-shadow:none !important;
+  overflow:visible !important;
 }
 
-.story.has-story .avatar .story-image,
-.story.has-new-story .avatar .story-image{
-  width:100% !important;
-  height:100% !important;
-  min-width:0 !important;
-  min-height:0 !important;
-  border-radius:50% !important;
-  object-fit:cover !important;
-  display:block !important;
-}
-
-.story.has-story .avatar > span:not(.plus),
-.story.has-new-story .avatar > span:not(.plus){
-  width:100% !important;
-  height:100% !important;
-  border-radius:50% !important;
+/* + butonu halkanın DIŞINDA kalır. */
+#myStory.has-new-story #storyAvatar .story-image{
+  width:54px !important;
+  height:54px !important;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
 }
 
 /* + sadece kendi küçük alanında kalsın ve halkanın üstünde olsun. */
@@ -2027,23 +2007,13 @@ onclick="sendComment()"
 
     if(!s)return null;
 
-    /* Backend bazen kaydı data/story altında döndürebilir. */
-    if(s.data && typeof s.data === "object" && !Array.isArray(s.data)){
-      s = {...s.data, ...s};
-    }
-    if(s.story && typeof s.story === "object" && !Array.isArray(s.story)){
-      s = {...s.story, ...s};
-    }
-
     const profile=
       s.profiles ||
       s.profile ||
-      s.author ||
       {};
 
     const user=
       s.user ||
-      s.owner ||
       {};
 
     const media=
@@ -2051,10 +2021,6 @@ onclick="sendComment()"
       s.mediaUrl ||
       s.media ||
       s.url ||
-      s.file_url ||
-      s.fileUrl ||
-      s.public_url ||
-      s.publicUrl ||
       "";
 
     if(!media)return null;
@@ -2085,23 +2051,12 @@ onclick="sendComment()"
       s.avatarUrl ||
       "";
 
-    const rawCreatedAt =
-      s.created_at ??
-      s.createdAt ??
-      s.created_at_ms ??
-      s.timestamp ??
-      s.time ??
-      Date.now();
-
-    let createdAt;
-    if(typeof rawCreatedAt === "number" || /^\d+(\.\d+)?$/.test(String(rawCreatedAt).trim())){
-      const numeric=Number(rawCreatedAt);
-      /* Unix saniye olarak gelen timestampleri milisaniyeye çevir. */
-      createdAt = numeric < 100000000000 ? numeric * 1000 : numeric;
-    }else{
-      createdAt = new Date(rawCreatedAt).getTime();
-    }
-    if(!Number.isFinite(createdAt) || createdAt <= 0) createdAt=Date.now();
+    const createdAt=
+      new Date(
+        s.created_at ||
+        s.createdAt ||
+        Date.now()
+      ).getTime();
 
     return {
 
@@ -2376,53 +2331,31 @@ onclick="sendComment()"
     loadingStories=true;
 
     try{
-      /*
-        Uygulamayla AYNI ortak kaynak: /api/stories.
-        Firebase'deki eski users kayıtlarını burada okumuyoruz;
-        aksi halde web ve uygulama farklı Story listeleri oluşturabiliyor.
-      */
+      // Firebase/local eski hikayeleri KULLANMA. Tek kaynak Supabase API.
+      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+
       const result = await api("/stories?ts=" + Date.now());
-
       let list=[];
-      if(Array.isArray(result)){
-        list=result;
-      }else if(Array.isArray(result?.stories)){
-        list=result.stories;
-      }else if(Array.isArray(result?.data)){
-        list=result.data;
-      }else if(Array.isArray(result?.items)){
-        list=result.items;
-      }else if(result?.story && typeof result.story === "object"){
-        list=[result.story];
-      }
+      if(Array.isArray(result)) list=result;
+      else if(Array.isArray(result?.stories)) list=result.stories;
+      else if(Array.isArray(result?.data)) list=result.data;
+      else if(Array.isArray(result?.items)) list=result.items;
+      else if(result?.story && typeof result.story === "object") list=[result.story];
 
-      const loaded=list.map(normalizeStory).filter(Boolean);
-
-      /* API boş dönerse mevcut cache'i silme; gerçekten boşsa boş göster. */
-      stories=loaded;
+      stories = list.map(normalizeStory).filter(Boolean);
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
       if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
-      try{
-        localStorage.setItem("minegram_story_v2", JSON.stringify(stories));
-      }catch(e){}
+      // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
+      try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
 
     }catch(error){
-      console.error("STORY LOAD ERROR:", error);
-
-      /* Ağ/auth hatasında daha önce alınmış Storyleri ekranda tut. */
-      try{
-        const cached=JSON.parse(localStorage.getItem("minegram_story_v2") || "[]");
-        if(Array.isArray(cached) && cached.length){
-          stories=cached.map(normalizeStory).filter(Boolean);
-          cleanStories();
-          buildStoryGroups();
-          renderStoryBar();
-          if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
-        }
-      }catch(e){}
+      console.error("STORY API LOAD ERROR:", error);
+      stories=[];
+      buildStoryGroups();
+      renderStoryBar();
     }finally{
       loadingStories=false;
     }
@@ -2435,6 +2368,16 @@ onclick="sendComment()"
   function isStorySeen(item){
     if(!item || !item.id) return false;
     try{ return localStorage.getItem("minegram_story_seen_" + item.id) === "1"; }catch(e){ return false; }
+  }
+
+  function createAvatar(group){
+    const avatar = group && (group.avatar || group.avatar_url || group.avatarUrl || "");
+    const username = String(group && (group.username || group.displayName) || "M");
+    const initial = esc(username.charAt(0).toUpperCase());
+    if(avatar){
+      return `<img src="${esc(avatar)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`;
+    }
+    return initial;
   }
 
   function renderStoryBar(){
@@ -2498,14 +2441,7 @@ onclick="sendComment()"
             userId:group.userId,
             username:group.username
           })
-      ).sort(function(a,b){
-        const aUnread = Array.isArray(a.stories) && a.stories.some(function(story){ return !isStorySeen(story); });
-        const bUnread = Array.isArray(b.stories) && b.stories.some(function(story){ return !isStorySeen(story); });
-        if(aUnread !== bUnread) return aUnread ? -1 : 1;
-        const aLatest = Math.max.apply(null, (a.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
-        const bLatest = Math.max.apply(null, (b.stories || []).map(function(story){ return Number(story.createdAt || 0); }));
-        return bLatest - aLatest;
-      });
+      );
 
 
     groups.forEach(group=>{
@@ -2517,7 +2453,6 @@ onclick="sendComment()"
 
       item.className=
         "story has-story";
-      item.setAttribute("data-story-username", group.username);
 
       if(Array.isArray(group.stories) && group.stories.some(function(story){ return !isStorySeen(story); }))
         item.classList.add("has-new-story");
@@ -2735,13 +2670,6 @@ onclick="sendComment()"
     container.appendChild(
       storyItems
     );
-
-    /* Canlı yayınları Story alanına da ekle/güncelle. */
-    setTimeout(function(){
-      if(typeof window.updateMinegramLiveBadges==="function"){
-        window.updateMinegramLiveBadges();
-      }
-    },0);
 
   }
 
@@ -4482,9 +4410,11 @@ window.updateMinegramPostStoryRings=function(){
       if(!story || !story.id) return false;
       try{ return localStorage.getItem("minegram_story_seen_" + story.id) !== "1"; }catch(e){ return true; }
     });
+    el.classList.toggle("post-story-has-story",has);
     el.classList.toggle("post-story-new",unseen);
     el.title=has ? "Hikayeyi aç" : "";
   });
+};
 
 function renderPost(p){
 
@@ -4586,10 +4516,12 @@ function renderPost(p){
         <a
           class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
           href="${profileUrl(rawUsername)}"
+          data-story-username="${esc(rawUsername)}"
+          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           data-profile-username="${esc(rawUsername)}"
           data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           title="@${esc(rawUsername)} profilini aç"
-          onclick="event.stopPropagation()"
+          onclick="event.stopPropagation(); const g=getMinegramStoryGroupForPost(this.getAttribute('data-story-username')||'',this.getAttribute('data-story-user-id')||''); if(g&&g.stories&&g.stories.length){openMinegramStoryFromPostAvatar(event,this)}"
           style="text-decoration:none;color:inherit;display:grid;place-items:center"
         >
           ${(() => {
@@ -4610,6 +4542,8 @@ function renderPost(p){
 
         <div
           class="username"
+          data-story-username="${esc(rawUsername)}"
+          data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           data-profile-username="${esc(rawUsername)}"
           data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           onclick="openMinegramProfileFromPost(event,this)"
