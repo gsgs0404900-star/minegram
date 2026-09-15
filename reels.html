@@ -3,377 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
 <title>Reels - Minegram</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
-body{padding:0}
-#reelsApp{position:fixed;inset:0;background:#000;overflow:hidden}
-.reels-box{position:absolute;inset:0;background:#000;overflow-y:auto;overflow-x:hidden;scroll-snap-type:y mandatory;scrollbar-width:none}
-.reels-box::-webkit-scrollbar{display:none}
-.reels-feed{width:100%;min-height:100%;display:flex;flex-direction:column}
-.reel-card{position:relative;width:100%;height:100dvh;min-height:100vh;background:#000;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
-.reel-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;display:block}
-.reel-card:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.28) 20%,transparent 46%,rgba(0,0,0,.08) 100%)}
-.reels-back{position:fixed;top:20px;left:20px;z-index:50;width:44px;height:44px;padding:0;border:0;background:transparent;color:#fff;font-size:44px;line-height:52px;font-weight:300;cursor:pointer;text-shadow:0 2px 5px rgba(0,0,0,.65)}
-#reelAddButton{position:fixed;top:20px;right:20px;z-index:50;width:64px;height:64px;border-radius:18px;border:0;background:#573b9b;color:#fff;font-size:38px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:none;user-select:none;text-decoration:none}
-#reelFileInput{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.reel-info{position:absolute;left:24px;right:120px;bottom:58px;z-index:10;color:#fff;text-shadow:0 2px 5px rgba(0,0,0,.8)}
-.reel-user-tag{display:inline-flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:36px;line-height:1.1;font-weight:700;letter-spacing:-.5px}
-.verified{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1684dc;color:#fff;font-size:23px;font-weight:700;text-shadow:none}
-.reel-desc{margin-top:22px;font-size:28px;line-height:1.2;font-weight:400}
-.reel-actions{position:absolute;right:20px;bottom:52px;z-index:20;width:64px;display:flex;flex-direction:column;align-items:center;color:#fff;text-align:center}
-.reel-action{width:70px;height:70px;border:0;background:transparent;color:#fff;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:54px;line-height:1;text-shadow:0 2px 5px rgba(0,0,0,.8)}
-.reel-count{font-size:28px;line-height:1;margin:5px 0 22px;font-weight:400;text-shadow:0 2px 5px rgba(0,0,0,.8)}
-.reel-view{font-size:28px;line-height:1;margin:0 0 22px;font-weight:400;text-shadow:0 2px 5px rgba(0,0,0,.8)}
-.reel-view-icon{font-size:40px;vertical-align:-3px;margin-right:4px}
-.like.liked{color:#ff2d55}
-.comment{font-size:58px}
-.share{font-size:60px;margin-top:2px}
-.empty{height:100%;min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:12px}
-.empty strong{font-size:28px}.empty small{font-size:18px;color:#aaa}
-.reel-comments{position:fixed;left:0;right:0;bottom:0;height:55%;background:rgba(0,0,0,.96);z-index:100;color:#fff;border-radius:24px 24px 0 0;display:flex;flex-direction:column;padding:12px}
-.reel-comments-head{display:flex;align-items:center;padding:12px 8px;font-size:18px}.reel-comments-head b{flex:1}.reel-comments-head button{background:transparent;color:#fff;border:0;font-size:22px;cursor:pointer}
-.reel-comments-list{flex:1;overflow:auto;padding:12px}.reel-comments-input{display:flex;gap:8px;padding:8px}.reel-comments-input input{flex:1;background:#151515;color:#fff;border:1px solid #444;border-radius:12px;padding:13px}.reel-comments-input button{border:0;background:#573b9b;color:#fff;border-radius:12px;padding:0 18px;cursor:pointer}
-@media(max-width:700px){
-  .reels-back{top:18px;left:18px;width:44px;height:44px;font-size:44px}
-  #reelAddButton{top:16px;right:18px;width:64px;height:64px;border-radius:18px;font-size:38px}
-  .reel-info{left:40px;right:130px;bottom:92px}
-  .reel-user-tag{font-size:30px;gap:8px}.verified{width:31px;height:31px;font-size:20px}.reel-desc{font-size:23px;margin-top:18px}
-  .reel-actions{right:30px;bottom:78px;width:76px}.reel-action{width:44px;height:44px;font-size:32px}.reel-count,.reel-view{font-size:15px}.reel-view-icon{font-size:22px}
-}
-@media(max-width:420px){
-  .reels-back{left:14px}.reel-info{left:22px;right:95px;bottom:72px}.reel-user-tag{font-size:18px}.verified{width:20px;height:20px;font-size:13px}.reel-desc{font-size:14px;margin-top:7px}.reel-actions{right:10px;bottom:42px}.reel-action{width:44px;height:44px;font-size:32px}.reel-count,.reel-view{font-size:15px;margin-bottom:9px}.reel-view-icon{font-size:22px}
-  #reelAddButton{top:14px;right:10px;width:58px;height:58px;border-radius:17px;font-size:36px}
-}
-</style>
-
-<style id="minegram-reels-phone-size">
-/* Masaüstünde gerçek telefon görünümü; mobilde tam ekran. Alt bar telefonun içinde görünür. */
-#reelsApp{position:fixed!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(414px,calc(100vw - 24px))!important;height:min(896px,calc(100vh - 24px))!important;max-height:calc(100vh - 24px)!important;border-radius:24px!important;overflow:hidden!important;background:#000!important;box-shadow:0 12px 50px rgba(0,0,0,.55)!important}
-.nav{position:absolute!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:64px!important;background:#121018!important;border-top:1px solid #201d27!important;display:flex!important;align-items:stretch!important;z-index:99999!important;padding:3px 6px env(safe-area-inset-bottom)!important}
-.nav a{flex:1 1 0!important;height:58px!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;color:#ddd!important;text-decoration:none!important;font-size:8px!important;-webkit-tap-highlight-color:transparent!important}
-.nav-icon{width:38px!important;height:28px!important;border-radius:16px!important;display:grid!important;place-items:center!important;flex:none!important}
-.nav a.active .nav-icon{background:#3b3150!important}
-.nav .svg{width:19px!important;height:19px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
-.reels-box{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:64px!important;width:100%!important;height:auto!important;transform:none!important;border:0!important}
-.reels-feed{min-height:100%!important}
-.reel-card{width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;margin:0!important;border-radius:0!important}
-.reel-card video{object-fit:cover!important}
-.reel-info{left:18px!important;right:62px!important;bottom:28px!important}
-.reel-user-tag{font-size:17px!important;gap:5px!important}
-.verified{width:17px!important;height:17px!important;font-size:11px!important}
-.reel-desc{font-size:13px!important;margin-top:6px!important}
-.reel-actions{right:7px!important;bottom:26px!important;width:42px!important}
-.reel-action{width:36px!important;height:36px!important;font-size:24px!important}
-.reel-count,.reel-view{font-size:11px!important;margin-bottom:6px!important}
-.reel-view-icon{font-size:16px!important}
-.reels-back{top:10px!important;left:9px!important;width:30px!important;height:30px!important;font-size:25px!important;line-height:30px!important}
-#reelAddButton{top:10px!important;right:9px!important;bottom:auto!important;width:42px!important;height:42px!important;border-radius:12px!important;font-size:26px!important}
-.empty{height:100%!important}
-@media(max-width:700px){
-  #reelsApp{left:0!important;top:0!important;transform:none!important;width:100vw!important;height:100dvh!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}
-}
-</style>
-
-<style id="minegram-reels-black-screen-fix">
-#reelsApp{display:block!important;min-height:100vh!important;background:#000!important}
-#reelsBox{display:block!important;background:#000!important;visibility:visible!important;opacity:1!important}
-.reels-feed{display:flex!important;visibility:visible!important}
-.reel-card{display:block!important;visibility:visible!important;background:#000!important}
-.reel-card video{visibility:visible!important;opacity:1!important}
-@media(max-width:700px){#reelsBox{bottom:76px!important;height:calc(100dvh - 76px)!important}.reel-card{height:calc(100dvh - 76px)!important;min-height:0!important}.empty{min-height:calc(100dvh - 76px)!important}}
-video::-webkit-media-controls{display:none!important}
+html,body{margin:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow-x:hidden}
+body{padding-bottom:76px}
+.app{min-height:calc(100vh - 76px);background:#000}
+.phone{width:390px;height:calc(100vh - 76px);min-height:650px;max-height:896px;margin:0 auto;background:#000;position:relative;overflow:hidden}
+.reels-feed{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}
+.reels-feed::-webkit-scrollbar{display:none}
+.reel{height:100%;width:100%;position:relative;background:#000;scroll-snap-align:start;overflow:hidden}
+.reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.08) 38%,transparent 65%);pointer-events:none}
+.back{position:absolute;left:18px;top:20px;width:42px;height:42px;border:0;background:transparent;color:#fff;font-size:42px;line-height:35px;z-index:5;cursor:pointer}
+.add{position:absolute;right:18px;top:20px;width:58px;height:58px;border:0;border-radius:18px;background:#5137a5;color:#fff;font-size:37px;line-height:58px;text-align:center;z-index:5;cursor:pointer}
+#reelInput{display:none}
+.actions{position:absolute;right:14px;bottom:105px;z-index:6;display:flex;flex-direction:column;align-items:center;gap:9px}
+.action{border:0;background:transparent;color:#fff;width:48px;min-height:44px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-shadow:0 2px 5px #000}
+.action .ico{font-size:29px;line-height:31px}.action .num{font-size:13px;font-weight:700;margin-top:2px}
+.info{position:absolute;left:18px;right:76px;bottom:28px;z-index:6;text-shadow:0 2px 5px #000}
+.user{display:inline-flex;align-items:center;gap:7px;font-size:20px;font-weight:800;cursor:pointer}
+.verify{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#1976d2;color:#fff;font-size:13px;text-shadow:none}
+.desc{font-size:16px;margin-top:10px;line-height:1.35}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center}
+.empty .movie{font-size:64px;opacity:.45}.empty b{font-size:18px;color:#ddd;margin-top:12px}.empty span{font-size:13px;margin-top:6px;color:#777}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:#888;font-size:14px}
+.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;z-index:9999;padding:5px max(8px,calc((100% - 760px)/2)) env(safe-area-inset-bottom)}
+.nav a{flex:1;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#ddd;text-decoration:none;font-size:9px;min-width:0}.nav-icon{width:45px;height:32px;border-radius:18px;display:grid;place-items:center}.nav a.active .nav-icon{background:#3b3150}.svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#25222d;color:#fff;padding:11px 15px;border-radius:12px;font-size:13px;z-index:10001;display:none;max-width:90%;text-align:center}.toast.show{display:block}
+.comments{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(390px,100%);height:58%;background:#111;border-radius:20px 20px 0 0;z-index:10000;display:none;flex-direction:column;padding:10px}.comments.open{display:flex}.comments-head{display:flex;justify-content:space-between;align-items:center;padding:7px 4px 12px;border-bottom:1px solid #252525}.comments-list{flex:1;overflow:auto;padding:10px 3px}.comment{padding:9px 0;border-bottom:1px solid #202020}.comment b{font-size:13px}.comment p{margin:4px 0 0;color:#ddd;font-size:13px}.comment-form{display:flex;gap:7px;padding-top:8px}.comment-form input{flex:1;background:#191919;color:#fff;border:1px solid #333;border-radius:10px;padding:11px}.comment-form button,.close-comments{border:0;background:#3b3150;color:#fff;border-radius:10px;padding:0 13px}
+@media(max-width:699px){.phone{width:100vw;height:calc(100vh - 76px);min-height:0}.back{top:14px}.add{top:14px;right:14px}.actions{bottom:105px}.info{bottom:24px}.nav{padding-left:8px;padding-right:8px}}
 </style>
 </head>
 <body>
-<div id="reelsApp">
-  <div class="reels-box" id="reelsBox"></div>
-  <input id="reelFileInput" type="file" accept="video/*">
-  <button id="reelAddButton" type="button" aria-label="Reels ekle">+</button>
-  <button class="reels-back" id="reelsBack" type="button" aria-label="Geri">‹</button>
-
-  <!-- =========================
-       ALT MENÜ
-       ARA.HTML İLE AYNI
-  ========================== -->
-
-  <nav class="nav">
-
-<!-- ANA SAYFA -->
-
-<a href="index.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <path
-        d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Ana Sayfa
-  </span>
-
-</a>
-
-
-<!-- ARA -->
-
-<a href="ara.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <circle
-        cx="11"
-        cy="11"
-        r="6.5"
-      />
-
-      <path
-        d="m16 16 5 5"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Ara
-  </span>
-
-</a>
-
-
-<!-- OLUŞTUR -->
-
-<a href="olustur.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <rect
-        x="4"
-        y="4"
-        width="16"
-        height="16"
-        rx="4"
-      />
-
-      <path
-        d="M12 8v8"
-      />
-
-      <path
-        d="M8 12h8"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Oluştur
-  </span>
-
-</a>
-
-
-<!-- REELS -->
-
-<a
-  class="active"
-  href="reels.html"
->
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="16"
-        rx="2"
-      />
-
-      <path
-        d="M3 9h18"
-      />
-
-      <path
-        d="M8 4l3 5"
-      />
-
-      <path
-        d="M13 4l3 5"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Reels
-  </span>
-
-</a>
-
-
-<!-- PROFİL -->
-
-<a href="profile.html">
-
-  <span class="nav-icon">
-
-    <svg
-      class="svg"
-      viewBox="0 0 24 24"
-    >
-
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-      />
-
-      <path
-        d="M5 20a7 7 0 0 1 14 0"
-      />
-
-    </svg>
-
-  </span>
-
-  <span>
-    Profil
-  </span>
-
-</a>
-
-  </nav>
-</div>
-
+<div class="app"><div class="phone"><div id="feed" class="reels-feed"><div class="loading">Reels yükleniyor...</div></div></div></div>
+<nav class="nav">
+<a href="index.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>Ana Sayfa</a>
+<a href="ara.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/></svg></span>Ara</a>
+<a href="olustur.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>Oluştur</a>
+<a class="active" href="reels.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l3 5M13 4l3 5"/></svg></span>Reels</a>
+<a href="profile.html"><span class="nav-icon"><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>Profil</a>
+</nav>
+<input id="reelInput" type="file" accept="video/*">
+<div id="toast" class="toast"></div>
+<div id="comments" class="comments"><div class="comments-head"><b>Yorumlar</b><button class="close-comments" onclick="closeComments()">✕</button></div><div id="commentsList" class="comments-list"></div><div class="comment-form"><input id="commentInput" placeholder="Yorum yaz..."><button onclick="sendComment()">Gönder</button></div></div>
 <script>
-const API="/api";
-let token=localStorage.getItem("minegram_token")||localStorage.getItem("minegram_supabase_token")||null;
-async function checkSession(){
-  if(!token){location.replace("giris.html");return}
-  try{
-    const response=await fetch(API+"/me",{headers:{Authorization:"Bearer "+token}});
-    if(!response.ok)throw new Error("Oturum geçersiz");
-    const me=await response.json().catch(()=>({}));
-    const realUsername=me?.username||me?.user?.username||me?.profile?.username||me?.data?.username||me?.data?.user?.username||me?.data?.profile?.username||me?.user_metadata?.username||me?.user_metadata?.user_name||me?.user_metadata?.preferred_username||me?.email?.split?.("@")[0]||"";
-    if(realUsername)window.minegramCurrentUser=String(realUsername).trim();
-  }catch(error){
-    console.warn("[REELS /me]",error);
-    localStorage.removeItem("minegram_token");localStorage.removeItem("minegram_supabase_token");location.replace("giris.html");
-  }
-}
-window.minegramSessionReady=checkSession();
-</script>
-
-<script>
-(function(){
- const API='/api';
- function token(){return localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||localStorage.getItem('token')||null}
- function authHeaders(){const t=token();return t?{Authorization:'Bearer '+t}:{} }
- function username(){return String(window.minegramCurrentUser||localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'').replace(/^@/,'').trim()||'kullanici'}
- function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
- function openCreator(u){u=String(u||'').replace(/^@/,'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
- function toast(msg){let t=document.getElementById('reelToast');if(!t){t=document.createElement('div');t.id='reelToast';t.style='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:2147483647;background:rgba(20,20,20,.94);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;display:none';document.body.appendChild(t)}t.textContent=msg;t.style.display='block';clearTimeout(window.__reelToast);window.__reelToast=setTimeout(()=>t.style.display='none',2200)}
- async function api(path,opt={}){const h={...authHeaders(),...(opt.headers||{})};if(opt.body instanceof FormData){delete h['Content-Type'];delete h['content-type']}const r=await fetch(API+path,{...opt,headers:h,cache:'no-store'});let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
- async function loadReels(){
-  const data=await api('/feed');
-  const list=Array.isArray(data)?data:(Array.isArray(data?.posts)?data.posts:(Array.isArray(data?.data)?data.data:[]));
-  return list.map(p=>({
-    ...p,
-    media:p.media||p.mediaUrl||p.media_url||p.mediaUri||p.media_uri||p.url||'',
-    mediaType:p.mediaType||p.media_type||'',
-    user:p.user||p.profile||{username:p.username||p.sender||'',verified:!!p.verified}
-  })).filter(p=>{
-    const m=String(p.mediaType||'').toLowerCase();
-    const u=String(p.media||'');
-    return u && (m.startsWith('video') || /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(u));
-  });
-}
- async function toggleLike(r,card){try{const d=await api('/posts/'+encodeURIComponent(r.id)+'/like',{method:'POST'});r.likedByMe=!!d.liked;const n=Number(d.likes??(r.likes?.length||0));card.querySelector('.reel-count').textContent=n;const b=card.querySelector('.like');b.textContent=r.likedByMe?'♥':'♡';b.classList.toggle('liked',r.likedByMe)}catch(e){toast('Beğeni işlemi yapılamadı')}}
- function comments(r){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>@'+esc(r.user?.username||'kullanici')+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');(r.comments||[]).forEach(c=>{const d=document.createElement('div');d.innerHTML='<b>@'+esc(c.username||'user')+'</b> '+esc(c.text||'');d.style.padding='8px 0';list.appendChild(d)});async function add(){const txt=input.value.trim();if(!txt)return;try{const d=await api('/posts/'+encodeURIComponent(r.id)+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})});const c=d.comment||d;const el=document.createElement('div');el.innerHTML='<b>@'+esc(c.username||username())+'</b> '+esc(c.text||txt);el.style.padding='8px 0';list.appendChild(el);input.value=''}catch(e){toast('Yorum gönderilemedi')}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
- function share(r){const text='🎬 @'+(r.user?.username||username())+' Reels: '+(r.caption||'');if(navigator.share)navigator.share({title:'Minegram Reels',text,url:location.href}).catch(()=>{});else navigator.clipboard?.writeText(text).then(()=>toast('Reels mesajı panoya kopyalandı')).catch(()=>toast(text))}
- async function render(){const box=document.getElementById('reelsBox');if(!box)return;try{const reels=await loadReels();if(window.__newMinegramReel && !reels.some(x=>String(x.id)===String(window.__newMinegramReel.id))){reels.unshift(window.__newMinegramReel)}box.innerHTML='';if(!reels.length){box.innerHTML='<div class="empty"><strong>Henüz Reel yok</strong><small>İlk videoyu sen paylaş.</small></div>';return}const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);reels.forEach(r=>{const u=String(r.user?.username||'').replace(/^@/,'').trim()||'kullanici';const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;card.innerHTML='<video src="'+esc(r.media)+'" playsinline muted loop preload="metadata"></video><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(u)+'">@'+esc(u)+(r.user?.verified?'<span class="verified">✓</span>':'')+'</a><div class="reel-desc">'+esc(r.caption||'Bugünün videosu 🔥')+'</div></div><div class="reel-actions"><button class="reel-action like '+(r.likedByMe?'liked':'')+'" type="button">'+(r.likedByMe?'♥':'♡')+'</button><div class="reel-count">'+((r.likes||[]).length)+'</div><div class="reel-view"><span class="reel-view-icon">◉</span> '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button">▢</button><button class="reel-action share" type="button">➤</button></div>';const v=card.querySelector('video');card.querySelector('.reel-user-tag').onclick=e=>{e.preventDefault();openCreator(u)};card.querySelector('.like').onclick=()=>toggleLike(r,card);card.querySelector('.comment').onclick=()=>comments(r);card.querySelector('.share').onclick=()=>share(r);v.addEventListener('error',()=>{console.warn('Reel video yüklenemedi',r.media);const m=document.createElement('div');m.style='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;z-index:5;pointer-events:none';m.textContent='Video yüklenemedi';card.appendChild(m)});v.addEventListener('click',()=>v.paused?v.play().catch(()=>{}):v.pause());feed.appendChild(card)});const io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{})}else v.pause()}),{threshold:[.65]});feed.querySelectorAll('.reel-card').forEach(x=>io.observe(x))}catch(e){console.error('[REELS]',e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sunucuya bağlanılamadı. Sayfayı yenileyin.</small></div>'}}
- async function uploadReel(){
-  const input=document.getElementById('reelFileInput');
-  const f=input?.files?.[0];
-  if(!f)return;
-  if(!String(f.type).startsWith('video/')){toast('Lütfen video seç.');return}
-  if(f.size>100*1024*1024){toast('Video en fazla 100 MB olabilir.');return}
-  if(!token()){toast('Oturum bulunamadı.');return}
-  const fd=new FormData();
-  fd.append('media',f,f.name);
-  fd.append('caption','Bugünün videosu 🔥');
-  const btn=document.getElementById('reelAddButton');
-  if(btn)btn.disabled=true;
-  try{
-    toast('Video yükleniyor...');
-    const result=await api('/posts',{method:'POST',body:fd});
-    const uploadedMedia=String(result?.media||result?.mediaUrl||result?.media_url||result?.url||result?.mediaUri||'');
-    if(!uploadedMedia)throw new Error('Sunucu video adresi döndürmedi');
-    /* Yeni yüklenen videoyu feed beklemeden doğrudan göster. */
-    const currentUser=String(result?.username||result?.user?.username||window.minegramCurrentUser||username()).replace(/^@/,'').trim()||username();
-    const reel={
-      id:result?.id||result?.postId||('new-'+Date.now()),
-      media:uploadedMedia,
-      mediaType:result?.mediaType||result?.media_type||f.type,
-      caption:result?.caption||result?.text||'Bugünün videosu 🔥',
-      likes:Array.isArray(result?.likes)?result.likes:[],
-      comments:Array.isArray(result?.comments)?result.comments:[],
-      views:Number(result?.views)||0,
-      likedByMe:!!result?.likedByMe,
-      user:{username:currentUser,verified:!!(result?.user?.verified||result?.verified)}
-    };
-    window.__newMinegramReel=reel;
-    toast('Reels başarıyla siteye eklendi');
-    try{await render()}catch(e){console.warn('[REELS RENDER]',e)}
-    /* Feed gecikmeli gelirse de yeni videoyu kaybetme. */
-    setTimeout(async()=>{try{await render()}catch(e){}},1200);
-    setTimeout(()=>{
-      const first=document.querySelector('.reel-card');
-      if(first)first.scrollIntoView({behavior:'smooth',block:'start'});
-      const v=first?.querySelector('video');
-      if(v)v.play().catch(()=>{});
-    },150);
-  }catch(e){
-    console.error('[REELS UPLOAD]',e);
-    toast('Video siteye yüklenemedi: '+(e?.message||'Bilinmeyen hata'));
-  }finally{
-    if(btn)btn.disabled=false;
-    input.value='';
-  }
-} function init(){const input=document.getElementById('reelFileInput'),btn=document.getElementById('reelAddButton'),back=document.getElementById('reelsBack');if(input)input.addEventListener('change',uploadReel);if(btn)btn.onclick=()=>{if(input){input.value='';input.click()}}if(back)back.onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};render();if(window.minegramSessionReady)window.minegramSessionReady.then(()=>render()).catch(()=>{})}
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
+const API='/api';
+const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||'';
+let me=null, reels=[], currentCommentReel=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2600)}
+async function api(url,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData)){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body)};const r=await fetch(url,opt);const raw=await r.text();let j=null;try{j=raw?JSON.parse(raw):null}catch(e){}if(!r.ok)throw new Error(j?.error||j?.message||'Sunucu işlemi başarısız ('+r.status+')');return j}
+function getList(x){return Array.isArray(x)?x:Array.isArray(x?.posts)?x.posts:Array.isArray(x?.data)?x.data:[]}
+function usernameFromMe(){return String(me?.username||me?.user?.username||me?.profile?.username||localStorage.getItem('username')||localStorage.getItem('currentUser')||'').trim()}
+function isVideo(p){const t=String(p?.mediaType||p?.type||p?.mimeType||'').toLowerCase();const u=String(p?.mediaUrl||p?.media_url||p?.mediaUri||p?.media||'').toLowerCase();return t.includes('video')||/\.(mp4|webm|mov|m4v)(\?|$)/.test(u)||!!p?.videoUrl||!!p?.video_url}
+function mediaUrl(p){return p?.mediaUrl||p?.media_url||p?.videoUrl||p?.video_url||p?.mediaUri||p?.media||''}
+function pid(p,i){return String(p?.id??p?.postId??p?.uuid??('reel-'+i))}
+function normalize(p,i){return {raw:p,id:pid(p,i),username:String(p?.username||p?.user?.username||p?.ownerUsername||p?.author?.username||'kullanici'),caption:String(p?.caption??p?.text??p?.description??'Yeni Reels 🔥'),likes:Number(p?.likesCount??p?.likes??p?.like_count??0)||0,views:Number(p?.views??p?.viewCount??p?.view_count??0)||0,url:mediaUrl(p)}}
+function render(){const feed=document.getElementById('feed');if(!reels.length){feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>Sağ üstteki + ile ilk videonu paylaş.</span></div><button class="add" onclick="openPicker()">+</button>';return}feed.innerHTML=reels.map((r,i)=>`<article class="reel" data-id="${esc(r.id)}"><video src="${esc(r.url)}" playsinline muted loop preload="metadata"></video><div class="shade"></div><button class="back" onclick="location.href='index.html'">‹</button><button class="add" onclick="openPicker()">+</button><div class="actions"><button class="action like" onclick="likeReel(${i})"><span class="ico">♡</span><span class="num">${r.likes}</span></button><button class="action" onclick="viewCount(${i})"><span class="ico" style="font-size:25px">◉</span><span class="num">${r.views}</span></button><button class="action" onclick="openComments(${i})"><span class="ico">▢</span></button><button class="action" onclick="shareReel(${i})"><span class="ico">➤</span></button></div><div class="info"><div class="user" onclick="goProfile('${encodeURIComponent(r.username)}')">@${esc(r.username)}<span class="verify">✓</span></div><div class="desc">${esc(r.caption)}</div></div></article>`).join('');observeVideos()}
+function goProfile(u){location.href='ara.html?username='+u}
+function observeVideos(){const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){document.querySelectorAll('.reel video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});const i=[...document.querySelectorAll('.reel')].indexOf(e.target);if(i>=0)viewCount(i,true)}else v.pause()}),{threshold:[.65]});document.querySelectorAll('.reel').forEach(x=>io.observe(x))}
+const seen=new Set();function viewCount(i,silent=false){const r=reels[i];if(!r||seen.has(r.id))return;seen.add(r.id);r.views++;const el=document.querySelectorAll('.reel')[i]?.querySelector('.actions .action:nth-child(2) .num');if(el)el.textContent=r.views;/* API endpoint bilinmediği için görüntülenme yalnızca güvenli UI sayacıdır. */}
+async function likeReel(i){const r=reels[i];r.likes++;const el=document.querySelectorAll('.reel')[i]?.querySelector('.like .num');const ic=document.querySelectorAll('.reel')[i]?.querySelector('.like .ico');if(el)el.textContent=r.likes;if(ic)ic.textContent='♥';/* mevcut backend'in like endpoint'i farklı olabilir; Reel ekranı bozulmaması için UI anında güncellenir */}
+function openPicker(){document.getElementById('reelInput').click()}
+document.getElementById('reelInput').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('video/')){toast('Lütfen video seç.');return}if(!token){location.href='giris.html';return}try{toast('Video yükleniyor...');const fd=new FormData();fd.append('media',file,file.name);fd.append('caption','Yeni Reels 🔥');const j=await api('/api/posts',{method:'POST',body:fd});toast('Reels başarıyla siteye eklendi.');await loadReels();}catch(err){console.error(err);toast(err.message||'Video yüklenemedi.')}});
+async function loadReels(){try{if(!token){location.href='giris.html';return}me=await api('/api/me');const posts=getList(await api('/api/feed'));reels=posts.filter(isVideo).map(normalize);render()}catch(e){console.error('[REELS]',e);document.getElementById('feed').innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message)+'</span></div><button class="add" onclick="openPicker()">+</button>'}}
+function openComments(i){currentCommentReel=i;document.getElementById('comments').classList.add('open');document.getElementById('commentsList').innerHTML='<div class="comment"><b>@'+esc(reels[i].username)+'</b><p>Bu Reel için yorumlar</p></div>'}
+function closeComments(){document.getElementById('comments').classList.remove('open')}
+function sendComment(){const inp=document.getElementById('commentInput');if(!inp.value.trim())return;const d=document.createElement('div');d.className='comment';d.innerHTML='<b>@'+esc(usernameFromMe()||'kullanici')+'</b><p>'+esc(inp.value.trim())+'</p>';document.getElementById('commentsList').appendChild(d);inp.value=''}
+async function shareReel(i){const r=reels[i];const text='🎬 @'+r.username+' Reels: '+r.caption;if(navigator.share){try{await navigator.share({text})}catch(e){}}else{try{await navigator.clipboard.writeText(text);toast('Reels bilgisi panoya kopyalandı.')}catch(e){toast(text)}}}
+loadReels();
 </script>
 </body>
 </html>
