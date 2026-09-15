@@ -362,32 +362,18 @@ async function addNotification({
   const admin =
     adminClient();
 
-  const {
-    error
-  } =
-    await admin
-      .from("notifications")
-      .insert({
-        user_id:
-          String(userId),
-
-        type,
-
-        from_user_id:
-          String(fromUserId),
-
-        post_id:
-          postId || null,
-
-        text:
-          text || null
-      });
+  const { error } = await admin
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type,
+      from_user_id: fromUserId,
+      post_id: postId,
+      text
+    });
 
   if (error) {
-    console.error(
-      "[NOTIFICATION INSERT ERROR]",
-      error
-    );
+    console.error("NOTIFICATION INSERT ERROR:", error.message);
     throw error;
   }
 }
@@ -4301,145 +4287,26 @@ app.post(
         throw error;
       }
 
-      // Gönderi sahibi eski kayıtlarda profiles.id,
-      // yeni kayıtlarda auth_user_id olabilir. Her iki kimliği de çöz.
       const {
         data: post
       } =
-        await admin
+        await req.sb
           .from("posts")
-          .select("id,user_id,media_url,media_type")
+          .select("user_id")
           .eq(
             "id",
             req.params.id
           )
           .single();
 
-      if (post) {
-        try {
-          const ownerRaw =
-            String(post.user_id || "").trim();
-
-          let ownerAuthId =
-            ownerRaw;
-
-          if (ownerRaw) {
-            const {
-              data: ownerProfile
-            } =
-              await admin
-                .from("profiles")
-                .select("id,auth_user_id,username")
-                .or(
-                  `id.eq.${ownerRaw},auth_user_id.eq.${ownerRaw}`
-                )
-                .limit(1)
-                .maybeSingle();
-
-            if (ownerProfile) {
-              ownerAuthId =
-                String(
-                  ownerProfile.auth_user_id ||
-                  ownerProfile.id ||
-                  ownerRaw
-                );
-            }
-          }
-
-          const notificationPayload = {
-            user_id:
-              String(ownerAuthId),
-
-            type:
-              "comment",
-
-            from_user_id:
-              String(
-                req.authUser?.id ||
-                req.user?.auth_user_id ||
-                req.user?.id
-              ),
-
-            post_id:
-              req.params.id,
-
-            text:
-              `@${req.user.username} gönderine yorum yaptı`,
-
-            comment_id:
-              data.id,
-
-            comment_text:
-              data.text
-          };
-
-          let {
-            error: notificationInsertError
-          } =
-            await admin
-              .from("notifications")
-              .insert(notificationPayload);
-
-          // Eski notifications şemasında comment kolonları yoksa
-          // eski kolonlarla tekrar dene. Böylece yorum bildirimi
-          // yine kesin olarak oluşur.
-          if (
-            notificationInsertError &&
-            /comment_(id|text)|commentid|commenttext/i.test(
-              String(
-                notificationInsertError.message ||
-                ""
-              )
-            )
-          ) {
-            const fallbackPayload = {
-              user_id:
-                String(ownerAuthId),
-
-              type:
-                "comment",
-
-              from_user_id:
-                String(
-                  req.authUser?.id ||
-                  req.user?.auth_user_id ||
-                  req.user?.id
-                ),
-
-              post_id:
-                req.params.id,
-
-              text:
-                `@${req.user.username} gönderine yorum yaptı`
-            };
-
-            const fallback =
-              await admin
-                .from("notifications")
-                .insert(
-                  fallbackPayload
-                );
-
-            notificationInsertError =
-              fallback.error ||
-              null;
-          }
-
-          if (
-            notificationInsertError
-          ) {
-            throw notificationInsertError;
-          }
-
-        } catch (notificationError) {
-          // Yorumun kendisi başarılı kaldığı halde bildirim hatası
-          // kullanıcıya 400 olarak dönmesin; sunucu loguna yaz.
-          console.error(
-            "COMMENT NOTIFICATION ERROR:",
-            notificationError?.message ||
-            notificationError
-          );
-        }
+      if (post && String(post.user_id) !== String(req.user.id)) {
+        await addNotification({
+          userId: post.user_id,
+          fromUserId: req.user.id,
+          type: "comment",
+          postId: req.params.id,
+          text: `@${req.user.username} gönderine yorum yaptı`
+        });
       }
 
       const { count: commentCount, error: countError } = await adminClient()
@@ -4640,13 +4507,11 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const admin = adminClient();
-
       const {
         data,
         error
       } =
-        await admin
+        await adminClient()
           .from("notifications")
           .select("*")
           .eq(
@@ -4656,203 +4521,19 @@ app.get(
           .order(
             "created_at",
             {
-              ascending: false
+              ascending:
+                false
             }
           )
-          .limit(100);
+          .limit(50);
 
       if (error) {
         throw error;
       }
 
-      const notifications =
-        data || [];
-
-      const fromIds = [
-        ...new Set(
-          notifications
-            .map(n => String(n.from_user_id || ""))
-            .filter(Boolean)
-        )
-      ];
-
-      const postIds = [
-        ...new Set(
-          notifications
-            .map(n => String(n.post_id || ""))
-            .filter(Boolean)
-        )
-      ];
-
-      const commentIds = [
-        ...new Set(
-          notifications
-            .map(n =>
-              String(
-                n.comment_id ||
-                n.commentId ||
-                ""
-              )
-            )
-            .filter(Boolean)
-        )
-      ];
-
-      const profiles = [];
-      const posts = [];
-      const comments = [];
-
-      if (fromIds.length) {
-        const {
-          data: byId
-        } =
-          await admin
-            .from("profiles")
-            .select(
-              "id,auth_user_id,username,display_name,avatar_url"
-            )
-            .in(
-              "id",
-              fromIds
-            );
-
-        (byId || []).forEach(
-          p => profiles.push(p)
-        );
-
-        const {
-          data: byAuth
-        } =
-          await admin
-            .from("profiles")
-            .select(
-              "id,auth_user_id,username,display_name,avatar_url"
-            )
-            .in(
-              "auth_user_id",
-              fromIds
-            );
-
-        (byAuth || []).forEach(
-          p => {
-            if (
-              !profiles.some(
-                x =>
-                  String(x.id || "") ===
-                    String(p.id || "") ||
-                  String(x.auth_user_id || "") ===
-                    String(p.auth_user_id || "")
-              )
-            ) {
-              profiles.push(p);
-            }
-          }
-        );
-      }
-
-      if (postIds.length) {
-        const {
-          data: postRows
-        } =
-          await admin
-            .from("posts")
-            .select(
-              "id,media_url,media_type,caption"
-            )
-            .in(
-              "id",
-              postIds
-            );
-
-        (postRows || []).forEach(
-          p => posts.push(p)
-        );
-      }
-
-      if (commentIds.length) {
-        const {
-          data: commentRows
-        } =
-          await admin
-            .from("comments")
-            .select(
-              "id,post_id,user_id,text,created_at"
-            )
-            .in(
-              "id",
-              commentIds
-            );
-
-        (commentRows || []).forEach(
-          c => comments.push(c)
-        );
-      }
-
-      const profileMap =
-        new Map();
-
-      profiles.forEach(p => {
-        if (p.id) {
-          profileMap.set(
-            String(p.id),
-            p
-          );
-        }
-
-        if (p.auth_user_id) {
-          profileMap.set(
-            String(p.auth_user_id),
-            p
-          );
-        }
-      });
-
-      const postMap =
-        new Map(
-          posts.map(
-            p => [String(p.id), p]
-          )
-        );
-
-      const commentMap =
-        new Map(
-          comments.map(
-            c => [String(c.id), c]
-          )
-        );
-
-      const result =
-        notifications.map(n => {
-          const fromId =
-            String(
-              n.from_user_id || ""
-            );
-
-          const actor =
-            profileMap.get(
-              fromId
-            ) || null;
-
-          const post =
-            n.post_id
-              ? postMap.get(
-                  String(n.post_id)
-                )
-              : null;
-
-          const commentId =
-            n.comment_id ||
-            n.commentId ||
-            null;
-
-          const comment =
-            commentId
-              ? commentMap.get(
-                  String(commentId)
-                )
-              : null;
-
-          return {
+      res.json(
+        (data || []).map(
+          n => ({
             id:
               n.id,
 
@@ -4863,94 +4544,18 @@ app.get(
               n.text,
 
             read:
-              !!n.read,
+              n.read,
 
             createdAt:
-              n.created_at,
-
-            username:
-              actor?.username ||
-              "",
-
-            avatar:
-              actor?.avatar_url ||
-              "",
-
-            actor: {
-              id:
-                actor?.id ||
-                actor?.auth_user_id ||
-                fromId,
-
-              username:
-                actor?.username ||
-                "",
-
-              displayName:
-                actor?.display_name ||
-                actor?.username ||
-                "",
-
-              avatar:
-                actor?.avatar_url ||
-                ""
-            },
-
-            postId:
-              n.post_id ||
-              comment?.post_id ||
-              null,
-
-            post:
-              post
-                ? {
-                    id:
-                      post.id,
-
-                    media:
-                      post.media_url ||
-                      "",
-
-                    image:
-                      post.media_url ||
-                      "",
-
-                    mediaType:
-                      post.media_type ||
-                      "",
-
-                    caption:
-                      post.caption ||
-                      ""
-                  }
-                : null,
-
-            commentId:
-              comment?.id ||
-              commentId ||
-              null,
-
-            commentText:
-              comment?.text ||
-              n.comment_text ||
-              n.commentText ||
-              ""
-          };
-        });
-
-      return res.json(result);
-
-    } catch (e) {
-      console.error(
-        "NOTIFICATIONS GET ERROR:",
-        e?.message ||
-        e
+              n.created_at
+          })
+        )
       );
 
-      return res.status(500).json({
+    } catch (e) {
+      res.status(500).json({
         error:
-          e?.message ||
-          "Bildirimler alınamadı"
+          e.message
       });
     }
   }
