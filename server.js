@@ -587,6 +587,21 @@ async function hydratePosts(
    USERNAME CHECK
 ========================================================= */
 
+
+
+// MINEGRAM ENGEL KONTROLU
+async function minegramIsBlocked(viewerId, targetId) {
+  if (!viewerId || !targetId || String(viewerId) === String(targetId)) return false;
+  const { data } = await adminClient()
+    .from("blocks")
+    .select("id")
+    .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`)
+    .limit(1000);
+  return (data || []).some(b =>
+    (String(b.blocker_id) === String(viewerId) && String(b.blocked_id) === String(targetId)) ||
+    (String(b.blocker_id) === String(targetId) && String(b.blocked_id) === String(viewerId))
+  );
+}
 app.get(
   "/api/check-username",
   async (req, res) => {
@@ -3156,6 +3171,10 @@ app.get(
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
+      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
       const targetIsPrivate = !!(
         target.settings?.private_account ??
         target.settings?.privateAccount ??
@@ -4659,6 +4678,10 @@ app.post(
         });
       }
 
+      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
       if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
         return res.status(404).json({
           error: "Kullanıcı bulunamadı"
@@ -5076,6 +5099,10 @@ app.get(
         });
       }
 
+      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
       if (!(await isAuthUserActive(target.auth_user_id || target.id))) {
         return res.status(404).json({
           error: "Kullanıcı bulunamadı"
@@ -5172,6 +5199,10 @@ app.get(
           error:
             "Kullanıcı bulunamadı"
         });
+      }
+
+      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       const [
@@ -5419,6 +5450,10 @@ app.post(
           error:
             "Kullanıcı bulunamadı"
         });
+      }
+
+      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       if (!text) {
@@ -6454,10 +6489,3 @@ app.listen(
     );
   }
 );
-
-
-// MINEGRAM BOT HESAP FILTRESI - ONERILENLER
-// Önerilenler sorgularında bot hesapları filtrelemek için kullanılır.
-// profiles sorgularına uygun yerde:
-// .eq("is_bot", false)
-// filtresi eklenmelidir.
