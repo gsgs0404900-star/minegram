@@ -3334,8 +3334,6 @@ html,body{padding-bottom:76px!important;}
 
 <div class="list-head">
 
-<button class="list-back" id="usersBack">←</button>
-
 <div class="list-title" id="usersTitle">Takipçiler</div>
 
 </div>
@@ -5362,7 +5360,7 @@ async function openUserList(type){
   body.innerHTML=users.map(u=>{
    const username=u.username||u.handle||u.name||'';const name=u.displayName||u.name||username;const avatar=u.avatar||u.profileImage||u.profile_image||u.photoURL||u.photoUrl||'';const following=!!(u.followingByMe??u.following_by_me??u.isFollowing??u.is_following??false);const mutedList=Array.isArray(me?.settings?.mutedUsers)?me.settings.mutedUsers:[];const muted=mutedList.some(x=>String(x).toLowerCase()===String(username).toLowerCase());
    let actions='';
-   if(type==='followers')actions=following?'<button class="user-action user-message-btn" data-user="'+escapeHtml(username)+'">Mesaj Gönder</button>':'<button class="user-action user-action-btn" data-user="'+escapeHtml(username)+'" data-following="0">Takip Et</button>';
+   if(type==='followers')actions=following?'<button class="user-action user-message-btn" data-user="'+escapeHtml(username)+'">Mesaj Gönder</button>':'<button class="user-action user-action-btn" data-user="'+escapeHtml(username)+'" data-following="0">Sende Takip Et</button>';
    else actions='<div class="user-actions"><button class="user-action secondary user-message-btn" data-user="'+escapeHtml(username)+'">Mesaj Gönder</button><button class="user-more" type="button" data-more-user="'+escapeHtml(username)+'" data-muted="'+(muted?'1':'0')+'" aria-label="Daha fazla">⋮</button></div>';
    return '<div class="user-item" data-profile="'+escapeHtml(username)+'"><div class="user-avatar">'+(avatar?'<img src="'+escapeHtml(avatar)+'" alt="">':escapeHtml((name||'M')[0].toUpperCase()))+'</div><div class="user-copy"><div class="user-name">'+escapeHtml(name)+'</div><div class="user-handle">@'+escapeHtml(username)+'</div></div>'+actions+'</div>';
   }).join('');
