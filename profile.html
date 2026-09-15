@@ -5308,15 +5308,22 @@ async function openUserList(type){
      const avatar=
      u.avatar||'';
 
+     const isAlreadyFollowing=!!(
+       u.followingByMe ??
+       u.following_by_me ??
+       u.isFollowing ??
+       u.is_following ??
+       (type==='following')
+     );
+
      const actionText=
-     type==='following'
+     isAlreadyFollowing
      ?'Takibi Bırak'
      :'Takip Et';
 
-     const actionClass=
-     type==='following'
-     ?'user-action secondary'
-     :'user-action';
+     // Android uygulamasındaki gibi her kullanıcı satırında
+     // takip durumu aynı buton üzerinden değiştirilebilir.
+     const actionClass='user-action';
 
      return`
 
@@ -5370,31 +5377,30 @@ async function openUserList(type){
 
        if(!username)return;
 
-       if(b.dataset.type==='following'){
+       // Android uygulamasındaki FollowListScreen gibi buton,
+       // hem Takip Et hem Takibi Bırak işlemini doğrudan yapar.
+       const wasFollowing=b.textContent.trim()==='Takibi Bırak';
+       const nextFollowing=!wasFollowing;
 
-         try{
+       b.textContent=nextFollowing?'Takibi Bırak':'Takip Et';
+       b.classList.add('user-action');
 
-           await api(
-             '/api/users/'+
-             encodeURIComponent(username)+
-             '/follow',
-             {method:'POST'}
-           );
+       try{
 
-           await openUserList('following');
-           await load();
+         await api(
+           '/api/users/'+
+           encodeURIComponent(username)+
+           '/follow',
+           {method:'POST'}
+         );
 
-         }catch(e){
+         // Profildeki sayaç ve ana durum da arka planda senkronize olsun.
+         load().catch(()=>{});
 
-           toast(e.message);
+       }catch(e){
 
-         }
-
-       }else{
-
-         location.href=
-         'profile.html?username='+
-         encodeURIComponent(username);
+         b.textContent=wasFollowing?'Takibi Bırak':'Takip Et';
+         toast(e.message);
 
        }
 
@@ -5405,7 +5411,8 @@ async function openUserList(type){
    body.querySelectorAll('.user-item')
    .forEach(row=>{
 
-     row.onclick=()=>{
+     row.onclick=(event)=>{
+       if(event.target.closest('.user-action-btn')) return;
 
        const btn=
        row.querySelector('.user-action-btn');
