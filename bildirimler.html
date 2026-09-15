@@ -232,10 +232,12 @@ body{
     overflow:hidden;
 }
 
-.notification-thumb img{
+.notification-thumb img,
+.notification-thumb video{
     width:100%;
     height:100%;
     object-fit:cover;
+    display:block;
 }
 
 .follow-btn{
@@ -1114,50 +1116,165 @@ function notificationCommentLikedByMe(n){
     return false;
 }
 
+function notificationMediaValue(value){
+    if(!value) return '';
+
+    /* Backend media alanı dizi olarak gelirse ilk gerçek medyayı al. */
+    if(Array.isArray(value)){
+        for(const item of value){
+            const found = notificationMediaValue(item);
+            if(found) return found;
+        }
+        return '';
+    }
+
+    /* Media nesnesi olarak gelirse URL alanlarını kontrol et. */
+    if(typeof value === 'object'){
+        return (
+            value.url ||
+            value.src ||
+            value.uri ||
+            value.path ||
+            value.imageUrl ||
+            value.mediaUrl ||
+            value.videoUrl ||
+            value.thumbnailUrl ||
+            value.thumbnail ||
+            ''
+        );
+    }
+
+    return String(value).trim();
+}
+
 function notificationMedia(n){
-    return (
-        n.post?.media ||
-        n.post?.image ||
-        n.post?.imageUrl ||
-        n.post?.mediaUrl ||
-        n.post?.thumbnail ||
-        n.post?.thumbnailUrl ||
-        n.media ||
-        n.image ||
-        n.imageUrl ||
-        n.mediaUrl ||
-        n.thumbnail ||
-        n.thumbnailUrl ||
-        n.data?.post?.media ||
-        n.data?.post?.image ||
-        n.data?.media ||
-        n.data?.image ||
-        ''
-    );
+    const post = n?.post || n?.data?.post || n?.data?.item || {};
+
+    /*
+     * Önce gönderinin gerçek medya alanlarını ara.
+     * Sonra bildirimin kendi alanlarına düş.
+     */
+    const candidates = [
+        post.media,
+        post.mediaUrl,
+        post.image,
+        post.imageUrl,
+        post.video,
+        post.videoUrl,
+        post.file,
+        post.fileUrl,
+        post.src,
+        post.url,
+
+        n.media,
+        n.mediaUrl,
+        n.image,
+        n.imageUrl,
+        n.video,
+        n.videoUrl,
+        n.file,
+        n.fileUrl,
+        n.src,
+        n.url,
+
+        n.data?.media,
+        n.data?.mediaUrl,
+        n.data?.image,
+        n.data?.imageUrl,
+        n.data?.video,
+        n.data?.videoUrl,
+        n.data?.file,
+        n.data?.fileUrl,
+
+        post.thumbnail,
+        post.thumbnailUrl,
+        n.thumbnail,
+        n.thumbnailUrl,
+        n.data?.thumbnail,
+        n.data?.thumbnailUrl
+    ];
+
+    for(const candidate of candidates){
+        const media = notificationMediaValue(candidate);
+        if(media) return media;
+    }
+
+    return '';
 }
 
 function notificationMediaKind(n){
+    const post = n?.post || n?.data?.post || n?.data?.item || {};
+
     const raw = String(
-        n.post?.mediaType ||
-        n.post?.media_type ||
-        n.post?.type ||
+        post.mediaType ||
+        post.media_type ||
+        post.mimeType ||
+        post.mime_type ||
+        post.type ||
         n.mediaType ||
         n.media_type ||
+        n.mimeType ||
+        n.mime_type ||
+        n.mediaKind ||
+        n.data?.mediaType ||
+        n.data?.media_type ||
+        n.data?.mimeType ||
+        n.data?.mime_type ||
         n.type ||
         ''
     ).toLowerCase();
+
+    const media = notificationMedia(n).toLowerCase();
 
     if(
         raw.includes('video') ||
         raw.includes('reel') ||
         raw.includes('mp4') ||
         raw.includes('webm') ||
-        raw.includes('mov')
+        raw.includes('mov') ||
+        media.includes('.mp4') ||
+        media.includes('.webm') ||
+        media.includes('.mov') ||
+        media.includes('video/')
     ){
         return 'video';
     }
 
     return 'photo';
+}
+
+function notificationMediaPoster(n){
+    const post = n?.post || n?.data?.post || n?.data?.item || {};
+
+    const candidates = [
+        post.thumbnailUrl,
+        post.thumbnail,
+        post.poster,
+        post.posterUrl,
+        post.preview,
+        post.previewUrl,
+
+        n.thumbnailUrl,
+        n.thumbnail,
+        n.poster,
+        n.posterUrl,
+        n.preview,
+        n.previewUrl,
+
+        n.data?.thumbnailUrl,
+        n.data?.thumbnail,
+        n.data?.poster,
+        n.data?.posterUrl,
+        n.data?.preview,
+        n.data?.previewUrl
+    ];
+
+    for(const candidate of candidates){
+        const value = notificationMediaValue(candidate);
+        if(value) return value;
+    }
+
+    return '';
 }
 
 function notificationLikeText(n){
@@ -1299,7 +1416,7 @@ function avatarHTML(n){
 
 
 /* =====================================================
-   GÖNDERİ THUMBNAIL
+   GÖNDERİ THUMBNAIL / VİDEO
 ===================================================== */
 
 function postThumbnailHTML(n){
@@ -1310,16 +1427,42 @@ function postThumbnailHTML(n){
         return '';
     }
 
+    const kind = notificationMediaKind(n);
+    const poster = notificationMediaPoster(n);
+
+    /*
+     * Fotoğrafsa doğrudan gönderinin fotoğrafını göster.
+     * Videoysa gerçek video dosyasını göster; poster varsa
+     * video yüklenene kadar onu önizleme olarak kullan.
+     */
+    if(kind === 'video'){
+        return `
+        <div class="notification-thumb">
+            <video
+                src="${esc(media)}"
+                ${poster ? `poster="${esc(poster)}"` : ''}
+                muted
+                playsinline
+                preload="metadata"
+                aria-label="Gönderi videosu"
+                onmouseenter="this.play().catch(()=>{})"
+                onmouseleave="this.pause()"
+            ></video>
+        </div>
+        `;
+    }
+
     return `
     <div class="notification-thumb">
         <img
             src="${esc(media)}"
-            alt="Gönderi"
+            alt="Gönderi fotoğrafı"
             loading="lazy"
         >
     </div>
     `;
 }
+
 
 
 /* =====================================================
