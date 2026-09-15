@@ -794,6 +794,8 @@ body{
   overflow:auto     
 }     
      
+.other-profile-menu{position:fixed;top:76px;right:8px;width:min(365px,calc(100vw - 16px));background:#211f25;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.55);overflow:hidden;display:none;z-index:999999}.other-profile-menu.open{display:block}.other-menu-item{width:100%;min-height:76px;border:0;border-bottom:1px solid #302e34;background:#211f25;color:#fff;display:flex;align-items:center;gap:20px;padding:0 22px;text-align:left;font-size:21px;font-weight:700;cursor:pointer}.other-menu-item:last-child{border-bottom:0}.other-menu-item:active{background:#2b2930}.other-menu-icon{width:34px;flex:none;text-align:center;color:#fff;font-size:28px}
+
 .menu-screen.open{     
   display:block     
 }     
@@ -3005,7 +3007,7 @@ html,body{padding-bottom:76px!important;}
     
 <header class="header">    
   <div class="title" id="headerUsername">Profil</div>    
-  <button class="headmore" id="menuBtn" type="button" aria-label="Menü" onclick="openMenu()">⋮</button>    
+  <button type="button" class="headmore" id="menuBtn" aria-label="Menü">⋮</button>    
 </header>    
     
 <main class="profile">    
@@ -3317,6 +3319,16 @@ html,body{padding-bottom:76px!important;}
 </div>
 </div>
 
+<!-- KARŞI TARAF PROFİL MENÜSÜ -->
+<div id="otherProfileMenu" class="other-profile-menu" aria-hidden="true">
+<button type="button" class="other-menu-item" id="otherBlockMenu"><span class="other-menu-icon">◯</span><span>Engelle</span></button>
+<button type="button" class="other-menu-item" id="otherAboutMenu"><span class="other-menu-icon">ⓘ</span><span>Bu hesap hakkında</span></button>
+<button type="button" class="other-menu-item" id="otherHideStoryMenu"><span class="other-menu-icon">◉</span><span>Hikayeni gizle</span></button>
+<button type="button" class="other-menu-item" id="otherCopyUrlMenu"><span class="other-menu-icon">⌁</span><span>Profil URL'sini kopyala</span></button>
+<button type="button" class="other-menu-item" id="otherShareMenu"><span class="other-menu-icon">↗</span><span>Bu profili paylaş</span></button>
+<button type="button" class="other-menu-item" id="otherMessageMenu"><span class="other-menu-icon">▤</span><span>Mesaj Gönder</span></button>
+</div>
+
 <script>
 
 const token=
@@ -3434,26 +3446,47 @@ function closeModal(id){
 
 }
 
+function isOwnProfile(){
+  if(!currentProfile || !me) return !target;
+  return String(currentProfile.id||'')===String(me.id||'') || String(currentProfile.username||'').toLowerCase()===String(me.username||'').toLowerCase();
+}
+
+function updateProfileMenuButton(){
+  const btn=document.getElementById('menuBtn');
+  if(!btn)return;
+  const own=isOwnProfile();
+  btn.textContent=own?'☰':'⋮';
+  btn.setAttribute('aria-label',own?'Menü':'Profil menüsü');
+}
+
+function openOtherProfileMenu(){
+  const m=document.getElementById('otherProfileMenu');
+  if(!m)return;
+  m.classList.add('open');
+  m.setAttribute('aria-hidden','false');
+}
+
+function closeOtherProfileMenu(){
+  const m=document.getElementById('otherProfileMenu');
+  if(!m)return;
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden','true');
+}
+
 function openMenu(){
-
- const m=document.getElementById('menuScreen');
-
- if(!m)return;
-
- m.classList.add('open');
- m.setAttribute('aria-hidden','false');
-
+  if(!isOwnProfile()){ openOtherProfileMenu(); return; }
+  const m=document.getElementById('menuScreen');
+  if(!m)return;
+  m.classList.add('open');
+  m.setAttribute('aria-hidden','false');
 }
 
 function closeMenu(){
-
- const m=document.getElementById('menuScreen');
-
- if(!m)return;
-
- m.classList.remove('open');
- m.setAttribute('aria-hidden','true');
-
+  closeOtherProfileMenu();
+  const m=document.getElementById('menuScreen');
+  if(!m)return;
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden','true');
 }
 
 function renderPhone(){
@@ -5086,6 +5119,8 @@ async function load(){
      encodeURIComponent(username)
    );
 
+   updateProfileMenuButton();
+
    document.getElementById('username')
    .innerHTML=
    '@'+escapeHtml(
@@ -5354,7 +5389,7 @@ async function openUserList(type){
          <button class="user-action user-action-btn"
            data-user="${escapeHtml(username)}"
            data-following="${following?'1':'0'}">
-           ${following ? 'Takibi Bırak' : 'Sende Takip Et'}
+           ${following ? 'Takibi Bırak' : 'Takip Et'}
          </button>
        </div>`;
    }).join('');
@@ -5368,14 +5403,14 @@ async function openUserList(type){
        const wasFollowing=b.dataset.following==='1';
        const nextFollowing=!wasFollowing;
        b.dataset.following=nextFollowing?'1':'0';
-       b.textContent=nextFollowing?'Takibi Bırak':'Sende Takip Et';
+       b.textContent=nextFollowing?'Takibi Bırak':'Takip Et';
 
        try{
-         await api('/api/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});
+         await api('/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});
          load().catch(()=>{});
        }catch(e){
          b.dataset.following=wasFollowing?'1':'0';
-         b.textContent=wasFollowing?'Takibi Bırak':'Sende Takip Et';
+         b.textContent=wasFollowing?'Takibi Bırak':'Takip Et';
          toast(e.message||'Takip işlemi başarısız');
        }
      };
@@ -5948,13 +5983,19 @@ document.getElementById('postsStat')
 document.getElementById('usersBack')
 .onclick=()=>closeModal('usersModal');
 
-const topMenuBtn=document.getElementById('menuBtn');
-if(topMenuBtn){
-  topMenuBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openMenu();});
-}
+document.getElementById('menuBtn')
+.onclick=openMenu;
 
 document.getElementById('menuBack')
 .onclick=closeMenu;
+
+document.getElementById('otherBlockMenu')?.addEventListener('click',()=>{ closeOtherProfileMenu(); toast('Engelleme seçildi'); });
+document.getElementById('otherAboutMenu')?.addEventListener('click',()=>{ closeOtherProfileMenu(); toast('@'+(currentProfile?.username||'kullanıcı')+' hakkında'); });
+document.getElementById('otherHideStoryMenu')?.addEventListener('click',()=>{ closeOtherProfileMenu(); toast('Hikayeyi gizle seçildi'); });
+document.getElementById('otherCopyUrlMenu')?.addEventListener('click',async()=>{ const u=String(currentProfile?.username||'').replace(/^@/,'').trim(); if(!u)return; const url=location.origin+location.pathname+'?username='+encodeURIComponent(u); try{await navigator.clipboard.writeText(url);toast('Profil URL\'si kopyalandı')}catch(e){prompt('Profil URL\'si',url)} closeOtherProfileMenu(); });
+document.getElementById('otherShareMenu')?.addEventListener('click',()=>{ closeOtherProfileMenu(); shareProfile(); });
+document.getElementById('otherMessageMenu')?.addEventListener('click',()=>{ const u=String(currentProfile?.username||'').replace(/^@/,'').trim(); closeOtherProfileMenu(); if(u)location.href='mesajlar.html?username='+encodeURIComponent(u); });
+document.addEventListener('click',(e)=>{ const m=document.getElementById('otherProfileMenu'); const btn=document.getElementById('menuBtn'); if(m?.classList.contains('open') && !m.contains(e.target) && e.target!==btn) closeOtherProfileMenu(); });
 
 document.getElementById('savedMenu')
 .onclick=()=>{
@@ -6280,24 +6321,3 @@ Paylaş
 
 </body>
 </html>
-
-<style id="minegramMenuButtonFix">
-#menuBtn{position:relative!important;z-index:9999!important;pointer-events:auto!important;cursor:pointer!important;}
-#menuScreen{z-index:99999!important;}
-</style>
-<script>
-(function(){
-  function bindMinegramTopMenu(){
-    const btn=document.getElementById('menuBtn');
-    if(!btn || btn.dataset.menuBound==='1') return;
-    btn.dataset.menuBound='1';
-    btn.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      if(typeof openMenu==='function') openMenu();
-    });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindMinegramTopMenu);
-  else bindMinegramTopMenu();
-})();
-</script>
