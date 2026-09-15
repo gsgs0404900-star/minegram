@@ -351,7 +351,10 @@ async function addNotification({
   postId = null,
   text
 }) {
-  if (userId === fromUserId) {
+  const rawUserId = String(userId || "").trim();
+  const rawFromUserId = String(fromUserId || "").trim();
+
+  if (!rawUserId || rawUserId === rawFromUserId) {
     return;
   }
 
@@ -359,18 +362,42 @@ async function addNotification({
     return;
   }
 
-  const admin =
-    adminClient();
+  const admin = adminClient();
 
-  await admin
+  // posts.user_id eski kayıtlarda profiles.id, yeni kayıtlarda
+  // auth kullanıcı ID'si olabilir. Bildirimler ise giriş yapan
+  // kullanıcının auth ID'si ile okunuyor. Önce profile ID'sini
+  // kontrol edip varsa gerçek auth_user_id'ye çeviriyoruz.
+  let recipientId = rawUserId;
+  try {
+    const { data: profileById } = await admin
+      .from("profiles")
+      .select("id,auth_user_id")
+      .eq("id", rawUserId)
+      .maybeSingle();
+
+    if (profileById?.auth_user_id) {
+      recipientId = String(profileById.auth_user_id);
+    }
+  } catch (_) {}
+
+  if (recipientId === rawFromUserId) {
+    return;
+  }
+
+  const { error } = await admin
     .from("notifications")
     .insert({
-      user_id: userId,
+      user_id: recipientId,
       type,
-      from_user_id: fromUserId,
+      from_user_id: rawFromUserId,
       post_id: postId,
       text
     });
+
+  if (error) {
+    throw error;
+  }
 }
 
 
@@ -4006,7 +4033,7 @@ app.post(
       const {
         data: post
       } =
-        await req.sb
+        await adminClient()
           .from("posts")
           .select("user_id")
           .eq(
@@ -4285,7 +4312,7 @@ app.post(
       const {
         data: post
       } =
-        await req.sb
+        await adminClient()
           .from("posts")
           .select("user_id")
           .eq(
@@ -4301,8 +4328,7 @@ app.post(
             fromUserId: req.user.id,
             type: "comment",
             postId: req.params.id,
-            // Bildirimde kullanıcı adı ve gerçekten yazdığı yorum birlikte gösterilsin.
-            text: `@${req.user.username || 'Kullanıcı'} yorum yaptı: ${text}`
+            text: `@${req.user.username} yorum yaptı: ${text}`
           });
         } catch (notificationError) {
           console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
@@ -4531,25 +4557,47 @@ app.get(
         throw error;
       }
 
+      const notifications = data || [];
+
+      // Bildirimlerde ilgili gönderinin küçük resmini göstermek için
+      // post_id değerlerini tek seferde alıyoruz.
+      const postIds = [...new Set(
+        notifications
+          .map(n => n.post_id)
+          .filter(Boolean)
+          .map(String)
+      )];
+
+      let postMap = new Map();
+      if (postIds.length) {
+        const { data: posts, error: postsError } = await adminClient()
+          .from("posts")
+          .select("id,media_url,media_type")
+          .in("id", postIds);
+
+        if (!postsError) {
+          postMap = new Map((posts || []).map(p => [String(p.id), p]));
+        }
+      }
+
       res.json(
-        (data || []).map(
-          n => ({
-            id:
-              n.id,
-
-            type:
-              n.type,
-
-            text:
-              n.text,
-
-            read:
-              n.read,
-
-            createdAt:
-              n.created_at
-          })
-        )
+        notifications.map(n => {
+          const post = n.post_id ? postMap.get(String(n.post_id)) : null;
+          return {
+            id: n.id,
+            type: n.type,
+            text: n.text,
+            read: n.read,
+            createdAt: n.created_at,
+            postId: n.post_id || null,
+            post: post ? {
+              id: post.id,
+              media: post.media_url || "",
+              mediaUrl: post.media_url || "",
+              mediaType: post.media_type || ""
+            } : null
+          };
+        })
       );
 
     } catch (e) {
