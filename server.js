@@ -4058,8 +4058,9 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      // Yorumları JOIN kullanmadan doğrudan çekiyoruz; böylece profiles
-      // foreign-key ilişkisindeki bir hata yorum listesini bozmaz.
+      // Yorum listesini profiles JOIN'ine bağlamıyoruz. Böylece profil
+      // foreign-key/ilişki tanımı sorunlu olsa bile kayıtlı yorumlar
+      // uygulama ve web tarafına ulaşmaya devam eder.
       const admin = adminClient();
       const { data, error } = await admin
         .from("comments")
@@ -4115,7 +4116,9 @@ app.get(
 
       res.json({ comments, commentCount: comments.length });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({
+        error: e.message
+      });
     }
   }
 );
@@ -4191,21 +4194,24 @@ app.post(
         });
       }
 
+      const { count: commentCount, error: countError } = await adminClient()
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", req.params.id);
+
+      if (countError) throw countError;
+
       res.json({
-        id:
-          data.id,
-
-        userId:
-          data.user_id,
-
-        text:
-          data.text,
-
-        createdAt:
-          data.created_at,
-
-        username:
-          req.user.username
+        ok: true,
+        id: data.id,
+        postId: data.post_id,
+        userId: data.user_id,
+        text: data.text,
+        createdAt: data.created_at,
+        username: req.user.username || "",
+        displayName: req.user.display_name || req.user.username || "",
+        avatar: req.user.avatar_url || "",
+        commentCount: Number(commentCount || 0)
       });
 
     } catch (e) {
