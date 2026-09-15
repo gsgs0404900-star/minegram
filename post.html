@@ -2007,13 +2007,23 @@ onclick="sendComment()"
 
     if(!s)return null;
 
+    /* Backend bazen kaydı data/story altında döndürebilir. */
+    if(s.data && typeof s.data === "object" && !Array.isArray(s.data)){
+      s = {...s.data, ...s};
+    }
+    if(s.story && typeof s.story === "object" && !Array.isArray(s.story)){
+      s = {...s.story, ...s};
+    }
+
     const profile=
       s.profiles ||
       s.profile ||
+      s.author ||
       {};
 
     const user=
       s.user ||
+      s.owner ||
       {};
 
     const media=
@@ -2021,6 +2031,10 @@ onclick="sendComment()"
       s.mediaUrl ||
       s.media ||
       s.url ||
+      s.file_url ||
+      s.fileUrl ||
+      s.public_url ||
+      s.publicUrl ||
       "";
 
     if(!media)return null;
@@ -2051,12 +2065,23 @@ onclick="sendComment()"
       s.avatarUrl ||
       "";
 
-    const createdAt=
-      new Date(
-        s.created_at ||
-        s.createdAt ||
-        Date.now()
-      ).getTime();
+    const rawCreatedAt =
+      s.created_at ??
+      s.createdAt ??
+      s.created_at_ms ??
+      s.timestamp ??
+      s.time ??
+      Date.now();
+
+    let createdAt;
+    if(typeof rawCreatedAt === "number" || /^\d+(\.\d+)?$/.test(String(rawCreatedAt).trim())){
+      const numeric=Number(rawCreatedAt);
+      /* Unix saniye olarak gelen timestampleri milisaniyeye çevir. */
+      createdAt = numeric < 100000000000 ? numeric * 1000 : numeric;
+    }else{
+      createdAt = new Date(rawCreatedAt).getTime();
+    }
+    if(!Number.isFinite(createdAt) || createdAt <= 0) createdAt=Date.now();
 
     return {
 
@@ -2111,6 +2136,7 @@ onclick="sendComment()"
 
 
   /* =======================================================
+     STORY GRUPLARINI OLUŞTUR  /* =======================================================
      STORY GRUPLARINI OLUŞTUR
      Her kullanıcı için hikayeleri tek grupta toplar.
   ======================================================= */
@@ -2331,34 +2357,60 @@ onclick="sendComment()"
     loadingStories=true;
 
     try{
-      // Firebase/local eski hikayeleri KULLANMA. Tek kaynak Supabase API.
-      try{ localStorage.removeItem("minegram_story_v2"); }catch(e){}
+      /*
+        Uygulamayla AYNI ortak kaynak: /api/stories.
+        Firebase'deki eski users kayıtlarını burada okumuyoruz;
+        aksi halde web ve uygulama farklı Story listeleri oluşturabiliyor.
+      */
+      const result = await api("/stories?ts=" + Date.now());
 
-      const result = await api("/stories");
-      const list = Array.isArray(result)
-        ? result
-        : (Array.isArray(result?.stories) ? result.stories : []);
+      let list=[];
+      if(Array.isArray(result)){
+        list=result;
+      }else if(Array.isArray(result?.stories)){
+        list=result.stories;
+      }else if(Array.isArray(result?.data)){
+        list=result.data;
+      }else if(Array.isArray(result?.items)){
+        list=result.items;
+      }else if(result?.story && typeof result.story === "object"){
+        list=[result.story];
+      }
 
-      stories = list.map(normalizeStory).filter(Boolean);
+      const loaded=list.map(normalizeStory).filter(Boolean);
+
+      /* API boş dönerse mevcut cache'i silme; gerçekten boşsa boş göster. */
+      stories=loaded;
       cleanStories();
       buildStoryGroups();
       renderStoryBar();
       if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
 
-      // Yalnızca sunucudan gelen aktif hesap hikayelerini önbellekle.
-      try{ localStorage.setItem("minegram_story_v2", JSON.stringify(stories)); }catch(e){}
+      try{
+        localStorage.setItem("minegram_story_v2", JSON.stringify(stories));
+      }catch(e){}
 
     }catch(error){
-      console.error("STORY API LOAD ERROR:", error);
-      stories=[];
-      buildStoryGroups();
-      renderStoryBar();
+      console.error("STORY LOAD ERROR:", error);
+
+      /* Ağ/auth hatasında daha önce alınmış Storyleri ekranda tut. */
+      try{
+        const cached=JSON.parse(localStorage.getItem("minegram_story_v2") || "[]");
+        if(Array.isArray(cached) && cached.length){
+          stories=cached.map(normalizeStory).filter(Boolean);
+          cleanStories();
+          buildStoryGroups();
+          renderStoryBar();
+          if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
+        }
+      }catch(e){}
     }finally{
       loadingStories=false;
     }
   }
 
   /* =======================================================
+     STORY BAR  /* =======================================================
      STORY BAR
   ======================================================= */
 
@@ -4500,16 +4552,13 @@ function renderPost(p){
 
       <div class="post-head">
 
-        <a
+        <div
           class="avatar small post-story-avatar${hasMinegramStoryForPost(p) ? " post-story-has-story" : ""}${hasMinegramUnseenStoryForPost(p) ? " post-story-new" : ""}"
-          href="${profileUrl(rawUsername)}"
-          data-profile-username="${esc(rawUsername)}"
-          data-profile-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
           data-story-username="${esc(rawUsername)}"
           data-story-user-id="${esc(p.user?.id || p.user?.userId || p.user_id || p.userId || p.ownerUid || p.ownerId || "")}"
-          title="@${esc(rawUsername)} profilini aç"
-          onclick="openMinegramStoryFromPostAvatar(event,this)"
-          style="text-decoration:none;color:inherit;display:grid;place-items:center"
+          title="${hasMinegramStoryForPost(p) ? "Hikayeyi aç" : ""}"
+          onclick="event.stopPropagation(); const post=window.__minegramFeedPosts?.find(function(x){return String(x?.id ?? x?.postId ?? x?._id ?? x?.uuid ?? '')===String(this.closest('.post')?.dataset?.id||'')}); if(hasMinegramStoryForPost(post)){ openMinegramStoryFromPostAvatar(event,this); } else { location.href=profileUrl(this.getAttribute('data-story-username')||''); }"
+          style="display:grid;place-items:center"
         >
           ${(() => {
             const postAvatar =
@@ -4525,7 +4574,7 @@ function renderPost(p){
               ? `<img src="${esc(postAvatar)}" alt="" loading="lazy">`
               : initial;
           })()}
-        </a>
+        </div>
 
         <div
           class="username"
