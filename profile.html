@@ -3955,6 +3955,29 @@ document.getElementById('highlightDeleteBtn')
   }
 };
 
+async function firebaseAllUserDocuments(){
+ const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
+ const d=await r.json();
+ const val=v=>{
+  if(!v)return null;
+  if(v.stringValue!==undefined)return v.stringValue;
+  if(v.integerValue!==undefined)return Number(v.integerValue);
+  if(v.doubleValue!==undefined)return Number(v.doubleValue);
+  if(v.booleanValue!==undefined)return v.booleanValue;
+  if(v.timestampValue!==undefined)return v.timestampValue;
+  if(v.arrayValue)return (v.arrayValue.values||[]).map(val);
+  if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
+  return null;
+ };
+ return (d.documents||[]).map(doc=>{
+  const x={};
+  Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
+  return {doc,x};
+ });
+}
+
 async function firebaseUserDocument(username){
  const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
  const r=await fetch(url,{cache:'no-store'});
@@ -5376,6 +5399,37 @@ async function openUserList(type){
        const firebaseList=firebaseUser?.x?.[keyName];
        if(Array.isArray(firebaseList) && firebaseList.length){
          sourceUsers=firebaseList;
+       }else{
+         /* Takip listesi hedef kullanıcının belgesinde yoksa,
+            tüm Firebase kullanıcı belgelerini kontrol et.
+            Böylece örneğin A kullanıcısının following alanında
+            mevcut profil varsa A, takip edilenler listesine;
+            mevcut profilin followers alanı varsa da ilgili kullanıcı
+            takipçiler listesine alınabilir. */
+         const all=await firebaseAllUserDocuments();
+         const wanted=String(currentProfile.username||'').toLowerCase();
+
+         if(type==='following'){
+           const meDoc=all.find(({x})=>[x.username,x.userName,x.handle,x.emailUsername]
+             .filter(Boolean)
+             .some(v=>String(v).toLowerCase()===wanted));
+           const list=meDoc?.x?.following||meDoc?.x?.followingUsers||meDoc?.x?.following_users;
+           if(Array.isArray(list) && list.length) sourceUsers=list;
+         }else{
+           const found=[];
+           all.forEach(({x})=>{
+             const username=x.username||x.userName||x.handle||x.emailUsername||'';
+             if(!username || String(username).toLowerCase()===wanted) return;
+             const following=x.following||x.followingUsers||x.following_users;
+             const followers=x.followers||x.followerUsers||x.follower_users;
+             const contains=(arr)=>Array.isArray(arr)&&arr.some(item=>{
+               const u=typeof item==='string' ? item : (item?.username||item?.userName||item?.handle||item?.name||'');
+               return String(u).toLowerCase()===wanted;
+             });
+             if(contains(following) || contains(followers)) found.push({username});
+           });
+           if(found.length) sourceUsers=found;
+         }
        }
      }catch(_e){
        console.warn('[PROFILE] Firebase takip listesi okunamadı',_e);
