@@ -3370,15 +3370,30 @@ async function api(url,opt={}){
 
  const r=await fetch(url,opt);
 
- if(!r.ok){
-
-   const j=await r.json().catch(()=>({}));
-
-   throw new Error(j.error||'İşlem başarısız');
-
+ /* Bazı Render SPA rotaları bulunamadığında HTML (<!DOCTYPE...>)
+    dönebiliyor. Doğrudan r.json() kullanmak yerine önce metni alıp
+    güvenli şekilde JSON'a çeviriyoruz; böylece "Unexpected token <"
+    hatası oluşmuyor. */
+ const raw=await r.text();
+ let data=null;
+ try{
+   data=raw ? JSON.parse(raw) : null;
+ }catch(parseError){
+   if(!r.ok){
+     throw new Error('Sunucu isteği başarısız oldu ('+r.status+').');
+   }
+   const looksLikeHtml=/^\s*<!doctype html|^\s*<html/i.test(raw);
+   if(looksLikeHtml){
+     throw new Error('Bu API adresi JSON yerine HTML döndürüyor.');
+   }
+   throw new Error('Sunucudan geçersiz JSON yanıtı geldi.');
  }
 
- return r.json();
+ if(!r.ok){
+   throw new Error(data?.error||data?.message||'İşlem başarısız');
+ }
+
+ return data;
 
 }
 
@@ -5233,14 +5248,28 @@ async function openUserList(type){
 
  try{
 
-   const data=
-   await api(
-     '/api/users/'+
-     encodeURIComponent(
-       currentProfile.username
-     )+
-     '/'+type
-   );
+   const username=encodeURIComponent(currentProfile.username);
+   let data;
+   let lastError=null;
+
+   /* Önce mevcut /api rotasını, çalışmıyorsa aynı endpointin
+      /users varyantını dene. Böylece SPA/static fallback yüzünden
+      HTML dönmesi liste ekranını bozmaz. */
+   for(const endpoint of [
+     '/api/users/'+username+'/'+type,
+     '/users/'+username+'/'+type
+   ]){
+     try{
+       data=await api(endpoint);
+       break;
+     }catch(err){
+       lastError=err;
+     }
+   }
+
+   if(data===undefined){
+     throw lastError||new Error('Liste yüklenemedi.');
+   }
 
    const users=
    Array.isArray(data)
