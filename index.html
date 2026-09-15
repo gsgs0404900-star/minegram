@@ -6597,6 +6597,44 @@ function changeCommentSort(
    YORUM SUNUCU
 ========================================================= */
 
+async function syncLegacyLocalCommentsToServer(id){
+
+  const local=getLocalComments(id);
+
+  const pending=local.filter(c=>
+    c && (c.local===true || String(c.id||"").startsWith("local-")) && c.text
+  );
+
+  for(const c of pending){
+    try{
+      const result=await api(
+        "/posts/"+encodeURIComponent(id)+"/comments",
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({text:String(c.text).trim()})
+        }
+      );
+      const returned=result?.comment||result?.data||result;
+      if(returned && returned.id){
+        c.id=returned.id;
+        c.local=false;
+        c.username=returned.username||c.username;
+        c.text=returned.text||c.text;
+        c.createdAt=returned.createdAt||c.createdAt;
+      }else{
+        c.local=false;
+      }
+    }catch(e){
+      // Başarısızsa tekrar denenebilmesi için local=true bırak.
+    }
+  }
+
+  try{
+    localStorage.setItem(localCommentsKey(id),JSON.stringify(local.slice(-100)));
+  }catch(e){}
+}
+
 async function refreshComments(
   showLoading=true
 ){
@@ -6625,6 +6663,8 @@ async function refreshComments(
 
 
   try{
+
+    await syncLegacyLocalCommentsToServer(id);
 
     const p=
       await api(
@@ -6720,6 +6760,8 @@ async function openComments(id){
 
 
   try{
+
+    await syncLegacyLocalCommentsToServer(id);
 
     const p=
       await api(
