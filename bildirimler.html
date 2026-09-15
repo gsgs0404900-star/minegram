@@ -232,12 +232,10 @@ body{
     overflow:hidden;
 }
 
-.notification-thumb img,
-.notification-thumb video{
+.notification-thumb img{
     width:100%;
     height:100%;
     object-fit:cover;
-    display:block;
 }
 
 .follow-btn{
@@ -1116,89 +1114,50 @@ function notificationCommentLikedByMe(n){
     return false;
 }
 
-function notificationMediaValue(value){
-
-    if(Array.isArray(value)){
-        for(const item of value){
-            const resolved = notificationMediaValue(item);
-            if(resolved) return resolved;
-        }
-        return '';
-    }
-
-    if(value && typeof value === 'object'){
-        return String(
-            value.url ||
-            value.src ||
-            value.uri ||
-            value.path ||
-            value.imageUrl ||
-            value.mediaUrl ||
-            value.videoUrl ||
-            value.fileUrl ||
-            value.thumbnailUrl ||
-            value.thumbnail ||
-            ''
-        ).trim();
-    }
-
-    return String(value || '').trim();
-}
-
 function notificationMedia(n){
-
-    const candidates = [
-        n.post?.media, n.post?.media_url, n.post?.image,
-        n.post?.imageUrl, n.post?.mediaUrl, n.post?.video,
-        n.post?.videoUrl, n.post?.file, n.post?.fileUrl,
-        n.post?.src, n.post?.url,
-        n.media, n.media_url, n.image, n.imageUrl,
-        n.mediaUrl, n.video, n.videoUrl, n.file, n.fileUrl,
-        n.src, n.url,
-        n.data?.post?.media, n.data?.post?.media_url,
-        n.data?.post?.image, n.data?.post?.imageUrl,
-        n.data?.post?.video, n.data?.post?.videoUrl,
-        n.data?.media, n.data?.media_url, n.data?.image,
-        n.data?.imageUrl, n.data?.video, n.data?.videoUrl
-    ];
-
-    for(const value of candidates){
-        const resolved = notificationMediaValue(value);
-        if(resolved) return resolved;
-    }
-
-    return '';
+    return (
+        n.post?.media ||
+        n.post?.image ||
+        n.post?.imageUrl ||
+        n.post?.mediaUrl ||
+        n.post?.thumbnail ||
+        n.post?.thumbnailUrl ||
+        n.media ||
+        n.image ||
+        n.imageUrl ||
+        n.mediaUrl ||
+        n.thumbnail ||
+        n.thumbnailUrl ||
+        n.data?.post?.media ||
+        n.data?.post?.image ||
+        n.data?.media ||
+        n.data?.image ||
+        ''
+    );
 }
 
 function notificationMediaKind(n){
-
     const raw = String(
-        n.post?.mediaType || n.post?.media_type || n.post?.type ||
-        n.mediaType || n.media_type || n.type || ''
+        n.post?.mediaType ||
+        n.post?.media_type ||
+        n.post?.type ||
+        n.mediaType ||
+        n.media_type ||
+        n.type ||
+        ''
     ).toLowerCase();
 
-    const media = notificationMedia(n).toLowerCase();
-
     if(
-        raw.includes('video') || raw.includes('reel') ||
-        raw.includes('mp4') || raw.includes('webm') || raw.includes('mov') ||
-        media.includes('.mp4') || media.includes('.webm') ||
-        media.includes('.mov') || media.includes('.m4v')
+        raw.includes('video') ||
+        raw.includes('reel') ||
+        raw.includes('mp4') ||
+        raw.includes('webm') ||
+        raw.includes('mov')
     ){
         return 'video';
     }
 
     return 'photo';
-}
-
-function notificationMediaPoster(n){
-    return notificationMediaValue(
-        n.post?.thumbnailUrl || n.post?.thumbnail ||
-        n.post?.poster || n.post?.preview ||
-        n.thumbnailUrl || n.thumbnail || n.poster || n.preview ||
-        n.data?.post?.thumbnailUrl || n.data?.post?.thumbnail ||
-        n.data?.post?.poster || n.data?.thumbnailUrl || n.data?.thumbnail
-    );
 }
 
 function notificationLikeText(n){
@@ -1239,6 +1198,10 @@ function notificationMessage(n){
     }
 
     if(type === 'comment'){
+        /* Yorum bildirimi gerçek yazılan yorumu göstermeli. */
+        if(n.text){
+            return esc(String(n.text));
+        }
         return 'gönderine yorum yaptı.';
     }
 
@@ -1346,28 +1309,18 @@ function avatarHTML(n){
 function postThumbnailHTML(n){
 
     const media = notificationMedia(n);
-    if(!media) return '';
 
-    if(notificationMediaKind(n) === 'video'){
-        const poster = notificationMediaPoster(n);
-
-        return `
-        <div class="notification-thumb">
-            <video
-                src="${esc(media)}"
-                ${poster ? `poster="${esc(poster)}"` : ''}
-                muted playsinline preload="metadata"
-                aria-label="Gönderi videosu"
-                onmouseenter="this.play().catch(()=>{})"
-                onmouseleave="this.pause();this.currentTime=0"
-            ></video>
-        </div>
-        `;
+    if(!media){
+        return '';
     }
 
     return `
     <div class="notification-thumb">
-        <img src="${esc(media)}" alt="Gönderi" loading="lazy">
+        <img
+            src="${esc(media)}"
+            alt="Gönderi"
+            loading="lazy"
+        >
     </div>
     `;
 }
@@ -1630,18 +1583,24 @@ function renderNotification(n){
 
 function normalizeNotifications(result){
 
-    if(Array.isArray(result)) return result;
-    if(Array.isArray(result.notifications)) return result.notifications;
-    if(Array.isArray(result.items)) return result.items;
-    if(Array.isArray(result.data)) return result.data;
+    if(Array.isArray(result)){
+        return result;
+    }
 
-    if(result && result.data){
-        if(Array.isArray(result.data.notifications)) return result.data.notifications;
-        if(Array.isArray(result.data.items)) return result.data.items;
-        if(Array.isArray(result.data.data)) return result.data.data;
+    if(Array.isArray(result.notifications)){
+        return result.notifications;
+    }
+
+    if(Array.isArray(result.data)){
+        return result.data;
+    }
+
+    if(Array.isArray(result.items)){
+        return result.items;
     }
 
     return [];
+
 }
 
 
@@ -1651,80 +1610,146 @@ function normalizeNotifications(result){
 
 async function loadNotifications(){
 
-    const list = document.getElementById('notificationList');
+    const list =
+        document.getElementById(
+            'notificationList'
+        );
 
-    list.innerHTML = '<div class="loading">Bildirimler yükleniyor...</div>';
+    list.innerHTML = `
+        <div class="loading">
+            Bildirimler yükleniyor...
+        </div>
+    `;
 
     try{
-        let result = null;
-        let lastError = null;
 
-        const endpoints = [
-            '/notifications',
-            '/notifications/me',
-            '/notifications?limit=50',
-            '/notifications/all'
-        ];
+        let result;
 
-        for(const endpoint of endpoints){
+        /*
+         * Ana endpoint:
+         * /api/notifications
+         */
+
+        try{
+
+            result =
+                await api('/notifications');
+
+        }catch(firstError){
+
+            /*
+             * Bazı backend sürümlerinde
+             * /api/notifications/me olabilir.
+             */
+
+            result =
+                await api('/notifications/me');
+
+        }
+
+        const notifications =
+            normalizeNotifications(result);
+
+        // Kullanıcı bildirimler sayfasını açtığında mevcut bildirimler görülmüş kabul edilir.
+        const unreadOnOpen = notifications.filter(n => !(
+            n?.read === true || n?.isRead === true || n?.seen === true
+        ));
+        if(unreadOnOpen.length){
             try{
-                const candidate = await api(endpoint);
-                const items = normalizeNotifications(candidate);
-
-                if(Array.isArray(items)){
-                    result = candidate;
-                    break;
-                }
-            }catch(error){
-                lastError = error;
+                await api('/notifications/read-all',{method:'POST'});
+            }catch{
+                try{
+                    await api('/notifications/mark-all-read',{method:'POST'});
+                }catch{}
             }
+            notifications.forEach(n => { n.read=true; n.isRead=true; n.seen=true; });
         }
-
-        if(result === null){
-            throw (lastError || new Error('Bildirimler alınamadı.'));
-        }
-
-        const notifications = normalizeNotifications(result);
-
-        console.log('[NOTIFICATIONS] Yüklenen bildirim sayısı:', notifications.length, result);
 
         if(!notifications.length){
+
             list.innerHTML = `
                 <div class="empty">
-                    <div class="empty-icon">♡</div>
-                    <strong>Henüz bildirimin yok</strong>
-                    <span>Etkileşimler burada görünecek.</span>
+
+                    <div class="empty-icon">
+                        ♡
+                    </div>
+
+                    <strong>
+                        Henüz bildirimin yok
+                    </strong>
+
+                    <span>
+                        Etkileşimler burada görünecek.
+                    </span>
+
                 </div>
             `;
+
             return;
         }
 
         notifications.sort((a,b)=>{
-            const da = new Date(
-                a.createdAt || a.created_at || a.date || a.timestamp || 0
-            ).getTime();
-            const db = new Date(
-                b.createdAt || b.created_at || b.date || b.timestamp || 0
-            ).getTime();
+
+            const da =
+                new Date(
+                    a.createdAt ||
+                    a.created_at ||
+                    a.date ||
+                    0
+                ).getTime();
+
+            const db =
+                new Date(
+                    b.createdAt ||
+                    b.created_at ||
+                    b.date ||
+                    0
+                ).getTime();
+
             return db-da;
+
         });
 
-        list.innerHTML = notifications.map(renderNotification).join('');
+        list.innerHTML =
+            notifications
+                .map(renderNotification)
+                .join('');
 
     }catch(error){
 
-        console.error('[NOTIFICATIONS]', error);
+        console.error(
+            '[NOTIFICATIONS]',
+            error
+        );
 
         list.innerHTML = `
             <div class="empty">
-                <div class="empty-icon">🔔</div>
-                <strong>Bildirimler yüklenemedi</strong>
-                <span>${esc(error.message || 'Sunucu bağlantısı kurulamadı.')}</span>
+
+                <div class="empty-icon">
+                    🔔
+                </div>
+
+                <strong>
+                    Bildirimler yüklenemedi
+                </strong>
+
+                <span>
+                    ${esc(
+                        error.message ||
+                        'Sunucu bağlantısı kurulamadı.'
+                    )}
+                </span>
+
             </div>
         `;
 
-        toast(error.message || 'Bildirimler yüklenemedi');
+        toast(
+            error.message ||
+            'Bildirimler yüklenemedi'
+        );
+
     }
+
 }
 
 
