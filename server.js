@@ -4546,7 +4546,13 @@ app.get(
               n.read,
 
             createdAt:
-              n.created_at
+              n.created_at,
+
+            fromUserId:
+              n.from_user_id || null,
+
+            postId:
+              n.post_id || null
           })
         )
       );
