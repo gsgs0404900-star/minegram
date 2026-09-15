@@ -4058,11 +4058,9 @@ app.get(
   auth,
   async (req, res) => {
     try {
+      // Yorumları JOIN kullanmadan doğrudan çekiyoruz; böylece profiles
+      // foreign-key ilişkisindeki bir hata yorum listesini bozmaz.
       const admin = adminClient();
-
-      // Yorumları doğrudan comments tablosundan oku.
-      // Profil JOIN'i eski kayıtlar / foreign-key farkları yüzünden
-      // yorum listesinin tamamını bozmasın.
       const { data, error } = await admin
         .from("comments")
         .select("id,post_id,user_id,text,created_at")
@@ -4071,41 +4069,35 @@ app.get(
 
       if (error) throw error;
 
-      const userIds = [...new Set(
-        (data || [])
-          .map(x => String(x.user_id || "").trim())
-          .filter(Boolean)
-      )];
+      const rows = data || [];
+      const userIds = [...new Set(rows.map(x => String(x.user_id || "")).filter(Boolean))];
+      const profileMap = {};
 
-      let profiles = [];
       if (userIds.length) {
-        // Önce id üzerinden; auth_user_id kullanılan eski hesapları da destekle.
-        const { data: rows } = await admin
+        const { data: profiles } = await admin
           .from("profiles")
           .select("id,auth_user_id,username,display_name,avatar_url")
           .in("id", userIds);
-        profiles = rows || [];
+        (profiles || []).forEach(pr => {
+          profileMap[String(pr.id)] = pr;
+          if (pr.auth_user_id) profileMap[String(pr.auth_user_id)] = pr;
+        });
 
-        const missing = userIds.filter(id =>
-          !profiles.some(p => String(p.id || "") === id || String(p.auth_user_id || "") === id)
-        );
+        const missing = userIds.filter(id => !profileMap[id]);
         if (missing.length) {
-          const { data: authRows } = await admin
+          const { data: profilesByAuth } = await admin
             .from("profiles")
             .select("id,auth_user_id,username,display_name,avatar_url")
             .in("auth_user_id", missing);
-          profiles.push(...(authRows || []));
+          (profilesByAuth || []).forEach(pr => {
+            if (pr.id) profileMap[String(pr.id)] = pr;
+            if (pr.auth_user_id) profileMap[String(pr.auth_user_id)] = pr;
+          });
         }
       }
 
-      const profileMap = new Map();
-      for (const profile of profiles) {
-        if (profile?.id != null) profileMap.set(String(profile.id), profile);
-        if (profile?.auth_user_id != null) profileMap.set(String(profile.auth_user_id), profile);
-      }
-
-      const comments = (data || []).map(item => {
-        const profile = profileMap.get(String(item.user_id || "")) || {};
+      const comments = rows.map(item => {
+        const profile = profileMap[String(item.user_id || "")] || {};
         const createdAtMs = item.created_at
           ? new Date(item.created_at).getTime()
           : Date.now();
@@ -4121,18 +4113,12 @@ app.get(
         };
       });
 
-      res.json({
-        comments,
-        commentCount: comments.length
-      });
+      res.json({ comments, commentCount: comments.length });
     } catch (e) {
-      res.status(400).json({
-        error: e.message
-      });
+      res.status(400).json({ error: e.message });
     }
   }
 );
-
 
 app.post(
   "/api/posts/:id/comments",
@@ -4205,24 +4191,21 @@ app.post(
         });
       }
 
-      const { count: commentCount, error: countError } = await adminClient()
-        .from("comments")
-        .select("id", { count: "exact", head: true })
-        .eq("post_id", req.params.id);
-
-      if (countError) throw countError;
-
       res.json({
-        ok: true,
-        id: data.id,
-        postId: data.post_id,
-        userId: data.user_id,
-        text: data.text,
-        createdAt: data.created_at,
-        username: req.user.username || "",
-        displayName: req.user.display_name || req.user.username || "",
-        avatar: req.user.avatar_url || "",
-        commentCount: Number(commentCount || 0)
+        id:
+          data.id,
+
+        userId:
+          data.user_id,
+
+        text:
+          data.text,
+
+        createdAt:
+          data.created_at,
+
+        username:
+          req.user.username
       });
 
     } catch (e) {
