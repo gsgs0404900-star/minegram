@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
@@ -352,10 +351,7 @@ async function addNotification({
   postId = null,
   text
 }) {
-  const rawUserId = String(userId || "").trim();
-  const rawFromUserId = String(fromUserId || "").trim();
-
-  if (!rawUserId || rawUserId === rawFromUserId) {
+  if (userId === fromUserId) {
     return;
   }
 
@@ -363,42 +359,18 @@ async function addNotification({
     return;
   }
 
-  const admin = adminClient();
+  const admin =
+    adminClient();
 
-  // posts.user_id eski kayıtlarda profiles.id, yeni kayıtlarda
-  // auth kullanıcı ID'si olabilir. Bildirimler ise giriş yapan
-  // kullanıcının auth ID'si ile okunuyor. Önce profile ID'sini
-  // kontrol edip varsa gerçek auth_user_id'ye çeviriyoruz.
-  let recipientId = rawUserId;
-  try {
-    const { data: profileById } = await admin
-      .from("profiles")
-      .select("id,auth_user_id")
-      .eq("id", rawUserId)
-      .maybeSingle();
-
-    if (profileById?.auth_user_id) {
-      recipientId = String(profileById.auth_user_id);
-    }
-  } catch (_) {}
-
-  if (recipientId === rawFromUserId) {
-    return;
-  }
-
-  const { error } = await admin
+  await admin
     .from("notifications")
     .insert({
-      user_id: recipientId,
+      user_id: userId,
       type,
-      from_user_id: rawFromUserId,
+      from_user_id: fromUserId,
       post_id: postId,
       text
     });
-
-  if (error) {
-    throw error;
-  }
 }
 
 
@@ -4034,7 +4006,7 @@ app.post(
       const {
         data: post
       } =
-        await adminClient()
+        await req.sb
           .from("posts")
           .select("user_id")
           .eq(
@@ -4313,7 +4285,7 @@ app.post(
       const {
         data: post
       } =
-        await adminClient()
+        await req.sb
           .from("posts")
           .select("user_id")
           .eq(
@@ -4329,7 +4301,8 @@ app.post(
             fromUserId: req.user.id,
             type: "comment",
             postId: req.params.id,
-            text: `@${req.user.username} yorum yaptı`
+            // Bildirimde kullanıcının gerçekten yazdığı yorum gösterilsin.
+            text: text
           });
         } catch (notificationError) {
           console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
