@@ -6626,23 +6626,19 @@ async function refreshComments(
 
   try{
 
+    // Android ile aynı Supabase yorum kaynağını kullan.
     const p=
       await api(
         "/posts/"+
-        encodeURIComponent(id)
+        encodeURIComponent(id)+
+        "/comments?ts="+
+        Date.now()
       );
-
 
     const remote=
       Array.isArray(p.comments)
         ? p.comments
-        : (
-          Array.isArray(
-            p.post?.comments
-          )
-            ? p.post.comments
-            : []
-        );
+        : [];
 
 
     list.innerHTML=
@@ -7436,6 +7432,20 @@ async function sendComment(){
 
     }
 
+
+    // Gönderimden sonra gerçek sunucu listesini tekrar çek.
+    try{
+      const fresh=await api(
+        "/posts/"+
+        encodeURIComponent(postId)+
+        "/comments?ts="+
+        Date.now()
+      );
+      if(Array.isArray(fresh?.comments)){
+        const list=document.getElementById("commentList");
+        if(list) list.innerHTML=renderCommentsForPost(mergeComments(fresh.comments,postId));
+      }
+    }catch(_){ }
 
     const returned=
       result?.comment||
