@@ -362,7 +362,7 @@ async function addNotification({
   const admin =
     adminClient();
 
-  const { error } = await admin
+  await admin
     .from("notifications")
     .insert({
       user_id: userId,
@@ -371,11 +371,6 @@ async function addNotification({
       post_id: postId,
       text
     });
-
-  if (error) {
-    console.error("NOTIFICATION INSERT ERROR:", error.message);
-    throw error;
-  }
 }
 
 
@@ -4299,14 +4294,18 @@ app.post(
           )
           .single();
 
-      if (post && String(post.user_id) !== String(req.user.id)) {
-        await addNotification({
-          userId: post.user_id,
-          fromUserId: req.user.id,
-          type: "comment",
-          postId: req.params.id,
-          text: `@${req.user.username} gönderine yorum yaptı`
-        });
+      if (post) {
+        try {
+          await addNotification({
+            userId: post.user_id,
+            fromUserId: req.user.id,
+            type: "comment",
+            postId: req.params.id,
+            text: `@${req.user.username} yorum yaptı`
+          });
+        } catch (notificationError) {
+          console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
+        }
       }
 
       const { count: commentCount, error: countError } = await adminClient()
