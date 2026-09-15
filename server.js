@@ -4595,6 +4595,213 @@ app.post(
 
 
 /* =========================================================
+   FOLLOWERS / FOLLOWING LIST
+   Profil sayısının yanında gerçek kullanıcı listesini de döndürür.
+   Mevcut takip sistemini değiştirmez; yalnızca okuma endpoint'leri ekler.
+========================================================= */
+
+async function getFollowListForProfile(req, res, type) {
+  try {
+    const target = await findProfile(
+      req.sb,
+      req.params.username
+    );
+
+    if (!target) {
+      return res.status(404).json({
+        error: "Kullanıcı bulunamadı"
+      });
+    }
+
+    const admin = adminClient();
+
+    // Yeni hesaplarda follows.auth tarafında auth_user_id,
+    // eski kayıtlarda profiles.id kullanılmış olabilir.
+    const targetIds = [
+      target.auth_user_id,
+      target.id
+    ]
+      .filter(Boolean)
+      .map(String);
+
+    const uniqueTargetIds = [...new Set(targetIds)];
+
+    if (!uniqueTargetIds.length) {
+      return res.json([]);
+    }
+
+    const column =
+      type === "followers"
+        ? "following_id"
+        : "follower_id";
+
+    const { data: followRows, error: followError } = await admin
+      .from("follows")
+      .select("follower_id,following_id")
+      .in(column, uniqueTargetIds);
+
+    if (followError) {
+      throw followError;
+    }
+
+    const rows = Array.isArray(followRows)
+      ? followRows
+      : [];
+
+    const userIds = rows
+      .map(row =>
+        type === "followers"
+          ? row.follower_id
+          : row.following_id
+      )
+      .filter(Boolean)
+      .map(String);
+
+    const uniqueUserIds = [...new Set(userIds)];
+
+    if (!uniqueUserIds.length) {
+      return res.json([]);
+    }
+
+    const byIdResult = await admin
+      .from("profiles")
+      .select("id,auth_user_id,username,display_name,bio,avatar_url,verified,settings")
+      .in("id", uniqueUserIds);
+
+    if (byIdResult.error) {
+      throw byIdResult.error;
+    }
+
+    const profiles = [
+      ...(byIdResult.data || [])
+    ];
+
+    try {
+      const missingIds = uniqueUserIds.filter(id =>
+        !profiles.some(p =>
+          String(p.id || "") === id ||
+          String(p.auth_user_id || "") === id
+        )
+      );
+
+      if (missingIds.length) {
+        const byAuthResult = await admin
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name,bio,avatar_url,verified,settings")
+          .in("auth_user_id", missingIds);
+
+        if (!byAuthResult.error) {
+          profiles.push(...(byAuthResult.data || []));
+        }
+      }
+    } catch (_) {}
+
+    const profileMap = new Map();
+
+    for (const profile of profiles) {
+      const id = String(profile.id || "");
+      const authId = String(profile.auth_user_id || "");
+
+      if (id) profileMap.set(id, profile);
+      if (authId) profileMap.set(authId, profile);
+    }
+
+    const orderedProfiles = [];
+
+    for (const id of userIds) {
+      const profile = profileMap.get(String(id));
+
+      if (!profile) continue;
+
+      const alreadyAdded = orderedProfiles.some(
+        p => String(p.id || "") === String(profile.id || "")
+      );
+
+      if (alreadyAdded) continue;
+
+      orderedProfiles.push(profile);
+    }
+
+    const activeProfiles =
+      await filterActiveProfiles(orderedProfiles);
+
+    const viewerFollowing = new Set();
+
+    if (uniqueUserIds.length && req.user?.id) {
+      const { data: viewerRows, error: viewerError } = await admin
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", req.user.id)
+        .in("following_id", uniqueUserIds);
+
+      if (!viewerError) {
+        for (const row of viewerRows || []) {
+          if (row?.following_id) {
+            viewerFollowing.add(
+              String(row.following_id)
+            );
+          }
+        }
+      }
+    }
+
+    return res.json(
+      activeProfiles.map(profile => {
+        const profileId =
+          String(profile.id || "");
+
+        const authId =
+          String(profile.auth_user_id || "");
+
+        return {
+          ...safeUser(profile),
+          followingByMe:
+            viewerFollowing.has(profileId) ||
+            viewerFollowing.has(authId)
+        };
+      })
+    );
+
+  } catch (e) {
+    console.error(
+      `FOLLOW ${type.toUpperCase()} LIST ERROR:`,
+      e?.message || e
+    );
+
+    return res.status(500).json({
+      error:
+        e?.message ||
+        "Takip listesi alınamadı"
+    });
+  }
+}
+
+app.get(
+  "/api/users/:username/followers",
+  auth,
+  async (req, res) => {
+    return getFollowListForProfile(
+      req,
+      res,
+      "followers"
+    );
+  }
+);
+
+app.get(
+  "/api/users/:username/following",
+  auth,
+  async (req, res) => {
+    return getFollowListForProfile(
+      req,
+      res,
+      "following"
+    );
+  }
+);
+
+
+/* =========================================================
    FOLLOW REQUESTS
 ========================================================= */
 
