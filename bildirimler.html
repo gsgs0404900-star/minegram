@@ -1198,7 +1198,7 @@ function notificationMessage(n){
     }
 
     if(type === 'comment'){
-        /* Örnek: @kullanici yorum yaptı: DSFSDFSDF */
+        /* Yorum bildirimi gerçek yazılan yorumu göstermeli. */
         if(n.text){
             return esc(String(n.text));
         }
@@ -1543,7 +1543,14 @@ function renderNotification(n){
 
             <div class="notification-text">
 
-                ${username ? `<b>@${esc(username)}</b>` : ''}
+                ${
+                    username && !(
+                        type === 'comment' &&
+                        String(n.text || '').trim().startsWith('@')
+                    )
+                        ? `<b>@${esc(username)}</b>`
+                        : ''
+                }
 
                 ${notificationMessage(n)}
 
