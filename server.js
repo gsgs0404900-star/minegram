@@ -146,57 +146,6 @@ function bearer(req) {
     : null;
 }
 
-async function isUserBlockedBy(blockerId, blockedId) {
-  if (!blockerId || !blockedId || String(blockerId) === String(blockedId)) return false;
-  const admin = adminClient();
-  const { data, error } = await admin
-    .from("blocks")
-    .select("id")
-    .eq("blocker_id", blockerId)
-    .eq("blocked_id", blockedId)
-    .maybeSingle();
-  if (error) {
-    // Tablo henüz oluşturulmadıysa mevcut sunucunun diğer özellikleri çalışmaya devam etsin.
-    if (String(error.code || "") === "42P01") return false;
-    throw error;
-  }
-  return !!data;
-}
-
-async function isBlockedEitherWay(userA, userB) {
-  if (!userA || !userB || String(userA) === String(userB)) return false;
-  const admin = adminClient();
-  const { data, error } = await admin
-    .from("blocks")
-    .select("id")
-    .or(`and(blocker_id.eq.${userA},blocked_id.eq.${userB}),and(blocker_id.eq.${userB},blocked_id.eq.${userA})`)
-    .limit(1);
-  if (error) {
-    if (String(error.code || "") === "42P01") return false;
-    throw error;
-  }
-  return Array.isArray(data) && data.length > 0;
-}
-
-async function blockedUserIdsFor(viewerId) {
-  if (!viewerId) return new Set();
-  const admin = adminClient();
-  const { data, error } = await admin
-    .from("blocks")
-    .select("blocker_id,blocked_id")
-    .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`);
-  if (error) {
-    if (String(error.code || "") === "42P01") return new Set();
-    throw error;
-  }
-  const ids = new Set();
-  for (const row of data || []) {
-    if (String(row.blocker_id) === String(viewerId)) ids.add(String(row.blocked_id));
-    if (String(row.blocked_id) === String(viewerId)) ids.add(String(row.blocker_id));
-  }
-  return ids;
-}
-
 async function auth(req, res, next) {
   try {
     const token = bearer(req);
@@ -402,7 +351,10 @@ async function addNotification({
   postId = null,
   text
 }) {
-  if (userId === fromUserId) {
+  const rawUserId = String(userId || "").trim();
+  const rawFromUserId = String(fromUserId || "").trim();
+
+  if (!rawUserId || rawUserId === rawFromUserId) {
     return;
   }
 
@@ -410,18 +362,42 @@ async function addNotification({
     return;
   }
 
-  const admin =
-    adminClient();
+  const admin = adminClient();
 
-  await admin
+  // posts.user_id eski kayıtlarda profiles.id, yeni kayıtlarda
+  // auth kullanıcı ID'si olabilir. Bildirimler ise giriş yapan
+  // kullanıcının auth ID'si ile okunuyor. Önce profile ID'sini
+  // kontrol edip varsa gerçek auth_user_id'ye çeviriyoruz.
+  let recipientId = rawUserId;
+  try {
+    const { data: profileById } = await admin
+      .from("profiles")
+      .select("id,auth_user_id")
+      .eq("id", rawUserId)
+      .maybeSingle();
+
+    if (profileById?.auth_user_id) {
+      recipientId = String(profileById.auth_user_id);
+    }
+  } catch (_) {}
+
+  if (recipientId === rawFromUserId) {
+    return;
+  }
+
+  const { error } = await admin
     .from("notifications")
     .insert({
-      user_id: userId,
+      user_id: recipientId,
       type,
-      from_user_id: fromUserId,
+      from_user_id: rawFromUserId,
       post_id: postId,
       text
     });
+
+  if (error) {
+    throw error;
+  }
 }
 
 
@@ -3144,8 +3120,6 @@ app.get(
       }
 
       const activePosts = await filterActivePosts(data || []);
-      const blockedIds = await blockedUserIdsFor(req.user.id);
-      const visiblePosts = activePosts.filter(post => !blockedIds.has(String(post?.user_id)));
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
       // kullanılmamalı. Aksi halde başka kullanıcının gönderisinin profili,
@@ -3155,7 +3129,7 @@ app.get(
       res.json(
         await hydratePosts(
           feedHydrateSb,
-          visiblePosts,
+          activePosts,
           req.user.id
         )
       );
@@ -3179,11 +3153,6 @@ app.get(
     try {
       const target = await findProfile(req.sb, req.params.username);
       if (!target) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-      }
-
-      const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -3942,9 +3911,7 @@ app.get(
           .in("following_id", storyUserIds);
         (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
       }
-      const blockedIds = await blockedUserIdsFor(req.user.id);
       const visibleStories = activeStories.filter(story => {
-        if (blockedIds.has(String(story?.user_id))) return false;
         const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
         const settings = profile?.settings || {};
         const isPrivate = !!(settings.private_account ?? settings.privateAccount ?? settings.private);
@@ -4066,7 +4033,7 @@ app.post(
       const {
         data: post
       } =
-        await req.sb
+        await adminClient()
           .from("posts")
           .select("user_id")
           .eq(
@@ -4108,6 +4075,123 @@ app.post(
 );
 
 
+
+/* =========================================================
+   COMMENT OWNER ACTIONS
+   Pin / restrict / block / report / delete
+========================================================= */
+
+const minegramPinnedComments = new Map();
+const minegramRestrictedCommenters = new Set();
+const minegramBlockedCommenters = new Set();
+
+function commentActionKey(ownerId, targetUserId) {
+  return `${String(ownerId || "")}:${String(targetUserId || "")}`;
+}
+
+function commentReportText(postId, comment, reporter) {
+  const username = String(reporter?.username || "").trim();
+  const target = String(comment?.username || comment?.user_id || "").trim();
+  return `Yorum şikayeti\nGönderi: ${postId}\nYorumu atan: ${target}\nŞikayet eden: ${username}\n\n${String(comment?.text || "").trim()}`;
+}
+
+app.post("/api/posts/:postId/comments/:commentId/action", auth, async (req, res) => {
+  try {
+    const postId = String(req.params.postId || "").trim();
+    const commentId = String(req.params.commentId || "").trim();
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    if (!postId || !commentId || !action) {
+      return res.status(400).json({ ok:false, error:"Geçersiz yorum işlemi." });
+    }
+
+    const admin = adminClient();
+    const { data: post, error: postError } = await admin
+      .from("posts")
+      .select("id,user_id")
+      .eq("id", postId)
+      .maybeSingle();
+    if (postError) throw postError;
+    if (!post) return res.status(404).json({ ok:false, error:"Gönderi bulunamadı." });
+
+    // Bu menüyü yalnızca gönderi sahibi kullanabilir.
+    if (String(post.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ ok:false, error:"Bu yorum üzerinde işlem yapma yetkin yok." });
+    }
+
+    const { data: comment, error: commentError } = await admin
+      .from("comments")
+      .select("id,post_id,user_id,text,created_at")
+      .eq("id", commentId)
+      .eq("post_id", postId)
+      .maybeSingle();
+    if (commentError) throw commentError;
+    if (!comment) return res.status(404).json({ ok:false, error:"Yorum bulunamadı." });
+
+    const targetUserId = String(comment.user_id || "");
+    const key = commentActionKey(req.user.id, targetUserId);
+
+    if (action === "delete") {
+      const { error } = await admin.from("comments").delete().eq("id", commentId).eq("post_id", postId);
+      if (error) throw error;
+      if (minegramPinnedComments.get(postId) === commentId) minegramPinnedComments.delete(postId);
+      return res.json({ ok:true, action, deleted:true, commentId });
+    }
+
+    if (action === "pin") {
+      const current = minegramPinnedComments.get(postId);
+      if (current === commentId) {
+        minegramPinnedComments.delete(postId);
+        return res.json({ ok:true, action, pinned:false, commentId });
+      }
+      minegramPinnedComments.set(postId, commentId);
+      return res.json({ ok:true, action, pinned:true, commentId });
+    }
+
+    if (action === "restrict") {
+      if (!targetUserId) return res.status(400).json({ ok:false, error:"Yorum sahibinin kullanıcı kimliği bulunamadı." });
+      if (minegramRestrictedCommenters.has(key)) minegramRestrictedCommenters.delete(key);
+      else minegramRestrictedCommenters.add(key);
+      return res.json({ ok:true, action, restricted:minegramRestrictedCommenters.has(key), userId:targetUserId });
+    }
+
+    if (action === "block") {
+      if (!targetUserId) return res.status(400).json({ ok:false, error:"Yorum sahibinin kullanıcı kimliği bulunamadı." });
+      if (minegramBlockedCommenters.has(key)) minegramBlockedCommenters.delete(key);
+      else minegramBlockedCommenters.add(key);
+      return res.json({ ok:true, action, blocked:minegramBlockedCommenters.has(key), userId:targetUserId });
+    }
+
+    if (action === "report") {
+      let profile = null;
+      try {
+        const { data } = await admin.from("profiles").select("username,display_name").eq("id", targetUserId).maybeSingle();
+        profile = data;
+      } catch (_) {}
+      const reportText = commentReportText(postId, {
+        ...comment,
+        username: profile?.username || targetUserId
+      }, req.user);
+      try {
+        await sendGmailApiEmail({
+          to: "minegramdestek@gmail.com",
+          subject: `Minegram Yorum Şikayeti - ${profile?.username ? `@${profile.username}` : targetUserId}`,
+          html: `<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${reportText.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</div>`,
+          text: reportText,
+          replyTo: String(req.user?.email || "").trim() || undefined
+        });
+      } catch (mailError) {
+        console.warn("COMMENT REPORT MAIL ERROR:", mailError?.message || mailError);
+      }
+      return res.json({ ok:true, action, reported:true, commentId });
+    }
+
+    return res.status(400).json({ ok:false, error:"Bilinmeyen yorum işlemi." });
+  } catch (e) {
+    console.error("COMMENT ACTION ERROR:", e?.message || e);
+    return res.status(400).json({ ok:false, error:e?.message || "Yorum işlemi başarısız." });
+  }
+});
+
 /* =========================================================
    COMMENTS
 ========================================================= */
@@ -4118,11 +4202,10 @@ app.get(
   auth,
   async (req, res) => {
     try {
+      // Yorum listesini profiles JOIN'ine bağlamıyoruz. Böylece profil
+      // foreign-key/ilişki tanımı sorunlu olsa bile kayıtlı yorumlar
+      // uygulama ve web tarafına ulaşmaya devam eder.
       const admin = adminClient();
-
-      // Yorumları doğrudan comments tablosundan oku.
-      // Profil JOIN'i eski kayıtlar / foreign-key farkları yüzünden
-      // yorum listesinin tamamını bozmasın.
       const { data, error } = await admin
         .from("comments")
         .select("id,post_id,user_id,text,created_at")
@@ -4131,41 +4214,36 @@ app.get(
 
       if (error) throw error;
 
-      const userIds = [...new Set(
-        (data || [])
-          .map(x => String(x.user_id || "").trim())
-          .filter(Boolean)
-      )];
+      const rows = data || [];
+      const userIds = [...new Set(rows.map(x => String(x.user_id || "")).filter(Boolean))];
+      const profileMap = {};
 
-      let profiles = [];
       if (userIds.length) {
-        // Önce id üzerinden; auth_user_id kullanılan eski hesapları da destekle.
-        const { data: rows } = await admin
+        const { data: profiles } = await admin
           .from("profiles")
           .select("id,auth_user_id,username,display_name,avatar_url")
           .in("id", userIds);
-        profiles = rows || [];
+        (profiles || []).forEach(pr => {
+          profileMap[String(pr.id)] = pr;
+          if (pr.auth_user_id) profileMap[String(pr.auth_user_id)] = pr;
+        });
 
-        const missing = userIds.filter(id =>
-          !profiles.some(p => String(p.id || "") === id || String(p.auth_user_id || "") === id)
-        );
+        const missing = userIds.filter(id => !profileMap[id]);
         if (missing.length) {
-          const { data: authRows } = await admin
+          const { data: profilesByAuth } = await admin
             .from("profiles")
             .select("id,auth_user_id,username,display_name,avatar_url")
             .in("auth_user_id", missing);
-          profiles.push(...(authRows || []));
+          (profilesByAuth || []).forEach(pr => {
+            if (pr.id) profileMap[String(pr.id)] = pr;
+            if (pr.auth_user_id) profileMap[String(pr.auth_user_id)] = pr;
+          });
         }
       }
 
-      const profileMap = new Map();
-      for (const profile of profiles) {
-        if (profile?.id != null) profileMap.set(String(profile.id), profile);
-        if (profile?.auth_user_id != null) profileMap.set(String(profile.auth_user_id), profile);
-      }
-
-      const comments = (data || []).map(item => {
-        const profile = profileMap.get(String(item.user_id || "")) || {};
+      const pinnedId = minegramPinnedComments.get(String(req.params.id)) || "";
+      const comments = rows.map(item => {
+        const profile = profileMap[String(item.user_id || "")] || {};
         const createdAtMs = item.created_at
           ? new Date(item.created_at).getTime()
           : Date.now();
@@ -4177,14 +4255,12 @@ app.get(
           createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
           username: profile.username || "",
           displayName: profile.display_name || profile.username || "",
-          avatar: profile.avatar_url || ""
+          avatar: profile.avatar_url || "",
+          pinned: String(item.id) === String(pinnedId)
         };
-      });
+      }).sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.createdAt - b.createdAt);
 
-      res.json({
-        comments,
-        commentCount: comments.length
-      });
+      res.json({ comments, commentCount: comments.length, pinnedCommentId: pinnedId || null });
     } catch (e) {
       res.status(400).json({
         error: e.message
@@ -4192,7 +4268,6 @@ app.get(
     }
   }
 );
-
 
 app.post(
   "/api/posts/:id/comments",
@@ -4212,19 +4287,19 @@ app.post(
         });
       }
 
+      // Yorum ekleme RLS'ye takılmasın: kimlik doğrulaması auth() ile
+      // zaten yapıldı. comments.user_id alanı profiles.id kullandığı için
+      // doğrulanmış profil kimliğini service-role ile yazıyoruz.
+      const admin = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("comments")
           .insert({
-            post_id:
-              req.params.id,
-
-            user_id:
-              req.user.id,
-
+            post_id: req.params.id,
+            user_id: req.user.id,
             text
           })
           .select("*")
@@ -4237,7 +4312,7 @@ app.post(
       const {
         data: post
       } =
-        await req.sb
+        await adminClient()
           .from("posts")
           .select("user_id")
           .eq(
@@ -4247,22 +4322,17 @@ app.post(
           .single();
 
       if (post) {
-        await addNotification({
-          userId:
-            post.user_id,
-
-          fromUserId:
-            req.user.id,
-
-          type:
-            "comment",
-
-          postId:
-            req.params.id,
-
-          text:
-            `@${req.user.username} yorum yaptı`
-        });
+        try {
+          await addNotification({
+            userId: post.user_id,
+            fromUserId: req.user.id,
+            type: "comment",
+            postId: req.params.id,
+            text: `@${req.user.username} yorum yaptı: ${text}`
+          });
+        } catch (notificationError) {
+          console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
+        }
       }
 
       const { count: commentCount, error: countError } = await adminClient()
@@ -4487,25 +4557,47 @@ app.get(
         throw error;
       }
 
+      const notifications = data || [];
+
+      // Bildirimlerde ilgili gönderinin küçük resmini göstermek için
+      // post_id değerlerini tek seferde alıyoruz.
+      const postIds = [...new Set(
+        notifications
+          .map(n => n.post_id)
+          .filter(Boolean)
+          .map(String)
+      )];
+
+      let postMap = new Map();
+      if (postIds.length) {
+        const { data: posts, error: postsError } = await adminClient()
+          .from("posts")
+          .select("id,media_url,media_type")
+          .in("id", postIds);
+
+        if (!postsError) {
+          postMap = new Map((posts || []).map(p => [String(p.id), p]));
+        }
+      }
+
       res.json(
-        (data || []).map(
-          n => ({
-            id:
-              n.id,
-
-            type:
-              n.type,
-
-            text:
-              n.text,
-
-            read:
-              n.read,
-
-            createdAt:
-              n.created_at
-          })
-        )
+        notifications.map(n => {
+          const post = n.post_id ? postMap.get(String(n.post_id)) : null;
+          return {
+            id: n.id,
+            type: n.type,
+            text: n.text,
+            read: n.read,
+            createdAt: n.created_at,
+            postId: n.post_id || null,
+            post: post ? {
+              id: post.id,
+              media: post.media_url || "",
+              mediaUrl: post.media_url || "",
+              mediaType: post.media_type || ""
+            } : null
+          };
+        })
       );
 
     } catch (e) {
@@ -4571,10 +4663,6 @@ app.post(
         return res.status(404).json({
           error: "Kullanıcı bulunamadı"
         });
-      }
-
-      if (await isBlockedEitherWay(req.user.id, target.auth_user_id || target.id)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       if (
@@ -5086,11 +5174,6 @@ app.get(
         });
       }
 
-      const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-      }
-
       const [
         postCountResult,
         followersResult,
@@ -5248,80 +5331,6 @@ app.get(
 
 
 /* =========================================================
-   BLOCKS
-   Engelleyen kullanıcı hedefi görmeye devam eder.
-   Engellenen kullanıcı ise hedefi profil/içerik/mesaj tarafında göremez.
-========================================================= */
-app.get("/api/blocks", auth, async (req, res) => {
-  try {
-    const admin = adminClient();
-    const { data, error } = await admin
-      .from("blocks")
-      .select("id,blocker_id,blocked_id,created_at")
-      .eq("blocker_id", req.user.id)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    res.json(data || []);
-  } catch (e) {
-    res.status(500).json({ error: e?.message || "Engellenen kullanıcılar alınamadı." });
-  }
-});
-
-app.post("/api/users/:username/block", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    const targetId = target.auth_user_id || target.id;
-    if (String(targetId) === String(req.user.id)) {
-      return res.status(400).json({ error: "Kendini engelleyemezsin" });
-    }
-    const admin = adminClient();
-    const { data, error } = await admin
-      .from("blocks")
-      .upsert({ blocker_id: req.user.id, blocked_id: targetId }, { onConflict: "blocker_id,blocked_id" })
-      .select("id,blocker_id,blocked_id,created_at")
-      .single();
-    if (error) throw error;
-
-    // Karşılıklı etkileşimleri kes: mevcut takip ilişkilerini kaldır.
-    await admin.from("follows").delete()
-      .or(`and(follower_id.eq.${req.user.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${req.user.id})`);
-
-    res.json({ ok: true, blocked: true, block: data });
-  } catch (e) {
-    console.error("BLOCK ERROR:", e);
-    res.status(400).json({ error: e?.message || "Kullanıcı engellenemedi." });
-  }
-});
-
-app.delete("/api/users/:username/block", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    const targetId = target.auth_user_id || target.id;
-    const { error } = await adminClient().from("blocks")
-      .delete().eq("blocker_id", req.user.id).eq("blocked_id", targetId);
-    if (error) throw error;
-    res.json({ ok: true, blocked: false });
-  } catch (e) {
-    res.status(400).json({ error: e?.message || "Engel kaldırılamadı." });
-  }
-});
-
-app.get("/api/users/:username/block-status", auth, async (req, res) => {
-  try {
-    const target = await findProfile(req.sb, req.params.username);
-    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    const targetId = target.auth_user_id || target.id;
-    const blockedByMe = await isUserBlockedBy(req.user.id, targetId);
-    const blockedMe = await isUserBlockedBy(targetId, req.user.id);
-    res.json({ blockedByMe, blockedMe, blocked: blockedByMe || blockedMe });
-  } catch (e) {
-    res.status(500).json({ error: e?.message || "Engel durumu alınamadı." });
-  }
-});
-
-/* =========================================================
    MESSAGES
 ========================================================= */
 
@@ -5354,13 +5363,8 @@ app.get(
         throw error;
       }
 
-      const blockedIds = await blockedUserIdsFor(req.user.id);
-      const visibleMessages = (data || []).filter(m =>
-        !blockedIds.has(String(m.sender_id)) && !blockedIds.has(String(m.recipient_id))
-      );
-
       res.json(
-        visibleMessages.map(
+        (data || []).map(
           m => ({
             id:
               m.id,
@@ -5415,11 +5419,6 @@ app.post(
           error:
             "Kullanıcı bulunamadı"
         });
-      }
-
-      const targetId = target.auth_user_id || target.id;
-      if (await isBlockedEitherWay(req.user.id, targetId)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       if (!text) {
@@ -6455,3 +6454,10 @@ app.listen(
     );
   }
 );
+
+
+// MINEGRAM BOT HESAP FILTRESI - ONERILENLER
+// Önerilenler sorgularında bot hesapları filtrelemek için kullanılır.
+// profiles sorgularına uygun yerde:
+// .eq("is_bot", false)
+// filtresi eklenmelidir.
