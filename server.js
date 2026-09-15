@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
@@ -351,7 +352,10 @@ async function addNotification({
   postId = null,
   text
 }) {
-  if (userId === fromUserId) {
+  const rawUserId = String(userId || "").trim();
+  const rawFromUserId = String(fromUserId || "").trim();
+
+  if (!rawUserId || rawUserId === rawFromUserId) {
     return;
   }
 
@@ -359,18 +363,42 @@ async function addNotification({
     return;
   }
 
-  const admin =
-    adminClient();
+  const admin = adminClient();
 
-  await admin
+  // posts.user_id eski kayıtlarda profiles.id, yeni kayıtlarda
+  // auth kullanıcı ID'si olabilir. Bildirimler ise giriş yapan
+  // kullanıcının auth ID'si ile okunuyor. Önce profile ID'sini
+  // kontrol edip varsa gerçek auth_user_id'ye çeviriyoruz.
+  let recipientId = rawUserId;
+  try {
+    const { data: profileById } = await admin
+      .from("profiles")
+      .select("id,auth_user_id")
+      .eq("id", rawUserId)
+      .maybeSingle();
+
+    if (profileById?.auth_user_id) {
+      recipientId = String(profileById.auth_user_id);
+    }
+  } catch (_) {}
+
+  if (recipientId === rawFromUserId) {
+    return;
+  }
+
+  const { error } = await admin
     .from("notifications")
     .insert({
-      user_id: userId,
+      user_id: recipientId,
       type,
-      from_user_id: fromUserId,
+      from_user_id: rawFromUserId,
       post_id: postId,
       text
     });
+
+  if (error) {
+    throw error;
+  }
 }
 
 
