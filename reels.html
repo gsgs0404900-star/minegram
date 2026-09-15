@@ -84,6 +84,7 @@ body{padding:0}
 .reel-card{display:block!important;visibility:visible!important;background:#000!important}
 .reel-card video{visibility:visible!important;opacity:1!important}
 @media(max-width:700px){#reelsBox{bottom:76px!important;height:calc(100dvh - 76px)!important}.reel-card{height:calc(100dvh - 76px)!important;min-height:0!important}.empty{min-height:calc(100dvh - 76px)!important}}
+video::-webkit-media-controls{display:none!important}
 </style>
 </head>
 <body>
@@ -296,38 +297,81 @@ window.minegramSessionReady=checkSession();
 
 <script>
 (function(){
- const DB='minegram_reels_db',STORE='reels';let dbPromise;
- function username(){return String(window.minegramCurrentUser||localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'').trim()||'kullanici'}
- function db(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});return dbPromise}
- async function load(){const d=await db();return new Promise((res,rej)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).getAll();q.onsuccess=()=>res((q.result||[]).sort((a,b)=>Number(a.id)-Number(b.id)));q.onerror=()=>rej(q.error)})}
- async function saveAll(a){const d=await db();return new Promise((res,rej)=>{const tx=d.transaction(STORE,'readwrite'),st=tx.objectStore(STORE);st.clear();a.forEach(x=>st.put(x));tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+ const API='/api';
+ function token(){return localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||localStorage.getItem('token')||null}
+ function authHeaders(){const t=token();return t?{Authorization:'Bearer '+t}:{} }
+ function username(){return String(window.minegramCurrentUser||localStorage.getItem('username')||localStorage.getItem('currentUser')||localStorage.getItem('minegram_username')||'').replace(/^@/,'').trim()||'kullanici'}
  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
- function openCreator(u){u=String(u||'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
- function comments(un){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>'+esc(un)+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');function add(){if(input.value.trim()){const d=document.createElement('div');d.textContent=input.value.trim();d.style.padding='9px 0';list.appendChild(d);input.value=''}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
- function share(r){const text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share)navigator.share({text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Reels mesajı panoya kopyalandı.')).catch(()=>alert(text));else alert(text)}
- function playVisible(card){const v=card.querySelector('video');document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{})}
- async function render(){
-  const box=document.getElementById('reelsBox');if(!box)return;let reels=[];try{reels=await load()}catch(e){console.error(e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sayfayı yenileyip tekrar deneyin.</small></div>';return}
-  box.innerHTML='';
-  if(!reels.length){box.innerHTML='<div class="empty"><strong>Henüz Reel yok</strong><small>İlk videoyu sen paylaş.</small></div>';return}
-  const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);
-  reels.forEach(r=>{
-    const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;
-    const u=String(r.username||r.creatorUsername||'').trim()||'kullanici';
-    card.innerHTML='<video playsinline muted loop preload="metadata"></video><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(u)+'" data-creator="'+esc(u)+'">@'+esc(u)+'<span class="verified">✓</span></a><div class="reel-desc">'+esc(r.description||'Bugünün videosu 🔥')+'</div></div><div class="reel-actions"><button class="reel-action like" type="button" aria-label="Beğen">♡</button><div class="reel-count">'+(Number(r.likes)||0)+'</div><div class="reel-view"><span class="reel-view-icon">◉</span> '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button" aria-label="Yorum">▢</button><button class="reel-action share" type="button" aria-label="Paylaş">➤</button></div>';
-    const video=card.querySelector('video');if(r.mediaBlob)video.src=URL.createObjectURL(r.mediaBlob);else if(r.mediaUri)video.src=r.mediaUri;else if(r.mediaData)video.src=r.mediaData;
-    card.querySelector('.reel-user-tag').onclick=e=>{e.preventDefault();openCreator(u)};
-    card.querySelector('.like').onclick=async()=>{r._liked=!r._liked;r.likes=Math.max(0,(Number(r.likes)||0)+(r._liked?1:-1));const b=card.querySelector('.like');b.textContent=r._liked?'♥':'♡';b.classList.toggle('liked',r._liked);card.querySelector('.reel-count').textContent=r.likes;await saveAll(reels)};
-    card.querySelector('.comment').onclick=()=>comments(u);card.querySelector('.share').onclick=()=>share(r);
-    video.addEventListener('click',()=>{if(video.paused)video.play().catch(()=>{});else video.pause()});
-    feed.appendChild(card);
+ function openCreator(u){u=String(u||'').replace(/^@/,'').trim();if(!u)return;try{localStorage.setItem('minegram_discover_creator',u)}catch(e){}location.href='ara.html?username='+encodeURIComponent(u)}
+ function toast(msg){let t=document.getElementById('reelToast');if(!t){t=document.createElement('div');t.id='reelToast';t.style='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:2147483647;background:rgba(20,20,20,.94);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;display:none';document.body.appendChild(t)}t.textContent=msg;t.style.display='block';clearTimeout(window.__reelToast);window.__reelToast=setTimeout(()=>t.style.display='none',2200)}
+ async function api(path,opt={}){const h={...authHeaders(),...(opt.headers||{})};if(opt.body instanceof FormData){delete h['Content-Type'];delete h['content-type']}const r=await fetch(API+path,{...opt,headers:h,cache:'no-store'});let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
+ async function loadReels(){
+  const data=await api('/feed');
+  const list=Array.isArray(data)?data:(Array.isArray(data?.posts)?data.posts:(Array.isArray(data?.data)?data.data:[]));
+  return list.map(p=>({
+    ...p,
+    media:p.media||p.mediaUrl||p.media_url||p.mediaUri||p.media_uri||p.url||'',
+    mediaType:p.mediaType||p.media_type||'',
+    user:p.user||p.profile||{username:p.username||p.sender||'',verified:!!p.verified}
+  })).filter(p=>{
+    const m=String(p.mediaType||'').toLowerCase();
+    const u=String(p.media||'');
+    return u && (m.startsWith('video') || /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(u));
   });
-  const io=new IntersectionObserver(entries=>entries.forEach(async e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){playVisible(e.target);const id=e.target.dataset.id;const k=username()+'_'+id;let seen={};try{seen=JSON.parse(localStorage.getItem('minegram_reel_views')||'{}')}catch(x){}if(!seen[k]){seen[k]=1;localStorage.setItem('minegram_reel_views',JSON.stringify(seen));const a=await load(),r=a.find(x=>String(x.id)===String(id));if(r){r.views=(Number(r.views)||0)+1;await saveAll(a);const el=e.target.querySelector('.reel-view');if(el)el.innerHTML='<span class="reel-view-icon">◉</span> '+r.views}}}else v.pause()}),{threshold:[.65]});
-  box.querySelectorAll('.reel-card').forEach(x=>io.observe(x));
- }
- async function pickFile(){const input=document.getElementById('reelFileInput');if(!input)return;input.value='';input.click()}
- function picker(){const input=document.getElementById('reelFileInput');input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;const creator=username();a.push({id,username:creator,creatorUsername:creator,description:'Bugünün videosu 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();const last=document.querySelector('.reel-card:last-child');if(last)last.scrollIntoView({behavior:'smooth'});alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.')}input.value=''})}
- async function init(){picker();document.getElementById('reelAddButton').addEventListener('click',pickFile);document.getElementById('reelsBack').onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};await render();if(window.minegramSessionReady)window.minegramSessionReady.then(()=>render()).catch(()=>{})}
+}
+ async function toggleLike(r,card){try{const d=await api('/posts/'+encodeURIComponent(r.id)+'/like',{method:'POST'});r.likedByMe=!!d.liked;const n=Number(d.likes??(r.likes?.length||0));card.querySelector('.reel-count').textContent=n;const b=card.querySelector('.like');b.textContent=r.likedByMe?'♥':'♡';b.classList.toggle('liked',r.likedByMe)}catch(e){toast('Beğeni işlemi yapılamadı')}}
+ function comments(r){const old=document.querySelector('.reel-comments');if(old)old.remove();const ov=document.createElement('div');ov.className='reel-comments';ov.innerHTML='<div class="reel-comments-head"><b>@'+esc(r.user?.username||'kullanici')+' yorumları</b><button type="button" class="close">✕</button></div><div class="reel-comments-list"></div><div class="reel-comments-input"><input placeholder="Yorum yaz..."/><button type="button">Gönder</button></div>';document.body.appendChild(ov);const list=ov.querySelector('.reel-comments-list'),input=ov.querySelector('input');(r.comments||[]).forEach(c=>{const d=document.createElement('div');d.innerHTML='<b>@'+esc(c.username||'user')+'</b> '+esc(c.text||'');d.style.padding='8px 0';list.appendChild(d)});async function add(){const txt=input.value.trim();if(!txt)return;try{const d=await api('/posts/'+encodeURIComponent(r.id)+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})});const c=d.comment||d;const el=document.createElement('div');el.innerHTML='<b>@'+esc(c.username||username())+'</b> '+esc(c.text||txt);el.style.padding='8px 0';list.appendChild(el);input.value=''}catch(e){toast('Yorum gönderilemedi')}}ov.querySelector('.close').onclick=()=>ov.remove();ov.querySelector('.reel-comments-input button').onclick=add;input.onkeydown=e=>{if(e.key==='Enter')add()}}
+ function share(r){const text='🎬 @'+(r.user?.username||username())+' Reels: '+(r.caption||'');if(navigator.share)navigator.share({title:'Minegram Reels',text,url:location.href}).catch(()=>{});else navigator.clipboard?.writeText(text).then(()=>toast('Reels mesajı panoya kopyalandı')).catch(()=>toast(text))}
+ async function render(){const box=document.getElementById('reelsBox');if(!box)return;try{const reels=await loadReels();if(window.__newMinegramReel && !reels.some(x=>String(x.id)===String(window.__newMinegramReel.id))){reels.unshift(window.__newMinegramReel)}box.innerHTML='';if(!reels.length){box.innerHTML='<div class="empty"><strong>Henüz Reel yok</strong><small>İlk videoyu sen paylaş.</small></div>';return}const feed=document.createElement('div');feed.className='reels-feed';box.appendChild(feed);reels.forEach(r=>{const u=String(r.user?.username||'').replace(/^@/,'').trim()||'kullanici';const card=document.createElement('article');card.className='reel-card';card.dataset.id=r.id;card.innerHTML='<video src="'+esc(r.media)+'" playsinline muted loop preload="metadata"></video><div class="reel-info"><a class="reel-user-tag" href="ara.html?username='+encodeURIComponent(u)+'">@'+esc(u)+(r.user?.verified?'<span class="verified">✓</span>':'')+'</a><div class="reel-desc">'+esc(r.caption||'Bugünün videosu 🔥')+'</div></div><div class="reel-actions"><button class="reel-action like '+(r.likedByMe?'liked':'')+'" type="button">'+(r.likedByMe?'♥':'♡')+'</button><div class="reel-count">'+((r.likes||[]).length)+'</div><div class="reel-view"><span class="reel-view-icon">◉</span> '+(Number(r.views)||0)+'</div><button class="reel-action comment" type="button">▢</button><button class="reel-action share" type="button">➤</button></div>';const v=card.querySelector('video');card.querySelector('.reel-user-tag').onclick=e=>{e.preventDefault();openCreator(u)};card.querySelector('.like').onclick=()=>toggleLike(r,card);card.querySelector('.comment').onclick=()=>comments(r);card.querySelector('.share').onclick=()=>share(r);v.addEventListener('error',()=>{console.warn('Reel video yüklenemedi',r.media);const m=document.createElement('div');m.style='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;z-index:5;pointer-events:none';m.textContent='Video yüklenemedi';card.appendChild(m)});v.addEventListener('click',()=>v.paused?v.play().catch(()=>{}):v.pause());feed.appendChild(card)});const io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){document.querySelectorAll('.reel-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{})}else v.pause()}),{threshold:[.65]});feed.querySelectorAll('.reel-card').forEach(x=>io.observe(x))}catch(e){console.error('[REELS]',e);box.innerHTML='<div class="empty"><strong>Reels yüklenemedi</strong><small>Sunucuya bağlanılamadı. Sayfayı yenileyin.</small></div>'}}
+ async function uploadReel(){
+  const input=document.getElementById('reelFileInput');
+  const f=input?.files?.[0];
+  if(!f)return;
+  if(!String(f.type).startsWith('video/')){toast('Lütfen video seç.');return}
+  if(f.size>100*1024*1024){toast('Video en fazla 100 MB olabilir.');return}
+  if(!token()){toast('Oturum bulunamadı.');return}
+  const fd=new FormData();
+  fd.append('media',f,f.name);
+  fd.append('caption','Bugünün videosu 🔥');
+  const btn=document.getElementById('reelAddButton');
+  if(btn)btn.disabled=true;
+  try{
+    toast('Video yükleniyor...');
+    const result=await api('/posts',{method:'POST',body:fd});
+    const uploadedMedia=String(result?.media||result?.mediaUrl||result?.media_url||result?.url||result?.mediaUri||'');
+    if(!uploadedMedia)throw new Error('Sunucu video adresi döndürmedi');
+    /* Yeni yüklenen videoyu feed beklemeden doğrudan göster. */
+    const currentUser=String(result?.username||result?.user?.username||window.minegramCurrentUser||username()).replace(/^@/,'').trim()||username();
+    const reel={
+      id:result?.id||result?.postId||('new-'+Date.now()),
+      media:uploadedMedia,
+      mediaType:result?.mediaType||result?.media_type||f.type,
+      caption:result?.caption||result?.text||'Bugünün videosu 🔥',
+      likes:Array.isArray(result?.likes)?result.likes:[],
+      comments:Array.isArray(result?.comments)?result.comments:[],
+      views:Number(result?.views)||0,
+      likedByMe:!!result?.likedByMe,
+      user:{username:currentUser,verified:!!(result?.user?.verified||result?.verified)}
+    };
+    window.__newMinegramReel=reel;
+    toast('Reels başarıyla siteye eklendi');
+    try{await render()}catch(e){console.warn('[REELS RENDER]',e)}
+    /* Feed gecikmeli gelirse de yeni videoyu kaybetme. */
+    setTimeout(async()=>{try{await render()}catch(e){}},1200);
+    setTimeout(()=>{
+      const first=document.querySelector('.reel-card');
+      if(first)first.scrollIntoView({behavior:'smooth',block:'start'});
+      const v=first?.querySelector('video');
+      if(v)v.play().catch(()=>{});
+    },150);
+  }catch(e){
+    console.error('[REELS UPLOAD]',e);
+    toast('Video siteye yüklenemedi: '+(e?.message||'Bilinmeyen hata'));
+  }finally{
+    if(btn)btn.disabled=false;
+    input.value='';
+  }
+} function init(){const input=document.getElementById('reelFileInput'),btn=document.getElementById('reelAddButton'),back=document.getElementById('reelsBack');if(input)input.addEventListener('change',uploadReel);if(btn)btn.onclick=()=>{if(input){input.value='';input.click()}}if(back)back.onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};render();if(window.minegramSessionReady)window.minegramSessionReady.then(()=>render()).catch(()=>{})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
