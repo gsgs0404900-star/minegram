@@ -7663,6 +7663,81 @@ async function sendComment(){
    YORUM BEĞENİ
 ========================================================= */
 
+
+/* =========================================================
+   GÖNDERİ SAHİBİ - YORUMA UZUN BASMA MENÜSÜ
+========================================================= */
+
+(function initCommentOwnerLongPress(){
+  let timer = null;
+  let longPressed = false;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+  document.addEventListener("pointerdown", async function(e){
+    const wrap = e.target.closest?.(".comment-wrap");
+    if (!wrap || !currentCommentPost) return;
+    if (e.target.closest("button,a,input,textarea")) return;
+
+    const commentId = wrap.getAttribute("data-comment-id") || "";
+    if (!commentId || commentId.startsWith("local-")) return;
+
+    clear();
+    longPressed = false;
+    timer = setTimeout(async () => {
+      longPressed = true;
+      try {
+        const post = await api("/posts/" + encodeURIComponent(currentCommentPost));
+        const owner = String(post?.user?.username || post?.username || post?.post?.user?.username || "").replace(/^@/, "").toLowerCase();
+        const me = String(currentUser?.username || "").replace(/^@/, "").toLowerCase();
+        if (!owner || !me || owner !== me) return;
+
+        const choice = prompt("Yorum işlemi:\n1 - 📌 Sabitle / sabitlemeyi kaldır\n2 - Kısıtla / kısıtlamayı kaldır\n3 - Şikayet et\n4 - Engelle / engeli kaldır\n5 - Sil\n\nNumara gir:", "1");
+        const actionMap = {"1":"pin","2":"restrict","3":"report","4":"block","5":"delete"};
+        const action = actionMap[String(choice || "").trim()];
+        if (!action) return;
+        if (action === "delete" && !confirm("Bu yorumu silmek istediğine emin misin?")) return;
+
+        const result = await api(
+          "/posts/" + encodeURIComponent(currentCommentPost) + "/comments/" + encodeURIComponent(commentId) + "/action",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action })
+          }
+        );
+
+        toast(
+          action === "delete" ? "Yorum silindi." :
+          action === "pin" ? (result?.pinned ? "Yorum sabitlendi." : "Yorum sabitlemesi kaldırıldı.") :
+          action === "restrict" ? (result?.restricted ? "Kullanıcı kısıtlandı." : "Kısıtlama kaldırıldı.") :
+          action === "block" ? (result?.blocked ? "Kullanıcı engellendi." : "Engel kaldırıldı.") :
+          "Yorum şikayet edildi."
+        );
+
+        if (action === "delete") {
+          wrap.remove();
+        } else {
+          refreshComments(false);
+        }
+      } catch (err) {
+        toast(err?.message || "Yorum işlemi başarısız.");
+      }
+    }, 650);
+  }, { passive: true });
+
+  ["pointerup","pointercancel","pointerleave"].forEach(type => {
+    document.addEventListener(type, function(){ clear(); }, { passive: true });
+  });
+
+  document.addEventListener("click", function(e){
+    if (longPressed) {
+      e.preventDefault();
+      e.stopPropagation();
+      longPressed = false;
+    }
+  }, true);
+})();
+
 async function likeComment(id){
 
   if(!id){
