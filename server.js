@@ -4141,19 +4141,19 @@ app.post(
         });
       }
 
+      // Yorum ekleme RLS'ye takılmasın: kimlik doğrulaması auth() ile
+      // zaten yapıldı. comments.user_id alanı profiles.id kullandığı için
+      // doğrulanmış profil kimliğini service-role ile yazıyoruz.
+      const admin = adminClient();
       const {
         data,
         error
       } =
-        await req.sb
+        await admin
           .from("comments")
           .insert({
-            post_id:
-              req.params.id,
-
-            user_id:
-              req.user.id,
-
+            post_id: req.params.id,
+            user_id: req.user.id,
             text
           })
           .select("*")
@@ -4176,22 +4176,17 @@ app.post(
           .single();
 
       if (post) {
-        await addNotification({
-          userId:
-            post.user_id,
-
-          fromUserId:
-            req.user.id,
-
-          type:
-            "comment",
-
-          postId:
-            req.params.id,
-
-          text:
-            `@${req.user.username} yorum yaptı`
-        });
+        try {
+          await addNotification({
+            userId: post.user_id,
+            fromUserId: req.user.id,
+            type: "comment",
+            postId: req.params.id,
+            text: `@${req.user.username} yorum yaptı`
+          });
+        } catch (notificationError) {
+          console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
+        }
       }
 
       const { count: commentCount, error: countError } = await adminClient()
