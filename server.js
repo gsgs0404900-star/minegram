@@ -4058,45 +4058,66 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const { data, error } = await adminClient()
+      const admin = adminClient();
+
+      // Yorumları doğrudan comments tablosundan oku.
+      // Profil JOIN'i eski kayıtlar / foreign-key farkları yüzünden
+      // yorum listesinin tamamını bozmasın.
+      const { data, error } = await admin
         .from("comments")
-        .select(`
-          id,
-          post_id,
-          user_id,
-          text,
-          created_at,
-          profiles:profiles!comments_user_id_fkey(
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select("id,post_id,user_id,text,created_at")
         .eq("post_id", req.params.id)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
-      const comments = (data || []).map((item) => {
-        const profile = Array.isArray(item.profiles)
-          ? item.profiles[0]
-          : item.profiles;
+      const userIds = [...new Set(
+        (data || [])
+          .map(x => String(x.user_id || "").trim())
+          .filter(Boolean)
+      )];
 
+      let profiles = [];
+      if (userIds.length) {
+        // Önce id üzerinden; auth_user_id kullanılan eski hesapları da destekle.
+        const { data: rows } = await admin
+          .from("profiles")
+          .select("id,auth_user_id,username,display_name,avatar_url")
+          .in("id", userIds);
+        profiles = rows || [];
+
+        const missing = userIds.filter(id =>
+          !profiles.some(p => String(p.id || "") === id || String(p.auth_user_id || "") === id)
+        );
+        if (missing.length) {
+          const { data: authRows } = await admin
+            .from("profiles")
+            .select("id,auth_user_id,username,display_name,avatar_url")
+            .in("auth_user_id", missing);
+          profiles.push(...(authRows || []));
+        }
+      }
+
+      const profileMap = new Map();
+      for (const profile of profiles) {
+        if (profile?.id != null) profileMap.set(String(profile.id), profile);
+        if (profile?.auth_user_id != null) profileMap.set(String(profile.auth_user_id), profile);
+      }
+
+      const comments = (data || []).map(item => {
+        const profile = profileMap.get(String(item.user_id || "")) || {};
         const createdAtMs = item.created_at
           ? new Date(item.created_at).getTime()
           : Date.now();
-
         return {
           id: item.id,
           postId: item.post_id,
           userId: item.user_id,
           text: item.text || "",
-          createdAt: Number.isFinite(createdAtMs)
-            ? createdAtMs
-            : Date.now(),
-          username: profile?.username || "",
-          displayName: profile?.display_name || "",
-          avatar: profile?.avatar_url || ""
+          createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
+          username: profile.username || "",
+          displayName: profile.display_name || profile.username || "",
+          avatar: profile.avatar_url || ""
         };
       });
 
@@ -4111,6 +4132,7 @@ app.get(
     }
   }
 );
+
 
 app.post(
   "/api/posts/:id/comments",
@@ -4183,21 +4205,24 @@ app.post(
         });
       }
 
+      const { count: commentCount, error: countError } = await adminClient()
+        .from("comments")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", req.params.id);
+
+      if (countError) throw countError;
+
       res.json({
-        id:
-          data.id,
-
-        userId:
-          data.user_id,
-
-        text:
-          data.text,
-
-        createdAt:
-          data.created_at,
-
-        username:
-          req.user.username
+        ok: true,
+        id: data.id,
+        postId: data.post_id,
+        userId: data.user_id,
+        text: data.text,
+        createdAt: data.created_at,
+        username: req.user.username || "",
+        displayName: req.user.display_name || req.user.username || "",
+        avatar: req.user.avatar_url || "",
+        commentCount: Number(commentCount || 0)
       });
 
     } catch (e) {
