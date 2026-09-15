@@ -776,17 +776,6 @@ body{
   padding:7px 12px;     
   font-size:13px     
 }     
-
-.user-actions{display:flex;align-items:center;gap:7px;flex:none}
-.user-more{width:38px;min-width:38px;height:38px;border:0;background:none;color:#fff;font-size:25px;line-height:1;border-radius:50%}
-.user-more:active{background:#222}
-.follow-more-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:400;padding:14px}
-.follow-more-overlay.open{display:flex}
-.follow-more-sheet{width:min(520px,100%);background:#17161b;border:1px solid #333;border-radius:18px;overflow:hidden;box-shadow:0 -8px 30px rgba(0,0,0,.45)}
-.follow-more-sheet button{width:100%;min-height:56px;border:0;border-bottom:1px solid #333;background:#17161b;color:#fff;text-align:left;padding:0 20px;font-size:16px}
-.follow-more-sheet button:last-child{border-bottom:0}
-.follow-more-sheet button.danger{color:#ff6b6b}
-.follow-more-sheet button:active{background:#24222a}
      
 .list-empty{     
   text-align:center;     
@@ -2959,71 +2948,6 @@ body{
 .profile-story-menu .story-menu-outline{border:1px solid #444;text-align:center}
 .profile-story-menu .story-menu-danger{color:#ff5252}
 
-
-
-/* TAKİPÇİ / TAKİP EDİLENLER — ANDROID EKRAN GÖRÜNÜMÜ */
-.list-modal{
-  background:#000!important;
-}
-.list-head{
-  height:68px!important;
-  padding:0 12px!important;
-  border-bottom:1px solid #3a3740!important;
-}
-.list-back{
-  width:48px!important;
-  height:68px!important;
-  padding:0!important;
-  font-size:40px!important;
-  line-height:1!important;
-  font-weight:400!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-}
-.list-title{
-  font-size:24px!important;
-  font-weight:700!important;
-  margin-left:2px!important;
-}
-.list-body{
-  padding:0!important;
-}
-.user-item{
-  min-height:84px!important;
-  padding:10px 12px!important;
-  gap:14px!important;
-  border-bottom:1px solid #3a3740!important;
-}
-.user-avatar{
-  width:58px!important;
-  height:58px!important;
-  font-size:25px!important;
-  background:#63b1ed!important;
-}
-.user-copy{
-  min-width:0!important;
-}
-.user-name{
-  font-size:18px!important;
-  font-weight:700!important;
-  color:#fff!important;
-}
-.user-handle{
-  display:none!important;
-}
-.user-action{
-  width:129px!important;
-  min-width:129px!important;
-  height:43px!important;
-  padding:0!important;
-  border-radius:24px!important;
-  font-size:16px!important;
-  font-weight:700!important;
-  background:#63b1ed!important;
-  color:#30206d!important;
-  border:0!important;
-}
 </style>    
 
 <style id="minegramPremiumWebStyle">
@@ -3081,7 +3005,7 @@ html,body{padding-bottom:76px!important;}
     
 <header class="header">    
   <div class="title" id="headerUsername">Profil</div>    
-  <button class="headmore" id="menuBtn" aria-label="Menü">⋮</button>    
+  <button class="headmore" id="menuBtn" type="button" aria-label="Menü" onclick="openMenu()">⋮</button>    
 </header>    
     
 <main class="profile">    
@@ -3334,20 +3258,14 @@ html,body{padding-bottom:76px!important;}
 
 <div class="list-head">
 
+<button class="list-back" id="usersBack">‹</button>
+
 <div class="list-title" id="usersTitle">Takipçiler</div>
 
 </div>
 
 <div id="usersBody" class="list-body"></div>
 
-</div>
-
-<div id="followMoreOverlay" class="follow-more-overlay" aria-hidden="true">
-  <div class="follow-more-sheet" role="dialog" aria-modal="true">
-    <button type="button" id="muteUserBtn">Sessize Al</button>
-    <button type="button" id="unfollowUserBtn" class="danger">Takibi Bırak</button>
-    <button type="button" id="cancelFollowMoreBtn">Vazgeç</button>
-  </div>
 </div>
 
 <!-- MENU -->
@@ -3971,29 +3889,6 @@ document.getElementById('highlightDeleteBtn')
     toast(e.message||'Öne çıkan silinemedi');
   }
 };
-
-async function firebaseAllUserDocuments(){
- const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
- const r=await fetch(url,{cache:'no-store'});
- if(!r.ok)throw new Error('Firebase kullanıcıları okunamadı');
- const d=await r.json();
- const val=v=>{
-  if(!v)return null;
-  if(v.stringValue!==undefined)return v.stringValue;
-  if(v.integerValue!==undefined)return Number(v.integerValue);
-  if(v.doubleValue!==undefined)return Number(v.doubleValue);
-  if(v.booleanValue!==undefined)return v.booleanValue;
-  if(v.timestampValue!==undefined)return v.timestampValue;
-  if(v.arrayValue)return (v.arrayValue.values||[]).map(val);
-  if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=val(x));return o;}
-  return null;
- };
- return (d.documents||[]).map(doc=>{
-  const x={};
-  Object.entries(doc.fields||{}).forEach(([k,v])=>x[k]=val(v));
-  return {doc,x};
- });
-}
 
 async function firebaseUserDocument(username){
  const url='https://firestore.googleapis.com/v1/projects/mim-ea133/databases/(default)/documents/users?pageSize=300';
@@ -5338,45 +5233,168 @@ renderPosts(posts);
 setInterval(updateProfileStoryRing,5000);
 
 async function openUserList(type){
- document.getElementById('usersTitle').textContent=type==='followers'?'Takipçiler':'Takip Edilenler';
- document.getElementById('usersBody').innerHTML='<div class="list-empty">Yükleniyor...</div>';
- openModal('usersModal');
- try{
-  if(!currentProfile)throw new Error('Profil bulunamadı.');
-  const keyName=type==='followers'?'followers':'following';
-  const listKeys=type==='followers'?['followers','followerUsers','follower_users','followersList','followers_list','followerList','follower_list','followersData','followerData','data.followers','data.followerUsers','user.followers','user.followerUsers']:['following','followingUsers','following_users','followingList','following_list','followedUsers','followed_users','followingData','data.following','data.followingUsers','user.following','user.followingUsers'];
-  function pickList(obj,keys){for(const key of keys){let value=obj;for(const part of key.split('.')){if(value==null)break;value=value[part]}if(Array.isArray(value)&&value.length)return value}return []}
-  let sourceUsers=pickList(currentProfile,listKeys);
-  if(!sourceUsers.length){
-   const username=encodeURIComponent(currentProfile.username);
-   const endpoints=type==='followers'?['/api/users/'+username+'/followers','/users/'+username+'/followers','/followers/'+username,'/api/followers/'+username]:['/api/users/'+username+'/following','/users/'+username+'/following','/following/'+username,'/api/following/'+username];
-   for(const endpoint of endpoints){try{const data=await api(endpoint);const found=Array.isArray(data)?data:pickList(data,['users',keyName,'data.'+keyName,'data.users','user.'+keyName,'profile.'+keyName]);if(Array.isArray(found)&&found.length){sourceUsers=found;break}}catch(_e){}}
-  }
-  if(!sourceUsers.length){try{const firebaseUser=await firebaseUserDocument(currentProfile.username);const firebaseList=firebaseUser?.x?.[keyName];if(Array.isArray(firebaseList)&&firebaseList.length)sourceUsers=firebaseList;else{const all=await firebaseAllUserDocuments();const wanted=String(currentProfile.username||'').toLowerCase();if(type==='following'){const meDoc=all.find(({x})=>[x.username,x.userName,x.handle,x.emailUsername].filter(Boolean).some(v=>String(v).toLowerCase()===wanted));const list=meDoc?.x?.following||meDoc?.x?.followingUsers||meDoc?.x?.following_users;if(Array.isArray(list)&&list.length)sourceUsers=list}else{const found=[];all.forEach(({x})=>{const username=x.username||x.userName||x.handle||x.emailUsername||'';if(!username||String(username).toLowerCase()===wanted)return;const following=x.following||x.followingUsers||x.following_users;const followers=x.followers||x.followerUsers||x.follower_users;const contains=arr=>Array.isArray(arr)&&arr.some(item=>{const u=typeof item==='string'?item:(item?.username||item?.userName||item?.handle||item?.name||'');return String(u).toLowerCase()===wanted});if(contains(following)||contains(followers))found.push({username})});if(found.length)sourceUsers=found}}}catch(_e){console.warn('[PROFILE] Firebase takip listesi okunamadı',_e)}}
-  if(!sourceUsers.length){try{const localKeys=type==='followers'?['minegram_followers','followers']:['minegram_following','following'];for(const key of localKeys){const local=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(local)&&local.length){sourceUsers=local;break}}}catch(_e){}}
-  const users=(Array.isArray(sourceUsers)?sourceUsers:[]).map(u=>typeof u==='string'?{username:u,displayName:u,avatar:''}:(u||{})).filter(u=>u&&(u.username||u.handle||u.name));
-  const body=document.getElementById('usersBody');
-  if(!users.length){const count=Number(currentProfile[keyName]||0);body.innerHTML=count>0?'<div class="list-empty">'+count+' kişi var, ancak sunucu kullanıcı listesini göndermiyor.</div>':'<div class="list-empty">Henüz kullanıcı yok</div>';return}
-  body.innerHTML=users.map(u=>{
-   const username=u.username||u.handle||u.name||'';const name=u.displayName||u.name||username;const avatar=u.avatar||u.profileImage||u.profile_image||u.photoURL||u.photoUrl||'';const following=!!(u.followingByMe??u.following_by_me??u.isFollowing??u.is_following??false);const mutedList=Array.isArray(me?.settings?.mutedUsers)?me.settings.mutedUsers:[];const muted=mutedList.some(x=>String(x).toLowerCase()===String(username).toLowerCase());
-   let actions='';
-   if(type==='followers')actions=following?'<button class="user-action user-message-btn" data-user="'+escapeHtml(username)+'">Mesaj Gönder</button>':'<button class="user-action user-action-btn" data-user="'+escapeHtml(username)+'" data-following="0">Sende Takip Et</button>';
-   else actions='<div class="user-actions"><button class="user-action secondary user-message-btn" data-user="'+escapeHtml(username)+'">Mesaj Gönder</button><button class="user-more" type="button" data-more-user="'+escapeHtml(username)+'" data-muted="'+(muted?'1':'0')+'" aria-label="Daha fazla">⋮</button></div>';
-   return '<div class="user-item" data-profile="'+escapeHtml(username)+'"><div class="user-avatar">'+(avatar?'<img src="'+escapeHtml(avatar)+'" alt="">':escapeHtml((name||'M')[0].toUpperCase()))+'</div><div class="user-copy"><div class="user-name">'+escapeHtml(name)+'</div><div class="user-handle">@'+escapeHtml(username)+'</div></div>'+actions+'</div>';
-  }).join('');
-  body.querySelectorAll('.user-message-btn').forEach(b=>b.onclick=e=>{e.stopPropagation();const username=b.dataset.user;if(username)location.href='mesajlar.html?username='+encodeURIComponent(username)});
-  body.querySelectorAll('.user-action-btn').forEach(b=>b.onclick=async e=>{e.stopPropagation();const username=b.dataset.user;if(!username)return;b.disabled=true;try{await api('/api/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});toast('Takip edildi');await openUserList(type);load().catch(()=>{})}catch(e){b.disabled=false;toast(e.message||'Takip işlemi başarısız')}});
-  body.querySelectorAll('.user-more').forEach(b=>b.onclick=e=>{e.stopPropagation();openFollowMoreMenu(b.dataset.moreUser,b.dataset.muted==='1')});
-  body.querySelectorAll('.user-item').forEach(row=>row.onclick=event=>{if(event.target.closest('.user-action-btn')||event.target.closest('.user-message-btn')||event.target.closest('.user-more'))return;const username=row.dataset.profile;if(username)location.href='profile.html?username='+encodeURIComponent(username)});
- }catch(e){document.getElementById('usersBody').innerHTML='<div class="list-empty">Liste yüklenemedi.</div>';toast(e.message||'Liste yüklenemedi')}
-}
 
-let followMoreUser='';let followMoreMuted=false;
-function openFollowMoreMenu(username,muted){followMoreUser=String(username||'').trim();followMoreMuted=!!muted;const overlay=document.getElementById('followMoreOverlay');const muteBtn=document.getElementById('muteUserBtn');if(!overlay||!muteBtn||!followMoreUser)return;muteBtn.textContent=followMoreMuted?'Sessizden Çıkar':'Sessize Al';overlay.classList.add('open');overlay.setAttribute('aria-hidden','false')}
-function closeFollowMoreMenu(){const overlay=document.getElementById('followMoreOverlay');if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');followMoreUser='';followMoreMuted=false}
-async function toggleMuteUser(){if(!followMoreUser)return;const username=followMoreUser;const nextMuted=!followMoreMuted;const current=Array.isArray(me?.settings?.mutedUsers)?[...me.settings.mutedUsers]:[];const filtered=current.filter(x=>String(x).toLowerCase()!==username.toLowerCase());if(nextMuted)filtered.push(username);try{const settings=await api('/api/settings',{method:'PATCH',body:{mutedUsers:filtered}});if(!me)me={};me.settings={...(me.settings||{}),...(settings||{}),mutedUsers:filtered};closeFollowMoreMenu();toast(nextMuted?'Sessize alındı':'Sessizden çıkarıldı');await openUserList('following')}catch(e){toast(e.message||'Sessize alma işlemi başarısız')}}
-async function unfollowFromList(){if(!followMoreUser)return;const username=followMoreUser;if(!confirm('@'+username+' kullanıcısını takipten çıkarmak istiyor musun?'))return;try{await api('/api/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});closeFollowMoreMenu();toast('Takip bırakıldı');await openUserList('following');load().catch(()=>{})}catch(e){toast(e.message||'Takip bırakma başarısız')}}
-document.getElementById('muteUserBtn')?.addEventListener('click',toggleMuteUser);document.getElementById('unfollowUserBtn')?.addEventListener('click',unfollowFromList);document.getElementById('cancelFollowMoreBtn')?.addEventListener('click',closeFollowMoreMenu);document.getElementById('followMoreOverlay')?.addEventListener('click',e=>{if(e.target.id==='followMoreOverlay')closeFollowMoreMenu()});
+ document.getElementById('usersTitle').textContent=
+   type==='followers' ? 'Takipçiler' : 'Takip Edilenler';
+
+ document.getElementById('usersBody').innerHTML=
+   '<div class="list-empty">Yükleniyor...</div>';
+
+ openModal('usersModal');
+
+ try{
+   if(!currentProfile) throw new Error('Profil bulunamadı.');
+
+   const keyName=type==='followers' ? 'followers' : 'following';
+   const listKeys=type==='followers'
+     ? ['followers','followerUsers','follower_users','followersList','followers_list','followerList','follower_list','followersData','followerData','data.followers','data.followerUsers','user.followers','user.followerUsers']
+     : ['following','followingUsers','following_users','followingList','following_list','followedUsers','followed_users','followingData','data.following','data.followingUsers','user.following','user.followingUsers'];
+
+   /* Profil cevabında liste bazen iç içe obje içinde geliyor. Sayı olan
+      followers/following alanını kullanıcı listesi sanma. */
+   function pickList(obj, keys){
+     for(const key of keys){
+       const parts=key.split('.');
+       let value=obj;
+       for(const part of parts){
+         if(value==null) break;
+         value=value[part];
+       }
+       if(Array.isArray(value) && value.length) return value;
+     }
+     return [];
+   }
+
+   let sourceUsers=pickList(currentProfile,listKeys);
+
+   /* Profil JSON'u yalnızca sayaç içeriyorsa, mevcut sunucudaki olası
+      kullanıcı-listesi rotalarını sırayla dene. HTML dönen rota atlanır. */
+   if(!sourceUsers.length){
+     const username=encodeURIComponent(currentProfile.username);
+     const endpoints=type==='followers'
+       ? [
+           '/users/'+username+'/followers',
+           '/followers/'+username,
+           '/api/followers/'+username,
+           '/api/users/'+username+'/followers'
+         ]
+       : [
+           '/users/'+username+'/following',
+           '/following/'+username,
+           '/api/following/'+username,
+           '/api/users/'+username+'/following'
+         ];
+
+     for(const endpoint of endpoints){
+       try{
+         const data=await api(endpoint);
+         const found=Array.isArray(data)
+           ? data
+           : pickList(data,['users',keyName,'data.'+keyName,'data.users','user.'+keyName,'profile.'+keyName]);
+         if(Array.isArray(found) && found.length){
+           sourceUsers=found;
+           break;
+         }
+       }catch(_e){
+         /* HTML/404 olan rota bir sonraki rotaya geçsin. */
+       }
+     }
+   }
+
+   /* Aynı tarayıcıda daha önce kaydedilmiş Minegram listesi varsa onu kullan. */
+   if(!sourceUsers.length){
+     try{
+       const localKeys=type==='followers'
+         ? ['minegram_followers','followers']
+         : ['minegram_following','following'];
+       for(const key of localKeys){
+         const local=JSON.parse(localStorage.getItem(key)||'[]');
+         if(Array.isArray(local) && local.length){
+           sourceUsers=local;
+           break;
+         }
+       }
+     }catch(_e){}
+   }
+
+   const users=(Array.isArray(sourceUsers)?sourceUsers:[])
+     .map(u=>typeof u==='string'
+       ? {username:u,displayName:u,avatar:''}
+       : (u||{}))
+     .filter(u=>u&&(u.username||u.handle||u.name));
+
+   const body=document.getElementById('usersBody');
+
+   if(!users.length){
+     const count=Number(currentProfile[keyName]||0);
+     body.innerHTML=count>0
+       ? '<div class="list-empty">'+count+' kişi var, ancak sunucu kullanıcı listesini göndermiyor.</div>'
+       : '<div class="list-empty">Henüz kullanıcı yok</div>';
+     return;
+   }
+
+   body.innerHTML=users.map(u=>{
+     const username=u.username||u.handle||u.name||'';
+     const name=u.displayName||u.name||username;
+     const avatar=u.avatar||u.profileImage||u.profile_image||u.photoURL||u.photoUrl||'';
+     const following=!!(u.followingByMe ?? u.following_by_me ??
+                         u.isFollowing ?? u.is_following ??
+                         (type==='following'));
+
+     return `
+       <div class="user-item" data-profile="${escapeHtml(username)}">
+         <div class="user-avatar">
+           ${avatar ? '<img src="'+escapeHtml(avatar)+'" alt="">' :
+             escapeHtml((name||'M')[0].toUpperCase())}
+         </div>
+         <div class="user-copy">
+           <div class="user-name">${escapeHtml(name)}</div>
+           <div class="user-handle">@${escapeHtml(username)}</div>
+         </div>
+         <button class="user-action user-action-btn"
+           data-user="${escapeHtml(username)}"
+           data-following="${following?'1':'0'}">
+           ${following ? 'Takibi Bırak' : 'Sende Takip Et'}
+         </button>
+       </div>`;
+   }).join('');
+
+   body.querySelectorAll('.user-action-btn').forEach(b=>{
+     b.onclick=async e=>{
+       e.stopPropagation();
+       const username=b.dataset.user;
+       if(!username)return;
+
+       const wasFollowing=b.dataset.following==='1';
+       const nextFollowing=!wasFollowing;
+       b.dataset.following=nextFollowing?'1':'0';
+       b.textContent=nextFollowing?'Takibi Bırak':'Sende Takip Et';
+
+       try{
+         await api('/api/users/'+encodeURIComponent(username)+'/follow',{method:'POST'});
+         load().catch(()=>{});
+       }catch(e){
+         b.dataset.following=wasFollowing?'1':'0';
+         b.textContent=wasFollowing?'Takibi Bırak':'Sende Takip Et';
+         toast(e.message||'Takip işlemi başarısız');
+       }
+     };
+   });
+
+   body.querySelectorAll('.user-item').forEach(row=>{
+     row.onclick=event=>{
+       if(event.target.closest('.user-action-btn')) return;
+       const username=row.dataset.profile;
+       if(username) location.href='profile.html?username='+encodeURIComponent(username);
+     };
+   });
+
+ }catch(e){
+   document.getElementById('usersBody').innerHTML=
+     '<div class="list-empty">Liste yüklenemedi.</div>';
+   toast(e.message||'Liste yüklenemedi');
+ }
+}
 
 document.getElementById('backBtn')?.addEventListener('click',()=>{
 
@@ -5930,8 +5948,10 @@ document.getElementById('postsStat')
 document.getElementById('usersBack')
 .onclick=()=>closeModal('usersModal');
 
-document.getElementById('menuBtn')
-.onclick=openMenu;
+const topMenuBtn=document.getElementById('menuBtn');
+if(topMenuBtn){
+  topMenuBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openMenu();});
+}
 
 document.getElementById('menuBack')
 .onclick=closeMenu;
@@ -6260,3 +6280,24 @@ Paylaş
 
 </body>
 </html>
+
+<style id="minegramMenuButtonFix">
+#menuBtn{position:relative!important;z-index:9999!important;pointer-events:auto!important;cursor:pointer!important;}
+#menuScreen{z-index:99999!important;}
+</style>
+<script>
+(function(){
+  function bindMinegramTopMenu(){
+    const btn=document.getElementById('menuBtn');
+    if(!btn || btn.dataset.menuBound==='1') return;
+    btn.dataset.menuBound='1';
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(typeof openMenu==='function') openMenu();
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindMinegramTopMenu);
+  else bindMinegramTopMenu();
+})();
+</script>
