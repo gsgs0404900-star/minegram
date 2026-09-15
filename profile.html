@@ -5301,6 +5301,22 @@ async function openUserList(type){
      }
    }
 
+   /* Firebase kullanıcı belgesinde gerçek takip listesi varsa onu da kullan.
+      Android tarafında kullanıcı belgeleri Firestore'da tutulduğu için,
+      API yalnızca followers/following sayısını döndürse bile web profil
+      doğrudan aynı kullanıcı belgesindeki listeyi okuyabilir. */
+   if(!sourceUsers.length){
+     try{
+       const firebaseUser=await firebaseUserDocument(currentProfile.username);
+       const firebaseList=firebaseUser?.x?.[keyName];
+       if(Array.isArray(firebaseList) && firebaseList.length){
+         sourceUsers=firebaseList;
+       }
+     }catch(_e){
+       console.warn('[PROFILE] Firebase takip listesi okunamadı',_e);
+     }
+   }
+
    /* Aynı tarayıcıda daha önce kaydedilmiş Minegram listesi varsa onu kullan. */
    if(!sourceUsers.length){
      try{
