@@ -4301,8 +4301,8 @@ app.post(
             fromUserId: req.user.id,
             type: "comment",
             postId: req.params.id,
-            // Bildirimde kullanıcının gerçekten yazdığı yorum gösterilsin.
-            text: text
+            // Bildirimde kullanıcı adı ve gerçekten yazdığı yorum birlikte gösterilsin.
+            text: `@${req.user.username || 'Kullanıcı'} yorum yaptı: ${text}`
           });
         } catch (notificationError) {
           console.error("COMMENT NOTIFICATION ERROR:", notificationError?.message || notificationError);
