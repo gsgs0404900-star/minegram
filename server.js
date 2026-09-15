@@ -4048,6 +4048,123 @@ app.post(
 );
 
 
+
+/* =========================================================
+   COMMENT OWNER ACTIONS
+   Pin / restrict / block / report / delete
+========================================================= */
+
+const minegramPinnedComments = new Map();
+const minegramRestrictedCommenters = new Set();
+const minegramBlockedCommenters = new Set();
+
+function commentActionKey(ownerId, targetUserId) {
+  return `${String(ownerId || "")}:${String(targetUserId || "")}`;
+}
+
+function commentReportText(postId, comment, reporter) {
+  const username = String(reporter?.username || "").trim();
+  const target = String(comment?.username || comment?.user_id || "").trim();
+  return `Yorum şikayeti\nGönderi: ${postId}\nYorumu atan: ${target}\nŞikayet eden: ${username}\n\n${String(comment?.text || "").trim()}`;
+}
+
+app.post("/api/posts/:postId/comments/:commentId/action", auth, async (req, res) => {
+  try {
+    const postId = String(req.params.postId || "").trim();
+    const commentId = String(req.params.commentId || "").trim();
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    if (!postId || !commentId || !action) {
+      return res.status(400).json({ ok:false, error:"Geçersiz yorum işlemi." });
+    }
+
+    const admin = adminClient();
+    const { data: post, error: postError } = await admin
+      .from("posts")
+      .select("id,user_id")
+      .eq("id", postId)
+      .maybeSingle();
+    if (postError) throw postError;
+    if (!post) return res.status(404).json({ ok:false, error:"Gönderi bulunamadı." });
+
+    // Bu menüyü yalnızca gönderi sahibi kullanabilir.
+    if (String(post.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ ok:false, error:"Bu yorum üzerinde işlem yapma yetkin yok." });
+    }
+
+    const { data: comment, error: commentError } = await admin
+      .from("comments")
+      .select("id,post_id,user_id,text,created_at")
+      .eq("id", commentId)
+      .eq("post_id", postId)
+      .maybeSingle();
+    if (commentError) throw commentError;
+    if (!comment) return res.status(404).json({ ok:false, error:"Yorum bulunamadı." });
+
+    const targetUserId = String(comment.user_id || "");
+    const key = commentActionKey(req.user.id, targetUserId);
+
+    if (action === "delete") {
+      const { error } = await admin.from("comments").delete().eq("id", commentId).eq("post_id", postId);
+      if (error) throw error;
+      if (minegramPinnedComments.get(postId) === commentId) minegramPinnedComments.delete(postId);
+      return res.json({ ok:true, action, deleted:true, commentId });
+    }
+
+    if (action === "pin") {
+      const current = minegramPinnedComments.get(postId);
+      if (current === commentId) {
+        minegramPinnedComments.delete(postId);
+        return res.json({ ok:true, action, pinned:false, commentId });
+      }
+      minegramPinnedComments.set(postId, commentId);
+      return res.json({ ok:true, action, pinned:true, commentId });
+    }
+
+    if (action === "restrict") {
+      if (!targetUserId) return res.status(400).json({ ok:false, error:"Yorum sahibinin kullanıcı kimliği bulunamadı." });
+      if (minegramRestrictedCommenters.has(key)) minegramRestrictedCommenters.delete(key);
+      else minegramRestrictedCommenters.add(key);
+      return res.json({ ok:true, action, restricted:minegramRestrictedCommenters.has(key), userId:targetUserId });
+    }
+
+    if (action === "block") {
+      if (!targetUserId) return res.status(400).json({ ok:false, error:"Yorum sahibinin kullanıcı kimliği bulunamadı." });
+      if (minegramBlockedCommenters.has(key)) minegramBlockedCommenters.delete(key);
+      else minegramBlockedCommenters.add(key);
+      return res.json({ ok:true, action, blocked:minegramBlockedCommenters.has(key), userId:targetUserId });
+    }
+
+    if (action === "report") {
+      let profile = null;
+      try {
+        const { data } = await admin.from("profiles").select("username,display_name").eq("id", targetUserId).maybeSingle();
+        profile = data;
+      } catch (_) {}
+      const reportText = commentReportText(postId, {
+        ...comment,
+        username: profile?.username || targetUserId
+      }, req.user);
+      try {
+        await sendGmailApiEmail({
+          to: "minegramdestek@gmail.com",
+          subject: `Minegram Yorum Şikayeti - ${profile?.username ? `@${profile.username}` : targetUserId}`,
+          html: `<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${reportText.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</div>`,
+          text: reportText,
+          replyTo: String(req.user?.email || "").trim() || undefined
+        });
+      } catch (mailError) {
+        console.warn("COMMENT REPORT MAIL ERROR:", mailError?.message || mailError);
+      }
+      return res.json({ ok:true, action, reported:true, commentId });
+    }
+
+    return res.status(400).json({ ok:false, error:"Bilinmeyen yorum işlemi." });
+  } catch (e) {
+    console.error("COMMENT ACTION ERROR:", e?.message || e);
+    return res.status(400).json({ ok:false, error:e?.message || "Yorum işlemi başarısız." });
+  }
+});
+
 /* =========================================================
    COMMENTS
 ========================================================= */
@@ -4097,6 +4214,7 @@ app.get(
         }
       }
 
+      const pinnedId = minegramPinnedComments.get(String(req.params.id)) || "";
       const comments = rows.map(item => {
         const profile = profileMap[String(item.user_id || "")] || {};
         const createdAtMs = item.created_at
@@ -4110,11 +4228,12 @@ app.get(
           createdAt: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
           username: profile.username || "",
           displayName: profile.display_name || profile.username || "",
-          avatar: profile.avatar_url || ""
+          avatar: profile.avatar_url || "",
+          pinned: String(item.id) === String(pinnedId)
         };
-      });
+      }).sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.createdAt - b.createdAt);
 
-      res.json({ comments, commentCount: comments.length });
+      res.json({ comments, commentCount: comments.length, pinnedCommentId: pinnedId || null });
     } catch (e) {
       res.status(400).json({
         error: e.message
