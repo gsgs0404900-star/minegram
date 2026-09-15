@@ -4303,8 +4303,6 @@ app.post(
 
       // Gönderi sahibi eski kayıtlarda profiles.id,
       // yeni kayıtlarda auth_user_id olabilir. Her iki kimliği de çöz.
-      const admin = adminClient();
-
       const {
         data: post
       } =
