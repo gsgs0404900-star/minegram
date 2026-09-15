@@ -31,7 +31,7 @@ body{padding:0}
 .like.liked{color:#ff2d55}
 .comment{font-size:58px}
 .share{font-size:60px;margin-top:2px}
-.empty{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:12px}
+.empty{height:100%;min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:12px}
 .empty strong{font-size:28px}.empty small{font-size:18px;color:#aaa}
 .reel-comments{position:fixed;left:0;right:0;bottom:0;height:55%;background:rgba(0,0,0,.96);z-index:100;color:#fff;border-radius:24px 24px 0 0;display:flex;flex-direction:column;padding:12px}
 .reel-comments-head{display:flex;align-items:center;padding:12px 8px;font-size:18px}.reel-comments-head b{flex:1}.reel-comments-head button{background:transparent;color:#fff;border:0;font-size:22px;cursor:pointer}
@@ -75,6 +75,15 @@ body{padding:0}
   .reels-box{left:0!important;transform:none!important;width:100%!important;border:0!important}
   .reel-card{width:100%!important;max-width:none!important}
 }
+</style>
+
+<style id="minegram-reels-black-screen-fix">
+#reelsApp{display:block!important;min-height:100vh!important;background:#000!important}
+#reelsBox{display:block!important;background:#000!important;visibility:visible!important;opacity:1!important}
+.reels-feed{display:flex!important;visibility:visible!important}
+.reel-card{display:block!important;visibility:visible!important;background:#000!important}
+.reel-card video{visibility:visible!important;opacity:1!important}
+@media(max-width:700px){#reelsBox{bottom:76px!important;height:calc(100dvh - 76px)!important}.reel-card{height:calc(100dvh - 76px)!important;min-height:0!important}.empty{min-height:calc(100dvh - 76px)!important}}
 </style>
 </head>
 <body>
@@ -318,7 +327,7 @@ window.minegramSessionReady=checkSession();
  }
  async function pickFile(){const input=document.getElementById('reelFileInput');if(!input)return;input.value='';input.click()}
  function picker(){const input=document.getElementById('reelFileInput');input.addEventListener('change',async function(){const f=input.files&&input.files[0];if(!f)return;if(!f.type.startsWith('video/')){alert('Lütfen bir video dosyası seç.');return}try{const a=await load();const id=Math.max(0,...a.map(x=>Number(x.id)||0))+1;const creator=username();a.push({id,username:creator,creatorUsername:creator,description:'Bugünün videosu 🔥',likes:0,views:0,mediaBlob:f});await saveAll(a);await render();const last=document.querySelector('.reel-card:last-child');if(last)last.scrollIntoView({behavior:'smooth'});alert('Reels başarıyla siteye eklendi.')}catch(e){console.error(e);alert('Video eklenemedi. Tarayıcı depolama alanına erişilemedi.')}input.value=''})}
- async function init(){try{if(window.minegramSessionReady)await window.minegramSessionReady}catch(e){}picker();document.getElementById('reelAddButton').addEventListener('click',pickFile);document.getElementById('reelsBack').onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};await render()}
+ async function init(){picker();document.getElementById('reelAddButton').addEventListener('click',pickFile);document.getElementById('reelsBack').onclick=()=>{if(history.length>1)history.back();else location.href='index.html'};await render();if(window.minegramSessionReady)window.minegramSessionReady.then(()=>render()).catch(()=>{})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
