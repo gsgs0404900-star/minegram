@@ -704,6 +704,58 @@ body{
   color:#ed1b3a
 }
 
+
+.comment-wrap{
+  position:relative;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:pan-y
+}
+
+.comment-owner-menu-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.58);
+  z-index:420;
+  display:none;
+  align-items:flex-end;
+  justify-content:center
+}
+
+.comment-owner-menu-backdrop.open{display:flex}
+
+.comment-owner-menu{
+  width:min(680px,100%);
+  margin:0 auto;
+  background:#171b1e;
+  border-radius:24px 24px 0 0;
+  padding:12px 14px 22px;
+  box-shadow:0 -10px 35px rgba(0,0,0,.35)
+}
+
+.comment-owner-menu button{
+  display:block;
+  width:100%;
+  min-height:48px;
+  border:0;
+  border-radius:13px;
+  background:transparent;
+  color:#fff;
+  font-size:15px;
+  font-weight:600;
+  text-align:left;
+  padding:0 16px;
+  cursor:pointer
+}
+
+.comment-owner-menu button:hover{background:#22272b}
+.comment-owner-menu button.danger{color:#ff657d}
+.comment-owner-menu .menu-title{
+  color:#9aa0a9;
+  font-size:12px;
+  padding:5px 16px 10px
+}
+
 .emoji-row{
   display:flex;
   justify-content:space-around;
@@ -4045,6 +4097,7 @@ let token=
 let currentUser=null;
 
 let currentCommentPost=null;
+let currentCommentPostOwnerId=null;
 
 let currentMenuPost=null;
 
@@ -6055,20 +6108,16 @@ async function refreshComments(
     const p=
       await api(
         "/posts/"+
-        encodeURIComponent(id)
+        encodeURIComponent(id)+
+        "/comments?ts="+
+        Date.now()
       );
 
 
     const remote=
       Array.isArray(p.comments)
         ? p.comments
-        : (
-          Array.isArray(
-            p.post?.comments
-          )
-            ? p.post.comments
-            : []
-        );
+        : [];
 
 
     list.innerHTML=
@@ -6078,6 +6127,7 @@ async function refreshComments(
           id
         )
       );
+    attachCommentOwnerMenus();
 
 
   }catch(e){}
@@ -6147,27 +6197,39 @@ async function openComments(id){
     renderCommentsForPost(
       getLocalComments(id)
     );
+  attachCommentOwnerMenus();
 
 
   try{
 
-    const p=
+    // Önce gönderinin sahibini alıyoruz; yorum menüsünü yalnızca
+    // gönderi sahibi açabilsin. Ardından ortak yorum API'sini çekiyoruz.
+    const postInfo=
       await api(
         "/posts/"+
         encodeURIComponent(id)
       );
 
+    currentCommentPostOwnerId =
+      postInfo?.post?.user_id ||
+      postInfo?.post?.userId ||
+      postInfo?.user_id ||
+      postInfo?.userId ||
+      postInfo?.post?.owner_id ||
+      null;
+
+    const p=
+      await api(
+        "/posts/"+
+        encodeURIComponent(id)+
+        "/comments?ts="+
+        Date.now()
+      );
 
     const remote=
       Array.isArray(p.comments)
         ? p.comments
-        : (
-          Array.isArray(
-            p.post?.comments
-          )
-            ? p.post.comments
-            : []
-        );
+        : [];
 
 
     list.innerHTML=
@@ -6177,6 +6239,7 @@ async function openComments(id){
           id
         )
       );
+    attachCommentOwnerMenus();
 
 
   }catch(e){
@@ -6318,6 +6381,145 @@ function relativeTime(v){
 }
 
 
+
+/* =========================================================
+   YORUM SAHİBİ MENÜSÜ
+========================================================= */
+
+let commentOwnerMenuCommentId=null;
+let commentOwnerMenuUserId=null;
+let commentLongPressTimer=null;
+let commentLongPressTriggered=false;
+
+function currentUserIdForCommentActions(){
+  const me = (typeof currentUser === "object" && currentUser) ? currentUser : {};
+  return String(
+    me.id ||
+    me.user_id ||
+    me.auth_user_id ||
+    me.authUserId ||
+    me.userId ||
+    ""
+  ).trim();
+}
+
+function closeCommentOwnerMenu(e){
+  const backdrop=document.getElementById("commentOwnerMenuBackdrop");
+  if(!backdrop)return;
+  if(!e || e.target===backdrop){
+    backdrop.classList.remove("open");
+    commentOwnerMenuCommentId=null;
+    commentOwnerMenuUserId=null;
+  }
+}
+
+function openCommentOwnerMenu(commentId, targetUserId){
+  if(!commentId || !currentCommentPost)return;
+
+  const meId=currentUserIdForCommentActions();
+  const ownerId=String(currentCommentPostOwnerId||"").trim();
+  if(!meId || !ownerId || meId!==ownerId){
+    return;
+  }
+
+  commentOwnerMenuCommentId=String(commentId);
+  commentOwnerMenuUserId=String(targetUserId||"");
+
+  const local=getLocalComments(currentCommentPost);
+  const found=local.find(c=>String(c.id)===String(commentId));
+  const title=found?.username || found?.user?.username || "yorum";
+
+  const wrap=document.querySelector('.comment-wrap[data-comment-id="'+CSS.escape(String(commentId))+'"]');
+  const pinned=!!wrap?.classList.contains("comment-pinned");
+
+  const menu=document.getElementById("commentOwnerMenu");
+  if(!menu)return;
+  menu.innerHTML=`
+    <div class="menu-title">@${esc(title)} için yorum seçenekleri</div>
+    <button onclick="commentOwnerAction('pin')">📌 ${pinned?'Sabitlemeyi kaldır':'Sabitle'}</button>
+    <button onclick="commentOwnerAction('restrict')">🔒 Kısıtla</button>
+    <button onclick="commentOwnerAction('report')">🚩 Şikayet et</button>
+    <button onclick="commentOwnerAction('block')">🚫 Engelle</button>
+    <button class="danger" onclick="commentOwnerAction('delete')">🗑️ Yorumu sil</button>
+    <button onclick="closeCommentOwnerMenu()">İptal</button>
+  `;
+  document.getElementById("commentOwnerMenuBackdrop")?.classList.add("open");
+}
+
+function bindCommentLongPress(el, comment){
+  if(!el || !comment)return;
+  const id=String(comment.id||"");
+  if(!id)return;
+  const userId=String(comment.userId||comment.user_id||comment.user?.id||"");
+
+  const start=()=>{
+    commentLongPressTriggered=false;
+    clearTimeout(commentLongPressTimer);
+    commentLongPressTimer=setTimeout(()=>{
+      commentLongPressTriggered=true;
+      openCommentOwnerMenu(id,userId);
+    },550);
+  };
+  const cancel=()=>clearTimeout(commentLongPressTimer);
+
+  el.addEventListener("pointerdown",start,{passive:true});
+  el.addEventListener("pointerup",cancel,{passive:true});
+  el.addEventListener("pointercancel",cancel,{passive:true});
+  el.addEventListener("pointerleave",cancel,{passive:true});
+  el.addEventListener("contextmenu",e=>{
+    e.preventDefault();
+    openCommentOwnerMenu(id,userId);
+  });
+}
+
+async function commentOwnerAction(action){
+  const postId=String(currentCommentPost||"");
+  const commentId=String(commentOwnerMenuCommentId||"");
+  if(!postId || !commentId)return;
+
+  closeCommentOwnerMenu();
+
+  try{
+    const result=await api(
+      "/posts/"+encodeURIComponent(postId)+
+      "/comments/"+encodeURIComponent(commentId)+
+      "/action",
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})
+      }
+    );
+
+    if(action==="delete" && result.deleted){
+      const local=getLocalComments(postId).filter(c=>String(c.id)!==commentId);
+      localStorage.setItem(localCommentsKey(postId),JSON.stringify(local.slice(-100)));
+    }
+
+    await refreshComments(false);
+    toast(
+      action==="pin" ? (result.pinned?"Yorum sabitlendi":"Sabitleme kaldırıldı") :
+      action==="restrict" ? (result.restricted?"Kullanıcı kısıtlandı":"Kısıtlama kaldırıldı") :
+      action==="block" ? (result.blocked?"Kullanıcı engellendi":"Engel kaldırıldı") :
+      action==="report" ? "Yorum şikayet edildi" :
+      action==="delete" ? "Yorum silindi" :
+      "İşlem tamamlandı"
+    );
+  }catch(e){
+    toast(e?.message||"Yorum işlemi başarısız");
+  }
+}
+
+function attachCommentOwnerMenus(){
+  document.querySelectorAll("#commentList .comment-wrap").forEach(el=>{
+    if(el.dataset.ownerMenuBound==="1")return;
+    const id=el.getAttribute("data-comment-id");
+    if(!id)return;
+    const userId=el.getAttribute("data-comment-user-id")||"";
+    bindCommentLongPress(el,{id,userId});
+    el.dataset.ownerMenuBound="1";
+  });
+}
 /* =========================================================
    COMMENT RENDER
 ========================================================= */
@@ -6364,6 +6566,7 @@ function renderComment(c){
     <div
       class="comment-wrap"
       data-comment-id="${id}"
+      data-comment-user-id="${esc(c.userId||c.user_id||c.user?.id||"")}"
     >
 
       <div class="comment-row">
