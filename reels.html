@@ -53,23 +53,49 @@ const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegr
 let me=null, reels=[], currentCommentReel=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2600)}
-async function api(url,opt={}){opt.headers={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData)){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body)};const r=await fetch(url,opt);const raw=await r.text();let j=null;try{j=raw?JSON.parse(raw):null}catch(e){}if(!r.ok)throw new Error(j?.error||j?.message||'Sunucu işlemi başarısız ('+r.status+')');return j}
+async function api(url,opt={}){
+  if(!token){location.replace('giris.html');throw new Error('Oturum gerekli')}
+  const headers={...(opt.headers||{}),Authorization:'Bearer '+token};
+  if(opt.body&&!(opt.body instanceof FormData)){headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body)}
+  const r=await fetch(url,{...opt,headers,credentials:'same-origin'});
+  if(r.status===401){localStorage.removeItem('minegram_token');localStorage.removeItem('minegram_supabase_token');token='';location.replace('giris.html');throw new Error('Oturum süresi doldu')}
+  const raw=await r.text();let j=null;try{j=raw?JSON.parse(raw):null}catch(e){}
+  if(!r.ok)throw new Error(j?.error||j?.message||'Sunucu işlemi başarısız ('+r.status+')');
+  return j;
+}
 function getList(x){return Array.isArray(x)?x:Array.isArray(x?.posts)?x.posts:Array.isArray(x?.data)?x.data:[]}
 function usernameFromMe(){return String(me?.username||me?.user?.username||me?.profile?.username||localStorage.getItem('username')||localStorage.getItem('currentUser')||'').trim()}
-function isPremiumVerified(){return localStorage.getItem('minegram_verified')==='true'}
-function verifiedBadge(){return isPremiumVerified()?' <span class="verify">✓</span>':''}
+function hasPremiumVerification(p){
+  const v=p?.verified ?? p?.isVerified ?? p?.premiumVerified ?? p?.premium_verified ?? p?.user?.verified ?? p?.author?.verified ?? false;
+  const premium=p?.premium ?? p?.isPremium ?? p?.user?.premium ?? p?.user?.isPremium ?? p?.author?.premium ?? p?.author?.isPremium ?? false;
+  return v===true || String(v).toLowerCase()==='true' || premium===true || String(premium).toLowerCase()==='true';
+}
+function verifiedBadge(r){return hasPremiumVerification(r.raw)?' <span class="verify">✓</span>':''}
 function isVideo(p){const t=String(p?.mediaType||p?.type||p?.mimeType||'').toLowerCase();const u=String(p?.mediaUrl||p?.media_url||p?.mediaUri||p?.media||'').toLowerCase();return t.includes('video')||/\.(mp4|webm|mov|m4v)(\?|$)/.test(u)||!!p?.videoUrl||!!p?.video_url}
 function mediaUrl(p){return p?.mediaUrl||p?.media_url||p?.videoUrl||p?.video_url||p?.mediaUri||p?.media||''}
 function pid(p,i){return String(p?.id??p?.postId??p?.uuid??('reel-'+i))}
-function normalize(p,i){return {raw:p,id:pid(p,i),username:String(p?.username||p?.user?.username||p?.ownerUsername||p?.author?.username||'kullanici'),caption:String(p?.caption??p?.text??p?.description??'Yeni Reels 🔥'),likes:Number(p?.likesCount??p?.likes??p?.like_count??0)||0,views:Number(p?.views??p?.viewCount??p?.view_count??0)||0,url:mediaUrl(p)}}
-function render(){const feed=document.getElementById('feed');if(!reels.length){feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>Sağ üstteki + ile ilk videonu paylaş.</span></div><button class="add" onclick="openPicker()">+</button>';return}feed.innerHTML=reels.map((r,i)=>`<article class="reel" data-id="${esc(r.id)}"><video src="${esc(r.url)}" playsinline muted loop preload="metadata"></video><div class="shade"></div><button class="back" onclick="location.href='index.html'">‹</button><button class="add" onclick="openPicker()">+</button><div class="actions"><button class="action like" onclick="likeReel(${i})"><span class="ico">♡</span><span class="num">${r.likes}</span></button><button class="action view-btn" onclick="viewCount(${i})"><span class="ico eye-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></span><span class="num">${r.views}</span></button><button class="action" onclick="openComments(${i})"><span class="ico">▢</span></button><button class="action" onclick="shareReel(${i})"><span class="ico">➤</span></button></div><div class="info"><div class="user" onclick="goProfile('${encodeURIComponent(r.username)}')">@${esc(r.username)}${verifiedBadge()}</div><div class="desc">${esc(r.caption)}</div></div></article>`).join('');observeVideos()}
+function normalize(p,i){const u=p?.user||p?.author||{};return {raw:p,id:pid(p,i),username:String(p?.username||u?.username||p?.ownerUsername||p?.author?.username||'').trim(),caption:String(p?.caption??p?.text??p?.description??'Yeni Reels 🔥'),likes:Array.isArray(p?.likes)?p.likes.length:Number(p?.likesCount??p?.likes??p?.like_count??0)||0,views:Number(p?.views??p?.viewCount??p?.view_count??0)||0,url:mediaUrl(p)}}
+function render(){const feed=document.getElementById('feed');if(!reels.length){feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>Sağ üstteki + ile ilk videonu paylaş.</span></div><button class="add" onclick="openPicker()">+</button>';return}feed.innerHTML=reels.map((r,i)=>`<article class="reel" data-id="${esc(r.id)}"><video src="${esc(r.url)}" playsinline muted loop preload="metadata"></video><div class="shade"></div><button class="back" onclick="location.href='index.html'">‹</button><button class="add" onclick="openPicker()">+</button><div class="actions"><button class="action like" onclick="likeReel(${i})"><span class="ico">♡</span><span class="num">${r.likes}</span></button><button class="action view-btn" onclick="viewCount(${i})"><span class="ico eye-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></span><span class="num">${r.views}</span></button><button class="action" onclick="openComments(${i})"><span class="ico">▢</span></button><button class="action" onclick="shareReel(${i})"><span class="ico">➤</span></button></div><div class="info"><div class="user" onclick="goProfile('${encodeURIComponent(r.username)}')">@${esc(r.username)}${verifiedBadge(r)}</div><div class="desc">${esc(r.caption)}</div></div></article>`).join('');observeVideos()}
 function goProfile(u){location.href='ara.html?username='+u}
+
+async function loadAuthenticatedVideo(url){
+  if(!url||!token)return url;
+  try{
+    const r=await fetch(url,{headers:{Authorization:'Bearer '+token},credentials:'same-origin'});
+    if(r.ok){const blob=await r.blob();return URL.createObjectURL(blob)}
+  }catch(e){}
+  return url;
+}
+async function hydrateVideoSources(){
+  const vids=[...document.querySelectorAll('.reel video')];
+  await Promise.all(vids.map(async (v,i)=>{const r=reels[i];if(!r?.url)return;const u=await loadAuthenticatedVideo(r.url);if(u&&u!==r.url){v.src=u;v.load()}}));
+}
 function observeVideos(){const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.65){document.querySelectorAll('.reel video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});const i=[...document.querySelectorAll('.reel')].indexOf(e.target);if(i>=0)viewCount(i,true)}else v.pause()}),{threshold:[.65]});document.querySelectorAll('.reel').forEach(x=>io.observe(x))}
 const seen=new Set();function viewCount(i,silent=false){const r=reels[i];if(!r||seen.has(r.id))return;seen.add(r.id);r.views++;const el=document.querySelectorAll('.reel')[i]?.querySelector('.actions .action:nth-child(2) .num');if(el)el.textContent=r.views;/* API endpoint bilinmediği için görüntülenme yalnızca güvenli UI sayacıdır. */}
 async function likeReel(i){const r=reels[i];r.likes++;const el=document.querySelectorAll('.reel')[i]?.querySelector('.like .num');const ic=document.querySelectorAll('.reel')[i]?.querySelector('.like .ico');if(el)el.textContent=r.likes;if(ic)ic.textContent='♥';/* mevcut backend'in like endpoint'i farklı olabilir; Reel ekranı bozulmaması için UI anında güncellenir */}
 function openPicker(){document.getElementById('reelInput').click()}
 document.getElementById('reelInput').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('video/')){toast('Lütfen video seç.');return}if(!token){location.href='giris.html';return}try{toast('Video yükleniyor...');const fd=new FormData();fd.append('media',file,file.name);fd.append('caption','Yeni Reels 🔥');const j=await api('/api/posts',{method:'POST',body:fd});toast('Reels başarıyla siteye eklendi.');await loadReels();}catch(err){console.error(err);toast(err.message||'Video yüklenemedi.')}});
-async function loadReels(){try{if(!token){location.href='giris.html';return}me=await api('/api/me');const posts=getList(await api('/api/feed'));reels=posts.filter(isVideo).map(normalize);render()}catch(e){console.error('[REELS]',e);document.getElementById('feed').innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message)+'</span></div><button class="add" onclick="openPicker()">+</button>'}}
+async function loadReels(){try{if(!token){location.href='giris.html';return}me=await api('/api/me');const posts=getList(await api('/api/feed'));reels=posts.filter(isVideo).map(normalize).filter(r=>r.url&&r.username);render()}catch(e){console.error('[REELS]',e);document.getElementById('feed').innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message)+'</span></div><button class="add" onclick="openPicker()">+</button>'}}
 function openComments(i){currentCommentReel=i;document.getElementById('comments').classList.add('open');document.getElementById('commentsList').innerHTML='<div class="comment"><b>@'+esc(reels[i].username)+'</b><p>Bu Reel için yorumlar</p></div>'}
 function closeComments(){document.getElementById('comments').classList.remove('open')}
 function sendComment(){const inp=document.getElementById('commentInput');if(!inp.value.trim())return;const d=document.createElement('div');d.className='comment';d.innerHTML='<b>@'+esc(usernameFromMe()||'kullanici')+'</b><p>'+esc(inp.value.trim())+'</p>';document.getElementById('commentsList').appendChild(d);inp.value=''}
