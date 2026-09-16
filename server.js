@@ -233,6 +233,9 @@ async function blockedUserIdsFor(viewerId) {
 // İçerik görünürlüğü yönlüdür: seni engelleyen kullanıcıların içerikleri sana görünmez.
 // Engelleyen taraf, engellediği hesabın içeriklerini görmeye devam edebilir.
 async function blockedByUserIdsFor(viewerIds) {
+  // İçeriği görünmemesi gereken kullanıcıları hem Auth ID hem profiles.id
+  // olarak döndür. Böylece eski/yeni hesaplarda story/post sahibi ID'si
+  // farklı tutulmuş olsa bile engelleme kesin çalışır.
   const ids = [...new Set((Array.isArray(viewerIds) ? viewerIds : [viewerIds]).filter(Boolean).map(String))];
   if (!ids.length) return new Set();
   const admin = adminClient();
@@ -244,7 +247,22 @@ async function blockedByUserIdsFor(viewerIds) {
     if (String(error.code || "") === "42P01") return new Set();
     throw error;
   }
-  return new Set((data || []).map(row => String(row.blocker_id)).filter(Boolean));
+
+  const blockerIds = [...new Set((data || []).map(row => String(row.blocker_id || "")).filter(Boolean))];
+  const result = new Set(blockerIds);
+  if (!blockerIds.length) return result;
+
+  // Block kaydındaki blocker_id Auth ID ise profiles.id'yi de ekle;
+  // blocker_id profiles.id ise auth_user_id'yi de ekle.
+  const [byId, byAuth] = await Promise.all([
+    admin.from("profiles").select("id,auth_user_id").in("id", blockerIds),
+    admin.from("profiles").select("id,auth_user_id").in("auth_user_id", blockerIds)
+  ]);
+  for (const profile of [...(byId.data || []), ...(byAuth.data || [])]) {
+    if (profile?.id) result.add(String(profile.id));
+    if (profile?.auth_user_id) result.add(String(profile.auth_user_id));
+  }
+  return result;
 }
 
 async function auth(req, res, next) {
