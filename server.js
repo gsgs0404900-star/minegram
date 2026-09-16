@@ -5291,15 +5291,26 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
       return res.json({ ok: true, blocked: false, block: null });
     }
 
-    const { data, error } = await admin
+    // Önce mevcut kaydı kontrol et. Böylece blocks tablosunda
+    // UNIQUE(blocker_id, blocked_id) constraint'i olmasa bile engelleme çalışır.
+    const { data: existing, error: findError } = await admin
       .from("blocks")
-      .upsert(
-        { blocker_id: req.user.id, blocked_id: targetId },
-        { onConflict: "blocker_id,blocked_id" }
-      )
       .select("id,blocker_id,blocked_id,created_at")
-      .single();
-    if (error) throw error;
+      .eq("blocker_id", req.user.id)
+      .eq("blocked_id", targetId)
+      .maybeSingle();
+    if (findError) throw findError;
+
+    let data = existing;
+    if (!data) {
+      const { data: inserted, error: insertError } = await admin
+        .from("blocks")
+        .insert({ blocker_id: req.user.id, blocked_id: targetId })
+        .select("id,blocker_id,blocked_id,created_at")
+        .single();
+      if (insertError) throw insertError;
+      data = inserted;
+    }
 
     // Instagram tarzı: engelleyen taraf ile hedef arasındaki takip ilişkisini kes.
     await admin.from("follows").delete()
