@@ -172,15 +172,44 @@ async function isUserBlockedBy(blockerId, blockedId) {
   const { data, error } = await admin
     .from("blocks")
     .select("id")
-    .eq("blocker_id", blockerId)
-    .eq("blocked_id", blockedId)
-    .maybeSingle();
+    .eq("blocker_id", String(blockerId))
+    .eq("blocked_id", String(blockedId))
+    .limit(1);
   if (error) {
     // Tablo henüz oluşturulmadıysa mevcut sunucunun diğer özellikleri çalışmaya devam etsin.
     if (String(error.code || "") === "42P01") return false;
     throw error;
   }
-  return !!data;
+  return Array.isArray(data) && data.length > 0;
+}
+
+// Eski sürümlerde blocks tablosuna profiles.id, yeni sürümlerde ise
+// auth_user_id yazılmış olabilir. Engel kontrolünü iki kimlik alanıyla da
+// yaparak eski engel kayıtlarının da çalışmasını sağlıyoruz.
+async function isUserBlockedByIdentityVariants(blockerIds, blockedIds) {
+  const blockers = [...new Set((blockerIds || []).map(x => String(x || '').trim()).filter(Boolean))];
+  const blocked = [...new Set((blockedIds || []).map(x => String(x || '').trim()).filter(Boolean))];
+  if (!blockers.length || !blocked.length) return false;
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from("blocks")
+    .select("id,blocker_id,blocked_id")
+    .in("blocker_id", blockers)
+    .in("blocked_id", blocked)
+    .limit(1);
+  if (error) {
+    if (String(error.code || "") === "42P01") return false;
+    throw error;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
+
+function profileIdentityIds(profile, extraId = null) {
+  return [...new Set([
+    profile?.auth_user_id,
+    profile?.id,
+    extraId
+  ].map(x => String(x || '').trim()).filter(Boolean))];
 }
 
 async function isBlockedEitherWay(userA, userB) {
@@ -5380,12 +5409,27 @@ app.get("/api/users/:username/block-status", auth, async (req, res) => {
   try {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    const targetId = profileAuthId(target);
-    const viewerId = viewerAuthId(req);
-    const blockedByMe = await isUserBlockedBy(viewerId, targetId);
-    const blockedMe = await isUserBlockedBy(targetId, viewerId);
+
+    const viewerIds = profileIdentityIds(req.user, req.authUser?.id);
+    const targetIds = profileIdentityIds(target);
+
+    // İki yönü ayrı ayrı döndürüyoruz. Böylece sadece karşı tarafın
+    // bizi engellemesi mesaj/aramanın kapanmasına neden olur.
+    const blockedByMe = await isUserBlockedByIdentityVariants(viewerIds, targetIds);
+    const blockedMe = await isUserBlockedByIdentityVariants(targetIds, viewerIds);
+
+    console.log("[BLOCK-STATUS]", {
+      viewerIds,
+      targetIds,
+      blockedByMe,
+      blockedMe,
+      username: req.params.username
+    });
+
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.json({ blockedByMe, blockedMe, blocked: blockedByMe || blockedMe });
   } catch (e) {
+    console.error("BLOCK STATUS ERROR:", e);
     res.status(500).json({ error: e?.message || "Engel durumu alınamadı." });
   }
 });
