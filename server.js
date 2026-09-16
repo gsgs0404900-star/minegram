@@ -151,16 +151,16 @@ async function isUserBlockedBy(blockerId, blockedId) {
   const admin = adminClient();
   const { data, error } = await admin
     .from("blocks")
-    .select("id")
+    .select("blocker_id,blocked_id")
     .eq("blocker_id", blockerId)
     .eq("blocked_id", blockedId)
-    .maybeSingle();
+    .limit(1);
   if (error) {
     // Tablo henüz oluşturulmadıysa mevcut sunucunun diğer özellikleri çalışmaya devam etsin.
     if (String(error.code || "") === "42P01") return false;
     throw error;
   }
-  return !!data;
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function isBlockedEitherWay(userA, userB) {
@@ -168,7 +168,7 @@ async function isBlockedEitherWay(userA, userB) {
   const admin = adminClient();
   const { data, error } = await admin
     .from("blocks")
-    .select("id")
+    .select("blocker_id,blocked_id")
     .or(`and(blocker_id.eq.${userA},blocked_id.eq.${userB}),and(blocker_id.eq.${userB},blocked_id.eq.${userA})`)
     .limit(1);
   if (error) {
@@ -5257,9 +5257,8 @@ app.get("/api/blocks", auth, async (req, res) => {
     const admin = adminClient();
     const { data, error } = await admin
       .from("blocks")
-      .select("id,blocker_id,blocked_id,created_at")
-      .eq("blocker_id", req.user.id)
-      .order("created_at", { ascending: false });
+      .select("blocker_id,blocked_id")
+      .eq("blocker_id", req.user.id);
     if (error) throw error;
     res.json(data || []);
   } catch (e) {
@@ -5299,21 +5298,19 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
     // UNIQUE(blocker_id, blocked_id) constraint'i olmasa bile engelleme çalışır.
     const { data: existing, error: findError } = await admin
       .from("blocks")
-      .select("id,blocker_id,blocked_id,created_at")
+      .select("blocker_id,blocked_id")
       .eq("blocker_id", viewerId)
       .eq("blocked_id", targetId)
-      .maybeSingle();
+      .limit(1);
     if (findError) throw findError;
 
-    let data = existing;
+    let data = Array.isArray(existing) ? existing[0] : null;
     if (!data) {
-      const { data: inserted, error: insertError } = await admin
+      const { error: insertError } = await admin
         .from("blocks")
-        .insert({ blocker_id: viewerId, blocked_id: targetId })
-        .select("id,blocker_id,blocked_id,created_at")
-        .single();
+        .insert({ blocker_id: viewerId, blocked_id: targetId });
       if (insertError) throw insertError;
-      data = inserted;
+      data = { blocker_id: viewerId, blocked_id: targetId };
     }
 
     // Instagram tarzı: engelleyen taraf ile hedef arasındaki takip ilişkisini kes.
