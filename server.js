@@ -187,21 +187,27 @@ async function isUserBlockedBy(blockerId, blockedId) {
 // auth_user_id yazılmış olabilir. Engel kontrolünü iki kimlik alanıyla da
 // yaparak eski engel kayıtlarının da çalışmasını sağlıyoruz.
 async function isUserBlockedByIdentityVariants(blockerIds, blockedIds) {
-  const blockers = [...new Set((blockerIds || []).map(x => String(x || '').trim()).filter(Boolean))];
-  const blocked = [...new Set((blockedIds || []).map(x => String(x || '').trim()).filter(Boolean))];
+  const blockers = [...new Set((blockerIds || []).map(x => String(x || "").trim()).filter(Boolean))];
+  const blocked = [...new Set((blockedIds || []).map(x => String(x || "").trim()).filter(Boolean))];
   if (!blockers.length || !blocked.length) return false;
+
   const admin = adminClient();
   const { data, error } = await admin
     .from("blocks")
-    .select("id,blocker_id,blocked_id")
-    .in("blocker_id", blockers)
-    .in("blocked_id", blocked)
-    .limit(1);
+    .select("id,blocker_id,blocked_id");
+
   if (error) {
     if (String(error.code || "") === "42P01") return false;
     throw error;
   }
-  return Array.isArray(data) && data.length > 0;
+
+  const blockerSet = new Set(blockers);
+  const blockedSet = new Set(blocked);
+
+  return (data || []).some(row =>
+    blockerSet.has(String(row?.blocker_id || "").trim()) &&
+    blockedSet.has(String(row?.blocked_id || "").trim())
+  );
 }
 
 function profileIdentityIds(profile, extraId = null) {
@@ -5402,6 +5408,34 @@ app.delete("/api/users/:username/block", auth, async (req, res) => {
     res.json({ ok: true, blocked: false });
   } catch (e) {
     res.status(400).json({ error: e?.message || "Engel kaldırılamadı." });
+  }
+});
+
+app.get("/api/users/:username/message-status", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const viewerIds = profileIdentityIds(req.user, req.authUser?.id);
+    const targetIds = profileIdentityIds(target);
+
+    // Yalnızca KARŞI TARAFIN bizi engelleyip engellemediği mesajlaşmayı kapatır.
+    const blockedByMe = await isUserBlockedByIdentityVariants(viewerIds, targetIds);
+    const blockedMe = await isUserBlockedByIdentityVariants(targetIds, viewerIds);
+
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    res.json({
+      ok: true,
+      blockedByMe,
+      blockedMe,
+      canMessage: !blockedMe,
+      canCall: !blockedMe
+    });
+  } catch (e) {
+    console.error("MESSAGE STATUS ERROR:", e?.message || e);
+    res.status(500).json({ error: e?.message || "Mesajlaşma engel durumu alınamadı." });
   }
 });
 
