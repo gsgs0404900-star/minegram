@@ -5418,8 +5418,17 @@ app.post(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isBlockedEitherWay(req.user.id, targetId)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+      // Instagram tipi tek yönlü engelleme: Mesajı gönderen kişi hedefi
+      // engellemiş olsa bile kendi tarafındaki sohbeti kullanabilir. Ancak
+      // hedef kişi göndereni engellediyse mesaj kesinlikle gönderilemez.
+      const blockedByOther = await isUserBlockedBy(targetId, req.user.id);
+      if (blockedByOther) {
+        return res.status(403).json({
+          error: "Mesaj gönderemezsin",
+          reason: "blocked_by_other",
+          canMessage: false
+        });
       }
 
       if (!text) {
