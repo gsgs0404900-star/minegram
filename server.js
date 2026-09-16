@@ -3144,7 +3144,7 @@ app.get(
       }
 
       const activePosts = await filterActivePosts(data || []);
-      const blockedIds = await blockedUserIdsFor(req.user.id);
+      const blockedIds = await blockedUserIdsFor(req.authUser.id);
       const visiblePosts = activePosts.filter(post => !blockedIds.has(String(post?.user_id)));
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
@@ -3183,7 +3183,7 @@ app.get(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
+      if (await isUserBlockedBy(targetId, req.authUser.id)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -3942,7 +3942,7 @@ app.get(
           .in("following_id", storyUserIds);
         (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
       }
-      const blockedIds = await blockedUserIdsFor(req.user.id);
+      const blockedIds = await blockedUserIdsFor(req.authUser.id);
       const visibleStories = activeStories.filter(story => {
         if (blockedIds.has(String(story?.user_id))) return false;
         const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
@@ -4573,7 +4573,7 @@ app.post(
         });
       }
 
-      if (await isBlockedEitherWay(req.user.id, target.auth_user_id || target.id)) {
+      if (await isBlockedEitherWay(req.authUser.id, target.auth_user_id || target.id)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -5087,7 +5087,7 @@ app.get(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
+      if (await isUserBlockedBy(targetId, req.authUser.id)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -5271,8 +5271,12 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
   try {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    const targetId = target.auth_user_id || target.id;
-    if (String(targetId) === String(req.user.id)) {
+    const targetId = String(target.auth_user_id || target.id || "").trim();
+    const viewerId = String(req.authUser?.id || "").trim();
+    if (!targetId || !viewerId) {
+      return res.status(401).json({ error: "Oturum kimliği alınamadı" });
+    }
+    if (String(targetId) === viewerId) {
       return res.status(400).json({ error: "Kendini engelleyemezsin" });
     }
 
@@ -5285,7 +5289,7 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
       const { error } = await admin
         .from("blocks")
         .delete()
-        .eq("blocker_id", req.user.id)
+        .eq("blocker_id", viewerId)
         .eq("blocked_id", targetId);
       if (error) throw error;
       return res.json({ ok: true, blocked: false, block: null });
@@ -5296,7 +5300,7 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
     const { data: existing, error: findError } = await admin
       .from("blocks")
       .select("id,blocker_id,blocked_id,created_at")
-      .eq("blocker_id", req.user.id)
+      .eq("blocker_id", viewerId)
       .eq("blocked_id", targetId)
       .maybeSingle();
     if (findError) throw findError;
@@ -5305,7 +5309,7 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
     if (!data) {
       const { data: inserted, error: insertError } = await admin
         .from("blocks")
-        .insert({ blocker_id: req.user.id, blocked_id: targetId })
+        .insert({ blocker_id: viewerId, blocked_id: targetId })
         .select("id,blocker_id,blocked_id,created_at")
         .single();
       if (insertError) throw insertError;
@@ -5314,7 +5318,7 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
 
     // Instagram tarzı: engelleyen taraf ile hedef arasındaki takip ilişkisini kes.
     await admin.from("follows").delete()
-      .or(`and(follower_id.eq.${req.user.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${req.user.id})`);
+      .or(`and(follower_id.eq.${viewerId},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${viewerId})`);
 
     res.json({ ok: true, blocked: true, block: data });
   } catch (e) {
@@ -5329,7 +5333,7 @@ app.delete("/api/users/:username/block", auth, async (req, res) => {
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     const targetId = target.auth_user_id || target.id;
     const { error } = await adminClient().from("blocks")
-      .delete().eq("blocker_id", req.user.id).eq("blocked_id", targetId);
+      .delete().eq("blocker_id", req.authUser.id).eq("blocked_id", targetId);
     if (error) throw error;
     res.json({ ok: true, blocked: false });
   } catch (e) {
@@ -5342,8 +5346,8 @@ app.get("/api/users/:username/block-status", auth, async (req, res) => {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     const targetId = target.auth_user_id || target.id;
-    const blockedByMe = await isUserBlockedBy(req.user.id, targetId);
-    const blockedMe = await isUserBlockedBy(targetId, req.user.id);
+    const blockedByMe = await isUserBlockedBy(req.authUser.id, targetId);
+    const blockedMe = await isUserBlockedBy(targetId, req.authUser.id);
     res.json({ blockedByMe, blockedMe, blocked: blockedByMe || blockedMe });
   } catch (e) {
     res.status(500).json({ error: e?.message || "Engel durumu alınamadı." });
@@ -5383,7 +5387,7 @@ app.get(
         throw error;
       }
 
-      const blockedIds = await blockedUserIdsFor(req.user.id);
+      const blockedIds = await blockedUserIdsFor(req.authUser.id);
       const visibleMessages = (data || []).filter(m =>
         !blockedIds.has(String(m.sender_id)) && !blockedIds.has(String(m.recipient_id))
       );
@@ -5447,7 +5451,7 @@ app.post(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isBlockedEitherWay(req.user.id, targetId)) {
+      if (await isBlockedEitherWay(req.authUser.id, targetId)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
