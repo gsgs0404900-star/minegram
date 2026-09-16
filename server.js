@@ -344,6 +344,66 @@ async function findProfile(
   return data;
 }
 
+
+/* =========================================================
+   MINEGRAM BLOCK SYSTEM — SERVER SIDE
+   Engelleyen kişi engellediği hesabı görmeye devam eder.
+   Engellenen kişi engelleyen hesabın profil/içeriklerini göremez.
+========================================================= */
+async function isUserBlockedBy(blockerId, blockedId) {
+  if (!blockerId || !blockedId || String(blockerId) === String(blockedId)) return false;
+  try {
+    const { data, error } = await adminClient()
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", String(blockerId))
+      .eq("blocked_id", String(blockedId))
+      .maybeSingle();
+
+    if (error) {
+      console.error("BLOCK CHECK ERROR:", error?.message || error);
+      return false;
+    }
+    return !!data;
+  } catch (e) {
+    console.error("BLOCK CHECK ERROR:", e?.message || e);
+    return false;
+  }
+}
+
+async function blockedMeIds(viewerId) {
+  const ids = new Set();
+  if (!viewerId) return ids;
+  try {
+    const { data, error } = await adminClient()
+      .from("blocks")
+      .select("blocker_id")
+      .eq("blocked_id", String(viewerId));
+
+    if (error) {
+      console.error("BLOCKED-ME LIST ERROR:", error?.message || error);
+      return ids;
+    }
+    for (const row of data || []) {
+      if (row?.blocker_id) ids.add(String(row.blocker_id));
+    }
+  } catch (e) {
+    console.error("BLOCKED-ME LIST ERROR:", e?.message || e);
+  }
+  return ids;
+}
+
+async function isBlockedEitherWay(userA, userB) {
+  return (
+    await isUserBlockedBy(userA, userB) ||
+    await isUserBlockedBy(userB, userA)
+  );
+}
+
+function currentViewerId(req) {
+  return String(req.authUser?.id || req.user?.auth_user_id || req.user?.id || "").trim();
+}
+
 async function addNotification({
   userId,
   type,
@@ -587,21 +647,6 @@ async function hydratePosts(
    USERNAME CHECK
 ========================================================= */
 
-
-
-// MINEGRAM ENGEL KONTROLU
-async function minegramIsBlocked(viewerId, targetId) {
-  if (!viewerId || !targetId || String(viewerId) === String(targetId)) return false;
-  const { data } = await adminClient()
-    .from("blocks")
-    .select("id")
-    .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`)
-    .limit(1000);
-  return (data || []).some(b =>
-    (String(b.blocker_id) === String(viewerId) && String(b.blocked_id) === String(targetId)) ||
-    (String(b.blocker_id) === String(targetId) && String(b.blocked_id) === String(viewerId))
-  );
-}
 app.get(
   "/api/check-username",
   async (req, res) => {
@@ -3171,7 +3216,9 @@ app.get(
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+      const viewerId = currentViewerId(req);
+      const targetId = String(target.auth_user_id || target.id || "").trim();
+      if (await isUserBlockedBy(targetId, viewerId)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -3920,7 +3967,10 @@ app.get(
       }
 
       const activeStories = await filterActiveStories(data || []);
-      const storyUserIds = [...new Set(activeStories.map(s => s?.user_id).filter(Boolean))];
+      const viewerId = currentViewerId(req);
+      const blockedMe = await blockedMeIds(viewerId);
+      const activeVisibleStories = activeStories.filter(story => !blockedMe.has(String(story?.user_id || "")));
+      const storyUserIds = [...new Set(activeVisibleStories.map(s => s?.user_id).filter(Boolean))];
       const allowedFollowing = new Set();
       if (storyUserIds.length) {
         const { data: followed } = await adminClient()
@@ -3930,7 +3980,7 @@ app.get(
           .in("following_id", storyUserIds);
         (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
       }
-      const visibleStories = activeStories.filter(story => {
+      const visibleStories = activeVisibleStories.filter(story => {
         const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
         const settings = profile?.settings || {};
         const isPrivate = !!(settings.private_account ?? settings.privateAccount ?? settings.private);
@@ -4656,6 +4706,110 @@ app.post(
 );
 
 
+
+/* =========================================================
+   BLOCK / UNBLOCK
+========================================================= */
+app.get("/api/blocks", auth, async (req, res) => {
+  try {
+    const viewerId = currentViewerId(req);
+    const { data, error } = await adminClient()
+      .from("blocks")
+      .select("blocker_id,blocked_id,created_at")
+      .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const blockedByMe = [];
+    const blockedMe = [];
+    for (const row of data || []) {
+      if (String(row.blocker_id) === viewerId) blockedByMe.push(row.blocked_id);
+      if (String(row.blocked_id) === viewerId) blockedMe.push(row.blocker_id);
+    }
+
+    return res.json({ blockedByMe, blockedMe });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Engel listesi alınamadı." });
+  }
+});
+
+app.post("/api/users/:username/block", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const blockerId = currentViewerId(req);
+    const blockedId = String(target.auth_user_id || target.id || "").trim();
+
+    if (!blockerId || !blockedId || blockerId === blockedId) {
+      return res.status(400).json({ error: "Geçersiz kullanıcı." });
+    }
+
+    const admin = adminClient();
+    const { error } = await admin
+      .from("blocks")
+      .upsert(
+        { blocker_id: blockerId, blocked_id: blockedId },
+        { onConflict: "blocker_id,blocked_id", ignoreDuplicates: true }
+      );
+
+    if (error) throw error;
+
+    // Engel varken takip ilişkisini de kaldır.
+    await admin.from("follows")
+      .delete()
+      .or(
+        `and(follower_id.eq.${blockerId},following_id.eq.${blockedId}),and(follower_id.eq.${blockedId},following_id.eq.${blockerId})`
+      );
+
+    return res.json({ ok: true, blocked: true, username: target.username });
+  } catch (e) {
+    console.error("BLOCK ERROR:", e);
+    return res.status(500).json({ error: e?.message || "Kullanıcı engellenemedi." });
+  }
+});
+
+app.delete("/api/users/:username/block", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const blockerId = currentViewerId(req);
+    const blockedId = String(target.auth_user_id || target.id || "").trim();
+
+    const { error } = await adminClient()
+      .from("blocks")
+      .delete()
+      .eq("blocker_id", blockerId)
+      .eq("blocked_id", blockedId);
+
+    if (error) throw error;
+    return res.json({ ok: true, blocked: false, username: target.username });
+  } catch (e) {
+    console.error("UNBLOCK ERROR:", e);
+    return res.status(500).json({ error: e?.message || "Engel kaldırılamadı." });
+  }
+});
+
+app.get("/api/users/:username/block-status", auth, async (req, res) => {
+  try {
+    const target = await findProfile(req.sb, req.params.username);
+    if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+
+    const me = currentViewerId(req);
+    const targetId = String(target.auth_user_id || target.id || "").trim();
+
+    return res.json({
+      blockedByMe: await isUserBlockedBy(me, targetId),
+      blockedMe: await isUserBlockedBy(targetId, me),
+      blocked: await isBlockedEitherWay(me, targetId)
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Engel durumu alınamadı." });
+  }
+});
+
 /* =========================================================
    FOLLOW
 ========================================================= */
@@ -4678,7 +4832,9 @@ app.post(
         });
       }
 
-      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+      const viewerId = currentViewerId(req);
+      const targetId = String(target.auth_user_id || target.id || "").trim();
+      if (await isUserBlockedBy(targetId, viewerId)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -5099,7 +5255,9 @@ app.get(
         });
       }
 
-      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
+      const viewerId = currentViewerId(req);
+      const targetId = String(target.auth_user_id || target.id || "").trim();
+      if (await isBlockedEitherWay(viewerId, targetId)) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -5201,8 +5359,13 @@ app.get(
         });
       }
 
-      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      const viewerId = currentViewerId(req);
+      const targetId = String(target.auth_user_id || target.id || "").trim();
+      if (await isUserBlockedBy(targetId, viewerId)) {
+        return res.status(404).json({
+          error:
+            "Kullanıcı bulunamadı"
+        });
       }
 
       const [
@@ -5344,9 +5507,15 @@ app.get(
       }
 
       const activeProfiles = await filterActiveProfiles(data || []);
+      const viewerId = currentViewerId(req);
+      const blockedMe = await blockedMeIds(viewerId);
+      const visibleProfiles = activeProfiles.filter(profile => {
+        const id = String(profile?.auth_user_id || profile?.id || "");
+        return !blockedMe.has(id);
+      });
 
       res.json(
-        activeProfiles.map(
+        visibleProfiles.map(
           safeUser
         )
       );
@@ -5450,10 +5619,6 @@ app.post(
           error:
             "Kullanıcı bulunamadı"
         });
-      }
-
-      if (await minegramIsBlocked(req.user.id, target.auth_user_id || target.id)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       if (!text) {
