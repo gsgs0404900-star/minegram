@@ -198,22 +198,35 @@ async function isBlockedEitherWay(userA, userB) {
   return Array.isArray(data) && data.length > 0;
 }
 
-async function blockedUserIdsFor(viewerId) {
+async function blockedEitherIdsFor(viewerId) {
   if (!viewerId) return new Set();
+  const viewer = String(viewerId);
   const admin = adminClient();
-  // YALNIZCA viewer'ı ENGELLEYEN kişiler gizlenir.
-  // Viewer'ın kendi engellediği kişi viewer tarafında gizlenmez.
-  const { data, error } = await admin
-    .from("blocks")
-    .select("blocker_id")
-    .eq("blocked_id", String(viewerId));
-  if (error) {
-    if (String(error.code || "") === "42P01") return new Set();
-    throw error;
+  const [blockedMeResult, blockedByMeResult] = await Promise.all([
+    admin.from("blocks").select("blocker_id").eq("blocked_id", viewer),
+    admin.from("blocks").select("blocked_id").eq("blocker_id", viewer)
+  ]);
+  for (const result of [blockedMeResult, blockedByMeResult]) {
+    if (result.error) {
+      if (String(result.error.code || "") === "42P01") return new Set();
+      throw result.error;
+    }
   }
-  return new Set((data || [])
-    .map(row => String(row?.blocker_id || ""))
-    .filter(Boolean));
+  const ids = new Set();
+  for (const row of blockedMeResult.data || []) {
+    const id = String(row?.blocker_id || "").trim();
+    if (id) ids.add(id);
+  }
+  for (const row of blockedByMeResult.data || []) {
+    const id = String(row?.blocked_id || "").trim();
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+// Eski isimli yardımcıyı da koruyoruz; artık Instagram tarzı karşılıklı görünmezlik uygular.
+async function blockedUserIdsFor(viewerId) {
+  return blockedEitherIdsFor(viewerId);
 }
 
 async function auth(req, res, next) {
@@ -3163,7 +3176,7 @@ app.get(
       }
 
       const activePosts = await filterActivePosts(data || []);
-      const blockedIds = await blockedMeIdsFor(viewerAuthId(req));
+      const blockedIds = await blockedEitherIdsFor(viewerAuthId(req));
       const visiblePosts = activePosts.filter(post => !blockedIds.has(String(post?.user_id)));
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
@@ -3203,8 +3216,8 @@ app.get(
 
       const targetId = profileAuthId(target);
       const viewerId = viewerAuthId(req);
-      if (await isUserBlockedBy(targetId, viewerId)) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      if (await isUserBlockedBy(targetId, viewerId) || await isUserBlockedBy(viewerId, targetId)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı", blocked: true });
       }
 
       const targetIsPrivate = !!(
@@ -3962,7 +3975,7 @@ app.get(
           .in("following_id", storyUserIds);
         (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
       }
-      const blockedIds = await blockedMeIdsFor(viewerAuthId(req));
+      const blockedIds = await blockedEitherIdsFor(viewerAuthId(req));
       const visibleStories = activeStories.filter(story => {
         if (blockedIds.has(String(story?.user_id))) return false;
         const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
@@ -4140,6 +4153,16 @@ app.get(
     try {
       const admin = adminClient();
 
+      const { data: commentPost } = await admin
+        .from("posts")
+        .select("user_id")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (!commentPost) return res.status(404).json({ error: "Gönderi bulunamadı" });
+      if (await isUserBlockedBy(String(commentPost.user_id), viewerAuthId(req)) || await isUserBlockedBy(viewerAuthId(req), String(commentPost.user_id))) {
+        return res.status(404).json({ error: "Gönderi bulunamadı", blocked: true });
+      }
+
       // Yorumları doğrudan comments tablosundan oku.
       // Profil JOIN'i eski kayıtlar / foreign-key farkları yüzünden
       // yorum listesinin tamamını bozmasın.
@@ -4230,6 +4253,16 @@ app.post(
           error:
             "Yorum boş olamaz"
         });
+      }
+
+      const { data: commentPost } = await adminClient()
+        .from("posts")
+        .select("user_id")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (!commentPost) return res.status(404).json({ error: "Gönderi bulunamadı" });
+      if (await isUserBlockedBy(String(commentPost.user_id), viewerAuthId(req)) || await isUserBlockedBy(viewerAuthId(req), String(commentPost.user_id))) {
+        return res.status(403).json({ error: "Bu kullanıcıyla etkileşim kuramazsın", blocked: true });
       }
 
       const {
@@ -4722,6 +4755,12 @@ async function getFollowListForProfile(req, res, type) {
       });
     }
 
+    const targetId = profileAuthId(target);
+    const viewerId = viewerAuthId(req);
+    if (await isUserBlockedBy(targetId, viewerId) || await isUserBlockedBy(viewerId, targetId)) {
+      return res.status(404).json({ error: "Kullanıcı bulunamadı", blocked: true });
+    }
+
     const admin = adminClient();
 
     // Yeni hesaplarda follows.auth tarafında auth_user_id,
@@ -5016,7 +5055,7 @@ app.get(
 
       const targetId = profileAuthId(target);
       const viewerId = viewerAuthId(req);
-      if (await isUserBlockedBy(targetId, viewerId)) {
+      if (await isUserBlockedBy(targetId, viewerId) || await isUserBlockedBy(viewerId, targetId)) {
         return res.json([]);
       }
 
@@ -5114,7 +5153,12 @@ app.get(
 
       const targetId = profileAuthId(target);
       const viewerId = viewerAuthId(req);
+      const blockedByMe = await isUserBlockedBy(viewerId, targetId);
       const blockedMe = await isUserBlockedBy(targetId, viewerId);
+      const blockedEither = blockedByMe || blockedMe;
+      if (blockedEither) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı", blocked: true, blockedByMe, blockedMe });
+      }
 
       const [
         postCountResult,
@@ -5236,7 +5280,7 @@ app.get(
         await req.sb
           .from("profiles")
           .select(
-            "id,username,display_name,bio,avatar_url,verified,settings"
+            "id,auth_user_id,username,display_name,bio,avatar_url,verified,settings"
           )
           .or(
             `username.ilike.%${q}%,display_name.ilike.%${q}%`
@@ -5248,8 +5292,11 @@ app.get(
       }
 
       const activeProfiles = await filterActiveProfiles(data || []);
-      const blockedIds = await blockedMeIdsFor(viewerAuthId(req));
-      const visibleProfiles = activeProfiles.filter(profile => !blockedIds.has(String(profile?.id || "")));
+      const blockedIds = await blockedEitherIdsFor(viewerAuthId(req));
+      const visibleProfiles = activeProfiles.filter(profile => {
+        const profileId = String(profile?.auth_user_id || profile?.id || "");
+        return !blockedIds.has(profileId);
+      });
 
       res.json(
         visibleProfiles.map(
