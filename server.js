@@ -5275,22 +5275,40 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
     if (String(targetId) === String(req.user.id)) {
       return res.status(400).json({ error: "Kendini engelleyemezsin" });
     }
+
     const admin = adminClient();
+    const shouldBlock = req.body?.blocked !== false;
+
+    // Aynı endpoint hem ENGELLE hem ENGELİ KALDIR işlemini yapar.
+    // Böylece Android tarafındaki profil ve sohbet ekranları aynı server kaydını kullanır.
+    if (!shouldBlock) {
+      const { error } = await admin
+        .from("blocks")
+        .delete()
+        .eq("blocker_id", req.user.id)
+        .eq("blocked_id", targetId);
+      if (error) throw error;
+      return res.json({ ok: true, blocked: false, block: null });
+    }
+
     const { data, error } = await admin
       .from("blocks")
-      .upsert({ blocker_id: req.user.id, blocked_id: targetId }, { onConflict: "blocker_id,blocked_id" })
+      .upsert(
+        { blocker_id: req.user.id, blocked_id: targetId },
+        { onConflict: "blocker_id,blocked_id" }
+      )
       .select("id,blocker_id,blocked_id,created_at")
       .single();
     if (error) throw error;
 
-    // Karşılıklı etkileşimleri kes: mevcut takip ilişkilerini kaldır.
+    // Instagram tarzı: engelleyen taraf ile hedef arasındaki takip ilişkisini kes.
     await admin.from("follows").delete()
       .or(`and(follower_id.eq.${req.user.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${req.user.id})`);
 
     res.json({ ok: true, blocked: true, block: data });
   } catch (e) {
     console.error("BLOCK ERROR:", e);
-    res.status(400).json({ error: e?.message || "Kullanıcı engellenemedi." });
+    res.status(400).json({ error: e?.message || "Kullanıcı engelleme işlemi başarısız." });
   }
 });
 
@@ -5418,17 +5436,8 @@ app.post(
       }
 
       const targetId = target.auth_user_id || target.id;
-
-      // Instagram tipi tek yönlü engelleme: Mesajı gönderen kişi hedefi
-      // engellemiş olsa bile kendi tarafındaki sohbeti kullanabilir. Ancak
-      // hedef kişi göndereni engellediyse mesaj kesinlikle gönderilemez.
-      const blockedByOther = await isUserBlockedBy(targetId, req.user.id);
-      if (blockedByOther) {
-        return res.status(403).json({
-          error: "Mesaj gönderemezsin",
-          reason: "blocked_by_other",
-          canMessage: false
-        });
+      if (await isBlockedEitherWay(req.user.id, targetId)) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
       if (!text) {
