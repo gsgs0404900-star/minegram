@@ -146,35 +146,31 @@ function bearer(req) {
     : null;
 }
 
-async function resolveIdentityIds(value) {
-  const ids = new Set();
-  const raw = String(value || "").trim();
-  if (!raw) return ids;
-  ids.add(raw);
-  try {
-    const { data } = await adminClient()
-      .from("profiles")
-      .select("id,auth_user_id")
-      .or(`id.eq.${raw},auth_user_id.eq.${raw}`)
-      .limit(5);
-    for (const row of data || []) {
-      if (row?.id) ids.add(String(row.id));
-      if (row?.auth_user_id) ids.add(String(row.auth_user_id));
-    }
-  } catch (_) {}
-  return ids;
+function minegramBlockViewerId(req) {
+  return String(req.authUser?.id || req.user?.auth_user_id || req.user?.id || "").trim();
 }
 
-async function isUserBlockedBy(blockerId, blockedId) {
-  if (!blockerId || !blockedId || String(blockerId) === String(blockedId)) return false;
-  const blockerIds = await resolveIdentityIds(blockerId);
-  const blockedIds = await resolveIdentityIds(blockedId);
-  const admin = adminClient();
-  const { data, error } = await admin
+function minegramBlockViewerIds(req) {
+  return [...new Set([
+    req.authUser?.id,
+    req.user?.auth_user_id,
+    req.user?.id
+  ].filter(Boolean).map(String))];
+}
+
+function minegramBlockTargetIds(profile) {
+  return [...new Set([profile?.auth_user_id, profile?.id].filter(Boolean).map(String))];
+}
+
+async function minegramIsBlockedByProfiles(blockerIds, blockedIds) {
+  const a = [...new Set((blockerIds || []).filter(Boolean).map(String))];
+  const b = [...new Set((blockedIds || []).filter(Boolean).map(String))];
+  if (!a.length || !b.length) return false;
+  const { data, error } = await adminClient()
     .from("blocks")
     .select("id")
-    .in("blocker_id", [...blockerIds])
-    .in("blocked_id", [...blockedIds])
+    .in("blocker_id", a)
+    .in("blocked_id", b)
     .limit(1);
   if (error) {
     if (String(error.code || "") === "42P01") return false;
@@ -183,53 +179,53 @@ async function isUserBlockedBy(blockerId, blockedId) {
   return Array.isArray(data) && data.length > 0;
 }
 
+async function isUserBlockedBy(blockerId, blockedId) {
+  if (!blockerId || !blockedId || String(blockerId) === String(blockedId)) return false;
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from("blocks")
+    .select("id")
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId)
+    .maybeSingle();
+  if (error) {
+    // Tablo henüz oluşturulmadıysa mevcut sunucunun diğer özellikleri çalışmaya devam etsin.
+    if (String(error.code || "") === "42P01") return false;
+    throw error;
+  }
+  return !!data;
+}
+
 async function isBlockedEitherWay(userA, userB) {
-  return (
-    await isUserBlockedBy(userA, userB) ||
-    await isUserBlockedBy(userB, userA)
-  );
+  if (!userA || !userB || String(userA) === String(userB)) return false;
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from("blocks")
+    .select("id")
+    .or(`and(blocker_id.eq.${userA},blocked_id.eq.${userB}),and(blocker_id.eq.${userB},blocked_id.eq.${userA})`)
+    .limit(1);
+  if (error) {
+    if (String(error.code || "") === "42P01") return false;
+    throw error;
+  }
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function blockedUserIdsFor(viewerId) {
   if (!viewerId) return new Set();
-  const viewerIds = await resolveIdentityIds(viewerId);
   const admin = adminClient();
   const { data, error } = await admin
     .from("blocks")
     .select("blocker_id,blocked_id")
-    .or(`blocker_id.in.(${[...viewerIds].join(",")}),blocked_id.in.(${[...viewerIds].join(",")})`);
+    .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`);
   if (error) {
     if (String(error.code || "") === "42P01") return new Set();
     throw error;
   }
   const ids = new Set();
   for (const row of data || []) {
-    const blocker = String(row.blocker_id || "");
-    const blocked = String(row.blocked_id || "");
-    if (viewerIds.has(blocker)) ids.add(blocked);
-    if (viewerIds.has(blocked)) ids.add(blocker);
-  }
-  return ids;
-}
-
-// Yalnızca BİZİ ENGELLEYEN hesaplar: Engellediğimiz hesapları burada gizlemeyiz.
-async function usersWhoBlockedViewer(viewerId) {
-  if (!viewerId) return new Set();
-  const viewerIds = await resolveIdentityIds(viewerId);
-  const admin = adminClient();
-  const { data, error } = await admin
-    .from("blocks")
-    .select("blocker_id")
-    .in("blocked_id", [...viewerIds]);
-  if (error) {
-    if (String(error.code || "") === "42P01") return new Set();
-    throw error;
-  }
-  const rawBlockers = [...new Set((data || []).map(r => String(r.blocker_id || "")).filter(Boolean))];
-  const ids = new Set(rawBlockers);
-  for (const blockerId of rawBlockers) {
-    const identityIds = await resolveIdentityIds(blockerId);
-    for (const id of identityIds) ids.add(id);
+    if (String(row.blocker_id) === String(viewerId)) ids.add(String(row.blocked_id));
+    if (String(row.blocked_id) === String(viewerId)) ids.add(String(row.blocker_id));
   }
   return ids;
 }
@@ -3181,7 +3177,7 @@ app.get(
       }
 
       const activePosts = await filterActivePosts(data || []);
-      const blockedIds = await usersWhoBlockedViewer(req.user.id);
+      const blockedIds = await blockedUserIdsFor(minegramBlockViewerId(req));
       const visiblePosts = activePosts.filter(post => !blockedIds.has(String(post?.user_id)));
 
       // Feed ortak akış olduğu için hydrate işlemlerinde JWT/RLS client
@@ -3220,7 +3216,7 @@ app.get(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
+      if (await minegramIsBlockedByProfiles(minegramBlockTargetIds(target), minegramBlockViewerIds(req))) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -3979,7 +3975,7 @@ app.get(
           .in("following_id", storyUserIds);
         (followed || []).forEach(f => allowedFollowing.add(String(f.following_id)));
       }
-      const blockedIds = await usersWhoBlockedViewer(req.user.id);
+      const blockedIds = await blockedUserIdsFor(minegramBlockViewerId(req));
       const visibleStories = activeStories.filter(story => {
         if (blockedIds.has(String(story?.user_id))) return false;
         const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles;
@@ -5124,7 +5120,7 @@ app.get(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isUserBlockedBy(targetId, req.user.id)) {
+      if (await minegramIsBlockedByProfiles(minegramBlockTargetIds(target), minegramBlockViewerIds(req))) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
@@ -5267,10 +5263,11 @@ app.get(
       }
 
       const activeProfiles = await filterActiveProfiles(data || []);
-      const blockedByUsers = await usersWhoBlockedViewer(req.user.id);
+      const viewerId = minegramBlockViewerId(req);
+      const blockedIds = await blockedUserIdsFor(viewerId);
       const visibleProfiles = activeProfiles.filter(profile => {
-        const profileId = String(profile?.auth_user_id || profile?.id || "");
-        return !blockedByUsers.has(profileId);
+        const ids = [profile?.auth_user_id, profile?.id].filter(Boolean).map(String);
+        return !ids.some(id => blockedIds.has(id));
       });
 
       res.json(
@@ -5300,7 +5297,7 @@ app.get("/api/blocks", auth, async (req, res) => {
     const { data, error } = await admin
       .from("blocks")
       .select("id,blocker_id,blocked_id,created_at")
-      .eq("blocker_id", req.user.id)
+      .eq("blocker_id", minegramBlockViewerId(req))
       .order("created_at", { ascending: false });
     if (error) throw error;
     res.json(data || []);
@@ -5314,8 +5311,8 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     const targetId = target.auth_user_id || target.id;
-    const blockerId = String(req.authUser?.id || req.user?.auth_user_id || req.user?.id || "");
-    if (String(targetId) === blockerId) {
+    const blockerId = minegramBlockViewerId(req);
+    if (String(targetId) === String(blockerId)) {
       return res.status(400).json({ error: "Kendini engelleyemezsin" });
     }
     const admin = adminClient();
@@ -5328,7 +5325,7 @@ app.post("/api/users/:username/block", auth, async (req, res) => {
 
     // Karşılıklı etkileşimleri kes: mevcut takip ilişkilerini kaldır.
     await admin.from("follows").delete()
-      .or(`and(follower_id.eq.${blockerId},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${blockerId})`);
+      .or(`and(follower_id.eq.${req.user.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${req.user.id})`);
 
     res.json({ ok: true, blocked: true, block: data });
   } catch (e) {
@@ -5342,9 +5339,8 @@ app.delete("/api/users/:username/block", auth, async (req, res) => {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     const targetId = target.auth_user_id || target.id;
-    const blockerId = String(req.authUser?.id || req.user?.auth_user_id || req.user?.id || "");
     const { error } = await adminClient().from("blocks")
-      .delete().eq("blocker_id", blockerId).eq("blocked_id", targetId);
+      .delete().in("blocker_id", minegramBlockViewerIds(req)).in("blocked_id", minegramBlockTargetIds(target));
     if (error) throw error;
     res.json({ ok: true, blocked: false });
   } catch (e) {
@@ -5357,8 +5353,10 @@ app.get("/api/users/:username/block-status", auth, async (req, res) => {
     const target = await findProfile(req.sb, req.params.username);
     if (!target) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     const targetId = target.auth_user_id || target.id;
-    const blockedByMe = await isUserBlockedBy(req.user.id, targetId);
-    const blockedMe = await isUserBlockedBy(targetId, req.user.id);
+    const viewerIds = minegramBlockViewerIds(req);
+    const targetIds = minegramBlockTargetIds(target);
+    const blockedByMe = await minegramIsBlockedByProfiles(viewerIds, targetIds);
+    const blockedMe = await minegramIsBlockedByProfiles(targetIds, viewerIds);
     res.json({ blockedByMe, blockedMe, blocked: blockedByMe || blockedMe });
   } catch (e) {
     res.status(500).json({ error: e?.message || "Engel durumu alınamadı." });
@@ -5398,7 +5396,7 @@ app.get(
         throw error;
       }
 
-      const blockedIds = await blockedUserIdsFor(req.user.id);
+      const blockedIds = await blockedUserIdsFor(minegramBlockViewerId(req));
       const visibleMessages = (data || []).filter(m =>
         !blockedIds.has(String(m.sender_id)) && !blockedIds.has(String(m.recipient_id))
       );
@@ -5462,7 +5460,8 @@ app.post(
       }
 
       const targetId = target.auth_user_id || target.id;
-      if (await isBlockedEitherWay(req.user.id, targetId)) {
+      if (await minegramIsBlockedByProfiles(minegramBlockViewerIds(req), minegramBlockTargetIds(target)) ||
+          await minegramIsBlockedByProfiles(minegramBlockTargetIds(target), minegramBlockViewerIds(req))) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
 
