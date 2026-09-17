@@ -5,230 +5,6915 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Minegram Chat</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-html,body{width:100%;height:100%;background:#000;color:#fff;overflow:hidden}body{display:flex;justify-content:center}.app{width:100%;max-width:430px;height:100dvh;min-height:100vh;background:#000;display:flex;flex-direction:column;position:relative}
-.topbar{height:72px;min-height:72px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #202020;background:#000;z-index:5}.back{width:38px;height:50px;display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;font-size:25px;margin-right:3px}.user{flex:1;min-width:0;display:flex;align-items:center;cursor:pointer}.avatar-small{width:45px;height:45px;min-width:45px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700}.info{margin-left:10px;min-width:0}.name-row{display:flex;align-items:center;gap:5px}.name{font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.verified{width:23px;height:23px;border-radius:50%;background:#1877f2;display:inline-flex;align-items:center;justify-content:center;font-size:13px}.profile{margin-top:2px;color:#aaa;font-size:14px}.actions{display:flex;align-items:center;gap:18px}.action-btn{width:25px;height:42px;border:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:21px}.action-btn:active{opacity:.5}
-.profile-card{text-align:center;padding-top:30px;flex:none}.avatar-large{width:162px;height:162px;margin:auto;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-size:72px;font-weight:700}.profile-link{display:inline-block;margin-top:45px;color:#62afea;font-size:19px;font-weight:600;text-decoration:none}
-.chat-area{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px}.chat-area::-webkit-scrollbar{width:0}.message{display:flex;width:100%}.message.sent{justify-content:flex-end}.message.received{justify-content:flex-start}.bubble{max-width:76%;padding:9px 13px 8px;border-radius:23px;font-size:18px;line-height:23px;word-break:break-word}.sent .bubble{background:#62afea}.received .bubble{background:#262626}.message-time{font-size:10px;opacity:.65;margin-left:6px}.loading{text-align:center;color:#777;font-size:13px;padding:15px}
-.input-bar{min-height:91px;padding:13px 12px calc(13px + env(safe-area-inset-bottom));border-top:1px solid #282828;background:#000;display:flex;align-items:center;gap:10px}.tool-buttons{display:flex;align-items:center;gap:12px}.tool-btn{width:30px;height:48px;border:0;background:transparent;color:#fff;font-size:25px;cursor:pointer}.gif-btn{width:37px;height:30px;border:2px solid #fff;border-radius:5px;font-size:11px;font-weight:bold}.composer{height:60px;min-width:0;flex:1;display:flex;align-items:center;border:2px solid #777;border-radius:9px;overflow:hidden}#messageInput{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#fff;padding:0 13px;font-size:18px}#sendBtn{width:58px;height:100%;border:0;background:transparent;color:#fff;font-size:30px}
-.menu{position:absolute;top:63px;right:10px;width:205px;background:#171717;border:1px solid #333;border-radius:12px;padding:6px;box-shadow:0 10px 30px #000;display:none;z-index:50}.menu.show{display:block}.menu button{width:100%;height:45px;border:0;background:transparent;color:#fff;text-align:left;padding:0 12px;border-radius:8px;font-size:15px}.menu .danger{color:#ff4d67}.menu .arrow-item{display:flex;align-items:center;justify-content:space-between}.menu .arrow-item .chevron{color:#777;font-size:14px}.option-modal{position:absolute;inset:0;background:rgba(0,0,0,.58);z-index:125;display:none;align-items:flex-end}.option-modal.show{display:flex}.option-sheet{width:100%;background:#151515;border-radius:22px 22px 0 0;padding:10px 14px 18px;box-shadow:0 -12px 35px rgba(0,0,0,.45)}.option-list{display:flex;flex-direction:column;gap:2px}.option-btn{width:100%;min-height:48px;border:0;border-radius:11px;background:transparent;color:#fff;text-align:left;padding:0 12px;font-size:15px;display:flex;align-items:center;gap:12px}.option-btn:active{background:#252525}.option-btn.danger{color:#ff4d67}.option-btn i{width:20px;text-align:center}.profile{cursor:pointer}.profile:active{opacity:.65}.toast{position:absolute;left:50%;bottom:105px;transform:translate(-50%,20px);background:#242424;padding:10px 15px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:500;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
-.call-screen{position:absolute;inset:0;background:#050505;z-index:200;display:none;flex-direction:column}.call-screen.show{display:flex}.call-top{height:70px;display:flex;align-items:center;justify-content:center;color:#aaa}.call-user{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px}.call-avatar{width:125px;height:125px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-size:55px;font-weight:bold}.call-name{font-size:26px;font-weight:700}.call-status{color:#aaa;font-size:16px;text-align:center;padding:0 20px}.call-buttons{height:160px;display:flex;align-items:center;justify-content:center;gap:35px;padding-bottom:30px}.call-control{width:65px;height:65px;border-radius:50%;border:0;background:#292929;color:#fff;font-size:23px}.call-control.active{background:#fff;color:#000}.call-end{background:#ff304f}.incoming-screen{position:absolute;inset:0;background:rgba(0,0,0,.97);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center}.incoming-screen.show{display:flex}.incoming-avatar{width:130px;height:130px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-size:60px;font-weight:bold;margin-bottom:25px}.incoming-title{font-size:26px;font-weight:700}.incoming-type{color:#aaa;margin-top:8px}.incoming-buttons{display:flex;gap:55px;margin-top:60px}.incoming-btn{width:70px;height:70px;border-radius:50%;border:0;color:#fff;font-size:27px}.accept-btn{background:#22c55e}.reject-btn{background:#ff304f}
-#remoteVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#111;display:none}#localVideo{position:absolute;width:115px;height:165px;right:15px;top:85px;object-fit:cover;border-radius:14px;background:#222;border:2px solid #fff;z-index:4;display:none}.permission-screen{position:absolute;inset:0;background:#050505;z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:25px;text-align:center}.permission-screen.show{display:flex}.permission-icon{width:90px;height:90px;border-radius:50%;background:#202020;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:22px}.permission-title{font-size:24px;font-weight:700;margin-bottom:12px}.permission-message{color:#aaa;font-size:15px;line-height:22px;max-width:350px}.permission-status{width:100%;max-width:360px;margin-top:20px;background:#171717;border:1px solid #333;border-radius:12px;padding:14px;text-align:left}.permission-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px}.permission-row i{width:22px;text-align:center}.permission-ok{color:#22c55e}.permission-error{color:#ff4d67}.permission-warning{color:#f59e0b}.permission-button{margin-top:22px;height:48px;padding:0 25px;border:0;border-radius:12px;background:#62afea;color:#fff;font-size:16px;font-weight:600}.permission-close{margin-top:12px;background:transparent;color:#aaa;border:0;padding:10px}.debug-status{position:absolute;left:10px;right:10px;bottom:10px;background:#111;border:1px solid #333;border-radius:10px;padding:10px;font-size:12px;color:#aaa;display:none;z-index:1500}.debug-status.show{display:block}
+*{
+ margin:0;
+ padding:0;
+ box-sizing:border-box;
+ -webkit-tap-highlight-color:transparent;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif
+}
 
-.api-profile{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:14px;min-height:22px}.api-bio{color:#aaa;font-size:14px;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.api-follow{border:1px solid #444;background:#181818;color:#fff;border-radius:10px;padding:8px 18px;font-size:14px;cursor:pointer}.api-follow.following{background:#fff;color:#000}.api-status{font-size:12px;color:#777}.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+html,body{
+ width:100%;
+ height:100%;
+ background:#000;
+ color:#fff;
+ overflow:hidden
+}
 
-.message .bubble{position:relative}.message-media{display:block;max-width:250px;max-height:330px;border-radius:15px;object-fit:cover}.message-video{display:block;width:250px;max-height:330px;border-radius:15px;background:#111}.message-gif{display:block;max-width:250px;max-height:300px;border-radius:15px}.message-post,.message-live{width:270px;border-radius:15px;overflow:hidden;background:rgba(255,255,255,.08);cursor:pointer}.message-post img,.message-post video{width:100%;height:230px;object-fit:cover;display:block}.message-post .post-info,.message-live .live-info{padding:10px}.message-post .post-user{font-weight:700}.message-post .post-caption{font-size:13px;margin-top:5px;color:#ddd}.message-actions{display:flex;align-items:center;gap:6px;margin-top:4px;opacity:.72}.message-actions button{border:0;background:transparent;color:#fff;font-size:11px;padding:2px;cursor:pointer}.message.sent .message-actions{justify-content:flex-end}.message-reaction{position:absolute;right:-7px;bottom:-9px;background:#111;border-radius:50%;font-size:13px;padding:2px 4px}.view-once{display:flex;align-items:center;gap:9px;padding:13px 15px;font-weight:600}.reply-preview{border-left:3px solid rgba(255,255,255,.6);padding-left:8px;margin-bottom:7px;font-size:12px;opacity:.85}.share-modal,.profile-modal{position:absolute;inset:0;background:rgba(0,0,0,.58);z-index:120;display:none;align-items:flex-end}.share-modal.show,.profile-modal.show{display:flex}.share-sheet,.profile-sheet{width:100%;max-height:78%;background:#151515;border-radius:22px 22px 0 0;padding:10px 14px 18px}.sheet-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px}.sheet-head button,.sheet-close{width:38px;height:38px;border:0;border-radius:50%;background:#222;color:#fff}.share-sheet input{width:100%;height:45px;background:#222;border:1px solid #333;border-radius:11px;color:#fff;padding:0 12px;outline:0}.share-list{max-height:50vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}.share-user .share-avatar{width:45px;height:45px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-weight:700}.share-user .share-meta{flex:1}.share-user small{color:#888}.recording-bar{position:absolute;left:10px;right:10px;bottom:103px;background:#171717;border:1px solid #333;border-radius:15px;padding:10px 12px;display:none;align-items:center;gap:10px;z-index:80}.recording-bar.show{display:flex}.recording-bar span{flex:1}.recording-bar button{border:0;background:#333;color:#fff;border-radius:8px;padding:7px 10px}.profile-sheet{position:relative;overflow:auto}.profile-sheet .sheet-close{position:absolute;right:12px;top:12px}.profile-body{text-align:center;padding:25px 8px}.profile-body .big-avatar{width:105px;height:105px;border-radius:50%;margin:auto;background:#62afea;display:flex;align-items:center;justify-content:center;font-size:45px;font-weight:700}.profile-body h2{margin-top:12px}.profile-body p{color:#aaa;margin-top:8px;line-height:20px}.profile-stats{display:flex;justify-content:center;gap:28px;margin:16px 0}.profile-stats b{display:block}.profile-stats span{font-size:12px;color:#999}.profile-actions{display:flex;gap:8px;justify-content:center}.profile-actions button{border:0;border-radius:10px;padding:9px 16px;background:#62afea;color:#fff}.profile-actions .secondary{background:#292929}
+body{
+ display:flex;
+ justify-content:center
+}
+
+.app{
+ width:100%;
+ max-width:430px;
+ height:100dvh;
+ min-height:100vh;
+ background:#000;
+ display:flex;
+ flex-direction:column;
+ position:relative
+}
+
+.topbar{
+ height:72px;
+ min-height:72px;
+ display:flex;
+ align-items:center;
+ padding:0 14px;
+ border-bottom:1px solid #202020;
+ background:#000;
+ z-index:5
+}
+
+.back{
+ width:38px;
+ height:50px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ color:#fff;
+ text-decoration:none;
+ font-size:25px;
+ margin-right:3px
+}
+
+.user{
+ flex:1;
+ min-width:0;
+ display:flex;
+ align-items:center;
+ cursor:pointer
+}
+
+.avatar-small{
+ width:45px;
+ height:45px;
+ min-width:45px;
+ border-radius:50%;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:21px;
+ font-weight:700
+}
+
+.info{
+ margin-left:10px;
+ min-width:0
+}
+
+.name-row{
+ display:flex;
+ align-items:center;
+ gap:5px
+}
+
+.name{
+ font-size:18px;
+ font-weight:700;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis
+}
+
+.verified{
+ width:23px;
+ height:23px;
+ border-radius:50%;
+ background:#1877f2;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ font-size:13px
+}
+
+.profile{
+ margin-top:2px;
+ color:#aaa;
+ font-size:14px
+}
+
+.actions{
+ display:flex;
+ align-items:center;
+ gap:18px
+}
+
+.action-btn{
+ width:25px;
+ height:42px;
+ border:0;
+ background:transparent;
+ color:#fff;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ cursor:pointer;
+ font-size:21px
+}
+
+.action-btn:active{
+ opacity:.5
+}
+
+.profile-card{
+ text-align:center;
+ padding-top:30px;
+ flex:none
+}
+
+.avatar-large{
+ width:162px;
+ height:162px;
+ margin:auto;
+ border-radius:50%;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:72px;
+ font-weight:700
+}
+
+.profile-link{
+ display:inline-block;
+ margin-top:45px;
+ color:#62afea;
+ font-size:19px;
+ font-weight:600;
+ text-decoration:none
+}
+
+.chat-area{
+ flex:1;
+ overflow-y:auto;
+ padding:14px;
+ display:flex;
+ flex-direction:column;
+ gap:9px
+}
+
+.chat-area::-webkit-scrollbar{
+ width:0
+}
+
+.message{
+ display:flex;
+ width:100%
+}
+
+.message.sent{
+ justify-content:flex-end
+}
+
+.message.received{
+ justify-content:flex-start
+}
+
+.bubble{
+ max-width:76%;
+ padding:9px 13px 8px;
+ border-radius:23px;
+ font-size:18px;
+ line-height:23px;
+ word-break:break-word
+}
+
+.sent .bubble{
+ background:#62afea
+}
+
+.received .bubble{
+ background:#262626
+}
+
+.message-time{
+ font-size:10px;
+ opacity:.65;
+ margin-left:6px
+}
+
+.loading{
+ text-align:center;
+ color:#777;
+ font-size:13px;
+ padding:15px
+}
+
+.input-bar{
+ min-height:91px;
+ padding:13px 12px calc(13px + env(safe-area-inset-bottom));
+ border-top:1px solid #282828;
+ background:#000;
+ display:flex;
+ align-items:center;
+ gap:10px
+}
+
+.tool-buttons{
+ display:flex;
+ align-items:center;
+ gap:12px
+}
+
+.tool-btn{
+ width:30px;
+ height:48px;
+ border:0;
+ background:transparent;
+ color:#fff;
+ font-size:25px;
+ cursor:pointer
+}
+
+.gif-btn{
+ width:37px;
+ height:30px;
+ border:2px solid #fff;
+ border-radius:5px;
+ font-size:11px;
+ font-weight:bold
+}
+
+.composer{
+ height:60px;
+ min-width:0;
+ flex:1;
+ display:flex;
+ align-items:center;
+ border:2px solid #777;
+ border-radius:9px;
+ overflow:hidden
+}
+
+#messageInput{
+ flex:1;
+ min-width:0;
+ height:100%;
+ border:0;
+ outline:0;
+ background:transparent;
+ color:#fff;
+ padding:0 13px;
+ font-size:18px
+}
+
+#sendBtn{
+ width:58px;
+ height:100%;
+ border:0;
+ background:transparent;
+ color:#fff;
+ font-size:30px
+}
+
+.menu{
+ position:absolute;
+ top:63px;
+ right:10px;
+ width:205px;
+ background:#171717;
+ border:1px solid #333;
+ border-radius:12px;
+ padding:6px;
+ box-shadow:0 10px 30px #000;
+ display:none;
+ z-index:50
+}
+
+.menu.show{
+ display:block
+}
+
+.menu button{
+ width:100%;
+ height:45px;
+ border:0;
+ background:transparent;
+ color:#fff;
+ text-align:left;
+ padding:0 12px;
+ border-radius:8px;
+ font-size:15px
+}
+
+.menu .danger{
+ color:#ff4d67
+}
+
+.menu .arrow-item{
+ display:flex;
+ align-items:center;
+ justify-content:space-between
+}
+
+.menu .arrow-item .chevron{
+ color:#777;
+ font-size:14px
+}
+
+.option-modal{
+ position:absolute;
+ inset:0;
+ background:rgba(0,0,0,.58);
+ z-index:125;
+ display:none;
+ align-items:flex-end
+}
+
+.option-modal.show{
+ display:flex
+}
+
+.option-sheet{
+ width:100%;
+ background:#151515;
+ border-radius:22px 22px 0 0;
+ padding:10px 14px 18px;
+ box-shadow:0 -12px 35px rgba(0,0,0,.45)
+}
+
+.option-list{
+ display:flex;
+ flex-direction:column;
+ gap:2px
+}
+
+.option-btn{
+ width:100%;
+ min-height:48px;
+ border:0;
+ border-radius:11px;
+ background:transparent;
+ color:#fff;
+ text-align:left;
+ padding:0 12px;
+ font-size:15px;
+ display:flex;
+ align-items:center;
+ gap:12px
+}
+
+.option-btn:active{
+ background:#252525
+}
+
+.option-btn.danger{
+ color:#ff4d67
+}
+
+.option-btn i{
+ width:20px;
+ text-align:center
+}
+
+.profile{
+ cursor:pointer
+}
+
+.profile:active{
+ opacity:.65
+}
+
+.toast{
+ position:absolute;
+ left:50%;
+ bottom:105px;
+ transform:translate(-50%,20px);
+ background:#242424;
+ padding:10px 15px;
+ border-radius:10px;
+ opacity:0;
+ pointer-events:none;
+ transition:.2s;
+ z-index:500;
+ white-space:nowrap
+}
+
+.toast.show{
+ opacity:1;
+ transform:translate(-50%,0)
+}
+
+.call-screen{
+ position:absolute;
+ inset:0;
+ background:#050505;
+ z-index:200;
+ display:none;
+ flex-direction:column
+}
+
+.call-screen.show{
+ display:flex
+}
+
+.call-top{
+ height:70px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ color:#aaa
+}
+
+.call-user{
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:15px
+}
+
+.call-avatar{
+ width:125px;
+ height:125px;
+ border-radius:50%;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:55px;
+ font-weight:bold
+}
+
+.call-name{
+ font-size:26px;
+ font-weight:700
+}
+
+.call-status{
+ color:#aaa;
+ font-size:16px;
+ text-align:center;
+ padding:0 20px
+}
+
+.call-buttons{
+ height:160px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:35px;
+ padding-bottom:30px
+}
+
+.call-control{
+ width:65px;
+ height:65px;
+ border-radius:50%;
+ border:0;
+ background:#292929;
+ color:#fff;
+ font-size:23px
+}
+
+.call-control.active{
+ background:#fff;
+ color:#000
+}
+
+.call-end{
+ background:#ff304f
+}
+
+.incoming-screen{
+ position:absolute;
+ inset:0;
+ background:rgba(0,0,0,.97);
+ z-index:300;
+ display:none;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center
+}
+
+.incoming-screen.show{
+ display:flex
+}
+
+.incoming-avatar{
+ width:130px;
+ height:130px;
+ border-radius:50%;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:60px;
+ font-weight:bold;
+ margin-bottom:25px
+}
+
+.incoming-title{
+ font-size:26px;
+ font-weight:700
+}
+
+.incoming-type{
+ color:#aaa;
+ margin-top:8px
+}
+
+.incoming-buttons{
+ display:flex;
+ gap:55px;
+ margin-top:60px
+}
+
+.incoming-btn{
+ width:70px;
+ height:70px;
+ border-radius:50%;
+ border:0;
+ color:#fff;
+ font-size:27px
+}
+
+.accept-btn{
+ background:#22c55e
+}
+
+.reject-btn{
+ background:#ff304f
+}
+
+#remoteVideo{
+ position:absolute;
+ inset:0;
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ background:#111;
+ display:none
+}
+
+#localVideo{
+ position:absolute;
+ width:115px;
+ height:165px;
+ right:15px;
+ top:85px;
+ object-fit:cover;
+ border-radius:14px;
+ background:#222;
+ border:2px solid #fff;
+ z-index:4;
+ display:none
+}
+
+.permission-screen{
+ position:absolute;
+ inset:0;
+ background:#050505;
+ z-index:1000;
+ display:none;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ padding:25px;
+ text-align:center
+}
+
+.permission-screen.show{
+ display:flex
+}
+
+.permission-icon{
+ width:90px;
+ height:90px;
+ border-radius:50%;
+ background:#202020;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:40px;
+ margin-bottom:22px
+}
+
+.permission-title{
+ font-size:24px;
+ font-weight:700;
+ margin-bottom:12px
+}
+
+.permission-message{
+ color:#aaa;
+ font-size:15px;
+ line-height:22px;
+ max-width:350px
+}
+
+.permission-status{
+ width:100%;
+ max-width:360px;
+ margin-top:20px;
+ background:#171717;
+ border:1px solid #333;
+ border-radius:12px;
+ padding:14px;
+ text-align:left
+}
+
+.permission-row{
+ display:flex;
+ align-items:center;
+ gap:10px;
+ padding:8px 0;
+ font-size:14px
+}
+
+.permission-row i{
+ width:22px;
+ text-align:center
+}
+
+.permission-ok{
+ color:#22c55e
+}
+
+.permission-error{
+ color:#ff4d67
+}
+
+.permission-warning{
+ color:#f59e0b
+}
+
+.permission-button{
+ margin-top:22px;
+ height:48px;
+ padding:0 25px;
+ border:0;
+ border-radius:12px;
+ background:#62afea;
+ color:#fff;
+ font-size:16px;
+ font-weight:600
+}
+
+.permission-close{
+ margin-top:12px;
+ background:transparent;
+ color:#aaa;
+ border:0;
+ padding:10px
+}
+
+.debug-status{
+ position:absolute;
+ left:10px;
+ right:10px;
+ bottom:10px;
+ background:#111;
+ border:1px solid #333;
+ border-radius:10px;
+ padding:10px;
+ font-size:12px;
+ color:#aaa;
+ display:none;
+ z-index:1500
+}
+
+.debug-status.show{
+ display:block
+}
+
+.api-profile{
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ gap:6px;
+ margin-top:14px;
+ min-height:22px
+}
+
+.api-bio{
+ color:#aaa;
+ font-size:14px;
+ max-width:320px;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis
+}
+
+.api-follow{
+ border:1px solid #444;
+ background:#181818;
+ color:#fff;
+ border-radius:10px;
+ padding:8px 18px;
+ font-size:14px;
+ cursor:pointer
+}
+
+.api-follow.following{
+ background:#fff;
+ color:#000
+}
+
+.api-status{
+ font-size:12px;
+ color:#777
+}
+
+.avatar-img{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ border-radius:50%
+}
+
+.message .bubble{
+ position:relative
+}
+
+.message-media{
+ display:block;
+ max-width:250px;
+ max-height:330px;
+ border-radius:15px;
+ object-fit:cover
+}
+
+.message-video{
+ display:block;
+ width:250px;
+ max-width:100%;
+ max-height:330px;
+ border-radius:15px;
+ background:#111;
+ object-fit:contain
+}
+
+/* =========================
+   YENİ VİDEO KAPAK SİSTEMİ
+   ========================= */
+
+.video-cover-wrap{
+ position:relative;
+ width:250px;
+ max-width:100%;
+ height:330px;
+ border-radius:15px;
+ overflow:hidden;
+ background:#111;
+ cursor:pointer
+}
+
+.video-cover{
+ width:100%;
+ height:100%;
+ display:block;
+ object-fit:cover
+}
+
+.video-play-btn{
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ width:66px;
+ height:66px;
+ border:0;
+ border-radius:50%;
+ background:rgba(0,0,0,.72);
+ color:#fff;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:27px;
+ padding-left:4px;
+ cursor:pointer;
+ box-shadow:0 4px 20px rgba(0,0,0,.45)
+}
+
+.video-play-btn:active{
+ transform:translate(-50%,-50%) scale(.92)
+}
+
+.video-cover-wrap.playing{
+ height:auto;
+ min-height:0;
+ background:#111
+}
+
+.video-cover-wrap.playing .message-video{
+ display:block!important;
+ width:250px;
+ max-width:100%;
+ max-height:330px;
+ height:auto
+}
+
+.video-cover-wrap.playing .video-cover{
+ display:none
+}
+
+.video-cover-wrap.playing .video-play-btn{
+ display:none
+}
+
+.video-duration{
+ position:absolute;
+ right:8px;
+ bottom:8px;
+ padding:4px 7px;
+ border-radius:6px;
+ background:rgba(0,0,0,.7);
+ color:#fff;
+ font-size:11px;
+ font-weight:600
+}
+
+.message-gif{
+ display:block;
+ max-width:250px;
+ max-height:300px;
+ border-radius:15px
+}
+
+.message-post,
+.message-live{
+ width:270px;
+ border-radius:15px;
+ overflow:hidden;
+ background:rgba(255,255,255,.08);
+ cursor:pointer
+}
+
+.message-post img,
+.message-post video{
+ width:100%;
+ height:230px;
+ object-fit:cover;
+ display:block
+}
+
+.message-post .post-info,
+.message-live .live-info{
+ padding:10px
+}
+
+.message-post .post-user{
+ font-weight:700
+}
+
+.message-post .post-caption{
+ font-size:13px;
+ margin-top:5px;
+ color:#ddd
+}
+
+.message-actions{
+ display:flex;
+ align-items:center;
+ gap:6px;
+ margin-top:4px;
+ opacity:.72
+}
+
+.message-actions button{
+ border:0;
+ background:transparent;
+ color:#fff;
+ font-size:11px;
+ padding:2px;
+ cursor:pointer
+}
+
+.message.sent .message-actions{
+ justify-content:flex-end
+}
+
+.message-reaction{
+ position:absolute;
+ right:-7px;
+ bottom:-9px;
+ background:#111;
+ border-radius:50%;
+ font-size:13px;
+ padding:2px 4px
+}
+
+.view-once{
+ display:flex;
+ align-items:center;
+ gap:9px;
+ padding:13px 15px;
+ font-weight:600
+}
+
+.reply-preview{
+ border-left:3px solid rgba(255,255,255,.6);
+ padding-left:8px;
+ margin-bottom:7px;
+ font-size:12px;
+ opacity:.85
+}
+
+.share-modal,
+.profile-modal{
+ position:absolute;
+ inset:0;
+ background:rgba(0,0,0,.58);
+ z-index:120;
+ display:none;
+ align-items:flex-end
+}
+
+.share-modal.show,
+.profile-modal.show{
+ display:flex
+}
+
+.share-sheet,
+.profile-sheet{
+ width:100%;
+ max-height:78%;
+ background:#151515;
+ border-radius:22px 22px 0 0;
+ padding:10px 14px 18px
+}
+
+.sheet-handle{
+ width:45px;
+ height:4px;
+ background:#555;
+ border-radius:99px;
+ margin:3px auto 10px
+}
+
+.sheet-head{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ font-size:18px;
+ padding:4px 3px 10px
+}
+
+.sheet-head button,
+.sheet-close{
+ width:38px;
+ height:38px;
+ border:0;
+ border-radius:50%;
+ background:#222;
+ color:#fff
+}
+
+.share-sheet input{
+ width:100%;
+ height:45px;
+ background:#222;
+ border:1px solid #333;
+ border-radius:11px;
+ color:#fff;
+ padding:0 12px;
+ outline:0
+}
+
+.share-list{
+ max-height:50vh;
+ overflow:auto;
+ margin-top:8px
+}
+
+.share-user{
+ display:flex;
+ align-items:center;
+ gap:12px;
+ padding:11px 5px;
+ border-bottom:1px solid #282828;
+ cursor:pointer
+}
+
+.share-user .share-avatar{
+ width:45px;
+ height:45px;
+ border-radius:50%;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-weight:700
+}
+
+.share-user .share-meta{
+ flex:1
+}
+
+.share-user small{
+ color:#888
+}
+
+.recording-bar{
+ position:absolute;
+ left:10px;
+ right:10px;
+ bottom:103px;
+ background:#171717;
+ border:1px solid #333;
+ border-radius:15px;
+ padding:10px 12px;
+ display:none;
+ align-items:center;
+ gap:10px;
+ z-index:80
+}
+
+.recording-bar.show{
+ display:flex
+}
+
+.recording-bar span{
+ flex:1
+}
+
+.recording-bar button{
+ border:0;
+ background:#333;
+ color:#fff;
+ border-radius:8px;
+ padding:7px 10px
+}
+
+.profile-sheet{
+ position:relative;
+ overflow:auto
+}
+
+.profile-sheet .sheet-close{
+ position:absolute;
+ right:12px;
+ top:12px
+}
+
+.profile-body{
+ text-align:center;
+ padding:25px 8px
+}
+
+.profile-body .big-avatar{
+ width:105px;
+ height:105px;
+ border-radius:50%;
+ margin:auto;
+ background:#62afea;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:45px;
+ font-weight:700
+}
+
+.profile-body h2{
+ margin-top:12px
+}
+
+.profile-body p{
+ color:#aaa;
+ margin-top:8px;
+ line-height:20px
+}
+
+.profile-stats{
+ display:flex;
+ justify-content:center;
+ gap:28px;
+ margin:16px 0
+}
+
+.profile-stats b{
+ display:block
+}
+
+.profile-stats span{
+ font-size:12px;
+ color:#999
+}
+
+.profile-actions{
+ display:flex;
+ gap:8px;
+ justify-content:center
+}
+
+.profile-actions button{
+ border:0;
+ border-radius:10px;
+ padding:9px 16px;
+ background:#62afea;
+ color:#fff
+}
+
+.profile-actions .secondary{
+ background:#292929
+}
 </style>
 </head>
+
 <body>
+
 <div class="app">
-<header class="topbar"><a href="messages.html" class="back"><i class="fa-solid fa-arrow-left"></i></a><div class="user" id="profileHeader"><div class="avatar-small">T</div><div class="info"><div class="name-row"><div class="name">test</div><span class="verified" id="verifiedBadge" style="display:none" aria-label="Premium mavi tik"><i class="fa-solid fa-check"></i></span></div><div class="profile" id="headerProfileLink">Profil</div></div></div><div class="actions"><button class="action-btn" id="callBtn" title="Sesli arama"><i class="fa-solid fa-phone"></i></button><button class="action-btn" id="videoBtn" title="Görüntülü arama"><i class="fa-solid fa-video"></i></button><button class="action-btn" id="moreBtn"><i class="fa-solid fa-ellipsis-vertical"></i></button></div></header>
-<div class="menu" id="menu"><button id="viewProfile"><i class="fa-regular fa-user"></i>&nbsp;&nbsp;Profil</button><button id="muteBtn"><i class="fa-regular fa-bell-slash"></i>&nbsp;&nbsp;Sessize al</button><button class="arrow-item" id="optionsBtn"><span><i class="fa-solid fa-gear"></i>&nbsp;&nbsp;Seçenekler</span><span class="chevron">›</span></button></div>
-<div class="option-modal" id="optionModal"><div class="option-sheet"><div class="sheet-handle"></div><div class="sheet-head"><b id="optionTitle">Seçenekler</b><button id="optionClose"><i class="fa-solid fa-xmark"></i></button></div><div class="option-list"><button class="option-btn" id="restrictOption"><i class="fa-solid fa-eye-slash"></i><span>Kısıtla</span></button><button class="option-btn" id="blockOption"><i class="fa-solid fa-ban"></i><span>Engelle</span></button><button class="option-btn danger" id="reportOption"><i class="fa-regular fa-flag"></i><span>Şikayet et</span></button><button class="option-btn" id="clearOption"><i class="fa-regular fa-trash-can"></i><span>Sohbeti temizle</span></button></div></div></div>
-<section class="profile-card"><div class="avatar-large">T</div><div class="api-profile"><div class="api-bio" id="apiBio"></div><div class="api-status" id="apiStatus"></div><button class="api-follow" id="apiFollowBtn" style="display:none">Takip Et</button></div><a href="#" class="profile-link" id="profileLink">Profili gör</a></section>
-<main id="chatArea" class="chat-area"><div class="loading" id="loading">Mesajlar yükleniyor...</div></main>
-<div class="input-bar"><div class="tool-buttons"><button class="tool-btn" id="galleryBtn"><i class="fa-regular fa-images"></i></button><button class="tool-btn" id="cameraBtn"><i class="fa-solid fa-camera"></i></button><button class="tool-btn" id="micBtn"><i class="fa-solid fa-microphone"></i></button><button class="tool-btn gif-btn" id="gifBtn">GIF</button></div><div class="composer"><input id="messageInput" type="text" placeholder="Mesaj" autocomplete="off"><button id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button></div></div>
-<input id="fileInput" type="file" accept="image/*,video/*" hidden><input id="cameraInput" type="file" accept="image/*" capture="environment" hidden><div class="toast" id="toast"></div>
-<div class="share-modal" id="shareModal"><div class="share-sheet"><div class="sheet-handle"></div><div class="sheet-head"><b id="shareTitle">Minegram'da gönder</b><button id="shareClose"><i class="fa-solid fa-xmark"></i></button></div><input id="shareSearch" placeholder="Kullanıcı ara" autocomplete="off"><div id="shareList" class="share-list"></div></div></div>
-<div class="recording-bar" id="recordingBar"><i class="fa-solid fa-microphone"></i><span>Ses kaydediliyor…</span><b id="recordingTime">0:00</b><button id="cancelRecording">İptal</button></div>
-<div class="profile-modal" id="profileModal"><div class="profile-sheet"><button class="sheet-close" id="profileClose"><i class="fa-solid fa-xmark"></i></button><div id="profileModalBody"></div></div></div>
-<div class="call-screen" id="callScreen"><video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay muted playsinline></video><div class="call-top"><span id="callTypeText">Sesli arama</span></div><div class="call-user"><div class="call-avatar">T</div><div class="call-name">test</div><div class="call-status" id="callStatus">Aranıyor...</div></div><div class="call-buttons"><button class="call-control" id="muteCallBtn"><i class="fa-solid fa-microphone"></i></button><button class="call-control call-end" id="endCallBtn"><i class="fa-solid fa-phone-slash"></i></button><button class="call-control" id="cameraCallBtn"><i class="fa-solid fa-video"></i></button></div></div>
-<div class="incoming-screen" id="incomingScreen"><div class="incoming-avatar">T</div><div class="incoming-title" id="incomingName">test</div><div class="incoming-type" id="incomingType">Gelen sesli arama</div><div class="incoming-buttons"><button class="incoming-btn reject-btn" id="rejectBtn"><i class="fa-solid fa-phone-slash"></i></button><button class="incoming-btn accept-btn" id="acceptBtn"><i class="fa-solid fa-phone"></i></button></div></div>
-<div class="permission-screen" id="permissionScreen"><div class="permission-icon"><i class="fa-solid fa-shield-halved"></i></div><div class="permission-title" id="permissionTitle">Kamera ve mikrofon kontrolü</div><div class="permission-message" id="permissionMessage">Arama yapabilmek için cihazındaki mikrofon ve kamera izinlerini kontrol ediyoruz.</div><div class="permission-status"><div class="permission-row" id="secureRow"><i class="fa-solid fa-globe"></i><span id="secureText">Bağlantı kontrol ediliyor...</span></div><div class="permission-row" id="micRow"><i class="fa-solid fa-microphone"></i><span id="micText">Mikrofon kontrol ediliyor...</span></div><div class="permission-row" id="cameraRow"><i class="fa-solid fa-camera"></i><span id="cameraText">Kamera kontrol ediliyor...</span></div><div class="permission-row" id="browserRow"><i class="fa-solid fa-browser"></i><span id="browserText">Tarayıcı kontrol ediliyor...</span></div></div><button class="permission-button" id="permissionRetry">İzinleri kontrol et</button><button class="permission-close" id="permissionClose">Kapat</button></div>
-<div class="debug-status" id="debugStatus">Hazırlanıyor...</div>
+
+<header class="topbar">
+<a href="messages.html" class="back">
+<i class="fa-solid fa-arrow-left"></i>
+</a>
+
+<div class="user" id="profileHeader">
+
+<div class="avatar-small">T</div>
+
+<div class="info">
+
+<div class="name-row">
+<div class="name">test</div>
+
+<span
+class="verified"
+id="verifiedBadge"
+style="display:none"
+aria-label="Premium mavi tik">
+<i class="fa-solid fa-check"></i>
+</span>
+
 </div>
+
+<div class="profile" id="headerProfileLink">
+Profil
+</div>
+
+</div>
+</div>
+
+<div class="actions">
+
+<button
+class="action-btn"
+id="callBtn"
+title="Sesli arama">
+<i class="fa-solid fa-phone"></i>
+</button>
+
+<button
+class="action-btn"
+id="videoBtn"
+title="Görüntülü arama">
+<i class="fa-solid fa-video"></i>
+</button>
+
+<button
+class="action-btn"
+id="moreBtn">
+<i class="fa-solid fa-ellipsis-vertical"></i>
+</button>
+
+</div>
+
+</header>
+
+<div class="menu" id="menu">
+
+<button id="viewProfile">
+<i class="fa-regular fa-user"></i>&nbsp;&nbsp;Profil
+</button>
+
+<button id="muteBtn">
+<i class="fa-regular fa-bell-slash"></i>&nbsp;&nbsp;Sessize al
+</button>
+
+<button class="arrow-item" id="optionsBtn">
+<span>
+<i class="fa-solid fa-gear"></i>&nbsp;&nbsp;Seçenekler
+</span>
+
+<span class="chevron">›</span>
+</button>
+
+</div>
+
+<div class="option-modal" id="optionModal">
+
+<div class="option-sheet">
+
+<div class="sheet-handle"></div>
+
+<div class="sheet-head">
+
+<b id="optionTitle">
+Seçenekler
+</b>
+
+<button id="optionClose">
+<i class="fa-solid fa-xmark"></i>
+</button>
+
+</div>
+
+<div class="option-list">
+
+<button class="option-btn" id="restrictOption">
+<i class="fa-solid fa-eye-slash"></i>
+<span>Kısıtla</span>
+</button>
+
+<button class="option-btn" id="blockOption">
+<i class="fa-solid fa-ban"></i>
+<span>Engelle</span>
+</button>
+
+<button class="option-btn danger" id="reportOption">
+<i class="fa-regular fa-flag"></i>
+<span>Şikayet et</span>
+</button>
+
+<button class="option-btn" id="clearOption">
+<i class="fa-regular fa-trash-can"></i>
+<span>Sohbeti temizle</span>
+</button>
+
+</div>
+</div>
+</div>
+
+<section class="profile-card">
+
+<div class="avatar-large">
+T
+</div>
+
+<div class="api-profile">
+
+<div
+class="api-bio"
+id="apiBio">
+</div>
+
+<div
+class="api-status"
+id="apiStatus">
+</div>
+
+<button
+class="api-follow"
+id="apiFollowBtn"
+style="display:none">
+Takip Et
+</button>
+
+</div>
+
+<a
+href="#"
+class="profile-link"
+id="profileLink">
+Profili gör
+</a>
+
+</section>
+
+<main id="chatArea" class="chat-area">
+
+<div class="loading" id="loading">
+Mesajlar yükleniyor...
+</div>
+
+</main>
+
+<div class="input-bar">
+
+<div class="tool-buttons">
+
+<button class="tool-btn" id="galleryBtn">
+<i class="fa-regular fa-images"></i>
+</button>
+
+<button class="tool-btn" id="cameraBtn">
+<i class="fa-solid fa-camera"></i>
+</button>
+
+<button class="tool-btn" id="micBtn">
+<i class="fa-solid fa-microphone"></i>
+</button>
+
+<button class="tool-btn gif-btn" id="gifBtn">
+GIF
+</button>
+
+</div>
+
+<div class="composer">
+
+<input
+id="messageInput"
+type="text"
+placeholder="Mesaj"
+autocomplete="off">
+
+<button id="sendBtn">
+<i class="fa-solid fa-paper-plane"></i>
+</button>
+
+</div>
+
+</div>
+
+<input
+id="fileInput"
+type="file"
+accept="image/*,video/*"
+hidden>
+
+<input
+id="cameraInput"
+type="file"
+accept="image/*"
+capture="environment"
+hidden>
+
+<div class="toast" id="toast"></div>
+
+<div class="share-modal" id="shareModal">
+
+<div class="share-sheet">
+
+<div class="sheet-handle"></div>
+
+<div class="sheet-head">
+
+<b id="shareTitle">
+Minegram'da gönder
+</b>
+
+<button id="shareClose">
+<i class="fa-solid fa-xmark"></i>
+</button>
+
+</div>
+
+<input
+id="shareSearch"
+placeholder="Kullanıcı ara"
+autocomplete="off">
+
+<div
+id="shareList"
+class="share-list">
+</div>
+
+</div>
+</div>
+
+<div
+class="recording-bar"
+id="recordingBar">
+
+<i class="fa-solid fa-microphone"></i>
+
+<span>
+Ses kaydediliyor…
+</span>
+
+<b id="recordingTime">
+0:00
+</b>
+
+<button id="cancelRecording">
+İptal
+</button>
+
+</div>
+
+<div class="profile-modal" id="profileModal">
+
+<div class="profile-sheet">
+
+<button
+class="sheet-close"
+id="profileClose">
+
+<i class="fa-solid fa-xmark"></i>
+
+</button>
+
+<div id="profileModalBody"></div>
+
+</div>
+
+</div>
+
+<div class="call-screen" id="callScreen">
+
+<video
+id="remoteVideo"
+autoplay
+playsinline>
+</video>
+
+<video
+id="localVideo"
+autoplay
+muted
+playsinline>
+</video>
+
+<div class="call-top">
+<span id="callTypeText">
+Sesli arama
+</span>
+</div>
+
+<div class="call-user">
+
+<div class="call-avatar">
+T
+</div>
+
+<div class="call-name">
+test
+</div>
+
+<div
+class="call-status"
+id="callStatus">
+Aranıyor...
+</div>
+
+</div>
+
+<div class="call-buttons">
+
+<button
+class="call-control"
+id="muteCallBtn">
+<i class="fa-solid fa-microphone"></i>
+</button>
+
+<button
+class="call-control call-end"
+id="endCallBtn">
+<i class="fa-solid fa-phone-slash"></i>
+</button>
+
+<button
+class="call-control"
+id="cameraCallBtn">
+<i class="fa-solid fa-video"></i>
+</button>
+
+</div>
+
+</div>
+
+<div class="incoming-screen" id="incomingScreen">
+
+<div class="incoming-avatar">
+T
+</div>
+
+<div
+class="incoming-title"
+id="incomingName">
+test
+</div>
+
+<div
+class="incoming-type"
+id="incomingType">
+Gelen sesli arama
+</div>
+
+<div class="incoming-buttons">
+
+<button
+class="incoming-btn reject-btn"
+id="rejectBtn">
+<i class="fa-solid fa-phone-slash"></i>
+</button>
+
+<button
+class="incoming-btn accept-btn"
+id="acceptBtn">
+<i class="fa-solid fa-phone"></i>
+</button>
+
+</div>
+
+</div>
+
+<div
+class="permission-screen"
+id="permissionScreen">
+
+<div class="permission-icon">
+<i class="fa-solid fa-shield-halved"></i>
+</div>
+
+<div
+class="permission-title"
+id="permissionTitle">
+Kamera ve mikrofon kontrolü
+</div>
+
+<div
+class="permission-message"
+id="permissionMessage">
+Arama yapabilmek için cihazındaki mikrofon ve kamera izinlerini kontrol ediyoruz.
+</div>
+
+<div class="permission-status">
+
+<div
+class="permission-row"
+id="secureRow">
+
+<i class="fa-solid fa-globe"></i>
+
+<span id="secureText">
+Bağlantı kontrol ediliyor...
+</span>
+
+</div>
+
+<div
+class="permission-row"
+id="micRow">
+
+<i class="fa-solid fa-microphone"></i>
+
+<span id="micText">
+Mikrofon kontrol ediliyor...
+</span>
+
+</div>
+
+<div
+class="permission-row"
+id="cameraRow">
+
+<i class="fa-solid fa-camera"></i>
+
+<span id="cameraText">
+Kamera kontrol ediliyor...
+</span>
+
+</div>
+
+<div
+class="permission-row"
+id="browserRow">
+
+<i class="fa-solid fa-browser"></i>
+
+<span id="browserText">
+Tarayıcı kontrol ediliyor...
+</span>
+
+</div>
+
+</div>
+
+<button
+class="permission-button"
+id="permissionRetry">
+İzinleri kontrol et
+</button>
+
+<button
+class="permission-close"
+id="permissionClose">
+Kapat
+</button>
+
+</div>
+
+<div
+class="debug-status"
+id="debugStatus">
+Hazırlanıyor...
+</div>
+
+</div>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getDatabase, ref, push, set, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-import { getFirestore, collection, addDoc, query, where, limit, onSnapshot, doc, updateDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+import {
+ initializeApp
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+ getDatabase,
+ ref,
+ push,
+ set,
+ onChildAdded,
+ onValue
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+import {
+ getFirestore,
+ collection,
+ addDoc,
+ query,
+ where,
+ limit,
+ onSnapshot,
+ doc,
+ updateDoc,
+ getDocs,
+ writeBatch
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+import {
+ getAuth,
+ signInAnonymously,
+ onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
 
 const API_BASE="https://minegram-hwns.onrender.com";
+
 const apiCache=new Map();
-function token(){return String(localStorage.getItem("access_token")||localStorage.getItem("minegram_access_token")||localStorage.getItem("minegram_token")||localStorage.getItem("minegram_supabase_token")||"").trim()}
-function setToken(t){if(t)["access_token","minegram_access_token","minegram_token","minegram_supabase_token"].forEach(k=>localStorage.setItem(k,t))}
-function json(t){try{return JSON.parse(t||"{}")}catch{return {}}}
-function ttl(ep){if(ep.includes("block-status"))return 5000;if(ep.includes("/users/"))return 12000;if(ep.startsWith("/api/feed"))return 7000;if(ep.startsWith("/api/stories"))return 12000;if(ep.startsWith("/api/live"))return 7000;return 0}
-async function api(endpoint,{method="GET",body=null,retry=true}={}){
- const key=endpoint.split("?ts=")[0], t=method==="GET"?ttl(endpoint):0, cached=t&&apiCache.get(key); if(cached&&cached.expires>Date.now())return cached.data;
- const h={Accept:"application/json"}; if(token())h.Authorization="Bearer "+token(); if(body!==null)h["Content-Type"]="application/json;charset=UTF-8";
- let r; try{r=await fetch(API_BASE+endpoint,{method,headers:h,body:body===null?undefined:JSON.stringify(body),credentials:"include",cache:"no-store"})}catch{throw new Error("Minegram sunucusuna bağlanılamadı")}
- const d=json(await r.text());
- if((r.status===401||r.status===403)&&retry){const rt=localStorage.getItem("refresh_token")||localStorage.getItem("refreshToken")||"";if(rt){try{const rr=await fetch(API_BASE+"/api/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:rt})});const rd=json(await rr.text());if(rd.access_token||rd.token){setToken(rd.access_token||rd.token);if(rd.refresh_token)localStorage.setItem("refresh_token",rd.refresh_token);return api(endpoint,{method,body,retry:false})}}catch{}}}
- if(!r.ok)throw new Error(d.error||d.message||("Minegram API HTTP "+r.status)); if(t)apiCache.set(key,{data:d,expires:Date.now()+t}); return d;
-}
-const MinegramAPI={
- get:e=>api(e),post:(e,b)=>api(e,{method:"POST",body:b}),del:e=>api(e,{method:"DELETE"}),
- feed:()=>api("/api/feed?ts="+Date.now()),stories:()=>api("/api/stories?ts="+Date.now()),activeUsers:()=>api("/api/active-users?ts="+Date.now()),live:()=>api("/api/live?ts="+Date.now()),notifications:()=>api("/api/notifications?ts="+Date.now()),search:q=>api("/api/search?q="+encodeURIComponent(q)),
- user:u=>api("/api/users/"+encodeURIComponent(u)),posts:u=>api("/api/users/"+encodeURIComponent(u)+"/posts?ts="+Date.now()),followers:u=>api("/api/users/"+encodeURIComponent(u)+"/followers?ts="+Date.now()),following:u=>api("/api/users/"+encodeURIComponent(u)+"/following?ts="+Date.now()),
- blockStatus:u=>api("/api/users/"+encodeURIComponent(u)+"/block-status?ts="+Date.now()),follow:u=>api("/api/users/"+encodeURIComponent(u)+"/follow",{method:"POST",body:{}}),block:(u,v)=>api("/api/users/"+encodeURIComponent(u)+"/block",{method:"POST",body:{blocked:!!v}}),
- liveComments:u=>api("/api/live/comments?live_username="+encodeURIComponent(u)+"&ts="+Date.now()),liveComment:(u,text)=>api("/api/live/comments",{method:"POST",body:{live_username:u,text,message:text}}),
- postComments:id=>api("/api/posts/"+encodeURIComponent(id)+"/comments?ts="+Date.now()),postComment:(id,text)=>api("/api/posts/"+encodeURIComponent(id)+"/comments",{method:"POST",body:{text}}),commentAction:(id,c,a)=>api("/api/posts/"+encodeURIComponent(id)+"/comments/"+encodeURIComponent(c)+"/action",{method:"POST",body:{action:a}}),highlights:u=>api("/api/users/"+encodeURIComponent(u)+"/highlights?ts="+Date.now()),checkUsername:u=>api("/api/check-username?username="+encodeURIComponent(u)),
- refresh:()=>api("/api/refresh",{method:"POST",body:{refresh_token:localStorage.getItem("refresh_token")||localStorage.getItem("refreshToken")||""},retry:false})
-};
-window.MinegramAPI=MinegramAPI;
 
-const firebaseConfig={apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119"};
-const app=initializeApp(firebaseConfig),db=getDatabase(app),firestore=getFirestore(app),auth=getAuth(app);
-let myUsername=(localStorage.getItem("username")||prompt("Kullanıcı adın:")||"misafir").replace(/^@+/g,"").trim();localStorage.setItem("username",myUsername);
-const p=new URLSearchParams(location.search),targetUsername=String(p.get("username")||p.get("user")||p.get("to")||"").replace(/^@+/g,"").trim();
-const conversationKey=[myUsername.toLowerCase(),targetUsername.toLowerCase()].sort().join("__");
-const input=document.getElementById("messageInput"),chatArea=document.getElementById("chatArea"),loading=document.getElementById("loading"),toast=document.getElementById("toast"),menu=document.getElementById("menu");
-let authReady=false,unsub=null,allMessages=new Map(),messageRead=new Map(),muted=localStorage.getItem("minegram_muted_"+conversationKey)==="1",restricted=localStorage.getItem("minegram_restricted_"+conversationKey)==="1",blocked=false,blockedByThem=false;
-const $=id=>document.getElementById(id), escapeHtml=s=>{const d=document.createElement("div");d.textContent=String(s??"");return d.innerHTML};
-function showToast(t){$("toast").textContent=t;$("toast").classList.add("show");clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>$("toast").classList.remove("show"),2200)}
-function ms(v){if(typeof v==="number")return v<100000000000?v*1000:v;if(v?.toMillis)return v.toMillis();const n=Date.parse(v||"");return Number.isFinite(n)?n:Date.now()}
-function time(v){return new Date(ms(v)).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
-function displayAvatar(user,size="45"){return `<div class="avatar-small" style="width:${size}px;height:${size}px;min-width:${size}px">${escapeHtml((user||"?")[0].toUpperCase())}</div>`}
-async function ensureAuth(){
- if(authReady&&auth?.currentUser)return true;
- try{await signInAnonymously(auth);return !!auth?.currentUser}catch(e){console.error(e);showToast("Mesaj gönderilemedi");return false}
+function token(){
+ return String(
+  localStorage.getItem("access_token")||
+  localStorage.getItem("minegram_access_token")||
+  localStorage.getItem("minegram_token")||
+  localStorage.getItem("minegram_supabase_token")||
+  ""
+ ).trim()
 }
-function blockedSend(){if(blocked||blockedByThem){showToast(blockedByThem?"Bu hesap seni engellediği için mesaj gönderemezsin":"Bu hesabı engellediğin için mesaj gönderemezsin");return true}return false}
 
-function applyHeader(){const u=targetUsername||"Kullanıcı";$("profileHeader")?.querySelector(".name")&&( $("profileHeader").querySelector(".name").textContent=u );$("profileHeader").querySelector(".profile").textContent="Profil";document.querySelector(".avatar-small").textContent=u[0]?.toUpperCase()||"K";document.querySelector(".avatar-large").textContent=u[0]?.toUpperCase()||"K";$("profileLink").href=targetUsername?"profile.html?username="+encodeURIComponent(targetUsername):"#"}
-applyHeader();
+function setToken(t){
+ if(t)
+ ["access_token","minegram_access_token","minegram_token","minegram_supabase_token"]
+ .forEach(k=>localStorage.setItem(k,t))
+}
 
-function premiumVerifiedValue(u){
- const candidates=[
-  u?.premium,u?.isPremium,u?.premiumActive,u?.premium_active,
-  u?.verified,u?.isVerified,u?.verifiedSubscription,u?.verified_subscription,
-  u?.user?.premium,u?.user?.isPremium,u?.user?.premiumActive,u?.user?.verified,u?.user?.isVerified,
-  u?.account?.premium,u?.account?.isPremium,u?.account?.verified,u?.account?.isVerified
- ];
- if(candidates.some(v=>v===true || v===1 || v==='1' || v==='true')) return true;
- const localKeys=[
-  'minegram_verified_'+String((u?.username||targetUsername||'')).toLowerCase(),
-  'minegram_premium_'+String((u?.username||targetUsername||'')).toLowerCase(),
-  'premium_verified_'+String((u?.username||targetUsername||'')).toLowerCase()
- ];
- return localKeys.some(k=>localStorage.getItem(k)==='1' || localStorage.getItem(k)==='true');
-}
-function setVerifiedBadge(show){
- const b=document.getElementById('verifiedBadge');
- if(b) b.style.display=show?'inline-flex':'none';
-}
-async function loadProfile(){if(!targetUsername)return;try{const u=await MinegramAPI.user(targetUsername);const name=u.username||u.user?.username||targetUsername;setVerifiedBadge(premiumVerifiedValue(u));const bio=u.bio||u.about||u.description||u.user?.bio||"";$("apiBio").textContent=bio;$("apiStatus").textContent=u.isOnline||u.online?"Çevrimiçi":"";const avatar=u.avatar||u.avatar_url||u.avatarUrl||u.profilePhoto||u.profile_photo||u.user?.avatar||u.user?.avatar_url||u.user?.avatarUrl||u.user?.profilePhoto||u.user?.profile_photo||"";if(avatar){document.querySelectorAll(".avatar-small,.avatar-large").forEach(el=>{if(el.classList.contains("avatar-large")){el.innerHTML=`<img class="avatar-img" src="${escapeHtml(avatar)}">`}else el.innerHTML=`<img class="avatar-img" src="${escapeHtml(avatar)}">`})}let directFollowing=[u.followingByMe,u.isFollowing,u.following,u.user?.followingByMe,u.user?.isFollowing,u.user?.following].find(v=>typeof v==="boolean");let following=false;if(typeof directFollowing==="boolean"){following=directFollowing}else{let fs=await MinegramAPI.followers(targetUsername).catch(()=>null);let arr=Array.isArray(fs)?fs:(fs?.followers||fs?.users||fs?.data||fs?.results||[]);following=arr.some(x=>{const n=String(x?.username||x?.user?.username||x?.name||x||"").replace(/^@/,"").trim().toLowerCase();return n===myUsername.toLowerCase()})||String(fs?.viewerUsername||fs?.currentUsername||"").toLowerCase()===myUsername.toLowerCase();if(!following){let mine=await MinegramAPI.following(myUsername).catch(()=>null);let marr=Array.isArray(mine)?mine:(mine?.following||mine?.users||mine?.data||mine?.results||[]);following=marr.some(x=>String(x?.username||x?.user?.username||x?.name||x||"").replace(/^@/,"").trim().toLowerCase()===targetUsername.toLowerCase())}}$("apiFollowBtn").style.display="inline-block";$("apiFollowBtn").textContent=following?"Takiptesin":"Takip Et";$("apiFollowBtn").classList.toggle("following",following);$("apiFollowBtn").onclick=async()=>{try{const r=await MinegramAPI.follow(targetUsername);const now=!!(r.following||r.isFollowing);$("apiFollowBtn").textContent=now?"Takiptesin":"Takip Et";$("apiFollowBtn").classList.toggle("following",now)}catch(e){showToast(e.message)}}}catch(e){setVerifiedBadge(premiumVerifiedValue({username:targetUsername}));$("apiStatus").textContent="Profil bilgisi alınamadı"}}
-async function syncBlock(){
+function json(t){
  try{
-  const b=await MinegramAPI.blockStatus(targetUsername);
-  blocked=!!(b.blockedByMe||b.blocked||b.isBlocked||b.youBlocked);
-  blockedByThem=!!(b.blockedMe||b.blockedByThem||b.hasBlockedMe||b.blockedByUser||b.theyBlockedYou);
-  localStorage.setItem("minegram_blocked_"+targetUsername.toLowerCase(),blocked?"1":"0");
-  $("blockBtn").innerHTML=blocked?'<i class="fa-solid fa-ban"></i>&nbsp;&nbsp;Engeli kaldır':'<i class="fa-solid fa-ban"></i>&nbsp;&nbsp;Engelle';
-  syncCallButtons();
+  return JSON.parse(t||"{}")
  }catch{
-  blocked=localStorage.getItem("minegram_blocked_"+targetUsername.toLowerCase())==="1";
-  blockedByThem=false;
-  syncCallButtons();
+  return {}
  }
 }
 
-function clearMessages(){allMessages.clear();messageRead.clear();chatArea.innerHTML="";loading.style.display="none"}
-function messageKey(d,id){return id||[d.sender,d.createdAt,d.time,d.text,d.type,d.mediaUri,d.postId].join("|")}
-function renderAll(){clearMessages();const arr=[...allMessages.entries()].sort((a,b)=>ms(a[1].createdAt||a[1].time)-ms(b[1].createdAt||b[1].time));for(const [id,d] of arr)renderMessage(d,id);if(!arr.length){chatArea.innerHTML="<div class='loading'>Henüz mesaj yok</div>"}requestAnimationFrame(()=>chatArea.scrollTop=chatArea.scrollHeight)}
-function messageActions(d,id){return `<div class="message-actions"><button data-act="like" data-id="${id}">❤️</button><button data-act="share" data-id="${id}">↗</button>${d.sender===myUsername?`<button data-act="delete" data-id="${id}">Sil</button>`:""}</div>`}
-function renderMessage(d,id){const mine=String(d.sender||"").toLowerCase()===myUsername.toLowerCase(),wrap=document.createElement("div");wrap.className="message "+(mine?"sent":"received");wrap.dataset.id=id;const b=document.createElement("div");b.className="bubble";let body="";
- if(d.type==="post"){body=`<div class="message-post" data-open-post="1"><div class="post-info"><div class="post-user">@${escapeHtml(d.postUsername||"")}</div></div>${d.postMediaBase64?`<img src="${d.postMediaBase64}" alt="Gönderi">`:d.postMediaUri?((/video|reel/i.test(d.postMediaType||""))?`<video src="${escapeHtml(d.postMediaUri)}" muted playsinline></video>`:`<img src="${escapeHtml(d.postMediaUri)}" alt="Gönderi">`):""}<div class="post-info"><div class="post-caption">${escapeHtml(d.postText||"")}</div><small>❤️ ${d.postLikes||0} &nbsp; 💬 ${d.postCommentCount||0}</small></div></div>`}
- else if(d.type==="live"){let x={};try{x=JSON.parse(String(d.text||"").replace("__MINEGRAM_LIVE__","")||"{}")}catch{}body=`<div class="message-live" data-live-user="${escapeHtml(x.username||"")}"><div class="live-info"><b>🔴 CANLI YAYIN</b><div>@${escapeHtml(x.username||"")}</div><small>${escapeHtml(x.title||"Canlı yayın")}</small><p>Canlı yayına katılmak için dokun</p></div></div>`}
- else if(d.type==="view_once"||d.type==="view_once_opened"){if(d.type==="view_once"&&Number(d.viewCount||0)<2&&d.mediaBase64)body=`<div class="view-once"><i class="fa-solid fa-image"></i><span>Fotoğrafı aç<br><small>${2-Number(d.viewCount||0)} görüntüleme kaldı</small></span></div>`;else body=`<div class="view-once"><i class="fa-solid fa-check"></i><span>📸 Fotoğraf ${Number(d.viewCount||0)>=2?"2 kez görüntülendi":"açıldı"}</span></div>`}
- else if(d.type==="voice"&&d.voiceDataBase64){body=`<div class="voice-box"><button class="voice-play" data-voice="${id}"><i class="fa-solid fa-play"></i></button><span>${Math.round((d.voiceDurationMs||0)/1000)} sn</span><audio id="audio-${id}" preload="metadata" src="data:audio/webm;base64,${d.voiceDataBase64}"></audio></div>`}
- else if(d.type==="gif"&&d.mediaBase64)body=`<img class="message-gif" src="${d.mediaBase64}" alt="GIF">`;
- else if((d.type==="media"||d.type==="image"||d.type==="video")&&d.mediaBase64){body=/video/i.test(d.mediaType||d.mimeType||"")?`<video class="message-video" controls playsinline src="${d.mediaBase64}"></video>`:`<img class="message-media" src="${d.mediaBase64}" alt="Medya">`}
- else body=escapeHtml(d.text||"").replace(/\n/g,"<br>");
- const read=mine&&(messageRead.get(id)||d.read===true)?" • Görüldü":"";b.innerHTML=body+`<span class="message-time">${time(d.createdAt||d.time)}${read}</span>`+messageActions(d,id);if(d._liked) b.insertAdjacentHTML("beforeend",'<span class="message-reaction">❤️</span>');wrap.appendChild(b);chatArea.appendChild(wrap);
- wrap.querySelector('[data-act="like"]')?.addEventListener("click",()=>{if(!mine){d._liked=true;wrap.querySelector('.message-reaction')?.remove();b.insertAdjacentHTML('beforeend','<span class="message-reaction">❤️</span>')}});
- wrap.querySelector('[data-act="delete"]')?.addEventListener("click",async()=>{try{await updateDoc(doc(firestore,"chatMessages",id),{deleted:true,text:"Bu mesaj silindi",mediaBase64:"",voiceDataBase64:"",type:"text"});showToast("Mesaj silindi")}catch{showToast("Mesaj silinemedi")}});
- wrap.querySelector('[data-open-post]')?.addEventListener("click",()=>{if(d.postId)location.href="post.html?id="+encodeURIComponent(d.postId)+"&username="+encodeURIComponent(d.postUsername||"")});
- wrap.querySelector('[data-live-user]')?.addEventListener("click",()=>{const u=wrap.querySelector('[data-live-user]').dataset.liveUser;if(u)location.href="live.html?username="+encodeURIComponent(u)});
- wrap.querySelector('[data-voice]')?.addEventListener("click",()=>{const a=$("audio-"+id);if(a.paused){a.play();wrap.querySelector('[data-voice]').innerHTML='<i class="fa-solid fa-pause"></i>'}else{a.pause();wrap.querySelector('[data-voice]').innerHTML='<i class="fa-solid fa-play"></i>'}});
- wrap.addEventListener("dblclick",()=>{if(!mine){d._liked=true;renderAll()}});
- if(d.type==="view_once"&&Number(d.viewCount||0)<2&&d.mediaBase64)wrap.addEventListener("click",async e=>{if(e.target.closest("button"))return;const n=Number(d.viewCount||0)+1;try{await updateDoc(doc(firestore,"chatMessages",id),{viewCount:n,type:n>=2?"view_once_opened":"view_once"});}catch{}},{once:true});
+function ttl(ep){
+ if(ep.includes("block-status"))return 5000;
+ if(ep.includes("/users/"))return 12000;
+ if(ep.startsWith("/api/feed"))return 7000;
+ if(ep.startsWith("/api/stories"))return 12000;
+ if(ep.startsWith("/api/live"))return 7000;
+ return 0
 }
+
+async function api(
+ endpoint,
+ {method="GET",body=null,retry=true}={}
+){
+
+ const key=endpoint.split("?ts=")[0];
+
+ const t=method==="GET"?ttl(endpoint):0;
+
+ const cached=t&&apiCache.get(key);
+
+ if(cached&&cached.expires>Date.now())
+ return cached.data;
+
+ const h={
+  Accept:"application/json"
+ };
+
+ if(token())
+ h.Authorization="Bearer "+token();
+
+ if(body!==null)
+ h["Content-Type"]="application/json;charset=UTF-8";
+
+ let r;
+
+ try{
+
+  r=await fetch(
+   API_BASE+endpoint,
+   {
+    method,
+    headers:h,
+    body:body===null?undefined:JSON.stringify(body),
+    credentials:"include",
+    cache:"no-store"
+   }
+  );
+
+ }catch{
+
+  throw new Error(
+   "Minegram sunucusuna bağlanılamadı"
+  );
+
+ }
+
+ const d=json(await r.text());
+
+ if(
+  (r.status===401||r.status===403)&&
+  retry
+ ){
+
+  const rt=
+   localStorage.getItem("refresh_token")||
+   localStorage.getItem("refreshToken")||
+   "";
+
+  if(rt){
+
+   try{
+
+    const rr=await fetch(
+     API_BASE+"/api/refresh",
+     {
+      method:"POST",
+      headers:{
+       "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+       refresh_token:rt
+      })
+     }
+    );
+
+    const rd=json(await rr.text());
+
+    if(rd.access_token||rd.token){
+
+     setToken(
+      rd.access_token||rd.token
+     );
+
+     if(rd.refresh_token)
+     localStorage.setItem(
+      "refresh_token",
+      rd.refresh_token
+     );
+
+     return api(
+      endpoint,
+      {
+       method,
+       body,
+       retry:false
+      }
+     );
+
+    }
+
+   }catch{}
+
+  }
+
+ }
+
+ if(!r.ok)
+ throw new Error(
+  d.error||
+  d.message||
+  ("Minegram API HTTP "+r.status)
+ );
+
+ if(t)
+ apiCache.set(
+  key,
+  {
+   data:d,
+   expires:Date.now()+t
+  }
+ );
+
+ return d;
+}
+
+
+const MinegramAPI={
+
+ get:e=>api(e),
+
+ post:(e,b)=>api(
+  e,
+  {
+   method:"POST",
+   body:b
+  }
+ ),
+
+ del:e=>api(
+  e,
+  {
+   method:"DELETE"
+  }
+ ),
+
+ feed:()=>api(
+  "/api/feed?ts="+Date.now()
+ ),
+
+ stories:()=>api(
+  "/api/stories?ts="+Date.now()
+ ),
+
+ activeUsers:()=>api(
+  "/api/active-users?ts="+Date.now()
+ ),
+
+ live:()=>api(
+  "/api/live?ts="+Date.now()
+ ),
+
+ notifications:()=>api(
+  "/api/notifications?ts="+Date.now()
+ ),
+
+ search:q=>api(
+  "/api/search?q="+encodeURIComponent(q)
+ ),
+
+ user:u=>api(
+  "/api/users/"+encodeURIComponent(u)
+ ),
+
+ posts:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/posts?ts="+Date.now()
+ ),
+
+ followers:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/followers?ts="+Date.now()
+ ),
+
+ following:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/following?ts="+Date.now()
+ ),
+
+ blockStatus:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/block-status?ts="+Date.now()
+ ),
+
+ follow:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/follow",
+  {
+   method:"POST",
+   body:{}
+  }
+ ),
+
+ block:(u,v)=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/block",
+  {
+   method:"POST",
+   body:{
+    blocked:!!v
+   }
+  }
+ ),
+
+ liveComments:u=>api(
+  "/api/live/comments?live_username="+
+  encodeURIComponent(u)+
+  "&ts="+Date.now()
+ ),
+
+ liveComment:(u,text)=>api(
+  "/api/live/comments",
+  {
+   method:"POST",
+   body:{
+    live_username:u,
+    text,
+    message:text
+   }
+  }
+ ),
+
+ postComments:id=>api(
+  "/api/posts/"+encodeURIComponent(id)+
+  "/comments?ts="+Date.now()
+ ),
+
+ postComment:(id,text)=>api(
+  "/api/posts/"+encodeURIComponent(id)+
+  "/comments",
+  {
+   method:"POST",
+   body:{text}
+  }
+ ),
+
+ commentAction:(id,c,a)=>api(
+  "/api/posts/"+encodeURIComponent(id)+
+  "/comments/"+encodeURIComponent(c)+
+  "/action",
+  {
+   method:"POST",
+   body:{
+    action:a
+   }
+  }
+ ),
+
+ highlights:u=>api(
+  "/api/users/"+encodeURIComponent(u)+
+  "/highlights?ts="+Date.now()
+ ),
+
+ checkUsername:u=>api(
+  "/api/check-username?username="+
+  encodeURIComponent(u)
+ ),
+
+ refresh:()=>api(
+  "/api/refresh",
+  {
+   method:"POST",
+   body:{
+    refresh_token:
+     localStorage.getItem("refresh_token")||
+     localStorage.getItem("refreshToken")||
+     ""
+   },
+   retry:false
+  }
+ )
+
+};
+
+window.MinegramAPI=MinegramAPI;
+
+
+const firebaseConfig={
+ apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",
+ authDomain:"mim-ea133.firebaseapp.com",
+ databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",
+ projectId:"mim-ea133",
+ storageBucket:"mim-ea133.firebasestorage.app",
+ messagingSenderId:"303525353436",
+ appId:"1:303525353436:web:082fc090b5025e19942119"
+};
+
+const app=initializeApp(firebaseConfig);
+
+const db=getDatabase(app);
+
+const firestore=getFirestore(app);
+
+const auth=getAuth(app);
+
+
+let myUsername=(
+ localStorage.getItem("username")||
+ prompt("Kullanıcı adın:")||
+ "misafir"
+)
+.replace(/^@+/g,"")
+.trim();
+
+localStorage.setItem(
+ "username",
+ myUsername
+);
+
+
+const p=new URLSearchParams(
+ location.search
+);
+
+const targetUsername=String(
+ p.get("username")||
+ p.get("user")||
+ p.get("to")||
+ ""
+)
+.replace(/^@+/g,"")
+.trim();
+
+
+const conversationKey=[
+ myUsername.toLowerCase(),
+ targetUsername.toLowerCase()
+]
+.sort()
+.join("__");
+
+
+const input=
+ document.getElementById("messageInput");
+
+const chatArea=
+ document.getElementById("chatArea");
+
+const loading=
+ document.getElementById("loading");
+
+const toast=
+ document.getElementById("toast");
+
+const menu=
+ document.getElementById("menu");
+
+
+let authReady=false;
+
+let unsub=null;
+
+let allMessages=new Map();
+
+let messageRead=new Map();
+
+let muted=
+ localStorage.getItem(
+  "minegram_muted_"+conversationKey
+ )==="1";
+
+let restricted=
+ localStorage.getItem(
+  "minegram_restricted_"+conversationKey
+ )==="1";
+
+let blocked=false;
+
+let blockedByThem=false;
+
+
+const $=id=>
+ document.getElementById(id);
+
+
+const escapeHtml=s=>{
+
+ const d=document.createElement("div");
+
+ d.textContent=String(s??"");
+
+ return d.innerHTML
+
+};
+
+
+function showToast(t){
+
+ $("toast").textContent=t;
+
+ $("toast").classList.add("show");
+
+ clearTimeout(
+  showToast.timer
+ );
+
+ showToast.timer=setTimeout(
+  ()=>$("toast").classList.remove("show"),
+  2200
+ );
+
+}
+
+
+function ms(v){
+
+ if(typeof v==="number")
+ return v<100000000000?v*1000:v;
+
+ if(v?.toMillis)
+ return v.toMillis();
+
+ const n=Date.parse(v||"");
+
+ return Number.isFinite(n)
+  ?n
+  :Date.now();
+
+}
+
+
+function time(v){
+
+ return new Date(
+  ms(v)
+ ).toLocaleTimeString(
+  "tr-TR",
+  {
+   hour:"2-digit",
+   minute:"2-digit",
+   second:"2-digit"
+  }
+ );
+
+}
+
+
+function displayAvatar(
+ user,
+ size="45"
+){
+
+ return `
+ <div
+ class="avatar-small"
+ style="
+ width:${size}px;
+ height:${size}px;
+ min-width:${size}px
+ ">
+ ${escapeHtml(
+  (user||"?")[0].toUpperCase()
+ )}
+ </div>
+ `;
+
+}
+
+
+async function ensureAuth(){
+
+ if(
+  authReady&&
+  auth?.currentUser
+ )
+ return true;
+
+ try{
+
+  await signInAnonymously(auth);
+
+  return !!auth?.currentUser;
+
+ }catch(e){
+
+  console.error(e);
+
+  showToast(
+   "Mesaj gönderilemedi"
+  );
+
+  return false;
+
+ }
+
+}
+
+
+function blockedSend(){
+
+ if(blocked||blockedByThem){
+
+  showToast(
+   blockedByThem
+    ?"Bu hesap seni engellediği için mesaj gönderemezsin"
+    :"Bu hesabı engellediğin için mesaj gönderemezsin"
+  );
+
+  return true;
+
+ }
+
+ return false;
+
+}
+
+
+function applyHeader(){
+
+ const u=
+  targetUsername||
+  "Kullanıcı";
+
+ const header=
+  $("profileHeader");
+
+ if(
+  header?.querySelector(".name")
+ )
+ header.querySelector(".name")
+ .textContent=u;
+
+ header.querySelector(".profile")
+ .textContent="Profil";
+
+ document.querySelector(
+  ".avatar-small"
+ ).textContent=
+  u[0]?.toUpperCase()||
+  "K";
+
+ document.querySelector(
+  ".avatar-large"
+ ).textContent=
+  u[0]?.toUpperCase()||
+  "K";
+
+ $("profileLink").href=
+  targetUsername
+   ?"profile.html?username="+
+    encodeURIComponent(targetUsername)
+   :"#";
+
+}
+
+applyHeader();
+
+
+function premiumVerifiedValue(u){
+
+ const candidates=[
+
+  u?.premium,
+  u?.isPremium,
+  u?.premiumActive,
+  u?.premium_active,
+
+  u?.verified,
+  u?.isVerified,
+  u?.verifiedSubscription,
+  u?.verified_subscription,
+
+  u?.user?.premium,
+  u?.user?.isPremium,
+  u?.user?.premiumActive,
+  u?.user?.verified,
+  u?.user?.isVerified,
+
+  u?.account?.premium,
+  u?.account?.isPremium,
+  u?.account?.verified,
+  u?.account?.isVerified
+
+ ];
+
+ if(
+  candidates.some(
+   v=>
+    v===true||
+    v===1||
+    v==='1'||
+    v==='true'
+  )
+ )
+ return true;
+
+
+ const localKeys=[
+
+  'minegram_verified_'+
+   String(
+    u?.username||
+    targetUsername||
+    ''
+   ).toLowerCase(),
+
+  'minegram_premium_'+
+   String(
+    u?.username||
+    targetUsername||
+    ''
+   ).toLowerCase(),
+
+  'premium_verified_'+
+   String(
+    u?.username||
+    targetUsername||
+    ''
+   ).toLowerCase()
+
+ ];
+
+ return localKeys.some(
+  k=>
+   localStorage.getItem(k)==='1'||
+   localStorage.getItem(k)==='true'
+ );
+
+}
+
+
+function setVerifiedBadge(show){
+
+ const b=
+  document.getElementById(
+   'verifiedBadge'
+  );
+
+ if(b)
+ b.style.display=
+  show
+   ?'inline-flex'
+   :'none';
+
+}
+
+
+async function loadProfile(){
+
+ if(!targetUsername)
+ return;
+
+ try{
+
+  const u=
+   await MinegramAPI.user(
+    targetUsername
+   );
+
+  const name=
+   u.username||
+   u.user?.username||
+   targetUsername;
+
+  setVerifiedBadge(
+   premiumVerifiedValue(u)
+  );
+
+  const bio=
+   u.bio||
+   u.about||
+   u.description||
+   u.user?.bio||
+   "";
+
+  $("apiBio").textContent=bio;
+
+  $("apiStatus").textContent=
+   u.isOnline||u.online
+    ?"Çevrimiçi"
+    :"";
+
+  const avatar=
+   u.avatar||
+   u.avatar_url||
+   u.avatarUrl||
+   u.profilePhoto||
+   u.profile_photo||
+   u.user?.avatar||
+   u.user?.avatar_url||
+   u.user?.avatarUrl||
+   u.user?.profilePhoto||
+   u.user?.profile_photo||
+   "";
+
+  if(avatar){
+
+   document
+    .querySelectorAll(
+     ".avatar-small,.avatar-large"
+    )
+    .forEach(el=>{
+
+     el.innerHTML=`
+      <img
+       class="avatar-img"
+       src="${escapeHtml(avatar)}"
+      >
+     `;
+
+    });
+
+  }
+
+  let directFollowing=[
+   u.followingByMe,
+   u.isFollowing,
+   u.following,
+   u.user?.followingByMe,
+   u.user?.isFollowing,
+   u.user?.following
+  ]
+  .find(
+   v=>typeof v==="boolean"
+  );
+
+  let following=false;
+
+  if(
+   typeof directFollowing==="boolean"
+  ){
+
+   following=directFollowing;
+
+  }else{
+
+   let fs=
+    await MinegramAPI
+     .followers(targetUsername)
+     .catch(()=>null);
+
+   let arr=
+    Array.isArray(fs)
+     ?fs
+     :(fs?.followers||
+       fs?.users||
+       fs?.data||
+       fs?.results||
+       []);
+
+   following=arr.some(
+    x=>{
+
+     const n=
+      String(
+       x?.username||
+       x?.user?.username||
+       x?.name||
+       x||
+       ""
+      )
+      .replace(/^@/,"")
+      .trim()
+      .toLowerCase();
+
+     return n===
+      myUsername.toLowerCase();
+
+    }
+   )||
+   String(
+    fs?.viewerUsername||
+    fs?.currentUsername||
+    ""
+   ).toLowerCase()===
+   myUsername.toLowerCase();
+
+   if(!following){
+
+    let mine=
+     await MinegramAPI
+      .following(myUsername)
+      .catch(()=>null);
+
+    let marr=
+     Array.isArray(mine)
+      ?mine
+      :(mine?.following||
+        mine?.users||
+        mine?.data||
+        mine?.results||
+        []);
+
+    following=marr.some(
+     x=>
+      String(
+       x?.username||
+       x?.user?.username||
+       x?.name||
+       x||
+       ""
+      )
+      .replace(/^@/,"")
+      .trim()
+      .toLowerCase()===
+      targetUsername.toLowerCase()
+    );
+
+   }
+
+  }
+
+  $("apiFollowBtn").style.display=
+   "inline-block";
+
+  $("apiFollowBtn").textContent=
+   following
+    ?"Takiptesin"
+    :"Takip Et";
+
+  $("apiFollowBtn")
+   .classList.toggle(
+    "following",
+    following
+   );
+
+  $("apiFollowBtn").onclick=
+   async()=>{
+
+    try{
+
+     const r=
+      await MinegramAPI.follow(
+       targetUsername
+      );
+
+     const now=
+      !!(
+       r.following||
+       r.isFollowing
+      );
+
+     $("apiFollowBtn")
+      .textContent=
+      now
+       ?"Takiptesin"
+       :"Takip Et";
+
+     $("apiFollowBtn")
+      .classList.toggle(
+       "following",
+       now
+      );
+
+    }catch(e){
+
+     showToast(e.message);
+
+    }
+
+   };
+
+ }catch(e){
+
+  setVerifiedBadge(
+   premiumVerifiedValue({
+    username:targetUsername
+   })
+  );
+
+  $("apiStatus").textContent=
+   "Profil bilgisi alınamadı";
+
+ }
+
+}
+
+
+async function syncBlock(){
+
+ try{
+
+  const b=
+   await MinegramAPI.blockStatus(
+    targetUsername
+   );
+
+  blocked=
+   !!(
+    b.blockedByMe||
+    b.blocked||
+    b.isBlocked||
+    b.youBlocked
+   );
+
+  blockedByThem=
+   !!(
+    b.blockedMe||
+    b.blockedByThem||
+    b.hasBlockedMe||
+    b.blockedByUser||
+    b.theyBlockedYou
+   );
+
+  localStorage.setItem(
+   "minegram_blocked_"+
+   targetUsername.toLowerCase(),
+   blocked?"1":"0"
+  );
+
+  syncCallButtons();
+
+ }catch{
+
+  blocked=
+   localStorage.getItem(
+    "minegram_blocked_"+
+    targetUsername.toLowerCase()
+   )==="1";
+
+  blockedByThem=false;
+
+  syncCallButtons();
+
+ }
+
+}
+
+
+function clearMessages(){
+
+ allMessages.clear();
+
+ messageRead.clear();
+
+ chatArea.innerHTML="";
+
+ loading.style.display="none";
+
+}
+
+
+function messageKey(d,id){
+
+ return id||
+ [
+  d.sender,
+  d.createdAt,
+  d.time,
+  d.text,
+  d.type,
+  d.mediaUri,
+  d.postId
+ ].join("|");
+
+}
+
+
+function renderAll(){
+
+ clearMessages();
+
+ const arr=[
+  ...allMessages.entries()
+ ]
+ .sort(
+  (a,b)=>
+   ms(
+    a[1].createdAt||
+    a[1].time
+   )-
+   ms(
+    b[1].createdAt||
+    b[1].time
+   )
+ );
+
+ for(
+  const [id,d] of arr
+ )
+ renderMessage(d,id);
+
+ if(!arr.length){
+
+  chatArea.innerHTML=
+   "<div class='loading'>Henüz mesaj yok</div>";
+
+ }
+
+ requestAnimationFrame(
+  ()=>
+   chatArea.scrollTop=
+   chatArea.scrollHeight
+ );
+
+}
+
+
+function messageActions(
+ d,
+ id
+){
+
+ return `
+ <div class="message-actions">
+
+ <button
+ data-act="like"
+ data-id="${id}">
+ ❤️
+ </button>
+
+ <button
+ data-act="share"
+ data-id="${id}">
+ ↗
+ </button>
+
+ ${
+  d.sender===myUsername
+   ?`
+   <button
+   data-act="delete"
+   data-id="${id}">
+   Sil
+   </button>
+   `
+   :""
+ }
+
+ </div>
+ `;
+
+}
+
+
+/* ==========================================================
+   VİDEO KAPAĞI OLUŞTURMA
+   ========================================================== */
+
+function createVideoCover(file){
+
+ return new Promise(
+  async resolve=>{
+
+   let objectUrl=null;
+
+   try{
+
+    objectUrl=
+     URL.createObjectURL(file);
+
+    const video=
+     document.createElement("video");
+
+    video.preload="metadata";
+    video.muted=true;
+    video.playsInline=true;
+    video.src=objectUrl;
+
+    let finished=false;
+
+    const cleanup=()=>{
+
+     if(objectUrl){
+
+      URL.revokeObjectURL(
+       objectUrl
+      );
+
+      objectUrl=null;
+
+     }
+
+    };
+
+    const done=value=>{
+
+     if(finished)
+     return;
+
+     finished=true;
+
+     cleanup();
+
+     resolve(value);
+
+    };
+
+
+    video.addEventListener(
+     "loadedmetadata",
+     ()=>{
+
+      let seekTime=.1;
+
+      if(
+       Number.isFinite(
+        video.duration
+       )&&
+       video.duration>0
+      ){
+
+       /*
+        Videonun ilk karesinin siyah
+        olma ihtimalini azaltıyoruz.
+       */
+
+       seekTime=Math.min(
+        1,
+        Math.max(
+         .1,
+         video.duration*.12
+        )
+       );
+
+      }
+
+      try{
+
+       video.currentTime=
+        seekTime;
+
+      }catch{
+
+       try{
+        video.currentTime=0;
+       }catch{}
+
+      }
+
+     },
+     {once:true}
+    );
+
+
+    video.addEventListener(
+     "seeked",
+     ()=>{
+
+      try{
+
+       const width=
+        video.videoWidth||640;
+
+       const height=
+        video.videoHeight||360;
+
+       /*
+        Kapak küçük tutuluyor.
+        Böylece Firestore belgesinin
+        gereksiz büyümesi engelleniyor.
+       */
+
+       const maxWidth=480;
+
+       const scale=
+        Math.min(
+         1,
+         maxWidth/width
+        );
+
+       const canvas=
+        document.createElement(
+         "canvas"
+        );
+
+       canvas.width=
+        Math.max(
+         1,
+         Math.round(
+          width*scale
+         )
+        );
+
+       canvas.height=
+        Math.max(
+         1,
+         Math.round(
+          height*scale
+         )
+        );
+
+       const ctx=
+        canvas.getContext("2d");
+
+       if(!ctx){
+
+        done(null);
+        return;
+
+       }
+
+       ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+       );
+
+       const cover=
+        canvas.toDataURL(
+         "image/jpeg",
+         .65
+        );
+
+       done(cover);
+
+      }catch(e){
+
+       console.error(
+        "Video kapak oluşturma hatası:",
+        e
+       );
+
+       done(null);
+
+      }
+
+     },
+     {once:true}
+    );
+
+
+    video.addEventListener(
+     "error",
+     ()=>{
+      done(null);
+     },
+     {once:true}
+    );
+
+
+    setTimeout(
+     ()=>{
+
+      if(!finished)
+      done(null);
+
+     },
+     10000
+    );
+
+   }catch(e){
+
+    console.error(
+     "Video kapak hatası:",
+     e
+    );
+
+    resolve(null);
+
+   }
+
+  }
+ );
+
+}
+
+
+/* ==========================================================
+   MESAJ RENDER
+   ========================================================== */
+
+function renderMessage(
+ d,
+ id
+){
+
+ const mine=
+  String(d.sender||"")
+  .toLowerCase()===
+  myUsername.toLowerCase();
+
+ const wrap=
+  document.createElement("div");
+
+ wrap.className=
+  "message "+
+  (mine?"sent":"received");
+
+ wrap.dataset.id=id;
+
+ const b=
+  document.createElement("div");
+
+ b.className="bubble";
+
+ let body="";
+
+
+ if(d.type==="post"){
+
+  body=`
+  <div
+   class="message-post"
+   data-open-post="1">
+
+   <div class="post-info">
+
+    <div class="post-user">
+     @${escapeHtml(
+      d.postUsername||""
+     )}
+    </div>
+
+   </div>
+
+   ${
+    d.postMediaBase64
+     ?`
+      <img
+       src="${escapeHtml(
+        d.postMediaBase64
+       )}"
+       alt="Gönderi">
+      `
+     :
+     d.postMediaUri
+      ?
+       (
+        /video|reel/i.test(
+         d.postMediaType||""
+        )
+        ?
+        `
+        <video
+         src="${escapeHtml(
+          d.postMediaUri
+         )}"
+         muted
+         playsinline>
+        </video>
+        `
+        :
+        `
+        <img
+         src="${escapeHtml(
+          d.postMediaUri
+         )}"
+         alt="Gönderi">
+        `
+       )
+      :""
+   }
+
+   <div class="post-info">
+
+    <div class="post-caption">
+     ${escapeHtml(
+      d.postText||""
+     )}
+    </div>
+
+    <small>
+     ❤️ ${d.postLikes||0}
+     &nbsp;
+     💬 ${d.postCommentCount||0}
+    </small>
+
+   </div>
+
+  </div>
+  `;
+
+ }
+
+
+ else if(d.type==="live"){
+
+  let x={};
+
+  try{
+
+   x=JSON.parse(
+    String(
+     d.text||""
+    )
+    .replace(
+     "__MINEGRAM_LIVE__",
+     ""
+    )||
+    "{}"
+   );
+
+  }catch{}
+
+  body=`
+  <div
+   class="message-live"
+   data-live-user="${escapeHtml(
+    x.username||""
+   )}">
+
+   <div class="live-info">
+
+    <b>
+     🔴 CANLI YAYIN
+    </b>
+
+    <div>
+     @${escapeHtml(
+      x.username||""
+     )}
+    </div>
+
+    <small>
+     ${escapeHtml(
+      x.title||
+      "Canlı yayın"
+     )}
+    </small>
+
+    <p>
+     Canlı yayına katılmak için dokun
+    </p>
+
+   </div>
+
+  </div>
+  `;
+
+ }
+
+
+ else if(
+  d.type==="view_once"||
+  d.type==="view_once_opened"
+ ){
+
+  if(
+   d.type==="view_once"&&
+   Number(d.viewCount||0)<2&&
+   d.mediaBase64
+  ){
+
+   body=`
+   <div class="view-once">
+
+    <i class="fa-solid fa-image"></i>
+
+    <span>
+
+     Fotoğrafı aç
+
+     <br>
+
+     <small>
+      ${2-Number(
+       d.viewCount||0
+      )}
+      görüntüleme kaldı
+     </small>
+
+    </span>
+
+   </div>
+   `;
+
+  }else{
+
+   body=`
+   <div class="view-once">
+
+    <i class="fa-solid fa-check"></i>
+
+    <span>
+     📸 Fotoğraf ${
+      Number(d.viewCount||0)>=2
+       ?"2 kez görüntülendi"
+       :"açıldı"
+     }
+    </span>
+
+   </div>
+   `;
+
+  }
+
+ }
+
+
+ else if(
+  d.type==="voice"&&
+  d.voiceDataBase64
+ ){
+
+  body=`
+  <div class="voice-box">
+
+   <button
+    class="voice-play"
+    data-voice="${id}">
+
+    <i class="fa-solid fa-play"></i>
+
+   </button>
+
+   <span>
+    ${Math.round(
+     (d.voiceDurationMs||0)/1000
+    )} sn
+   </span>
+
+   <audio
+    id="audio-${id}"
+    preload="metadata"
+    src="data:audio/webm;base64,${
+     d.voiceDataBase64
+    }">
+   </audio>
+
+  </div>
+  `;
+
+ }
+
+
+ else if(
+  d.type==="gif"&&
+  d.mediaBase64
+ ){
+
+  body=`
+  <img
+   class="message-gif"
+   src="${escapeHtml(
+    d.mediaBase64
+   )}"
+   alt="GIF">
+  `;
+
+ }
+
+
+ /* ========================================================
+    YENİ VİDEO RENDER SİSTEMİ
+    ======================================================== */
+
+ else if(
+  (
+   d.type==="media"||
+   d.type==="image"||
+   d.type==="video"
+  )&&
+  d.mediaBase64
+ ){
+
+  const isVideo=
+   d.type==="video"||
+   /video/i.test(
+    d.mediaType||
+    d.mimeType||
+    ""
+   );
+
+
+  if(isVideo){
+
+   const cover=
+    d.videoCoverBase64||
+    d.videoCover||
+    "";
+
+
+   /*
+    Yeni videolarda kapak varsa
+    kapaklı sistem kullanılır.
+
+    Eski videolarda kapak yoksa
+    eski video sistemi bozulmadan
+    çalışır.
+   */
+
+   if(cover){
+
+    const duration=
+     Number(
+      d.videoDuration||0
+     );
+
+    let durationText="";
+
+    if(duration>0){
+
+     const total=
+      Math.floor(duration);
+
+     const minutes=
+      Math.floor(total/60);
+
+     const seconds=
+      String(
+       total%60
+      ).padStart(
+       2,
+       "0"
+      );
+
+     durationText=`
+      <span class="video-duration">
+       ${minutes}:${seconds}
+      </span>
+     `;
+
+    }
+
+
+    body=`
+    <div
+     class="video-cover-wrap"
+     data-video-message="${escapeHtml(
+      id
+     )}">
+
+     <img
+      class="video-cover"
+      src="${escapeHtml(
+       cover
+      )}"
+      alt="Video kapağı">
+
+     <button
+      type="button"
+      class="video-play-btn"
+      data-play-video="${escapeHtml(
+       id
+      )}"
+      aria-label="Videoyu oynat">
+
+      <i class="fa-solid fa-play"></i>
+
+     </button>
+
+     ${durationText}
+
+     <video
+      class="message-video"
+      playsinline
+      preload="metadata"
+      src="${escapeHtml(
+       d.mediaBase64
+      )}"
+      style="display:none">
+     </video>
+
+    </div>
+    `;
+
+   }else{
+
+    /*
+     Eski kayıtlar:
+     videoCoverBase64 bulunmuyorsa
+     doğrudan video göster.
+    */
+
+    body=`
+    <video
+     class="message-video"
+     controls
+     playsinline
+     preload="metadata"
+     src="${escapeHtml(
+      d.mediaBase64
+     )}">
+    </video>
+    `;
+
+   }
+
+
+  }else{
+
+   body=`
+   <img
+    class="message-media"
+    src="${escapeHtml(
+     d.mediaBase64
+    )}"
+    alt="Medya">
+   `;
+
+  }
+
+ }
+
+
+ else{
+
+  body=
+   escapeHtml(
+    d.text||""
+   )
+   .replace(
+    /\n/g,
+    "<br>"
+   );
+
+ }
+
+
+ const read=
+  mine&&
+  (
+   messageRead.get(id)||
+   d.read===true
+  )
+  ?" • Görüldü"
+  :"";
+
+
+ b.innerHTML=
+  body+
+  `
+  <span class="message-time">
+   ${time(
+    d.createdAt||
+    d.time
+   )}
+   ${read}
+  </span>
+  `+
+  messageActions(d,id);
+
+
+ if(d._liked){
+
+  b.insertAdjacentHTML(
+   "beforeend",
+   '<span class="message-reaction">❤️</span>'
+  );
+
+ }
+
+
+ wrap.appendChild(b);
+
+ chatArea.appendChild(wrap);
+
+
+ /* =========================
+    BEĞEN
+    ========================= */
+
+ wrap.querySelector(
+  '[data-act="like"]'
+ )?.addEventListener(
+  "click",
+  ()=>{
+   if(!mine){
+
+    d._liked=true;
+
+    wrap.querySelector(
+     ".message-reaction"
+    )?.remove();
+
+    b.insertAdjacentHTML(
+     "beforeend",
+     '<span class="message-reaction">❤️</span>'
+    );
+
+   }
+  }
+ );
+
+
+ /* =========================
+    SİL
+    ========================= */
+
+ wrap.querySelector(
+  '[data-act="delete"]'
+ )?.addEventListener(
+  "click",
+  async()=>{
+
+   try{
+
+    await updateDoc(
+     doc(
+      firestore,
+      "chatMessages",
+      id
+     ),
+     {
+      deleted:true,
+      text:"Bu mesaj silindi",
+      mediaBase64:"",
+      voiceDataBase64:"",
+      videoCoverBase64:"",
+      type:"text"
+     }
+    );
+
+    showToast(
+     "Mesaj silindi"
+    );
+
+   }catch{
+
+    showToast(
+     "Mesaj silinemedi"
+    );
+
+   }
+
+  }
+ );
+
+
+ /* =========================
+    GÖNDERİ
+    ========================= */
+
+ wrap.querySelector(
+  '[data-open-post]'
+ )?.addEventListener(
+  "click",
+  ()=>{
+
+   if(d.postId)
+
+   location.href=
+    "post.html?id="+
+    encodeURIComponent(
+     d.postId
+    )+
+    "&username="+
+    encodeURIComponent(
+     d.postUsername||""
+    );
+
+  }
+ );
+
+
+ /* =========================
+    CANLI YAYIN
+    ========================= */
+
+ wrap.querySelector(
+  '[data-live-user]'
+ )?.addEventListener(
+  "click",
+  ()=>{
+
+   const u=
+    wrap.querySelector(
+     '[data-live-user]'
+    ).dataset.liveUser;
+
+   if(u)
+
+   location.href=
+    "live.html?username="+
+    encodeURIComponent(u);
+
+  }
+ );
+
+
+ /* =========================
+    SES
+    ========================= */
+
+ wrap.querySelector(
+  '[data-voice]'
+ )?.addEventListener(
+  "click",
+  ()=>{
+
+   const a=
+    $("audio-"+id);
+
+   const btn=
+    wrap.querySelector(
+     '[data-voice]'
+    );
+
+   if(!a)
+   return;
+
+   if(a.paused){
+
+    a.play();
+
+    btn.innerHTML=
+     '<i class="fa-solid fa-pause"></i>';
+
+   }else{
+
+    a.pause();
+
+    btn.innerHTML=
+     '<i class="fa-solid fa-play"></i>';
+
+   }
+
+   a.onended=()=>{
+
+    btn.innerHTML=
+     '<i class="fa-solid fa-play"></i>';
+
+   };
+
+  }
+ );
+
+
+ /* ========================================================
+    VİDEO OYNAT BUTONU
+    ======================================================== */
+
+ wrap.querySelector(
+  '[data-play-video]'
+ )?.addEventListener(
+  "click",
+  async e=>{
+
+   e.stopPropagation();
+
+   const box=
+    wrap.querySelector(
+     '[data-video-message]'
+    );
+
+   if(!box)
+   return;
+
+   const video=
+    box.querySelector(
+     ".message-video"
+    );
+
+   const cover=
+    box.querySelector(
+     ".video-cover"
+    );
+
+   const playBtn=
+    box.querySelector(
+     ".video-play-btn"
+    );
+
+   if(!video)
+   return;
+
+
+   /*
+    Kapağı gizle.
+   */
+
+   if(cover)
+   cover.style.display="none";
+
+
+   /*
+    Oynat butonunu gizle.
+   */
+
+   if(playBtn)
+   playBtn.style.display="none";
+
+
+   /*
+    Video alanını aç.
+   */
+
+   box.classList.add(
+    "playing"
+   );
+
+   video.style.display=
+    "block";
+
+
+   try{
+
+    video.currentTime=0;
+
+    await video.play();
+
+   }catch(err){
+
+    console.error(
+     "Video oynatma hatası:",
+     err
+    );
+
+    video.pause();
+
+    video.currentTime=0;
+
+    video.style.display=
+     "none";
+
+    if(cover)
+    cover.style.display=
+     "block";
+
+    if(playBtn)
+    playBtn.style.display=
+     "flex";
+
+    box.classList.remove(
+     "playing"
+    );
+
+    showToast(
+     "Video oynatılamadı"
+    );
+
+    return;
+
+   }
+
+
+   /*
+    Video bittiğinde tekrar kapak.
+   */
+
+   video.onended=()=>{
+
+    video.pause();
+
+    video.currentTime=0;
+
+    video.style.display=
+     "none";
+
+    if(cover)
+    cover.style.display=
+     "block";
+
+    if(playBtn)
+    playBtn.style.display=
+     "flex";
+
+    box.classList.remove(
+     "playing"
+    );
+
+   };
+
+
+   /*
+    Video hata verirse kapağa dön.
+   */
+
+   video.onerror=()=>{
+
+    video.pause();
+
+    video.currentTime=0;
+
+    video.style.display=
+     "none";
+
+    if(cover)
+    cover.style.display=
+     "block";
+
+    if(playBtn)
+    playBtn.style.display=
+     "flex";
+
+    box.classList.remove(
+     "playing"
+    );
+
+    showToast(
+     "Video oynatılamadı"
+    );
+
+   };
+
+  }
+ );
+
+
+ /* =========================
+    ÇİFT TIKLAMA BEĞENİ
+    ========================= */
+
+ wrap.addEventListener(
+  "dblclick",
+  ()=>{
+
+   if(!mine){
+
+    d._liked=true;
+
+    renderAll();
+
+   }
+
+  }
+ );
+
+
+ /* =========================
+    TEK GÖRÜNTÜLEMELİ FOTOĞRAF
+    ========================= */
+
+ if(
+  d.type==="view_once"&&
+  Number(d.viewCount||0)<2&&
+  d.mediaBase64
+ ){
+
+  wrap.addEventListener(
+   "click",
+   async e=>{
+
+    if(
+     e.target.closest("button")
+    )
+    return;
+
+    const n=
+     Number(
+      d.viewCount||0
+     )+1;
+
+    try{
+
+     await updateDoc(
+      doc(
+       firestore,
+       "chatMessages",
+       id
+      ),
+      {
+       viewCount:n,
+       type:
+        n>=2
+         ?"view_once_opened"
+         :"view_once"
+      }
+     );
+
+    }catch{}
+
+   },
+   {
+    once:true
+   }
+  );
+
+ }
+
+}
+
+
+/* ==========================================================
+   MESAJ GÖNDER
+   ========================================================== */
 
 async function sendData(data){
- if(!(await ensureAuth()))return false;
+
+ if(!(await ensureAuth()))
+ return false;
+
  await syncBlock();
- if(blockedSend())return false;
+
+ if(blockedSend())
+ return false;
+
  try{
-  await addDoc(collection(firestore,"chatMessages"),{conversationKey,sender:myUsername,recipient:targetUsername,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,...data});
+
+  await addDoc(
+   collection(
+    firestore,
+    "chatMessages"
+   ),
+   {
+    conversationKey,
+    sender:myUsername,
+    recipient:targetUsername,
+
+    time:new Date()
+     .toLocaleTimeString(
+      "tr-TR",
+      {
+       hour:"2-digit",
+       minute:"2-digit",
+       second:"2-digit"
+      }
+     ),
+
+    createdAt:Date.now(),
+
+    read:false,
+
+    ...data
+   }
+  );
+
   return true;
- }catch(e){console.error("Minegram chat send error:",e);showToast(e?.code==="permission-denied"?"Mesaj gönderme izni yok":"Mesaj gönderilemedi");return false}
+
+ }catch(e){
+
+  console.error(
+   "Minegram chat send error:",
+   e
+  );
+
+  showToast(
+   e?.code==="permission-denied"
+    ?"Mesaj gönderme izni yok"
+    :"Mesaj gönderilemedi"
+  );
+
+  return false;
+
+ }
+
 }
-async function sendText(t){t=String(t||"").trim();if(!t)return;if(await sendData({text:t,type:"text"})){input.value="";input.focus()}}
-function readAsData(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=rej;r.readAsDataURL(file)})}
-async function resizeImage(file,maxBytes=650000){const url=await readAsData(file);if(file.size<=maxBytes)return url;return new Promise(resolve=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const x=c.getContext("2d");x.drawImage(img,0,0,c.width,c.height);let q=.86,out=c.toDataURL("image/jpeg",q);while(out.length>maxBytes*1.38&&q>.45){q-=.08;out=c.toDataURL("image/jpeg",q)}resolve(out)};img.onerror=()=>resolve(null);img.src=url})}
-async function sendFile(file,kind){if(!file)return;if(blockedSend())return;let data=null;if(kind==="image")data=await resizeImage(file);else data=await readAsData(file);if(!data||data.length>930000){showToast("Dosya çok büyük. Daha küçük bir dosya seç.");return}const ok=await sendData({text:kind==="gif"?"🎞 GIF gönderildi":kind==="video"?"🎬 Video gönderildi":"🖼 Fotoğraf gönderildi",type:kind==="gif"?"gif":"media",mediaBase64:data,mediaType:file.type||kind,mimeType:file.type||kind});if(ok)showToast("Gönderildi")}
 
-let recorder=null,recordChunks=[],recordStarted=0,recordTimer=null;
-async function toggleRecording(){if(blockedSend())return;if(recorder?.state==="recording"){recorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":"audio/webm";recorder=new MediaRecorder(stream,{mimeType:mime});recordChunks=[];recordStarted=Date.now();$("recordingBar").classList.add("show");recordTimer=setInterval(()=>{const s=Math.floor((Date.now()-recordStarted)/1000);$("recordingTime").textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`},250);recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data)};recorder.onstop=async()=>{clearInterval(recordTimer);$("recordingBar").classList.remove("show");stream.getTracks().forEach(t=>t.stop());const dur=Date.now()-recordStarted;recordStarted=0;if(dur<300){showToast("Daha uzun basarak ses kaydet");return}if(dur>60000){showToast("Ses kaydı en fazla 60 saniye");return}const blob=new Blob(recordChunks,{type:mime});const buf=await blob.arrayBuffer();if(buf.byteLength>100*1024){showToast("Ses kaydı çok büyük");return}const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));await sendData({text:"🎙️ Sesli mesaj",type:"voice",voiceDurationMs:dur,voiceDataBase64:b64})};recorder.start()}catch(e){showToast("Mikrofon izni gerekli")}}
-$("cancelRecording").onclick=()=>{if(recorder?.state==="recording"){recorder.onstop=null;recorder.stop();showToast("Kayıt iptal edildi")}}
 
-function subscribe(){if(!authReady||!targetUsername)return;unsub?.();loading.style.display="block";loading.textContent="Mesajlar yükleniyor...";const q=query(collection(firestore,"chatMessages"),where("conversationKey","==",conversationKey),limit(500));unsub=onSnapshot(q,s=>{allMessages.clear();messageRead.clear();s.docs.forEach(d=>{const x=d.data();if(x.deleted){x.text="Bu mesaj silindi";x.type="text";x.mediaBase64="";x.voiceDataBase64=""}allMessages.set(d.id,x);if(x.read===true)messageRead.set(d.id,true)});renderAll();markRead()},e=>{console.error(e);loading.textContent="Mesajlar yüklenemedi."})}
-async function markRead(){if(!authReady||!targetUsername)return;try{const q=query(collection(firestore,"chatMessages"),where("sender","==",targetUsername),where("recipient","==",myUsername),limit(500));const s=await getDocs(q);await Promise.all(s.docs.filter(d=>d.data().read!==true).map(d=>updateDoc(doc(firestore,"chatMessages",d.id),{read:true})))}catch(e){}}
+async function sendText(t){
 
-async function shareToUser(payload,title){const users=[];try{const r=await MinegramAPI.search("");const arr=Array.isArray(r)?r:(r?.users||r?.results||[]);arr.forEach(x=>{const u=String(x.username||x).trim();if(u&&!u.toLowerCase().includes(myUsername.toLowerCase()))users.push(u)})}catch{};if(targetUsername&&!users.some(u=>u.toLowerCase()===targetUsername.toLowerCase()))users.push(targetUsername);const list=[...new Set(users)].slice(0,100);$("shareTitle").textContent=title;$("shareModal").classList.add("show");function paint(filter=""){const f=filter.toLowerCase();$("shareList").innerHTML=list.filter(u=>u.toLowerCase().includes(f)).map(u=>`<div class="share-user" data-u="${escapeHtml(u)}">${displayAvatar(u,45)}<div class="share-meta"><b>@${escapeHtml(u)}</b><small>Mesaj olarak gönder</small></div><i class="fa-solid fa-paper-plane"></i></div>`).join("")||"<div class='loading'>Kullanıcı bulunamadı</div>";document.querySelectorAll(".share-user").forEach(el=>el.onclick=async()=>{const u=el.dataset.u;try{const ok=await sendTo(u,payload);if(ok)showToast("@"+u+" kullanıcısına gönderildi")}finally{$("shareModal").classList.remove("show")}})}paint();$("shareSearch").value="";$("shareSearch").oninput=e=>paint(e.target.value)}
-async function sendTo(user,payload){const old=targetUsername;try{const d={...payload};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[myUsername.toLowerCase(),user.toLowerCase()].sort().join("__"),sender:myUsername,recipient:user,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,...d});return true}catch{showToast("Gönderilemedi");return false}}
-window.MinegramChat={sendText,sendMedia:sendFile,sendVoice:toggleRecording,shareToUser,sharePost:(post)=>shareToUser({type:"post",text:"📷 @"+(post.username||myUsername)+" gönderisi",postId:post.id,postUsername:post.username,postText:post.text||"",postLikes:post.likes||0,postMediaUri:post.mediaUri||"",postMediaType:post.mediaType||"image",postMediaBase64:post.mediaBase64||null,postCommentCount:post.commentCount||0},"Gönderiyi paylaş"),shareLive:(u,title)=>shareToUser({type:"live",text:"__MINEGRAM_LIVE__"+JSON.stringify({username:u,title:title||"Canlı yayın"})},"Canlı yayını paylaş")};
+ t=String(t||"").trim();
 
-// Incoming share support: ?share=__MINEGRAM_POST__{...} or __MINEGRAM_LIVE__{...}
-if(p.get("share")){try{const raw=decodeURIComponent(p.get("share"));if(raw.startsWith("__MINEGRAM_POST__")){const x=JSON.parse(raw.replace("__MINEGRAM_POST__",""));setTimeout(()=>sendData({type:"post",text:"📷 @"+x.username+" gönderisi",postId:x.id,postUsername:x.username,postText:x.text||"",postLikes:x.likes||0,postMediaUri:x.mediaUri||"",postMediaType:x.mediaType||"image",postMediaBase64:x.mediaBase64||null,postCommentCount:x.commentCount||0}),700)}else if(raw.startsWith("__MINEGRAM_LIVE__")){setTimeout(()=>sendData({type:"live",text:raw}),700)}}catch{}}
+ if(!t)
+ return;
 
-// UI actions
-$("sendBtn").onclick=()=>sendText(input.value);input.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();sendText(input.value)}};
-const fileInput=$("fileInput"),cameraInput=$("cameraInput");$("galleryBtn").onclick=()=>fileInput.click();fileInput.onchange=async()=>{const f=fileInput.files[0];if(f)await sendFile(f,f.type==="image/gif"?"gif":f.type.startsWith("video")?"video":"image");fileInput.value=""};
-$("cameraBtn").onclick=async()=>{try{const stream=await navigator.mediaDevices.getUserMedia({video:true});const v=document.createElement("video");v.srcObject=stream;v.playsInline=true;await v.play();await new Promise(r=>setTimeout(r,400));const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);stream.getTracks().forEach(t=>t.stop());const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.86));const f=new File([blob],"Minegram.jpg",{type:"image/jpeg"});await sendData({text:"📸 Fotoğraf • 2 kez görüntülenebilir",type:"view_once",viewCount:0,mediaBase64:await resizeImage(f,650000),mediaType:"image/jpeg"})}catch{showToast("Kamera izni gerekli")}};
-$("micBtn").onclick=toggleRecording;$("gifBtn").onclick=()=>{fileInput.accept="image/gif";fileInput.click();setTimeout(()=>fileInput.accept="image/*,video/*",300)};
-$("profileHeader").onclick=()=>openProfile();$("profileLink").onclick=e=>{e.preventDefault();openProfile()};$("viewProfile").onclick=()=>openProfile();function openProfile(){if(!targetUsername)return;loadProfileModal()}
-async function loadProfileModal(){const body=$("profileModalBody");body.innerHTML='<div class="profile-body"><div class="loading">Profil yükleniyor...</div></div>';$('profileModal').classList.add('show');try{const [u,f1,f2]=await Promise.all([MinegramAPI.user(targetUsername).catch(()=>({})),MinegramAPI.followers(targetUsername).catch(()=>[]),MinegramAPI.following(targetUsername).catch(()=>[])]);const bio=u.bio||u.about||u.description||"";const av=u.avatar||u.avatar_url||u.avatarUrl||u.profilePhoto||u.profile_photo||u.user?.avatar||u.user?.avatar_url||u.user?.avatarUrl||u.user?.profilePhoto||u.user?.profile_photo||"";const fc=Array.isArray(f1)?f1.length:(f1.count||f1.followers?.length||0);const fg=Array.isArray(f2)?f2.length:(f2.count||f2.following?.length||0);const modalVerified=premiumVerifiedValue(u);body.innerHTML=`<div class="profile-body">${av?`<img class="big-avatar" src="${escapeHtml(av)}">`:`<div class="big-avatar">${escapeHtml(targetUsername[0].toUpperCase())}</div>`}<h2>@${escapeHtml(targetUsername)} ${modalVerified?`<span class="verified" style="vertical-align:middle;width:20px;height:20px;font-size:11px"><i class="fa-solid fa-check"></i></span>`:""}</h2><p>${escapeHtml(bio)}</p><div class="profile-stats"><div><b>${fc}</b><span>Takipçi</span></div><div><b>${fg}</b><span>Takip</span></div></div><div class="profile-actions"><button id="profileFollow">${[u.followingByMe,u.isFollowing,u.following,u.user?.followingByMe,u.user?.isFollowing,u.user?.following].find(v=>typeof v==="boolean")===true?"Takiptesin":"Takip Et"}</button><button class="secondary" id="profileChat">Mesaj</button></div></div>`;$("profileChat").onclick=()=>$("profileModal").classList.remove("show");$("profileFollow").onclick=async()=>{try{const r=await MinegramAPI.follow(targetUsername);$("profileFollow").textContent=(r.following||r.isFollowing)?"Takiptesin":"Takip Et"}catch(e){showToast(e.message)}}}catch{body.innerHTML='<div class="profile-body"><div class="loading">Profil yüklenemedi</div></div>'}}
-$("profileClose").onclick=()=>$("profileModal").classList.remove("show");
-$("shareClose").onclick=()=>$("shareModal").classList.remove("show");
-function goToTargetProfile(){if(!targetUsername)return;location.href="profile.html?username="+encodeURIComponent(targetUsername)}
-$("profileHeader").onclick=e=>{if(e.target.closest(".profile"))return;goToTargetProfile()};$("headerProfileLink").onclick=e=>{e.stopPropagation();goToTargetProfile()};$("profileLink").onclick=e=>{e.preventDefault();goToTargetProfile()};$("viewProfile").onclick=()=>{menu.classList.remove("show");goToTargetProfile()};
-$("moreBtn").onclick=e=>{e.stopPropagation();menu.classList.toggle("show")};document.addEventListener("click",e=>{if(!menu.contains(e.target)&&e.target.id!=="moreBtn")menu.classList.remove("show")});
-$("optionsBtn").onclick=()=>{menu.classList.remove("show");syncOptionLabels();$("optionModal").classList.add("show")};$("optionClose").onclick=()=>$("optionModal").classList.remove("show");$("optionModal").addEventListener("click",e=>{if(e.target.id==="optionModal")$("optionModal").classList.remove("show")});
+ if(
+  await sendData({
+   text:t,
+   type:"text"
+  })
+ ){
+
+  input.value="";
+
+  input.focus();
+
+ }
+
+}
+
+
+function readAsData(file){
+
+ return new Promise(
+  (res,rej)=>{
+
+   const r=
+    new FileReader();
+
+   r.onload=()=>
+    res(
+     String(r.result)
+    );
+
+   r.onerror=rej;
+
+   r.readAsDataURL(file);
+
+  }
+ );
+
+}
+
+
+async function resizeImage(
+ file,
+ maxBytes=650000
+){
+
+ const url=
+  await readAsData(file);
+
+ if(file.size<=maxBytes)
+ return url;
+
+ return new Promise(
+  resolve=>{
+
+   const img=
+    new Image();
+
+   img.onload=()=>{
+
+    const scale=
+     Math.min(
+      1,
+      1400/
+      Math.max(
+       img.width,
+       img.height
+      )
+     );
+
+    const c=
+     document.createElement(
+      "canvas"
+     );
+
+    c.width=
+     Math.max(
+      1,
+      Math.round(
+       img.width*scale
+      )
+     );
+
+    c.height=
+     Math.max(
+      1,
+      Math.round(
+       img.height*scale
+      )
+     );
+
+    const x=
+     c.getContext(
+      "2d"
+     );
+
+    x.drawImage(
+     img,
+     0,
+     0,
+     c.width,
+     c.height
+    );
+
+    let q=.86;
+
+    let out=
+     c.toDataURL(
+      "image/jpeg",
+      q
+     );
+
+    while(
+     out.length>
+     maxBytes*1.38&&
+     q>.45
+    ){
+
+     q-=.08;
+
+     out=
+      c.toDataURL(
+       "image/jpeg",
+       q
+      );
+
+    }
+
+    resolve(out);
+
+   };
+
+   img.onerror=
+    ()=>resolve(null);
+
+   img.src=url;
+
+  }
+ );
+
+}
+
+
+/* ==========================================================
+   YENİ DOSYA GÖNDERME SİSTEMİ
+   ========================================================== */
+
+async function sendFile(
+ file,
+ kind
+){
+
+ if(!file)
+ return;
+
+ if(blockedSend())
+ return;
+
+
+ try{
+
+
+  /* =====================
+     GIF
+     ===================== */
+
+  if(kind==="gif"){
+
+   const data=
+    await resizeImage(
+     file
+    );
+
+   if(!data){
+
+    showToast(
+     "GIF hazırlanamadı"
+    );
+
+    return;
+
+   }
+
+   if(
+    data.length>930000
+   ){
+
+    showToast(
+     "GIF çok büyük. Daha küçük bir GIF seç."
+    );
+
+    return;
+
+   }
+
+   const ok=
+    await sendData({
+
+     text:
+      "🎞 GIF gönderildi",
+
+     type:
+      "gif",
+
+     mediaBase64:
+      data,
+
+     mediaType:
+      file.type||
+      "image/gif",
+
+     mimeType:
+      file.type||
+      "image/gif"
+
+    });
+
+   if(ok)
+   showToast(
+    "GIF gönderildi"
+   );
+
+   return;
+
+  }
+
+
+  /* =====================
+     VİDEO
+     ===================== */
+
+  if(kind==="video"){
+
+   showToast(
+    "Video hazırlanıyor..."
+   );
+
+
+   /*
+    Önce gerçek videoyu oku.
+   */
+
+   const videoData=
+    await readAsData(file);
+
+   if(!videoData){
+
+    showToast(
+     "Video okunamadı"
+    );
+
+    return;
+
+   }
+
+
+   /*
+    Videodan kapak oluştur.
+   */
+
+   const videoCover=
+    await createVideoCover(
+     file
+    );
+
+   if(!videoCover){
+
+    showToast(
+     "Video kapağı oluşturulamadı"
+    );
+
+    return;
+
+   }
+
+
+   /*
+    Mevcut Base64 mimarisindeki
+    boyut sınırı.
+   */
+
+   if(
+    videoData.length>930000
+   ){
+
+    showToast(
+     "Video çok büyük. Daha kısa veya daha düşük boyutlu video seç."
+    );
+
+    return;
+
+   }
+
+
+   /* =====================
+      VİDEO SÜRESİ
+      ===================== */
+
+   let videoDuration=0;
+
+   try{
+
+    const tempUrl=
+     URL.createObjectURL(
+      file
+     );
+
+    const tempVideo=
+     document.createElement(
+      "video"
+     );
+
+    tempVideo.preload=
+     "metadata";
+
+    tempVideo.src=
+     tempUrl;
+
+    await new Promise(
+     resolve=>{
+
+      tempVideo.onloadedmetadata=
+       ()=>{
+
+        videoDuration=
+         Number.isFinite(
+          tempVideo.duration
+         )
+          ?tempVideo.duration
+          :0;
+
+        URL.revokeObjectURL(
+         tempUrl
+        );
+
+        resolve();
+
+       };
+
+      tempVideo.onerror=()=>{
+
+       URL.revokeObjectURL(
+        tempUrl
+       );
+
+       resolve();
+
+      };
+
+     }
+    );
+
+   }catch{}
+
+
+   /* =====================
+      FIRESTORE'A KAYDET
+      ===================== */
+
+   const ok=
+    await sendData({
+
+     text:
+      "🎬 Video gönderildi",
+
+     type:
+      "video",
+
+     mediaBase64:
+      videoData,
+
+     videoCoverBase64:
+      videoCover,
+
+     videoDuration:
+      videoDuration,
+
+     mediaType:
+      file.type||
+      "video/mp4",
+
+     mimeType:
+      file.type||
+      "video/mp4"
+
+    });
+
+
+   if(ok){
+
+    showToast(
+     "Video gönderildi"
+    );
+
+   }
+
+   return;
+
+  }
+
+
+  /* =====================
+     FOTOĞRAF
+     ===================== */
+
+  if(kind==="image"){
+
+   const data=
+    await resizeImage(
+     file
+    );
+
+   if(!data){
+
+    showToast(
+     "Fotoğraf hazırlanamadı"
+    );
+
+    return;
+
+   }
+
+   if(
+    data.length>930000
+   ){
+
+    showToast(
+     "Fotoğraf çok büyük. Daha küçük bir fotoğraf seç."
+    );
+
+    return;
+
+   }
+
+   const ok=
+    await sendData({
+
+     text:
+      "🖼 Fotoğraf gönderildi",
+
+     type:
+      "media",
+
+     mediaBase64:
+      data,
+
+     mediaType:
+      file.type||
+      "image/jpeg",
+
+     mimeType:
+      file.type||
+      "image/jpeg"
+
+    });
+
+
+   if(ok){
+
+    showToast(
+     "Fotoğraf gönderildi"
+    );
+
+   }
+
+   return;
+
+  }
+
+
+ }catch(e){
+
+  console.error(
+   "sendFile error:",
+   e
+  );
+
+  showToast(
+   e?.message||
+   "Dosya gönderilemedi"
+  );
+
+ }
+
+}
+
+
+/* ==========================================================
+   SES KAYDI
+   ========================================================== */
+
+let recorder=null;
+
+let recordChunks=[];
+
+let recordStarted=0;
+
+let recordTimer=null;
+
+
+async function toggleRecording(){
+
+ if(blockedSend())
+ return;
+
+ if(
+  recorder?.state==="recording"
+ ){
+
+  recorder.stop();
+
+  return;
+
+ }
+
+
+ try{
+
+  const stream=
+   await navigator.mediaDevices
+   .getUserMedia({
+    audio:true
+   });
+
+  const mime=
+   MediaRecorder.isTypeSupported(
+    "audio/webm;codecs=opus"
+   )
+   ?
+   "audio/webm;codecs=opus"
+   :
+   "audio/webm";
+
+  recorder=
+   new MediaRecorder(
+    stream,
+    {
+     mimeType:mime
+    }
+   );
+
+  recordChunks=[];
+
+  recordStarted=
+   Date.now();
+
+  $("recordingBar")
+   .classList.add(
+    "show"
+   );
+
+  recordTimer=
+   setInterval(
+    ()=>{
+     const s=
+      Math.floor(
+       (Date.now()-
+        recordStarted)/
+       1000
+      );
+
+     $("recordingTime")
+      .textContent=
+       `${Math.floor(s/60)}:${String(
+        s%60
+       ).padStart(
+        2,
+        "0"
+       )}`;
+
+    },
+    250
+   );
+
+  recorder.ondataavailable=
+   e=>{
+
+    if(e.data.size)
+    recordChunks.push(
+     e.data
+    );
+
+   };
+
+
+  recorder.onstop=
+   async()=>{
+
+    clearInterval(
+     recordTimer
+    );
+
+    $("recordingBar")
+     .classList.remove(
+      "show"
+     );
+
+    stream
+     .getTracks()
+     .forEach(
+      t=>t.stop()
+     );
+
+    const dur=
+     Date.now()-
+     recordStarted;
+
+    recordStarted=0;
+
+    if(dur<300){
+
+     showToast(
+      "Daha uzun basarak ses kaydet"
+     );
+
+     return;
+
+    }
+
+    if(dur>60000){
+
+     showToast(
+      "Ses kaydı en fazla 60 saniye"
+     );
+
+     return;
+
+    }
+
+    const blob=
+     new Blob(
+      recordChunks,
+      {
+       type:mime
+      }
+     );
+
+    const buf=
+     await blob.arrayBuffer();
+
+    if(
+     buf.byteLength>
+     100*1024
+    ){
+
+     showToast(
+      "Ses kaydı çok büyük"
+     );
+
+     return;
+
+    }
+
+    const b64=
+     btoa(
+      String.fromCharCode(
+       ...new Uint8Array(buf)
+      )
+     );
+
+    await sendData({
+
+     text:
+      "🎙️ Sesli mesaj",
+
+     type:
+      "voice",
+
+     voiceDurationMs:
+      dur,
+
+     voiceDataBase64:
+      b64
+
+    });
+
+   };
+
+
+  recorder.start();
+
+ }catch(e){
+
+  showToast(
+   "Mikrofon izni gerekli"
+  );
+
+ }
+
+}
+
+
+$("cancelRecording").onclick=
+ ()=>{
+
+  if(
+   recorder?.state==="recording"
+  ){
+
+   recorder.onstop=null;
+
+   recorder.stop();
+
+   showToast(
+    "Kayıt iptal edildi"
+   );
+
+  }
+
+ };
+
+
+/* ==========================================================
+   MESAJLARI DİNLE
+   ========================================================== */
+
+function subscribe(){
+
+ if(
+  !authReady||
+  !targetUsername
+ )
+ return;
+
+ unsub?.();
+
+ loading.style.display=
+  "block";
+
+ loading.textContent=
+  "Mesajlar yükleniyor...";
+
+ const q=
+  query(
+   collection(
+    firestore,
+    "chatMessages"
+   ),
+   where(
+    "conversationKey",
+    "==",
+    conversationKey
+   ),
+   limit(500)
+  );
+
+ unsub=
+  onSnapshot(
+   q,
+   s=>{
+
+    allMessages.clear();
+
+    messageRead.clear();
+
+    s.docs.forEach(
+     d=>{
+
+      const x=d.data();
+
+      if(x.deleted){
+
+       x.text=
+        "Bu mesaj silindi";
+
+       x.type=
+        "text";
+
+       x.mediaBase64=
+        "";
+
+       x.voiceDataBase64=
+        "";
+
+       x.videoCoverBase64=
+        "";
+
+      }
+
+      allMessages.set(
+       d.id,
+       x
+      );
+
+      if(x.read===true)
+      messageRead.set(
+       d.id,
+       true
+      );
+
+     }
+    );
+
+    renderAll();
+
+    markRead();
+
+   },
+   e=>{
+
+    console.error(e);
+
+    loading.textContent=
+     "Mesajlar yüklenemedi.";
+
+   }
+  );
+
+}
+
+
+async function markRead(){
+
+ if(
+  !authReady||
+  !targetUsername
+ )
+ return;
+
+ try{
+
+  const q=
+   query(
+    collection(
+     firestore,
+     "chatMessages"
+    ),
+    where(
+     "sender",
+     "==",
+     targetUsername
+    ),
+    where(
+     "recipient",
+     "==",
+     myUsername
+    ),
+    limit(500)
+   );
+
+  const s=
+   await getDocs(q);
+
+  await Promise.all(
+   s.docs
+   .filter(
+    d=>
+     d.data().read!==true
+   )
+   .map(
+    d=>
+     updateDoc(
+      doc(
+       firestore,
+       "chatMessages",
+       d.id
+      ),
+      {
+       read:true
+      }
+     )
+   )
+  );
+
+ }catch(e){}
+
+}
+
+
+/* ==========================================================
+   PAYLAŞ
+   ========================================================== */
+
+async function shareToUser(
+ payload,
+ title
+){
+
+ const users=[];
+
+ try{
+
+  const r=
+   await MinegramAPI.search("");
+
+  const arr=
+   Array.isArray(r)
+    ?r
+    :(r?.users||
+      r?.results||
+      []);
+
+  arr.forEach(
+   x=>{
+
+    const u=
+     String(
+      x.username||x
+     ).trim();
+
+    if(
+     u&&
+     !u.toLowerCase()
+      .includes(
+       myUsername.toLowerCase()
+      )
+    )
+    users.push(u);
+
+   }
+  );
+
+ }catch{}
+
+
+ if(
+  targetUsername&&
+  !users.some(
+   u=>
+    u.toLowerCase()===
+    targetUsername.toLowerCase()
+  )
+ )
+ users.push(
+  targetUsername
+ );
+
+
+ const list=
+  [
+   ...new Set(users)
+  ].slice(
+   0,
+   100
+  );
+
+
+ $("shareTitle")
+  .textContent=
+  title;
+
+ $("shareModal")
+  .classList.add(
+   "show"
+ );
+
+
+ function paint(
+  filter=""
+ ){
+
+  const f=
+   filter.toLowerCase();
+
+  $("shareList")
+   .innerHTML=
+   list
+   .filter(
+    u=>
+     u.toLowerCase()
+      .includes(f)
+   )
+   .map(
+    u=>`
+
+    <div
+     class="share-user"
+     data-u="${escapeHtml(u)}">
+
+     ${displayAvatar(u,45)}
+
+     <div class="share-meta">
+
+      <b>
+       @${escapeHtml(u)}
+      </b>
+
+      <small>
+       Mesaj olarak gönder
+      </small>
+
+     </div>
+
+     <i class="fa-solid fa-paper-plane"></i>
+
+    </div>
+
+    `
+   )
+   .join("")
+   ||
+   "<div class='loading'>Kullanıcı bulunamadı</div>";
+
+
+  document
+   .querySelectorAll(
+    ".share-user"
+   )
+   .forEach(
+    el=>
+
+     el.onclick=
+     async()=>{
+
+      const u=
+       el.dataset.u;
+
+      try{
+
+       const ok=
+        await sendTo(
+         u,
+         payload
+        );
+
+       if(ok)
+       showToast(
+        "@"+u+
+        " kullanıcısına gönderildi"
+       );
+
+      }finally{
+
+       $("shareModal")
+        .classList.remove(
+         "show"
+        );
+
+      }
+
+     }
+   );
+
+ }
+
+
+ paint();
+
+ $("shareSearch")
+  .value="";
+
+ $("shareSearch").oninput=
+  e=>
+   paint(
+    e.target.value
+   );
+
+}
+
+
+async function sendTo(
+ user,
+ payload
+){
+
+ try{
+
+  const d={
+   ...payload
+  };
+
+  await addDoc(
+   collection(
+    firestore,
+    "chatMessages"
+   ),
+   {
+
+    conversationKey:[
+     myUsername.toLowerCase(),
+     user.toLowerCase()
+    ]
+    .sort()
+    .join("__"),
+
+    sender:myUsername,
+
+    recipient:user,
+
+    time:
+     new Date()
+     .toLocaleTimeString(
+      "tr-TR",
+      {
+       hour:"2-digit",
+       minute:"2-digit",
+       second:"2-digit"
+      }
+     ),
+
+    createdAt:
+     Date.now(),
+
+    read:false,
+
+    ...d
+
+   }
+  );
+
+  return true;
+
+ }catch{
+
+  showToast(
+   "Gönderilemedi"
+  );
+
+  return false;
+
+ }
+
+}
+
+
+window.MinegramChat={
+
+ sendText,
+
+ sendMedia:
+  sendFile,
+
+ sendVoice:
+  toggleRecording,
+
+ shareToUser,
+
+ sharePost:
+  post=>
+   shareToUser(
+    {
+     type:"post",
+
+     text:
+      "📷 @"+
+      (post.username||
+       myUsername)+
+      " gönderisi",
+
+     postId:
+      post.id,
+
+     postUsername:
+      post.username,
+
+     postText:
+      post.text||"",
+
+     postLikes:
+      post.likes||0,
+
+     postMediaUri:
+      post.mediaUri||"",
+
+     postMediaType:
+      post.mediaType||
+      "image",
+
+     postMediaBase64:
+      post.mediaBase64||
+      null,
+
+     postCommentCount:
+      post.commentCount||
+      0
+
+    },
+    "Gönderiyi paylaş"
+   ),
+
+ shareLive:
+  (u,title)=>
+   shareToUser(
+    {
+     type:"live",
+
+     text:
+      "__MINEGRAM_LIVE__"+
+      JSON.stringify({
+       username:u,
+       title:
+        title||
+        "Canlı yayın"
+      })
+    },
+    "Canlı yayını paylaş"
+   )
+
+};
+
+
+/* ==========================================================
+   GELEN PAYLAŞIM
+   ========================================================== */
+
+if(p.get("share")){
+
+ try{
+
+  const raw=
+   decodeURIComponent(
+    p.get("share")
+   );
+
+
+  if(
+   raw.startsWith(
+    "__MINEGRAM_POST__"
+   )
+  ){
+
+   const x=
+    JSON.parse(
+     raw.replace(
+      "__MINEGRAM_POST__",
+      ""
+     )
+    );
+
+   setTimeout(
+    ()=>
+     sendData({
+
+      type:"post",
+
+      text:
+       "📷 @"+
+       x.username+
+       " gönderisi",
+
+      postId:
+       x.id,
+
+      postUsername:
+       x.username,
+
+      postText:
+       x.text||"",
+
+      postLikes:
+       x.likes||0,
+
+      postMediaUri:
+       x.mediaUri||"",
+
+      postMediaType:
+       x.mediaType||
+       "image",
+
+      postMediaBase64:
+       x.mediaBase64||
+       null,
+
+      postCommentCount:
+       x.commentCount||
+       0
+
+     }),
+    700
+   );
+
+
+  }else if(
+   raw.startsWith(
+    "__MINEGRAM_LIVE__"
+   )
+  ){
+
+   setTimeout(
+    ()=>
+     sendData({
+      type:"live",
+      text:raw
+     }),
+    700
+   );
+
+  }
+
+ }catch{}
+
+}
+
+
+/* ==========================================================
+   UI
+   ========================================================== */
+
+$("sendBtn").onclick=
+ ()=>sendText(
+  input.value
+ );
+
+
+input.onkeydown=
+ e=>{
+
+  if(e.key==="Enter"){
+
+   e.preventDefault();
+
+   sendText(
+    input.value
+   );
+
+  }
+
+ };
+
+
+const fileInput=
+ $("fileInput");
+
+const cameraInput=
+ $("cameraInput");
+
+
+$("galleryBtn").onclick=
+ ()=>fileInput.click();
+
+
+fileInput.onchange=
+ async()=>{
+
+  const f=
+   fileInput.files[0];
+
+  if(f){
+
+   await sendFile(
+    f,
+    f.type==="image/gif"
+     ?"gif"
+     :
+     f.type.startsWith("video")
+      ?"video"
+      :"image"
+   );
+
+  }
+
+  fileInput.value="";
+
+ };
+
+
+$("cameraBtn").onclick=
+ async()=>{
+
+  try{
+
+   const stream=
+    await navigator.mediaDevices
+    .getUserMedia({
+     video:true
+    });
+
+   const v=
+    document.createElement(
+     "video"
+    );
+
+   v.srcObject=
+    stream;
+
+   v.playsInline=true;
+
+   await v.play();
+
+   await new Promise(
+    r=>setTimeout(
+     r,
+     400
+    )
+   );
+
+   const c=
+    document.createElement(
+     "canvas"
+    );
+
+   c.width=
+    v.videoWidth;
+
+   c.height=
+    v.videoHeight;
+
+   c.getContext(
+    "2d"
+   )
+   .drawImage(
+    v,
+    0,
+    0
+   );
+
+   stream
+    .getTracks()
+    .forEach(
+     t=>t.stop()
+    );
+
+   const blob=
+    await new Promise(
+     r=>
+      c.toBlob(
+       r,
+       "image/jpeg",
+       .86
+      )
+    );
+
+   const f=
+    new File(
+     [blob],
+     "Minegram.jpg",
+     {
+      type:"image/jpeg"
+     }
+    );
+
+   await sendData({
+
+    text:
+     "📸 Fotoğraf • 2 kez görüntülenebilir",
+
+    type:
+     "view_once",
+
+    viewCount:0,
+
+    mediaBase64:
+     await resizeImage(
+      f,
+      650000
+     ),
+
+    mediaType:
+     "image/jpeg"
+
+   });
+
+  }catch{
+
+   showToast(
+    "Kamera izni gerekli"
+   );
+
+  }
+
+ };
+
+
+$("micBtn").onclick=
+ toggleRecording;
+
+
+$("gifBtn").onclick=
+ ()=>{
+
+  fileInput.accept=
+   "image/gif";
+
+  fileInput.click();
+
+  setTimeout(
+   ()=>
+    fileInput.accept=
+     "image/*,video/*",
+   300
+  );
+
+ };
+
+
+$("profileHeader").onclick=
+ ()=>openProfile();
+
+
+$("profileLink").onclick=
+ e=>{
+
+  e.preventDefault();
+
+  openProfile();
+
+ };
+
+
+$("viewProfile").onclick=
+ ()=>openProfile();
+
+
+function openProfile(){
+
+ if(!targetUsername)
+ return;
+
+ loadProfileModal();
+
+}
+
+
+async function loadProfileModal(){
+
+ const body=
+  $("profileModalBody");
+
+ body.innerHTML=
+  `
+  <div class="profile-body">
+   <div class="loading">
+    Profil yükleniyor...
+   </div>
+  </div>
+  `;
+
+ $("profileModal")
+  .classList.add(
+   "show"
+  );
+
+
+ try{
+
+  const [
+   u,
+   f1,
+   f2
+  ]=
+   await Promise.all([
+
+    MinegramAPI
+     .user(targetUsername)
+     .catch(()=>({})),
+
+    MinegramAPI
+     .followers(targetUsername)
+     .catch(()=>[]),
+
+    MinegramAPI
+     .following(targetUsername)
+     .catch(()=>[])
+
+   ]);
+
+
+  const bio=
+   u.bio||
+   u.about||
+   u.description||
+   "";
+
+  const av=
+   u.avatar||
+   u.avatar_url||
+   u.avatarUrl||
+   u.profilePhoto||
+   u.profile_photo||
+   u.user?.avatar||
+   u.user?.avatar_url||
+   u.user?.avatarUrl||
+   u.user?.profilePhoto||
+   u.user?.profile_photo||
+   "";
+
+  const fc=
+   Array.isArray(f1)
+    ?f1.length
+    :(f1.count||
+      f1.followers?.length||
+      0);
+
+  const fg=
+   Array.isArray(f2)
+    ?f2.length
+    :(f2.count||
+      f2.following?.length||
+      0);
+
+  const modalVerified=
+   premiumVerifiedValue(u);
+
+
+  body.innerHTML=`
+
+  <div class="profile-body">
+
+   ${
+    av
+     ?
+      `
+      <img
+       class="big-avatar"
+       src="${escapeHtml(av)}">
+      `
+     :
+      `
+      <div class="big-avatar">
+       ${escapeHtml(
+        targetUsername[0]
+         .toUpperCase()
+       )}
+      </div>
+      `
+   }
+
+   <h2>
+    @${escapeHtml(
+     targetUsername
+    )}
+
+    ${
+     modalVerified
+      ?
+       `
+       <span
+        class="verified"
+        style="
+         vertical-align:middle;
+         width:20px;
+         height:20px;
+         font-size:11px
+        ">
+
+        <i class="fa-solid fa-check"></i>
+
+       </span>
+       `
+      :""
+    }
+
+   </h2>
+
+   <p>
+    ${escapeHtml(bio)}
+   </p>
+
+   <div class="profile-stats">
+
+    <div>
+     <b>${fc}</b>
+     <span>Takipçi</span>
+    </div>
+
+    <div>
+     <b>${fg}</b>
+     <span>Takip</span>
+    </div>
+
+   </div>
+
+   <div class="profile-actions">
+
+    <button id="profileFollow">
+
+     ${
+      [
+       u.followingByMe,
+       u.isFollowing,
+       u.following,
+       u.user?.followingByMe,
+       u.user?.isFollowing,
+       u.user?.following
+      ]
+      .find(
+       v=>typeof v==="boolean"
+      )===true
+       ?"Takiptesin"
+       :"Takip Et"
+     }
+
+    </button>
+
+    <button
+     class="secondary"
+     id="profileChat">
+     Mesaj
+    </button>
+
+   </div>
+
+  </div>
+
+  `;
+
+
+  $("profileChat").onclick=
+   ()=>
+    $("profileModal")
+    .classList.remove(
+     "show"
+    );
+
+
+  $("profileFollow").onclick=
+   async()=>{
+
+    try{
+
+     const r=
+      await MinegramAPI.follow(
+       targetUsername
+      );
+
+     $("profileFollow")
+      .textContent=
+      (
+       r.following||
+       r.isFollowing
+      )
+       ?"Takiptesin"
+       :"Takip Et";
+
+    }catch(e){
+
+     showToast(
+      e.message
+     );
+
+    }
+
+   };
+
+
+ }catch{
+
+  body.innerHTML=
+   `
+   <div class="profile-body">
+    <div class="loading">
+     Profil yüklenemedi
+    </div>
+   </div>
+   `;
+
+ }
+
+}
+
+
+$("profileClose").onclick=
+ ()=>
+  $("profileModal")
+  .classList.remove(
+   "show"
+  );
+
+
+$("shareClose").onclick=
+ ()=>
+  $("shareModal")
+  .classList.remove(
+   "show"
+  );
+
+
+function goToTargetProfile(){
+
+ if(!targetUsername)
+ return;
+
+ location.href=
+  "profile.html?username="+
+  encodeURIComponent(
+   targetUsername
+  );
+
+}
+
+
+$("profileHeader").onclick=
+ e=>{
+
+  if(
+   e.target.closest(
+    ".profile"
+   )
+  )
+  return;
+
+  goToTargetProfile();
+
+ };
+
+
+$("headerProfileLink").onclick=
+ e=>{
+
+  e.stopPropagation();
+
+  goToTargetProfile();
+
+ };
+
+
+$("profileLink").onclick=
+ e=>{
+
+  e.preventDefault();
+
+  goToTargetProfile();
+
+ };
+
+
+$("viewProfile").onclick=
+ ()=>{
+
+  menu.classList.remove(
+   "show"
+  );
+
+  goToTargetProfile();
+
+ };
+
+
+$("moreBtn").onclick=
+ e=>{
+
+  e.stopPropagation();
+
+  menu.classList.toggle(
+   "show"
+  );
+
+ };
+
+
+document.addEventListener(
+ "click",
+ e=>{
+
+  if(
+   !menu.contains(e.target)&&
+   e.target.id!=="moreBtn"
+  ){
+
+   menu.classList.remove(
+    "show"
+   );
+
+  }
+
+ }
+);
+
+
+$("optionsBtn").onclick=
+ ()=>{
+
+  menu.classList.remove(
+   "show"
+  );
+
+  syncOptionLabels();
+
+  $("optionModal")
+   .classList.add(
+    "show"
+   );
+
+ };
+
+
+$("optionClose").onclick=
+ ()=>
+  $("optionModal")
+  .classList.remove(
+   "show"
+  );
+
+
+$("optionModal")
+ .addEventListener(
+  "click",
+  e=>{
+
+   if(
+    e.target.id===
+    "optionModal"
+   ){
+
+    $("optionModal")
+     .classList.remove(
+      "show"
+     );
+
+   }
+
+  }
+ );
+
+
 function syncCallButtons(){
- const msg=blockedByThem?'Bu hesap seni engellediği için arayamazsın':(blocked?'Bu hesabı engellediğin için arayamazsın':'');
- [$("callBtn"),$("videoBtn")].forEach(btn=>{if(!btn)return;btn.title=msg||'';btn.style.opacity=msg?'0.55':'1';});
+
+ const msg=
+  blockedByThem
+   ?
+    "Bu hesap seni engellediği için arayamazsın"
+   :
+   (
+    blocked
+     ?
+      "Bu hesabı engellediğin için arayamazsın"
+     :""
+   );
+
+ [
+  $("callBtn"),
+  $("videoBtn")
+ ]
+ .forEach(
+  btn=>{
+
+   if(!btn)
+   return;
+
+   btn.title=
+    msg||"";
+
+   btn.style.opacity=
+    msg
+     ?"0.55"
+     :"1";
+
+  }
+ );
+
 }
+
 
 function syncOptionLabels(){
- const rb=$("restrictOption"),bb=$("blockOption");
- rb.querySelector("span").textContent=restricted?"Kısıtlamayı kaldır":"Kısıtla";
- bb.querySelector("span").textContent=blocked?"Engeli kaldır":"Engelle";
+
+ const rb=
+  $("restrictOption");
+
+ const bb=
+  $("blockOption");
+
+ rb.querySelector(
+  "span"
+ ).textContent=
+  restricted
+   ?"Kısıtlamayı kaldır"
+   :"Kısıtla";
+
+ bb.querySelector(
+  "span"
+ ).textContent=
+  blocked
+   ?"Engeli kaldır"
+   :"Engelle";
+
 }
-$("muteBtn").onclick=()=>{muted=!muted;localStorage.setItem("minegram_muted_"+conversationKey,muted?"1":"0");$("muteBtn").innerHTML=muted?'<i class="fa-regular fa-bell"></i>&nbsp;&nbsp;Sesi aç':'<i class="fa-regular fa-bell-slash"></i>&nbsp;&nbsp;Sessize al';showToast(muted?"Sohbet sessize alındı":"Sohbetin sesi açıldı");menu.classList.remove("show")};
-async function clearChat(){if(!confirm("Bu sohbeti temizlemek istiyor musun?"))return;try{const q1=query(collection(firestore,"chatMessages"),where("conversationKey","==",conversationKey),limit(500));const snap=await getDocs(q1);let b=writeBatch(firestore),n=0;for(const d of snap.docs){b.delete(d.ref);if(++n===450){await b.commit();b=writeBatch(firestore);n=0}}if(n)await b.commit();showToast("Sohbet temizlendi")}catch(e){console.error(e);showToast("Sohbet temizlenemedi")}}
-$("clearOption").onclick=async()=>{$("optionModal").classList.remove("show");await clearChat()};
-$("restrictOption").onclick=()=>{restricted=!restricted;localStorage.setItem("minegram_restricted_"+conversationKey,restricted?"1":"0");syncOptionLabels();showToast(restricted?`@${targetUsername} kısıtlandı`:`@${targetUsername} kısıtlaması kaldırıldı`)};
-$("blockOption").onclick=async()=>{try{const next=!blocked;if(!confirm(next?`@${targetUsername} engellensin mi?`:`@${targetUsername} engeli kaldırılsın mı?`))return;const old=blocked;blocked=next;syncOptionLabels();const r=await MinegramAPI.block(targetUsername,next);blocked=!!(r.blocked??next);await syncBlock();syncOptionLabels();showToast(blocked?"Kullanıcı engellendi":"Engel kaldırıldı")}catch(e){await syncBlock();syncOptionLabels();showToast(e.message||"Engelleme işlemi başarısız")}};
-$("reportOption").onclick=async()=>{if(!confirm(`@${targetUsername} kullanıcısını şikayet etmek istiyor musun?`))return;try{await MinegramAPI.post("/api/problem-reports",{description:`Minegram sohbetinde @${targetUsername} kullanıcısı için şikayet. Kaynak: web chat.`,attachments:[]});localStorage.setItem("minegram_reported_"+targetUsername.toLowerCase(),"1");showToast("Şikayet gönderildi");$("optionModal").classList.remove("show")}catch(e){showToast(e.message||"Şikayet gönderilemedi")}};
 
-// Call system: same RTDB/WebRTC signaling family used by the app bridge.
-let peer=null,localStream=null,currentCallId=null,currentCallType="audio",incoming=null,candidateQueue=[];const rtc={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]};
-function secure(){return window.isSecureContext||location.hostname==="localhost"||location.hostname==="127.0.0.1"}
-async function media(type){if(!secure()){showToast("Aramalar için HTTPS gerekli");return false}try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==="video"});if(type==="video"){$("localVideo").srcObject=localStream;$('localVideo').style.display='block'}return true}catch{showToast("Kamera/mikrofon izni gerekli");return false}}
-function makePeer(){peer=new RTCPeerConnection(rtc);candidateQueue=[];localStream?.getTracks().forEach(t=>peer.addTrack(t,localStream));peer.ontrack=e=>{if(e.streams?.[0]){$("remoteVideo").srcObject=e.streams[0];$('remoteVideo').style.display=currentCallType==='video'?'block':'none'}};peer.onicecandidate=async e=>{if(e.candidate&&currentCallId)await set(push(ref(db,"calls/"+currentCallId+"/candidates")),{candidate:e.candidate.toJSON(),from:myUsername})};peer.onconnectionstatechange=()=>{const s=peer?.connectionState;if(s==='connected')$('callStatus').textContent='Bağlandı';else if(s==='connecting')$('callStatus').textContent='Bağlanıyor...';else if(s==='failed')$('callStatus').textContent='Bağlantı başarısız'}}
-function listenCandidates(id){onChildAdded(ref(db,"calls/"+id+"/candidates"),async s=>{const d=s.val();if(!d||d.from===myUsername)return;const c=new RTCIceCandidate(d.candidate);if(peer?.remoteDescription)try{await peer.addIceCandidate(c)}catch{}else candidateQueue.push(c)})}
-async function flush(){if(!peer?.remoteDescription)return;for(const c of candidateQueue)try{await peer.addIceCandidate(c)}catch{}candidateQueue=[]}
+
+$("muteBtn").onclick=
+ ()=>{
+
+  muted=!muted;
+
+  localStorage.setItem(
+   "minegram_muted_"+
+   conversationKey,
+   muted?"1":"0"
+  );
+
+  $("muteBtn").innerHTML=
+   muted
+    ?
+     '<i class="fa-regular fa-bell"></i>&nbsp;&nbsp;Sesi aç'
+    :
+     '<i class="fa-regular fa-bell-slash"></i>&nbsp;&nbsp;Sessize al';
+
+  showToast(
+   muted
+    ?"Sohbet sessize alındı"
+    :"Sohbetin sesi açıldı"
+  );
+
+  menu.classList.remove(
+   "show"
+  );
+
+};
+
+
+async function clearChat(){
+
+ if(
+  !confirm(
+   "Bu sohbeti temizlemek istiyor musun?"
+  )
+ )
+ return;
+
+ try{
+
+  const q1=
+   query(
+    collection(
+     firestore,
+     "chatMessages"
+    ),
+    where(
+     "conversationKey",
+     "==",
+     conversationKey
+    ),
+    limit(500)
+   );
+
+  const snap=
+   await getDocs(q1);
+
+  let b=
+   writeBatch(
+    firestore
+   );
+
+  let n=0;
+
+  for(
+   const d of snap.docs
+  ){
+
+   b.delete(d.ref);
+
+   if(++n===450){
+
+    await b.commit();
+
+    b=
+     writeBatch(
+      firestore
+     );
+
+    n=0;
+
+   }
+
+  }
+
+  if(n)
+  await b.commit();
+
+  showToast(
+   "Sohbet temizlendi"
+  );
+
+ }catch(e){
+
+  console.error(e);
+
+  showToast(
+   "Sohbet temizlenemedi"
+  );
+
+ }
+
+}
+
+
+$("clearOption").onclick=
+ async()=>{
+
+  $("optionModal")
+   .classList.remove(
+    "show"
+   );
+
+  await clearChat();
+
+ };
+
+
+$("restrictOption").onclick=
+ ()=>{
+
+  restricted=!restricted;
+
+  localStorage.setItem(
+   "minegram_restricted_"+
+   conversationKey,
+   restricted?"1":"0"
+  );
+
+  syncOptionLabels();
+
+  showToast(
+   restricted
+    ?
+     `@${targetUsername} kısıtlandı`
+    :
+     `@${targetUsername} kısıtlaması kaldırıldı`
+  );
+
+ };
+
+
+$("blockOption").onclick=
+ async()=>{
+
+  try{
+
+   const next=!blocked;
+
+   if(
+    !confirm(
+     next
+      ?
+       `@${targetUsername} engellensin mi?`
+      :
+       `@${targetUsername} engeli kaldırılsın mı?`
+    )
+   )
+   return;
+
+   const old=blocked;
+
+   blocked=next;
+
+   syncOptionLabels();
+
+   const r=
+    await MinegramAPI.block(
+     targetUsername,
+     next
+    );
+
+   blocked=
+    !!(
+     r.blocked??next
+    );
+
+   await syncBlock();
+
+   syncOptionLabels();
+
+   showToast(
+    blocked
+     ?"Kullanıcı engellendi"
+     :"Engel kaldırıldı"
+   );
+
+  }catch(e){
+
+   await syncBlock();
+
+   syncOptionLabels();
+
+   showToast(
+    e.message||
+    "Engelleme işlemi başarısız"
+   );
+
+  }
+
+ };
+
+
+$("reportOption").onclick=
+ async()=>{
+
+  if(
+   !confirm(
+    `@${targetUsername} kullanıcısını şikayet etmek istiyor musun?`
+   )
+  )
+  return;
+
+  try{
+
+   await MinegramAPI.post(
+    "/api/problem-reports",
+    {
+     description:
+      `Minegram sohbetinde @${targetUsername} kullanıcısı için şikayet. Kaynak: web chat.`,
+
+     attachments:[]
+    }
+   );
+
+   localStorage.setItem(
+    "minegram_reported_"+
+    targetUsername.toLowerCase(),
+    "1"
+   );
+
+   showToast(
+    "Şikayet gönderildi"
+   );
+
+   $("optionModal")
+    .classList.remove(
+     "show"
+    );
+
+  }catch(e){
+
+   showToast(
+    e.message||
+    "Şikayet gönderilemedi"
+   );
+
+  }
+
+ };
+
+
+/* ==========================================================
+   ARAMA / WEBRTC
+   ========================================================== */
+
+let peer=null;
+
+let localStream=null;
+
+let currentCallId=null;
+
+let currentCallType="audio";
+
+let incoming=null;
+
+let candidateQueue=[];
+
+
+const rtc={
+ iceServers:[
+  {
+   urls:
+    "stun:stun.l.google.com:19302"
+  },
+  {
+   urls:
+    "stun:stun1.l.google.com:19302"
+  }
+ ]
+};
+
+
+function secure(){
+
+ return(
+  window.isSecureContext||
+  location.hostname==="localhost"||
+  location.hostname==="127.0.0.1"
+ );
+
+}
+
+
+async function media(type){
+
+ if(!secure()){
+
+  showToast(
+   "Aramalar için HTTPS gerekli"
+  );
+
+  return false;
+
+ }
+
+ try{
+
+  localStream=
+   await navigator.mediaDevices
+   .getUserMedia({
+    audio:true,
+    video:type==="video"
+   });
+
+  if(type==="video"){
+
+   $("localVideo")
+    .srcObject=
+    localStream;
+
+   $("localVideo")
+    .style.display=
+    "block";
+
+  }
+
+  return true;
+
+ }catch{
+
+  showToast(
+   "Kamera/mikrofon izni gerekli"
+  );
+
+  return false;
+
+ }
+
+}
+
+
+function makePeer(){
+
+ peer=
+  new RTCPeerConnection(
+   rtc
+  );
+
+ candidateQueue=[];
+
+ localStream
+ ?.getTracks()
+ .forEach(
+  t=>
+   peer.addTrack(
+    t,
+    localStream
+   )
+ );
+
+ peer.ontrack=
+  e=>{
+
+   if(
+    e.streams?.[0]
+   ){
+
+    $("remoteVideo")
+     .srcObject=
+     e.streams[0];
+
+    $("remoteVideo")
+     .style.display=
+     currentCallType==="video"
+      ?"block"
+      :"none";
+
+   }
+
+  };
+
+
+ peer.onicecandidate=
+  async e=>{
+
+   if(
+    e.candidate&&
+    currentCallId
+   ){
+
+    await set(
+     push(
+      ref(
+       db,
+       "calls/"+
+       currentCallId+
+       "/candidates"
+      )
+     ),
+     {
+      candidate:
+       e.candidate.toJSON(),
+
+      from:
+       myUsername
+     }
+    );
+
+   }
+
+  };
+
+
+ peer.onconnectionstatechange=
+  ()=>{
+
+   const s=
+    peer?.connectionState;
+
+   if(s==="connected")
+   $("callStatus")
+    .textContent=
+    "Bağlandı";
+
+   else if(s==="connecting")
+   $("callStatus")
+    .textContent=
+    "Bağlanıyor...";
+
+   else if(s==="failed")
+   $("callStatus")
+    .textContent=
+    "Bağlantı başarısız";
+
+  };
+
+}
+
+
+function listenCandidates(id){
+
+ onChildAdded(
+  ref(
+   db,
+   "calls/"+
+   id+
+   "/candidates"
+  ),
+  async s=>{
+
+   const d=
+    s.val();
+
+   if(
+    !d||
+    d.from===myUsername
+   )
+   return;
+
+   const c=
+    new RTCIceCandidate(
+     d.candidate
+    );
+
+   if(
+    peer?.remoteDescription
+   ){
+
+    try{
+
+     await peer.addIceCandidate(
+      c
+     );
+
+    }catch{}
+
+   }else{
+
+    candidateQueue.push(
+     c
+    );
+
+   }
+
+  }
+ );
+
+}
+
+
+async function flush(){
+
+ if(
+  !peer?.remoteDescription
+ )
+ return;
+
+ for(
+  const c of candidateQueue
+ ){
+
+  try{
+
+   await peer.addIceCandidate(
+    c
+   );
+
+  }catch{}
+
+ }
+
+ candidateQueue=[];
+
+}
+
+
 async function startCall(type){
- if(currentCallId||!targetUsername)return;
- // Aramadan hemen önce sunucudaki engel durumunu yenile; karşı taraf sonradan engellediyse de doğru mesaj göster.
- await syncBlock();
- if(blockedByThem){showToast('Bu hesap seni engellediği için arayamazsın');return}
- if(blocked){showToast('Bu hesabı engellediğin için arayamazsın');return}
-if(!await media(type))return;currentCallType=type;currentCallId=(myUsername+'_'+targetUsername+'_'+Date.now()).replace(/[^a-zA-Z0-9_-]/g,'_');$('callScreen').classList.add('show');$('callTypeText').textContent=type==='video'?'Görüntülü arama':'Sesli arama';$('callStatus').textContent='Aranıyor...';makePeer();const offer=await peer.createOffer();await peer.setLocalDescription(offer);await set(ref(db,'calls/'+currentCallId),{caller:myUsername,receiver:targetUsername,type,status:'ringing',offer:{type:offer.type,sdp:offer.sdp},createdAt:Date.now()});onValue(ref(db,'calls/'+currentCallId+'/answer'),async s=>{const a=s.val();if(a&&peer&&peer.signalingState==='have-local-offer'){await peer.setRemoteDescription(new RTCSessionDescription(a));await flush();$('callStatus').textContent='Bağlanıyor...'}});listenCandidates(currentCallId)}
-onChildAdded(ref(db,'calls'),s=>{const c=s.val();if(!c||c.receiver!==myUsername||c.status!=='ringing'||currentCallId)return;incoming={id:s.key,data:c};currentCallId=s.key;currentCallType=c.type||'audio';$('incomingName').textContent=c.caller;$('incomingType').textContent=currentCallType==='video'?'Gelen görüntülü arama':'Gelen sesli arama';$('incomingScreen').classList.add('show')});
-async function accept(){if(!incoming)return;const c=incoming.data;if(!await media(c.type))return;$('incomingScreen').classList.remove('show');$('callScreen').classList.add('show');$('callTypeText').textContent=c.type==='video'?'Görüntülü arama':'Sesli arama';$('callStatus').textContent='Bağlanıyor...';makePeer();await peer.setRemoteDescription(new RTCSessionDescription(c.offer));const a=await peer.createAnswer();await peer.setLocalDescription(a);await set(ref(db,'calls/'+incoming.id+'/answer'),{type:a.type,sdp:a.sdp});await set(ref(db,'calls/'+incoming.id+'/status'),'accepted');listenCandidates(incoming.id);incoming=null}
-async function end(write=true){const id=currentCallId;localStream?.getTracks().forEach(t=>t.stop());localStream=null;peer?.close();peer=null;$('callScreen').classList.remove('show');$('incomingScreen').classList.remove('show');$('remoteVideo').srcObject=null;$('localVideo').srcObject=null;$('remoteVideo').style.display='none';$('localVideo').style.display='none';if(write&&id)try{await set(ref(db,'calls/'+id+'/status'),'ended')}catch{}currentCallId=null;incoming=null;candidateQueue=[]}
-$('callBtn').onclick=()=>startCall('audio');$('videoBtn').onclick=()=>startCall('video');$('acceptBtn').onclick=accept;$('rejectBtn').onclick=()=>end(true);$('endCallBtn').onclick=()=>end(true);$('muteCallBtn').onclick=()=>{const a=localStream?.getAudioTracks()||[];a.forEach(t=>t.enabled=!t.enabled)};$('cameraCallBtn').onclick=()=>{const v=localStream?.getVideoTracks()||[];if(!v.length){showToast('Bu sesli aramada kamera yok');return}v.forEach(t=>t.enabled=!t.enabled)};
-onValue(ref(db,'calls'),s=>{const c=s.val();if(!c||!currentCallId)return;const x=c[currentCallId];if(x?.status==='rejected'){showToast('Arama reddedildi');end(false)}else if(x?.status==='ended')end(false)});
 
-async function init(){applyHeader();loadProfile();await syncBlock();syncOptionLabels();await ensureAuth()}
-onAuthStateChanged(auth,u=>{authReady=!!u;if(u)subscribe()});
-window.addEventListener('beforeunload',()=>{unsub?.();localStream?.getTracks().forEach(t=>t.stop());peer?.close()});
+ if(
+  currentCallId||
+  !targetUsername
+ )
+ return;
+
+ await syncBlock();
+
+ if(blockedByThem){
+
+  showToast(
+   "Bu hesap seni engellediği için arayamazsın"
+  );
+
+  return;
+
+ }
+
+ if(blocked){
+
+  showToast(
+   "Bu hesabı engellediğin için arayamazsın"
+  );
+
+  return;
+
+ }
+
+ if(
+  !await media(type)
+ )
+ return;
+
+ currentCallType=type;
+
+ currentCallId=
+  (
+   myUsername+
+   "_"+
+   targetUsername+
+   "_"+
+   Date.now()
+  )
+  .replace(
+   /[^a-zA-Z0-9_-]/g,
+   "_"
+  );
+
+ $("callScreen")
+  .classList.add(
+   "show"
+  );
+
+ $("callTypeText")
+  .textContent=
+  type==="video"
+   ?"Görüntülü arama"
+   :"Sesli arama";
+
+ $("callStatus")
+  .textContent=
+  "Aranıyor...";
+
+ makePeer();
+
+ const offer=
+  await peer.createOffer();
+
+ await peer.setLocalDescription(
+  offer
+ );
+
+ await set(
+  ref(
+   db,
+   "calls/"+
+   currentCallId
+  ),
+  {
+   caller:
+    myUsername,
+
+   receiver:
+    targetUsername,
+
+   type,
+
+   status:
+    "ringing",
+
+   offer:{
+    type:
+     offer.type,
+
+    sdp:
+     offer.sdp
+   },
+
+   createdAt:
+    Date.now()
+  }
+ );
+
+
+ onValue(
+  ref(
+   db,
+   "calls/"+
+   currentCallId+
+   "/answer"
+  ),
+  async s=>{
+
+   const a=
+    s.val();
+
+   if(
+    a&&
+    peer&&
+    peer.signalingState===
+    "have-local-offer"
+   ){
+
+    await peer.setRemoteDescription(
+     new RTCSessionDescription(
+      a
+     )
+    );
+
+    await flush();
+
+    $("callStatus")
+     .textContent=
+     "Bağlanıyor...";
+
+   }
+
+  }
+ );
+
+
+ listenCandidates(
+  currentCallId
+ );
+
+}
+
+
+onChildAdded(
+ ref(
+  db,
+  "calls"
+ ),
+ s=>{
+
+  const c=
+   s.val();
+
+  if(
+   !c||
+   c.receiver!==myUsername||
+   c.status!=="ringing"||
+   currentCallId
+  )
+  return;
+
+  incoming={
+   id:s.key,
+   data:c
+  };
+
+  currentCallId=
+   s.key;
+
+  currentCallType=
+   c.type||
+   "audio";
+
+  $("incomingName")
+   .textContent=
+   c.caller;
+
+  $("incomingType")
+   .textContent=
+   currentCallType==="video"
+    ?"Gelen görüntülü arama"
+    :"Gelen sesli arama";
+
+  $("incomingScreen")
+   .classList.add(
+    "show"
+   );
+
+ }
+);
+
+
+async function accept(){
+
+ if(!incoming)
+ return;
+
+ const c=
+  incoming.data;
+
+ if(
+  !await media(c.type)
+ )
+ return;
+
+ $("incomingScreen")
+  .classList.remove(
+   "show"
+  );
+
+ $("callScreen")
+  .classList.add(
+   "show"
+  );
+
+ $("callTypeText")
+  .textContent=
+  c.type==="video"
+   ?"Görüntülü arama"
+   :"Sesli arama";
+
+ $("callStatus")
+  .textContent=
+  "Bağlanıyor...";
+
+ makePeer();
+
+ await peer.setRemoteDescription(
+  new RTCSessionDescription(
+   c.offer
+  )
+ );
+
+ const a=
+  await peer.createAnswer();
+
+ await peer.setLocalDescription(
+  a
+ );
+
+ await set(
+  ref(
+   db,
+   "calls/"+
+   incoming.id+
+   "/answer"
+  ),
+  {
+   type:a.type,
+   sdp:a.sdp
+  }
+ );
+
+ await set(
+  ref(
+   db,
+   "calls/"+
+   incoming.id+
+   "/status"
+  ),
+  "accepted"
+ );
+
+ listenCandidates(
+  incoming.id
+ );
+
+ incoming=null;
+
+}
+
+
+async function end(
+ write=true
+){
+
+ const id=
+  currentCallId;
+
+ localStream
+ ?.getTracks()
+ .forEach(
+  t=>t.stop()
+ );
+
+ localStream=null;
+
+ peer?.close();
+
+ peer=null;
+
+ $("callScreen")
+  .classList.remove(
+   "show"
+  );
+
+ $("incomingScreen")
+  .classList.remove(
+   "show"
+  );
+
+ $("remoteVideo")
+  .srcObject=null;
+
+ $("localVideo")
+  .srcObject=null;
+
+ $("remoteVideo")
+  .style.display=
+  "none";
+
+ $("localVideo")
+  .style.display=
+  "none";
+
+ if(
+  write&&
+  id
+ ){
+
+  try{
+
+   await set(
+    ref(
+     db,
+     "calls/"+
+     id+
+     "/status"
+    ),
+    "ended"
+   );
+
+  }catch{}
+
+ }
+
+ currentCallId=null;
+
+ incoming=null;
+
+ candidateQueue=[];
+
+}
+
+
+$("callBtn").onclick=
+ ()=>startCall(
+  "audio"
+ );
+
+$("videoBtn").onclick=
+ ()=>startCall(
+  "video"
+ );
+
+$("acceptBtn").onclick=
+ accept;
+
+$("rejectBtn").onclick=
+ ()=>end(true);
+
+$("endCallBtn").onclick=
+ ()=>end(true);
+
+
+$("muteCallBtn").onclick=
+ ()=>{
+
+  const a=
+   localStream
+   ?.getAudioTracks()||
+   [];
+
+  a.forEach(
+   t=>
+    t.enabled=
+     !t.enabled
+  );
+
+ };
+
+
+$("cameraCallBtn").onclick=
+ ()=>{
+
+  const v=
+   localStream
+   ?.getVideoTracks()||
+   [];
+
+  if(!v.length){
+
+   showToast(
+    "Bu sesli aramada kamera yok"
+   );
+
+   return;
+
+  }
+
+  v.forEach(
+   t=>
+    t.enabled=
+     !t.enabled
+  );
+
+ };
+
+
+onValue(
+ ref(
+  db,
+  "calls"
+ ),
+ s=>{
+
+  const c=
+   s.val();
+
+  if(
+   !c||
+   !currentCallId
+  )
+  return;
+
+  const x=
+   c[currentCallId];
+
+  if(
+   x?.status===
+   "rejected"
+  ){
+
+   showToast(
+    "Arama reddedildi"
+   );
+
+   end(false);
+
+  }else if(
+   x?.status===
+   "ended"
+  ){
+
+   end(false);
+
+  }
+
+ }
+);
+
+
+/* ==========================================================
+   BAŞLAT
+   ========================================================== */
+
+async function init(){
+
+ applyHeader();
+
+ loadProfile();
+
+ await syncBlock();
+
+ syncOptionLabels();
+
+ await ensureAuth();
+
+}
+
+
+onAuthStateChanged(
+ auth,
+ u=>{
+
+  authReady=
+   !!u;
+
+  if(u)
+  subscribe();
+
+ }
+);
+
+
+window.addEventListener(
+ "beforeunload",
+ ()=>{
+
+  unsub?.();
+
+  localStream
+   ?.getTracks()
+   .forEach(
+    t=>t.stop()
+   );
+
+  peer?.close();
+
+ }
+);
+
+
 init();
+
 </script>
+
 </body>
 </html>
