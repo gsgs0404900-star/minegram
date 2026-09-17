@@ -2999,6 +2999,89 @@ html,body{padding-bottom:76px!important;}
 .nav{display:flex!important;}
 
 </style>
+
+<style id="minegramProfileSystemCSS">
+.profile-system-screen{
+  position:fixed;inset:0;background:#000;color:#fff;display:none;
+  z-index:100000;overflow-y:auto;-webkit-overflow-scrolling:touch
+}
+.profile-system-screen.open{display:block}
+.ps-head{
+  height:62px;display:flex;align-items:center;padding:0 14px;
+  border-bottom:1px solid #292929;background:#000;position:sticky;top:0;z-index:5
+}
+.ps-back{
+  width:42px;height:42px;border:0;background:none;color:#fff;
+  font-size:39px;line-height:1;padding:0
+}
+.ps-head strong{font-size:21px}
+.ps-body{padding-bottom:100px}
+.ps-section{
+  padding:23px 20px 9px;color:#777;font-size:12px;font-weight:800;
+  letter-spacing:.4px
+}
+.ps-row{
+  width:100%;min-height:72px;display:flex;align-items:center;gap:15px;
+  padding:11px 20px;border:0;border-bottom:1px solid #242424;
+  background:#000;color:#fff;text-align:left
+}
+.ps-row:active{background:#151515}
+.ps-ico{
+  width:34px;height:34px;display:grid;place-items:center;flex:none;
+  color:#63b1ed;font-size:24px
+}
+.ps-copy{flex:1;min-width:0}
+.ps-copy b{display:block;font-size:16px}
+.ps-copy small{display:block;margin-top:5px;color:#777;font-size:12px;line-height:1.35}
+.ps-danger .ps-ico,.ps-danger .ps-copy b{color:#ff5b67}
+.ps-subbody{padding:0 0 110px}
+.ps-card{
+  margin:18px 20px;padding:17px;border:1px solid #303030;
+  border-radius:14px;background:#121212
+}
+.ps-card h3{margin:0 0 10px;font-size:18px}
+.ps-card p{margin:7px 0;color:#999;line-height:1.45;font-size:13px}
+.ps-info-row{
+  display:flex;justify-content:space-between;gap:14px;padding:14px 0;
+  border-bottom:1px solid #292929;font-size:14px
+}
+.ps-info-row:last-child{border-bottom:0}
+.ps-action{
+  width:calc(100% - 40px);margin:8px 20px;height:48px;border:1px solid #444;
+  border-radius:12px;background:#111;color:#fff;font-weight:700
+}
+.ps-action.primary{background:#63b1ed;border-color:#63b1ed;color:#30206d}
+.ps-action.danger{border-color:#8b3038;color:#ff6670}
+.ps-toggle-row{
+  min-height:72px;padding:12px 20px;border-bottom:1px solid #292929;
+  display:flex;align-items:center;gap:12px
+}
+.ps-toggle-copy{flex:1}.ps-toggle-copy b{display:block;font-size:16px}
+.ps-toggle-copy small{display:block;color:#777;font-size:12px;margin-top:4px}
+.ps-toggle{
+  width:52px;height:30px;border-radius:20px;background:#444;position:relative;
+  flex:none;border:0
+}
+.ps-toggle:after{
+  content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;
+  border-radius:50%;background:#fff;transition:.18s
+}
+.ps-toggle.on{background:#63b1ed}
+.ps-toggle.on:after{left:25px}
+.ps-theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.ps-theme{
+  min-height:64px;border:1px solid #444;border-radius:12px;color:#fff;
+  font-weight:700;background:#101010
+}
+.ps-theme[data-theme="ocean"]{background:linear-gradient(135deg,#0b2638,#07151f)}
+.ps-theme[data-theme="sunset"]{background:linear-gradient(135deg,#32142f,#160b18)}
+.ps-theme[data-theme="violet"]{background:linear-gradient(135deg,#24143d,#11091e)}
+.ps-badge{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:20px;
+  background:#1d74bd;color:#fff;font-size:12px;font-weight:700
+}
+</style>
+
 </head>    
     
 <body>    
@@ -3165,7 +3248,7 @@ html,body{padding-bottom:76px!important;}
     
     <div class="edit-profile-field username-field">    
       <span class="field-label">Kullanıcı adı</span>    
-      <span id="profileUsernameValue" class="field-value">@minegram</span>    
+      <input id="profileUsernameInput" class="field-value ps-username-input" maxlength="30" value="@minegram" aria-label="Kullanıcı adı">    
     </div>    
     
     <div class="edit-profile-field">    
@@ -3328,6 +3411,89 @@ html,body{padding-bottom:76px!important;}
 <button type="button" class="other-menu-item" id="otherShareMenu"><span class="other-menu-icon">↗</span><span>Bu profili paylaş</span></button>
 <button type="button" class="other-menu-item" id="otherMessageMenu"><span class="other-menu-icon">▤</span><span>Mesaj Gönder</span></button>
 </div>
+
+
+<!-- =========================================================
+     MINEGRAM PROFİL SİSTEMİ - AYARLAR / GİZLİLİK / BİLDİRİMLER
+     ========================================================= -->
+<div id="profileSystemSettings" class="profile-system-screen" aria-hidden="true">
+  <div class="ps-head">
+    <button type="button" id="psBack" class="ps-back">‹</button>
+    <strong id="psTitle">Ayarlar</strong>
+  </div>
+
+  <div class="ps-body">
+    <div class="ps-section">HESAP</div>
+
+    <button class="ps-row" id="psAccount">
+      <span class="ps-ico">◉</span>
+      <span class="ps-copy"><b>Hesap</b><small>Kullanıcı adı, hesap bilgileri ve telefon</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row" id="psPrivacy">
+      <span class="ps-ico">⌾</span>
+      <span class="ps-copy"><b>Gizlilik</b><small>Gizli hesap, çevrimiçi durum ve hikâye</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row" id="psNotifications">
+      <span class="ps-ico">♢</span>
+      <span class="ps-copy"><b>Bildirimler</b><small>Takip, mesaj ve hikâye bildirimleri</small></span>
+      <span>›</span>
+    </button>
+
+    <div class="ps-section">PROFİL</div>
+
+    <button class="ps-row" id="psPremium">
+      <span class="ps-ico">✓</span>
+      <span class="ps-copy"><b>Minegram Premium</b><small>Mavi tik, rozet, profil teması ve ek özellikler</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row" id="psStats">
+      <span class="ps-ico">▥</span>
+      <span class="ps-copy"><b>Profil istatistikleri</b><small>Profil görüntülenmeleri ve takip durumu</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row" id="psSaved">
+      <span class="ps-ico">▮</span>
+      <span class="ps-copy"><b>Kaydedilenler</b><small>Kaydettiğin gönderiler</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row" id="psLiked">
+      <span class="ps-ico">♥</span>
+      <span class="ps-copy"><b>Beğenilenler</b><small>Beğendiğin gönderiler</small></span>
+      <span>›</span>
+    </button>
+
+    <div class="ps-section">UYGULAMA</div>
+
+    <button class="ps-row" id="psAbout">
+      <span class="ps-ico">ⓘ</span>
+      <span class="ps-copy"><b>Minegram hakkında</b><small>Uygulama bilgileri</small></span>
+      <span>›</span>
+    </button>
+
+    <button class="ps-row ps-danger" id="psLogout">
+      <span class="ps-ico">⇥</span>
+      <span class="ps-copy"><b>Çıkış Yap</b><small>Bu cihazdaki Minegram oturumunu kapat</small></span>
+      <span>›</span>
+    </button>
+  </div>
+</div>
+
+<div id="psSub" class="profile-system-screen" aria-hidden="true">
+  <div class="ps-head">
+    <button type="button" id="psSubBack" class="ps-back">‹</button>
+    <strong id="psSubTitle">Hesap</strong>
+  </div>
+  <div id="psSubBody" class="ps-subbody"></div>
+</div>
+
+<div id="psToastLayer" class="ps-hidden"></div>
 
 <script>
 
@@ -6316,6 +6482,222 @@ Paylaş
  function music(){if(!active()||!on('profile_music'))return;const src=localStorage.getItem('premium_profile_music');if(!src||document.querySelector('.minegram-premium-music'))return;const a=new Audio(src);a.loop=true;const b=document.createElement('button');b.className='minegram-premium-music';b.type='button';b.textContent='🎵 Profil müziğini oynat';b.onclick=()=>{if(a.paused){a.play().then(()=>b.textContent='⏸️ Profil müziğini durdur').catch(()=>toast2('Müzik için tekrar dokun'))}else{a.pause();b.textContent='🎵 Profil müziğini oynat'}};document.body.appendChild(b)}
  function run(){apply();if(location.pathname.toLowerCase().includes('profile')){views();pinPosts();music()}commentEffects();}
  window.addEventListener('storage',run);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();new MutationObserver(()=>{pinPosts();commentEffects()}).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="minegramProfileSystemRuntime">
+(function(){
+  'use strict';
+
+  const $=id=>document.getElementById(id);
+  const own=()=>typeof isOwnProfile==='function' ? isOwnProfile() : !new URLSearchParams(location.search).get('username');
+
+  function open(id){
+    const e=$(id); if(!e)return;
+    e.classList.add('open'); e.setAttribute('aria-hidden','false');
+  }
+  function close(id){
+    const e=$(id); if(!e)return;
+    e.classList.remove('open'); e.setAttribute('aria-hidden','true');
+  }
+  function back(){
+    close('psSub');
+    $('psSubBody').innerHTML='';
+  }
+
+  function toggle(key, title, sub){
+    const on=localStorage.getItem(key)!=='false';
+    const row=document.createElement('div');
+    row.className='ps-toggle-row';
+    row.innerHTML='<div class="ps-toggle-copy"><b>'+title+'</b><small>'+sub+'</small></div><button class="ps-toggle '+(on?'on':'')+'" aria-label="'+title+'"></button>';
+    const b=row.querySelector('.ps-toggle');
+    b.onclick=()=>{
+      const next=!b.classList.contains('on');
+      b.classList.toggle('on',next);
+      localStorage.setItem(key,String(next));
+    };
+    return row;
+  }
+
+  function showSub(title, build){
+    $('psSubTitle').textContent=title;
+    const body=$('psSubBody');
+    body.innerHTML='';
+    build(body);
+    open('psSub');
+  }
+
+  function accountScreen(body){
+    const p=currentProfile||me||{};
+    const id=p.id||'';
+    const pronouns=id?(localStorage.getItem('minegram_pronouns_'+id)||''):'';
+    const link=id?(localStorage.getItem('minegram_profile_link_'+id)||''):'';
+    const gender=id?(localStorage.getItem('minegram_gender_'+id)||''):'';
+    const card=document.createElement('div');
+    card.className='ps-card';
+    card.innerHTML=
+      '<h3>Hesap bilgileri</h3>'+
+      '<div class="ps-info-row"><span>Kullanıcı adı</span><b>@'+esc(p.username||'')+'</b></div>'+
+      '<div class="ps-info-row"><span>Görünen ad</span><b>'+esc(p.displayName||'')+'</b></div>'+
+      '<div class="ps-info-row"><span>Hitaplar</span><b>'+esc(pronouns||'—')+'</b></div>'+
+      '<div class="ps-info-row"><span>Cinsiyet</span><b>'+esc(gender||'—')+'</b></div>'+
+      '<div class="ps-info-row"><span>Bağlantı</span><b>'+esc(link||'—')+'</b></div>'+
+      '<div class="ps-info-row"><span>Telefon</span><b>'+esc((me&&me.phone)||'—')+'</b></div>';
+    body.appendChild(card);
+    const edit=document.createElement('button');
+    edit.className='ps-action primary';
+    edit.textContent='✎ Profili düzenle';
+    edit.onclick=()=>{back(); close('profileSystemSettings'); if(typeof openEditProfileScreen==='function')openEditProfileScreen();};
+    body.appendChild(edit);
+  }
+
+  function privacyScreen(body){
+    body.appendChild(toggle('minegram_private_account','Gizli hesap','Profilini yalnızca onayladığın takipçiler görebilsin.'));
+    body.appendChild(toggle('minegram_show_online','Çevrimiçi durumunu göster','Son görülme / aktif durumunu göster.'));
+    body.appendChild(toggle('minegram_story_reply','Hikâye yanıtlarına izin ver','Hikâyene yanıt verilmesine izin ver.'));
+    body.appendChild(toggle('minegram_story_share','Hikâyeyi paylaşmaya izin ver','Hikâyenin paylaşılmasına izin ver.'));
+    const b=document.createElement('button');
+    b.className='ps-action';
+    b.textContent='Hikâye gizlilik ayarlarını yenile';
+    b.onclick=()=>{ localStorage.setItem('minegram_story_settings_updated',Date.now()); if(typeof toast==='function')toast('Hikâye gizlilik ayarları kaydedildi'); };
+    body.appendChild(b);
+  }
+
+  function notificationsScreen(body){
+    body.appendChild(toggle('minegram_notif_follow','Takip bildirimleri','Yeni takip ve takip isteği bildirimleri.'));
+    body.appendChild(toggle('minegram_notif_message','Mesaj bildirimleri','Yeni mesaj bildirimleri.'));
+    body.appendChild(toggle('minegram_notif_story','Hikâye bildirimleri','Takip ettiğin hesapların hikâyeleri.'));
+    body.appendChild(toggle('minegram_notif_profile','Profil bildirimleri','Profil etkileşimleri ve görüntülenmeleri.'));
+  }
+
+  function premiumScreen(body){
+    const active=localStorage.getItem('minegram_verified')==='true';
+    const card=document.createElement('div');
+    card.className='ps-card';
+    card.innerHTML='<h3>Minegram Premium</h3><p>Premium özellikleri bu profilde yönetebilirsin.</p>'+
+      '<div class="ps-info-row"><span>Durum</span><span class="ps-badge">'+(active?'✓ Aktif':'Pasif')+'</span></div>';
+    body.appendChild(card);
+
+    [
+      ['premium_profile_theme','Profil teması','Profil arka plan temasını etkinleştir.'],
+      ['premium_profile_frames','Profil çerçevesi','Profil fotoğrafı çerçevesini etkinleştir.'],
+      ['premium_daily_streak','Günlük seri','Günlük seri sayacını etkinleştir.'],
+      ['premium_profile_views','Profil görüntülenmeleri','Profil görüntülenme sayacını etkinleştir.'],
+      ['premium_pin_posts','Gönderi sabitleme','Gönderileri profile sabitleme özelliğini etkinleştir.'],
+      ['premium_comment_effects','Yorum efektleri','Yorumlarda Premium efektleri etkinleştir.'],
+      ['premium_profile_music','Profil müziği','Profil müziği özelliğini etkinleştir.']
+    ].forEach(x=>body.appendChild(toggle(x[0],x[1],x[2])));
+
+    const theme=document.createElement('div');
+    theme.className='ps-card';
+    theme.innerHTML='<h3>Profil teması</h3><p>Premium profil görünümünü seç.</p><div class="ps-theme-grid">'+
+      '<button class="ps-theme" data-theme="ocean">Ocean</button>'+
+      '<button class="ps-theme" data-theme="sunset">Sunset</button>'+
+      '<button class="ps-theme" data-theme="violet">Violet</button></div>';
+    body.appendChild(theme);
+    theme.querySelectorAll('.ps-theme').forEach(b=>b.onclick=()=>{
+      localStorage.setItem('premium_theme',b.dataset.theme);
+      if(typeof apply==='function'){} 
+      document.documentElement.dataset.premiumTheme=b.dataset.theme;
+      document.documentElement.classList.add('minegram-premium-active');
+      if(typeof toast==='function')toast('Profil teması güncellendi');
+    });
+  }
+
+  function statsScreen(body){
+    const views=Number(localStorage.getItem('premium_profile_views_count')||0);
+    const streak=Number(localStorage.getItem('premium_streak_count')||0);
+    const p=currentProfile||{};
+    const card=document.createElement('div');
+    card.className='ps-card';
+    card.innerHTML='<h3>Profil istatistikleri</h3>'+
+      '<div class="ps-info-row"><span>Gönderiler</span><b>'+Number(p.posts||0)+'</b></div>'+
+      '<div class="ps-info-row"><span>Takipçiler</span><b>'+Number(p.followers||0)+'</b></div>'+
+      '<div class="ps-info-row"><span>Takip edilen</span><b>'+Number(p.following||0)+'</b></div>'+
+      '<div class="ps-info-row"><span>Profil görüntülenmesi</span><b>'+views+'</b></div>'+
+      '<div class="ps-info-row"><span>Günlük seri</span><b>'+streak+'</b></div>';
+    body.appendChild(card);
+  }
+
+  function aboutScreen(body){
+    const card=document.createElement('div');
+    card.className='ps-card';
+    card.innerHTML='<h3>Minegram</h3><p>Profil sistemi: düzenleme, takipçiler, takip edilenler, gönderiler, hikâyeler, öne çıkanlar, gizlilik, bildirimler ve Premium profil özellikleri.</p><p>Sürüm: Web Profil Sistemi</p>';
+    body.appendChild(card);
+  }
+
+  function esc(v){
+    if(typeof escapeHtml==='function')return escapeHtml(v);
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Ayarlar menüsünü ayrı sayfaya göndermek yerine bu dosyadaki tam sistem ekranına bağla.
+  const settings=$('settingsMenu');
+  if(settings){
+    settings.onclick=(e)=>{
+      e.preventDefault();
+      close('menuScreen');
+      if(!own()){ if(typeof openOtherProfileMenu==='function')openOtherProfileMenu(); return; }
+      $('psTitle').textContent='Ayarlar';
+      open('profileSystemSettings');
+    };
+  }
+
+  $('psBack')?.addEventListener('click',()=>close('profileSystemSettings'));
+  $('psSubBack')?.addEventListener('click',back);
+
+  $('psAccount')?.addEventListener('click',()=>showSub('Hesap',accountScreen));
+  $('psPrivacy')?.addEventListener('click',()=>showSub('Gizlilik',privacyScreen));
+  $('psNotifications')?.addEventListener('click',()=>showSub('Bildirimler',notificationsScreen));
+  $('psPremium')?.addEventListener('click',()=>showSub('Minegram Premium',premiumScreen));
+  $('psStats')?.addEventListener('click',()=>showSub('Profil istatistikleri',statsScreen));
+  $('psAbout')?.addEventListener('click',()=>showSub('Minegram hakkında',aboutScreen));
+
+  $('psSaved')?.addEventListener('click',()=>location.href='index.html#saved');
+  $('psLiked')?.addEventListener('click',()=>location.href='index.html#liked');
+  $('psLogout')?.addEventListener('click',()=>{
+    if(typeof logoutMinegram==='function')logoutMinegram();
+  });
+
+  // Hakkında menüsünü de çalışır hale getir.
+  $('aboutMenu')?.addEventListener('click',()=>{
+    close('menuScreen');
+    showSub('Minegram hakkında',aboutScreen);
+  });
+
+  // Başkasının profilindeki menü: gerçek engelle/gizle davranışını bu tarayıcıda hesap bazlı sakla.
+  $('otherBlockMenu')?.addEventListener('click',()=>{
+    const u=String(currentProfile?.username||'').trim().toLowerCase();
+    if(u)localStorage.setItem('minegram_blocked_'+u,'true');
+    close('otherProfileMenu');
+    if(typeof toast==='function')toast('@'+u+' engellendi');
+  });
+
+  $('otherHideStoryMenu')?.addEventListener('click',()=>{
+    const u=String(currentProfile?.username||'').trim().toLowerCase();
+    if(u)localStorage.setItem('minegram_hidden_story_'+u,'true');
+    close('otherProfileMenu');
+    if(typeof toast==='function')toast('@'+u+' hikâyeleri gizlendi');
+  });
+
+  // Gizli hesap ayarı, mevcut profil yüklenirken de görsel duruma yansısın.
+  function syncPrivacy(){
+    const online=$('activeStatus');
+    if(online){
+      const enabled=localStorage.getItem('minegram_show_online')!=='false';
+      online.style.display=enabled?'':'none';
+    }
+  }
+  window.addEventListener('storage',syncPrivacy);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPrivacy();});
+  setTimeout(syncPrivacy,250);
+
+  // ESC ile yeni ekranları kapat.
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape')return;
+    close('psSub'); close('profileSystemSettings');
+  });
 })();
 </script>
 
