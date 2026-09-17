@@ -9,6 +9,7 @@
 <style>
 *{
     box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
 html,
@@ -23,6 +24,10 @@ body{
 body{
     overflow-x:hidden;
     padding-bottom:76px;
+}
+
+button{
+    font-family:inherit;
 }
 
 .app{
@@ -134,8 +139,9 @@ body{
     cursor:pointer;
 }
 
-.mark-all:hover{
-    opacity:.8;
+.mark-all:disabled{
+    opacity:.45;
+    cursor:default;
 }
 
 /* =========================
@@ -162,6 +168,10 @@ body{
     background:#090909;
 }
 
+.notification:active{
+    background:#111;
+}
+
 .notification.unread{
     background:#0d1115;
 }
@@ -180,7 +190,7 @@ body{
     place-items:center;
     color:#eee;
     font-size:18px;
-    font-weight:500;
+    font-weight:600;
     overflow:hidden;
 }
 
@@ -227,7 +237,7 @@ body{
     width:48px;
     height:48px;
     min-width:48px;
-    border-radius:4px;
+    border-radius:5px;
     background:#222;
     overflow:hidden;
 }
@@ -236,6 +246,7 @@ body{
     width:100%;
     height:100%;
     object-fit:cover;
+    display:block;
 }
 
 .follow-btn{
@@ -257,6 +268,11 @@ body{
     color:#eee;
 }
 
+.follow-btn:disabled{
+    opacity:.55;
+    cursor:default;
+}
+
 .follow-actions{
     display:flex;
     align-items:center;
@@ -274,10 +290,9 @@ body{
     color:#eee;
 }
 
-
-/* =====================================================
-   YORUM BİLDİRİMİ / YORUM BEĞENİSİ
-===================================================== */
+/* =========================
+   YORUM
+========================= */
 
 .comment-preview{
     margin-top:6px;
@@ -311,6 +326,10 @@ body{
     color:#ff3b5c;
     border-color:#5b2631;
     background:#211014;
+}
+
+.comment-like-btn:disabled{
+    opacity:.55;
 }
 
 .notification-actions{
@@ -390,6 +409,8 @@ body{
     transition:.2s;
     z-index:300;
     white-space:nowrap;
+    max-width:90%;
+    text-align:center;
 }
 
 .toast.show{
@@ -415,6 +436,7 @@ body{
 
 .nav a{
     flex:1;
+    min-width:0;
     color:#ddd;
     text-decoration:none;
     display:flex;
@@ -431,6 +453,10 @@ body{
     border-radius:18px;
     display:grid;
     place-items:center;
+}
+
+.nav a.active{
+    color:#fff;
 }
 
 .nav a.active .nav-icon{
@@ -514,6 +540,46 @@ body{
 
     .mark-all{
         font-size:12px;
+    }
+
+    .unread-dot{
+        width:7px;
+        height:7px;
+        min-width:7px;
+    }
+}
+
+@media(max-width:390px){
+
+    .notification{
+        padding-left:9px;
+        padding-right:9px;
+        gap:8px;
+    }
+
+    .notification-text{
+        font-size:12px;
+    }
+
+    .follow-actions{
+        gap:3px;
+    }
+
+    .follow-actions .follow-btn{
+        min-width:54px;
+        padding:0 5px;
+        font-size:10px;
+    }
+
+    .notification-thumb{
+        width:40px;
+        height:40px;
+        min-width:40px;
+    }
+
+    .notification-icon{
+        width:28px;
+        min-width:28px;
     }
 }
 
@@ -717,6 +783,7 @@ const API = '/api';
 let token =
     localStorage.getItem('minegram_token') ||
     localStorage.getItem('minegram_supabase_token') ||
+    localStorage.getItem('access_token') ||
     null;
 
 let currentUser = null;
@@ -754,6 +821,7 @@ function toast(text){
     window.__toast = setTimeout(()=>{
         el.classList.remove('show');
     },2200);
+
 }
 
 
@@ -766,9 +834,32 @@ function getToken(){
     token =
         localStorage.getItem('minegram_token') ||
         localStorage.getItem('minegram_supabase_token') ||
+        localStorage.getItem('access_token') ||
         null;
 
     return token;
+}
+
+
+/* =====================================================
+   TOKEN TEMİZLE
+===================================================== */
+
+function clearSession(){
+
+    [
+        'minegram_token',
+        'minegram_supabase_token',
+        'access_token',
+        'minegram_user',
+        'minegram_profile'
+    ].forEach(key=>{
+        localStorage.removeItem(key);
+    });
+
+    token = null;
+    currentUser = null;
+
 }
 
 
@@ -785,22 +876,126 @@ async function api(path,opt={}){
     }
 
     const headers = {
+        Accept:'application/json',
         ...(opt.headers || {}),
         Authorization:'Bearer '+apiToken
     };
 
-    const response = await fetch(
-        API + path,
-        {
-            ...opt,
-            headers
-        }
-    );
+    if(
+        opt.body &&
+        !(opt.body instanceof FormData) &&
+        !headers['Content-Type']
+    ){
+        headers['Content-Type'] =
+            'application/json;charset=UTF-8';
+    }
+
+    let response;
+
+    try{
+
+        response = await fetch(
+            API + path,
+            {
+                ...opt,
+                headers
+            }
+        );
+
+    }catch(error){
+
+        throw new Error(
+            'Minegram sunucusuna bağlanılamadı.'
+        );
+
+    }
 
     const data =
         await response
             .json()
             .catch(()=>({}));
+
+    /*
+     * Token süresi dolduysa giriş sayfasına
+     * düşmeden önce refresh token varsa yenilemeyi dene.
+     */
+
+    if(
+        (response.status === 401 ||
+         response.status === 403) &&
+        !opt.__retried
+    ){
+
+        const refreshToken =
+            localStorage.getItem('refresh_token') ||
+            localStorage.getItem('refreshToken') ||
+            '';
+
+        if(refreshToken){
+
+            try{
+
+                const refreshResponse =
+                    await fetch(
+                        API + '/refresh',
+                        {
+                            method:'POST',
+                            headers:{
+                                'Content-Type':
+                                    'application/json'
+                            },
+                            body:JSON.stringify({
+                                refresh_token:refreshToken
+                            })
+                        }
+                    );
+
+                const refreshData =
+                    await refreshResponse
+                        .json()
+                        .catch(()=>({}));
+
+                const newToken =
+                    refreshData.access_token ||
+                    refreshData.token ||
+                    '';
+
+                if(newToken){
+
+                    localStorage.setItem(
+                        'minegram_token',
+                        newToken
+                    );
+
+                    localStorage.setItem(
+                        'minegram_supabase_token',
+                        newToken
+                    );
+
+                    if(refreshData.refresh_token){
+
+                        localStorage.setItem(
+                            'refresh_token',
+                            refreshData.refresh_token
+                        );
+
+                    }
+
+                    return api(
+                        path,
+                        {
+                            ...opt,
+                            __retried:true
+                        }
+                    );
+
+                }
+
+            }catch{}
+
+        }
+
+    }
 
     if(!response.ok){
 
@@ -813,18 +1008,21 @@ async function api(path,opt={}){
     }
 
     return data;
+
 }
 
 
 /* =====================================================
-   PROFİL
+   PROFİL URL
 ===================================================== */
 
 function profileUrl(username){
 
     return 'profile.html?username=' +
         encodeURIComponent(
-            String(username || '').replace(/^@/,'').trim()
+            String(username || '')
+                .replace(/^@/,'')
+                .trim()
         );
 
 }
@@ -840,7 +1038,18 @@ function relativeTime(value){
         return '';
     }
 
-    const date = new Date(value);
+    let date = new Date(value);
+
+    /*
+     * Unix timestamp desteği
+     */
+
+    if(
+        typeof value === 'number' &&
+        value < 10000000000
+    ){
+        date = new Date(value * 1000);
+    }
 
     if(isNaN(date.getTime())){
         return '';
@@ -904,7 +1113,10 @@ function notificationType(n){
             ''
         ).toLowerCase();
 
-    /* Yorum beğenisi, gönderi beğenisinden ÖNCE kontrol edilmeli. */
+    /*
+     * Yorum beğenisi önce kontrol edilir.
+     */
+
     if(
         type.includes('comment_like') ||
         type.includes('comment-like') ||
@@ -915,8 +1127,7 @@ function notificationType(n){
         type.includes('yorum-begeni') ||
         type.includes('yorum_begeni') ||
         type.includes('yorumlike') ||
-        type.includes('liked_comment') ||
-        type.includes('commentlike')
+        type.includes('liked_comment')
     ){
         return 'comment_like';
     }
@@ -978,7 +1189,7 @@ function notificationType(n){
 
 
 /* =====================================================
-   BİLDİRİM KULLANICI
+   KULLANICI ADI
 ===================================================== */
 
 function notificationUsername(n){
@@ -999,21 +1210,28 @@ function notificationUsername(n){
         n.handle;
 
     if(direct){
-        return String(direct).replace(/^@/,'').trim();
+
+        return String(direct)
+            .replace(/^@/,'')
+            .trim();
+
     }
 
-    // Backend kullanıcı adını ayrı alanda göndermiyorsa
-    // bildirim metnindeki @kullanici adını kullan.
     const text = String(
-        n.message || n.text || n.content || n.description || ''
+        n.message ||
+        n.text ||
+        n.content ||
+        n.description ||
+        ''
     );
-    const match = text.match(/@([A-Za-z0-9._-]+)/);
+
+    const match =
+        text.match(/@([A-Za-z0-9._-]+)/);
+
     if(match && match[1]){
         return match[1];
     }
 
-    // Son çare olarak mevcut kullanıcının adını KESİNLİKLE
-    // başkasının adı gibi göstermemek için boş bırak.
     return '';
 
 }
@@ -1028,6 +1246,7 @@ function notificationId(n){
     return String(
         n.id ||
         n.notificationId ||
+        n.notification_id ||
         ('local-'+Date.now()+'-'+Math.random())
     );
 
@@ -1059,11 +1278,11 @@ function notificationPostId(n){
 
 
 /* =====================================================
-   MESAJ
+   COMMENT ID
 ===================================================== */
 
-
 function notificationCommentId(n){
+
     return String(
         n.commentId ||
         n.comment_id ||
@@ -1074,9 +1293,16 @@ function notificationCommentId(n){
         n.data?.comment?.id ||
         ''
     );
+
 }
 
+
+/* =====================================================
+   COMMENT TEXT
+===================================================== */
+
 function notificationCommentText(n){
+
     return String(
         n.commentText ||
         n.comment_text ||
@@ -1089,32 +1315,67 @@ function notificationCommentText(n){
         n.data?.comment?.content ||
         ''
     ).trim();
+
 }
 
+
+/* =====================================================
+   COMMENT LIKE DURUMU
+===================================================== */
+
 function notificationCommentLikedByMe(n){
+
     const values = [
+
         n.commentLikedByMe,
         n.comment_liked_by_me,
+
         n.comment?.likedByMe,
         n.comment?.liked_by_me,
         n.comment?.isLiked,
         n.comment?.is_liked,
+
         n.data?.commentLikedByMe,
         n.data?.comment_liked_by_me,
+
         n.data?.comment?.likedByMe,
         n.data?.comment?.liked_by_me
+
     ];
 
     for(const v of values){
-        if(typeof v === 'boolean') return v;
-        if(String(v || '').toLowerCase() === 'true') return true;
-        if(String(v || '').toLowerCase() === 'false') return false;
+
+        if(typeof v === 'boolean'){
+            return v;
+        }
+
+        if(
+            String(v || '').toLowerCase() ===
+            'true'
+        ){
+            return true;
+        }
+
+        if(
+            String(v || '').toLowerCase() ===
+            'false'
+        ){
+            return false;
+        }
+
     }
 
     return false;
+
 }
 
+
+/* =====================================================
+   MEDYA
+===================================================== */
+
 function notificationMedia(n){
+
     return (
         n.post?.media ||
         n.post?.image ||
@@ -1134,9 +1395,12 @@ function notificationMedia(n){
         n.data?.image ||
         ''
     );
+
 }
 
+
 function notificationMediaKind(n){
+
     const raw = String(
         n.post?.mediaType ||
         n.post?.media_type ||
@@ -1158,19 +1422,28 @@ function notificationMediaKind(n){
     }
 
     return 'photo';
+
 }
 
+
 function notificationLikeText(n){
+
     return notificationMediaKind(n) === 'video'
-        ? 'REELS VİDEONU BEĞENDİ.'
+        ? 'REELS videonu beğendi.'
         : 'fotoğrafını beğendi.';
+
 }
+
+
+/* =====================================================
+   BİLDİRİM MESAJI
+===================================================== */
 
 function notificationMessage(n){
 
-    const type = notificationType(n);
+    const type =
+        notificationType(n);
 
-    /* Sunucunun özel mesajı varsa onu koru. */
     if(
         n.message &&
         type !== 'like' &&
@@ -1198,15 +1471,21 @@ function notificationMessage(n){
     }
 
     if(type === 'comment'){
-        /* Reels yorumlarında özel metin, normal gönderilerde mevcut metin korunur. */
+
         if(n.text){
+
             return notificationMediaKind(n) === 'video'
-                ? 'REELS VİDEONA yorum yaptı: ' + esc(String(n.text))
-                : 'yorum yaptı: ' + esc(String(n.text));
+                ? 'REELS videona yorum yaptı: ' +
+                    esc(String(n.text))
+                : 'yorum yaptı: ' +
+                    esc(String(n.text));
+
         }
+
         return notificationMediaKind(n) === 'video'
-            ? 'REELS VİDEONA yorum yaptı.'
+            ? 'REELS videona yorum yaptı.'
             : 'gönderine yorum yaptı.';
+
     }
 
     if(type === 'reply'){
@@ -1226,6 +1505,7 @@ function notificationMessage(n){
     }
 
     return 'seninle etkileşime geçti.';
+
 }
 
 
@@ -1235,7 +1515,8 @@ function notificationMessage(n){
 
 function notificationIcon(n){
 
-    const type = notificationType(n);
+    const type =
+        notificationType(n);
 
     if(type === 'comment_like'){
         return '♥';
@@ -1253,7 +1534,11 @@ function notificationIcon(n){
         return '↩';
     }
 
-    if(type === 'follow'){
+    if(
+        type === 'follow' ||
+        type === 'follow_request' ||
+        type === 'follow_accepted'
+    ){
         return '👤';
     }
 
@@ -1275,8 +1560,13 @@ function avatarHTML(n){
         n.avatar ||
         n.avatarUrl ||
         n.profileImage ||
+        n.profile_image ||
         n.user?.avatar ||
+        n.user?.avatarUrl ||
         n.actor?.avatar ||
+        n.actor?.avatarUrl ||
+        n.fromUser?.avatar ||
+        n.fromUser?.avatarUrl ||
         '';
 
     if(avatar){
@@ -1287,6 +1577,11 @@ function avatarHTML(n){
                 src="${esc(avatar)}"
                 alt=""
                 loading="lazy"
+                onerror="this.parentElement.innerHTML='${esc(
+                    (username || 'M')
+                        .charAt(0)
+                        .toUpperCase()
+                )}'"
             >
         </div>
         `;
@@ -1312,7 +1607,8 @@ function avatarHTML(n){
 
 function postThumbnailHTML(n){
 
-    const media = notificationMedia(n);
+    const media =
+        notificationMedia(n);
 
     if(!media){
         return '';
@@ -1327,22 +1623,21 @@ function postThumbnailHTML(n){
         >
     </div>
     `;
+
 }
 
 
 /* =====================================================
-   TAKİP / TAKİP İSTEĞİ DURUMU
+   TAKİP DURUMU
 ===================================================== */
 
-/*
- * Android bildirim sistemiyle aynı mantık:
- * follow_request  -> Onayla + Reddet
- * follow_accepted -> Sen de Takip Et
- * normal follow  -> Sen de Takip Et
- */
 function isFollowRequestNotification(n){
+
     const type = String(
-        n.type || n.notificationType || n.kind || ''
+        n.type ||
+        n.notificationType ||
+        n.kind ||
+        ''
     ).toLowerCase();
 
     return (
@@ -1353,11 +1648,17 @@ function isFollowRequestNotification(n){
         type.includes('takip_iste') ||
         type.includes('takip iste')
     );
+
 }
 
+
 function isFollowAcceptedNotification(n){
+
     const type = String(
-        n.type || n.notificationType || n.kind || ''
+        n.type ||
+        n.notificationType ||
+        n.kind ||
+        ''
     ).toLowerCase();
 
     return (
@@ -1368,64 +1669,82 @@ function isFollowAcceptedNotification(n){
         type.includes('takip_kabul') ||
         type.includes('takip kabul')
     );
+
 }
 
-function isPrivateNotificationUser(n){
-    const candidates = [
-        n.isPrivate,
-        n.private,
-        n.privateAccount,
-        n.is_private,
-        n.account?.isPrivate,
-        n.profile?.isPrivate,
-        n.user?.isPrivate,
-        n.user?.is_private,
-        n.actor?.isPrivate,
-        n.actor?.is_private,
-        n.fromUser?.isPrivate,
-        n.fromUser?.is_private,
-        n.sender?.isPrivate,
-        n.sender?.is_private
-    ];
 
-    return candidates.some(v =>
-        v === true ||
-        String(v || '').toLowerCase() === 'true' ||
-        String(v || '').toLowerCase() === 'private' ||
-        String(v || '').toLowerCase() === 'gizli'
-    );
-}
+/* =====================================================
+   TAKİP BUTONU
+===================================================== */
 
-function followButtonHTML(username, following, mode='follow'){
-    const safeUsername = esc(username);
+function followButtonHTML(
+    username,
+    following,
+    mode='follow'
+){
+
+    const safeUsername =
+        esc(username);
+
+    if(!username){
+        return '';
+    }
 
     if(mode === 'request'){
+
         return `
-        <div class="follow-actions" data-follow-actions="request">
+        <div
+            class="follow-actions"
+            data-follow-actions="request">
+
             <button
                 class="follow-btn"
                 type="button"
-                onclick="followRequestAction(event,'${safeUsername}','accept')">
+                onclick="followRequestAction(
+                    event,
+                    '${safeUsername}',
+                    'accept'
+                )">
+
                 Onayla
+
             </button>
+
             <button
                 class="follow-btn request-reject"
                 type="button"
-                onclick="followRequestAction(event,'${safeUsername}','reject')">
+                onclick="followRequestAction(
+                    event,
+                    '${safeUsername}',
+                    'reject'
+                )">
+
                 Reddet
+
             </button>
+
         </div>
         `;
+
     }
 
     return `
     <button
         class="follow-btn ${following?'following':''}"
         type="button"
-        onclick="followAction(event,'${safeUsername}',${!!following})">
-        ${following ? 'Takiptesin' : 'Sen de Takip Et'}
+        onclick="followAction(
+            event,
+            '${safeUsername}',
+            ${!!following}
+        )">
+
+        ${following
+            ? 'Takiptesin'
+            : 'Sen de Takip Et'}
+
     </button>
     `;
+
 }
 
 
@@ -1435,7 +1754,8 @@ function followButtonHTML(username, following, mode='follow'){
 
 function renderNotification(n){
 
-    const id = notificationId(n);
+    const id =
+        notificationId(n);
 
     const username =
         notificationUsername(n);
@@ -1444,11 +1764,9 @@ function renderNotification(n){
         notificationType(n);
 
     const read =
-        !!(
-            n.read ||
-            n.isRead ||
-            n.seen
-        );
+        n.read === true ||
+        n.isRead === true ||
+        n.seen === true;
 
     const postId =
         notificationPostId(n);
@@ -1456,17 +1774,19 @@ function renderNotification(n){
     const commentId =
         notificationCommentId(n);
 
-    const time =
+    const createdTime =
         n.createdAt ||
         n.created_at ||
         n.date ||
         n.timestamp ||
+        n.created ||
         '';
 
     const followState =
         !!(
             n.following ||
-            n.isFollowing
+            n.isFollowing ||
+            n.is_following
         );
 
     const followRequest =
@@ -1485,31 +1805,38 @@ function renderNotification(n){
 
     if(followRequest){
 
-        action = followButtonHTML(
-            username,
-            false,
-            'request'
-        );
+        action =
+            followButtonHTML(
+                username,
+                false,
+                'request'
+            );
 
     }else if(
         type === 'follow' ||
         followAccepted
     ){
 
-        action = followButtonHTML(
-            username,
-            followState,
-            'follow'
-        );
+        action =
+            followButtonHTML(
+                username,
+                followState,
+                'follow'
+            );
 
-    }else if(commentLike && commentId){
+    }else if(
+        commentLike &&
+        commentId
+    ){
 
         const liked =
             notificationCommentLikedByMe(n);
 
         action = `
         <div class="notification-actions">
+
             ${postThumbnailHTML(n)}
+
             <button
                 class="comment-like-btn ${liked?'liked':''}"
                 type="button"
@@ -1517,17 +1844,27 @@ function renderNotification(n){
                 data-comment-like="1"
                 data-comment-id="${esc(commentId)}"
                 data-liked="${liked?'1':'0'}"
-                onclick="toggleNotificationCommentLike(event,this)"
+                onclick="
+                    toggleNotificationCommentLike(
+                        event,
+                        this
+                    )
+                "
             >${liked?'♥':'♡'}</button>
+
         </div>
         `;
 
     }else{
 
-        action = postThumbnailHTML(n) ||
-            `<div class="notification-icon">
+        action =
+            postThumbnailHTML(n) ||
+            `
+            <div class="notification-icon">
                 ${notificationIcon(n)}
-            </div>`;
+            </div>
+            `;
+
     }
 
     return `
@@ -1548,12 +1885,19 @@ function renderNotification(n){
             <div class="notification-text">
 
                 ${
-                    username && !(
+                    username &&
+                    !(
                         type === 'comment' &&
-                        String(n.text || '').trim().startsWith('@')
+                        String(
+                            n.text || ''
+                        )
+                        .trim()
+                        .startsWith('@')
                     )
-                        ? `<b>@${esc(username)}</b>`
-                        : ''
+                    ?
+                    `<b>@${esc(username)}</b>`
+                    :
+                    ''
                 }
 
                 ${notificationMessage(n)}
@@ -1562,25 +1906,29 @@ function renderNotification(n){
 
             ${
                 commentText
-                    ? `<div class="comment-preview">“${esc(commentText)}”</div>`
-                    : ''
+                ?
+                `
+                <div class="comment-preview">
+                    “${esc(commentText)}”
+                </div>
+                `
+                :
+                ''
             }
 
             <div class="notification-time">
-
-                ${esc(relativeTime(time))}
-
+                ${esc(relativeTime(createdTime))}
             </div>
 
         </div>
 
-        ${
-            commentLike && commentId
-                ? action
-                : action
-        }
+        ${action}
 
-        ${read?'':'<span class="unread-dot"></span>'}
+        ${
+            read
+            ? ''
+            : '<span class="unread-dot"></span>'
+        }
 
     </div>
     `;
@@ -1610,7 +1958,43 @@ function normalizeNotifications(result){
         return result.items;
     }
 
+    if(Array.isArray(result.results)){
+        return result.results;
+    }
+
     return [];
+
+}
+
+
+/* =====================================================
+   TARİH SIRALAMA
+===================================================== */
+
+function notificationDate(n){
+
+    const value =
+        n.createdAt ||
+        n.created_at ||
+        n.date ||
+        n.timestamp ||
+        n.created ||
+        0;
+
+    if(typeof value === 'number'){
+
+        return value < 10000000000
+            ? value * 1000
+            : value;
+
+    }
+
+    const time =
+        new Date(value).getTime();
+
+    return isNaN(time)
+        ? 0
+        : time;
 
 }
 
@@ -1637,44 +2021,43 @@ async function loadNotifications(){
         let result;
 
         /*
-         * Ana endpoint:
-         * /api/notifications
+         * Öncelikli endpoint
          */
 
         try{
 
             result =
-                await api('/notifications');
+                await api(
+                    '/notifications'
+                );
 
         }catch(firstError){
 
             /*
-             * Bazı backend sürümlerinde
-             * /api/notifications/me olabilir.
+             * Alternatif endpoint
              */
 
             result =
-                await api('/notifications/me');
+                await api(
+                    '/notifications/me'
+                );
 
         }
 
         const notifications =
-            normalizeNotifications(result);
+            normalizeNotifications(
+                result
+            );
 
-        // Kullanıcı bildirimler sayfasını açtığında mevcut bildirimler görülmüş kabul edilir.
-        const unreadOnOpen = notifications.filter(n => !(
-            n?.read === true || n?.isRead === true || n?.seen === true
-        ));
-        if(unreadOnOpen.length){
-            try{
-                await api('/notifications/read-all',{method:'POST'});
-            }catch{
-                try{
-                    await api('/notifications/mark-all-read',{method:'POST'});
-                }catch{}
-            }
-            notifications.forEach(n => { n.read=true; n.isRead=true; n.seen=true; });
-        }
+        /*
+         * ÖNEMLİ:
+         *
+         * Sayfa açıldığında artık
+         * read-all yapılmıyor.
+         *
+         * Kullanıcı bildirime basarsa
+         * o bildirim okunacak.
+         */
 
         if(!notifications.length){
 
@@ -1696,35 +2079,24 @@ async function loadNotifications(){
                 </div>
             `;
 
+            updateMarkAllButton();
+
             return;
+
         }
 
-        notifications.sort((a,b)=>{
-
-            const da =
-                new Date(
-                    a.createdAt ||
-                    a.created_at ||
-                    a.date ||
-                    0
-                ).getTime();
-
-            const db =
-                new Date(
-                    b.createdAt ||
-                    b.created_at ||
-                    b.date ||
-                    0
-                ).getTime();
-
-            return db-da;
-
-        });
+        notifications.sort(
+            (a,b)=>
+                notificationDate(b) -
+                notificationDate(a)
+        );
 
         list.innerHTML =
             notifications
                 .map(renderNotification)
                 .join('');
+
+        updateMarkAllButton();
 
     }catch(error){
 
@@ -1765,11 +2137,39 @@ async function loadNotifications(){
 
 
 /* =====================================================
-   BİLDİRİME TIKLAMA
+   OKUNMAMIŞ BUTON DURUMU
 ===================================================== */
 
+function updateMarkAllButton(){
 
-async function toggleNotificationCommentLike(event,button){
+    const btn =
+        document.getElementById(
+            'markAllBtn'
+        );
+
+    if(!btn){
+        return;
+    }
+
+    const unread =
+        document.querySelectorAll(
+            '.notification.unread'
+        );
+
+    btn.disabled =
+        unread.length === 0;
+
+}
+
+
+/* =====================================================
+   YORUM BEĞENİSİ
+===================================================== */
+
+async function toggleNotificationCommentLike(
+    event,
+    button
+){
 
     event.stopPropagation();
 
@@ -1777,11 +2177,18 @@ async function toggleNotificationCommentLike(event,button){
         button?.dataset?.commentId || '';
 
     if(!commentId){
-        toast('Yorum kimliği bulunamadı');
+
+        toast(
+            'Yorum kimliği bulunamadı.'
+        );
+
         return;
+
     }
 
-    if(button.dataset.loading === '1'){
+    if(
+        button.dataset.loading === '1'
+    ){
         return;
     }
 
@@ -1791,7 +2198,8 @@ async function toggleNotificationCommentLike(event,button){
         button.dataset.liked === '1' ||
         button.classList.contains('liked');
 
-    const nextLiked = !wasLiked;
+    const nextLiked =
+        !wasLiked;
 
     button.classList.toggle(
         'liked',
@@ -1834,8 +2242,8 @@ async function toggleNotificationCommentLike(event,button){
 
         toast(
             liked
-                ? 'Yorum beğenildi'
-                : 'Yorum beğenisi kaldırıldı'
+                ? 'Yorum beğenildi.'
+                : 'Yorum beğenisi kaldırıldı.'
         );
 
     }catch(error){
@@ -1859,14 +2267,111 @@ async function toggleNotificationCommentLike(event,button){
     }finally{
 
         button.dataset.loading = '0';
+
     }
+
 }
 
-async function openNotification(event,element){
+
+/* =====================================================
+   BİLDİRİM OKUMA
+===================================================== */
+
+async function markNotificationRead(id,element){
+
+    if(!id || id.startsWith('local-')){
+        return;
+    }
 
     /*
-     * Takip butonuna basıldıysa
-     * bildirimin kendisini açma.
+     * Ekranda anında okundu.
+     */
+
+    if(element){
+
+        element.classList.remove(
+            'unread'
+        );
+
+        element
+            .querySelector('.unread-dot')
+            ?.remove();
+
+    }
+
+    updateMarkAllButton();
+
+    /*
+     * Ana endpoint
+     */
+
+    try{
+
+        await api(
+            '/notifications/' +
+            encodeURIComponent(id) +
+            '/read',
+            {
+                method:'POST'
+            }
+        );
+
+        return;
+
+    }catch(error){
+
+        console.warn(
+            '[NOTIFICATION READ]',
+            error
+        );
+
+    }
+
+    /*
+     * Alternatif endpoint
+     */
+
+    try{
+
+        await api(
+            '/notifications/' +
+            encodeURIComponent(id),
+            {
+                method:'PATCH',
+                headers:{
+                    'Content-Type':
+                        'application/json'
+                },
+                body:JSON.stringify({
+                    read:true
+                })
+            }
+        );
+
+    }catch(error){
+
+        console.warn(
+            '[NOTIFICATION READ PATCH]',
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   BİLDİRİME TIKLAMA
+===================================================== */
+
+async function openNotification(
+    event,
+    element
+){
+
+    /*
+     * Butonlara basıldığında bildirimi
+     * ayrıca açma.
      */
 
     if(
@@ -1886,69 +2391,16 @@ async function openNotification(event,element){
         element.dataset.postId;
 
     /*
-     * Önce ekranda okundu yap.
+     * Önce okundu yap.
      */
 
-    element.classList.remove('unread');
-
-    element
-        .querySelector('.unread-dot')
-        ?.remove();
-
-    /*
-     * Backend'e okundu bildir.
-     */
-
-    if(id && !id.startsWith('local-')){
-
-        try{
-
-            await api(
-                '/notifications/' +
-                encodeURIComponent(id) +
-                '/read',
-                {
-                    method:'POST'
-                }
-            );
-
-        }catch(error){
-
-            console.warn(
-                '[NOTIFICATION READ]',
-                error
-            );
-
-            /*
-             * Bazı backendlerde PATCH kullanılabilir.
-             */
-
-            try{
-
-                await api(
-                    '/notifications/' +
-                    encodeURIComponent(id),
-                    {
-                        method:'PATCH',
-                        headers:{
-                            'Content-Type':
-                                'application/json'
-                        },
-                        body:JSON.stringify({
-                            read:true
-                        })
-                    }
-                );
-
-            }catch{}
-
-        }
-
-    }
-
+    await markNotificationRead(
+        id,
+        element
+    );
 
     /*
-     * Eğer gönderi varsa gönderiye git.
+     * Gönderi varsa gönderiye git.
      */
 
     if(postId){
@@ -1960,7 +2412,6 @@ async function openNotification(event,element){
         return;
 
     }
-
 
     /*
      * Gönderi yoksa profile git.
@@ -1987,7 +2438,11 @@ async function markAllRead(){
             'markAllBtn'
         );
 
-    btn.disabled = true;
+    if(
+        btn.dataset.loading === '1'
+    ){
+        return;
+    }
 
     const unread =
         document.querySelectorAll(
@@ -2000,19 +2455,24 @@ async function markAllRead(){
             'Tüm bildirimler zaten okundu.'
         );
 
-        btn.disabled = false;
+        updateMarkAllButton();
 
         return;
 
     }
 
+    btn.dataset.loading = '1';
+    btn.disabled = true;
+
     /*
-     * Önce arayüzü hemen güncelle.
+     * Önce ekranı güncelle.
      */
 
     unread.forEach(item=>{
 
-        item.classList.remove('unread');
+        item.classList.remove(
+            'unread'
+        );
 
         item
             .querySelector('.unread-dot')
@@ -2021,10 +2481,6 @@ async function markAllRead(){
     });
 
     try{
-
-        /*
-         * Öncelikli endpoint.
-         */
 
         try{
 
@@ -2035,11 +2491,7 @@ async function markAllRead(){
                 }
             );
 
-        }catch{
-
-            /*
-             * Alternatif backend endpointi.
-             */
+        }catch(firstError){
 
             await api(
                 '/notifications/mark-all-read',
@@ -2068,7 +2520,9 @@ async function markAllRead(){
 
     }finally{
 
-        btn.disabled = false;
+        btn.dataset.loading = '0';
+
+        updateMarkAllButton();
 
     }
 
@@ -2087,21 +2541,32 @@ async function followRequestAction(
 
     event.stopPropagation();
 
-    const button = event.currentTarget;
+    const button =
+        event.currentTarget;
 
-    if(!username || button.dataset.loading === '1'){
+    if(
+        !username ||
+        button.dataset.loading === '1'
+    ){
         return;
     }
 
-    const actions = button.closest('.follow-actions');
+    const actions =
+        button.closest(
+            '.follow-actions'
+        );
 
     if(!actions){
         return;
     }
 
-    actions.querySelectorAll('button').forEach(
-        b => b.disabled = true
-    );
+    actions
+        .querySelectorAll('button')
+        .forEach(
+            b=>{
+                b.disabled = true;
+            }
+        );
 
     try{
 
@@ -2115,7 +2580,8 @@ async function followRequestAction(
             {
                 method:'POST',
                 headers:{
-                    'Content-Type':'application/json'
+                    'Content-Type':
+                        'application/json'
                 },
                 body:JSON.stringify({
                     username:username
@@ -2123,45 +2589,62 @@ async function followRequestAction(
             }
         );
 
-        if(decision === 'accept'){
+        if(
+            decision === 'accept'
+        ){
 
             /*
-             * Android'deki sistemle aynı:
-             * İstek kabul edilince bildirim kaybolmuyor.
-             * Onun yerine "Sen de Takip Et" çıkıyor.
+             * Bildirim kalır.
+             * Aksiyon "Sen de Takip Et" olur.
              */
-            actions.outerHTML = followButtonHTML(
-                username,
-                false,
-                'follow'
-            );
+
+            actions.outerHTML =
+                followButtonHTML(
+                    username,
+                    false,
+                    'follow'
+                );
 
             toast(
-                '@'+username+' takip isteği kabul edildi.'
+                '@' +
+                username +
+                ' takip isteği kabul edildi.'
             );
 
         }else{
 
             /*
-             * Reddedilen istekte aksiyonları kaldır.
+             * Reddedilen isteğin butonları kalkar.
              */
+
             actions.outerHTML = `
-                <span style="color:#777;font-size:12px;">
+                <span
+                    style="
+                        color:#777;
+                        font-size:12px;
+                    "
+                >
                     İstek reddedildi
                 </span>
             `;
 
             toast(
-                '@'+username+' takip isteği reddedildi.'
+                '@' +
+                username +
+                ' takip isteği reddedildi.'
             );
 
         }
 
     }catch(error){
 
-        actions.querySelectorAll('button').forEach(
-            b => b.disabled = false
-        );
+        actions
+            .querySelectorAll('button')
+            .forEach(
+                b=>{
+                    b.disabled = false;
+                }
+            );
 
         toast(
             error.message ||
@@ -2174,7 +2657,7 @@ async function followRequestAction(
 
 
 /* =====================================================
-   TAKİP BUTONU
+   TAKİP
 ===================================================== */
 
 async function followAction(
@@ -2192,7 +2675,9 @@ async function followAction(
     const button =
         event.currentTarget;
 
-    if(button.dataset.loading === '1'){
+    if(
+        button.dataset.loading === '1'
+    ){
         return;
     }
 
@@ -2200,6 +2685,10 @@ async function followAction(
 
     const next =
         !currentlyFollowing;
+
+    /*
+     * Anında görsel değişiklik.
+     */
 
     button.textContent =
         next
@@ -2212,10 +2701,6 @@ async function followAction(
     );
 
     try{
-
-        /*
-         * Kullanıcı adına göre takip endpointi.
-         */
 
         const result =
             await api(
@@ -2244,16 +2729,42 @@ async function followAction(
 
         }
 
+        /*
+         * İstek gönderildiyse backend bunu
+         * pending olarak döndürebilir.
+         */
+
+        if(
+            result.pending === true ||
+            result.requested === true
+        ){
+
+            button.textContent =
+                'İstek gönderildi';
+
+            button.classList.add(
+                'following'
+            );
+
+        }
+
         toast(
-            next
-                ? '@'+username+' takip edildi.'
-                : '@'+username+' takipten çıkarıldı.'
+            result.pending === true ||
+            result.requested === true
+                ? '@'+username+
+                  ' takip isteği gönderildi.'
+                :
+                next
+                    ? '@'+username+
+                      ' takip edildi.'
+                    : '@'+username+
+                      ' takipten çıkarıldı.'
         );
 
     }catch(error){
 
         /*
-         * Alternatif kullanıcı endpointi.
+         * Alternatif endpoint
          */
 
         try{
@@ -2280,11 +2791,23 @@ async function followAction(
                 button.textContent =
                     result.following
                         ? 'Takiptesin'
-                        : 'Takip Et';
+                        : 'Sen de Takip Et';
 
             }
 
-        }catch{
+            toast(
+                next
+                    ? '@'+username+
+                      ' takip edildi.'
+                    : '@'+username+
+                      ' takipten çıkarıldı.'
+            );
+
+        }catch(secondError){
+
+            /*
+             * Hata olursa eski duruma dön.
+             */
 
             button.classList.toggle(
                 'following',
@@ -2298,6 +2821,7 @@ async function followAction(
 
             toast(
                 error.message ||
+                secondError.message ||
                 'Takip işlemi başarısız.'
             );
 
@@ -2308,6 +2832,32 @@ async function followAction(
         button.dataset.loading = '0';
 
     }
+
+}
+
+
+/* =====================================================
+   CURRENT USER
+===================================================== */
+
+function normalizeCurrentUser(data){
+
+    if(!data){
+        return null;
+    }
+
+    /*
+     * /me farklı backend yapıları için
+     * birkaç olası alanı destekler.
+     */
+
+    const user =
+        data.user ||
+        data.profile ||
+        data.data ||
+        data;
+
+    return user;
 
 }
 
@@ -2333,16 +2883,33 @@ async function init(){
     try{
 
         /*
-         * index.html ile aynı şekilde
-         * /me üzerinden oturum kontrolü.
+         * Giriş yapan hesabı doğrula.
          */
 
-        currentUser =
+        const me =
             await api('/me');
+
+        currentUser =
+            normalizeCurrentUser(me);
+
+        if(!currentUser){
+
+            throw new Error(
+                'Kullanıcı hesabı bulunamadı.'
+            );
+
+        }
+
+        /*
+         * Kullanıcı bilgisini diğer Minegram
+         * sayfalarının kullanabilmesi için sakla.
+         */
 
         localStorage.setItem(
             'minegram_user',
-            JSON.stringify(currentUser)
+            JSON.stringify(
+                currentUser
+            )
         );
 
         await loadNotifications();
@@ -2354,21 +2921,81 @@ async function init(){
             error
         );
 
-        [
-            'minegram_token',
-            'minegram_supabase_token',
-            'minegram_user',
-            'minegram_profile'
-        ].forEach(
-            key =>
-                localStorage.removeItem(key)
-        );
+        /*
+         * Sadece gerçekten oturum problemi
+         * varsa oturumu temizle.
+         */
 
-        token = null;
-        currentUser = null;
+        if(
+            error.message ===
+            'Oturum bulunamadı.'
+        ){
 
-        location.replace(
-            'giris.html'
+            clearSession();
+
+            location.replace(
+                'giris.html'
+            );
+
+            return;
+
+        }
+
+        /*
+         * /me 401/403 gibi bir hata verdiyse
+         * api zaten refresh denemiştir.
+         */
+
+        if(
+            /401|403|oturum|token|credential|unauthor/i
+                .test(
+                    String(
+                        error.message || ''
+                    )
+                )
+        ){
+
+            clearSession();
+
+            location.replace(
+                'giris.html'
+            );
+
+            return;
+
+        }
+
+        /*
+         * Sunucu / bildirim problemi varsa
+         * kullanıcıyı gereksiz yere çıkış yaptırma.
+         */
+
+        document.getElementById(
+            'notificationList'
+        ).innerHTML = `
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔔
+                </div>
+
+                <strong>
+                    Bildirimler yüklenemedi
+                </strong>
+
+                <span>
+                    ${esc(
+                        error.message ||
+                        'Sunucu bağlantısı kurulamadı.'
+                    )}
+                </span>
+
+            </div>
+        `;
+
+        toast(
+            error.message ||
+            'Bildirimler yüklenemedi.'
         );
 
     }
