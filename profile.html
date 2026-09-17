@@ -5750,11 +5750,10 @@ function openEditProfileScreen(){
  .value=
  currentProfile.displayName||'';
 
- document.getElementById('profileUsernameValue')
- .textContent=
- '@'+(
-   currentProfile.username||'minegram'
- );
+ const usernameInput=document.getElementById('profileUsernameInput');
+ if(usernameInput){
+   usernameInput.value='@'+(currentProfile.username||'minegram');
+ }
 
  document.getElementById('profilePronounsInput')
  .value=
@@ -6062,19 +6061,32 @@ document.getElementById('editProfileSave')
 
  try{
 
+   const usernameInput=document.getElementById('profileUsernameInput');
+   let newUsername=(usernameInput?.value||'').trim().replace(/^@+/,'').trim();
+   if(!newUsername) newUsername=currentProfile.username||'minegram';
+   if(!/^[a-zA-Z0-9._]{1,30}$/.test(newUsername)){
+     toast('Kullanıcı adı sadece harf, rakam, nokta ve alt çizgi içerebilir.');
+     return;
+   }
+
+   const patchBody={displayName,bio};
+   if(newUsername!==String(currentProfile.username||'').replace(/^@/,'')){
+     patchBody.username=newUsername;
+   }
+
    await api(
      '/api/me',
      {
        method:'PATCH',
-       body:{
-         displayName,
-         bio
-       }
+       body:patchBody
      }
    );
 
    currentProfile.displayName=displayName;
    currentProfile.bio=bio;
+   currentProfile.username=newUsername;
+   document.getElementById('username').textContent='@'+newUsername;
+   document.getElementById('headerUsername').textContent=newUsername;
 
    localStorage.setItem(
      'minegram_pronouns_'+
