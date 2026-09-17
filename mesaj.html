@@ -2002,19 +2002,277 @@ const firestore=getFirestore(app);
 const auth=getAuth(app);
 
 
-let myUsername=(
- localStorage.getItem("username")||
- prompt("Kullanıcı adın:")||
- "misafir"
-)
-.replace(/^@+/g,"")
-.trim();
+/* ==========================================================
+   MINEGRAM GERÇEK OTURUM KULLANICISI
+   ========================================================== */
 
-localStorage.setItem(
- "username",
+function cleanUsername(value){
+
+ if(value===null||value===undefined)
+  return "";
+
+ if(typeof value==="object"){
+
+  value=
+   value.username||
+   value.userName||
+   value.name||
+   value.handle||
+   value.user?.username||
+   value.profile?.username||
+   "";
+
+ }
+
+ return String(value)
+  .replace(/^@+/g,"")
+  .trim();
+
+}
+
+
+function getLoggedUsername(){
+
+ const keys=[
+
+  "username",
+
+  "minegram_username",
+
+  "minegramUsername",
+
+  "currentUsername",
+
+  "current_username",
+
+  "loggedUsername",
+
+  "logged_username",
+
+  "userName",
+
+  "user_name",
+
+  "minegramUser",
+
+  "minegram_user",
+
+  "currentUser",
+
+  "current_user",
+
+  "user",
+
+  "minegramCurrentUser",
+
+  "minegram_current_user"
+
+ ];
+
+
+ /* ------------------------------------------
+    Önce doğrudan string kayıtları kontrol et
+    ------------------------------------------ */
+
+ for(
+  const key of keys
+ ){
+
+  const raw=
+   localStorage.getItem(key);
+
+  if(!raw)
+   continue;
+
+  let value=raw;
+
+  try{
+
+   const parsed=
+    JSON.parse(raw);
+
+   if(
+    typeof parsed==="object"&&
+    parsed!==null
+   ){
+
+    value=
+     parsed.username||
+     parsed.userName||
+     parsed.name||
+     parsed.handle||
+     parsed.user?.username||
+     parsed.profile?.username||
+     "";
+
+   }else{
+
+    value=parsed;
+
+   }
+
+  }catch{}
+
+  const username=
+   cleanUsername(value);
+
+  if(username)
+   return username;
+
+ }
+
+
+ /* ------------------------------------------
+    sessionStorage
+    ------------------------------------------ */
+
+ for(
+  const key of keys
+ ){
+
+  const raw=
+   sessionStorage.getItem(key);
+
+  if(!raw)
+   continue;
+
+  let value=raw;
+
+  try{
+
+   const parsed=
+    JSON.parse(raw);
+
+   if(
+    typeof parsed==="object"&&
+    parsed!==null
+   ){
+
+    value=
+     parsed.username||
+     parsed.userName||
+     parsed.name||
+     parsed.handle||
+     parsed.user?.username||
+     parsed.profile?.username||
+     "";
+
+   }
+
+  }catch{}
+
+  const username=
+   cleanUsername(value);
+
+  if(username)
+   return username;
+
+ }
+
+
+ return "";
+
+}
+
+
+/*
+ * GERÇEK GİRİŞ YAPAN HESABI AL
+ */
+
+let myUsername=
+ getLoggedUsername();
+
+
+/*
+ * Artık kullanıcı adı bulunamadığında
+ * başka bir hesaba otomatik geçmiyoruz.
+ */
+
+if(!myUsername){
+
+ showToast(
+  "Oturum açan kullanıcı bulunamadı"
+ );
+
+ console.error(
+  "Minegram: giriş yapan kullanıcı bulunamadı."
+ );
+
+}
+
+
+/*
+ * Sadece gerçekten bulunan hesabı sakla.
+ */
+
+if(myUsername){
+
+ localStorage.setItem(
+  "username",
+  myUsername
+ );
+
+}
+
+
+/*
+ * Alıcı hesap kesinlikle URL'den gelir.
+ */
+
+const targetUsername=
+ cleanUsername(
+  p.get("username")||
+  p.get("user")||
+  p.get("to")||
+  ""
+);
+
+
+/*
+ * Aynı hesap kendisine mesaj atmasın.
+ */
+
+if(
+ myUsername&&
+ targetUsername&&
+ myUsername.toLowerCase()===
+ targetUsername.toLowerCase()
+){
+
+ console.warn(
+  "Minegram: gönderen ve alıcı aynı hesap."
+ );
+
+}
+
+
+/*
+ * SOHBET ANAHTARI
+ */
+
+const conversationKey=
+ [
+  myUsername.toLowerCase(),
+  targetUsername.toLowerCase()
+ ]
+ .sort()
+ .join("__");
+
+
+console.log(
+ "MINEGRAM OTURUM:",
  myUsername
 );
 
+console.log(
+ "MINEGRAM ALICI:",
+ targetUsername
+);
+
+console.log(
+ "MINEGRAM SOHBET:",
+ conversationKey
+);
 
 const p=new URLSearchParams(
  location.search
@@ -3853,51 +4111,124 @@ function renderMessage(
 }
 
 
-/* ==========================================================
-   MESAJ GÖNDER
-   ========================================================== */
-
 async function sendData(data){
+
+ /* Gerçek giriş yapan hesap yoksa gönderme */
+
+ if(!myUsername){
+
+  showToast(
+   "Önce hesabına giriş yapmalısın"
+  );
+
+  return false;
+
+ }
+
+
+ /* Alıcı yoksa gönderme */
+
+ if(!targetUsername){
+
+  showToast(
+   "Mesaj gönderilecek kullanıcı bulunamadı"
+  );
+
+  return false;
+
+ }
+
+
+ /* Aynı hesaba gönderme */
+
+ if(
+  myUsername.toLowerCase()===
+  targetUsername.toLowerCase()
+ ){
+
+  showToast(
+   "Kendine mesaj gönderemezsin"
+  );
+
+  return false;
+
+ }
+
 
  if(!(await ensureAuth()))
  return false;
 
+
  await syncBlock();
+
 
  if(blockedSend())
  return false;
 
+
  try{
+
+  /*
+   * Firestore'a gönderen ve alıcı
+   * artık kesin olarak belirlenmiş
+   * kullanıcılar olacak.
+   */
+
+  const messageData={
+
+   conversationKey:
+
+    [
+     myUsername.toLowerCase(),
+     targetUsername.toLowerCase()
+    ]
+    .sort()
+    .join("__"),
+
+   sender:
+    myUsername,
+
+   recipient:
+    targetUsername,
+
+   time:
+    new Date()
+    .toLocaleTimeString(
+     "tr-TR",
+     {
+      hour:"2-digit",
+      minute:"2-digit",
+      second:"2-digit"
+     }
+    ),
+
+   createdAt:
+    Date.now(),
+
+   read:false,
+
+   ...data
+
+  };
+
+
+  console.log(
+   "MINEGRAM MESAJ GÖNDERİLİYOR:",
+   messageData
+  );
+
 
   await addDoc(
    collection(
     firestore,
     "chatMessages"
    ),
-   {
-    conversationKey,
-    sender:myUsername,
-    recipient:targetUsername,
-
-    time:new Date()
-     .toLocaleTimeString(
-      "tr-TR",
-      {
-       hour:"2-digit",
-       minute:"2-digit",
-       second:"2-digit"
-      }
-     ),
-
-    createdAt:Date.now(),
-
-    read:false,
-
-    ...data
-   }
+   messageData
   );
 
+
   return true;
+
 
  }catch(e){
 
@@ -3906,11 +4237,16 @@ async function sendData(data){
    e
   );
 
+
   showToast(
-   e?.code==="permission-denied"
-    ?"Mesaj gönderme izni yok"
-    :"Mesaj gönderilemedi"
+   e?.code===
+   "permission-denied"
+    ?
+    "Mesaj gönderme izni yok"
+    :
+    "Mesaj gönderilemedi"
   );
+
 
   return false;
 
@@ -3921,17 +4257,25 @@ async function sendData(data){
 
 async function sendText(t){
 
- t=String(t||"").trim();
+ t=
+  String(t||"")
+  .trim();
 
  if(!t)
  return;
 
- if(
+
+ const ok=
   await sendData({
+
    text:t,
+
    type:"text"
-  })
- ){
+
+  });
+
+
+ if(ok){
 
   input.value="";
 
