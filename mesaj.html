@@ -39,7 +39,25 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 const firebaseConfig={apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119"};
 const firebaseApp=initializeApp(firebaseConfig);const db=getDatabase(firebaseApp);const firestore=getFirestore(firebaseApp);const auth=getAuth(firebaseApp);
 let myUsername=(localStorage.getItem("username")||"").replace(/^@+/g,"").trim();if(!myUsername){myUsername=(prompt("Kullanıcı adın:")||"misafir").replace(/^@+/g,"").trim();localStorage.setItem("username",myUsername)}
-const targetUsername=((new URLSearchParams(location.search).get("username"))||"").replace(/^@+/g,"").trim();
+const urlParams=new URLSearchParams(location.search);
+const targetUsername=String(urlParams.get("username")||urlParams.get("user")||urlParams.get("to")||"").replace(/^@+/g,"").trim();
+
+// Profildeki Mesaj butonunun doğrudan bu kullanıcıya ait sohbeti açabilmesi için
+// kullanılabilecek yardımcı fonksiyon. Örnek: openMinegramChat("ahmet")
+window.openMinegramChat=function(username){
+    const u=String(username||"").replace(/^@+/g,"").trim();
+    if(!u){ console.warn("Minegram: hedef kullanıcı adı boş"); return false; }
+    const chatPage=new URL(location.href);
+    chatPage.search="?username="+encodeURIComponent(u);
+    chatPage.hash="";
+    location.href=chatPage.toString();
+    return true;
+};
+
+// Sayfa username olmadan açılırsa boş sohbet yerine kullanıcıyı açıkça uyar.
+if(!targetUsername){
+    console.warn("Minegram: Sohbet için ?username=kullaniciadi gerekli.");
+}
 const input=document.getElementById("messageInput"),chatArea=document.getElementById("chatArea"),loading=document.getElementById("loading"),toast=document.getElementById("toast"),menu=document.getElementById("menu"),debugStatus=document.getElementById("debugStatus");
 const callScreen=document.getElementById("callScreen"),incomingScreen=document.getElementById("incomingScreen"),callStatus=document.getElementById("callStatus"),callTypeText=document.getElementById("callTypeText"),incomingName=document.getElementById("incomingName"),incomingType=document.getElementById("incomingType"),remoteVideo=document.getElementById("remoteVideo"),localVideo=document.getElementById("localVideo"),permissionScreen=document.getElementById("permissionScreen"),permissionTitle=document.getElementById("permissionTitle"),permissionMessage=document.getElementById("permissionMessage"),permissionRetry=document.getElementById("permissionRetry"),permissionClose=document.getElementById("permissionClose");
 const conversationKey=[myUsername.toLowerCase(),targetUsername.toLowerCase()].sort().join("_");let authReady=false,unsubscribeSent=null,unsubscribeReceived=null;const renderedIds=new Set();
