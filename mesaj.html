@@ -5097,96 +5097,129 @@ $("cancelRecording").onclick=
 
 function subscribe(){
 
- if(
-  !authReady||
-  !targetUsername
- )
- return;
+  if(!authReady || !targetUsername || !myUsername)
+  return;
 
- unsub?.();
+  unsub?.();
 
- loading.style.display=
-  "block";
+  loading.style.display="block";
+  loading.textContent="Mesajlar yükleniyor...";
 
- loading.textContent=
-  "Mesajlar yükleniyor...";
+  /*
+   * Site tarafında mesajın görünmemesinin ana sebebi:
+   * sadece conversationKey sorgulanıyordu.
+   * Eski/başka istemciden gelen belgelerde sender/recipient
+   * doğru olsa bile conversationKey farklı veya eksik olabilir.
+   * Bu yüzden 3 ayrı dinleyiciyi birleştiriyoruz.
+   */
+  const keys=[
+    conversationKey,
+    myUsername.toLowerCase(),
+    targetUsername.toLowerCase()
+  ];
 
- const q=
-  query(
-   collection(
-    firestore,
-    "chatMessages"
-   ),
-   where(
-    "conversationKey",
-    "==",
-    conversationKey
-   ),
-   limit(500)
-  );
+  const listeners=[];
 
- unsub=
-  onSnapshot(
-   q,
-   s=>{
+  function addSnapshot(snap){
+    snap.docs.forEach(d=>{
+      const x={...d.data()};
 
-    allMessages.clear();
+      /* Sadece bu iki kullanıcı arasındaki mesajları kabul et. */
+      const sender=String(x.sender||"").replace(/^@/,"").trim().toLowerCase();
+      const recipient=String(x.recipient||"").replace(/^@/,"").trim().toLowerCase();
+      const me=myUsername.replace(/^@/,"").trim().toLowerCase();
+      const them=targetUsername.replace(/^@/,"").trim().toLowerCase();
 
-    messageRead.clear();
+      const sameConversation=(
+        (sender===me && recipient===them) ||
+        (sender===them && recipient===me) ||
+        String(x.conversationKey||"").toLowerCase()===conversationKey.toLowerCase()
+      );
 
-    s.docs.forEach(
-     d=>{
-
-      const x=d.data();
+      if(!sameConversation) return;
 
       if(x.deleted){
-
-       x.text=
-        "Bu mesaj silindi";
-
-       x.type=
-        "text";
-
-       x.mediaBase64=
-        "";
-
-       x.voiceDataBase64=
-        "";
-
-       x.videoCoverBase64=
-        "";
-
+        x.text="Bu mesaj silindi";
+        x.type="text";
+        x.mediaBase64="";
+        x.voiceDataBase64="";
+        x.videoCoverBase64="";
       }
 
-      allMessages.set(
-       d.id,
-       x
-      );
+      allMessages.set(d.id,x);
 
       if(x.read===true)
-      messageRead.set(
-       d.id,
-       true
-      );
+      messageRead.set(d.id,true);
+    });
+  }
 
-     }
-    );
-
+  function refresh(){
+    loading.style.display="none";
     renderAll();
-
     markRead();
+  }
 
-   },
-   e=>{
-
-    console.error(e);
-
-    loading.textContent=
-     "Mesajlar yüklenemedi.";
-
-   }
+  /* 1) Normal konuşma anahtarı */
+  listeners.push(
+    onSnapshot(
+      query(
+        collection(firestore,"chatMessages"),
+        where("conversationKey","==",conversationKey),
+        limit(500)
+      ),
+      snap=>{
+        addSnapshot(snap);
+        refresh();
+      },
+      e=>console.error("conversationKey listener:",e)
+    )
   );
 
+  /* 2) Ben -> karşı taraf */
+  listeners.push(
+    onSnapshot(
+      query(
+        collection(firestore,"chatMessages"),
+        where("sender","==",myUsername),
+        where("recipient","==",targetUsername),
+        limit(500)
+      ),
+      snap=>{
+        addSnapshot(snap);
+        refresh();
+      },
+      e=>console.error("sender/recipient listener:",e)
+    )
+  );
+
+  /* 3) Karşı taraf -> ben */
+  listeners.push(
+    onSnapshot(
+      query(
+        collection(firestore,"chatMessages"),
+        where("sender","==",targetUsername),
+        where("recipient","==",myUsername),
+        limit(500)
+      ),
+      snap=>{
+        addSnapshot(snap);
+        refresh();
+      },
+      e=>console.error("recipient/sender listener:",e)
+    )
+  );
+
+  unsub=()=>{
+    listeners.splice(0).forEach(fn=>{
+      try{ fn(); }catch{}
+    });
+  };
+
+  /* Listener ilk veriyi getirene kadar boş ekran göstermeyelim. */
+  setTimeout(()=>{
+    if(allMessages.size===0)
+      loading.style.display="none";
+  },1500);
 }
 
 
