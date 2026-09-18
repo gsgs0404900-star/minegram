@@ -7422,7 +7422,7 @@ function renderComment(c){
 
                   <button
                     class="reply-link reply-count-link"
-                    onclick="toggleReplies('${id}')"
+                    onclick="toggleReplies(${JSON.stringify(String(c.id||""))})"
                   >
                     ${replyCount} yanıt
                   </button>
@@ -7581,15 +7581,137 @@ function cancelReply(){
 
 function toggleReplies(id){
 
-  document
-    .getElementById(
-      "replies-"+
-      CSS.escape(String(id))
-    )
-    ?.classList
-    .toggle(
-      "hidden"
+  const safeId = String(id ?? "");
+
+  /*
+    Yanıt alanını doğrudan ID ile aramak yerine
+    ilgili yorum kutusunun içinden bul.
+    Böylece UUID / özel karakter içeren yorum ID'lerinde
+    "5 yanıt" butonu kesin olarak doğru alanı açar.
+  */
+  const wrap = Array.from(
+    document.querySelectorAll(".comment-wrap")
+  ).find(function(el){
+    return String(el.getAttribute("data-comment-id") || "") === safeId;
+  });
+
+  if(!wrap){
+    console.warn("[MINEGRAM] Yanıt yorum kutusu bulunamadı:", safeId);
+    return;
+  }
+
+  const replies = wrap.querySelector(".replies");
+
+  if(!replies){
+    console.warn("[MINEGRAM] Yanıt alanı bulunamadı:", safeId);
+    return;
+  }
+
+  const wasHidden = replies.classList.contains("hidden");
+
+  replies.classList.toggle("hidden", !wasHidden);
+
+  /*
+    Sunucudan sadece replyCount gelip replies dizisi gelmediyse,
+    alan açıldığında yanıtları bir kez sunucudan çekmeyi dene.
+  */
+  if(wasHidden && replies.children.length === 0 && currentCommentPost){
+    loadRepliesForComment(safeId, replies);
+  }
+
+}
+
+async function loadRepliesForComment(commentId, repliesEl){
+
+  if(!commentId || !repliesEl || !currentCommentPost) return;
+
+  try{
+
+    let result = await api(
+      "/comments/" +
+      encodeURIComponent(commentId) +
+      "/replies?ts=" +
+      Date.now()
     );
+
+    let replies = Array.isArray(result?.replies)
+      ? result.replies
+      : Array.isArray(result?.comments)
+        ? result.comments
+        : [];
+
+    /*
+      Bazı sunucu sürümlerinde endpoint /posts/... altında olabilir.
+    */
+    if(!replies.length){
+
+      try{
+
+        result = await api(
+          "/posts/" +
+          encodeURIComponent(currentCommentPost) +
+          "/comments/" +
+          encodeURIComponent(commentId) +
+          "/replies?ts=" +
+          Date.now()
+        );
+
+        replies = Array.isArray(result?.replies)
+          ? result.replies
+          : Array.isArray(result?.comments)
+            ? result.comments
+            : [];
+
+      }catch(_){}
+
+    }
+
+    if(replies.length){
+
+      repliesEl.innerHTML = replies
+        .map(renderReply)
+        .join("");
+
+      /*
+        Yerel önbellekte de sakla ki kapatıp açınca
+        yanıtlar kaybolmasın.
+      */
+      try{
+
+        const local = getLocalComments(currentCommentPost);
+
+        const parent = local.find(function(c){
+          return String(c?.id || "") === String(commentId);
+        });
+
+        if(parent){
+
+          parent.replies = replies;
+
+          localStorage.setItem(
+            localCommentsKey(currentCommentPost),
+            JSON.stringify(local.slice(-100))
+          );
+
+        }
+
+      }catch(_){}
+
+    }else{
+
+      /*
+        Zaten render edilmiş yanıtlar varsa onları koru.
+        Gerçekten hiç yanıt yoksa sessizce boş bırak.
+      */
+      console.warn("[MINEGRAM] Yanıtlar alınamadı:", commentId);
+
+    }
+
+  }catch(error){
+
+    console.warn("[MINEGRAM] Yanıt yükleme hatası:", error);
+
+  }
 
 }
 
