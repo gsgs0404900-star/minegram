@@ -1,150 +1,471 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ara - Minegram</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;min-height:100%;}body{padding-bottom:64px}.top{position:sticky;top:0;z-index:20;background:#000;border-bottom:1px solid #222;padding:12px 12px 10px}.title{font-size:21px;font-weight:800;margin-bottom:10px}.search{display:flex;align-items:center;background:#202020;border-radius:12px;height:44px;padding:0 12px;gap:8px}.search span{font-size:20px;color:#aaa}.search input{flex:1;background:none;border:0;outline:0;color:#fff;font-size:16px}.search input::placeholder{color:#888}.clear{border:0;background:none;color:#aaa;font-size:22px;display:none}.content{min-height:calc(100vh - 125px)}.loading,.empty{text-align:center;color:#888;padding:34px 20px}.section-title{font-weight:800;font-size:18px;padding:12px}.users{border-bottom:1px solid #222}.user{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #191919;cursor:pointer}.avatar{width:55px;height:55px;border-radius:50%;object-fit:cover;background:#4b99d2;color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;flex:none}.story-ring{padding:2px;border-radius:50%;background:conic-gradient(#f9ce34,#ee2a7b,#6228d7,#f9ce34)}.story-ring .avatar{border:2px solid #000}.user-info{min-width:0}.username{font-size:16px;font-weight:800}.sub{font-size:12px;color:#888;margin-top:4px}.tag-result{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #222;cursor:pointer}.tag-icon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#333;font-size:24px;font-weight:800}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}.tile{aspect-ratio:9/16;background:#111;overflow:hidden;position:relative;cursor:pointer}.tile img,.tile video{width:100%;height:100%;object-fit:cover}.play{position:absolute;right:6px;top:6px;background:#0009;border-radius:50%;width:28px;height:28px;display:grid;place-items:center;font-size:14px}.posts{padding-bottom:20px}.post{border-bottom:1px solid #222;padding:12px}.post-head{display:flex;align-items:center;gap:10px;margin-bottom:9px}.post-head .avatar{width:38px;height:38px;font-size:14px}.post-media{width:100%;max-height:600px;border-radius:8px;object-fit:cover;background:#111}.caption{font-size:14px;line-height:1.4;margin-top:8px}.nav{position:fixed;left:0;right:0;bottom:0;width:100%;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;align-items:stretch;z-index:9999;padding:5px max(8px,calc((100% - 760px) / 2)) env(safe-area-inset-bottom)}.nav a{flex:1 1 0;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#ddd;text-decoration:none;font-size:9px;min-width:0;-webkit-tap-highlight-color:transparent}.nav-icon{width:45px;height:32px;border-radius:18px;display:grid;place-items:center;flex:none}.nav a.active .nav-icon{background:#3b3150}.svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.viewer{position:fixed;inset:0;background:#000;z-index:100;display:none}.viewer.show{display:block}.viewer video,.viewer img{width:100%;height:100%;object-fit:contain}.close{position:absolute;z-index:5;top:12px;left:12px;width:42px;height:42px;border-radius:50%;background:#0009;color:#fff;border:0;font-size:24px}.viewer-info{position:absolute;left:16px;right:16px;bottom:28px;z-index:5;text-shadow:0 1px 4px #000}.viewer-info strong{font-size:16px}.viewer-info div{margin-top:6px;font-size:14px}.back{border:0;background:none;color:#fff;font-size:24px;margin-right:5px;display:none}@media(min-width:700px){.content{max-width:700px;margin:auto}.top{max-width:700px;margin:auto}.bottom{max-width:700px;margin:auto;left:50%;transform:translateX(-50%)} }
-.user .avatar{background:#2196f3 !important;color:#fff !important;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ara • Minegram</title>
 
-/* === ARA -> REELS VIEW: REELS.HTML ILE AYNI BOYUT/TASARIM === */
-.viewer{position:fixed;inset:0;background:#000;z-index:10000;display:none;overflow:hidden}.viewer.show{display:block}.viewer-shell{height:100%;width:100%;background:#000}.viewer-phone{width:390px;height:100%;min-height:0;max-height:896px;margin:0 auto;background:#000;position:relative;overflow:hidden}.viewer-feed{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}.viewer-feed::-webkit-scrollbar{display:none}.viewer-reel{height:100%;width:100%;position:relative;background:#000;scroll-snap-align:start;overflow:hidden}.viewer-reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;cursor:pointer}.viewer-reel .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.08) 42%,transparent 67%);pointer-events:none}.viewer-reel .topbtn{position:absolute;top:12px;width:42px;height:42px;border:0;border-radius:0;background:transparent;color:#fff;z-index:5;display:grid;place-items:center;cursor:pointer;text-shadow:0 1px 3px #000}.viewer-reel .back{left:12px;font-size:36px;font-weight:300}.viewer-reel .reel-progress{position:absolute;left:0;right:0;bottom:0;height:46px;z-index:8;display:flex;align-items:center;gap:4px;color:#fff;background:rgba(0,0,0,.9);padding:0 8px;box-sizing:border-box}.viewer-reel .reel-time{font-size:12px;font-variant-numeric:tabular-nums;width:82px;min-width:82px;text-align:left;white-space:nowrap}.viewer-reel .reel-range{appearance:none;-webkit-appearance:none;flex:1;min-width:0;height:4px;margin:0;background:#4b435d;border-radius:99px;outline:none;cursor:pointer}.viewer-reel .reel-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}.viewer-reel .reel-range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:0}.viewer-reel .reel-range::-moz-range-progress{height:4px;background:#42a5f5;border-radius:99px}.viewer-reel .viewer-reel .reel-sound{position:relative;z-index:20}.viewer-reel .reel-sound .mute-slash{display:none}.viewer-reel .reel-sound.muted .mute-slash{display:block}.viewer-reel .reel-sound{width:30px;height:30px;flex:0 0 30px;border:0;background:transparent;color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;text-shadow:0 1px 3px #000}.viewer-reel .reel-sound svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.viewer-reel .center-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border:0;border-radius:50%;background:rgba(0,0,0,.48);color:#fff;z-index:7;display:none;place-items:center}.viewer-reel .center-play svg{width:30px;height:30px;fill:currentColor}.viewer-reel .actions{position:absolute;right:12px;bottom:106px;z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px}.viewer-reel .action{border:0;background:transparent;color:#fff;width:52px;min-height:48px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-shadow:0 2px 5px #000}.viewer-reel .action .ico{width:27px;height:27px;display:grid;place-items:center}.viewer-reel .action .ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.viewer-reel .action.liked .ico svg{fill:currentColor}.viewer-reel .action.liked .ico{color:#ff3150}.viewer-reel .action .num{font-size:13px;font-weight:700}.viewer-reel .info{position:absolute;left:18px;right:72px;bottom:24px;z-index:6;text-shadow:0 2px 5px #000}.viewer-reel .userrow{display:flex;align-items:center;gap:8px}.viewer-reel .avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#3f91cc;overflow:hidden;display:grid;place-items:center;font-weight:800;font-size:18px;cursor:pointer}.viewer-reel .avatar img{width:100%;height:100%;object-fit:cover}.viewer-reel .usercol{min-width:0}.viewer-reel .username{font-size:16px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.viewer-reel .verify{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#1976d2;font-size:12px;margin-left:4px;text-shadow:none}.viewer-reel .follow{margin-left:5px;height:32px;border:1px solid rgba(255,255,255,.75);border-radius:9px;background:transparent;color:#fff;padding:0 11px;font-weight:700;cursor:pointer}.viewer-reel .date{color:#bbb;font-size:12px;margin:2px 0 0 54px}.viewer-reel .desc{font-size:15px;line-height:1.35;margin-top:6px}.viewer-comments{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(390px,100%);height:72%;background:#000;border-radius:24px 24px 0 0;z-index:100;display:none;flex-direction:column;padding:8px 12px 12px;box-shadow:0 -6px 24px rgba(0,0,0,.45)}.viewer-comments.open{display:flex}.viewer-comments .comments-head{position:relative;display:flex;justify-content:center;align-items:center;height:48px;padding:0 4px;border-bottom:1px solid #202020;font-size:16px}.viewer-comments .comments-head:before{content:"";position:absolute;top:2px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:99px;background:#666}.viewer-comments .comments-head b{font-size:16px;font-weight:700}.viewer-comments .close-comments{position:absolute;right:0;top:5px;background:transparent;padding:0;width:38px;height:38px;font-size:28px;line-height:1;color:#fff;border:0}.viewer-comments .comments-list{flex:1;overflow:auto;padding:10px 3px}.viewer-comments .comment{padding:9px 0;border-bottom:1px solid #202020}.viewer-comments .comment b{font-size:13px}.viewer-comments .comment p{margin:4px 0 0;color:#ddd;font-size:13px}.viewer-comments .comment-form{display:flex;gap:7px;padding-top:8px}.viewer-comments .comment-form input{flex:1;background:#191919;color:#fff;border:1px solid #333;border-radius:10px;padding:11px}.viewer-comments .comment-form button{width:46px;height:46px;padding:0;display:grid;place-items:center;border:0;background:transparent;color:#fff;border-radius:10px}.viewer-comments .comment-empty{color:#777;text-align:center;padding:30px 10px}.viewer-comments .comment-meta{display:flex;align-items:center;gap:9px}.viewer-comments .comment-avatar{width:34px;height:34px;border-radius:50%;background:#3f91cc;display:grid;place-items:center;font-weight:800;overflow:hidden;flex:0 0 34px}.viewer-comments .comment-avatar img{width:100%;height:100%;object-fit:cover}.viewer-comments .comment-body{flex:1;min-width:0}.viewer-comments .comment-actions{display:flex;align-items:center;gap:12px;margin-top:5px;color:#888;font-size:11px}.viewer-comments .comment-like{border:0;background:none;color:#aaa;cursor:pointer;padding:0}.viewer-comments .comment-like.liked{color:#ff3150}@media(max-width:699px){.viewer-phone{width:100vw}.viewer-reel .topbtn{top:10px}.viewer-reel .back{left:8px}.viewer-reel .info{bottom:24px}.viewer-reel .actions{bottom:105px}}
+<style>
+:root{
+  --bg:#000;
+  --card:#121212;
+  --border:#222;
+  --text:#fff;
+  --muted:#999;
+  --accent:#3797f0;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+  min-height:100vh;
+  padding-bottom:75px;
+}
+
+.header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:#000;
+  border-bottom:1px solid var(--border);
+  padding:14px;
+}
+
+.title{
+  font-size:24px;
+  font-weight:700;
+  margin-bottom:12px;
+}
+
+.search-box{
+  height:46px;
+  background:#1a1a1a;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  gap:10px;
+}
+
+.search-box input{
+  flex:1;
+  background:none;
+  border:none;
+  color:#fff;
+  outline:none;
+  font-size:15px;
+}
+
+.search-box input::placeholder{
+  color:#777;
+}
+
+.content{
+  max-width:700px;
+  margin:auto;
+}
+
+.section-title{
+  font-size:17px;
+  font-weight:700;
+  padding:16px;
+}
+
+.users{
+  display:flex;
+  flex-direction:column;
+}
+
+.user{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid #161616;
+  cursor:pointer;
+}
+
+.user:hover{
+  background:#0d0d0d;
+}
+
+.avatar{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  background:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  font-weight:700;
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.info{
+  flex:1;
+}
+
+.username{
+  font-weight:700;
+}
+
+.sub{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:4px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2px;
+}
+
+.tile{
+  aspect-ratio:1;
+  background:#111;
+  overflow:hidden;
+  cursor:pointer;
+}
+
+.tile img,
+.tile video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.empty,
+.loading{
+  text-align:center;
+  color:var(--muted);
+  padding:40px 20px;
+}
+
+.nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:70px;
+  background:#111;
+  border-top:1px solid #222;
+  display:flex;
+}
+
+.nav a{
+  flex:1;
+  text-decoration:none;
+  color:#ddd;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+}
+
+.nav a.active{
+  color:#fff;
+  font-weight:700;
+}
 </style>
 </head>
 <body>
-<header class="top"><div class="title">Ara</div><div class="search"><span>⌕</span><button class="back" id="tagBack">‹</button><input id="sq" autocomplete="off" placeholder="#etiket veya kullanıcı adı ara"><button class="clear" id="clear">×</button></div></header>
-<main id="content" class="content"></main>
+
+<header class="header">
+  <div class="title">Ara</div>
+
+  <div class="search-box">
+    🔍
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Kullanıcı veya #etiket ara">
+  </div>
+</header>
+
+<main id="content" class="content">
+  <div class="loading">Yükleniyor...</div>
+</main>
+
 <nav class="nav">
-
-<a href="index.html">
-
-<span class="nav-icon">
-<svg class="svg" viewBox="0 0 24 24">
-<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
-</svg>
-</span>
-
-<span>Ana Sayfa</span>
-
-</a>
-
-<a class="active" href="ara.html">
-
-<span class="nav-icon">
-<svg class="svg" viewBox="0 0 24 24">
-<circle cx="11" cy="11" r="6.5"/>
-<path d="m16 16 5 5"/>
-</svg>
-</span>
-
-<span>Ara</span>
-
-</a>
-
-<a href="olustur.html">
-
-<span class="nav-icon">
-<svg class="svg" viewBox="0 0 24 24">
-<rect x="4" y="4" width="16" height="16" rx="4"/>
-<path d="M12 8v8"/>
-<path d="M8 12h8"/>
-</svg>
-</span>
-
-<span>Oluştur</span>
-
-</a>
-
-<a href="reels.html">
-
-<span class="nav-icon">
-<svg class="svg" viewBox="0 0 24 24">
-<rect x="3" y="4" width="18" height="16" rx="2"/>
-<path d="M3 9h18"/>
-<path d="M8 4l3 5"/>
-<path d="M13 4l3 5"/>
-</svg>
-</span>
-
-<span>Reels</span>
-
-</a>
-
-<a href="profile.html">
-
-<span class="nav-icon">
-<svg class="svg" viewBox="0 0 24 24">
-<circle cx="12" cy="8" r="3.5"/>
-<path d="M5 20a7 7 0 0 1 14 0"/>
-</svg>
-</span>
-
-<span>Profil</span>
-
-</a>
-
+  <a href="index.html">Ana Sayfa</a>
+  <a href="ara.html" class="active">Ara</a>
+  <a href="olustur.html">Oluştur</a>
+  <a href="reels.html">Reels</a>
+  <a href="profile.html">Profil</a>
 </nav>
-<div class="viewer" id="viewer"><div class="viewer-shell"><div class="viewer-phone"><div id="viewerFeed" class="viewer-feed"></div></div></div><div id="viewerComments" class="viewer-comments"><div class="comments-head"><b>Yorumlar</b><button class="close-comments" onclick="closeViewerComments()">×</button></div><div id="viewerCommentsList" class="comments-list"></div><div class="comment-form"><input id="viewerCommentInput" placeholder="Yorum yaz..."><button onclick="sendViewerComment()" aria-label="Gönder"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/><path d="m10.3 13.7 4.1-4.1"/></svg></button></div></div></div>
+
 <script>
-const API='/api';
-const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||'';
-const $=id=>document.getElementById(id); const content=$('content'), input=$('sq'), clear=$('clear'), tagBack=$('tagBack');
-let users=[], stories=[], feed=[], reels=[]; let selectedTag=''; let timer;
-function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function api(path,opt={}){const headers=Object.assign({'Accept':'application/json'},opt.headers||{});if(token)headers.Authorization='Bearer '+token;return fetch(API+path,{...opt,headers}).then(async r=>{const t=await r.text();let d;try{d=JSON.parse(t)}catch{d=t}if(!r.ok)throw new Error((d&&d.error)||r.statusText);return d})}
-function avatar(url,name,story=false){const letter=esc((name||'?').slice(0,1).toUpperCase());const inner=url?`<img class="avatar" src="${esc(url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" alt="">`:'';const fallback=`<span class="avatar" style="${url?'display:none':''}">${letter}</span>`;return story?`<div class="story-ring">${inner}${fallback}</div>`:`${inner}${fallback}`}
-function getAvatar(u){return u?.avatar||u?.avatar_url||u?.avatarUrl||u?.profile?.avatar_url||u?.profile?.avatarUrl||''}
-function privateUser(u){const s=u?.settings||{};return !!(s.private_account||s.privateAccount||s.private||u?.private_account||u?.privateAccount||u?.private)}
-function storyFor(name){return stories.filter(s=>String(s.username||'').toLowerCase()===String(name||'').toLowerCase())}
-function isVideo(p){const m=String(p?.media_type||p?.mediaType||p?.type||'').toLowerCase();const u=String(p?.media||p?.media_url||p?.mediaUrl||p?.mediaUri||p?.video||p?.videoUrl||p?.video_url||p?.reel||p?.reelUrl||p?.reel_url||p?.url||p?.fileUrl||p?.file_url||'').toLowerCase();return m.includes('video')||m.includes('reel')||/\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(u)}
-function mediaUrl(p){return p?.media||p?.media_url||p?.mediaUrl||p?.mediaUri||p?.video||p?.videoUrl||p?.video_url||p?.reel||p?.reelUrl||p?.reel_url||p?.url||p?.fileUrl||p?.file_url||''}
-function postText(p){return p?.text||p?.caption||p?.description||''}
-function postId(p){return p?.id??p?.post_id??p?.postId??''}
-function normalizeReels(){reels=feed.filter(isVideo).map(p=>{const user=p?.user||p?.profile||{};return{id:postId(p),username:String(p.username||user.username||'').replace(/^@/,''),description:postText(p),mediaUri:mediaUrl(p),likes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),views:Number(p.views||0)}}).filter(r=>r.username&&r.mediaUri).filter((r,i,a)=>i===a.findIndex(x=>String(x.id)==String(r.id)&&x.username.toLowerCase()===r.username.toLowerCase()&&x.mediaUri===r.mediaUri));}
-async function loadData(){
- content.innerHTML='<div class="loading">Yükleniyor...</div>';
- try{const me=await api('/me');if(!me)throw new Error('auth');}catch(e){location.href='giris.html';return}
- try{const [f,s]=await Promise.all([api('/feed?ts='+Date.now()),api('/stories?ts='+Date.now()).catch(()=>[]) ]);feed=Array.isArray(f)?f:(f?.posts||f?.data||f?.items||[]);stories=Array.isArray(s)?s:(s?.stories||s?.data||s?.items||[]);normalizeReels();renderDiscovery();}catch(e){content.innerHTML='<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>'}
+const API = "/api";
+
+const token =
+localStorage.getItem("minegram_token") ||
+localStorage.getItem("minegram_supabase_token") ||
+"";
+
+const content = document.getElementById("content");
+const searchInput = document.getElementById("searchInput");
+
+let feed = [];
+
+function esc(str=""){
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
 }
-async function searchUsers(q){try{const d=await api('/search?q='+encodeURIComponent(q));const arr=Array.isArray(d)?d:(d?.users||d?.data||[]);return arr.map(u=>{const x=u?.user||u?.profile||u||{};return{username:String(u.username||x.username||'').trim().replace(/^@/,''),avatar:getAvatar(u)||getAvatar(x),private:privateUser(u)||privateUser(x)}}).filter(u=>u.username)}catch{return []}}
-function renderTagIntro(tag){content.innerHTML=`<div class="tag-result" id="openTag"><div class="tag-icon">#</div><div><div class="username">#${esc(tag)}</div><div class="sub">Etiket gönderilerini gör</div></div></div>`;$('openTag').onclick=()=>{selectedTag=tag;renderTagPosts()}}
-function renderTagPosts(){tagBack.style.display='inline';const re=new RegExp('#'+selectedTag.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i');const posts=feed.filter(p=>re.test(postText(p)));if(!posts.length){content.innerHTML='<div class="empty">Bu etikette henüz gönderi yok</div>';return}content.innerHTML='<div class="posts">'+posts.map(p=>postHtml(p)).join('')+'</div>';bindPosts()}
-function postHtml(p){const name=esc(p.username||'');const a=getAvatar(p);const u=mediaUrl(p);let media='';if(u){if(isVideo(p))media=`<video class="post-media" src="${esc(u)}" controls playsinline preload="metadata"></video>`;else media=`<img class="post-media" src="${esc(u)}" loading="lazy" alt="">`;}return `<article class="post" data-id="${esc(postId(p))}" data-user="${name}"><div class="post-head" data-profile="${name}">${avatar(a,name,false)}<strong>@${name}</strong></div>${media}<div class="caption">${esc(postText(p))}</div></article>`}
-function bindPosts(){document.querySelectorAll('[data-profile]').forEach(x=>x.onclick=()=>openProfile(x.dataset.profile))}
-function renderDiscovery(){if(!reels.length){content.innerHTML='<div class="empty"><div style="font-size:52px">⌕</div><div>Kullanıcı ara</div></div>';return}content.innerHTML='<div class="section-title">Videolar</div><div class="grid">'+reels.map((r,i)=>`<div class="tile" data-reel="${i}"><video src="${esc(r.mediaUri)}" muted playsinline preload="metadata"></video><span class="play">▶</span></div>`).join('')+'</div>';document.querySelectorAll('[data-reel]').forEach(x=>x.onclick=()=>openReel(+x.dataset.reel))}
-function renderUsers(arr){if(!arr.length){content.innerHTML='<div class="empty">Kullanıcı bulunamadı</div>';return}content.innerHTML='<div class="users">'+arr.map(u=>{const st=storyFor(u.username);const has=!u.private&&st.length;return `<div class="user" data-user="${esc(u.username)}" data-story="${has?'1':'0'}">${avatar(u.avatar,u.username,has)}<div class="user-info"><div class="username">@${esc(u.username)}</div><div class="sub">${has?'Hikayeyi görmek için fotoğrafa dokun':'Hesabı görüntüle'}</div></div></div>`}).join('')+'</div>';document.querySelectorAll('[data-user]').forEach(el=>el.onclick=()=>{const n=el.dataset.user;if(el.dataset.story==='1'&&el.querySelector('.story-ring'))openStory(n);else openProfile(n)})}
-async function doSearch(q){q=q.trim();clear.style.display=q?'block':'none';tagBack.style.display=selectedTag?'inline':'none';if(selectedTag){renderTagPosts();return}if(!q){renderDiscovery();return}if(q.startsWith('#')){const tag=q.slice(1).trim();if(tag)renderTagIntro(tag);else renderDiscovery();return}content.innerHTML='<div class="loading">Kullanıcılar aranıyor...</div>';const found=await searchUsers(q.replace(/^@/,''));renderUsers(found)}
-function openProfile(name){if(name)location.href='profile.html?username='+encodeURIComponent(name)}
-function openReel(i){
- const feedEl=$('viewerFeed');
- if(!reels.length)return;
- feedEl.innerHTML=reels.map((r,k)=>{
-  const av=r.avatar||getAvatar(r.raw||r)||''; const letter=esc((r.username||'M').charAt(0).toUpperCase());
-  const avatarHtml=av?`<img src="${esc(av)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`+`<span style="display:none">${letter}</span>`:`<span>${letter}</span>`;
-  return `<article class="viewer-reel" data-index="${k}"><video data-src="${esc(r.mediaUri)}" playsinline muted loop preload="metadata"></video><div class="shade"></div><button class="center-play" onclick="toggleViewerPlay(${k})"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="reel-progress"><span class="reel-time current-time">0:00 / 0:00</span><input class="reel-range" type="range" min="0" max="100" value="0" step="0.1" oninput="seekViewer(${k},this.value)"><button class="reel-sound" onclick="toggleViewerMute(${k})"><svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path class="waves" d="M16 9.5c1.7 1.7 1.7 3.3 0 5M18.5 7c3 3 3 7 0 10"/><path class="mute-slash" d="M5 5L19 19"/></svg></button></div><button class="topbtn back" onclick="closeViewer()">‹</button><div class="actions"><button class="action like" onclick="likeViewerReel(${k})"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.1-8.8 10.8-8.8 10.8S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 8 4c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.7 4.7 0 0 1 4.8 4.7z"/></svg></span><span class="num">${r.likes||0}</span></button><div class="action view-stat"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span class="num">${r.views||0}</span></div><button class="action" onclick="openViewerComments(${k})"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.14 0-2.22-.25-3.19-.69L4 20l1.69-4.19A7.46 7.46 0 0 1 5 11.5 7.5 7.5 0 1 1 20 11.5Z"/></svg></span><span class="num comment-count">${r.commentCount||0}</span></button><button class="action" onclick="shareViewerReel(${k})"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7z"/></svg></span></button></div><div class="info"><div class="userrow"><div class="avatar" onclick="openProfile('${encodeURIComponent(r.username)}')">${avatarHtml}</div><div class="usercol"><div><span class="username" onclick="openProfile('${encodeURIComponent(r.username)}')">@${esc(r.username)}</span></div></div></div><div class="date">${esc(r.date||'')}</div><div class="desc">${esc(r.description||'')}</div></div></article>`;
- }).join('');
- $('viewer').classList.add('show'); document.body.style.overflow='hidden'; setupViewerReels(i);
+
+async function api(path){
+
+  const headers = {
+    Accept:"application/json"
+  };
+
+  if(token){
+    headers.Authorization = "Bearer " + token;
+  }
+
+  const res = await fetch(API + path,{headers});
+
+  if(!res.ok){
+    throw new Error("API Error");
+  }
+
+  return res.json();
 }
-let viewerObserver=null;
-function setupViewerReels(start){const arts=[...document.querySelectorAll('.viewer-reel')];if(viewerObserver)viewerObserver.disconnect();viewerObserver=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video'),i=Number(e.target.dataset.index);if(e.isIntersecting&&e.intersectionRatio>.65){arts.forEach((a,j)=>{const x=a.querySelector('video');if(x!==v){x.pause();x.muted=true;a.querySelector('.reel-sound')?.classList.add('muted')}});v.muted=false;v.volume=1;v.play().catch(()=>showViewerPlay(i,true));e.target.querySelector('.reel-sound')?.classList.remove('muted');viewViewerCount(i)}else v.pause()}),{threshold:[.65]});arts.forEach((a,i)=>{const v=a.querySelector('video');v.src=reels[i].mediaUri;v.addEventListener('loadedmetadata',()=>updateViewerProgress(i));v.addEventListener('timeupdate',()=>updateViewerProgress(i));v.addEventListener('play',()=>showViewerPlay(i,false));v.addEventListener('pause',()=>showViewerPlay(i,true));v.addEventListener('click',()=>toggleViewerPlay(i));viewerObserver.observe(a)});requestAnimationFrame(()=>arts[start]?.scrollIntoView({block:'start'}));}
-function showViewerPlay(i,show){const b=document.querySelectorAll('.viewer-reel')[i]?.querySelector('.center-play');if(b)b.style.display=show?'grid':'none'}
-function toggleViewerPlay(i){const v=document.querySelectorAll('.viewer-reel video')[i];if(!v)return;if(v.paused){v.play().catch(()=>{});showViewerPlay(i,false)}else{v.pause();showViewerPlay(i,true)}}
-function toggleViewerMute(i){const v=document.querySelectorAll('.viewer-reel video')[i];const b=document.querySelectorAll('.viewer-reel .reel-sound')[i];if(!v||!b)return;v.muted=!v.muted;document.querySelectorAll('.viewer-reel video').forEach((x,j)=>{if(j!==i){x.muted=true;document.querySelectorAll('.viewer-reel .reel-sound')[j]?.classList.add('muted')}});b.classList.toggle('muted',v.muted);if(!v.muted)v.play().catch(()=>{})}
-function updateViewerProgress(i){const a=document.querySelectorAll('.viewer-reel')[i],v=a?.querySelector('video'),r=a?.querySelector('.reel-range'),t=a?.querySelector('.current-time');if(!v||!r)return;const p=v.duration?Math.min(100,v.currentTime/v.duration*100):0;r.value=p;r.style.background=`linear-gradient(to right,#42a5f5 0%,#42a5f5 ${p}%,#4b435d ${p}%,#4b435d 100%)`;if(t)t.textContent=viewerTime(v.currentTime)+' / '+viewerTime(v.duration)}
-function viewerTime(s){s=Number.isFinite(s)&&s>=0?Math.floor(s):0;return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
-function seekViewer(i,p){const v=document.querySelectorAll('.viewer-reel video')[i];if(v&&Number.isFinite(v.duration))v.currentTime=Number(p)/100*v.duration}
-const viewerSeen=new Set();function viewViewerCount(i){const r=reels[i];if(!r||viewerSeen.has(r.id))return;viewerSeen.add(r.id);r.views=(Number(r.views)||0)+1;const n=document.querySelectorAll('.viewer-reel')[i]?.querySelector('.view-stat .num');if(n)n.textContent=r.views}
-async function likeViewerReel(i){const r=reels[i],a=document.querySelectorAll('.viewer-reel')[i],b=a?.querySelector('.like');if(!r||!b)return;const liked=b.classList.contains('liked');r.likes=Math.max(0,(Number(r.likes)||0)+(liked?-1:1));b.classList.toggle('liked',!liked);b.querySelector('.num').textContent=r.likes;try{await api('/posts/'+encodeURIComponent(r.id)+'/like',{method:'POST'})}catch{}}
-async function openViewerComments(i){currentViewerComment=i;$('viewerComments').classList.add('open');const list=$('viewerCommentsList');list.innerHTML='<div class="loading">Yorumlar yükleniyor...</div>';try{const j=await api('/posts/'+encodeURIComponent(reels[i].id)+'/comments?ts='+Date.now());const arr=Array.isArray(j)?j:(j?.comments||j?.data||[]);renderViewerComments(arr)}catch{list.innerHTML='<div class="comment-empty">Yorumlar alınamadı.</div>'}}
-let currentViewerComment=null;
-function renderViewerComments(arr){const list=$('viewerCommentsList');list.innerHTML=arr.length?arr.map(c=>{const u=c.user||c.author||{};const n=esc(c.username||u.username||'minegram'),tx=esc(c.text||c.comment||c.body||'');return `<div class="comment"><div class="comment-meta"><div class="comment-avatar">${esc((n.replace('@','')||'M').charAt(0).toUpperCase())}</div><div class="comment-body"><b>@${n.replace(/^@/,'')}</b><p>${tx}</p><div class="comment-actions">${esc(c.createdAt||c.created_at||'')}</div></div></div></div>`}).join(''):'<div class="comment-empty">Henüz yorum yok.<br>İlk yorumu sen yap.</div>'}
-async function sendViewerComment(){const inp=$('viewerCommentInput'),text=inp.value.trim();if(!text||currentViewerComment===null)return;try{const r=reels[currentViewerComment];await api('/posts/'+encodeURIComponent(r.id)+'/comments',{method:'POST',body:{text}});inp.value='';await openViewerComments(currentViewerComment)}catch(e){alert(e.message||'Yorum gönderilemedi')}}
-function closeViewerComments(){$('viewerComments').classList.remove('open');currentViewerComment=null}
-async function shareViewerReel(i){const r=reels[i],text='🎬 @'+r.username+' Reels: '+(r.description||'');if(navigator.share){try{await navigator.share({text})}catch{}}else{try{await navigator.clipboard.writeText(text)}catch{}}}
-function closeViewer(){closeViewerComments();if(viewerObserver)viewerObserver.disconnect();document.querySelectorAll('.viewer-reel video').forEach(v=>{v.pause();v.removeAttribute('src');v.load()});$('viewer').classList.remove('show');document.body.style.overflow='';$('viewerFeed').innerHTML=''}
-input.addEventListener('input',()=>{clearTimeout(timer);selectedTag='';timer=setTimeout(()=>doSearch(input.value),100)});clear.onclick=()=>{input.value='';selectedTag='';doSearch('');input.focus()};tagBack.onclick=()=>{selectedTag='';tagBack.style.display='none';doSearch(input.value)};
-let sy=0;document.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});document.addEventListener('touchend',e=>{if(window.scrollY<=2&&e.changedTouches[0].clientY-sy>100)loadData()},{passive:true});
-loadData();
+
+function mediaUrl(post){
+  return (
+    post.media ||
+    post.media_url ||
+    post.mediaUrl ||
+    post.video ||
+    post.videoUrl ||
+    ""
+  );
+}
+
+function renderExplore(){
+
+  const posts = feed.filter(
+    p => mediaUrl(p)
+  );
+
+  if(!posts.length){
+    content.innerHTML =
+      '<div class="empty">Gösterilecek içerik yok.</div>';
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="section-title">
+      Keşfet
+    </div>
+
+    <div class="grid">
+      ${posts.map(post=>{
+
+        const media = mediaUrl(post);
+
+        return `
+          <div class="tile">
+            <img
+              src="${media}"
+              loading="lazy">
+          </div>
+        `;
+
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderUsers(users){
+
+  if(!users.length){
+    content.innerHTML =
+      '<div class="empty">Sonuç bulunamadı.</div>';
+    return;
+  }
+
+  content.innerHTML =
+  '<div class="users">' +
+
+  users.map(user=>{
+
+    const username =
+      user.username || "";
+
+    const avatar =
+      user.avatar ||
+      user.avatar_url ||
+      "";
+
+    return `
+      <div
+        class="user"
+        onclick="location.href='profile.html?username=${encodeURIComponent(username)}'">
+
+        <div class="avatar">
+
+          ${
+            avatar
+            ? `<img src="${avatar}">`
+            : username.charAt(0).toUpperCase()
+          }
+
+        </div>
+
+        <div class="info">
+          <div class="username">
+            @${esc(username)}
+          </div>
+
+          <div class="sub">
+            Profili görüntüle
+          </div>
+        </div>
+
+      </div>
+    `;
+
+  }).join("")
+
+  + "</div>";
+}
+
+async function searchUsers(query){
+
+  try{
+
+    const result =
+      await api(
+        "/search?q=" +
+        encodeURIComponent(query)
+      );
+
+    return (
+      result.users ||
+      result.data ||
+      result ||
+      []
+    );
+
+  }catch{
+    return [];
+  }
+}
+
+async function load(){
+
+  try{
+
+    await api("/me");
+
+    const data =
+      await api(
+        "/feed?ts=" +
+        Date.now()
+      );
+
+    feed =
+      data.posts ||
+      data.data ||
+      data ||
+      [];
+
+    renderExplore();
+
+  }catch{
+
+    location.href = "giris.html";
+
+  }
+
+}
+
+let timer;
+
+searchInput.addEventListener(
+  "input",
+  ()=>{
+
+    clearTimeout(timer);
+
+    timer = setTimeout(
+      async ()=>{
+
+        const q =
+          searchInput.value.trim();
+
+        if(!q){
+          renderExplore();
+          return;
+        }
+
+        if(q.startsWith("#")){
+
+          const tag =
+            q.slice(1).toLowerCase();
+
+          const posts =
+            feed.filter(post =>
+              String(
+                post.caption ||
+                post.text ||
+                ""
+              )
+              .toLowerCase()
+              .includes("#"+tag)
+            );
+
+          content.innerHTML =
+          `
+            <div class="section-title">
+              #${esc(tag)}
+            </div>
+
+            <div class="grid">
+              ${
+                posts.map(post=>`
+                  <div class="tile">
+                    <img src="${mediaUrl(post)}">
+                  </div>
+                `).join("")
+              }
+            </div>
+          `;
+
+          return;
+        }
+
+        const users =
+          await searchUsers(q);
+
+        renderUsers(users);
+
+      },
+      250
+    );
+
+  }
+);
+
+load();
 </script>
-</body></html>
+
+</body>
+</html
