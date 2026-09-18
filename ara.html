@@ -1290,62 +1290,46 @@ function renderUsers(array) {
 }
 
 
-async function toggleFollowUser(
-  username,
-  button
-) {
+async function toggleFollowUser(username, button) {
+  const cleanUsername = String(username || "")
+    .replace(/^@/, "")
+    .trim();
 
-  const cleanUsername =
-    String(username || "")
-      .replace(/^@/,"")
-      .trim();
+  const usernameKey = normalizeUsername(cleanUsername);
 
-
-  const usernameKey =
-    normalizeUsername(
-      cleanUsername
-    );
-
-
-  if (
-    !usernameKey ||
-    usernameKey === currentUsername
-  ) {
+  if (!usernameKey || usernameKey === currentUsername) {
     return;
   }
 
+  const isFollowing = followingUsers.has(usernameKey);
 
-  const isFollowing =
-    followingUsers.has(
-      usernameKey
-    );
+  // Anında görsel olarak değiştir
+  if (!isFollowing) {
+    followingUsers.add(usernameKey);
 
+    button.textContent = "Takip Ediliyor";
+    button.classList.add("following");
+  } else {
+    followingUsers.delete(usernameKey);
+
+    button.textContent = "Takip Et";
+    button.classList.remove("following");
+  }
 
   button.disabled = true;
 
-  const oldText =
-    button.textContent.trim();
-
-  button.textContent = "...";
-
-
   try {
-
-    const result =
-      await api(
-        "/users/" +
-        encodeURIComponent(
-          cleanUsername
-        ) +
-        "/follow",
-        {
-          method:"POST",
-          body:{
-            follow:!isFollowing
-          }
+    const result = await api(
+      "/users/" +
+      encodeURIComponent(cleanUsername) +
+      "/follow",
+      {
+        method: "POST",
+        body: {
+          follow: !isFollowing
         }
-      );
-
+      }
+    );
 
     const backendState =
       result?.following ??
@@ -1355,61 +1339,43 @@ async function toggleFollowUser(
       result?.data?.isFollowing ??
       result?.data?.is_following;
 
-
-    const newState =
-      typeof backendState === "boolean"
-        ? backendState
-        : !isFollowing;
-
-
-    if (newState) {
-
-      followingUsers.add(
-        usernameKey
-      );
-
-      button.textContent =
-        "Takip Ediliyor";
-
-      button.classList.add(
-        "following"
-      );
-
-    } else {
-
-      followingUsers.delete(
-        usernameKey
-      );
-
-      button.textContent =
-        "Takip Et";
-
-      button.classList.remove(
-        "following"
-      );
-
+    // Backend farklı durum döndürürse butonu ona göre düzelt
+    if (typeof backendState === "boolean") {
+      if (backendState) {
+        followingUsers.add(usernameKey);
+        button.textContent = "Takip Ediliyor";
+        button.classList.add("following");
+      } else {
+        followingUsers.delete(usernameKey);
+        button.textContent = "Takip Et";
+        button.classList.remove("following");
+      }
     }
 
-
-    const user =
-      users.find(
-        item =>
-          normalizeUsername(
-            item.username
-          ) ===
-          usernameKey
-      );
-
+    const user = users.find(
+      item =>
+        normalizeUsername(item.username) === usernameKey
+    );
 
     if (user) {
       user.isFollowing =
-        newState;
+        typeof backendState === "boolean"
+          ? backendState
+          : !isFollowing;
     }
 
-  } catch(error) {
+  } catch (error) {
 
-    button.textContent =
-      oldText;
+    // API başarısız olursa eski duruma dön
+    if (isFollowing) {
+      followingUsers.add(usernameKey);
+      button.textContent = "Takip Ediliyor";
+      button.classList.add("following");
+    } else {
+      followingUsers.delete(usernameKey);
+      button.textContent = "Takip Et";
+      button.classList.remove("following");
+    }
 
     alert(
       error?.message ||
@@ -1417,7 +1383,6 @@ async function toggleFollowUser(
     );
 
   } finally {
-
     button.disabled = false;
   }
 }
