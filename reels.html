@@ -54,6 +54,7 @@
   .comments-list{padding-left:18px;padding-right:18px}
   .comment-compose{padding-left:12px;padding-right:12px}
 }
+.replying-bar{display:none;align-items:center;justify-content:space-between;gap:10px;margin:0 16px 0;padding:8px 12px;border-radius:10px;background:#20252a;color:#c9cdd3;font-size:12px}.replying-bar.show{display:flex}.replying-bar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.replying-bar button{border:0;background:transparent;color:#fff;font-size:20px;line-height:1;padding:0;cursor:pointer}
 </style>
 </head>
 <body>
@@ -83,6 +84,7 @@
     <span>❤️</span><span>🙌</span><span>🔥</span><span>👋</span>
     <span>😢</span><span>😍</span><span>😮</span><span>😂</span>
   </div>
+  <div id="replyingBar" class="replying-bar"><span id="replyingText"></span><button type="button" onclick="cancelReply()">×</button></div>
   <div class="comment-compose">
     <div id="composeAvatar" class="avatar small">M</div>
     <input id="commentInput" class="compose-input" placeholder="Bunun hakkında ne düşünüyorsun?" onkeydown="if(event.key==='Enter')sendComment()">
@@ -137,8 +139,21 @@ function saveLocalComment(id,c){
 }
 function mergeComments(server,id){
   const all=Array.isArray(server)?[...server]:[];
-  for(const c of getLocalComments(id)){
-    const exists=all.some(x=>String(x.id||"")===String(c.id||"") || (x.username===c.username&&x.text===c.text&&Math.abs(new Date(x.createdAt||x.created_at||0)-new Date(c.createdAt||0))<10000));
+  const local=getLocalComments(id);
+  for(const c of local){
+    const same=all.find(x=>String(x.id||"")===String(c.id||""));
+    if(same){
+      if(Array.isArray(c.replies)&&c.replies.length){
+        same.replies=Array.isArray(same.replies)?same.replies:[];
+        for(const r of c.replies){
+          if(!same.replies.some(x=>String(x.id||"")===String(r.id||"") || (x.username===r.username&&x.text===r.text))){same.replies.push(r)}
+        }
+        same.replyCount=Math.max(Number(same.replyCount||0),same.replies.length);
+      }
+      continue;
+    }
+    if(c.localReplyParent)continue;
+    const exists=all.some(x=>x.username===c.username&&x.text===c.text);
     if(!exists)all.push(c);
   }
   return all;
@@ -231,7 +246,7 @@ async function refreshComments(showLoading=true){
   }
 }
 async function openComments(i){
-  currentCommentReel=i;currentCommentSort='forYou';replyingTo=null;
+  currentCommentReel=i;currentCommentSort='forYou';replyingTo=null;cancelReply();
   const input=document.getElementById('commentInput');if(input){input.value='';input.placeholder='Bunun hakkında ne düşünüyorsun?'}
   const sort=document.getElementById('commentSort');if(sort)sort.value='forYou';
   document.getElementById('comments').classList.add('open');
@@ -239,9 +254,25 @@ async function openComments(i){
   if(r)renderCommentsForReel(getLocalComments(r.id).map(commentObj));
   await refreshComments(true);
 }
-function closeComments(){document.getElementById('comments')?.classList.remove('open');currentCommentReel=null;replyingTo=null}
+function closeComments(){document.getElementById('comments')?.classList.remove('open');currentCommentReel=null;cancelReply()}
 function changeCommentSort(value){currentCommentSort=value||'forYou';if(currentCommentReel!==null){const r=reels[currentCommentReel];if(r)refreshComments(false)}}
-function startReply(id,username){replyingTo=decodeURIComponent(id);const input=document.getElementById('commentInput');if(input){input.placeholder='@'+String(username).replace(/^@/,'')+' kişisine yanıt yaz...';input.focus()}}
+function startReply(id,username){
+  replyingTo=decodeURIComponent(String(id));
+  const cleanUser=String(username||'minegram').replace(/^@/,'');
+  const input=document.getElementById('commentInput');
+  const bar=document.getElementById('replyingBar');
+  const text=document.getElementById('replyingText');
+  if(bar)bar.classList.add('show');
+  if(text)text.textContent='@'+cleanUser+' kişisine yanıt yazıyorsun';
+  if(input){input.placeholder='@'+cleanUser+' kişisine yanıt yaz...';input.focus()}
+}
+function cancelReply(){
+  replyingTo=null;
+  const bar=document.getElementById('replyingBar');
+  const input=document.getElementById('commentInput');
+  if(bar)bar.classList.remove('show');
+  if(input)input.placeholder='Bunun hakkında ne düşünüyorsun?';
+}
 function toggleReplies(id){document.getElementById('replies-'+CSS.escape(String(id)))?.classList.toggle('hidden')}
 async function sendComment(){
   const input=document.getElementById('commentInput');const textValue=String(input?.value||'').trim();
@@ -252,13 +283,15 @@ async function sendComment(){
   const username=usernameFromMe()||'minegram';
   const item={id:'local-'+Date.now()+'-'+Math.random().toString(36).slice(2),username,text:textValue,createdAt:new Date().toISOString(),likedByMe:false,local:true,replies:[]};
   if(replyId){
-    const local=getLocalComments(postId);const parent=local.find(c=>String(c.id)===String(replyId));
-    if(parent){parent.replies=Array.isArray(parent.replies)?parent.replies:[];parent.replies.push(item);try{localStorage.setItem(localCommentsKey(postId),JSON.stringify(local.slice(-100)))}catch(e){}}
+    const local=getLocalComments(postId);let parent=local.find(c=>String(c.id)===String(replyId));
+    if(!parent){parent={id:String(replyId),username:'',text:'',createdAt:new Date().toISOString(),replies:[],localReplyParent:true};local.push(parent)}
+    parent.replies=Array.isArray(parent.replies)?parent.replies:[];parent.replies.push(item);
+    try{localStorage.setItem(localCommentsKey(postId),JSON.stringify(local.slice(-100)))}catch(e){}
     const wrap=document.querySelector('.comment-wrap[data-comment-id="'+CSS.escape(String(replyId))+'"]');const replies=wrap?.querySelector('.replies');if(replies){replies.classList.remove('hidden');replies.insertAdjacentHTML('beforeend',renderReply(item))}
   }else{
     saveLocalComment(postId,item);renderCommentsForReel(getLocalComments(postId).map(commentObj));const list=document.getElementById('commentsList');if(list)list.scrollTop=list.scrollHeight;
   }
-  input.value='';replyingTo=null;input.placeholder='Bunun hakkında ne düşünüyorsun?';toast(replyId?'Yanıt gönderildi':'Yorum gönderildi');
+  input.value='';cancelReply();toast(replyId?'Yanıt gönderildi':'Yorum gönderildi');
   try{
     let result;
     if(replyId){
