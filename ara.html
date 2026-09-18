@@ -1890,13 +1890,6 @@ function renderUsers(arr){
 
 function renderDiscovery(){
 
-  /*
-    ARAMA SAYFASI BOŞKEN:
-    Gönderi/Reels gösterme.
-    Gönderiler ve Reels yalnızca #hashtag arandığında
-    renderHashtagResults() tarafından gösterilir.
-  */
-
   currentTag = "";
   currentSearch = "";
 
@@ -1904,7 +1897,42 @@ function renderDiscovery(){
     tagBack.style.display = "none";
   }
 
-  content.innerHTML = "";
+  if(!reels.length){
+    content.innerHTML = `
+      <div class="empty">
+        <div style="font-size:52px">⌕</div>
+        <div>Kullanıcı ara</div>
+      </div>
+    `;
+    return;
+  }
+
+  /* Ara sayfasına girildiğinde eski SVG/Reels görünümü */
+  content.innerHTML = `
+    <div class="section-title">Videolar</div>
+    <div class="grid">
+      ${reels.map((r,i) => {
+        const src = videoUrl(r) || mediaUrl(r);
+        const poster = r.cover || r.cover_url || r.thumbnail || r.thumbnail_url || r.poster || "";
+        return `
+          <div class="tile" data-reel="${i}">
+            <video
+              src="${esc(src)}"
+              ${poster ? `poster="${esc(poster)}"` : ""}
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
+            <span class="play">▶</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  document.querySelectorAll('[data-reel]').forEach(x => {
+    x.onclick = () => openReel(Number(x.dataset.reel));
+  });
 
 }
 
