@@ -1003,7 +1003,7 @@ body{
   http-equiv="Content-Security-Policy"
   content="
     default-src 'self' https: data: blob:;
-    script-src 'self' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' https://www.gstatic.com;
     style-src 'self' 'unsafe-inline' https:;
     img-src 'self' https: data: blob:;
     media-src 'self' https: data: blob:;
@@ -9865,7 +9865,7 @@ closeEl.onclick=()=>modal.classList.remove("show");modal.addEventListener("click
       const users=[...new Set(arr.map(x=>String(x?.username||x||'').replace(/^@/,'').trim()).filter(Boolean))].slice(0,100);
       if(!users.length){list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı bulunamadı</div>';return;}
       list.innerHTML=users.map(u=>'<div class="share-user" data-share-user="'+esc(u)+'"><div class="share-avatar">'+esc((u[0]||'M').toUpperCase())+'</div><div class="share-meta"><b>@'+esc(u)+'</b><small>Gönderiyi gönder</small></div><span>➤</span></div>').join('');
-      list.querySelectorAll('[data-share-user]').forEach(row=>row.addEventListener('click',function(){
+      list.querySelectorAll('[data-share-user]').forEach(row=>row.addEventListener('click',async function(){
         const u=row.getAttribute('data-share-user');
         if(window.__minegramSendPostToUser){ await window.__minegramSendPostToUser(u); return; }
         if(typeof window.toast==='function') window.toast('Gönderim sistemi yükleniyor...');
