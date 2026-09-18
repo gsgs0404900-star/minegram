@@ -1237,9 +1237,19 @@ body{
 .message-actions button{border:0;background:transparent;color:#fff;font-size:12px;padding:4px 6px;cursor:pointer}
 .message.sent .message-actions{justify-content:flex-end}
 .message-reaction{display:none!important}
-.message:has(.message-reel) .message-actions{padding:0 10px;margin-top:6px;justify-content:flex-start}
-.message:has(.message-reel) .message-actions button[data-act="like"]{font-size:22px;padding:2px 5px}
-.message:has(.message-reel) .message-actions button[data-act="reply"]{font-size:13px}
+.message:has(.message-post) .message-actions,.message:has(.message-reel) .message-actions{padding:0 10px;margin-top:6px;justify-content:flex-start}
+.message:has(.message-post) .message-actions button[data-act="like"],.message:has(.message-reel) .message-actions button[data-act="like"]{font-size:22px;padding:2px 5px}
+.message:has(.message-post) .message-actions button[data-act="reply"],.message:has(.message-reel) .message-actions button[data-act="reply"]{font-size:13px}
+.message:not(:has(.message-post)):not(:has(.message-reel)) .message-actions button[data-act="like"]{display:none}
+.reply-content-preview{width:100%;margin-bottom:8px;padding:0;background:#000;border:1px solid #111;border-radius:18px;overflow:hidden}
+.reply-content-preview .reply-preview-media{width:100%;height:150px;object-fit:cover;display:block;background:#111}
+.reply-content-preview .reply-preview-info{padding:8px 10px;background:#000}
+.reply-content-preview .reply-preview-user{font-weight:700;font-size:14px}
+.reply-content-preview .reply-preview-caption{font-size:12px;color:#ddd;margin-top:3px}
+.reply-content-preview .reply-preview-actions{display:flex;align-items:center;gap:14px;padding:7px 10px 9px;font-size:14px}
+.reply-content-preview .reply-preview-actions button{border:0;background:transparent;color:#fff;font-size:21px;padding:0;cursor:pointer}
+.reply-content-preview .reply-preview-actions button.liked{color:#ff304f}
+
 .message-swipe-label{position:absolute;left:8px;top:50%;transform:translate(-10px,-50%);opacity:0;color:#62afea;font-size:12px;font-weight:700;pointer-events:none;transition:.12s}
 .message.swiping .message-swipe-label{opacity:1;transform:translate(0,-50%)}
 .message{position:relative}
@@ -2055,6 +2065,15 @@ const MinegramAPI={
  follow:u=>api(
   "/api/users/"+encodeURIComponent(u)+
   "/follow",
+  {
+   method:"POST",
+   body:{}
+  }
+ ),
+
+ likePost:id=>api(
+  "/api/posts/"+encodeURIComponent(id)+
+  "/like",
   {
    method:"POST",
    body:{}
@@ -3122,15 +3141,22 @@ function messageActions(
  id
 ){
 
+ const isContent=
+  d.type==="post"||
+  d.type==="reel"||
+  !!d.postId;
+
  return `
  <div class="message-actions">
 
+ ${isContent?`
  <button
  data-act="like"
  data-id="${escapeHtml(id)}"
  aria-label="Beğen">
- ❤️
+ ♡
  </button>
+ `:""}
 
  <button
  data-act="reply"
@@ -3154,7 +3180,6 @@ function messageActions(
  `;
 
 }
-
 
 /* ==========================================================
    VİDEO KAPAĞI OLUŞTURMA
@@ -3791,16 +3816,55 @@ function renderMessage(
   ?"Görüldü"
   :"";
 
+ const reply=
+  d.replyTo||
+  d.reply_to||
+  null;
+
  const replyText=
-  d.replyTo?.text||
+  reply?.text||
   d.replyText||
-  d.reply_to?.text||
   "";
+
+ const replyIsContent=
+  !!(reply?.postId||reply?.type==="post"||reply?.type==="reel");
+
+ let replyHtml="";
+
+ if(replyIsContent){
+  const ru=String(reply.postUsername||reply.username||reply.sender||"").replace(/^@/,"");
+  const rm=reply.postMediaBase64||reply.postMediaUri||reply.mediaBase64||reply.mediaUri||"";
+  const rmt=String(reply.postMediaType||reply.mediaType||"");
+  const rr=reply.type==="reel"||/reel|video/i.test(rmt);
+  const rc=reply.postText||reply.caption||reply.text||"";
+  const rp=reply.postId||reply.id||"";
+  const rlikes=Number(reply.postLikes||reply.likes||0);
+  const mediaHtml=rm
+   ? (/video|reel/i.test(rmt)||rr
+      ? `<video class="reply-preview-media" src="${escapeHtml(rm)}" muted playsinline preload="metadata"></video>`
+      : `<img class="reply-preview-media" src="${escapeHtml(rm)}" alt="${rr?"Reels":"Gönderi"}">`)
+   : "";
+  replyHtml=`
+   <div class="reply-content-preview" data-reply-post-id="${escapeHtml(rp)}">
+    ${mediaHtml}
+    <div class="reply-preview-info">
+     <div class="reply-preview-user">@${escapeHtml(ru||"Kullanıcı")}</div>
+     <div class="reply-preview-caption">${escapeHtml(rc||("Yeni Minegram "+(rr?"reels":"gönderisi")))}</div>
+    </div>
+    <div class="reply-preview-actions">
+     <button type="button" data-reply-like="1" data-post-id="${escapeHtml(rp)}" aria-label="Beğen">♡</button>
+     <span>❤️ ${escapeHtml(rlikes)}</span>
+     <span>💬</span>
+    </div>
+   </div>`;
+ }else if(replyText){
+  replyHtml=`<div class="reply-preview">${escapeHtml(replyText)}</div>`;
+ }
 
  const status=read;
 
  b.innerHTML=
-  (replyText?`<div class="reply-preview">${escapeHtml(replyText)}</div>`:"")+
+  replyHtml+
   body+
   (status?`<span class="message-time">${status}</span>`:"");
 
@@ -3835,11 +3899,35 @@ function renderMessage(
   '[data-act="like"]'
  )?.addEventListener(
   "click",
-  ()=>{
-   if(!mine){
-    d._liked=!d._liked;
-    const btn=wrap.querySelector('[data-act="like"]');
-    if(btn) btn.style.opacity=d._liked?"1":".65";
+  async()=>{
+   if(mine||!d.postId) return;
+   const btn=wrap.querySelector('[data-act="like"]');
+   try{
+    const r=await MinegramAPI.likePost(d.postId);
+    d._liked=!!r.liked;
+    if(btn){
+     btn.textContent=d._liked?"♥":"♡";
+     btn.classList.toggle("liked",d._liked);
+    }
+   }catch(e){
+    showToast(e.message||"Beğeni işlemi başarısız");
+   }
+  }
+ );
+
+ wrap.querySelector('[data-reply-like="1"]')?.addEventListener(
+  "click",
+  async e=>{
+   e.stopPropagation();
+   const btn=e.currentTarget;
+   const postId=btn.dataset.postId||"";
+   if(!postId) return;
+   try{
+    const r=await MinegramAPI.likePost(postId);
+    btn.textContent=r.liked?"♥":"♡";
+    btn.classList.toggle("liked",!!r.liked);
+   }catch(err){
+    showToast(err.message||"Beğeni işlemi başarısız");
    }
   }
  );
@@ -4227,8 +4315,21 @@ function startReply(d,id){
  replyTarget={
   id,
   text:String(d.text||d.replyText||d.postText||d.caption||"Mesaj"),
-  sender:String(d.sender||"")
+  sender:String(d.sender||d.postUsername||"")
  };
+ if(d.postId||d.type==="post"||d.type==="reel"){
+  Object.assign(replyTarget,{
+   type:d.type,
+   postId:d.postId||id,
+   postUsername:d.postUsername||d.username||d.sender||"",
+   postText:d.postText||d.caption||d.text||"",
+   postLikes:d.postLikes||d.likes||0,
+   postMediaUri:d.postMediaUri||d.mediaUri||"",
+   postMediaType:d.postMediaType||d.mediaType||"image",
+   postMediaBase64:d.postMediaBase64||d.mediaBase64||null,
+   postCommentCount:d.postCommentCount||d.commentCount||0
+  });
+ }
  const box=$("replyComposer");
  const txt=$("replyComposerText");
  if(box&&txt){
@@ -4414,7 +4515,18 @@ async function sendData(data){
     replyTo:{
      id:replyTarget.id,
      text:replyTarget.text,
-     sender:replyTarget.sender
+     sender:replyTarget.sender,
+     ...(replyTarget.postId?{
+      type:replyTarget.type,
+      postId:replyTarget.postId,
+      postUsername:replyTarget.postUsername,
+      postText:replyTarget.postText,
+      postLikes:replyTarget.postLikes,
+      postMediaUri:replyTarget.postMediaUri,
+      postMediaType:replyTarget.postMediaType,
+      postMediaBase64:replyTarget.postMediaBase64,
+      postCommentCount:replyTarget.postCommentCount
+     }: {})
     }
    }: {})
 
