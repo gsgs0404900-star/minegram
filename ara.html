@@ -169,11 +169,15 @@
       border:0;border-radius:50%;background:rgba(0,0,0,.48);color:#fff
     }
     .reel-center-play svg{width:30px;height:30px;fill:currentColor}
+
     .reel-progress{
       position:absolute;left:0;right:0;bottom:0;z-index:30;height:46px;
       display:flex;align-items:center;gap:4px;padding:0 8px;background:rgba(0,0,0,.9)
     }
-    .reel-time{width:82px;min-width:82px;color:#fff;font-size:12px;font-variant-numeric:tabular-nums;text-align:left;white-space:nowrap}
+    .reel-time{
+      width:82px;min-width:82px;color:#fff;font-size:12px;
+      font-variant-numeric:tabular-nums;text-align:left;white-space:nowrap
+    }
     .reel-range{
       flex:1;min-width:0;height:4px;appearance:none;-webkit-appearance:none;
       margin:0;border-radius:99px;outline:none;background:#4b435d;cursor:pointer
@@ -218,18 +222,59 @@
       position:absolute;left:18px;right:72px;bottom:24px;z-index:20;
       text-shadow:0 2px 5px #000
     }
-    .reel-user-row{display:flex;align-items:center;gap:8px}
+
+    .reel-user-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0
+    }
+
     .reel-avatar{
       width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;
       overflow:hidden;border-radius:50%;background:#3f91cc;color:#fff;
       font-size:18px;font-weight:800;cursor:pointer
     }
     .reel-avatar img{width:100%;height:100%;object-fit:cover}
-    .reel-user-col{min-width:0}
+
+    .reel-user-col{
+      min-width:0;
+      flex:1
+    }
+
     .reel-username{
       font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;
       text-overflow:ellipsis;cursor:pointer
     }
+
+    /* VİDEONUN İÇİNDEKİ TAKİP BUTONU */
+    .reel-follow-btn{
+      flex:0 0 auto;
+      min-width:86px;
+      padding:7px 10px;
+      border:0;
+      border-radius:8px;
+      background:#2196f3;
+      color:#fff;
+      font-size:12px;
+      font-weight:800;
+      line-height:1;
+      white-space:nowrap;
+      cursor:pointer;
+      text-shadow:none;
+      box-shadow:0 1px 5px rgba(0,0,0,.35)
+    }
+
+    .reel-follow-btn.following{
+      background:#333;
+      color:#fff
+    }
+
+    .reel-follow-btn:disabled{
+      opacity:.6;
+      cursor:default
+    }
+
     .reel-date{margin:2px 0 0 54px;color:#bbb;font-size:12px}
     .reel-description{margin-top:6px;font-size:15px;line-height:1.35}
 
@@ -280,11 +325,18 @@
       .content,.top{max-width:700px;margin:auto}
       .reel-phone{width:390px}
     }
+
     @media(max-width:699px){
       .reel-phone{width:100vw}
       .reel-back{top:10px;left:8px}
       .reel-info{bottom:24px}
       .reel-actions{bottom:105px}
+
+      .reel-follow-btn{
+        min-width:82px;
+        padding:7px 8px;
+        font-size:11px
+      }
     }
   </style>
 </head>
@@ -364,15 +416,21 @@
 </nav>
 
 <div class="reel-viewer" id="viewer">
+
   <div class="reel-viewer-shell">
+
     <div class="reel-phone">
+
       <div id="viewerFeed" class="reel-feed"></div>
+
     </div>
+
   </div>
 
   <div id="viewerComments" class="comments">
 
     <div class="comments-head">
+
       <b>Yorumlar</b>
 
       <button
@@ -381,6 +439,7 @@
         onclick="closeViewerComments()"
         aria-label="Yorumları kapat"
       >×</button>
+
     </div>
 
     <div id="viewerCommentsList" class="comments-list"></div>
@@ -404,7 +463,9 @@
       </button>
 
     </div>
+
   </div>
+
 </div>
 
 <script>
@@ -441,6 +502,7 @@ const viewerSeen = new Set();
 
 
 function esc(value = "") {
+
   return String(value).replace(
     /[&<>'"]/g,
     char => ({
@@ -451,14 +513,17 @@ function esc(value = "") {
       '"':"&quot;"
     }[char])
   );
+
 }
 
 
 function normalizeUsername(value = "") {
+
   return String(value)
     .replace(/^@/, "")
     .trim()
     .toLowerCase();
+
 }
 
 
@@ -487,6 +552,7 @@ async function api(path, options = {}) {
     typeof requestOptions.body === "object" &&
     !(requestOptions.body instanceof FormData)
   ) {
+
     requestOptions.headers = {
       ...requestOptions.headers,
       "Content-Type":"application/json"
@@ -494,6 +560,7 @@ async function api(path, options = {}) {
 
     requestOptions.body =
       JSON.stringify(requestOptions.body);
+
   }
 
   const response =
@@ -514,15 +581,18 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
+
     throw new Error(
       data?.error ||
       data?.message ||
       response.statusText ||
       "API hatası"
     );
+
   }
 
   return data;
+
 }
 
 
@@ -531,6 +601,7 @@ async function api(path, options = {}) {
 ========================= */
 
 function getAvatar(user) {
+
   return (
     user?.avatar ||
     user?.avatar_url ||
@@ -540,6 +611,7 @@ function getAvatar(user) {
     user?.profile?.avatarUrl ||
     ""
   );
+
 }
 
 
@@ -558,6 +630,7 @@ function privateUser(user) {
     user?.isPrivate ||
     user?.private
   );
+
 }
 
 
@@ -575,6 +648,7 @@ function storyFor(username) {
         ""
       ) === wanted
   );
+
 }
 
 
@@ -611,10 +685,12 @@ function isVideo(post) {
     mediaType.includes("reel") ||
     /\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(url)
   );
+
 }
 
 
 function mediaUrl(post) {
+
   return (
     post?.media ||
     post?.media_url ||
@@ -631,26 +707,31 @@ function mediaUrl(post) {
     post?.file_url ||
     ""
   );
+
 }
 
 
 function postText(post) {
+
   return (
     post?.text ||
     post?.caption ||
     post?.description ||
     ""
   );
+
 }
 
 
 function postId(post) {
+
   return (
     post?.id ??
     post?.post_id ??
     post?.postId ??
     ""
   );
+
 }
 
 
@@ -688,15 +769,18 @@ function avatarHtml(url, username, story = false) {
   `;
 
   if (story) {
+
     return `
       <div class="story-ring">
         ${image}
         ${fallback}
       </div>
     `;
+
   }
 
   return image + fallback;
+
 }
 
 
@@ -710,12 +794,18 @@ function extractFollowingList(source) {
     source?.following,
     source?.followingUsers,
     source?.following_users,
+
     source?.user?.following,
     source?.user?.followingUsers,
     source?.user?.following_users,
+
     source?.profile?.following,
     source?.profile?.followingUsers,
-    source?.profile?.following_users
+    source?.profile?.following_users,
+
+    source?.data?.following,
+    source?.data?.followingUsers,
+    source?.data?.following_users
   ];
 
   return (
@@ -723,6 +813,7 @@ function extractFollowingList(source) {
       Array.isArray
     ) || []
   );
+
 }
 
 
@@ -752,7 +843,55 @@ function loadFollowingFromMe(me) {
     if (key) {
       followingUsers.add(key);
     }
+
   });
+
+}
+
+
+/* =========================
+   TAKİP BUTONLARINI SENKRONLA
+========================= */
+
+function syncFollowButtons(username, state) {
+
+  const usernameKey =
+    normalizeUsername(username);
+
+  document
+    .querySelectorAll("[data-follow-user]")
+    .forEach(button => {
+
+      const buttonUser =
+        normalizeUsername(
+          button.dataset.followUser
+        );
+
+      if (buttonUser !== usernameKey) {
+        return;
+      }
+
+      button.textContent =
+        state
+          ? "Takip Ediliyor"
+          : "Takip Et";
+
+      button.classList.toggle(
+        "following",
+        state
+      );
+
+      button.disabled = false;
+
+      button.setAttribute(
+        "aria-label",
+        state
+          ? "Takibi bırak"
+          : "Takip et"
+      );
+
+    });
+
 }
 
 
@@ -785,6 +924,7 @@ async function loadData() {
         me?.username ||
         me?.user?.username ||
         me?.profile?.username ||
+        me?.data?.username ||
         ""
       );
 
@@ -796,6 +936,7 @@ async function loadData() {
       "giris.html";
 
     return;
+
   }
 
 
@@ -846,6 +987,7 @@ async function loadData() {
       '<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>';
 
   }
+
 }
 
 
@@ -958,7 +1100,9 @@ async function searchUsers(query) {
   } catch {
 
     return [];
+
   }
+
 }
 
 
@@ -1054,6 +1198,7 @@ function normalizeReels() {
               reel.mediaUri
           )
       );
+
 }
 
 
@@ -1069,6 +1214,7 @@ function renderDiscovery() {
     `;
 
     return;
+
   }
 
 
@@ -1076,12 +1222,14 @@ function renderDiscovery() {
     <div class="section-title">Videolar</div>
 
     <div class="grid">
+
       ${reels.map(
         (reel,index) => `
           <div
             class="tile"
             data-reel="${index}"
           >
+
             <video
               src="${esc(reel.mediaUri)}"
               muted
@@ -1090,9 +1238,11 @@ function renderDiscovery() {
             ></video>
 
             <span class="play">▶</span>
+
           </div>
         `
       ).join("")}
+
     </div>
   `;
 
@@ -1109,6 +1259,7 @@ function renderDiscovery() {
         );
 
     });
+
 }
 
 
@@ -1124,6 +1275,7 @@ function renderUsers(array) {
       '<div class="empty">Kullanıcı bulunamadı</div>';
 
     return;
+
   }
 
 
@@ -1230,7 +1382,6 @@ function renderUsers(array) {
   `;
 
 
-  /* Kullanıcı satırı */
   document
     .querySelectorAll("[data-user]")
     .forEach(element => {
@@ -1268,7 +1419,13 @@ function renderUsers(array) {
     });
 
 
-  /* Takip butonları */
+  bindFollowButtons();
+
+}
+
+
+function bindFollowButtons() {
+
   document
     .querySelectorAll("[data-follow-user]")
     .forEach(button => {
@@ -1287,49 +1444,114 @@ function renderUsers(array) {
         };
 
     });
+
 }
 
 
-async function toggleFollowUser(username, button) {
-  const cleanUsername = String(username || "")
-    .replace(/^@/, "")
-    .trim();
+async function toggleFollowUser(
+  username,
+  button
+) {
 
-  const usernameKey = normalizeUsername(cleanUsername);
+  const cleanUsername =
+    String(username || "")
+      .replace(/^@/,"")
+      .trim();
 
-  if (!usernameKey || usernameKey === currentUsername) {
+
+  const usernameKey =
+    normalizeUsername(
+      cleanUsername
+    );
+
+
+  if (
+    !usernameKey ||
+    usernameKey === currentUsername
+  ) {
     return;
   }
 
-  const isFollowing = followingUsers.has(usernameKey);
 
-  // Anında görsel olarak değiştir
-  if (!isFollowing) {
-    followingUsers.add(usernameKey);
+  const isFollowing =
+    followingUsers.has(
+      usernameKey
+    );
 
-    button.textContent = "Takip Ediliyor";
-    button.classList.add("following");
+
+  /*
+     TIKLAR TIKLAMAZ BUTON DEĞİŞSİN
+  */
+
+  const newState =
+    !isFollowing;
+
+
+  if (newState) {
+
+    followingUsers.add(
+      usernameKey
+    );
+
   } else {
-    followingUsers.delete(usernameKey);
 
-    button.textContent = "Takip Et";
-    button.classList.remove("following");
+    followingUsers.delete(
+      usernameKey
+    );
+
   }
 
-  button.disabled = true;
+
+  syncFollowButtons(
+    cleanUsername,
+    newState
+  );
+
+
+  document
+    .querySelectorAll(
+      ".reel-follow-btn[data-follow-user]"
+    )
+    .forEach(el => {
+
+      if (
+        normalizeUsername(
+          el.dataset.followUser
+        ) === usernameKey
+      ) {
+
+        el.textContent =
+          newState
+            ? "Takip Ediliyor"
+            : "Takip Et";
+
+        el.classList.toggle(
+          "following",
+          newState
+        );
+
+      }
+
+    });
+
 
   try {
-    const result = await api(
-      "/users/" +
-      encodeURIComponent(cleanUsername) +
-      "/follow",
-      {
-        method: "POST",
-        body: {
-          follow: !isFollowing
+
+    const result =
+      await api(
+        "/users/" +
+        encodeURIComponent(
+          cleanUsername
+        ) +
+        "/follow",
+        {
+          method:"POST",
+          body:{
+            follow:newState
+          }
         }
-      }
-    );
+      );
+
 
     const backendState =
       result?.following ??
@@ -1339,52 +1561,88 @@ async function toggleFollowUser(username, button) {
       result?.data?.isFollowing ??
       result?.data?.is_following;
 
-    // Backend farklı durum döndürürse butonu ona göre düzelt
-    if (typeof backendState === "boolean") {
+
+    if (
+      typeof backendState ===
+      "boolean"
+    ) {
+
       if (backendState) {
-        followingUsers.add(usernameKey);
-        button.textContent = "Takip Ediliyor";
-        button.classList.add("following");
+
+        followingUsers.add(
+          usernameKey
+        );
+
       } else {
-        followingUsers.delete(usernameKey);
-        button.textContent = "Takip Et";
-        button.classList.remove("following");
+
+        followingUsers.delete(
+          usernameKey
+        );
+
       }
+
+
+      syncFollowButtons(
+        cleanUsername,
+        backendState
+      );
+
     }
 
-    const user = users.find(
-      item =>
-        normalizeUsername(item.username) === usernameKey
-    );
+
+    const user =
+      users.find(
+        item =>
+          normalizeUsername(
+            item.username
+          ) ===
+          usernameKey
+      );
+
 
     if (user) {
+
       user.isFollowing =
         typeof backendState === "boolean"
           ? backendState
-          : !isFollowing;
+          : newState;
+
     }
 
-  } catch (error) {
+  } catch(error) {
 
-    // API başarısız olursa eski duruma dön
+    /*
+       API başarısızsa eski duruma dön
+    */
+
     if (isFollowing) {
-      followingUsers.add(usernameKey);
-      button.textContent = "Takip Ediliyor";
-      button.classList.add("following");
+
+      followingUsers.add(
+        usernameKey
+      );
+
     } else {
-      followingUsers.delete(usernameKey);
-      button.textContent = "Takip Et";
-      button.classList.remove("following");
+
+      followingUsers.delete(
+        usernameKey
+      );
+
     }
+
+
+    syncFollowButtons(
+      cleanUsername,
+      isFollowing
+    );
+
 
     alert(
       error?.message ||
       "Takip işlemi gerçekleştirilemedi."
     );
 
-  } finally {
-    button.disabled = false;
   }
+
 }
 
 
@@ -1428,6 +1686,7 @@ function renderTagIntro(tag) {
     renderTagPosts();
 
   };
+
 }
 
 
@@ -1468,6 +1727,7 @@ function renderTagPosts() {
       '<div class="empty">Bu etikette henüz gönderi yok</div>';
 
     return;
+
   }
 
 
@@ -1479,6 +1739,7 @@ function renderTagPosts() {
 
 
   bindPosts();
+
 }
 
 
@@ -1537,6 +1798,7 @@ function postHtml(post) {
       `;
 
     }
+
   }
 
 
@@ -1573,6 +1835,7 @@ function postHtml(post) {
     </article>
 
   `;
+
 }
 
 
@@ -1588,6 +1851,7 @@ function bindPosts() {
         );
 
     });
+
 }
 
 
@@ -1618,6 +1882,7 @@ async function doSearch(query) {
     renderTagPosts();
 
     return;
+
   }
 
 
@@ -1626,6 +1891,7 @@ async function doSearch(query) {
     renderDiscovery();
 
     return;
+
   }
 
 
@@ -1648,6 +1914,7 @@ async function doSearch(query) {
     }
 
     return;
+
   }
 
 
@@ -1668,6 +1935,7 @@ async function doSearch(query) {
   renderUsers(
     found
   );
+
 }
 
 
@@ -1686,6 +1954,7 @@ function openProfile(username) {
     encodeURIComponent(
       username
     );
+
 }
 
 
@@ -1701,6 +1970,7 @@ function openStory(username) {
     );
 
     return;
+
   }
 
 
@@ -1714,10 +1984,12 @@ function openStory(username) {
     );
 
     return;
+
   }
 
 
   openProfile(username);
+
 }
 
 
@@ -1757,9 +2029,17 @@ function openReel(startIndex) {
     "hidden";
 
 
+  /*
+     VİDEO AÇILDIKTAN SONRA TAKİP
+     BUTONLARINI BAĞLA
+  */
+  bindFollowButtons();
+
+
   setupViewerReels(
     startIndex
   );
+
 }
 
 
@@ -1794,6 +2074,53 @@ function createReelHtml(
       `;
 
 
+  /*
+     VİDEO SAHİBİ Kİ?
+  */
+  const reelUsernameKey =
+    normalizeUsername(
+      reel.username
+    );
+
+
+  /*
+     KENDİ VİDEON MU?
+  */
+  const isMe =
+    Boolean(
+      currentUsername &&
+      reelUsernameKey ===
+      currentUsername
+    );
+
+
+  /*
+     TAKİP EDİYOR MUSUN?
+  */
+  const isFollowing =
+    followingUsers.has(
+      reelUsernameKey
+    );
+
+
+  /*
+     KENDİ VİDEON DEĞİLSE TAKİP BUTONU
+  */
+  const followButton =
+    !isMe
+      ? `
+        <button
+          type="button"
+          class="reel-follow-btn ${isFollowing ? "following" : ""}"
+          data-follow-user="${esc(reel.username)}"
+          aria-label="${isFollowing ? "Takibi bırak" : "Takip et"}"
+        >
+          ${isFollowing ? "Takip Ediliyor" : "Takip Et"}
+        </button>
+      `
+      : "";
+
+
   return `
 
     <article
@@ -1811,21 +2138,26 @@ function createReelHtml(
 
       <div class="reel-shade"></div>
 
+
       <button
         type="button"
         class="reel-center-play"
         onclick="toggleViewerPlay(${index})"
       >
+
         <svg viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z"/>
         </svg>
+
       </button>
+
 
       <button
         type="button"
         class="reel-back"
         onclick="closeViewer()"
       >‹</button>
+
 
       <div class="reel-actions">
 
@@ -1834,24 +2166,36 @@ function createReelHtml(
           class="reel-action like"
           onclick="likeViewerReel(${index})"
         >
+
           <span class="ico">
+
             <svg viewBox="0 0 24 24">
+
               <path d="M20.8 8.7c0 5.1-8.8 10.8-8.8 10.8S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 8 4c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.7 4.7 0 0 1 4.8 4.7z"/>
+
             </svg>
+
           </span>
 
           <span class="num">
             ${reel.likes || 0}
           </span>
+
         </button>
+
 
         <div class="reel-action view-stat">
 
           <span class="ico">
+
             <svg viewBox="0 0 24 24">
+
               <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+
               <circle cx="12" cy="12" r="2.5"/>
+
             </svg>
+
           </span>
 
           <span class="num">
@@ -1860,35 +2204,50 @@ function createReelHtml(
 
         </div>
 
+
         <button
           type="button"
           class="reel-action"
           onclick="openViewerComments(${index})"
         >
+
           <span class="ico">
+
             <svg viewBox="0 0 24 24">
+
               <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.14 0-2.22-.25-3.19-.69L4 20l1.69-4.19A7.46 7.46 0 0 1 5 11.5a7.5 7.5 0 1 1 15 0z"/>
+
             </svg>
+
           </span>
 
           <span class="num comment-count">
             ${reel.commentCount || 0}
           </span>
+
         </button>
+
 
         <button
           type="button"
           class="reel-action"
           onclick="shareViewerReel(${index})"
         >
+
           <span class="ico">
+
             <svg viewBox="0 0 24 24">
+
               <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
+
             </svg>
+
           </span>
+
         </button>
 
       </div>
+
 
       <div class="reel-info">
 
@@ -1912,11 +2271,15 @@ function createReelHtml(
 
           </div>
 
+          ${followButton}
+
         </div>
+
 
         <div class="reel-date">
           ${esc(reel.date || "")}
         </div>
+
 
         <div class="reel-description">
           ${esc(reel.description || "")}
@@ -1924,11 +2287,13 @@ function createReelHtml(
 
       </div>
 
+
       <div class="reel-progress">
 
         <span class="reel-time current-time">
           0:00 / 0:00
         </span>
+
 
         <input
           class="reel-range"
@@ -1939,6 +2304,7 @@ function createReelHtml(
           step="0.1"
           oninput="seekViewer(${index},this.value)"
         >
+
 
         <button
           type="button"
@@ -1969,6 +2335,7 @@ function createReelHtml(
     </article>
 
   `;
+
 }
 
 
@@ -1976,6 +2343,13 @@ function setupViewerReels(startIndex) {
 
   const articles =
     [...document.querySelectorAll(".reel")];
+
+
+  /*
+     TAKİP BUTONLARINI TEKRAR BAĞLA
+     Çünkü viewer HTML'i yeni oluşturuldu.
+  */
+  bindFollowButtons();
 
 
   if (viewerObserver) {
@@ -2025,6 +2399,7 @@ function setupViewerReels(startIndex) {
                     .querySelector(".reel-sound")
                     ?.classList
                     .add("muted");
+
                 }
 
               }
@@ -2033,6 +2408,7 @@ function setupViewerReels(startIndex) {
 
             video.muted = false;
             video.volume = 1;
+
 
             video
               .play()
@@ -2065,6 +2441,7 @@ function setupViewerReels(startIndex) {
       },
 
       {threshold:[.65]}
+
     );
 
 
@@ -2130,6 +2507,7 @@ function setupViewerReels(startIndex) {
       });
 
   });
+
 }
 
 
@@ -2144,11 +2522,14 @@ function showViewerPlay(index,show) {
 
 
   if (button) {
+
     button.style.display =
       show
         ? "grid"
         : "none";
+
   }
+
 }
 
 
@@ -2185,6 +2566,7 @@ function toggleViewerPlay(index) {
     );
 
   }
+
 }
 
 
@@ -2244,6 +2626,7 @@ function toggleViewerMute(index) {
   if (!video.muted) {
     video.play().catch(() => {});
   }
+
 }
 
 
@@ -2253,15 +2636,18 @@ function updateViewerProgress(index) {
     document
       .querySelectorAll(".reel")[index];
 
+
   const video =
     article?.querySelector(
       ".reel-video"
     );
 
+
   const range =
     article?.querySelector(
       ".reel-range"
     );
+
 
   const time =
     article?.querySelector(
@@ -2311,6 +2697,7 @@ function updateViewerProgress(index) {
       );
 
   }
+
 }
 
 
@@ -2330,6 +2717,7 @@ function viewerTime(seconds) {
       seconds % 60
     ).padStart(2,"0")
   );
+
 }
 
 
@@ -2355,6 +2743,7 @@ function seekViewer(index,percent) {
       video.duration;
 
   }
+
 }
 
 
@@ -2390,9 +2779,12 @@ function viewViewerCount(index) {
 
 
   if (number) {
+
     number.textContent =
       reel.views;
+
   }
+
 }
 
 
@@ -2405,9 +2797,11 @@ async function likeViewerReel(index) {
   const reel =
     reels[index];
 
+
   const article =
     document
       .querySelectorAll(".reel")[index];
+
 
   const button =
     article?.querySelector(".like");
@@ -2514,6 +2908,7 @@ async function openViewerComments(index) {
       '<div class="comment-empty">Yorumlar alınamadı.</div>';
 
   }
+
 }
 
 
@@ -2533,6 +2928,7 @@ function renderViewerComments(comments) {
     `;
 
     return;
+
   }
 
 
@@ -2633,6 +3029,7 @@ function renderViewerComments(comments) {
 
       })
       .join("");
+
 }
 
 
@@ -2690,6 +3087,7 @@ async function sendViewerComment() {
     );
 
   }
+
 }
 
 
@@ -2702,6 +3100,7 @@ function closeViewerComments() {
 
   currentViewerComment =
     null;
+
 }
 
 
@@ -2739,6 +3138,7 @@ async function shareViewerReel(index) {
     } catch {}
 
   }
+
 }
 
 
@@ -2753,6 +3153,7 @@ function closeViewer() {
 
     viewerObserver =
       null;
+
   }
 
 
@@ -2778,6 +3179,7 @@ function closeViewer() {
 
   $("viewerFeed").innerHTML =
     "";
+
 }
 
 
@@ -2822,6 +3224,7 @@ clearButton.onclick = () => {
   doSearch("");
 
   input.focus();
+
 };
 
 
@@ -2836,6 +3239,7 @@ tagBack.onclick = () => {
   doSearch(
     input.value
   );
+
 };
 
 
