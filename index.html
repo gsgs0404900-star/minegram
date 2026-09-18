@@ -1032,7 +1032,9 @@ body{
 </style>
 
 <style id="minegramInAppShareStyle">
-.share-modal{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:99999;display:none;align-items:flex-end}.share-modal.show{display:flex}.share-sheet{box-sizing:border-box;width:min(100%,520px);max-height:62vh;margin:0 auto;background:#000;border-radius:20px 20px 0 0;padding:8px 14px 18px;border:1px solid #222;box-shadow:0 -8px 30px rgba(0,0,0,.45)}.sheet-handle{width:45px;height:4px;background:#666;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px;color:#fff}.sheet-head button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:38px}.share-sheet input{box-sizing:border-box;width:100%;height:45px;background:#000;border:1px solid #777;border-radius:9px;color:#fff;padding:0 12px;outline:0}.share-list{max-height:42vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer;color:#fff}.share-user .share-avatar{width:45px;height:45px;border-radius:50%;background:#62afea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}.share-user .share-meta{flex:1}.share-user small{display:block;color:#bbb}.share-user>span{color:#62afea;font-size:28px}.minegram-share-open{overflow:hidden}</style>
+.share-modal{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:9999;display:none;align-items:flex-end}.share-modal.show{display:flex}.share-sheet{width:100%;max-width:520px;height:58vh;max-height:78vh;min-height:360px;margin:0 auto;background:#000;border-radius:22px 22px 0 0;padding:10px 14px 18px;box-sizing:border-box;overflow:hidden}.sheet-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px}.sheet-head button{width:38px;height:38px;border:0;border-radius:50%;background:#222;color:#fff}.share-sheet input{width:100%;height:45px;background:#222;border:1px solid #333;border-radius:11px;color:#fff;padding:0 12px;outline:0}.share-list{max-height:50vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}.share-user .share-avatar{width:45px;height:45px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-weight:700}.share-user .share-meta{flex:1}.share-user small{color:#888}</style>
+<style id="minegramShareSheetPosition">@media (min-width: 700px){.share-sheet{height:46vh;min-height:300px}}
+</style>
 </head>
 
 <body>
@@ -6433,18 +6435,17 @@ async function savePost(id){
 
 function sharePost(id){
   const sid=String(id||"");
-  const modal=document.getElementById("minegramFeedShareModal");
-
-  // Web paylaşım sekmesini ÖNCE aç. Android bridge / Firebase yüklenmese bile
-  // butona basınca pencere mutlaka görünür.
-  if(modal){
-    modal.classList.add("show");
-    document.body.classList.add("minegram-share-open");
+  const post=(window.__minegramFeedPosts||[]).find(function(p){
+    return String(p?.id ?? p?.postId ?? p?._id ?? p?.uuid ?? "").trim()===sid.trim();
+  });
+  if(window.MinegramHome && post){
+    try{
+      window.MinegramHome.sharePost(JSON.stringify(post));
+      return;
+    }catch(e){}
   }
-
-  // Detayları ve kullanıcı listesini varsa paylaşım modülüne bırak.
   if(window.__minegramOpenInAppShare){
-    try{ window.__minegramOpenInAppShare(sid); }catch(e){}
+    window.__minegramOpenInAppShare(sid);
   }
 }
 
@@ -9782,16 +9783,6 @@ init();
 </div>
 
 
-<script>
-// Paylaşım modülü yüklenmese bile aç/kapat çalışsın.
-(function(){
-  const modal=document.getElementById("minegramFeedShareModal");
-  const close=document.getElementById("minegramFeedShareClose");
-  if(close) close.addEventListener("click",function(){ modal?.classList.remove("show"); document.body.classList.remove("minegram-share-open"); });
-  if(modal) modal.addEventListener("click",function(e){ if(e.target===modal){ modal.classList.remove("show"); document.body.classList.remove("minegram-share-open"); }});
-})();
-</script>
-
 <script type="module" id="minegramInAppShareScript">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -9823,9 +9814,9 @@ async function paint(){
   listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Mesaj olarak gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";
   listEl.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>sendTo(el.dataset.u));
 }
-async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase())return;try{await signInAnonymously(auth);const p=sharePostData||{};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[shareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),sender:shareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||""),postUsername:clean(p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0});modal.classList.remove("show");document.body.classList.remove("minegram-share-open");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");}catch(e){if(typeof toast==="function")toast("Gönderilemedi")}}
+async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase())return;try{await signInAnonymously(auth);const p=sharePostData||{};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[shareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),sender:shareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||""),postUsername:clean(p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0});modal.classList.remove("show");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");}catch(e){if(typeof toast==="function")toast("Gönderilemedi")}}
 window.__minegramOpenInAppShare=async function(id){const sid=String(id||"");sharePostData=(window.__minegramFeedPosts||[]).find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===sid)||null;await getMe();searchEl.value="";await paint();modal.classList.add("show");setTimeout(()=>searchEl.focus(),80)};
-closeEl.onclick=()=>{modal.classList.remove("show");document.body.classList.remove("minegram-share-open")};modal.addEventListener("click",e=>{if(e.target===modal){modal.classList.remove("show");document.body.classList.remove("minegram-share-open")}});searchEl.addEventListener("input",paint);
+closeEl.onclick=()=>modal.classList.remove("show");modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});searchEl.addEventListener("input",paint);
 </script>
 
 </body>
