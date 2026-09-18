@@ -1238,19 +1238,6 @@ body{
 .message.sent .message-actions{justify-content:flex-end}
 .message-reaction{display:none!important}
 .message:has(.message-post) .message-actions,.message:has(.message-reel) .message-actions{padding:0 10px;margin-top:6px;justify-content:flex-start}
-/* Gönderi ve Reels: Beğeni / Yanıtla / Sil kartın altında, aynı hizada */
-.message:has(.message-post) > .message-actions,.message:has(.message-reel) > .message-actions{
- width:100%;
- max-width:520px;
- box-sizing:border-box;
- padding:0 10px 8px;
- margin:6px 0 0;
- justify-content:flex-start !important;
- align-self:flex-start;
-}
-.message:has(.message-post) > .message-actions button,.message:has(.message-reel) > .message-actions button{
- flex:0 0 auto;
-}
 .message:has(.message-post) .message-actions button[data-act="like"],.message:has(.message-reel) .message-actions button[data-act="like"]{font-size:22px;padding:2px 5px}
 .message:has(.message-post) .message-actions button[data-act="reply"],.message:has(.message-reel) .message-actions button[data-act="reply"]{font-size:13px}
 .message:not(:has(.message-post)):not(:has(.message-reel)) .message-actions button[data-act="like"]{display:none}
@@ -3907,8 +3894,7 @@ function renderMessage(
 
  const actionsHtml=messageActions(d,id);
 
- if(isReel || d.type==="post" || !!d.postId){
-  /* Gönderi/Reels işlemleri kartın hemen altında, karttan ayrı görünür. */
+ if(isReel){
   wrap.insertAdjacentHTML("beforeend",actionsHtml);
  }else{
   b.insertAdjacentHTML("beforeend",actionsHtml);
@@ -4086,7 +4072,8 @@ function renderMessage(
      type:d.type==="reel"?"reel":"post"
     }));
    }catch(e){}
-   const isReel=d.type==="reel" || /reel|video/i.test(String(d.postMediaType||d.mediaType||""));
+   const mediaType=String(d.postMediaType||d.mediaType||d.type||"").toLowerCase();
+   const isReel=d.type==="reel" || /reel|video/.test(mediaType);
    if(isReel){
     location.href="reels.html?id="+encodeURIComponent(postId);
    }else{
