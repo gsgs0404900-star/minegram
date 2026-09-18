@@ -4880,14 +4880,6 @@ function openMinegramPost(post){
       "minegram_selected_post",
       JSON.stringify(post)
     );
-    if(openIsVideo){
-      sessionStorage.setItem("minegram_requested_reel",JSON.stringify({
-        id:id,
-        username:postUsername || post.username || "",
-        media:openMedia
-      }));
-    }
-
     const postUsername =
       post.user?.username ||
       post.author?.username ||
@@ -4899,6 +4891,15 @@ function openMinegramPost(post){
       post.ownerUsername ||
       post.owner_username ||
       "";
+
+    if(openIsVideo){
+      sessionStorage.setItem("minegram_requested_reel",JSON.stringify({
+        id:id,
+        username:postUsername,
+        media:openMedia,
+        mediaType:openMediaType
+      }));
+    }
 
     const profile={
       username:postUsername,
