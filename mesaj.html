@@ -3025,7 +3025,15 @@ function messageKey(d,id){
 
 function renderAll(){
 
- clearMessages();
+ /*
+  * ÖNEMLİ: renderAll() mesaj verilerini SİLMEMELİ.
+  * Eski kod clearMessages() çağırdığı için allMessages.clear()
+  * çalışıyor ve ekrana çizilecek bütün mesajlar yok oluyordu.
+  * Bu nedenle mesaj gönderiliyor olsa bile site tarafında balon
+  * görünmüyordu. Burada yalnızca ekrandaki HTML temizleniyor.
+  */
+ chatArea.innerHTML="";
+ loading.style.display="none";
 
  const arr=[
   ...allMessages.entries()
