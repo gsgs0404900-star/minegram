@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="tr">
 
@@ -1169,197 +1170,65 @@
     ====================================================== -->
 
     <div
-id="commentsModal"
-class="comments-modal"
-onclick="closeComments(event)"
->
+      id="viewerComments"
+      class="comments">
 
-<div
-class="comments-sheet"
-onclick="event.stopPropagation()"
->
+      <div class="comments-head">
 
-<div class="sheet-head">
+        <b>Yorumlar</b>
 
-<span class="grab"></span>
+        <button
+          type="button"
+          class="close-comments"
+          onclick="closeViewerComments()">
+          ×
+        </button>
 
-<button
-class="close-comments"
-onclick="closeComments()"
->
-×
-</button>
+      </div>
 
-Yorumlar
+      <div
+        id="viewerCommentsList"
+        class="comments-list">
+      </div>
 
-</div>
+      <div class="comment-form">
 
-<div class="sort">
+        <input
+          id="viewerCommentInput"
+          placeholder="Yorum yaz...">
 
-<select
-id="commentSort"
-class="sort-select"
-onchange="changeCommentSort(this.value)"
->
+        <button
+          type="button"
+          onclick="sendViewerComment()"
+          aria-label="Gönder">
 
-<option value="forYou">
-Senin için
-</option>
+          <svg
+            viewBox="0 0 24 24"
+            style="
+              width:22px;
+              height:22px;
+              fill:none;
+              stroke:#fff;
+              stroke-width:2;
+              stroke-linecap:round;
+              stroke-linejoin:round;
+            ">
 
-<option value="newest">
-En yeni
-</option>
+            <path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/>
+            <path d="m10.3 13.7 4.1-4.1"/>
 
-<option value="popular">
-En çok beğenilen
-</option>
+          </svg>
 
-</select>
+        </button>
 
-</div>
+      </div>
 
-<div id="commentList" class="comment-list"></div>
+    </div>
 
-<div class="emoji-row">
-<span>❤️</span>
-<span>🙌</span>
-<span>🔥</span>
-<span>👋</span>
-<span>😢</span>
-<span>😍</span>
-<span>😮</span>
-<span>😂</span>
-</div>
+  </div>
 
-<div class="comment-compose">
 
-<div id="composeAvatar" class="avatar small">
-M
-</div>
-
-<input
-id="commentInput"
-class="compose-input"
-placeholder="Bunun hakkında ne düşünüyorsun?"
-onkeydown="if(event.key==='Enter')sendComment()"
->
-
-<button class="gif">
-GIF
-</button>
-
-<button
-class="send"
-onclick="sendComment()"
->
-➤
-</button>
-
-</div>
-
-</div>
-
-</div>
-    
   <script>
-
- /* =====================================================
-   YORUMLAR MODALI
-===================================================== */
-
-let currentCommentPostId = null;
-
-
-/* YORUMLARI AÇ */
-function openComments(postId = null) {
-
-    currentCommentPostId = postId;
-
-    const modal = document.getElementById('commentsModal');
-
-    if (!modal) {
-        console.error('❌ commentsModal bulunamadı!');
-        return;
-    }
-
-    modal.classList.add('show');
-
-    document.body.style.overflow = 'hidden';
-
-    renderComments();
-}
-
-
-/* YORUMLARI KAPAT */
-function closeComments(event) {
-
-    // İçeriğe tıklayınca kapanmasın
-    if (
-        event &&
-        event.target !== event.currentTarget
-    ) {
-        return;
-    }
-
-    const modal = document.getElementById('commentsModal');
-
-    if (!modal) return;
-
-    modal.classList.remove('show');
-
-    document.body.style.overflow = '';
-
-    currentCommentPostId = null;
-}
-
-
-/* YORUMLARI GÖSTER */
-function renderComments() {
-
-    const list = document.getElementById('commentList');
-
-    if (!list) return;
-
-    list.innerHTML = `
-        <div style="
-            text-align:center;
-            padding:40px 15px;
-            color:#888;
-        ">
-            Henüz yorum yok.
-        </div>
-    `;
-}
-
-
-/* YORUM GÖNDER */
-function sendComment() {
-
-    const input = document.getElementById('commentInput');
-
-    if (!input) return;
-
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    console.log('Yorum:', text);
-    console.log('Post ID:', currentCommentPostId);
-
-    input.value = '';
-
-    renderComments();
-}
-
-
-/* YORUM SIRALAMA */
-function changeCommentSort(type) {
-
-    console.log('Yorum sıralaması:', type);
-
-    renderComments();
-}
-    
     /* =========================================================
        1. API / GLOBAL DEĞİŞKENLER
     ========================================================= */
@@ -3590,3 +3459,4 @@ function changeCommentSort(type) {
 
 </body>
 </html>
+```
