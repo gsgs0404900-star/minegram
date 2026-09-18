@@ -1383,7 +1383,1710 @@
 
     </a>
 
-  </nav>
+    </nav>
+<div class="viewer" id="viewer"><div class="viewer-shell"><div class="viewer-phone"><div id="viewerFeed" class="viewer-feed"></div></div></div><div id="viewerComments" class="viewer-comments"><div class="comments-head"><b>Yorumlar</b><button class="close-comments" onclick="closeViewerComments()">×</button></div><div id="viewerCommentsList" class="comments-list"></div><div class="comment-form"><input id="viewerCommentInput" placeholder="Yorum yaz..."><button onclick="sendViewerComment()" aria-label="Gönder"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/><path d="m10.3 13.7 4.1-4.1"/></svg></button></div></div></div>
+
+<script>
+const API='/api';
+const token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||'';
+
+const $=id=>document.getElementById(id);
+const content=$('content'),
+      input=$('sq'),
+      clear=$('clear'),
+      tagBack=$('tagBack');
+
+let users=[], stories=[], feed=[], reels=[];
+let selectedTag='';
+let timer;
+
+let currentUsername='';
+let followingUsers=new Set();
+
+let viewerObserver=null;
+let currentViewerComment=null;
+const viewerSeen=new Set();
+
+function esc(v=''){
+  return String(v).replace(/[&<>'"]/g,c=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    "'":'&#39;',
+    '"':'&quot;'
+  }[c]))
+}
+
+function api(path,opt={}){
+  const headers=Object.assign(
+    {'Accept':'application/json'},
+    opt.headers||{}
+  );
+
+  if(token){
+    headers.Authorization='Bearer '+token;
+  }
+
+  return fetch(API+path,{
+    ...opt,
+    headers
+  }).then(async r=>{
+    const t=await r.text();
+    let d;
+
+    try{
+      d=JSON.parse(t)
+    }catch{
+      d=t
+    }
+
+    if(!r.ok){
+      throw new Error((d&&d.error)||r.statusText)
+    }
+
+    return d
+  })
+}
+
+function avatar(url,name,story=false){
+  const letter=esc((name||'?').slice(0,1).toUpperCase());
+
+  const inner=url
+    ? `<img class="avatar" src="${esc(url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" alt="">`
+    : '';
+
+  const fallback=`<span class="avatar" style="${url?'display:none':''}">${letter}</span>`;
+
+  return story
+    ? `<div class="story-ring">${inner}${fallback}</div>`
+    : `${inner}${fallback}`;
+}
+
+function getAvatar(u){
+  return u?.avatar||
+    u?.avatar_url||
+    u?.avatarUrl||
+    u?.profile?.avatar_url||
+    u?.profile?.avatarUrl||
+    '';
+}
+
+function privateUser(u){
+  const s=u?.settings||{};
+
+  return !!(
+    s.private_account||
+    s.privateAccount||
+    s.private||
+    u?.private_account||
+    u?.privateAccount||
+    u?.private
+  )
+}
+
+function storyFor(name){
+  return stories.filter(
+    s=>String(s.username||'').toLowerCase()===
+       String(name||'').toLowerCase()
+  )
+}
+
+function isVideo(p){
+  const m=String(
+    p?.media_type||
+    p?.mediaType||
+    p?.type||
+    ''
+  ).toLowerCase();
+
+  const u=String(
+    p?.media||
+    p?.media_url||
+    p?.mediaUrl||
+    p?.mediaUri||
+    p?.video||
+    p?.videoUrl||
+    p?.video_url||
+    p?.reel||
+    p?.reelUrl||
+    p?.reel_url||
+    p?.url||
+    p?.fileUrl||
+    p?.file_url||
+    ''
+  ).toLowerCase();
+
+  return m.includes('video')||
+    m.includes('reel')||
+    /\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(u)
+}
+
+function mediaUrl(p){
+  return p?.media||
+    p?.media_url||
+    p?.mediaUrl||
+    p?.mediaUri||
+    p?.video||
+    p?.videoUrl||
+    p?.video_url||
+    p?.reel||
+    p?.reelUrl||
+    p?.reel_url||
+    p?.url||
+    p?.fileUrl||
+    p?.file_url||
+    '';
+}
+
+function postText(p){
+  return p?.text||p?.caption||p?.description||'';
+}
+
+function postId(p){
+  return p?.id??p?.post_id??p?.postId??'';
+}
+
+/* =========================
+   TAKİP YARDIMCILARI
+========================= */
+
+function normalizeUsername(name){
+  return String(name||'')
+    .replace(/^@/,'')
+    .trim()
+    .toLowerCase();
+}
+
+function getFollowingList(me){
+  const list=
+    me?.following||
+    me?.followingUsers||
+    me?.following_users||
+    me?.user?.following||
+    me?.user?.followingUsers||
+    me?.user?.following_users||
+    me?.profile?.following||
+    me?.profile?.followingUsers||
+    me?.profile?.following_users||
+    [];
+
+  if(!Array.isArray(list)) return [];
+
+  return list
+    .map(item=>{
+      if(typeof item==='string'){
+        return normalizeUsername(item);
+      }
+
+      return normalizeUsername(
+        item?.username||
+        item?.user?.username||
+        item?.profile?.username||
+        ''
+      );
+    })
+    .filter(Boolean);
+}
+
+function saveFollowingLocal(){
+  try{
+    localStorage.setItem(
+      'minegram_following',
+      JSON.stringify([...followingUsers])
+    );
+  }catch{}
+}
+
+function loadFollowingLocal(){
+  try{
+    const raw=localStorage.getItem('minegram_following');
+
+    if(!raw) return;
+
+    const arr=JSON.parse(raw);
+
+    if(Array.isArray(arr)){
+      arr.forEach(name=>{
+        const n=normalizeUsername(name);
+        if(n) followingUsers.add(n);
+      });
+    }
+  }catch{}
+}
+
+function isFollowingUser(user){
+  const username=normalizeUsername(user.username);
+
+  return Boolean(
+    user.isFollowing||
+    user.is_following||
+    followingUsers.has(username)
+  );
+}
+
+/* =========================
+   VERİLER
+========================= */
+
+function normalizeReels(){
+  reels=feed
+    .filter(isVideo)
+    .map(p=>{
+      const user=p?.user||p?.profile||{};
+
+      return {
+        id:postId(p),
+        username:String(
+          p.username||
+          user.username||
+          ''
+        ).replace(/^@/,''),
+        description:postText(p),
+        mediaUri:mediaUrl(p),
+        likes:Array.isArray(p.likes)
+          ? p.likes.length
+          : Number(p.likes||0),
+        views:Number(p.views||0),
+        commentCount:Number(
+          p.commentCount||
+          p.comment_count||
+          p.commentsCount||
+          0
+        ),
+        avatar:getAvatar(p)||getAvatar(user),
+        raw:p,
+        date:p.date||p.createdAt||p.created_at||''
+      }
+    })
+    .filter(r=>r.username&&r.mediaUri)
+    .filter(
+      (r,i,a)=>
+        i===a.findIndex(
+          x=>
+            String(x.id)==String(r.id)&&
+            x.username.toLowerCase()===
+              r.username.toLowerCase()&&
+            x.mediaUri===r.mediaUri
+        )
+    );
+}
+
+async function loadData(){
+
+  content.innerHTML=
+    '<div class="loading">Yükleniyor...</div>';
+
+  try{
+
+    const me=await api('/me');
+
+    if(!me){
+      throw new Error('auth');
+    }
+
+    const meUser=
+      me?.user||
+      me?.profile||
+      me||
+      {};
+
+    currentUsername=normalizeUsername(
+      meUser?.username||
+      me?.username||
+      ''
+    );
+
+    followingUsers=new Set();
+
+    getFollowingList(me).forEach(name=>{
+      followingUsers.add(name);
+    });
+
+    loadFollowingLocal();
+
+  }catch(e){
+
+    location.href='giris.html';
+    return;
+  }
+
+  try{
+
+    const [f,s]=await Promise.all([
+      api('/feed?ts='+Date.now()),
+      api('/stories?ts='+Date.now()).catch(()=>[])
+    ]);
+
+    feed=Array.isArray(f)
+      ? f
+      : (f?.posts||f?.data||f?.items||[]);
+
+    stories=Array.isArray(s)
+      ? s
+      : (s?.stories||s?.data||s?.items||[]);
+
+    normalizeReels();
+
+    renderDiscovery();
+
+  }catch(e){
+
+    content.innerHTML=
+      '<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>';
+  }
+}
+
+/* =========================
+   KULLANICI ARAMA
+========================= */
+
+async function searchUsers(q){
+
+  try{
+
+    const d=await api(
+      '/search?q='+encodeURIComponent(q)
+    );
+
+    const arr=
+      Array.isArray(d)
+        ? d
+        : (d?.users||d?.data||d?.items||[]);
+
+    return arr
+      .map(u=>{
+
+        const x=
+          u?.user||
+          u?.profile||
+          u||
+          {};
+
+        const username=String(
+          u?.username||
+          x?.username||
+          ''
+        )
+          .trim()
+          .replace(/^@/,'');
+
+        const key=normalizeUsername(username);
+
+        const apiFollowing=
+          u?.isFollowing ??
+          u?.is_following ??
+          x?.isFollowing ??
+          x?.is_following ??
+          false;
+
+        return {
+          username,
+          avatar:getAvatar(u)||getAvatar(x),
+          private:privateUser(u)||privateUser(x),
+          isFollowing:Boolean(
+            apiFollowing||
+            followingUsers.has(key)
+          )
+        };
+
+      })
+      .filter(u=>u.username);
+
+  }catch{
+
+    return [];
+  }
+}
+
+function renderTagIntro(tag){
+
+  content.innerHTML=`
+    <div class="tag-result" id="openTag">
+      <div class="tag-icon">#</div>
+      <div>
+        <div class="username">#${esc(tag)}</div>
+        <div class="sub">Etiket gönderilerini gör</div>
+      </div>
+    </div>
+  `;
+
+  $('openTag').onclick=()=>{
+    selectedTag=tag;
+    renderTagPosts();
+  }
+}
+
+function renderTagPosts(){
+
+  tagBack.style.display='inline';
+
+  const re=new RegExp(
+    '#'+
+    selectedTag.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    )+
+    '\\b',
+    'i'
+  );
+
+  const posts=feed.filter(
+    p=>re.test(postText(p))
+  );
+
+  if(!posts.length){
+
+    content.innerHTML=
+      '<div class="empty">Bu etikette henüz gönderi yok</div>';
+
+    return;
+  }
+
+  content.innerHTML=
+    '<div class="posts">'+
+    posts.map(p=>postHtml(p)).join('')+
+    '</div>';
+
+  bindPosts();
+}
+
+function postHtml(p){
+
+  const name=esc(p.username||'');
+  const a=getAvatar(p);
+  const u=mediaUrl(p);
+
+  let media='';
+
+  if(u){
+
+    if(isVideo(p)){
+
+      media=
+        `<video class="post-media" src="${esc(u)}" controls playsinline preload="metadata"></video>`;
+
+    }else{
+
+      media=
+        `<img class="post-media" src="${esc(u)}" loading="lazy" alt="">`;
+    }
+  }
+
+  return `
+    <article
+      class="post"
+      data-id="${esc(postId(p))}"
+      data-user="${name}"
+    >
+      <div
+        class="post-head"
+        data-profile="${name}"
+      >
+        ${avatar(a,name,false)}
+        <strong>@${name}</strong>
+      </div>
+
+      ${media}
+
+      <div class="caption">
+        ${esc(postText(p))}
+      </div>
+    </article>
+  `;
+}
+
+function bindPosts(){
+
+  document
+    .querySelectorAll('[data-profile]')
+    .forEach(x=>{
+      x.onclick=()=>openProfile(
+        x.dataset.profile
+      );
+    });
+}
+
+/* =========================
+   KEŞFET
+========================= */
+
+function renderDiscovery(){
+
+  if(!reels.length){
+
+    content.innerHTML=
+      '<div class="empty"><div style="font-size:52px">⌕</div><div>Kullanıcı ara</div>';
+
+    return;
+  }
+
+  content.innerHTML=
+    '<div class="section-title">Videolar</div>'+
+    '<div class="grid">'+
+    reels.map(
+      (r,i)=>
+        `<div class="tile" data-reel="${i}">
+          <video
+            src="${esc(r.mediaUri)}"
+            muted
+            playsinline
+            preload="metadata"
+          ></video>
+          <span class="play">▶</span>
+        </div>`
+    ).join('')+
+    '</div>';
+
+  document
+    .querySelectorAll('[data-reel]')
+    .forEach(x=>{
+      x.onclick=()=>openReel(
+        +x.dataset.reel
+      );
+    });
+}
+
+/* =========================
+   KULLANICI LİSTESİ
+========================= */
+
+function renderUsers(arr){
+
+  if(!arr.length){
+
+    content.innerHTML=
+      '<div class="empty">Kullanıcı bulunamadı</div>';
+
+    return;
+  }
+
+  content.innerHTML=
+    '<div class="users">'+
+
+    arr.map(u=>{
+
+      const st=storyFor(u.username);
+
+      const has=
+        !u.private&&
+        st.length;
+
+      const usernameKey=
+        normalizeUsername(u.username);
+
+      const isMe=
+        usernameKey===currentUsername;
+
+      const isFollowing=
+        isFollowingUser(u);
+
+      return `
+        <div
+          class="user"
+          data-user="${esc(u.username)}"
+          data-story="${has?'1':'0'}"
+          style="display:flex;align-items:center;"
+        >
+
+          ${avatar(
+            u.avatar,
+            u.username,
+            has
+          )}
+
+          <div
+            class="user-info"
+            style="flex:1;min-width:0;"
+          >
+
+            <div
+              style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                min-width:0;
+              "
+            >
+
+              <div
+                class="username"
+                style="min-width:0;"
+              >
+                @${esc(u.username)}
+              </div>
+
+              ${
+                !isMe
+                  ? `
+                    <button
+                      type="button"
+                      class="minegram-follow-btn ${isFollowing?'following':''}"
+                      data-follow-user="${esc(u.username)}"
+                      style="
+                        flex:0 0 auto;
+                        border:0;
+                        border-radius:8px;
+                        padding:6px 10px;
+                        background:${isFollowing?'#333':'#2196f3'};
+                        color:#fff;
+                        font-size:12px;
+                        font-weight:800;
+                        cursor:pointer;
+                        white-space:nowrap;
+                      "
+                    >
+                      ${isFollowing?'Takip Ediliyor':'Takip Et'}
+                    </button>
+                  `
+                  : ''
+              }
+
+            </div>
+
+            <div class="sub">
+              ${
+                has
+                  ? 'Hikayeyi görmek için fotoğrafa dokun'
+                  : 'Hesabı görüntüle'
+              }
+            </div>
+
+          </div>
+
+        </div>
+      `;
+
+    }).join('')+
+
+    '</div>';
+
+  /*
+    Kullanıcı satırına tıklama
+  */
+  document
+    .querySelectorAll('[data-user]')
+    .forEach(el=>{
+
+      el.onclick=()=>{
+
+        const n=el.dataset.user;
+
+        if(
+          el.dataset.story==='1'&&
+          el.querySelector('.story-ring')
+        ){
+
+          openStory(n);
+
+        }else{
+
+          openProfile(n);
+
+        }
+      };
+    });
+
+  /*
+    Takip butonları
+  */
+  document
+    .querySelectorAll('[data-follow-user]')
+    .forEach(button=>{
+
+      button.onclick=async event=>{
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const username=
+          button.dataset.followUser;
+
+        await toggleFollowUser(
+          username,
+          button
+        );
+      };
+
+    });
+}
+
+/* =========================
+   TAKİP ET / TAKİP EDİLİYOR
+========================= */
+
+async function toggleFollowUser(
+  username,
+  button
+){
+
+  const key=normalizeUsername(username);
+
+  if(!key) return;
+
+  if(key===currentUsername){
+    return;
+  }
+
+  const currentlyFollowing=
+    followingUsers.has(key);
+
+  button.disabled=true;
+
+  const oldText=button.textContent;
+
+  button.textContent='...';
+
+  try{
+
+    /*
+      Backend takip endpoint'i
+    */
+    const result=await api(
+      '/users/'+
+      encodeURIComponent(username)+
+      '/follow',
+      {
+        method:'POST'
+      }
+    );
+
+    /*
+      Backend cevap olarak following/isFollowing
+      döndürürse onu da dikkate al.
+    */
+    const backendState=
+      result?.following ??
+      result?.isFollowing ??
+      result?.is_following ??
+      result?.data?.following ??
+      result?.data?.isFollowing;
+
+    let newState;
+
+    if(typeof backendState==='boolean'){
+
+      newState=backendState;
+
+    }else{
+
+      newState=!currentlyFollowing;
+    }
+
+    if(newState){
+
+      followingUsers.add(key);
+
+      button.textContent='Takip Ediliyor';
+
+      button.style.background='#333';
+
+      button.classList.add('following');
+
+    }else{
+
+      followingUsers.delete(key);
+
+      button.textContent='Takip Et';
+
+      button.style.background='#2196f3';
+
+      button.classList.remove('following');
+    }
+
+    saveFollowingLocal();
+
+  }catch(error){
+
+    button.textContent=oldText;
+
+    alert(
+      error?.message||
+      'Takip işlemi gerçekleştirilemedi.'
+    );
+
+  }finally{
+
+    button.disabled=false;
+  }
+}
+
+/* =========================
+   ARAMA
+========================= */
+
+async function doSearch(q){
+
+  q=q.trim();
+
+  clear.style.display=
+    q?'block':'none';
+
+  tagBack.style.display=
+    selectedTag?'inline':'none';
+
+  if(selectedTag){
+
+    renderTagPosts();
+    return;
+  }
+
+  if(!q){
+
+    renderDiscovery();
+    return;
+  }
+
+  if(q.startsWith('#')){
+
+    const tag=q.slice(1).trim();
+
+    if(tag){
+
+      renderTagIntro(tag);
+
+    }else{
+
+      renderDiscovery();
+    }
+
+    return;
+  }
+
+  content.innerHTML=
+    '<div class="loading">Kullanıcılar aranıyor...</div>';
+
+  const found=await searchUsers(
+    q.replace(/^@/,'')
+  );
+
+  renderUsers(found);
+}
+
+function openProfile(name){
+
+  if(name){
+
+    location.href=
+      'profile.html?username='+
+      encodeURIComponent(name);
+  }
+}
+
+/* =========================
+   REELS
+========================= */
+
+function openReel(i){
+
+  const feedEl=$('viewerFeed');
+
+  if(!reels.length)return;
+
+  feedEl.innerHTML=
+    reels.map((r,k)=>{
+
+      const av=
+        r.avatar||
+        getAvatar(r.raw||r)||
+        '';
+
+      const letter=
+        esc(
+          (r.username||'M')
+            .charAt(0)
+            .toUpperCase()
+        );
+
+      const avatarHtml=
+        av
+          ? `<img src="${esc(av)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`+
+            `<span style="display:none">${letter}</span>`
+          : `<span>${letter}</span>`;
+
+      return `
+        <article
+          class="viewer-reel"
+          data-index="${k}"
+        >
+
+          <video
+            data-src="${esc(r.mediaUri)}"
+            playsinline
+            muted
+            loop
+            preload="metadata"
+          ></video>
+
+          <div class="shade"></div>
+
+          <button
+            class="center-play"
+            onclick="toggleViewerPlay(${k})"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+
+          <div class="reel-progress">
+
+            <span class="reel-time current-time">
+              0:00 / 0:00
+            </span>
+
+            <input
+              class="reel-range"
+              type="range"
+              min="0"
+              max="100"
+              value="0"
+              step="0.1"
+              oninput="seekViewer(${k},this.value)"
+            >
+
+            <button
+              class="reel-sound"
+              onclick="toggleViewerMute(${k})"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M4 10v4h4l5 4V6l-5 4H4z"/>
+                <path class="waves" d="M16 9.5c1.7 1.7 1.7 3.3 0 5M18.5 7c3 3 3 7 0 10"/>
+                <path class="mute-slash" d="M5 5L19 19"/>
+              </svg>
+            </button>
+
+          </div>
+
+          <button
+            class="topbtn back"
+            onclick="closeViewer()"
+          >
+            ‹
+          </button>
+
+          <div class="actions">
+
+            <button
+              class="action like"
+              onclick="likeViewerReel(${k})"
+            >
+              <span class="ico">
+                <svg viewBox="0 0 24 24">
+                  <path d="M20.8 8.7c0 5.1-8.8 10.8-8.8 10.8S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 8 4c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.7 4.7 0 0 1 4.8 4.7z"/>
+                </svg>
+              </span>
+              <span class="num">${r.likes||0}</span>
+            </button>
+
+            <div class="action view-stat">
+              <span class="ico">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+                  <circle cx="12" cy="12" r="2.5"/>
+                </svg>
+              </span>
+              <span class="num">${r.views||0}</span>
+            </div>
+
+            <button
+              class="action"
+              onclick="openViewerComments(${k})"
+            >
+              <span class="ico">
+                <svg viewBox="0 0 24 24">
+                  <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.14 0-2.22-.25-3.19-.69L4 20l1.69-4.19A7.46 7.46 0 0 1 5 11.5 7.5 7.5 0 1 1 20 11.5Z"/>
+                </svg>
+              </span>
+              <span class="num comment-count">${r.commentCount||0}</span>
+            </button>
+
+            <button
+              class="action"
+              onclick="shareViewerReel(${k})"
+            >
+              <span class="ico">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
+                </svg>
+              </span>
+            </button>
+
+          </div>
+
+          <div class="info">
+
+            <div class="userrow">
+
+              <div
+                class="avatar"
+                onclick="openProfile('${encodeURIComponent(r.username)}')"
+              >
+                ${avatarHtml}
+              </div>
+
+              <div class="usercol">
+
+                <div>
+                  <span
+                    class="username"
+                    onclick="openProfile('${encodeURIComponent(r.username)}')"
+                  >
+                    @${esc(r.username)}
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="date">
+              ${esc(r.date||'')}
+            </div>
+
+            <div class="desc">
+              ${esc(r.description||'')}
+            </div>
+
+          </div>
+
+        </article>
+      `;
+
+    }).join('');
+
+  $('viewer').classList.add('show');
+
+  document.body.style.overflow='hidden';
+
+  setupViewerReels(i);
+}
+
+function setupViewerReels(start){
+
+  const arts=[
+    ...document.querySelectorAll(
+      '.viewer-reel'
+    )
+  ];
+
+  if(viewerObserver){
+    viewerObserver.disconnect();
+  }
+
+  viewerObserver=
+    new IntersectionObserver(
+      es=>es.forEach(e=>{
+
+        const v=
+          e.target.querySelector('video');
+
+        const i=
+          Number(
+            e.target.dataset.index
+          );
+
+        if(
+          e.isIntersecting&&
+          e.intersectionRatio>.65
+        ){
+
+          arts.forEach((a,j)=>{
+
+            const x=
+              a.querySelector('video');
+
+            if(x!==v){
+
+              x.pause();
+              x.muted=true;
+
+              a.querySelector(
+                '.reel-sound'
+              )?.classList.add('muted');
+            }
+          });
+
+          v.muted=false;
+          v.volume=1;
+
+          v.play().catch(
+            ()=>showViewerPlay(i,true)
+          );
+
+          e.target
+            .querySelector('.reel-sound')
+            ?.classList.remove('muted');
+
+          viewViewerCount(i);
+
+        }else{
+
+          v.pause();
+        }
+
+      }),
+      {
+        threshold:[.65]
+      }
+    );
+
+  arts.forEach((a,i)=>{
+
+    const v=
+      a.querySelector('video');
+
+    v.src=reels[i].mediaUri;
+
+    v.addEventListener(
+      'loadedmetadata',
+      ()=>updateViewerProgress(i)
+    );
+
+    v.addEventListener(
+      'timeupdate',
+      ()=>updateViewerProgress(i)
+    );
+
+    v.addEventListener(
+      'play',
+      ()=>showViewerPlay(i,false)
+    );
+
+    v.addEventListener(
+      'pause',
+      ()=>showViewerPlay(i,true)
+    );
+
+    v.addEventListener(
+      'click',
+      ()=>toggleViewerPlay(i)
+    );
+
+    viewerObserver.observe(a);
+  });
+
+  requestAnimationFrame(
+    ()=>arts[start]?.scrollIntoView({
+      block:'start'
+    })
+  );
+}
+
+function showViewerPlay(i,show){
+
+  const b=
+    document
+      .querySelectorAll('.viewer-reel')[i]
+      ?.querySelector('.center-play');
+
+  if(b){
+    b.style.display=
+      show?'grid':'none';
+  }
+}
+
+function toggleViewerPlay(i){
+
+  const v=
+    document.querySelectorAll(
+      '.viewer-reel video'
+    )[i];
+
+  if(!v)return;
+
+  if(v.paused){
+
+    v.play().catch(()=>{});
+
+    showViewerPlay(i,false);
+
+  }else{
+
+    v.pause();
+
+    showViewerPlay(i,true);
+  }
+}
+
+function toggleViewerMute(i){
+
+  const v=
+    document.querySelectorAll(
+      '.viewer-reel video'
+    )[i];
+
+  const b=
+    document.querySelectorAll(
+      '.viewer-reel .reel-sound'
+    )[i];
+
+  if(!v||!b)return;
+
+  v.muted=!v.muted;
+
+  document
+    .querySelectorAll('.viewer-reel video')
+    .forEach((x,j)=>{
+
+      if(j!==i){
+
+        x.muted=true;
+
+        document
+          .querySelectorAll(
+            '.viewer-reel .reel-sound'
+          )[j]
+          ?.classList.add('muted');
+      }
+    });
+
+  b.classList.toggle(
+    'muted',
+    v.muted
+  );
+
+  if(!v.muted){
+    v.play().catch(()=>{});
+  }
+}
+
+function updateViewerProgress(i){
+
+  const a=
+    document.querySelectorAll(
+      '.viewer-reel'
+    )[i];
+
+  const v=a?.querySelector('video');
+  const r=a?.querySelector('.reel-range');
+  const t=a?.querySelector('.current-time');
+
+  if(!v||!r)return;
+
+  const p=
+    v.duration
+      ? Math.min(
+          100,
+          v.currentTime/v.duration*100
+        )
+      : 0;
+
+  r.value=p;
+
+  r.style.background=
+    `linear-gradient(to right,#42a5f5 0%,#42a5f5 ${p}%,#4b435d ${p}%,#4b435d 100%)`;
+
+  if(t){
+    t.textContent=
+      viewerTime(v.currentTime)+
+      ' / '+
+      viewerTime(v.duration);
+  }
+}
+
+function viewerTime(s){
+
+  s=
+    Number.isFinite(s)&&s>=0
+      ? Math.floor(s)
+      : 0;
+
+  return Math.floor(s/60)+
+    ':'+
+    String(s%60).padStart(2,'0');
+}
+
+function seekViewer(i,p){
+
+  const v=
+    document.querySelectorAll(
+      '.viewer-reel video'
+    )[i];
+
+  if(
+    v&&
+    Number.isFinite(v.duration)
+  ){
+
+    v.currentTime=
+      Number(p)/100*v.duration;
+  }
+}
+
+function viewViewerCount(i){
+
+  const r=reels[i];
+
+  if(
+    !r||
+    viewerSeen.has(r.id)
+  ){
+    return;
+  }
+
+  viewerSeen.add(r.id);
+
+  r.views=
+    (Number(r.views)||0)+1;
+
+  const n=
+    document
+      .querySelectorAll(
+        '.viewer-reel'
+      )[i]
+      ?.querySelector(
+        '.view-stat .num'
+      );
+
+  if(n){
+    n.textContent=r.views;
+  }
+}
+
+async function likeViewerReel(i){
+
+  const r=reels[i];
+
+  const a=
+    document.querySelectorAll(
+      '.viewer-reel'
+    )[i];
+
+  const b=
+    a?.querySelector('.like');
+
+  if(!r||!b)return;
+
+  const liked=
+    b.classList.contains('liked');
+
+  r.likes=
+    Math.max(
+      0,
+      (Number(r.likes)||0)+
+      (liked?-1:1)
+    );
+
+  b.classList.toggle(
+    'liked',
+    !liked
+  );
+
+  b.querySelector('.num').textContent=
+    r.likes;
+
+  try{
+
+    await api(
+      '/posts/'+
+      encodeURIComponent(r.id)+
+      '/like',
+      {
+        method:'POST'
+      }
+    );
+
+  }catch{}
+}
+
+async function openViewerComments(i){
+
+  currentViewerComment=i;
+
+  $('viewerComments')
+    .classList.add('open');
+
+  const list=
+    $('viewerCommentsList');
+
+  list.innerHTML=
+    '<div class="loading">Yorumlar yükleniyor...</div>';
+
+  try{
+
+    const j=
+      await api(
+        '/posts/'+
+        encodeURIComponent(
+          reels[i].id
+        )+
+        '/comments?ts='+
+        Date.now()
+      );
+
+    const arr=
+      Array.isArray(j)
+        ? j
+        : (
+            j?.comments||
+            j?.data||
+            []
+          );
+
+    renderViewerComments(arr);
+
+  }catch{
+
+    list.innerHTML=
+      '<div class="comment-empty">Yorumlar alınamadı.</div>';
+  }
+}
+
+function renderViewerComments(arr){
+
+  const list=
+    $('viewerCommentsList');
+
+  list.innerHTML=
+    arr.length
+      ? arr.map(c=>{
+
+          const u=
+            c.user||
+            c.author||
+            {};
+
+          const n=
+            esc(
+              c.username||
+              u.username||
+              'minegram'
+            );
+
+          const tx=
+            esc(
+              c.text||
+              c.comment||
+              c.body||
+              ''
+            );
+
+          return `
+            <div class="comment">
+
+              <div class="comment-meta">
+
+                <div class="comment-avatar">
+                  ${esc(
+                    (
+                      n.replace('@','')||
+                      'M'
+                    ).charAt(0).toUpperCase()
+                  )}
+                </div>
+
+                <div class="comment-body">
+
+                  <b>
+                    @${n.replace(/^@/,'')}
+                  </b>
+
+                  <p>${tx}</p>
+
+                  <div class="comment-actions">
+                    ${esc(
+                      c.createdAt||
+                      c.created_at||
+                      ''
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+
+        }).join('')
+
+      : '<div class="comment-empty">Henüz yorum yok.<br>İlk yorumu sen yap.</div>';
+}
+
+async function sendViewerComment(){
+
+  const inp=
+    $('viewerCommentInput');
+
+  const text=
+    inp.value.trim();
+
+  if(
+    !text||
+    currentViewerComment===null
+  ){
+    return;
+  }
+
+  try{
+
+    const r=
+      reels[currentViewerComment];
+
+    await api(
+      '/posts/'+
+      encodeURIComponent(r.id)+
+      '/comments',
+      {
+        method:'POST',
+        body:JSON.stringify({text})
+      }
+    );
+
+    inp.value='';
+
+    await openViewerComments(
+      currentViewerComment
+    );
+
+  }catch(e){
+
+    alert(
+      e.message||
+      'Yorum gönderilemedi'
+    );
+  }
+}
+
+function closeViewerComments(){
+
+  $('viewerComments')
+    .classList.remove('open');
+
+  currentViewerComment=null;
+}
+
+async function shareViewerReel(i){
+
+  const r=reels[i];
+
+  const text=
+    '🎬 @'+
+    r.username+
+    ' Reels: '+
+    (r.description||'');
+
+  if(navigator.share){
+
+    try{
+
+      await navigator.share({
+        text
+      });
+
+    }catch{}
+
+  }else{
+
+    try{
+
+      await navigator.clipboard.writeText(
+        text
+      );
+
+    }catch{}
+  }
+}
+
+function closeViewer(){
+
+  closeViewerComments();
+
+  if(viewerObserver){
+    viewerObserver.disconnect();
+  }
+
+  document
+    .querySelectorAll(
+      '.viewer-reel video'
+    )
+    .forEach(v=>{
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+    });
+
+  $('viewer')
+    .classList.remove('show');
+
+  document.body.style.overflow='';
+
+  $('viewerFeed').innerHTML='';
+}
+
+/* =========================
+   ARAMA OLAYLARI
+========================= */
+
+input.addEventListener(
+  'input',
+  ()=>{
+    clearTimeout(timer);
+
+    selectedTag='';
+
+    timer=setTimeout(
+      ()=>doSearch(input.value),
+      100
+    );
+  }
+);
+
+clear.onclick=()=>{
+
+  input.value='';
+  selectedTag='';
+
+  doSearch('');
+
+  input.focus();
+};
+
+tagBack.onclick=()=>{
+
+  selectedTag='';
+
+  tagBack.style.display='none';
+
+  doSearch(input.value);
+};
+
+/* =========================
+   YENİLEME
+========================= */
+
+let sy=0;
+
+document.addEventListener(
+  'touchstart',
+  e=>{
+    sy=e.touches[0].clientY;
+  },
+  {
+    passive:true
+  }
+);
+
+document.addEventListener(
+  'touchend',
+  e=>{
+
+    if(
+      window.scrollY<=2&&
+      e.changedTouches[0].clientY-sy>100
+    ){
+
+      loadData();
+    }
+
+  },
+  {
+    passive:true
+  }
+);
+
+loadData();
+</script>
 
 
   <!-- =======================================================
