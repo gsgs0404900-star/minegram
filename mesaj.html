@@ -3459,13 +3459,23 @@ function renderMessage(
 
   const isReel=d.type==="reel" || /reel/i.test(String(d.postMediaType||d.mediaType||""));
   const username=String(d.postUsername||d.username||"");
-  const avatar=d.postAvatar||d.avatar||d.profilePhoto||d.profile_photo||d.avatarUrl||d.avatar_url||"";
-  const media=d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||"";
-  const mediaType=String(d.postMediaType||d.mediaType||"");
+  const sharedPost=(d.post && typeof d.post==="object")?d.post:{};
+  const avatar=d.postAvatar||d.avatar||d.profilePhoto||d.profile_photo||d.avatarUrl||d.avatar_url||sharedPost.avatar||sharedPost.avatar_url||sharedPost.avatarUrl||"";
+  const media=
+   d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||
+   sharedPost.mediaBase64||sharedPost.media||sharedPost.mediaUri||sharedPost.media_url||sharedPost.mediaUrl||"";
+  const mediaType=String(
+   d.postMediaType||d.mediaType||
+   sharedPost.mediaType||sharedPost.media_type||sharedPost.type||""
+  );
   const isVideo=/video|reel/i.test(mediaType) || isReel;
-  const videoCover=d.videoCoverBase64||d.videoCover||d.postVideoCoverBase64||d.postVideoCover||d.postCoverBase64||d.postCover||d.coverBase64||d.cover||d.thumbnailBase64||d.thumbnail||"";
-  const displayMedia=isVideo ? (videoCover||((/^image\//i.test(mediaType)||!mediaType) ? media : "")) : media;
-  const caption=d.postText||d.caption||"";
+  const videoCover=
+   d.videoCoverBase64||d.videoCover||d.postVideoCoverBase64||d.postVideoCover||
+   d.postCoverBase64||d.postCover||d.coverBase64||d.cover||d.thumbnailBase64||d.thumbnail||
+   sharedPost.videoCoverBase64||sharedPost.videoCover||sharedPost.postVideoCoverBase64||sharedPost.postVideoCover||
+   sharedPost.coverBase64||sharedPost.cover||sharedPost.thumbnailBase64||sharedPost.thumbnail||"";
+  const displayMedia=isVideo ? (videoCover||media) : media;
+  const caption=d.postText||d.caption||sharedPost.caption||sharedPost.text||"";
   const likes=d.postLikes||d.likes||0;
   const comments=d.postCommentCount||d.commentCount||0;
   const initial=(username.replace(/^@/,"")[0]||"K").toUpperCase();
@@ -3478,7 +3488,11 @@ function renderMessage(
   const infoCls=isReel?"message-reel-info":"message-post-info";
   const capCls=isReel?"message-reel-caption":"message-post-caption";
   const statsCls=isReel?"message-reel-stats":"message-post-stats";
-  const mediaHtml=displayMedia?`<img class="${mediaCls}" src="${escapeHtml(displayMedia)}" alt="${isReel?"Reels":"Gönderi"}>`:"";
+  const mediaHtml=displayMedia?
+   (isVideo && !videoCover
+    ? `<video class="${mediaCls}" src="${escapeHtml(displayMedia)}" muted playsinline preload="metadata"></video>`
+    : `<img class="${mediaCls}" src="${escapeHtml(displayMedia)}" alt="${isReel?"Reels":"Gönderi"}>`)
+   :"";
 
   body=`
   <div class="${cls}" data-open-post="1">
@@ -5942,17 +5956,6 @@ window.MinegramChat={
       post.mediaBase64||
       null,
 
-     videoCoverBase64:
-      post.videoCoverBase64||
-      post.videoCover||
-      post.postVideoCoverBase64||
-      post.postVideoCover||
-      post.coverBase64||
-      post.cover||
-      post.thumbnailBase64||
-      post.thumbnail||
-      null,
-
      postCommentCount:
       post.commentCount||
       0
@@ -6044,16 +6047,7 @@ if(p.get("share")){
        x.mediaBase64||
        null,
 
-      videoCoverBase64:
-       x.videoCoverBase64||
-       x.videoCover||
-       x.postVideoCoverBase64||
-       x.postVideoCover||
-       x.coverBase64||
-       x.cover||
-       x.thumbnailBase64||
-       x.thumbnail||
-       null,
+      post:x,
 
       postCommentCount:
        x.commentCount||
