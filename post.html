@@ -7615,25 +7615,6 @@ function getSelectedPostFromSession(id){
         const post=JSON.parse(raw);
         if(!post || typeof post!=="object") continue;
 
-        post.media =
-        post.media ||
-        post.mediaUri ||
-        post.media_url ||
-        post.mediaUrl ||
-        post.image ||
-        post.imageUrl ||
-        post.photo ||
-        post.url ||
-        "";
-
-      if (
-        !post.mediaName &&
-        post.mediaType
-      ) {
-        const ext = post.mediaType.split("/").pop() || "";
-        post.mediaName = "file." + ext;
-      }
-
         /*
           index.html bazı sürümlerde ID'yi farklı alanda taşıyabiliyor.
           Önce tam eşleşmeyi dene; ardından iç içe post nesnesini de kontrol et.
@@ -7646,33 +7627,11 @@ function getSelectedPostFromSession(id){
           String(post.uuid??"").trim()
         ].filter(Boolean);
 
-        if (wanted && ids.includes(wanted)) {
-
-  const result =
-    post.post && typeof post.post === "object"
-      ? post.post
-      : post;
-
-  result.media =
-    result.media ||
-    post.media ||
-    post.mediaUri ||
-    post.media_url ||
-    post.mediaUrl ||
-    "";
-
-  result.mediaType =
-    result.mediaType ||
-    post.mediaType ||
-    "";
-
-  return result;
-}
+        if(wanted && ids.includes(wanted)) return post.post && typeof post.post==='object' ? post.post : post;
 
         /* URL'de ID var ama cache nesnesinde ID alanı yoksa,
            index.html'nin bıraktığı tek seçili gönderiyi yine göster. */
         if(wanted && !ids.length) return post;
-        console.log("SELECTED POST:", post);
       }catch(e){}
     }
   }
