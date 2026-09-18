@@ -90,6 +90,95 @@ onclick="sendComment()"
 </div>
 <input id="reelInput" type="file" accept="video/*"><div id="toast" class="toast"></div>
 <script>
+ 
+function addEmoji(e){
+
+const input=document.getElementById("commentInput");
+
+if(input){
+
+input.value+=e;
+
+input.focus();
+
+}
+
+}
+
+
+
+function closeComments(){
+
+const modal=document.getElementById("commentsModal");
+
+if(modal){
+
+modal.style.display="none";
+
+}
+
+}
+
+
+
+async function openComments(i){
+
+currentCommentReel=reels[i];
+
+const modal=document.getElementById("commentsModal");
+
+modal.style.display="flex";
+
+
+loadComments(i);
+
+}
+
+
+
+async function sendComment(){
+
+const input=document.getElementById("commentInput");
+
+const text=input.value.trim();
+
+
+if(!text || !currentCommentReel)
+return;
+
+
+try{
+
+await api(
+"/api/posts/"+encodeURIComponent(currentCommentReel.id)+"/comments",
+{
+method:"POST",
+body:{
+text:text
+}
+}
+);
+
+
+input.value="";
+
+
+const index=reels.findIndex(
+x=>x.id===currentCommentReel.id
+);
+
+
+loadComments(index);
+
+
+}catch(e){
+
+toast("Yorum gönderilemedi");
+
+}
+
+}
+ 
 let token=localStorage.getItem('minegram_token')||localStorage.getItem('minegram_supabase_token')||'';
 let me=null,reels=[],currentCommentReel=null,observer=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
