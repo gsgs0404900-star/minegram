@@ -7588,18 +7588,20 @@ async function sendComment(){
     }
 
 
-    const wrap=
+    const wrap =
       document.querySelector(
-        '.comment-wrap[data-comment-id="'+
-        CSS.escape(String(replyId))+
+        '[data-comment-id="' +
+        String(replyId).replace(/"/g,'\\\"') +
         '"]'
       );
 
 
-    const replies=
-      wrap?.querySelector(
-        ".replies"
-      );
+    const replies =
+      wrap
+        ? wrap.querySelector(".replies")
+        : document.getElementById(
+            "replies-" + String(replyId)
+          );
 
 
     if(replies){
