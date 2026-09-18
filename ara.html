@@ -2566,7 +2566,7 @@ function createReelHtml(
 
 
         <div class="reel-date">
-          ${esc(reel.date || "")}
+          ${esc(relativeTime(reel.date || reel.createdAt || reel.created_at || ""))}
         </div>
 
 
@@ -3662,55 +3662,32 @@ function relativeTime(v){
 
 const d=new Date(v);
 
-if(!v||isNaN(d))
+if(!v || isNaN(d.getTime()))
 return '';
 
-let s=
-Math.floor(
-(
-Date.now()-
-d.getTime()
-)/1000
-);
+const diff=Math.max(0,Date.now()-d.getTime());
+const seconds=Math.floor(diff/1000);
 
+if(seconds<60)
+return seconds+' saniye önce';
 
-if(s<60)
-return s+
-' saniye önce';
+const minutes=Math.floor(seconds/60);
 
+if(minutes<60)
+return minutes+' dakika önce';
 
-let m=
-Math.floor(s/60);
+const hours=Math.floor(minutes/60);
 
+if(hours<24)
+return hours+' saat önce';
 
-if(m<60)
-return m+
-' dakika önce';
-
-
-let h=
-Math.floor(m/60);
-
-
-if(h<24)
-return h+
-' saat önce';
-
-
-let days=
-Math.floor(h/24);
-
+const days=Math.floor(hours/24);
 
 if(days<7)
-return days+
-' gün önce';
-
+return days+' gün önce';
 
 if(days<365)
-return Math.floor(
-days/7
-)+' hafta önce';
-
+return Math.floor(days/7)+' hafta önce';
 
 return Math.floor(days/365)+' yıl önce';
 
