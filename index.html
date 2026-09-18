@@ -7048,12 +7048,24 @@ async function refreshComments(
         : [];
 
 
+    const mergedComments=
+      mergeComments(
+        remote,
+        id
+      );
+
+    /* Yorumları yerel önbellekte tut: yanıt sonrası yenilemede
+       ana yorum ve yanıt sayısı kaybolmasın. */
+    try{
+      localStorage.setItem(
+        localCommentsKey(id),
+        JSON.stringify(mergedComments.slice(-100))
+      );
+    }catch(e){}
+
     list.innerHTML=
       renderCommentsForPost(
-        mergeComments(
-          remote,
-          id
-        )
+        mergedComments
       );
 
 
@@ -7148,12 +7160,24 @@ async function openComments(id){
         : [];
 
 
+    const mergedComments=
+      mergeComments(
+        remote,
+        id
+      );
+
+    /* Yorumları yerel önbellekte tut: yanıt sonrası yenilemede
+       ana yorum ve yanıt sayısı kaybolmasın. */
+    try{
+      localStorage.setItem(
+        localCommentsKey(id),
+        JSON.stringify(mergedComments.slice(-100))
+      );
+    }catch(e){}
+
     list.innerHTML=
       renderCommentsForPost(
-        mergeComments(
-          remote,
-          id
-        )
+        mergedComments
       );
 
 
@@ -7331,13 +7355,15 @@ function renderComment(c){
     );
 
 
-  const replyCount=
+  const actualReplies=
     Array.isArray(c.replies)
       ? c.replies.length
-      : Number(
-          c.replyCount||
-          0
-        );
+      : 0;
+
+  const replyCount=Math.max(
+    actualReplies,
+    Number(c.replyCount||0)
+  );
 
 
   return `
