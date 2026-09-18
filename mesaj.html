@@ -938,29 +938,6 @@ body{
  opacity:.85
 }
 
-.content-share-actions{
- display:flex;
- gap:9px;
- margin:4px 0 12px
-}
-
-.content-share-btn{
- flex:1;
- min-height:48px;
- border:1px solid #333;
- border-radius:12px;
- background:#222;
- color:#fff;
- display:flex;
- align-items:center;
- justify-content:center;
- gap:8px;
- font-size:14px;
- cursor:pointer
-}
-
-.content-share-btn:active{background:#303030}
-
 .share-modal,
 .profile-modal{
  position:absolute;
@@ -1351,10 +1328,6 @@ Mesajlar yükleniyor...
 GIF
 </button>
 
-<button class="tool-btn" id="contentShareBtn" title="Gönderi / canlı yayın paylaş">
-<i class="fa-solid fa-share-nodes"></i>
-</button>
-
 </div>
 
 <div class="composer">
@@ -1415,27 +1388,6 @@ autocomplete="off">
 id="shareList"
 class="share-list">
 </div>
-
-</div>
-</div>
-
-<div class="share-modal" id="contentShareModal">
-
-<div class="share-sheet">
-
-<div class="sheet-handle"></div>
-
-<div class="sheet-head">
-<b>İçerik paylaş</b>
-<button id="contentShareClose" class="sheet-close"><i class="fa-solid fa-xmark"></i></button>
-</div>
-
-<div class="content-share-actions">
-<button id="sharePostBtn" class="content-share-btn"><i class="fa-regular fa-image"></i><span>Gönderi paylaş</span></button>
-<button id="shareLiveBtn" class="content-share-btn"><i class="fa-solid fa-circle"></i><span>Canlı yayın paylaş</span></button>
-</div>
-
-<div id="contentShareList" class="share-list"></div>
 
 </div>
 </div>
@@ -2082,159 +2034,60 @@ function cleanUsername(value){
 function getLoggedUsername(){
 
  const keys=[
-
-  "username",
-
+  "minegram_current_username",
+  "minegramCurrentUsername",
   "minegram_username",
-
   "minegramUsername",
-
   "currentUsername",
-
   "current_username",
-
   "loggedUsername",
-
   "logged_username",
-
   "userName",
-
   "user_name",
-
   "minegramUser",
-
   "minegram_user",
-
   "currentUser",
-
   "current_user",
-
   "user",
-
   "minegramCurrentUser",
-
-  "minegram_current_user"
-
+  "username"
  ];
 
-
- /* ------------------------------------------
-    Önce doğrudan string kayıtları kontrol et
-    ------------------------------------------ */
-
- for(
-  const key of keys
- ){
-
-  const raw=
-   localStorage.getItem(key);
-
-  if(!raw)
-   continue;
-
-  let value=raw;
-
+ function read(store,key){
+  const raw=store.getItem(key);
+  if(!raw) return "";
   try{
-
-   const parsed=
-    JSON.parse(raw);
-
-   if(
-    typeof parsed==="object"&&
-    parsed!==null
-   ){
-
-    value=
-     parsed.username||
-     parsed.userName||
-     parsed.name||
-     parsed.handle||
-     parsed.user?.username||
-     parsed.profile?.username||
-     "";
-
-   }else{
-
-    value=parsed;
-
-   }
-
-  }catch{}
-
-  const username=
-   cleanUsername(value);
-
-  if(username)
-   return username;
-
+   const parsed=JSON.parse(raw);
+   if(parsed&&typeof parsed==="object")
+    return cleanUsername(
+     parsed.username||parsed.userName||parsed.handle||
+     parsed.user?.username||parsed.profile?.username||""
+    );
+   return cleanUsername(parsed);
+  }catch{
+   return cleanUsername(raw);
+  }
  }
 
-
- /* ------------------------------------------
-    sessionStorage
-    ------------------------------------------ */
-
- for(
-  const key of keys
- ){
-
-  const raw=
-   sessionStorage.getItem(key);
-
-  if(!raw)
-   continue;
-
-  let value=raw;
-
-  try{
-
-   const parsed=
-    JSON.parse(raw);
-
-   if(
-    typeof parsed==="object"&&
-    parsed!==null
-   ){
-
-    value=
-     parsed.username||
-     parsed.userName||
-     parsed.name||
-     parsed.handle||
-     parsed.user?.username||
-     parsed.profile?.username||
-     "";
-
-   }
-
-  }catch{}
-
-  const username=
-   cleanUsername(value);
-
-  if(username)
-   return username;
-
+ /* Önce oturum açma sisteminin özel anahtarları. */
+ for(const key of keys){
+  const v=read(sessionStorage,key);
+  if(v) return v;
  }
-
-
+ for(const key of keys){
+  const v=read(localStorage,key);
+  if(v) return v;
+ }
  return "";
-
 }
 
 
 /*
- * URL'DEKİ SOHBET ALICISINI ÖNCE BELİRLE
- * Böylece sayfa açılır açılmaz gerçek kullanıcı hedefi sabitlenir.
+ * URL PARAMETRESİNİ ÖNCE AL
+ * /mesaj.html?username=admin -> alıcı admin
  */
 const p=new URLSearchParams(location.search);
 
-const targetUsername=cleanUsername(
- p.get("username")||
- p.get("user")||
- p.get("to")||
- ""
-);
 
 /*
  * GERÇEK GİRİŞ YAPAN HESABI AL
@@ -2334,12 +2187,6 @@ console.log(
  "MINEGRAM SOHBET:",
  conversationKey
 );
-
-/* targetUsername ve conversationKey yukarıda tek kez oluşturuldu.
- * İkinci bir tanım yapılmaz; butonların çalışmasını engelleyen
- * TDZ/tekrar-tanımlama hatası böylece oluşmaz.
- */
-
 
 const input=
  document.getElementById("messageInput");
@@ -3766,18 +3613,6 @@ function renderMessage(
    }
   }
  );
-
-
- /* =========================
-    MESAJI BAŞKA KULLANICIYA AKTAR
-    ========================= */
-
- wrap.querySelector('[data-act="share"]')?.addEventListener('click', async()=>{
-  const payload={...d};
-  delete payload._liked; delete payload.read; delete payload.createdAt; delete payload.time;
-  delete payload.sender; delete payload.recipient; delete payload.conversationKey; delete payload.deleted;
-  await shareToUser(payload, 'Mesajı aktar');
- });
 
 
  /* =========================
@@ -5253,18 +5088,13 @@ async function shareToUser(
  );
 
 
- /* Gerçek sohbet alıcısı varsa onu listenin en üstüne koy.
-  * Asla "test" gibi sabit/deneme hesabını otomatik hedef seçme.
-  */
- const orderedUsers=[
-  ...(targetUsername ? [targetUsername] : []),
-  ...users.filter(u=>
-   !targetUsername ||
-   u.toLowerCase()!==targetUsername.toLowerCase()
-  )
- ];
-
- const list=[...new Set(orderedUsers)].slice(0,100);
+ const list=
+  [
+   ...new Set(users)
+  ].slice(
+   0,
+   100
+  );
 
 
  $("shareTitle")
@@ -5380,85 +5210,41 @@ async function shareToUser(
 }
 
 
-async function sendTo(
- user,
- payload
-){
+async function sendTo(user,payload){
 
  const recipient=cleanUsername(user);
-
  if(!recipient){
-  showToast("Gerçek alıcı bulunamadı");
+  showToast("Alıcı kullanıcı bulunamadı");
   return false;
  }
-
- if(!myUsername || myUsername.toLowerCase()===recipient.toLowerCase()){
-  showToast("Geçerli bir alıcı seçilmedi");
+ if(!myUsername){
+  showToast("Önce hesabına giriş yapmalısın");
   return false;
  }
-
+ if(myUsername.toLowerCase()===recipient.toLowerCase()){
+  showToast("Kendine mesaj gönderemezsin");
+  return false;
+ }
  if(!(await ensureAuth())) return false;
-
  await syncBlock();
  if(blockedSend()) return false;
 
  try{
-
-  const d={
+  await addDoc(collection(firestore,"chatMessages"),{
+   conversationKey:[myUsername.toLowerCase(),recipient.toLowerCase()].sort().join("__"),
+   sender:myUsername,
+   recipient:recipient,
+   time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),
+   createdAt:Date.now(),
+   read:false,
    ...payload
-  };
-
-  await addDoc(
-   collection(
-    firestore,
-    "chatMessages"
-   ),
-   {
-
-    conversationKey:[
-     myUsername.toLowerCase(),
-     recipient.toLowerCase()
-    ]
-    .sort()
-    .join("__"),
-
-    sender:myUsername,
-
-    recipient:recipient,
-
-    time:
-     new Date()
-     .toLocaleTimeString(
-      "tr-TR",
-      {
-       hour:"2-digit",
-       minute:"2-digit",
-       second:"2-digit"
-      }
-     ),
-
-    createdAt:
-     Date.now(),
-
-    read:false,
-
-    ...d
-
-   }
-  );
-
+  });
   return true;
-
- }catch{
-
-  showToast(
-   "Gönderilemedi"
-  );
-
+ }catch(e){
+  console.error("Minegram share send error:",e);
+  showToast("Gönderilemedi");
   return false;
-
  }
-
 }
 
 
@@ -5629,63 +5415,6 @@ if(p.get("share")){
  }catch{}
 
 }
-
-
-/* ==========================================================
-   GÖNDERİ / CANLI YAYIN PAYLAŞIMI
-   ========================================================== */
-
-const contentShareModal=$('contentShareModal');
-const contentShareList=$('contentShareList');
-
-$('contentShareBtn').onclick=()=>{
- if(blockedSend()) return;
- contentShareList.innerHTML="";
- contentShareModal.classList.add('show');
-};
-
-$('contentShareClose').onclick=()=>contentShareModal.classList.remove('show');
-contentShareModal.addEventListener('click',e=>{
- if(e.target===contentShareModal) contentShareModal.classList.remove('show');
-});
-
-function renderContentShareUsers(payload,title){
- shareToUser(payload,title);
-}
-
-$('sharePostBtn').onclick=async()=>{
- contentShareList.innerHTML='<div class="loading">Gönderiler yükleniyor...</div>';
- try{
-  const r=await MinegramAPI.feed();
-  const arr=Array.isArray(r)?r:(r?.posts||r?.feed||r?.items||[]);
-  if(!arr.length){contentShareList.innerHTML='<div class="loading">Paylaşılacak gönderi bulunamadı</div>';return;}
-  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{
-   const user=String(x?.username||x?.user?.username||'Kullanıcı');
-   const id=x?.id||x?.postId||x?.post_id||'';
-   const media=x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||x?.image||'';
-   const text=x?.text||x?.caption||'';
-   return `<div class="share-user" data-post-index="${i}">${displayAvatar(user,45)}<div class="share-meta"><b>@${escapeHtml(user)}</b><small>${escapeHtml(text||'Gönderiyi paylaş')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;
-  }).join('');
-  contentShareList.querySelectorAll('[data-post-index]').forEach(el=>el.onclick=async()=>{
-   const x=arr[Number(el.dataset.postIndex)]||{};
-   const user=String(x?.username||x?.user?.username||'Kullanıcı');
-   const payload={type:'post',text:'📷 @'+user+' gönderisi',postId:x?.id||x?.postId||x?.post_id||'',postUsername:user,postText:x?.text||x?.caption||'',postLikes:x?.likes||x?.like_count||0,postMediaUri:x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||'',postMediaType:x?.mediaType||x?.media_type||'image',postMediaBase64:x?.mediaBase64||null,postCommentCount:x?.commentCount||x?.comment_count||0};
-   contentShareModal.classList.remove('show');
-   await shareToUser(payload,'Gönderiyi paylaş');
-  });
- }catch(e){contentShareList.innerHTML='<div class="loading">Gönderiler yüklenemedi</div>';}
-};
-
-$('shareLiveBtn').onclick=async()=>{
- contentShareList.innerHTML='<div class="loading">Canlı yayınlar yükleniyor...</div>';
- try{
-  const r=await MinegramAPI.live();
-  const arr=Array.isArray(r)?r:(r?.lives||r?.live||r?.items||[]);
-  if(!arr.length){contentShareList.innerHTML='<div class="loading">Şu anda canlı yayın yok</div>';return;}
-  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); return `<div class="share-user" data-live-index="${i}">${displayAvatar(u,45)}<div class="share-meta"><b>@${escapeHtml(u)}</b><small>🔴 ${escapeHtml(x?.title||'Canlı yayın')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;}).join('');
-  contentShareList.querySelectorAll('[data-live-index]').forEach(el=>el.onclick=async()=>{const x=arr[Number(el.dataset.liveIndex)]||{}; const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); const title=x?.title||'Canlı yayın'; contentShareModal.classList.remove('show'); await shareToUser({type:'live',text:'__MINEGRAM_LIVE__'+JSON.stringify({username:u,title})},'Canlı yayını paylaş');});
- }catch(e){contentShareList.innerHTML='<div class="loading">Canlı yayınlar yüklenemedi</div>';}
-};
 
 
 /* ==========================================================
