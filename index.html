@@ -4880,6 +4880,13 @@ function openMinegramPost(post){
       "minegram_selected_post",
       JSON.stringify(post)
     );
+    if(openIsVideo){
+      sessionStorage.setItem("minegram_requested_reel",JSON.stringify({
+        id:id,
+        username:postUsername || post.username || "",
+        media:openMedia
+      }));
+    }
 
     const postUsername =
       post.user?.username ||
@@ -4914,15 +4921,14 @@ function openMinegramPost(post){
 function startMinegramFeedVideos(root=document){
   const videos = Array.from(root.querySelectorAll ? root.querySelectorAll("video.post-video") : []);
   videos.forEach(function(video){
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.autoplay = true;
-    video.loop = true;
-    video.preload = "auto";
-    const play = function(){ video.play().catch(function(){}); };
-    if(video.readyState >= 2) play();
-    else video.addEventListener("loadeddata", play, {once:true});
+    video.muted=true;
+    video.defaultMuted=true;
+    video.volume=0;
+    video.playsInline=true;
+    video.autoplay=false;
+    video.loop=true;
+    video.preload="auto";
+    video.pause();
   });
 }
 
@@ -4930,21 +4936,41 @@ function observeMinegramFeedVideos(){
   const videos = Array.from(document.querySelectorAll("video.post-video"));
   if(!videos.length) return;
   if(window.__minegramFeedVideoObserver) window.__minegramFeedVideoObserver.disconnect();
-  window.__minegramFeedVideoObserver = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      const video=entry.target;
-      if(entry.isIntersecting && entry.intersectionRatio >= 0.35){
-        video.muted=true;
+
+  const activateCurrentVideo=function(){
+    let active=null;
+    let best=-1;
+    videos.forEach(function(video){
+      const r=video.getBoundingClientRect();
+      const vh=window.innerHeight||document.documentElement.clientHeight;
+      const visible=Math.max(0,Math.min(r.bottom,vh)-Math.max(r.top,0));
+      const ratio=r.height>0 ? visible/r.height : 0;
+      if(ratio>best){best=ratio;active=video;}
+    });
+    videos.forEach(function(video){
+      if(video===active && best>=0.45){
+        video.muted=false;
+        video.defaultMuted=false;
+        video.volume=1;
         video.play().catch(function(){});
       }else{
         video.pause();
+        video.muted=true;
+        video.defaultMuted=true;
+        video.volume=0;
       }
     });
-  },{threshold:[0,0.35,0.7]});
+  };
+
+  window.__minegramFeedVideoObserver = new IntersectionObserver(function(){
+    activateCurrentVideo();
+  },{threshold:[0,0.25,0.45,0.65,0.9]});
   videos.forEach(function(video){
     window.__minegramFeedVideoObserver.observe(video);
+    video.addEventListener("loadedmetadata",activateCurrentVideo,{once:true});
   });
   startMinegramFeedVideos(document);
+  setTimeout(activateCurrentVideo,100);
 }
 
 function openMinegramPostFromElement(event,element){
