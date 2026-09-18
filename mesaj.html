@@ -3900,18 +3900,22 @@ function renderMessage(
  )?.addEventListener(
   "click",
   async()=>{
-   if(mine||!d.postId) return;
    const btn=wrap.querySelector('[data-act="like"]');
+   let postId=String(d.postId||d.post_id||d.postID||d.contentId||d.content_id||"").trim();
+   if(!postId){ showToast("Gönderi kimliği bulunamadı"); return; }
    try{
-    const r=await MinegramAPI.likePost(d.postId);
-    d._liked=!!r.liked;
-    if(btn){
-     btn.textContent=d._liked?"♥":"♡";
-     btn.classList.toggle("liked",d._liked);
+    const uuidLike=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if(!uuidLike.test(postId)){
+     const fr=await MinegramAPI.feed();
+     const arr=Array.isArray(fr)?fr:(fr?.posts||fr?.feed||fr?.items||fr?.data||[]);
+     const f=Array.isArray(arr)?arr.find(x=>String(x?.id||x?.postId||x?.post_id||"")===postId):null;
+     postId=String(f?.id||f?.postId||f?.post_id||"").trim();
     }
-   }catch(e){
-    showToast(e.message||"Beğeni işlemi başarısız");
-   }
+    if(!postId){ showToast("Gönderi bulunamadı"); return; }
+    const r=await MinegramAPI.likePost(postId);
+    d._liked=!!r.liked;
+    if(btn){ btn.textContent=d._liked?"♥":"♡"; btn.classList.toggle("liked",d._liked); }
+   }catch(e){ showToast(e.message||"Beğeni işlemi başarısız"); }
   }
  );
 
@@ -3973,19 +3977,20 @@ function renderMessage(
  )?.addEventListener(
   "click",
   ()=>{
-
-   if(d.postId)
-
-   location.href=
-    "post.html?id="+
-    encodeURIComponent(
-     d.postId
-    )+
-    "&username="+
-    encodeURIComponent(
-     d.postUsername||""
-    );
-
+   const postId=String(d.postId||d.post_id||d.postID||d.contentId||d.content_id||"").trim();
+   if(!postId){ showToast("Gönderi bulunamadı"); return; }
+   try{
+    sessionStorage.setItem("minegram_selected_post",JSON.stringify({
+     id:postId, username:d.postUsername||d.username||d.sender||"",
+     text:d.postText||d.caption||"", caption:d.postText||d.caption||"",
+     likes:d.postLikes||d.likes||0, mediaUri:d.postMediaUri||d.mediaUri||"",
+     mediaType:d.postMediaType||d.mediaType||(d.type==="reel"?"video":"image"),
+     mediaBase64:d.postMediaBase64||d.mediaBase64||null,
+     commentCount:d.postCommentCount||d.commentCount||0,
+     type:d.type==="reel"?"reel":"post"
+    }));
+   }catch(e){}
+   location.href="post.html?id="+encodeURIComponent(postId)+"&username="+encodeURIComponent(d.postUsername||"");
   }
  );
 
