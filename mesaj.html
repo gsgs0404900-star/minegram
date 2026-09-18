@@ -3101,6 +3101,34 @@ function syncFirstMessageProfile(){
 }
 
 
+async function resolveSharedPostId(d){
+ const raw=String(d?.postId||d?.post_id||d?.postID||d?.contentId||d?.content_id||"").trim();
+ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ if(uuid.test(raw)) return raw;
+ try{
+  const fr=await MinegramAPI.feed();
+  const arr=Array.isArray(fr)?fr:(fr?.posts||fr?.feed||fr?.items||fr?.data||[]);
+  if(!Array.isArray(arr)) return "";
+  const user=String(d?.postUsername||d?.username||"").replace(/^@/,'').toLowerCase();
+  const media=String(d?.postMediaUri||d?.mediaUri||d?.postMediaBase64||d?.mediaBase64||"");
+  const caption=String(d?.postText||d?.caption||"").trim();
+  const exact=arr.find(x=>{ const id=String(x?.id||x?.postId||x?.post_id||x?._id||x?.uuid||"").trim(); return id===raw && uuid.test(id); });
+  if(exact) return String(exact.id||exact.postId||exact.post_id||exact._id||exact.uuid).trim();
+  const candidate=arr.find(x=>{
+   const id=String(x?.id||x?.postId||x?.post_id||x?._id||x?.uuid||"").trim();
+   if(!uuid.test(id)) return false;
+   const xu=String(x?.username||x?.user?.username||"").replace(/^@/,'').toLowerCase();
+   const xm=String(x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||x?.image||x?.mediaBase64||"");
+   const xc=String(x?.text||x?.caption||"").trim();
+   const mediaMatch=media && xm && media===xm;
+   const captionMatch=caption && xc && caption===xc;
+   return (user && xu===user && (mediaMatch||captionMatch)) || (media && xm && media===xm);
+  });
+  if(candidate) return String(candidate.id||candidate.postId||candidate.post_id||candidate._id||candidate.uuid).trim();
+ }catch(e){}
+ return "";
+}
+
 function renderAll(){
 
  /*
@@ -3915,16 +3943,8 @@ function renderMessage(
   "click",
   async()=>{
    const btn=wrap.querySelector('[data-act="like"]');
-   let postId=String(d.postId||d.post_id||d.postID||d.contentId||d.content_id||"").trim();
-   if(!postId){ showToast("Gönderi kimliği bulunamadı"); return; }
    try{
-    const uuidLike=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if(!uuidLike.test(postId)){
-     const fr=await MinegramAPI.feed();
-     const arr=Array.isArray(fr)?fr:(fr?.posts||fr?.feed||fr?.items||fr?.data||[]);
-     const f=Array.isArray(arr)?arr.find(x=>String(x?.id||x?.postId||x?.post_id||"")===postId):null;
-     postId=String(f?.id||f?.postId||f?.post_id||"").trim();
-    }
+    const postId=await resolveSharedPostId(d);
     if(!postId){ showToast("Gönderi bulunamadı"); return; }
     const r=await MinegramAPI.likePost(postId);
     d._liked=!!r.liked;
@@ -3938,8 +3958,16 @@ function renderMessage(
   async e=>{
    e.stopPropagation();
    const btn=e.currentTarget;
-   const postId=btn.dataset.postId||"";
-   if(!postId) return;
+   const postId=await resolveSharedPostId({
+    postId:btn.dataset.postId,
+    postUsername:d?.postUsername,
+    postText:d?.postText,
+    postMediaUri:d?.postMediaUri,
+    postMediaBase64:d?.postMediaBase64,
+    mediaType:d?.postMediaType,
+    type:d?.type
+   });
+   if(!postId){ showToast("Gönderi bulunamadı"); return; }
    try{
     const r=await MinegramAPI.likePost(postId);
     btn.textContent=r.liked?"♥":"♡";
@@ -3990,8 +4018,8 @@ function renderMessage(
   '[data-open-post]'
  )?.addEventListener(
   "click",
-  ()=>{
-   const postId=String(d.postId||d.post_id||d.postID||d.contentId||d.content_id||"").trim();
+  async()=>{
+   const postId=await resolveSharedPostId(d);
    if(!postId){ showToast("Gönderi bulunamadı"); return; }
    try{
     sessionStorage.setItem("minegram_selected_post",JSON.stringify({
