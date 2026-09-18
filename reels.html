@@ -4,6 +4,57 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Reels - Minegram</title>
 <style>
+
+/* REELS YORUM PANELİ ÜSTE ÇIKARMA */
+.comments-modal{
+  position:fixed !important;
+  inset:0 !important;
+  background:rgba(0,0,0,.58) !important;
+  z-index:999999 !important;
+  display:none;
+  align-items:flex-end;
+}
+
+.comments-modal.open{
+  display:flex !important;
+}
+
+.comments-sheet{
+  position:relative !important;
+  z-index:1000000 !important;
+  width:min(680px,100%);
+  height:min(78vh,720px);
+  margin:0 auto;
+  background:#171b1e;
+  border-radius:28px 28px 0 0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  animation:commentsSlide .25s ease;
+}
+
+@keyframes commentsSlide{
+  from{
+    transform:translateY(100%);
+  }
+  to{
+    transform:translateY(0);
+  }
+}
+
+body.comments-open{
+  overflow:hidden !important;
+}
+
+.reel{
+  z-index:1;
+}
+
+.comments-modal,
+.comments-sheet{
+  isolation:isolate;
+}
+</style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}body{padding-bottom:76px}.app{height:calc(100vh - 76px);background:#000}.phone{width:390px;height:100%;min-height:0;max-height:896px;margin:0 auto;background:#000;position:relative;overflow:hidden}.reels-feed{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}.reels-feed::-webkit-scrollbar{display:none}.reel{height:100%;width:100%;position:relative;background:#000;scroll-snap-align:start;overflow:hidden}.reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}.reel video{cursor:pointer}.reel-progress{position:absolute;left:18px;right:10px;bottom:14px;height:30px;z-index:8;display:flex;align-items:center;gap:8px;color:#fff;text-shadow:0 1px 3px #000}.reel-time{font-size:11px;font-variant-numeric:tabular-nums;min-width:68px;text-align:left;white-space:nowrap}.reel-range{appearance:none;-webkit-appearance:none;flex:1;min-width:0;height:5px;margin:0;background:#4b435d;border-radius:99px;outline:none;cursor:pointer}.reel-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:#42a5f5;border:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}.reel-range::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#42a5f5;border:0}.reel-range::-moz-range-progress{height:5px;background:#42a5f5;border-radius:99px}.reel-sound{width:30px;height:30px;flex:0 0 30px;border:0;background:transparent;color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;text-shadow:0 1px 3px #000}.reel-sound svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.reel-sound{position:relative;z-index:20}.reel-sound .mute-slash{display:none}.reel-sound.muted .mute-slash{display:block}.center-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border:0;border-radius:50%;background:rgba(0,0,0,.48);color:#fff;z-index:7;display:none;place-items:center}.center-play svg{width:30px;height:30px;fill:currentColor}.comment-meta{display:flex;align-items:center;gap:9px}.comment-avatar{width:34px;height:34px;border-radius:50%;background:#3f91cc;display:grid;place-items:center;font-weight:800;overflow:hidden;flex:0 0 34px}.comment-avatar img{width:100%;height:100%;object-fit:cover}.comment-body{flex:1;min-width:0}.comment-actions{display:flex;align-items:center;gap:12px;margin-top:5px;color:#888;font-size:11px}.comment-like{border:0;background:none;color:#aaa;cursor:pointer;padding:0}.comment-like.liked{color:#ff3150}.comment-sort{background:#151515;color:#fff;border:1px solid #333;border-radius:18px;padding:7px 12px;font-size:12px;outline:none}.comments-tools{display:flex;align-items:center;gap:8px;padding:7px 0}.comment-empty{color:#777;text-align:center;padding:30px 10px}.shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.08) 42%,transparent 67%);pointer-events:none}.topbtn{position:absolute;top:12px;width:42px;height:42px;border:0;border-radius:0;background:transparent;color:#fff;z-index:5;display:grid;place-items:center;cursor:pointer;text-shadow:0 1px 3px #000}.back{left:12px;font-size:36px;font-weight:300}.add{right:8px;font-size:32px;font-weight:300}.action.share .ico svg{fill:currentColor;stroke:none}.actions{position:absolute;right:12px;bottom:106px;z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px}.action{border:0;background:transparent;color:#fff;width:52px;min-height:48px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-shadow:0 2px 5px #000}.action .ico{width:27px;height:27px;display:grid;place-items:center}.action .ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.action.liked .ico svg{fill:currentColor}.action.liked .ico{color:#ff3150}.view-stat{cursor:default}.action .num{font-size:13px;font-weight:700}.info{position:absolute;left:18px;right:72px;bottom:24px;z-index:6;text-shadow:0 2px 5px #000}.userrow{display:flex;align-items:center;gap:8px}.avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#3f91cc;overflow:hidden;display:grid;place-items:center;font-weight:800;font-size:18px;cursor:pointer}.avatar img{width:100%;height:100%;object-fit:cover}.usercol{min-width:0}.username{font-size:16px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.verify{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#1976d2;font-size:12px;margin-left:4px;text-shadow:none}.follow{margin-left:5px;height:32px;border:1px solid rgba(255,255,255,.75);border-radius:9px;background:transparent;color:#fff;padding:0 11px;font-weight:700;cursor:pointer}.date{color:#bbb;font-size:12px;margin:2px 0 0 54px}.music{margin:7px 0 0 54px;display:flex;align-items:center;gap:6px;max-width:220px;background:rgba(0,0,0,.45);border-radius:10px;padding:6px}.music img{width:30px;height:30px;object-fit:cover;border-radius:6px}.music b{font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.music span{font-size:9px;color:#bbb}.desc{font-size:15px;line-height:1.35;margin-top:6px}.empty,.loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.empty{color:#aaa}.empty .movie{font-size:58px;opacity:.5}.empty b{font-size:17px;color:#ddd;margin-top:10px}.empty span{font-size:13px;color:#777;margin-top:5px}.loading{color:#999;font-size:14px}.spinner{width:28px;height:28px;border:3px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:9px}@keyframes spin{to{transform:rotate(360deg)}}.nav{position:fixed;left:0;right:0;bottom:0;height:76px;background:#121018;border-top:1px solid #201d27;display:flex;z-index:9999;padding:5px max(8px,calc((100% - 760px)/2)) env(safe-area-inset-bottom)}.nav a{flex:1;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#ddd;text-decoration:none;font-size:9px;min-width:0}.nav-icon{width:45px;height:32px;border-radius:18px;display:grid;place-items:center}.nav a.active .nav-icon{background:#3b3150}.svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#25222d;color:#fff;padding:11px 15px;border-radius:12px;font-size:13px;z-index:10001;display:none;max-width:90%;text-align:center}.toast.show{display:block}.comments-modal{
   position:fixed;
   inset:0;
