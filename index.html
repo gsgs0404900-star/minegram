@@ -7581,136 +7581,67 @@ function cancelReply(){
 
 function toggleReplies(id){
 
-  const safeId = String(id ?? "");
+  const wantedId = String(id ?? "");
 
   /*
-    Yanıt alanını doğrudan ID ile aramak yerine
-    ilgili yorum kutusunun içinden bul.
-    Böylece UUID / özel karakter içeren yorum ID'lerinde
-    "5 yanıt" butonu kesin olarak doğru alanı açar.
+    Yanıt butonu inline onclick içinden çağrıldığı için,
+    ID içinde özel karakter olsa bile doğrudan element ID'sine
+    güvenme. Önce yorum satırını bul, sonra içindeki .replies alanını aç.
   */
-  const wrap = Array.from(
-    document.querySelectorAll(".comment-wrap")
-  ).find(function(el){
-    return String(el.getAttribute("data-comment-id") || "") === safeId;
-  });
+  const wraps = document.querySelectorAll(".comment-wrap[data-comment-id]");
+  let wrap = null;
+
+  for(const item of wraps){
+    const dataId = String(item.getAttribute("data-comment-id") || "");
+    const decodedId = dataId
+      .replace(/&quot;/g,'"')
+      .replace(/&#39;/g,"'")
+      .replace(/&amp;/g,"&")
+      .replace(/&lt;/g,"<")
+      .replace(/&gt;/g,">");
+
+    if(dataId === wantedId || decodedId === wantedId){
+      wrap = item;
+      break;
+    }
+  }
 
   if(!wrap){
-    console.warn("[MINEGRAM] Yanıt yorum kutusu bulunamadı:", safeId);
+    const allReplies = document.querySelectorAll(".replies");
+    for(const item of allReplies){
+      const itemId = String(item.id || "").replace(/^replies-/,"");
+      if(itemId === wantedId){
+        wrap = item.closest(".comment-wrap");
+        break;
+      }
+    }
+  }
+
+  if(!wrap){
+    console.warn("Minegram: Yanıt alanı bulunamadı:", wantedId);
     return;
   }
 
   const replies = wrap.querySelector(".replies");
-
   if(!replies){
-    console.warn("[MINEGRAM] Yanıt alanı bulunamadı:", safeId);
+    console.warn("Minegram: .replies alanı bulunamadı:", wantedId);
     return;
   }
 
   const wasHidden = replies.classList.contains("hidden");
-
-  replies.classList.toggle("hidden", !wasHidden);
+  replies.classList.toggle("hidden");
 
   /*
-    Sunucudan sadece replyCount gelip replies dizisi gelmediyse,
-    alan açıldığında yanıtları bir kez sunucudan çekmeyi dene.
+    Sayı var ama yanıtlar HTML'de yoksa sunucudan yüklemeyi dene.
+    Alan yine de hemen görünür; böylece butona basınca hiçbir şey
+    olmuyormuş gibi kalmaz.
   */
-  if(wasHidden && replies.children.length === 0 && currentCommentPost){
-    loadRepliesForComment(safeId, replies);
-  }
-
-}
-
-async function loadRepliesForComment(commentId, repliesEl){
-
-  if(!commentId || !repliesEl || !currentCommentPost) return;
-
-  try{
-
-    let result = await api(
-      "/comments/" +
-      encodeURIComponent(commentId) +
-      "/replies?ts=" +
-      Date.now()
-    );
-
-    let replies = Array.isArray(result?.replies)
-      ? result.replies
-      : Array.isArray(result?.comments)
-        ? result.comments
-        : [];
-
-    /*
-      Bazı sunucu sürümlerinde endpoint /posts/... altında olabilir.
-    */
-    if(!replies.length){
-
-      try{
-
-        result = await api(
-          "/posts/" +
-          encodeURIComponent(currentCommentPost) +
-          "/comments/" +
-          encodeURIComponent(commentId) +
-          "/replies?ts=" +
-          Date.now()
-        );
-
-        replies = Array.isArray(result?.replies)
-          ? result.replies
-          : Array.isArray(result?.comments)
-            ? result.comments
-            : [];
-
-      }catch(_){}
-
+  if(wasHidden && !replies.children.length){
+    if(typeof loadRepliesForComment === "function"){
+      loadRepliesForComment(wantedId, replies).catch(function(err){
+        console.warn("Minegram: Yanıtlar yüklenemedi:", err);
+      });
     }
-
-    if(replies.length){
-
-      repliesEl.innerHTML = replies
-        .map(renderReply)
-        .join("");
-
-      /*
-        Yerel önbellekte de sakla ki kapatıp açınca
-        yanıtlar kaybolmasın.
-      */
-      try{
-
-        const local = getLocalComments(currentCommentPost);
-
-        const parent = local.find(function(c){
-          return String(c?.id || "") === String(commentId);
-        });
-
-        if(parent){
-
-          parent.replies = replies;
-
-          localStorage.setItem(
-            localCommentsKey(currentCommentPost),
-            JSON.stringify(local.slice(-100))
-          );
-
-        }
-
-      }catch(_){}
-
-    }else{
-
-      /*
-        Zaten render edilmiş yanıtlar varsa onları koru.
-        Gerçekten hiç yanıt yoksa sessizce boş bırak.
-      */
-      console.warn("[MINEGRAM] Yanıtlar alınamadı:", commentId);
-
-    }
-
-  }catch(error){
-
-    console.warn("[MINEGRAM] Yanıt yükleme hatası:", error);
-
   }
 
 }
