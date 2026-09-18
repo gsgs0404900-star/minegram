@@ -823,7 +823,34 @@ main{
     padding-right:calc((100% - 760px)/2)
   }
 }
-</style></head>
+</style>
+<style id="hashtag-grid-only">
+.hashtag-grid .hashtag-tile{
+  position:relative;
+  overflow:hidden;
+}
+.hashtag-grid .hashtag-tile video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  background:#111;
+}
+.hashtag-tile-badge{
+  position:absolute;
+  top:8px;
+  left:8px;
+  z-index:5;
+  padding:4px 8px;
+  border-radius:12px;
+  background:rgba(0,0,0,.72);
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  pointer-events:none;
+}
+</style>
+</head>
 
 <body>
 
@@ -1912,235 +1939,71 @@ function renderDiscovery(){
 
 function renderHashtagResults(tag){
 
-  const clean =
-    String(tag || "")
-      .replace(/^#/,"")
-      .trim();
-
+  const clean = String(tag || "").replace(/^#/,"").trim();
   currentTag = clean;
-
   tagBack.style.display = "block";
 
-  /*
-    SADECE GERÇEKTEN O HASHTAG'İ KULLANANLAR.
-  */
-
-  const matches =
-    feed
-      .map(normalizePost)
-      .filter(post => {
-
-        const text =
-          postText(post);
-
-        return (
-          Boolean(text) &&
-          hasExactHashtag(
-            text,
-            clean
-          )
-        );
-
-      });
-
-  /*
-    Hashtag aramasında:
-    - hashtag kullanan normal gönderiler gösterilir
-    - hashtag kullanan Reels de gösterilir
-    - hashtag kullanmayan hiçbir içerik gösterilmez
-  */
+  const matches = feed
+    .map(normalizePost)
+    .filter(post => {
+      const text = postText(post);
+      return Boolean(mediaUrl(post)) && hasExactHashtag(text, clean);
+    });
 
   if(!matches.length){
-
     content.innerHTML = `
-
-      <div class="hashtag-header">
-
-        <div class="hashtag-title">
-          #${esc(clean)}
-        </div>
-
-        <div class="hashtag-count">
-          0 gönderi
-        </div>
-
+      <div class="page-info">
+        <div class="page-info-title">#${esc(clean)}</div>
+        <div class="page-info-sub">Bu hashtag'i kullanan gönderi bulunamadı.</div>
       </div>
-
-      <div class="hashtag-no-result">
-
-        Bu hashtag'i kullanan
-        gönderi bulunamadı.
-
-      </div>
-
     `;
-
     return;
-
   }
 
   content.innerHTML = `
-
-    <div class="hashtag-header">
-
-      <div class="hashtag-title">
-        #${esc(clean)}
-      </div>
-
-      <div class="hashtag-count">
-        ${matches.length} gönderi
-      </div>
-
+    <div class="page-info">
+      <div class="page-info-title">#${esc(clean)}</div>
+      <div class="page-info-sub">${matches.length} gönderi</div>
     </div>
 
-    <div class="hashtag-feed">
-
+    <div class="grid hashtag-grid">
       ${matches.map(post => {
 
-        const id =
-          String(post.id || "");
-
-        const username =
-          postUsername(post);
-
-        const avatar =
-          postAvatar(post);
-
-        const caption =
-          postText(post);
-
-        const video =
-          isVideo(post);
-
-        const image =
-          mediaUrl(post);
-
-        const videoSrc =
-          videoUrl(post);
-
-        const created =
-          formatDate(
-            post.created_at
-          );
-
-        let reelIndex = -1;
-
-        if(video){
-
-          reelIndex =
-            reels.findIndex(
-              reel =>
-                String(reel.id) === id
-            );
-
-        }
-
-        const safeId =
-          esc(id);
+        const id = String(post.id || "");
+        const username = postUsername(post);
+        const caption = postText(post);
+        const image = mediaUrl(post);
+        const video = isVideo(post);
+        const videoSrc = videoUrl(post) || image;
+        const safeId = esc(id);
 
         return `
-
-          <article
-            class="hashtag-post"
+          <div
+            class="tile hashtag-tile"
             data-post-id="${safeId}"
+            onclick="${
+              video
+                ? `openReel(${reels.findIndex(reel => String(reel.id) === id)})`
+                : `openPostById('${safeId}')`
+            }"
           >
-
-            <div class="hashtag-post-head">
-
-              ${avatarHtml(
-                avatar,
-                username || "U",
-                false
-              )}
-
-              <div class="hashtag-post-user">
-
-                <div class="hashtag-post-username">
-
-                  ${
-                    username
-                      ? "@"+esc(username)
-                      : "Kullanıcı"
-                  }
-
-                </div>
-
-                ${
-                  created
-                    ? `
-                      <div class="hashtag-post-time">
-                        ${esc(created)}
-                      </div>
-                    `
-                    : ""
-                }
-
-              </div>
-
-            </div>
-
-
-            <div
-              class="hashtag-post-media"
-              onclick="${
-                video
-                  ? `openReel(${reelIndex})`
-                  : `openPostById('${safeId}')`
-              }"
-            >
-
-              ${
-                video
-                  ? `
-
-                    <video
-                      src="${esc(videoSrc || image)}"
-                      muted
-                      playsinline
-                      preload="metadata"
-                      controls
-                    ></video>
-
-                    <div class="hashtag-video-badge">
-                      REELS
-                    </div>
-
-                  `
-                  : `
-
-                    <img
-                      src="${esc(image)}"
-                      alt=""
-                      loading="lazy"
-                      onerror="this.style.display='none'"
-                    >
-
-                  `
-              }
-
-            </div>
-
-
             ${
-              caption
-                ? `
-                  <div class="hashtag-post-caption">
-                    ${hashtagHtml(caption)}
-                  </div>
-                `
-                : ""
+              video
+                ? `<video src="${esc(videoSrc)}" muted playsinline preload="metadata"></video>`
+                : `<img src="${esc(image)}" alt="" loading="lazy" onerror="this.style.display='none'">`
             }
 
-          </article>
+            <div class="hashtag-tile-badge">#${esc(clean)}</div>
 
+            <div class="tile-info">
+              ${username ? `<div class="tile-user">@${esc(username)}</div>` : ""}
+              ${caption ? `<div class="tile-caption">${hashtagHtml(caption)}</div>` : ""}
+            </div>
+          </div>
         `;
-
       }).join("")}
-
     </div>
-
   `;
-
 }
 
 
