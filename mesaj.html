@@ -5537,6 +5537,22 @@ function subscribe(){
     )
   );
 
+  /* 4) Eski istemciler @kullanıcı biçimini kullanmış olabilir. */
+  const meAt="@"+myUsername.replace(/^@/,"");
+  const themAt="@"+targetUsername.replace(/^@/,"");
+  [
+    ["recipient","sender",meAt,targetUsername],
+    ["recipient","sender",meAt,themAt],
+    ["sender","recipient",themAt,myUsername],
+    ["sender","recipient",themAt,meAt]
+  ].forEach(([a,b,av,bv])=>{
+    listeners.push(onSnapshot(
+      query(collection(firestore,"chatMessages"),where(a,"==",av),where(b,"==",bv),limit(500)),
+      snap=>{addSnapshot(snap);refresh();},
+      e=>console.warn("legacy @ listener:",e)
+    ));
+  });
+
   unsub=()=>{
     listeners.splice(0).forEach(fn=>{
       try{ fn(); }catch{}
