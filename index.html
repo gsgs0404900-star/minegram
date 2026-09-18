@@ -521,6 +521,20 @@ body{
   height:21px
 }
 
+/* Tıklanabilir etiketler — Android'deki Explore/etiket davranışına uygun */
+.minegram-hashtag{
+  color:#64B5F6;
+  text-decoration:none;
+  font-weight:600;
+  cursor:pointer;
+}
+.minegram-hashtag:hover{
+  text-decoration:underline;
+}
+.minegram-hashtag:active{
+  opacity:.75;
+}
+
 .hidden{
   display:none!important
 }
@@ -4442,6 +4456,59 @@ const feedEl=
    HTML ESCAPE
 ========================================================= */
 
+/* =========================================================
+   HASHTAG / ETİKET — ANDROID EXPLORE DAVRANIŞI
+   Gönderi açıklaması, yorum ve yanıt içindeki #etiketler
+   tıklanabilir olur ve seçilen etiket Ara sayfasına aktarılır.
+========================================================= */
+
+function minegramHashtagHtml(value){
+  const safe = esc(value || "");
+  return safe.replace(
+    /(^|[\s(])#([A-Za-zÇĞİÖŞÜçğıöşü0-9_]+)/g,
+    function(_, prefix, tag){
+      const fullTag = "#" + tag;
+      return prefix +
+        '<a class="minegram-hashtag" href="ara.html?query=' +
+        encodeURIComponent(fullTag) +
+        '" onclick="openMinegramHashtag(event,' +
+        JSON.stringify(fullTag) +
+        ')">' +
+        fullTag +
+        '</a>';
+    }
+  );
+}
+
+function openMinegramHashtag(event, tag){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const clean = String(tag || "")
+    .trim()
+    .replace(/^#+/, "");
+
+  if(!clean) return;
+
+  const hashtag = "#" + clean;
+
+  /*
+    Ara sayfası farklı sürümlerde farklı anahtar okuyabilsin diye
+    seçilen etiketi ortak sessionStorage alanlarına da bırakıyoruz.
+  */
+  try{
+    sessionStorage.setItem("minegram_search_query", hashtag);
+    sessionStorage.setItem("minegram_explore_query", hashtag);
+    sessionStorage.setItem("minegram_selected_hashtag", hashtag);
+  }catch(e){}
+
+  location.href =
+    "ara.html?query=" +
+    encodeURIComponent(hashtag);
+}
+
 function esc(s=""){
 
   return String(s).replace(
@@ -5116,7 +5183,7 @@ function renderPost(p){
           @${username}
         </b>
 
-        ${esc(p.caption||"")}
+        ${minegramHashtagHtml(p.caption||"")}
 
       </div>
 
@@ -5140,7 +5207,7 @@ function renderPost(p){
                           @${esc(c.username||"")}
                         </b>
 
-                        ${esc(c.text||"")}
+                        ${minegramHashtagHtml(c.text||"")}
                       </div>
                     `
                   ).join("")
@@ -6992,7 +7059,7 @@ function renderComment(c){
 
 
           <div class="comment-text">
-            ${esc(
+            ${minegramHashtagHtml(
               c.text||
               c.content||
               ""
@@ -7101,7 +7168,7 @@ function renderReply(r){
 
 
         <div class="comment-text">
-          ${esc(
+          ${minegramHashtagHtml(
             r.text||
             r.content||
             ""
