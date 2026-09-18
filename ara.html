@@ -1,255 +1,683 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Ara - Minegram</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ara - Minegram</title>
 
-  <style>
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
-    body{padding-bottom:76px}
-    button,input{font:inherit}
-    button{cursor:pointer}
+<style>
+*{box-sizing:border-box}
 
-    .top{
-      position:sticky;top:0;z-index:20;background:#000;
-      border-bottom:1px solid #222;padding:12px 12px 10px
-    }
-    .title{margin-bottom:10px;font-size:21px;font-weight:800}
-    .search{
-      display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
-      background:#202020;border-radius:12px
-    }
-    .search-icon{flex:0 0 auto;color:#aaa;font-size:20px}
-    .search input{flex:1;min-width:0;border:0;outline:0;background:none;color:#fff;font-size:16px}
-    .search input::placeholder{color:#888}
-    .clear,.tag-back{display:none;flex:0 0 auto;border:0;background:none;color:#aaa}
-    .clear{font-size:22px}.tag-back{font-size:30px;line-height:1}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#000;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif
+}
 
-    .content{min-height:calc(100vh - 125px)}
-    .loading,.empty{padding:34px 20px;text-align:center;color:#888}
-    .section-title{padding:12px;font-size:18px;font-weight:800}
-    .users{border-bottom:1px solid #222}
+body{
+  padding-bottom:76px
+}
 
-    .user{
-      display:flex;align-items:center;gap:12px;padding:12px 14px;
-      border-bottom:1px solid #191919;cursor:pointer
-    }
-    .user-info{min-width:0;flex:1}
+button,input,select{
+  font:inherit
+}
 
-    .user-name-row{
-      display:flex;align-items:center;gap:8px;min-width:0;
-      width:100%
-    }
+button{
+  cursor:pointer
+}
 
-    .username{
-      min-width:0;
-      font-size:16px;
-      font-weight:800;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap
-    }
+/* TOP */
 
-    .follow-btn{
-      flex:0 0 auto;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:78px;
-      padding:7px 10px;
-      border:0;
-      border-radius:8px;
-      background:#2196f3;
-      color:#fff;
-      font-size:12px;
-      font-weight:800;
-      cursor:pointer;
-      white-space:nowrap;
-      visibility:visible;
-      opacity:1
-    }
+.top{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:#000;
+  border-bottom:1px solid #222;
+  padding:12px 12px 10px
+}
 
-    .follow-btn.following{background:#333;color:#fff}
-    .follow-btn:disabled{opacity:.6;cursor:default}
+.title{
+  margin-bottom:10px;
+  font-size:21px;
+  font-weight:800
+}
 
-    .sub{margin-top:4px;color:#888;font-size:12px}
+.search{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  height:44px;
+  padding:0 12px;
+  background:#202020;
+  border-radius:12px
+}
 
-    .avatar{
-      width:55px;height:55px;flex:0 0 55px;display:grid;
-      place-items:center;overflow:hidden;border-radius:50%;
-      background:#2196f3;color:#fff;font-size:20px;font-weight:800
-    }
-    .avatar img{width:100%;height:100%;object-fit:cover}
+.search-icon{
+  flex:0 0 auto;
+  color:#aaa;
+  font-size:20px
+}
 
-    .story-ring{
-      padding:2px;border-radius:50%;
-      background:conic-gradient(#f9ce34,#ee2a7b,#6228d7,#f9ce34)
-    }
-    .story-ring .avatar{border:2px solid #000}
+.search input{
+  flex:1;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:none;
+  color:#fff;
+  font-size:16px
+}
 
-    .tag-result{
-      display:flex;align-items:center;gap:12px;padding:14px 16px;
-      border-bottom:1px solid #222;cursor:pointer
-    }
-    .tag-icon{
-      width:48px;height:48px;display:grid;place-items:center;
-      border-radius:50%;background:#333;font-size:24px;font-weight:800
-    }
+.search input::placeholder{
+  color:#888
+}
 
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
-    .tile{position:relative;aspect-ratio:9/16;overflow:hidden;background:#111;cursor:pointer}
-    .tile img,.tile video{width:100%;height:100%;object-fit:cover}
-    .play{
-      position:absolute;top:6px;right:6px;width:28px;height:28px;
-      display:grid;place-items:center;border-radius:50%;background:#0009;font-size:14px
-    }
+.clear,
+.tag-back{
+  display:none;
+  flex:0 0 auto;
+  border:0;
+  background:none;
+  color:#aaa
+}
 
-    .posts{padding-bottom:20px}
-    .post{padding:12px;border-bottom:1px solid #222}
-    .post-head{display:flex;align-items:center;gap:10px;margin-bottom:9px;cursor:pointer}
-    .post-head .avatar{width:38px;height:38px;flex-basis:38px;font-size:14px}
-    .post-media{width:100%;max-height:600px;border-radius:8px;object-fit:cover;background:#111}
-    .caption{margin-top:8px;font-size:14px;line-height:1.4}
+.clear{
+  font-size:22px
+}
 
-    .nav{
-      position:fixed;left:0;right:0;bottom:0;z-index:9999;
-      display:flex;align-items:stretch;width:100%;height:76px;
-      padding:5px max(8px,calc((100% - 760px)/2)) env(safe-area-inset-bottom);
-      background:#121018;border-top:1px solid #201d27
-    }
-    .nav a{
-      flex:1 1 0;min-width:0;height:66px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:3px;color:#ddd;
-      text-decoration:none;font-size:9px;-webkit-tap-highlight-color:transparent
-    }
-    .nav-icon{width:45px;height:32px;display:grid;place-items:center;border-radius:18px}
-    .nav a.active .nav-icon{background:#3b3150}
-    .svg{
-      width:21px;height:21px;fill:none;stroke:currentColor;
-      stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round
-    }
+.tag-back{
+  font-size:30px;
+  line-height:1
+}
 
-    .reel-viewer{
-      position:fixed;inset:0;z-index:10000;display:none;overflow:hidden;background:#000
-    }
-    .reel-viewer.show{display:block}
-    .reel-viewer-shell{width:100%;height:100%;background:#000}
-    .reel-phone{
-      position:relative;width:390px;height:100%;min-height:0;max-height:896px;
-      margin:0 auto;overflow:hidden;background:#000
-    }
-    .reel-feed{
-      width:100%;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;
-      scrollbar-width:none
-    }
-    .reel-feed::-webkit-scrollbar{display:none}
-    .reel{
-      position:relative;width:100%;height:100%;overflow:hidden;background:#000;
-      scroll-snap-align:start
-    }
-    .reel-video{
-      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-      background:#000;cursor:pointer
-    }
-    .reel-shade{
-      position:absolute;inset:0;
-      background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.08) 42%,transparent 67%);
-      pointer-events:none
-    }
-    .reel-back{
-      position:absolute;top:12px;left:12px;z-index:20;width:42px;height:42px;
-      display:grid;place-items:center;border:0;background:transparent;color:#fff;
-      font-size:36px;font-weight:300;text-shadow:0 1px 3px #000
-    }
-    .reel-center-play{
-      position:absolute;top:50%;left:50%;z-index:15;width:58px;height:58px;
-      display:none;place-items:center;transform:translate(-50%,-50%);
-      border:0;border-radius:50%;background:rgba(0,0,0,.48);color:#fff
-    }
-    .reel-center-play svg{width:30px;height:30px;fill:currentColor}
+/* CONTENT */
 
-    .reel-progress{
-      position:absolute;left:0;right:0;bottom:0;z-index:30;height:46px;
-      display:flex;align-items:center;gap:4px;padding:0 8px;background:rgba(0,0,0,.9)
-    }
-    .reel-time{
-      width:82px;min-width:82px;color:#fff;font-size:12px;
-      font-variant-numeric:tabular-nums;text-align:left;white-space:nowrap
-    }
-    .reel-range{
-      flex:1;min-width:0;height:4px;appearance:none;-webkit-appearance:none;
-      margin:0;border-radius:99px;outline:none;background:#4b435d;cursor:pointer
-    }
-    .reel-range::-webkit-slider-thumb{
-      appearance:none;-webkit-appearance:none;width:12px;height:12px;
-      border:0;border-radius:50%;background:#fff
-    }
-    .reel-range::-moz-range-thumb{
-      width:12px;height:12px;border:0;border-radius:50%;background:#fff
-    }
-    .reel-sound{
-      width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;
-      padding:0;border:0;background:transparent;color:#fff;text-shadow:0 1px 3px #000
-    }
-    .reel-sound svg{
-      width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;
-      stroke-linecap:round;stroke-linejoin:round
-    }
-    .reel-sound .mute-slash{display:none}
-    .reel-sound.muted .mute-slash{display:block}
+.content{
+  min-height:calc(100vh - 125px)
+}
 
-    .reel-actions{
-      position:absolute;right:12px;bottom:106px;z-index:20;
-      display:flex;flex-direction:column;align-items:center;gap:8px
-    }
-    .reel-action{
-      width:52px;min-height:48px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;padding:0;border:0;
-      background:transparent;color:#fff;text-shadow:0 2px 5px #000
-    }
-    .reel-action .ico{width:27px;height:27px;display:grid;place-items:center}
-    .reel-action .ico svg{
-      width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;
-      stroke-linecap:round;stroke-linejoin:round
-    }
-    .reel-action.liked{color:#ff3150}
-    .reel-action.liked .ico svg{fill:currentColor}
-    .reel-action .num{font-size:13px;font-weight:700}
+.loading,
+.empty{
+  padding:34px 20px;
+  text-align:center;
+  color:#888
+}
 
-    .reel-info{
-      position:absolute;left:18px;right:72px;bottom:24px;z-index:20;
-      text-shadow:0 2px 5px #000
-    }
+.section-title{
+  padding:12px;
+  font-size:18px;
+  font-weight:800
+}
 
-    .reel-user-row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0
-    }
+.users{
+  border-bottom:1px solid #222
+}
 
-    .reel-avatar{
-      width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;
-      overflow:hidden;border-radius:50%;background:#3f91cc;color:#fff;
-      font-size:18px;font-weight:800;cursor:pointer
-    }
-    .reel-avatar img{width:100%;height:100%;object-fit:cover}
+.user{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-bottom:1px solid #191919;
+  cursor:pointer
+}
 
-    .reel-user-col{
-    flex:0 0 auto;
-    min-width:0;
-    max-width:150px;
-    }
+.user-info{
+  min-width:0;
+  flex:1
+}
 
-    .reel-username{
-      font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;
-      text-overflow:ellipsis;cursor:pointer
-    }
+.user-name-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  width:100%
+}
 
-    /* VİDEONUN İÇİNDEKİ TAKİP BUTONU */
-   .reel-follow-btn{
+.username{
+  min-width:0;
+  font-size:16px;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+
+/* SEARCH FOLLOW */
+
+.follow-btn{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:78px;
+  padding:7px 10px;
+  border:0;
+  border-radius:8px;
+  background:#2196f3;
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap
+}
+
+.follow-btn.following{
+  background:#333;
+  color:#fff
+}
+
+.follow-btn:disabled{
+  opacity:.6;
+  cursor:default
+}
+
+.sub{
+  margin-top:4px;
+  color:#888;
+  font-size:12px
+}
+
+.avatar{
+  width:55px;
+  height:55px;
+  flex:0 0 55px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:#2196f3;
+  color:#fff;
+  font-size:20px;
+  font-weight:800
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.story-ring{
+  padding:2px;
+  border-radius:50%;
+  background:conic-gradient(#f9ce34,#ee2a7b,#6228d7,#f9ce34)
+}
+
+.story-ring .avatar{
+  border:2px solid #000
+}
+
+/* TAG */
+
+.tag-result{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 16px;
+  border-bottom:1px solid #222;
+  cursor:pointer
+}
+
+.tag-icon{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#333;
+  font-size:24px;
+  font-weight:800
+}
+
+/* GRID */
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2px;
+  padding:2px
+}
+
+.tile{
+  position:relative;
+  aspect-ratio:9/16;
+  overflow:hidden;
+  background:#111;
+  cursor:pointer
+}
+
+.tile img,
+.tile video{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.play{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#0009;
+  font-size:14px
+}
+
+/* POSTS */
+
+.posts{
+  padding-bottom:20px
+}
+
+.post{
+  padding:12px;
+  border-bottom:1px solid #222
+}
+
+.post-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:9px;
+  cursor:pointer
+}
+
+.post-head .avatar{
+  width:38px;
+  height:38px;
+  flex-basis:38px;
+  font-size:14px
+}
+
+.post-media{
+  width:100%;
+  max-height:600px;
+  border-radius:8px;
+  object-fit:cover;
+  background:#111
+}
+
+.caption{
+  margin-top:8px;
+  font-size:14px;
+  line-height:1.4
+}
+
+/* NAV */
+
+.nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:9999;
+  display:flex;
+  align-items:stretch;
+  width:100%;
+  height:76px;
+  padding:5px max(8px,calc((100% - 760px)/2)) env(safe-area-inset-bottom);
+  background:#121018;
+  border-top:1px solid #201d27
+}
+
+.nav a{
+  flex:1 1 0;
+  min-width:0;
+  height:66px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  color:#ddd;
+  text-decoration:none;
+  font-size:9px;
+  -webkit-tap-highlight-color:transparent
+}
+
+.nav-icon{
+  width:45px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  border-radius:18px
+}
+
+.nav a.active .nav-icon{
+  background:#3b3150
+}
+
+.svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+
+/* REEL VIEWER */
+
+.reel-viewer{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:none;
+  overflow:hidden;
+  background:#000
+}
+
+.reel-viewer.show{
+  display:block
+}
+
+.reel-viewer-shell{
+  width:100%;
+  height:100%;
+  background:#000
+}
+
+.reel-phone{
+  position:relative;
+  width:390px;
+  height:100%;
+  min-height:0;
+  max-height:896px;
+  margin:0 auto;
+  overflow:hidden;
+  background:#000
+}
+
+.reel-feed{
+  width:100%;
+  height:100%;
+  overflow-y:auto;
+  scroll-snap-type:y mandatory;
+  scrollbar-width:none
+}
+
+.reel-feed::-webkit-scrollbar{
+  display:none
+}
+
+.reel{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  scroll-snap-align:start
+}
+
+.reel-video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#000;
+  cursor:pointer
+}
+
+.reel-shade{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    to top,
+    rgba(0,0,0,.82),
+    rgba(0,0,0,.08) 42%,
+    transparent 67%
+  );
+  pointer-events:none
+}
+
+.reel-back{
+  position:absolute;
+  top:12px;
+  left:12px;
+  z-index:20;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:0;
+  background:transparent;
+  color:#fff;
+  font-size:36px;
+  font-weight:300;
+  text-shadow:0 1px 3px #000
+}
+
+.reel-center-play{
+  position:absolute;
+  top:50%;
+  left:50%;
+  z-index:15;
+  width:58px;
+  height:58px;
+  display:none;
+  place-items:center;
+  transform:translate(-50%,-50%);
+  border:0;
+  border-radius:50%;
+  background:rgba(0,0,0,.48);
+  color:#fff
+}
+
+.reel-center-play svg{
+  width:30px;
+  height:30px;
+  fill:currentColor
+}
+
+.reel-progress{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:30;
+  height:46px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:0 8px;
+  background:rgba(0,0,0,.9)
+}
+
+.reel-time{
+  width:82px;
+  min-width:82px;
+  color:#fff;
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+  text-align:left;
+  white-space:nowrap
+}
+
+.reel-range{
+  flex:1;
+  min-width:0;
+  height:4px;
+  appearance:none;
+  -webkit-appearance:none;
+  margin:0;
+  border-radius:99px;
+  outline:none;
+  background:#4b435d;
+  cursor:pointer
+}
+
+.reel-range::-webkit-slider-thumb{
+  appearance:none;
+  -webkit-appearance:none;
+  width:12px;
+  height:12px;
+  border:0;
+  border-radius:50%;
+  background:#fff
+}
+
+.reel-range::-moz-range-thumb{
+  width:12px;
+  height:12px;
+  border:0;
+  border-radius:50%;
+  background:#fff
+}
+
+.reel-sound{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#fff;
+  text-shadow:0 1px 3px #000
+}
+
+.reel-sound svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+
+.reel-sound .mute-slash{
+  display:none
+}
+
+.reel-sound.muted .mute-slash{
+  display:block
+}
+
+/* REEL ACTIONS */
+
+.reel-actions{
+  position:absolute;
+  right:12px;
+  bottom:106px;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px
+}
+
+.reel-action{
+  width:52px;
+  min-height:48px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#fff;
+  text-shadow:0 2px 5px #000
+}
+
+.reel-action .ico{
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center
+}
+
+.reel-action .ico svg{
+  width:26px;
+  height:26px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+
+.reel-action.liked{
+  color:#ff3150
+}
+
+.reel-action.liked .ico svg{
+  fill:currentColor
+}
+
+.reel-action .num{
+  font-size:13px;
+  font-weight:700
+}
+
+/* REEL USER INFO */
+
+.reel-info{
+  position:absolute;
+  left:18px;
+  right:72px;
+  bottom:24px;
+  z-index:20;
+  text-shadow:0 2px 5px #000
+}
+
+.reel-user-row{
+  display:flex;
+  align-items:center;
+  gap:8px
+}
+
+.reel-avatar{
+  width:46px;
+  height:46px;
+  flex:0 0 46px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:#3f91cc;
+  color:#fff;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer
+}
+
+.reel-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.reel-user-col{
+  flex:0 0 auto;
+  min-width:0;
+  max-width:150px
+}
+
+.reel-username{
+  font-size:16px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer
+}
+
+/* TAKIP ET - KULLANICI ADININ HEMEN YANINDA */
+
+.reel-follow-btn{
   flex:0 0 auto;
   min-width:78px;
   height:30px;
@@ -263,93 +691,321 @@
   font-weight:800;
   cursor:pointer;
   white-space:nowrap;
-  text-shadow:none;
+  text-shadow:none
 }
 
 .reel-follow-btn.following{
   background:#333;
-  color:#fff;
+  color:#fff
 }
 
 .reel-follow-btn:disabled{
   opacity:.6;
-  cursor:default;
+  cursor:default
 }
 
-    .reel-follow-btn.following{
-      background:#333;
-      color:#fff
-    }
+.reel-date{
+  margin:2px 0 0 54px;
+  color:#bbb;
+  font-size:12px
+}
 
-    .reel-follow-btn:disabled{
-      opacity:.6;
-      cursor:default
-    }
+.reel-description{
+  margin-top:6px;
+  font-size:15px;
+  line-height:1.35
+}
 
-    .reel-date{margin:2px 0 0 54px;color:#bbb;font-size:12px}
-    .reel-description{margin-top:6px;font-size:15px;line-height:1.35}
+/* YENİ YORUM MODALI */
 
-    .comments{
-      position:absolute;left:50%;bottom:0;z-index:100;width:min(390px,100%);
-      height:72%;display:none;flex-direction:column;transform:translateX(-50%);
-      padding:8px 12px 12px;border-radius:24px 24px 0 0;background:#000;
-      box-shadow:0 -6px 24px rgba(0,0,0,.45)
-    }
-    .comments.open{display:flex}
-    .comments-head{
-      position:relative;height:48px;display:flex;align-items:center;
-      justify-content:center;padding:0 4px;border-bottom:1px solid #202020
-    }
-    .comments-head::before{
-      content:"";position:absolute;top:2px;left:50%;width:38px;height:4px;
-      transform:translateX(-50%);border-radius:99px;background:#666
-    }
-    .comments-head b{font-size:16px}
-    .close-comments{
-      position:absolute;top:5px;right:0;width:38px;height:38px;
-      border:0;background:transparent;color:#fff;font-size:28px;line-height:1
-    }
-    .comments-list{flex:1;overflow:auto;padding:10px 3px}
-    .comment{padding:9px 0;border-bottom:1px solid #202020}
-    .comment-meta{display:flex;align-items:center;gap:9px}
-    .comment-avatar{
-      width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;
-      overflow:hidden;border-radius:50%;background:#3f91cc;font-weight:800
-    }
-    .comment-avatar img{width:100%;height:100%;object-fit:cover}
-    .comment-body{flex:1;min-width:0}
-    .comment-body b{font-size:13px}
-    .comment-body p{margin:4px 0 0;color:#ddd;font-size:13px}
-    .comment-actions{margin-top:5px;color:#888;font-size:11px}
-    .comment-form{display:flex;gap:7px;padding-top:8px}
-    .comment-form input{
-      flex:1;padding:11px;border:1px solid #333;border-radius:10px;
-      outline:none;background:#191919;color:#fff
-    }
-    .comment-form button{
-      width:46px;height:46px;display:grid;place-items:center;border:0;
-      border-radius:10px;background:transparent;color:#fff
-    }
-    .comment-empty{padding:30px 10px;color:#777;text-align:center}
+.comments-modal{
+  position:fixed;
+  inset:0;
+  z-index:11000;
+  display:none;
+  align-items:flex-end;
+  background:rgba(0,0,0,.55)
+}
 
-    @media(min-width:700px){
-      .content,.top{max-width:700px;margin:auto}
-      .reel-phone{width:390px}
-    }
+.comments-modal.open{
+  display:flex
+}
 
-    @media(max-width:699px){
-      .reel-phone{width:100vw}
-      .reel-back{top:10px;left:8px}
-      .reel-info{bottom:24px}
-      .reel-actions{bottom:105px}
+.comments-sheet{
+  width:100%;
+  max-width:520px;
+  height:72vh;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#111;
+  border-radius:22px 22px 0 0;
+  box-shadow:0 -8px 30px rgba(0,0,0,.55)
+}
 
-      .reel-follow-btn{
-        min-width:82px;
-        padding:7px 8px;
-        font-size:11px
-      }
-    }
-  </style>
+.sheet-head{
+  position:relative;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px 50px 12px;
+  border-bottom:1px solid #292929;
+  color:#fff;
+  font-size:16px;
+  font-weight:800
+}
+
+.grab{
+  position:absolute;
+  top:7px;
+  left:50%;
+  width:42px;
+  height:4px;
+  transform:translateX(-50%);
+  border-radius:99px;
+  background:#666
+}
+
+.close-comments{
+  position:absolute;
+  right:10px;
+  top:10px;
+  width:38px;
+  height:38px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  font-size:30px;
+  line-height:1
+}
+
+.sort{
+  padding:10px 14px;
+  border-bottom:1px solid #222
+}
+
+.sort-select{
+  width:auto;
+  min-width:115px;
+  padding:7px 10px;
+  border:1px solid #333;
+  border-radius:8px;
+  outline:none;
+  background:#1c1c1c;
+  color:#fff;
+  font-size:12px
+}
+
+.comment-list{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:4px 14px 10px
+}
+
+.comment{
+  display:flex;
+  gap:10px;
+  padding:12px 0;
+  border-bottom:1px solid #222
+}
+
+.comment .avatar{
+  width:38px;
+  height:38px;
+  flex:0 0 38px
+}
+
+.comment-body{
+  flex:1;
+  min-width:0
+}
+
+.comment-user{
+  font-size:13px;
+  font-weight:800;
+  color:#fff
+}
+
+.comment-text{
+  margin-top:4px;
+  color:#ddd;
+  font-size:14px;
+  line-height:1.35
+}
+
+.comment-meta{
+  margin-top:5px;
+  color:#777;
+  font-size:11px
+}
+
+.comment-empty{
+  padding:40px 10px;
+  color:#777;
+  text-align:center
+}
+
+.emoji-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  padding:9px 14px;
+  border-top:1px solid #222;
+  background:#111
+}
+
+.emoji-row span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  font-size:21px;
+  cursor:pointer
+}
+
+.comment-compose{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid #222;
+  background:#111
+}
+
+.avatar.small{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:#2196f3;
+  color:#fff;
+  font-size:15px;
+  font-weight:800
+}
+
+.compose-input{
+  flex:1;
+  min-width:0;
+  height:42px;
+  padding:0 12px;
+  border:1px solid #333;
+  border-radius:21px;
+  outline:none;
+  background:#1c1c1c;
+  color:#fff;
+  font-size:14px
+}
+
+.compose-input::placeholder{
+  color:#777
+}
+
+.gif{
+  height:38px;
+  padding:0 8px;
+  border:0;
+  border-radius:8px;
+  background:#222;
+  color:#fff;
+  font-size:11px;
+  font-weight:800
+}
+
+.send{
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:#2196f3;
+  color:#fff;
+  font-size:18px
+}
+
+/* MENU */
+
+.menu-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(0,0,0,.55)
+}
+
+.menu-backdrop.open{
+  display:flex
+}
+
+.post-menu{
+  width:min(520px,100%);
+  padding:10px;
+  border-radius:20px 20px 0 0;
+  background:#111
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:95px;
+  z-index:15000;
+  transform:translateX(-50%);
+  padding:10px 15px;
+  border-radius:10px;
+  background:#222;
+  color:#fff;
+  font-size:13px;
+  display:none
+}
+
+.toast.show{
+  display:block
+}
+
+/* RESPONSIVE */
+
+@media(min-width:700px){
+  .content,
+  .top{
+    max-width:700px;
+    margin:auto
+  }
+
+  .reel-phone{
+    width:390px
+  }
+}
+
+@media(max-width:699px){
+  .reel-phone{
+    width:100vw
+  }
+
+  .reel-back{
+    top:10px;
+    left:8px
+  }
+
+  .reel-info{
+    bottom:24px
+  }
+
+  .reel-actions{
+    bottom:105px
+  }
+}
+</style>
 </head>
 
 <body>
@@ -360,11 +1016,25 @@
   <div class="search">
     <span class="search-icon">⌕</span>
 
-    <button type="button" class="tag-back" id="tagBack" aria-label="Geri">‹</button>
+    <button
+      type="button"
+      class="tag-back"
+      id="tagBack"
+      aria-label="Geri"
+    >‹</button>
 
-    <input id="sq" autocomplete="off" placeholder="#etiket veya kullanıcı adı ara">
+    <input
+      id="sq"
+      autocomplete="off"
+      placeholder="#etiket veya kullanıcı adı ara"
+    >
 
-    <button type="button" class="clear" id="clear" aria-label="Temizle">×</button>
+    <button
+      type="button"
+      class="clear"
+      id="clear"
+      aria-label="Temizle"
+    >×</button>
   </div>
 </header>
 
@@ -375,56 +1045,66 @@
   <a href="index.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
-        <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+        <path d="M3 11.5 12 4l9 7.5"></path>
+        <path d="M5 10.5V20h14v-9.5"></path>
       </svg>
     </span>
-    <span>Ana Sayfa</span>
+    Ana Sayfa
   </a>
 
-  <a class="active" href="ara.html">
+  <a href="ara.html" class="active">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="6.5"/>
-        <path d="m16 16 5 5"/>
+        <circle cx="11" cy="11" r="6"></circle>
+        <path d="m16 16 5 5"></path>
       </svg>
     </span>
-    <span>Ara</span>
+    Ara
   </a>
 
-  <a href="olustur.html">
+  <a href="kesfet.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
-        <rect x="4" y="4" width="16" height="16" rx="4"/>
-        <path d="M12 8v8"/>
-        <path d="M8 12h8"/>
+        <path d="m4 20 5-11 11-5-5 11-11 5Z"></path>
+        <circle cx="14.5" cy="9.5" r="1.5"></circle>
       </svg>
     </span>
-    <span>Oluştur</span>
+    Keşfet
   </a>
 
-  <a href="reels.html">
+  <a href="paylas.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
-        <rect x="3" y="4" width="18" height="16" rx="2"/>
-        <path d="M3 9h18"/>
-        <path d="M8 4l3 5"/>
-        <path d="M13 4l3 5"/>
+        <path d="M12 5v14"></path>
+        <path d="M5 12h14"></path>
       </svg>
     </span>
-    <span>Reels</span>
+    Paylaş
   </a>
 
-  <a href="profile.html">
+  <a href="bildirimler.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
-        <circle cx="12" cy="8" r="3.5"/>
-        <path d="M5 20a7 7 0 0 1 14 0"/>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+        <path d="M10 21h4"></path>
       </svg>
     </span>
-    <span>Profil</span>
+    Bildirim
+  </a>
+
+  <a href="profil.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21c1.5-4 4-6 8-6s6.5 2 8 6"></path>
+      </svg>
+    </span>
+    Profil
   </a>
 
 </nav>
+
+<!-- REEL VIEWER -->
 
 <div class="reel-viewer" id="viewer">
 
@@ -438,39 +1118,123 @@
 
   </div>
 
-  <div id="viewerComments" class="comments">
+</div>
 
-    <div class="comments-head">
+<!-- MENU -->
 
-      <b>Yorumlar</b>
+<div
+  id="menuBackdrop"
+  class="menu-backdrop"
+  onclick="closeMenu(event)"
+>
+
+  <div
+    id="postMenu"
+    class="post-menu"
+    onclick="event.stopPropagation()"
+  ></div>
+
+</div>
+
+<!-- COMMENTS -->
+
+<div
+  id="commentsModal"
+  class="comments-modal"
+  onclick="closeComments(event)"
+>
+
+  <div
+    class="comments-sheet"
+    onclick="event.stopPropagation()"
+  >
+
+    <div class="sheet-head">
+
+      <span class="grab"></span>
 
       <button
-        type="button"
         class="close-comments"
-        onclick="closeViewerComments()"
-        aria-label="Yorumları kapat"
-      >×</button>
+        onclick="closeComments()"
+      >
+        ×
+      </button>
+
+      <span>Yorumlar</span>
 
     </div>
 
-    <div id="viewerCommentsList" class="comments-list"></div>
+    <div class="sort">
 
-    <div class="comment-form">
+      <select
+        id="commentSort"
+        class="sort-select"
+        onchange="changeCommentSort(this.value)"
+      >
 
-      <input id="viewerCommentInput" placeholder="Yorum yaz...">
+        <option value="forYou">
+          Senin için
+        </option>
+
+        <option value="newest">
+          En yeni
+        </option>
+
+        <option value="popular">
+          En çok beğenilen
+        </option>
+
+      </select>
+
+    </div>
+
+    <div
+      id="commentList"
+      class="comment-list"
+    ></div>
+
+    <div class="emoji-row">
+
+      <span onclick="addEmoji('❤️')">❤️</span>
+      <span onclick="addEmoji('🙌')">🙌</span>
+      <span onclick="addEmoji('🔥')">🔥</span>
+      <span onclick="addEmoji('👋')">👋</span>
+      <span onclick="addEmoji('😢')">😢</span>
+      <span onclick="addEmoji('😍')">😍</span>
+      <span onclick="addEmoji('😮')">😮</span>
+      <span onclick="addEmoji('😂')">😂</span>
+
+    </div>
+
+    <div class="comment-compose">
+
+      <div
+        id="composeAvatar"
+        class="avatar small"
+      >
+        M
+      </div>
+
+      <input
+        id="commentInput"
+        class="compose-input"
+        placeholder="Bunun hakkında ne düşünüyorsun?"
+        onkeydown="if(event.key==='Enter')sendComment()"
+      >
 
       <button
+        class="gif"
         type="button"
-        onclick="sendViewerComment()"
-        aria-label="Gönder"
       >
-        <svg
-          viewBox="0 0 24 24"
-          style="width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"
-        >
-          <path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/>
-          <path d="m10.3 13.7 4.1-4.1"/>
-        </svg>
+        GIF
+      </button>
+
+      <button
+        class="send"
+        type="button"
+        onclick="sendComment()"
+      >
+        ➤
       </button>
 
     </div>
@@ -478,6 +1242,8 @@
   </div>
 
 </div>
+
+<div id="toast" class="toast"></div>
 
 <script>
 
@@ -501,6 +1267,7 @@ let feed = [];
 let reels = [];
 
 let currentUsername = "";
+
 let followingUsers = new Set();
 
 let selectedTag = "";
@@ -512,8 +1279,7 @@ let currentViewerComment = null;
 const viewerSeen = new Set();
 
 
-function esc(value = "") {
-
+function esc(value = ""){
   return String(value).replace(
     /[&<>'"]/g,
     char => ({
@@ -524,32 +1290,25 @@ function esc(value = "") {
       '"':"&quot;"
     }[char])
   );
-
 }
 
 
-function normalizeUsername(value = "") {
-
+function normalizeUsername(value = ""){
   return String(value)
-    .replace(/^@/, "")
+    .replace(/^@/,"")
     .trim()
     .toLowerCase();
-
 }
 
 
-/* =========================
-   API
-========================= */
-
-async function api(path, options = {}) {
+async function api(path, options = {}){
 
   const headers = Object.assign(
     {Accept:"application/json"},
     options.headers || {}
   );
 
-  if (token) {
+  if(token){
     headers.Authorization = "Bearer " + token;
   }
 
@@ -558,40 +1317,38 @@ async function api(path, options = {}) {
     headers
   };
 
-  if (
+  if(
     requestOptions.body &&
     typeof requestOptions.body === "object" &&
     !(requestOptions.body instanceof FormData)
-  ) {
+  ){
 
     requestOptions.headers = {
       ...requestOptions.headers,
       "Content-Type":"application/json"
     };
 
-    requestOptions.body =
-      JSON.stringify(requestOptions.body);
-
+    requestOptions.body = JSON.stringify(
+      requestOptions.body
+    );
   }
 
-  const response =
-    await fetch(
-      API + path,
-      requestOptions
-    );
+  const response = await fetch(
+    API + path,
+    requestOptions
+  );
 
-  const text =
-    await response.text();
+  const text = await response.text();
 
   let data;
 
-  try {
+  try{
     data = JSON.parse(text);
-  } catch {
+  }catch{
     data = text;
   }
 
-  if (!response.ok) {
+  if(!response.ok){
 
     throw new Error(
       data?.error ||
@@ -599,19 +1356,13 @@ async function api(path, options = {}) {
       response.statusText ||
       "API hatası"
     );
-
   }
 
   return data;
-
 }
 
 
-/* =========================
-   USER HELPERS
-========================= */
-
-function getAvatar(user) {
+function getAvatar(user){
 
   return (
     user?.avatar ||
@@ -622,14 +1373,12 @@ function getAvatar(user) {
     user?.profile?.avatarUrl ||
     ""
   );
-
 }
 
 
-function privateUser(user) {
+function privateUser(user){
 
-  const settings =
-    user?.settings || {};
+  const settings = user?.settings || {};
 
   return Boolean(
     settings.private_account ||
@@ -641,66 +1390,59 @@ function privateUser(user) {
     user?.isPrivate ||
     user?.private
   );
-
 }
 
 
-function storyFor(username) {
+function storyFor(username){
 
-  const wanted =
-    normalizeUsername(username);
+  const wanted = normalizeUsername(username);
 
-  return stories.filter(
-    story =>
-      normalizeUsername(
-        story?.username ||
-        story?.user?.username ||
-        story?.profile?.username ||
-        ""
-      ) === wanted
+  return stories.filter(story =>
+    normalizeUsername(
+      story?.username ||
+      story?.user?.username ||
+      story?.profile?.username ||
+      ""
+    ) === wanted
   );
-
 }
 
 
-function isVideo(post) {
+function isVideo(post){
 
-  const mediaType =
-    String(
-      post?.media_type ||
-      post?.mediaType ||
-      post?.type ||
-      ""
-    ).toLowerCase();
+  const mediaType = String(
+    post?.media_type ||
+    post?.mediaType ||
+    post?.type ||
+    ""
+  ).toLowerCase();
 
-  const url =
-    String(
-      post?.media ||
-      post?.media_url ||
-      post?.mediaUrl ||
-      post?.mediaUri ||
-      post?.video ||
-      post?.videoUrl ||
-      post?.video_url ||
-      post?.reel ||
-      post?.reelUrl ||
-      post?.reel_url ||
-      post?.url ||
-      post?.fileUrl ||
-      post?.file_url ||
-      ""
-    ).toLowerCase();
+  const url = String(
+    post?.media ||
+    post?.media_url ||
+    post?.mediaUrl ||
+    post?.mediaUri ||
+    post?.video ||
+    post?.videoUrl ||
+    post?.video_url ||
+    post?.reel ||
+    post?.reelUrl ||
+    post?.reel_url ||
+    post?.url ||
+    post?.fileUrl ||
+    post?.file_url ||
+    ""
+  ).toLowerCase();
 
   return (
     mediaType.includes("video") ||
     mediaType.includes("reel") ||
     /\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(url)
   );
-
 }
 
 
-function mediaUrl(post) {
+function mediaUrl(post){
 
   return (
     post?.media ||
@@ -718,11 +1460,10 @@ function mediaUrl(post) {
     post?.file_url ||
     ""
   );
-
 }
 
 
-function postText(post) {
+function postText(post){
 
   return (
     post?.text ||
@@ -730,11 +1471,10 @@ function postText(post) {
     post?.description ||
     ""
   );
-
 }
 
 
-function postId(post) {
+function postId(post){
 
   return (
     post?.id ??
@@ -742,44 +1482,23 @@ function postId(post) {
     post?.postId ??
     ""
   );
-
 }
 
 
-function avatarHtml(url, username, story = false) {
+function avatarHtml(url, username, story = false){
 
-  const letter =
-    esc(
-      (username || "?")
-        .slice(0,1)
-        .toUpperCase()
-    );
+  const letter = esc(
+    (username || "?").slice(0,1).toUpperCase()
+  );
 
-  const image =
-    url
-      ? `
-        <img
-          class="avatar"
-          src="${esc(url)}"
-          alt=""
-          onerror="
-            this.style.display='none';
-            this.nextElementSibling.style.display='grid';
-          "
-        >
-      `
-      : "";
+  const image = url
+    ? `<img class="avatar" src="${esc(url)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">`
+    : "";
 
-  const fallback = `
-    <span
-      class="avatar"
-      style="${url ? "display:none" : ""}"
-    >
-      ${letter}
-    </span>
-  `;
+  const fallback =
+    `<span class="avatar" style="${url ? "display:none" : ""}">${letter}</span>`;
 
-  if (story) {
+  if(story){
 
     return `
       <div class="story-ring">
@@ -787,24 +1506,23 @@ function avatarHtml(url, username, story = false) {
         ${fallback}
       </div>
     `;
-
   }
 
   return image + fallback;
-
 }
 
 
-/* =========================
-   FOLLOWING
-========================= */
-
-function extractFollowingList(source) {
+function extractFollowingList(source){
 
   const candidates = [
+
     source?.following,
     source?.followingUsers,
     source?.following_users,
+
+    source?.data?.following,
+    source?.data?.followingUsers,
+    source?.data?.following_users,
 
     source?.user?.following,
     source?.user?.followingUsers,
@@ -812,29 +1530,19 @@ function extractFollowingList(source) {
 
     source?.profile?.following,
     source?.profile?.followingUsers,
-    source?.profile?.following_users,
+    source?.profile?.following_users
 
-    source?.data?.following,
-    source?.data?.followingUsers,
-    source?.data?.following_users
   ];
 
-  return (
-    candidates.find(
-      Array.isArray
-    ) || []
-  );
-
+  return candidates.find(Array.isArray) || [];
 }
 
 
-function loadFollowingFromMe(me) {
+function loadFollowingFromMe(me){
 
-  followingUsers =
-    new Set();
+  followingUsers = new Set();
 
-  const list =
-    extractFollowingList(me);
+  const list = extractFollowingList(me);
 
   list.forEach(item => {
 
@@ -848,23 +1556,19 @@ function loadFollowingFromMe(me) {
             ""
           );
 
-    const key =
-      normalizeUsername(username);
+    const key = normalizeUsername(username);
 
-    if (key) {
+    if(key){
       followingUsers.add(key);
     }
 
   });
-
 }
 
 
-/* =========================
-   TAKİP BUTONLARINI SENKRONLA
-========================= */
+/* TAKIP BUTONLARINI HER YERDE SENKRONIZE ET */
 
-function syncFollowButtons(username, state) {
+function syncFollowButtons(username,state){
 
   const usernameKey =
     normalizeUsername(username);
@@ -873,12 +1577,11 @@ function syncFollowButtons(username, state) {
     .querySelectorAll("[data-follow-user]")
     .forEach(button => {
 
-      const buttonUser =
+      if(
         normalizeUsername(
           button.dataset.followUser
-        );
-
-      if (buttonUser !== usernameKey) {
+        ) !== usernameKey
+      ){
         return;
       }
 
@@ -892,8 +1595,6 @@ function syncFollowButtons(username, state) {
         state
       );
 
-      button.disabled = false;
-
       button.setAttribute(
         "aria-label",
         state
@@ -901,26 +1602,22 @@ function syncFollowButtons(username, state) {
           : "Takip et"
       );
 
-    });
+      button.disabled = false;
 
+    });
 }
 
 
-/* =========================
-   LOAD DATA
-========================= */
-
-async function loadData() {
+async function loadData(){
 
   content.innerHTML =
     '<div class="loading">Yükleniyor...</div>';
 
-  try {
+  try{
 
-    const me =
-      await api("/me");
+    const me = await api("/me");
 
-    if (!me) {
+    if(!me){
       throw new Error("auth");
     }
 
@@ -935,23 +1632,34 @@ async function loadData() {
         me?.username ||
         me?.user?.username ||
         me?.profile?.username ||
-        me?.data?.username ||
         ""
       );
 
     loadFollowingFromMe(me);
 
-  } catch {
+    const avatar = getAvatar(meUser);
 
-    location.href =
-      "giris.html";
+    if(avatar){
+
+      const composeAvatar =
+        $("composeAvatar");
+
+      if(composeAvatar){
+
+        composeAvatar.innerHTML =
+          `<img src="${esc(avatar)}" style="width:100%;height:100%;object-fit:cover" alt="">`;
+      }
+    }
+
+  }catch{
+
+    location.href = "giris.html";
 
     return;
-
   }
 
 
-  try {
+  try{
 
     const [
       feedResponse,
@@ -960,11 +1668,11 @@ async function loadData() {
 
       api("/feed?ts=" + Date.now()),
 
-      api("/stories?ts=" + Date.now())
-        .catch(() => [])
+      api(
+        "/stories?ts=" + Date.now()
+      ).catch(() => [])
 
     ]);
-
 
     feed =
       Array.isArray(feedResponse)
@@ -976,7 +1684,6 @@ async function loadData() {
             []
           );
 
-
     stories =
       Array.isArray(storyResponse)
         ? storyResponse
@@ -987,35 +1694,27 @@ async function loadData() {
             []
           );
 
-
     normalizeReels();
 
     renderDiscovery();
 
-  } catch {
+  }catch{
 
     content.innerHTML =
       '<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>';
-
   }
-
 }
 
 
-/* =========================
-   SEARCH
-========================= */
+async function searchUsers(query){
 
-async function searchUsers(query) {
-
-  try {
+  try{
 
     const data =
       await api(
         "/search?q=" +
         encodeURIComponent(query)
       );
-
 
     const array =
       Array.isArray(data)
@@ -1029,7 +1728,6 @@ async function searchUsers(query) {
             []
           );
 
-
     return array
       .map(user => {
 
@@ -1037,7 +1735,6 @@ async function searchUsers(query) {
           user?.user ||
           user?.profile ||
           {};
-
 
         const username =
           String(
@@ -1047,17 +1744,14 @@ async function searchUsers(query) {
             ""
           )
           .trim()
-          .replace(/^@/, "");
+          .replace(/^@/,"");
 
-
-        if (!username) {
+        if(!username){
           return null;
         }
 
-
         const usernameKey =
           normalizeUsername(username);
-
 
         const apiFollowing =
           user?.isFollowing ??
@@ -1068,7 +1762,6 @@ async function searchUsers(query) {
           profile?.is_following ??
           profile?.following ??
           false;
-
 
         return {
 
@@ -1108,20 +1801,14 @@ async function searchUsers(query) {
           )
       );
 
-  } catch {
+  }catch{
 
     return [];
-
   }
-
 }
 
 
-/* =========================
-   DISCOVERY
-========================= */
-
-function normalizeReels() {
+function normalizeReels(){
 
   reels =
     feed
@@ -1135,8 +1822,7 @@ function normalizeReels() {
 
         return {
 
-          id:
-            postId(post),
+          id:postId(post),
 
           username:
             String(
@@ -1156,9 +1842,7 @@ function normalizeReels() {
           likes:
             Array.isArray(post?.likes)
               ? post.likes.length
-              : Number(
-                  post?.likes || 0
-                ),
+              : Number(post?.likes || 0),
 
           views:
             Number(
@@ -1185,8 +1869,7 @@ function normalizeReels() {
             getAvatar(post) ||
             getAvatar(user),
 
-          raw:
-            post
+          raw:post
 
         };
 
@@ -1202,20 +1885,23 @@ function normalizeReels() {
           array.findIndex(
             item =>
               String(item.id) ===
-              String(reel.id) &&
-              normalizeUsername(item.username) ===
-              normalizeUsername(reel.username) &&
+                String(reel.id) &&
+              normalizeUsername(
+                item.username
+              ) ===
+                normalizeUsername(
+                  reel.username
+                ) &&
               item.mediaUri ===
-              reel.mediaUri
+                reel.mediaUri
           )
       );
-
 }
 
 
-function renderDiscovery() {
+function renderDiscovery(){
 
-  if (!reels.length) {
+  if(!reels.length){
 
     content.innerHTML = `
       <div class="empty">
@@ -1225,17 +1911,18 @@ function renderDiscovery() {
     `;
 
     return;
-
   }
 
-
   content.innerHTML = `
-    <div class="section-title">Videolar</div>
+    <div class="section-title">
+      Videolar
+    </div>
 
     <div class="grid">
 
       ${reels.map(
         (reel,index) => `
+
           <div
             class="tile"
             data-reel="${index}"
@@ -1248,15 +1935,17 @@ function renderDiscovery() {
               preload="metadata"
             ></video>
 
-            <span class="play">▶</span>
+            <span class="play">
+              ▶
+            </span>
 
           </div>
+
         `
       ).join("")}
 
     </div>
   `;
-
 
   document
     .querySelectorAll("[data-reel]")
@@ -1264,31 +1953,22 @@ function renderDiscovery() {
 
       tile.onclick = () =>
         openReel(
-          Number(
-            tile.dataset.reel
-          )
+          Number(tile.dataset.reel)
         );
 
     });
-
 }
 
 
-/* =========================
-   USERS + FOLLOW BUTTON
-========================= */
+function renderUsers(array){
 
-function renderUsers(array) {
-
-  if (!array.length) {
+  if(!array.length){
 
     content.innerHTML =
       '<div class="empty">Kullanıcı bulunamadı</div>';
 
     return;
-
   }
-
 
   content.innerHTML = `
 
@@ -1306,32 +1986,24 @@ function renderUsers(array) {
         const usernameKey =
           normalizeUsername(username);
 
-
         const storiesForUser =
           storyFor(username);
-
 
         const hasStory =
           !user.private &&
           storiesForUser.length > 0;
 
-
         const isMe =
           Boolean(
             currentUsername &&
-            usernameKey ===
-            currentUsername
+            usernameKey === currentUsername
           );
-
 
         const isFollowing =
           Boolean(
             user.isFollowing ||
-            followingUsers.has(
-              usernameKey
-            )
+            followingUsers.has(usernameKey)
           );
-
 
         return `
 
@@ -1360,11 +2032,23 @@ function renderUsers(array) {
                     ? `
                       <button
                         type="button"
-                        class="follow-btn ${isFollowing ? "following" : ""}"
+                        class="follow-btn ${
+                          isFollowing
+                            ? "following"
+                            : ""
+                        }"
                         data-follow-user="${esc(username)}"
-                        aria-label="${isFollowing ? "Takibi bırak" : "Takip et"}"
+                        aria-label="${
+                          isFollowing
+                            ? "Takibi bırak"
+                            : "Takip et"
+                        }"
                       >
-                        ${isFollowing ? "Takip Ediliyor" : "Takip Et"}
+                        ${
+                          isFollowing
+                            ? "Takip Ediliyor"
+                            : "Takip Et"
+                        }
                       </button>
                     `
                     : ""
@@ -1373,11 +2057,13 @@ function renderUsers(array) {
               </div>
 
               <div class="sub">
+
                 ${
                   hasStory
                     ? "Hikayeyi görmek için fotoğrafa dokun"
                     : "Hesabı görüntüle"
                 }
+
               </div>
 
             </div>
@@ -1397,114 +2083,101 @@ function renderUsers(array) {
     .querySelectorAll("[data-user]")
     .forEach(element => {
 
-      element.onclick =
-        event => {
+      element.onclick = event => {
 
-          if (
-            event.target.closest(
-              "[data-follow-user]"
-            )
-          ) {
-            return;
-          }
+        if(
+          event.target.closest(
+            "[data-follow-user]"
+          )
+        ){
+          return;
+        }
 
-          const username =
-            element.dataset.user;
+        const username =
+          element.dataset.user;
 
+        if(
+          element.dataset.story === "1" &&
+          element.querySelector(".story-ring")
+        ){
 
-          if (
-            element.dataset.story === "1" &&
-            element.querySelector(".story-ring")
-          ) {
+          openStory(username);
 
-            openStory(username);
+        }else{
 
-          } else {
+          openProfile(username);
 
-            openProfile(username);
+        }
 
-          }
-
-        };
+      };
 
     });
 
-
-  bindFollowButtons();
-
-}
-
-
-function bindFollowButtons() {
 
   document
     .querySelectorAll("[data-follow-user]")
     .forEach(button => {
 
-      button.onclick =
-        async event => {
+      button.onclick = async event => {
 
-          event.preventDefault();
-          event.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
 
-          await toggleFollowUser(
-            button.dataset.followUser,
-            button
-          );
+        await toggleFollowUser(
+          button.dataset.followUser,
+          button
+        );
 
-        };
+      };
 
     });
-
 }
 
+
+/* TAKIP ET / TAKIP EDILIYOR */
 
 async function toggleFollowUser(
   username,
   button
-) {
+){
 
   const cleanUsername =
     String(username || "")
       .replace(/^@/,"")
       .trim();
 
-
   const usernameKey =
     normalizeUsername(
       cleanUsername
     );
 
-
-  if (
+  if(
     !usernameKey ||
     usernameKey === currentUsername
-  ) {
+  ){
     return;
   }
-
 
   const isFollowing =
     followingUsers.has(
       usernameKey
     );
 
-
-  /*
-     TIKLAR TIKLAMAZ BUTON DEĞİŞSİN
-  */
-
-  const newState =
+  const nextState =
     !isFollowing;
 
+  /*
+    Önce ekranda hemen değiştir.
+    API başarısız olursa geri al.
+  */
 
-  if (newState) {
+  if(nextState){
 
     followingUsers.add(
       usernameKey
     );
 
-  } else {
+  }else{
 
     followingUsers.delete(
       usernameKey
@@ -1512,41 +2185,12 @@ async function toggleFollowUser(
 
   }
 
-
   syncFollowButtons(
     cleanUsername,
-    newState
+    nextState
   );
 
-
-  document
-    .querySelectorAll(
-      ".reel-follow-btn[data-follow-user]"
-    )
-    .forEach(el => {
-
-      if (
-        normalizeUsername(
-          el.dataset.followUser
-        ) === usernameKey
-      ) {
-
-        el.textContent =
-          newState
-            ? "Takip Ediliyor"
-            : "Takip Et";
-
-        el.classList.toggle(
-          "following",
-          newState
-        );
-
-      }
-
-    });
-
-
-  try {
+  try{
 
     const result =
       await api(
@@ -1558,11 +2202,10 @@ async function toggleFollowUser(
         {
           method:"POST",
           body:{
-            follow:newState
+            follow:nextState
           }
         }
       );
-
 
     const backendState =
       result?.following ??
@@ -1572,30 +2215,22 @@ async function toggleFollowUser(
       result?.data?.isFollowing ??
       result?.data?.is_following;
 
-
-    if (
-      typeof backendState ===
-      "boolean"
-    ) {
-
-      if (backendState) {
-
-        followingUsers.add(
-          usernameKey
-        );
-
-      } else {
-
-        followingUsers.delete(
-          usernameKey
-        );
-
-      }
+    const newState =
+      typeof backendState === "boolean"
+        ? backendState
+        : nextState;
 
 
-      syncFollowButtons(
-        cleanUsername,
-        backendState
+    if(newState){
+
+      followingUsers.add(
+        usernameKey
+      );
+
+    }else{
+
+      followingUsers.delete(
+        usernameKey
       );
 
     }
@@ -1606,33 +2241,34 @@ async function toggleFollowUser(
         item =>
           normalizeUsername(
             item.username
-          ) ===
-          usernameKey
+          ) === usernameKey
       );
 
-
-    if (user) {
+    if(user){
 
       user.isFollowing =
-        typeof backendState === "boolean"
-          ? backendState
-          : newState;
-
+        newState;
     }
 
-  } catch(error) {
+
+    syncFollowButtons(
+      cleanUsername,
+      newState
+    );
+
+  }catch(error){
 
     /*
-       API başarısızsa eski duruma dön
+      API hata verirse eski duruma dön.
     */
 
-    if (isFollowing) {
+    if(isFollowing){
 
       followingUsers.add(
         usernameKey
       );
 
-    } else {
+    }else{
 
       followingUsers.delete(
         usernameKey
@@ -1640,432 +2276,41 @@ async function toggleFollowUser(
 
     }
 
-
     syncFollowButtons(
       cleanUsername,
       isFollowing
     );
 
-
     alert(
       error?.message ||
       "Takip işlemi gerçekleştirilemedi."
     );
-
   }
-
 }
 
 
-/* =========================
-   TAG
-========================= */
-
-function renderTagIntro(tag) {
-
-  content.innerHTML = `
-
-    <div
-      class="tag-result"
-      id="openTag"
-    >
-
-      <div class="tag-icon">#</div>
-
-      <div>
-
-        <div class="username">
-          #${esc(tag)}
-        </div>
-
-        <div class="sub">
-          Etiket gönderilerini gör
-        </div>
-
-      </div>
-
-    </div>
-
-  `;
-
-
-  $("openTag").onclick = () => {
-
-    selectedTag =
-      tag;
-
-    renderTagPosts();
-
-  };
-
-}
-
-
-function renderTagPosts() {
-
-  tagBack.style.display =
-    "inline";
-
-
-  const escapedTag =
-    selectedTag.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
-    );
-
-
-  const regex =
-    new RegExp(
-      "#" +
-      escapedTag +
-      "\\b",
-      "i"
-    );
-
-
-  const posts =
-    feed.filter(
-      post =>
-        regex.test(
-          postText(post)
-        )
-    );
-
-
-  if (!posts.length) {
-
-    content.innerHTML =
-      '<div class="empty">Bu etikette henüz gönderi yok</div>';
-
-    return;
-
-  }
-
-
-  content.innerHTML = `
-    <div class="posts">
-      ${posts.map(postHtml).join("")}
-    </div>
-  `;
-
-
-  bindPosts();
-
-}
-
-
-function postHtml(post) {
-
-  const user =
-    post?.user ||
-    post?.profile ||
-    {};
-
-  const username =
-    String(
-      post?.username ||
-      user?.username ||
-      ""
-    )
-    .replace(/^@/,"")
-    .trim();
-
-
-  const avatar =
-    getAvatar(post) ||
-    getAvatar(user);
-
-
-  const url =
-    mediaUrl(post);
-
-
-  let media = "";
-
-
-  if (url) {
-
-    if (isVideo(post)) {
-
-      media = `
-        <video
-          class="post-media"
-          src="${esc(url)}"
-          controls
-          playsinline
-          preload="metadata"
-        ></video>
-      `;
-
-    } else {
-
-      media = `
-        <img
-          class="post-media"
-          src="${esc(url)}"
-          loading="lazy"
-          alt=""
-        >
-      `;
-
-    }
-
-  }
-
-
-  return `
-
-    <article
-      class="post"
-      data-id="${esc(postId(post))}"
-    >
-
-      <div
-        class="post-head"
-        data-profile="${esc(username)}"
-      >
-
-        ${avatarHtml(
-          avatar,
-          username,
-          false
-        )}
-
-        <strong>
-          @${esc(username)}
-        </strong>
-
-      </div>
-
-      ${media}
-
-      <div class="caption">
-        ${esc(postText(post))}
-      </div>
-
-    </article>
-
-  `;
-
-}
-
-
-function bindPosts() {
-
-  document
-    .querySelectorAll("[data-profile]")
-    .forEach(element => {
-
-      element.onclick = () =>
-        openProfile(
-          element.dataset.profile
-        );
-
-    });
-
-}
-
-
-/* =========================
-   SEARCH
-========================= */
-
-async function doSearch(query) {
-
-  query =
-    query.trim();
-
-
-  clearButton.style.display =
-    query
-      ? "block"
-      : "none";
-
-
-  tagBack.style.display =
-    selectedTag
-      ? "inline"
-      : "none";
-
-
-  if (selectedTag) {
-
-    renderTagPosts();
-
-    return;
-
-  }
-
-
-  if (!query) {
-
-    renderDiscovery();
-
-    return;
-
-  }
-
-
-  if (query.startsWith("#")) {
-
-    const tag =
-      query
-        .slice(1)
-        .trim();
-
-
-    if (tag) {
-
-      renderTagIntro(tag);
-
-    } else {
-
-      renderDiscovery();
-
-    }
-
-    return;
-
-  }
-
-
-  content.innerHTML =
-    '<div class="loading">Kullanıcılar aranıyor...</div>';
-
-
-  const found =
-    await searchUsers(
-      query.replace(/^@/,"")
-    );
-
-
-  users =
-    found;
-
-
-  renderUsers(
-    found
-  );
-
-}
-
-
-/* =========================
-   PROFILE / STORY
-========================= */
-
-function openProfile(username) {
-
-  if (!username) {
-    return;
-  }
-
-  location.href =
-    "profile.html?username=" +
-    encodeURIComponent(
-      username
-    );
-
-}
-
-
-function openStory(username) {
-
-  if (
-    typeof window.openStoryFromSearch ===
-    "function"
-  ) {
-
-    window.openStoryFromSearch(
-      username
-    );
-
-    return;
-
-  }
-
-
-  if (
-    typeof window.showStory ===
-    "function"
-  ) {
-
-    window.showStory(
-      username
-    );
-
-    return;
-
-  }
-
-
-  openProfile(username);
-
-}
-
-
-/* =========================
-   REELS
-========================= */
-
-function openReel(startIndex) {
-
-  if (!reels.length) {
-    return;
-  }
-
-
-  const viewerFeed =
-    $("viewerFeed");
-
-
-  viewerFeed.innerHTML =
-    reels
-      .map(
-        (reel,index) =>
-          createReelHtml(
-            reel,
-            index
-          )
-      )
-      .join("");
-
-
-  $("viewer")
-    .classList
-    .add("show");
-
-
-  document.body.style.overflow =
-    "hidden";
-
-
-  /*
-     VİDEO AÇILDIKTAN SONRA TAKİP
-     BUTONLARINI BAĞLA
-  */
-  bindFollowButtons();
-
-
-  setupViewerReels(
-    startIndex
-  );
-
-}
-
+/* REEL HTML */
 
 function createReelHtml(
   reel,
   index
-) {
+){
 
-  const letter =
-    esc(
-      (reel.username || "M")
-        .charAt(0)
-        .toUpperCase()
+  const usernameKey =
+    normalizeUsername(
+      reel.username
     );
 
+  const isMe =
+    Boolean(
+      currentUsername &&
+      usernameKey === currentUsername
+    );
+
+  const isFollowing =
+    followingUsers.has(
+      usernameKey
+    );
 
   const avatar =
     reel.avatar
@@ -2073,184 +2318,113 @@ function createReelHtml(
         <img
           src="${esc(reel.avatar)}"
           alt=""
-          onerror="
-            this.style.display='none';
-            this.nextElementSibling.style.display='grid';
-          "
         >
-        <span style="display:none">${letter}</span>
       `
-      : `
-        <span>${letter}</span>
-      `;
-
-
-  /*
-     VİDEO SAHİBİ Kİ?
-  */
-  const reelUsernameKey =
-    normalizeUsername(
-      reel.username
-    );
-
-
-  /*
-     KENDİ VİDEON MU?
-  */
-  const isMe =
-    Boolean(
-      currentUsername &&
-      reelUsernameKey ===
-      currentUsername
-    );
-
-
-  /*
-     TAKİP EDİYOR MUSUN?
-  */
-  const isFollowing =
-    followingUsers.has(
-      reelUsernameKey
-    );
-
-
-  /*
-     KENDİ VİDEON DEĞİLSE TAKİP BUTONU
-  */
-  const followButton =
-    !isMe
-      ? `
-        <button
-          type="button"
-          class="reel-follow-btn ${isFollowing ? "following" : ""}"
-          data-follow-user="${esc(reel.username)}"
-          aria-label="${isFollowing ? "Takibi bırak" : "Takip et"}"
-        >
-          ${isFollowing ? "Takip Ediliyor" : "Takip Et"}
-        </button>
-      `
-      : "";
+      : esc(
+          (
+            reel.username ||
+            "?"
+          )
+          .slice(0,1)
+          .toUpperCase()
+        );
 
 
   return `
 
     <article
       class="reel"
-      data-index="${index}"
+      data-reel-index="${index}"
     >
 
       <video
         class="reel-video"
         playsinline
-        muted
         loop
         preload="metadata"
+        data-src="${esc(reel.mediaUri)}"
       ></video>
 
       <div class="reel-shade"></div>
 
 
       <button
+        class="reel-back"
         type="button"
+        onclick="closeReel()"
+      >
+        ‹
+      </button>
+
+
+      <button
         class="reel-center-play"
+        type="button"
         onclick="toggleViewerPlay(${index})"
       >
 
         <svg viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z"/>
+          <path d="M8 5v14l11-7z"></path>
         </svg>
 
       </button>
 
 
-      <button
-        type="button"
-        class="reel-back"
-        onclick="closeViewer()"
-      >‹</button>
-
-
       <div class="reel-actions">
 
         <button
+          class="reel-action"
           type="button"
-          class="reel-action like"
           onclick="likeViewerReel(${index})"
         >
 
           <span class="ico">
 
             <svg viewBox="0 0 24 24">
-
-              <path d="M20.8 8.7c0 5.1-8.8 10.8-8.8 10.8S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 8 4c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.7 4.7 0 0 1 4.8 4.7z"/>
-
+              <path d="M20.8 8.6c0 5.5-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.6A4.6 4.6 0 0 1 12 6.2a4.6 4.6 0 0 1 8.8 2.4Z"></path>
             </svg>
 
           </span>
 
           <span class="num">
-            ${reel.likes || 0}
+            ${Number(reel.likes || 0)}
           </span>
 
         </button>
 
 
-        <div class="reel-action view-stat">
-
-          <span class="ico">
-
-            <svg viewBox="0 0 24 24">
-
-              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
-
-              <circle cx="12" cy="12" r="2.5"/>
-
-            </svg>
-
-          </span>
-
-          <span class="num">
-            ${reel.views || 0}
-          </span>
-
-        </div>
-
-
         <button
-          type="button"
           class="reel-action"
-          onclick="openViewerComments(${index})"
+          type="button"
+          onclick="openComments(${index})"
         >
 
           <span class="ico">
 
             <svg viewBox="0 0 24 24">
-
-              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.14 0-2.22-.25-3.19-.69L4 20l1.69-4.19A7.46 7.46 0 0 1 5 11.5a7.5 7.5 0 1 1 15 0z"/>
-
+              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2 1.2-4A7.5 7.5 0 1 1 20 11.5Z"></path>
             </svg>
 
           </span>
 
-          <span class="num comment-count">
-            ${reel.commentCount || 0}
+          <span class="num">
+            ${Number(reel.commentCount || 0)}
           </span>
 
         </button>
 
 
         <button
-          type="button"
           class="reel-action"
+          type="button"
           onclick="shareViewerReel(${index})"
         >
 
           <span class="ico">
 
             <svg viewBox="0 0 24 24">
-
-              <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
-
+              <path d="m21 3-7.2 18-3.5-7.3L3 10.2 21 3Z"></path>
+              <path d="m10.3 13.7 5.4-5.4"></path>
             </svg>
 
           </span>
@@ -2271,6 +2445,7 @@ function createReelHtml(
             ${avatar}
           </div>
 
+
           <div class="reel-user-col">
 
             <div
@@ -2282,7 +2457,33 @@ function createReelHtml(
 
           </div>
 
-          ${followButton}
+
+          ${
+            !isMe
+              ? `
+                <button
+                  type="button"
+                  class="reel-follow-btn ${
+                    isFollowing
+                      ? "following"
+                      : ""
+                  }"
+                  data-follow-user="${esc(reel.username)}"
+                  aria-label="${
+                    isFollowing
+                      ? "Takibi bırak"
+                      : "Takip et"
+                  }"
+                >
+                  ${
+                    isFollowing
+                      ? "Takip Ediliyor"
+                      : "Takip Et"
+                  }
+                </button>
+              `
+              : ""
+          }
 
         </div>
 
@@ -2301,10 +2502,9 @@ function createReelHtml(
 
       <div class="reel-progress">
 
-        <span class="reel-time current-time">
+        <span class="reel-time">
           0:00 / 0:00
         </span>
-
 
         <input
           class="reel-range"
@@ -2313,29 +2513,25 @@ function createReelHtml(
           max="100"
           value="0"
           step="0.1"
-          oninput="seekViewer(${index},this.value)"
+          oninput="seekViewer(event,${index})"
         >
 
-
         <button
+          class="reel-sound"
           type="button"
-          class="reel-sound muted"
           onclick="toggleViewerMute(${index})"
         >
 
           <svg viewBox="0 0 24 24">
 
-            <path d="M4 10v4h4l5 4V6l-5 4H4z"/>
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
 
-            <path
-              class="waves"
-              d="M16 9.5c1.7 1.7 1.7 3.3 0 5M18.5 7c3 3 3 7 0 10"
-            />
+            <path d="M16 9a4 4 0 0 1 0 6"></path>
 
             <path
               class="mute-slash"
-              d="M5 5L19 19"
-            />
+              d="m4 4 16 16"
+            ></path>
 
           </svg>
 
@@ -2346,102 +2542,203 @@ function createReelHtml(
     </article>
 
   `;
-
 }
 
 
-function setupViewerReels(startIndex) {
+/* REEL AÇ */
+
+function openReel(startIndex = 0){
+
+  const viewer =
+    $("viewer");
+
+  const viewerFeed =
+    $("viewerFeed");
+
+  viewerFeed.innerHTML =
+    reels
+      .map(
+        (reel,index) =>
+          createReelHtml(
+            reel,
+            index
+          )
+      )
+      .join("");
+
+
+  viewer.classList.add("show");
+
+  document.body.style.overflow =
+    "hidden";
+
+
+  setupViewerReels(
+    startIndex
+  );
+}
+
+
+/* REEL KURULUMU */
+
+function setupViewerReels(
+  startIndex = 0
+){
+
+  const feedElement =
+    $("viewerFeed");
 
   const articles =
-    [...document.querySelectorAll(".reel")];
+    Array.from(
+      feedElement.querySelectorAll(
+        ".reel"
+      )
+    );
 
 
-  /*
-     TAKİP BUTONLARINI TEKRAR BAĞLA
-     Çünkü viewer HTML'i yeni oluşturuldu.
-  */
-  bindFollowButtons();
+  /* TAKIP BUTONLARI */
+
+  document
+    .querySelectorAll(
+      "#viewerFeed [data-follow-user]"
+    )
+    .forEach(button => {
+
+      button.onclick = async event => {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        await toggleFollowUser(
+          button.dataset.followUser,
+          button
+        );
+
+      };
+
+    });
 
 
-  if (viewerObserver) {
+  /* VIDEO */
+
+  articles.forEach(
+    article => {
+
+      const video =
+        article.querySelector(
+          ".reel-video"
+        );
+
+      if(
+        video &&
+        !video.src &&
+        video.dataset.src
+      ){
+
+        video.src =
+          video.dataset.src;
+
+      }
+
+
+      video.addEventListener(
+        "timeupdate",
+        () => {
+
+          const index =
+            Number(
+              article.dataset.reelIndex
+            );
+
+          updateViewerProgress(
+            index
+          );
+
+        }
+      );
+
+
+      video.addEventListener(
+        "loadedmetadata",
+        () => {
+
+          updateViewerProgress(
+            Number(
+              article.dataset.reelIndex
+            )
+          );
+
+        }
+      );
+
+
+      video.addEventListener(
+        "click",
+        () => {
+
+          toggleViewerPlay(
+            Number(
+              article.dataset.reelIndex
+            )
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  if(viewerObserver){
     viewerObserver.disconnect();
   }
 
 
   viewerObserver =
     new IntersectionObserver(
-
       entries => {
 
         entries.forEach(entry => {
 
+          const article =
+            entry.target;
+
           const video =
-            entry.target.querySelector(
+            article.querySelector(
               ".reel-video"
             );
 
           const index =
             Number(
-              entry.target.dataset.index
+              article.dataset.reelIndex
             );
 
 
-          if (
-            entry.isIntersecting &&
-            entry.intersectionRatio > .65
-          ) {
+          if(entry.isIntersecting){
 
-            articles.forEach(
-              article => {
+            document
+              .querySelectorAll(
+                ".reel-video"
+              )
+              .forEach(other => {
 
-                const otherVideo =
-                  article.querySelector(
-                    ".reel-video"
-                  );
+                if(other !== video){
 
-                if (
-                  otherVideo !== video
-                ) {
-
-                  otherVideo.pause();
-                  otherVideo.muted = true;
-
-                  article
-                    .querySelector(".reel-sound")
-                    ?.classList
-                    .add("muted");
+                  other.pause();
 
                 }
-
-              }
-            );
-
-
-            video.muted = false;
-            video.volume = 1;
-
-
-            video
-              .play()
-              .catch(() => {
-
-                showViewerPlay(
-                  index,
-                  true
-                );
 
               });
 
 
-            entry.target
-              .querySelector(".reel-sound")
-              ?.classList
-              .remove("muted");
+            video
+              .play()
+              .catch(() => {});
 
 
             viewViewerCount(index);
 
-          } else {
+          }else{
 
             video.pause();
 
@@ -2450,733 +2747,59 @@ function setupViewerReels(startIndex) {
         });
 
       },
-
-      {threshold:[.65]}
-
+      {
+        root:feedElement,
+        threshold:.7
+      }
     );
 
 
   articles.forEach(
-    (article,index) => {
-
-      const video =
-        article.querySelector(
-          ".reel-video"
-        );
-
-
-      video.src =
-        reels[index].mediaUri;
-
-
-      video.addEventListener(
-        "loadedmetadata",
-        () =>
-          updateViewerProgress(index)
-      );
-
-
-      video.addEventListener(
-        "timeupdate",
-        () =>
-          updateViewerProgress(index)
-      );
-
-
-      video.addEventListener(
-        "play",
-        () =>
-          showViewerPlay(index,false)
-      );
-
-
-      video.addEventListener(
-        "pause",
-        () =>
-          showViewerPlay(index,true)
-      );
-
-
-      video.addEventListener(
-        "click",
-        () =>
-          toggleViewerPlay(index)
-      );
-
-
-      viewerObserver.observe(article);
-
-    }
+    article =>
+      viewerObserver.observe(
+        article
+      )
   );
 
 
   requestAnimationFrame(() => {
 
-    articles[startIndex]
-      ?.scrollIntoView({
-        block:"start"
+    const target =
+      articles[startIndex];
+
+    if(target){
+
+      feedElement.scrollTo({
+        top:
+          target.offsetTop,
+        behavior:"instant"
       });
+
+    }
 
   });
 
 }
 
 
-function showViewerPlay(index,show) {
+function closeReel(){
 
-  const button =
-    document
-      .querySelectorAll(".reel")[index]
-      ?.querySelector(
-        ".reel-center-play"
-      );
-
-
-  if (button) {
-
-    button.style.display =
-      show
-        ? "grid"
-        : "none";
-
-  }
-
-}
-
-
-function toggleViewerPlay(index) {
-
-  const video =
-    document
-      .querySelectorAll(".reel-video")[index];
-
-
-  if (!video) {
-    return;
-  }
-
-
-  if (video.paused) {
-
-    video
-      .play()
-      .catch(() => {});
-
-    showViewerPlay(
-      index,
-      false
-    );
-
-  } else {
-
-    video.pause();
-
-    showViewerPlay(
-      index,
-      true
-    );
-
-  }
-
-}
-
-
-function toggleViewerMute(index) {
-
-  const videos =
-    document.querySelectorAll(
-      ".reel-video"
-    );
-
-  const buttons =
-    document.querySelectorAll(
-      ".reel-sound"
-    );
-
-  const video =
-    videos[index];
-
-  const button =
-    buttons[index];
-
-
-  if (!video || !button) {
-    return;
-  }
-
-
-  video.muted =
-    !video.muted;
-
-
-  videos.forEach(
-    (otherVideo,otherIndex) => {
-
-      if (
-        otherIndex !== index
-      ) {
-
-        otherVideo.muted = true;
-
-        buttons[otherIndex]
-          ?.classList
-          .add("muted");
-
-      }
-
-    }
-  );
-
-
-  button.classList.toggle(
-    "muted",
-    video.muted
-  );
-
-
-  if (!video.muted) {
-    video.play().catch(() => {});
-  }
-
-}
-
-
-function updateViewerProgress(index) {
-
-  const article =
-    document
-      .querySelectorAll(".reel")[index];
-
-
-  const video =
-    article?.querySelector(
-      ".reel-video"
-    );
-
-
-  const range =
-    article?.querySelector(
-      ".reel-range"
-    );
-
-
-  const time =
-    article?.querySelector(
-      ".current-time"
-    );
-
-
-  if (!video || !range) {
-    return;
-  }
-
-
-  const percent =
-    video.duration
-      ? Math.min(
-          100,
-          video.currentTime /
-          video.duration *
-          100
-        )
-      : 0;
-
-
-  range.value =
-    percent;
-
-
-  range.style.background =
-    `linear-gradient(
-      to right,
-      #42a5f5 0%,
-      #42a5f5 ${percent}%,
-      #4b435d ${percent}%,
-      #4b435d 100%
-    )`;
-
-
-  if (time) {
-
-    time.textContent =
-      viewerTime(
-        video.currentTime
-      ) +
-      " / " +
-      viewerTime(
-        video.duration
-      );
-
-  }
-
-}
-
-
-function viewerTime(seconds) {
-
-  seconds =
-    Number.isFinite(seconds) &&
-    seconds >= 0
-      ? Math.floor(seconds)
-      : 0;
-
-
-  return (
-    Math.floor(seconds / 60) +
-    ":" +
-    String(
-      seconds % 60
-    ).padStart(2,"0")
-  );
-
-}
-
-
-function seekViewer(index,percent) {
-
-  const video =
-    document
-      .querySelectorAll(
-        ".reel-video"
-      )[index];
-
-
-  if (
-    video &&
-    Number.isFinite(
-      video.duration
-    )
-  ) {
-
-    video.currentTime =
-      Number(percent) /
-      100 *
-      video.duration;
-
-  }
-
-}
-
-
-function viewViewerCount(index) {
-
-  const reel =
-    reels[index];
-
-
-  if (
-    !reel ||
-    viewerSeen.has(reel.id)
-  ) {
-    return;
-  }
-
-
-  viewerSeen.add(
-    reel.id
-  );
-
-
-  reel.views =
-    (Number(reel.views) || 0) + 1;
-
-
-  const number =
-    document
-      .querySelectorAll(".reel")[index]
-      ?.querySelector(
-        ".view-stat .num"
-      );
-
-
-  if (number) {
-
-    number.textContent =
-      reel.views;
-
-  }
-
-}
-
-
-/* =========================
-   LIKE / COMMENTS / SHARE
-========================= */
-
-async function likeViewerReel(index) {
-
-  const reel =
-    reels[index];
-
-
-  const article =
-    document
-      .querySelectorAll(".reel")[index];
-
-
-  const button =
-    article?.querySelector(".like");
-
-
-  if (!reel || !button) {
-    return;
-  }
-
-
-  const alreadyLiked =
-    button.classList.contains(
-      "liked"
-    );
-
-
-  reel.likes =
-    Math.max(
-      0,
-      (Number(reel.likes) || 0) +
-      (alreadyLiked ? -1 : 1)
-    );
-
-
-  button.classList.toggle(
-    "liked",
-    !alreadyLiked
-  );
-
-
-  button.querySelector(
-    ".num"
-  ).textContent =
-    reel.likes;
-
-
-  try {
-
-    await api(
-      "/posts/" +
-      encodeURIComponent(
-        reel.id
-      ) +
-      "/like",
-      {
-        method:"POST"
-      }
-    );
-
-  } catch {}
-
-}
-
-
-async function openViewerComments(index) {
-
-  currentViewerComment =
-    index;
-
-
-  $("viewerComments")
-    .classList
-    .add("open");
-
-
-  const list =
-    $("viewerCommentsList");
-
-
-  list.innerHTML =
-    '<div class="loading">Yorumlar yükleniyor...</div>';
-
-
-  try {
-
-    const data =
-      await api(
-        "/posts/" +
-        encodeURIComponent(
-          reels[index].id
-        ) +
-        "/comments?ts=" +
-        Date.now()
-      );
-
-
-    const comments =
-      Array.isArray(data)
-        ? data
-        : (
-            data?.comments ||
-            data?.data ||
-            []
-          );
-
-
-    renderViewerComments(
-      comments
-    );
-
-  } catch {
-
-    list.innerHTML =
-      '<div class="comment-empty">Yorumlar alınamadı.</div>';
-
-  }
-
-}
-
-
-function renderViewerComments(comments) {
-
-  const list =
-    $("viewerCommentsList");
-
-
-  if (!comments.length) {
-
-    list.innerHTML = `
-      <div class="comment-empty">
-        Henüz yorum yok.<br>
-        İlk yorumu sen yap.
-      </div>
-    `;
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    comments
-      .map(comment => {
-
-        const user =
-          comment?.user ||
-          comment?.author ||
-          {};
-
-
-        const username =
-          String(
-            comment?.username ||
-            user?.username ||
-            "minegram"
-          )
-          .replace(/^@/,"");
-
-
-        const text =
-          comment?.text ||
-          comment?.comment ||
-          comment?.body ||
-          "";
-
-
-        const commentAvatar =
-          getAvatar(comment) ||
-          getAvatar(user);
-
-
-        const letter =
-          esc(
-            (username || "M")
-              .charAt(0)
-              .toUpperCase()
-          );
-
-
-        return `
-
-          <div class="comment">
-
-            <div class="comment-meta">
-
-              <div class="comment-avatar">
-
-                ${
-                  commentAvatar
-                    ? `
-                      <img
-                        src="${esc(commentAvatar)}"
-                        alt=""
-                        onerror="
-                          this.style.display='none';
-                          this.nextElementSibling.style.display='grid';
-                        "
-                      >
-
-                      <span style="display:none">
-                        ${letter}
-                      </span>
-                    `
-                    : letter
-                }
-
-              </div>
-
-
-              <div class="comment-body">
-
-                <b>
-                  @${esc(username)}
-                </b>
-
-                <p>
-                  ${esc(text)}
-                </p>
-
-                <div class="comment-actions">
-                  ${esc(
-                    comment?.createdAt ||
-                    comment?.created_at ||
-                    ""
-                  )}
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        `;
-
-      })
-      .join("");
-
-}
-
-
-async function sendViewerComment() {
-
-  const commentInput =
-    $("viewerCommentInput");
-
-
-  const text =
-    commentInput.value.trim();
-
-
-  if (
-    !text ||
-    currentViewerComment === null
-  ) {
-    return;
-  }
-
-
-  try {
-
-    const reel =
-      reels[
-        currentViewerComment
-      ];
-
-
-    await api(
-      "/posts/" +
-      encodeURIComponent(
-        reel.id
-      ) +
-      "/comments",
-      {
-        method:"POST",
-        body:{text}
-      }
-    );
-
-
-    commentInput.value = "";
-
-
-    await openViewerComments(
-      currentViewerComment
-    );
-
-  } catch(error) {
-
-    alert(
-      error.message ||
-      "Yorum gönderilemedi"
-    );
-
-  }
-
-}
-
-
-function closeViewerComments() {
-
-  $("viewerComments")
-    .classList
-    .remove("open");
-
-
-  currentViewerComment =
-    null;
-
-}
-
-
-async function shareViewerReel(index) {
-
-  const reel =
-    reels[index];
-
-
-  const text =
-    "🎬 @" +
-    reel.username +
-    " Reels: " +
-    (reel.description || "");
-
-
-  if (navigator.share) {
-
-    try {
-
-      await navigator.share({
-        text
-      });
-
-    } catch {}
-
-  } else {
-
-    try {
-
-      await navigator.clipboard.writeText(
-        text
-      );
-
-    } catch {}
-
-  }
-
-}
-
-
-function closeViewer() {
-
-  closeViewerComments();
-
-
-  if (viewerObserver) {
+  if(viewerObserver){
 
     viewerObserver.disconnect();
-
-    viewerObserver =
-      null;
+    viewerObserver = null;
 
   }
 
 
   document
-    .querySelectorAll(".reel-video")
-    .forEach(video => {
-
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-
-    });
+    .querySelectorAll(
+      ".reel-video"
+    )
+    .forEach(
+      video =>
+        video.pause()
+    );
 
 
   $("viewer")
@@ -3187,16 +2810,902 @@ function closeViewer() {
   document.body.style.overflow =
     "";
 
+}
 
-  $("viewerFeed").innerHTML =
-    "";
+
+function showViewerPlay(
+  index,
+  show
+){
+
+  const article =
+    document.querySelector(
+      `.reel[data-reel-index="${index}"]`
+    );
+
+  if(!article){
+    return;
+  }
+
+  const button =
+    article.querySelector(
+      ".reel-center-play"
+    );
+
+  if(button){
+
+    button.style.display =
+      show
+        ? "grid"
+        : "none";
+
+  }
+}
+
+
+function toggleViewerPlay(
+  index
+){
+
+  const article =
+    document.querySelector(
+      `.reel[data-reel-index="${index}"]`
+    );
+
+  if(!article){
+    return;
+  }
+
+  const video =
+    article.querySelector(
+      ".reel-video"
+    );
+
+  if(video.paused){
+
+    video.play()
+      .catch(() => {});
+
+    showViewerPlay(
+      index,
+      false
+    );
+
+  }else{
+
+    video.pause();
+
+    showViewerPlay(
+      index,
+      true
+    );
+
+  }
+}
+
+
+function toggleViewerMute(
+  index
+){
+
+  const article =
+    document.querySelector(
+      `.reel[data-reel-index="${index}"]`
+    );
+
+  if(!article){
+    return;
+  }
+
+  const video =
+    article.querySelector(
+      ".reel-video"
+    );
+
+  const button =
+    article.querySelector(
+      ".reel-sound"
+    );
+
+  video.muted =
+    !video.muted;
+
+  button.classList.toggle(
+    "muted",
+    video.muted
+  );
+}
+
+
+function updateViewerProgress(
+  index
+){
+
+  const article =
+    document.querySelector(
+      `.reel[data-reel-index="${index}"]`
+    );
+
+  if(!article){
+    return;
+  }
+
+  const video =
+    article.querySelector(
+      ".reel-video"
+    );
+
+  const range =
+    article.querySelector(
+      ".reel-range"
+    );
+
+  const time =
+    article.querySelector(
+      ".reel-time"
+    );
+
+  if(
+    !video ||
+    !range ||
+    !time
+  ){
+    return;
+  }
+
+  const current =
+    Number(video.currentTime || 0);
+
+  const duration =
+    Number(video.duration || 0);
+
+  range.value =
+    duration
+      ? (current / duration) * 100
+      : 0;
+
+  time.textContent =
+    viewerTime(current) +
+    " / " +
+    viewerTime(duration);
+}
+
+
+function viewerTime(seconds){
+
+  if(!Number.isFinite(seconds)){
+    return "0:00";
+  }
+
+  seconds =
+    Math.max(
+      0,
+      Math.floor(seconds)
+    );
+
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
+
+  const secs =
+    String(
+      seconds % 60
+    ).padStart(2,"0");
+
+  return (
+    minutes +
+    ":" +
+    secs
+  );
+}
+
+
+function seekViewer(
+  event,
+  index
+){
+
+  const article =
+    document.querySelector(
+      `.reel[data-reel-index="${index}"]`
+    );
+
+  if(!article){
+    return;
+  }
+
+  const video =
+    article.querySelector(
+      ".reel-video"
+    );
+
+  if(
+    !video ||
+    !Number.isFinite(video.duration)
+  ){
+    return;
+  }
+
+  video.currentTime =
+    (
+      Number(event.target.value) /
+      100
+    ) *
+    video.duration;
+}
+
+
+async function viewViewerCount(
+  index
+){
+
+  if(viewerSeen.has(index)){
+    return;
+  }
+
+  viewerSeen.add(index);
+
+  const reel =
+    reels[index];
+
+  if(!reel){
+    return;
+  }
+
+  try{
+
+    const id =
+      postId(reel.raw) ||
+      reel.id;
+
+    if(id){
+
+      await api(
+        "/posts/" +
+        encodeURIComponent(id) +
+        "/view",
+        {
+          method:"POST"
+        }
+      );
+
+    }
+
+  }catch{}
 
 }
 
 
-/* =========================
-   SEARCH EVENTS
-========================= */
+/* LIKE */
+
+async function likeViewerReel(
+  index
+){
+
+  const reel =
+    reels[index];
+
+  if(!reel){
+    return;
+  }
+
+  try{
+
+    const id =
+      postId(reel.raw) ||
+      reel.id;
+
+    if(!id){
+      return;
+    }
+
+    const result =
+      await api(
+        "/posts/" +
+        encodeURIComponent(id) +
+        "/like",
+        {
+          method:"POST"
+        }
+      );
+
+    const article =
+      document.querySelector(
+        `.reel[data-reel-index="${index}"]`
+      );
+
+    if(!article){
+      return;
+    }
+
+    const button =
+      article.querySelector(
+        ".reel-action"
+      );
+
+    const num =
+      button?.querySelector(
+        ".num"
+      );
+
+    if(num){
+
+      const likes =
+        result?.likes ??
+        result?.count ??
+        result?.likeCount;
+
+      if(
+        likes !== undefined
+      ){
+
+        num.textContent =
+          String(likes);
+
+      }
+
+    }
+
+  }catch(error){
+
+    showToast(
+      error?.message ||
+      "Beğeni işlemi başarısız."
+    );
+
+  }
+}
+
+
+/* YORUMLAR */
+
+async function openComments(
+  index
+){
+
+  currentViewerComment =
+    index;
+
+  const modal =
+    $("commentsModal");
+
+  const list =
+    $("commentList");
+
+  modal.classList.add(
+    "open"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  list.innerHTML =
+    `<div class="comment-empty">Yorumlar yükleniyor...</div>`;
+
+
+  const reel =
+    reels[index];
+
+  if(!reel){
+
+    list.innerHTML =
+      `<div class="comment-empty">Yorum bulunamadı.</div>`;
+
+    return;
+  }
+
+
+  try{
+
+    const id =
+      postId(reel.raw) ||
+      reel.id;
+
+    const response =
+      await api(
+        "/posts/" +
+        encodeURIComponent(id) +
+        "/comments"
+      );
+
+    const comments =
+      Array.isArray(response)
+        ? response
+        : (
+            response?.comments ||
+            response?.data ||
+            response?.items ||
+            []
+          );
+
+    renderComments(
+      comments
+    );
+
+  }catch{
+
+    list.innerHTML =
+      `<div class="comment-empty">Henüz yorum yok.</div>`;
+
+  }
+}
+
+
+function renderComments(
+  comments
+){
+
+  const list =
+    $("commentList");
+
+  if(!comments.length){
+
+    list.innerHTML =
+      `<div class="comment-empty">Henüz yorum yok. İlk yorumu sen yap.</div>`;
+
+    return;
+  }
+
+
+  list.innerHTML =
+    comments
+      .map(comment => {
+
+        const user =
+          comment?.user ||
+          comment?.profile ||
+          {};
+
+        const username =
+          comment?.username ||
+          user?.username ||
+          "kullanıcı";
+
+        const avatar =
+          getAvatar(comment) ||
+          getAvatar(user);
+
+        const text =
+          comment?.text ||
+          comment?.content ||
+          comment?.comment ||
+          "";
+
+        return `
+
+          <div class="comment">
+
+            ${
+              avatar
+                ? `
+                  <img
+                    class="avatar"
+                    src="${esc(avatar)}"
+                    alt=""
+                  >
+                `
+                : `
+                  <div class="avatar">
+                    ${esc(
+                      username
+                        .slice(0,1)
+                        .toUpperCase()
+                    )}
+                  </div>
+                `
+            }
+
+            <div class="comment-body">
+
+              <div class="comment-user">
+                @${esc(username)}
+              </div>
+
+              <div class="comment-text">
+                ${esc(text)}
+              </div>
+
+              <div class="comment-meta">
+                ${esc(
+                  comment?.createdAt ||
+                  comment?.created_at ||
+                  ""
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      })
+      .join("");
+}
+
+
+function closeComments(
+  event
+){
+
+  if(
+    event &&
+    event.target !==
+    $("commentsModal")
+  ){
+    return;
+  }
+
+  $("commentsModal")
+    .classList
+    .remove("open");
+
+  currentViewerComment =
+    null;
+
+  document.body.style.overflow =
+    $("viewer").classList.contains("show")
+      ? "hidden"
+      : "";
+}
+
+
+function changeCommentSort(
+  value
+){
+
+  if(
+    currentViewerComment === null
+  ){
+    return;
+  }
+
+  openComments(
+    currentViewerComment
+  );
+}
+
+
+function addEmoji(
+  emoji
+){
+
+  const input =
+    $("commentInput");
+
+  input.value += emoji;
+
+  input.focus();
+}
+
+
+async function sendComment(){
+
+  const input =
+    $("commentInput");
+
+  const text =
+    input.value.trim();
+
+  if(
+    !text ||
+    currentViewerComment === null
+  ){
+    return;
+  }
+
+  const reel =
+    reels[currentViewerComment];
+
+  if(!reel){
+    return;
+  }
+
+  const id =
+    postId(reel.raw) ||
+    reel.id;
+
+  if(!id){
+    return;
+  }
+
+
+  input.disabled = true;
+
+
+  try{
+
+    await api(
+      "/posts/" +
+      encodeURIComponent(id) +
+      "/comments",
+      {
+        method:"POST",
+        body:{
+          text
+        }
+      }
+    );
+
+    input.value = "";
+
+    await openComments(
+      currentViewerComment
+    );
+
+  }catch(error){
+
+    showToast(
+      error?.message ||
+      "Yorum gönderilemedi."
+    );
+
+  }finally{
+
+    input.disabled = false;
+    input.focus();
+
+  }
+}
+
+
+/* PAYLAŞ */
+
+async function shareViewerReel(
+  index
+){
+
+  const reel =
+    reels[index];
+
+  if(!reel){
+    return;
+  }
+
+  const url =
+    location.origin +
+    "/post/" +
+    encodeURIComponent(
+      postId(reel.raw) || reel.id
+    );
+
+  try{
+
+    if(
+      navigator.share
+    ){
+
+      await navigator.share({
+        title:"Minegram",
+        text:reel.description || "",
+        url
+      });
+
+    }else{
+
+      await navigator.clipboard.writeText(
+        url
+      );
+
+      showToast(
+        "Bağlantı kopyalandı."
+      );
+
+    }
+
+  }catch{}
+
+}
+
+
+/* MENU */
+
+function closeMenu(
+  event
+){
+
+  if(
+    event &&
+    event.target !==
+    $("menuBackdrop")
+  ){
+    return;
+  }
+
+  $("menuBackdrop")
+    .classList
+    .remove("open");
+}
+
+
+/* TOAST */
+
+function showToast(
+  message
+){
+
+  const toast =
+    $("toast");
+
+  toast.textContent =
+    message;
+
+  toast.classList.add(
+    "show"
+  );
+
+  setTimeout(
+    () =>
+      toast.classList.remove(
+        "show"
+      ),
+    2200
+  );
+}
+
+
+/* PROFILE / STORY */
+
+function openProfile(
+  username
+){
+
+  location.href =
+    "profil.html?username=" +
+    encodeURIComponent(
+      username
+    );
+}
+
+
+function openStory(
+  username
+){
+
+  location.href =
+    "hikaye.html?username=" +
+    encodeURIComponent(
+      username
+    );
+}
+
+
+/* SEARCH */
+
+async function doSearch(){
+
+  const value =
+    input.value.trim();
+
+  clearButton.style.display =
+    value
+      ? "block"
+      : "none";
+
+
+  if(!value){
+
+    selectedTag = "";
+
+    tagBack.style.display =
+      "none";
+
+    renderDiscovery();
+
+    return;
+  }
+
+
+  if(value.startsWith("#")){
+
+    selectedTag =
+      value.slice(1).trim();
+
+    tagBack.style.display =
+      "block";
+
+    /*
+      Etiket araması burada mevcut
+      feed verisi üzerinden yapılır.
+    */
+
+    const tag =
+      normalizeUsername(
+        selectedTag
+      );
+
+    const posts =
+      feed.filter(post =>
+        postText(post)
+          .toLowerCase()
+          .includes(
+            "#" + tag
+          )
+      );
+
+    if(!posts.length){
+
+      content.innerHTML =
+        `<div class="empty">#${esc(selectedTag)} bulunamadı</div>`;
+
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="section-title">
+        #${esc(selectedTag)}
+      </div>
+
+      <div class="grid">
+
+        ${posts.map(post => {
+
+          const index =
+            reels.findIndex(
+              reel =>
+                String(reel.id) ===
+                String(postId(post))
+            );
+
+          if(index >= 0){
+
+            return `
+              <div
+                class="tile"
+                data-reel="${index}"
+              >
+
+                <video
+                  src="${esc(
+                    reels[index].mediaUri
+                  )}"
+                  muted
+                  playsinline
+                  preload="metadata"
+                ></video>
+
+                <span class="play">
+                  ▶
+                </span>
+
+              </div>
+            `;
+
+          }
+
+          return "";
+
+        }).join("")}
+
+      </div>
+    `;
+
+    document
+      .querySelectorAll("[data-reel]")
+      .forEach(tile => {
+
+        tile.onclick = () =>
+          openReel(
+            Number(
+              tile.dataset.reel
+            )
+          );
+
+      });
+
+    return;
+  }
+
+
+  users =
+    await searchUsers(value);
+
+  renderUsers(
+    users
+  );
+}
+
 
 input.addEventListener(
   "input",
@@ -3206,96 +3715,87 @@ input.addEventListener(
       searchTimer
     );
 
-
-    selectedTag =
-      "";
-
-
     searchTimer =
       setTimeout(
-        () =>
-          doSearch(
-            input.value
-          ),
-        100
+        doSearch,
+        250
       );
 
   }
 );
 
 
-clearButton.onclick = () => {
+clearButton.onclick =
+  () => {
 
-  input.value =
-    "";
+    input.value = "";
 
-  selectedTag =
-    "";
+    selectedTag = "";
 
-  doSearch("");
+    tagBack.style.display =
+      "none";
 
-  input.focus();
+    clearButton.style.display =
+      "none";
 
-};
+    renderDiscovery();
 
+    input.focus();
 
-tagBack.onclick = () => {
-
-  selectedTag =
-    "";
-
-  tagBack.style.display =
-    "none";
-
-  doSearch(
-    input.value
-  );
-
-};
+  };
 
 
-/* =========================
-   REFRESH
-========================= */
+tagBack.onclick =
+  () => {
 
-let touchStartY = 0;
+    input.value = "";
 
+    selectedTag = "";
 
-document.addEventListener(
-  "touchstart",
-  event => {
+    tagBack.style.display =
+      "none";
 
-    touchStartY =
-      event.touches[0].clientY;
+    clearButton.style.display =
+      "none";
 
-  },
-  {passive:true}
-);
+    renderDiscovery();
+
+  };
 
 
 document.addEventListener(
-  "touchend",
+  "keydown",
   event => {
 
-    if (
-      window.scrollY <= 2 &&
-      event.changedTouches[0].clientY -
-      touchStartY >
-      100
-    ) {
+    if(
+      event.key === "Escape"
+    ){
 
-      loadData();
+      if(
+        $("commentsModal")
+          .classList
+          .contains("open")
+      ){
+
+        closeComments();
+
+      }else if(
+        $("viewer")
+          .classList
+          .contains("show")
+      ){
+
+        closeReel();
+
+      }
 
     }
 
-  },
-  {passive:true}
+  }
 );
 
 
-/* =========================
-   START
-========================= */
+/* BAŞLAT */
 
 loadData();
 
