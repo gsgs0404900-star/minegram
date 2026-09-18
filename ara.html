@@ -1,1118 +1,1999 @@
 <!doctype html>
 <html lang="tr">
-
 <head>
   <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,viewport-fit=cover"
-  >
-
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Ara - Minegram</title>
 
   <style>
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      background: #000;
-      color: #fff;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    body {
-      padding-bottom: 76px;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .top {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: #000;
-      border-bottom: 1px solid #222;
-      padding: 12px 12px 10px;
-    }
-
-    .title {
-      margin-bottom: 10px;
-      font-size: 21px;
-      font-weight: 800;
-    }
-
-    .search {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      height: 44px;
-      padding: 0 12px;
-      background: #202020;
-      border-radius: 12px;
-    }
-
-    .search-icon {
-      flex: 0 0 auto;
-      color: #aaa;
-      font-size: 20px;
-    }
-
-    .search input {
-      flex: 1;
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      background: none;
-      color: #fff;
-      font-size: 16px;
-    }
-
-    .search input::placeholder {
-      color: #888;
-    }
-
-    .clear,
-    .tag-back {
-      display: none;
-      flex: 0 0 auto;
-      border: 0;
-      background: none;
-      color: #aaa;
-    }
-
-    .clear {
-      font-size: 22px;
-    }
-
-    .tag-back {
-      font-size: 30px;
-      line-height: 1;
-    }
-
-    .content {
-      min-height: calc(100vh - 125px);
-    }
-
-    .loading,
-    .empty {
-      padding: 34px 20px;
-      text-align: center;
-      color: #888;
-    }
-
-    .section-title {
-      padding: 12px;
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .users {
-      border-bottom: 1px solid #222;
-    }
-
-    .user {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-bottom: 1px solid #191919;
-      cursor: pointer;
-    }
-
-    .user-info {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .user-name-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .username {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .follow-btn {
-      flex: 0 0 auto;
-      padding: 6px 10px;
-      border: 0;
-      border-radius: 8px;
-      background: #2196f3;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .follow-btn.following {
-      background: #333;
-      color: #fff;
-    }
-
-    .follow-btn:disabled {
-      opacity: .6;
-      cursor: default;
-    }
-
-    .sub {
-      margin-top: 4px;
-      color: #888;
-      font-size: 12px;
-    }
-
-    .avatar {
-      width: 55px;
-      height: 55px;
-      flex: 0 0 55px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      border-radius: 50%;
-      background: #2196f3;
-      color: #fff;
-      font-size: 20px;
-      font-weight: 800;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .story-ring {
-      padding: 2px;
-      border-radius: 50%;
-      background: conic-gradient(
-        #f9ce34,
-        #ee2a7b,
-        #6228d7,
-        #f9ce34
-      );
-    }
-
-    .story-ring .avatar {
-      border: 2px solid #000;
-    }
-
-    .tag-result {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #222;
-      cursor: pointer;
-    }
-
-    .tag-icon {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      background: #333;
-      font-size: 24px;
-      font-weight: 800;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-      padding: 2px;
-    }
-
-    .tile {
-      position: relative;
-      aspect-ratio: 9 / 16;
-      overflow: hidden;
-      background: #111;
-      cursor: pointer;
-    }
-
-    .tile img,
-    .tile video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .play {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 28px;
-      height: 28px;
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      background: #0009;
-      font-size: 14px;
-    }
-
-    .posts {
-      padding-bottom: 20px;
-    }
-
-    .post {
-      padding: 12px;
-      border-bottom: 1px solid #222;
-    }
-
-    .post-head {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 9px;
-      cursor: pointer;
-    }
-
-    .post-head .avatar {
-      width: 38px;
-      height: 38px;
-      flex-basis: 38px;
-      font-size: 14px;
-    }
-
-    .post-media {
-      width: 100%;
-      max-height: 600px;
-      border-radius: 8px;
-      object-fit: cover;
-      background: #111;
-    }
-
-    .caption {
-      margin-top: 8px;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .nav {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: stretch;
-      width: 100%;
-      height: 76px;
-      padding:
-        5px
-        max(8px, calc((100% - 760px) / 2))
-        env(safe-area-inset-bottom);
-      background: #121018;
-      border-top: 1px solid #201d27;
-    }
-
-    .nav a {
-      flex: 1 1 0;
-      min-width: 0;
-      height: 66px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      color: #ddd;
-      text-decoration: none;
-      font-size: 9px;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .nav-icon {
-      width: 45px;
-      height: 32px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-    }
-
-    .nav a.active .nav-icon {
-      background: #3b3150;
-    }
-
-    .svg {
-      width: 21px;
-      height: 21px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .reel-viewer {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      display: none;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .reel-viewer.show {
-      display: block;
-    }
-
-    .reel-viewer-shell {
-      width: 100%;
-      height: 100%;
-      background: #000;
-    }
-
-    .reel-phone {
-      position: relative;
-      width: 390px;
-      height: 100%;
-      min-height: 0;
-      max-height: 896px;
-      margin: 0 auto;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .reel-feed {
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      scroll-snap-type: y mandatory;
-      scrollbar-width: none;
-    }
-
-    .reel-feed::-webkit-scrollbar {
-      display: none;
-    }
-
-    .reel {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      scroll-snap-align: start;
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
+    body{padding-bottom:76px}
+    button,input{font:inherit}
+    button{cursor:pointer}
+
+    .top{
+      position:sticky;top:0;z-index:20;background:#000;
+      border-bottom:1px solid #222;padding:12px 12px 10px
+    }
+    .title{margin-bottom:10px;font-size:21px;font-weight:800}
+    .search{
+      display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+      background:#202020;border-radius:12px
+    }
+    .search-icon{flex:0 0 auto;color:#aaa;font-size:20px}
+    .search input{flex:1;min-width:0;border:0;outline:0;background:none;color:#fff;font-size:16px}
+    .search input::placeholder{color:#888}
+    .clear,.tag-back{display:none;flex:0 0 auto;border:0;background:none;color:#aaa}
+    .clear{font-size:22px}.tag-back{font-size:30px;line-height:1}
+
+    .content{min-height:calc(100vh - 125px)}
+    .loading,.empty{padding:34px 20px;text-align:center;color:#888}
+    .section-title{padding:12px;font-size:18px;font-weight:800}
+    .users{border-bottom:1px solid #222}
+
+    .user{
+      display:flex;align-items:center;gap:12px;padding:12px 14px;
+      border-bottom:1px solid #191919;cursor:pointer
+    }
+    .user-info{min-width:0;flex:1}
+
+    .user-name-row{
+      display:flex;align-items:center;gap:8px;min-width:0;
+      width:100%
+    }
+
+    .username{
+      min-width:0;
+      font-size:16px;
+      font-weight:800;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap
+    }
+
+    .follow-btn{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:78px;
+      padding:7px 10px;
+      border:0;
+      border-radius:8px;
+      background:#2196f3;
+      color:#fff;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      white-space:nowrap;
+      visibility:visible;
+      opacity:1
+    }
+
+    .follow-btn.following{background:#333;color:#fff}
+    .follow-btn:disabled{opacity:.6;cursor:default}
+
+    .sub{margin-top:4px;color:#888;font-size:12px}
+
+    .avatar{
+      width:55px;height:55px;flex:0 0 55px;display:grid;
+      place-items:center;overflow:hidden;border-radius:50%;
+      background:#2196f3;color:#fff;font-size:20px;font-weight:800
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover}
+
+    .story-ring{
+      padding:2px;border-radius:50%;
+      background:conic-gradient(#f9ce34,#ee2a7b,#6228d7,#f9ce34)
+    }
+    .story-ring .avatar{border:2px solid #000}
+
+    .tag-result{
+      display:flex;align-items:center;gap:12px;padding:14px 16px;
+      border-bottom:1px solid #222;cursor:pointer
+    }
+    .tag-icon{
+      width:48px;height:48px;display:grid;place-items:center;
+      border-radius:50%;background:#333;font-size:24px;font-weight:800
+    }
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+    .tile{position:relative;aspect-ratio:9/16;overflow:hidden;background:#111;cursor:pointer}
+    .tile img,.tile video{width:100%;height:100%;object-fit:cover}
+    .play{
+      position:absolute;top:6px;right:6px;width:28px;height:28px;
+      display:grid;place-items:center;border-radius:50%;background:#0009;font-size:14px
+    }
+
+    .posts{padding-bottom:20px}
+    .post{padding:12px;border-bottom:1px solid #222}
+    .post-head{display:flex;align-items:center;gap:10px;margin-bottom:9px;cursor:pointer}
+    .post-head .avatar{width:38px;height:38px;flex-basis:38px;font-size:14px}
+    .post-media{width:100%;max-height:600px;border-radius:8px;object-fit:cover;background:#111}
+    .caption{margin-top:8px;font-size:14px;line-height:1.4}
+
+    .nav{
+      position:fixed;left:0;right:0;bottom:0;z-index:9999;
+      display:flex;align-items:stretch;width:100%;height:76px;
+      padding:5px max(8px,calc((100% - 760px)/2)) env(safe-area-inset-bottom);
+      background:#121018;border-top:1px solid #201d27
+    }
+    .nav a{
+      flex:1 1 0;min-width:0;height:66px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:3px;color:#ddd;
+      text-decoration:none;font-size:9px;-webkit-tap-highlight-color:transparent
+    }
+    .nav-icon{width:45px;height:32px;display:grid;place-items:center;border-radius:18px}
+    .nav a.active .nav-icon{background:#3b3150}
+    .svg{
+      width:21px;height:21px;fill:none;stroke:currentColor;
+      stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round
+    }
+
+    .reel-viewer{
+      position:fixed;inset:0;z-index:10000;display:none;overflow:hidden;background:#000
+    }
+    .reel-viewer.show{display:block}
+    .reel-viewer-shell{width:100%;height:100%;background:#000}
+    .reel-phone{
+      position:relative;width:390px;height:100%;min-height:0;max-height:896px;
+      margin:0 auto;overflow:hidden;background:#000
+    }
+    .reel-feed{
+      width:100%;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;
+      scrollbar-width:none
+    }
+    .reel-feed::-webkit-scrollbar{display:none}
+    .reel{
+      position:relative;width:100%;height:100%;overflow:hidden;background:#000;
+      scroll-snap-align:start
+    }
+    .reel-video{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      background:#000;cursor:pointer
+    }
+    .reel-shade{
+      position:absolute;inset:0;
+      background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.08) 42%,transparent 67%);
+      pointer-events:none
+    }
+    .reel-back{
+      position:absolute;top:12px;left:12px;z-index:20;width:42px;height:42px;
+      display:grid;place-items:center;border:0;background:transparent;color:#fff;
+      font-size:36px;font-weight:300;text-shadow:0 1px 3px #000
+    }
+    .reel-center-play{
+      position:absolute;top:50%;left:50%;z-index:15;width:58px;height:58px;
+      display:none;place-items:center;transform:translate(-50%,-50%);
+      border:0;border-radius:50%;background:rgba(0,0,0,.48);color:#fff
+    }
+    .reel-center-play svg{width:30px;height:30px;fill:currentColor}
+    .reel-progress{
+      position:absolute;left:0;right:0;bottom:0;z-index:30;height:46px;
+      display:flex;align-items:center;gap:4px;padding:0 8px;background:rgba(0,0,0,.9)
+    }
+    .reel-time{width:82px;min-width:82px;color:#fff;font-size:12px;font-variant-numeric:tabular-nums;text-align:left;white-space:nowrap}
+    .reel-range{
+      flex:1;min-width:0;height:4px;appearance:none;-webkit-appearance:none;
+      margin:0;border-radius:99px;outline:none;background:#4b435d;cursor:pointer
+    }
+    .reel-range::-webkit-slider-thumb{
+      appearance:none;-webkit-appearance:none;width:12px;height:12px;
+      border:0;border-radius:50%;background:#fff
+    }
+    .reel-range::-moz-range-thumb{
+      width:12px;height:12px;border:0;border-radius:50%;background:#fff
+    }
+    .reel-sound{
+      width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;
+      padding:0;border:0;background:transparent;color:#fff;text-shadow:0 1px 3px #000
+    }
+    .reel-sound svg{
+      width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round
+    }
+    .reel-sound .mute-slash{display:none}
+    .reel-sound.muted .mute-slash{display:block}
+
+    .reel-actions{
+      position:absolute;right:12px;bottom:106px;z-index:20;
+      display:flex;flex-direction:column;align-items:center;gap:8px
+    }
+    .reel-action{
+      width:52px;min-height:48px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;padding:0;border:0;
+      background:transparent;color:#fff;text-shadow:0 2px 5px #000
+    }
+    .reel-action .ico{width:27px;height:27px;display:grid;place-items:center}
+    .reel-action .ico svg{
+      width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;
+      stroke-linecap:round;stroke-linejoin:round
+    }
+    .reel-action.liked{color:#ff3150}
+    .reel-action.liked .ico svg{fill:currentColor}
+    .reel-action .num{font-size:13px;font-weight:700}
+
+    .reel-info{
+      position:absolute;left:18px;right:72px;bottom:24px;z-index:20;
+      text-shadow:0 2px 5px #000
+    }
+    .reel-user-row{display:flex;align-items:center;gap:8px}
+    .reel-avatar{
+      width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;
+      overflow:hidden;border-radius:50%;background:#3f91cc;color:#fff;
+      font-size:18px;font-weight:800;cursor:pointer
+    }
+    .reel-avatar img{width:100%;height:100%;object-fit:cover}
+    .reel-user-col{min-width:0}
+    .reel-username{
+      font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;
+      text-overflow:ellipsis;cursor:pointer
+    }
+    .reel-date{margin:2px 0 0 54px;color:#bbb;font-size:12px}
+    .reel-description{margin-top:6px;font-size:15px;line-height:1.35}
+
+    .comments{
+      position:absolute;left:50%;bottom:0;z-index:100;width:min(390px,100%);
+      height:72%;display:none;flex-direction:column;transform:translateX(-50%);
+      padding:8px 12px 12px;border-radius:24px 24px 0 0;background:#000;
+      box-shadow:0 -6px 24px rgba(0,0,0,.45)
+    }
+    .comments.open{display:flex}
+    .comments-head{
+      position:relative;height:48px;display:flex;align-items:center;
+      justify-content:center;padding:0 4px;border-bottom:1px solid #202020
+    }
+    .comments-head::before{
+      content:"";position:absolute;top:2px;left:50%;width:38px;height:4px;
+      transform:translateX(-50%);border-radius:99px;background:#666
+    }
+    .comments-head b{font-size:16px}
+    .close-comments{
+      position:absolute;top:5px;right:0;width:38px;height:38px;
+      border:0;background:transparent;color:#fff;font-size:28px;line-height:1
+    }
+    .comments-list{flex:1;overflow:auto;padding:10px 3px}
+    .comment{padding:9px 0;border-bottom:1px solid #202020}
+    .comment-meta{display:flex;align-items:center;gap:9px}
+    .comment-avatar{
+      width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;
+      overflow:hidden;border-radius:50%;background:#3f91cc;font-weight:800
+    }
+    .comment-avatar img{width:100%;height:100%;object-fit:cover}
+    .comment-body{flex:1;min-width:0}
+    .comment-body b{font-size:13px}
+    .comment-body p{margin:4px 0 0;color:#ddd;font-size:13px}
+    .comment-actions{margin-top:5px;color:#888;font-size:11px}
+    .comment-form{display:flex;gap:7px;padding-top:8px}
+    .comment-form input{
+      flex:1;padding:11px;border:1px solid #333;border-radius:10px;
+      outline:none;background:#191919;color:#fff
+    }
+    .comment-form button{
+      width:46px;height:46px;display:grid;place-items:center;border:0;
+      border-radius:10px;background:transparent;color:#fff
+    }
+    .comment-empty{padding:30px 10px;color:#777;text-align:center}
+
+    @media(min-width:700px){
+      .content,.top{max-width:700px;margin:auto}
+      .reel-phone{width:390px}
+    }
+    @media(max-width:699px){
+      .reel-phone{width:100vw}
+      .reel-back{top:10px;left:8px}
+      .reel-info{bottom:24px}
+      .reel-actions{bottom:105px}
     }
-
-    .reel-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #000;
-      cursor: pointer;
-    }
-
-    .reel-shade {
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(
-          to top,
-          rgba(0, 0, 0, .82),
-          rgba(0, 0, 0, .08) 42%,
-          transparent 67%
-        );
-      pointer-events: none;
-    }
-
-    .reel-back {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      z-index: 20;
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
-      border: 0;
-      background: transparent;
-      color: #fff;
-      font-size: 36px;
-      font-weight: 300;
-      text-shadow: 0 1px 3px #000;
-    }
-
-    .reel-center-play {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      z-index: 15;
-      width: 58px;
-      height: 58px;
-      display: none;
-      place-items: center;
-      transform: translate(-50%, -50%);
-      border: 0;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, .48);
-      color: #fff;
-    }
-
-    .reel-center-play svg {
-      width: 30px;
-      height: 30px;
-      fill: currentColor;
-    }
-
-    .reel-progress {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 30;
-      height: 46px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 8px;
-      background: rgba(0, 0, 0, .9);
-    }
-
-    .reel-time {
-      width: 82px;
-      min-width: 82px;
-      color: #fff;
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    .reel-range {
-      flex: 1;
-      min-width: 0;
-      height: 4px;
-      appearance: none;
-      -webkit-appearance: none;
-      margin: 0;
-      border-radius: 99px;
-      outline: none;
-      background: #4b435d;
-      cursor: pointer;
-    }
-
-    .reel-range::-webkit-slider-thumb {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 12px;
-      height: 12px;
-      border: 0;
-      border-radius: 50%;
-      background: #fff;
-    }
-
-    .reel-range::-moz-range-thumb {
-      width: 12px;
-      height: 12px;
-      border: 0;
-      border-radius: 50%;
-      background: #fff;
-    }
-
-    .reel-sound {
-      width: 30px;
-      height: 30px;
-      flex: 0 0 30px;
-      display: grid;
-      place-items: center;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: #fff;
-      text-shadow: 0 1px 3px #000;
-    }
-
-    .reel-sound svg {
-      width: 21px;
-      height: 21px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .reel-sound .mute-slash {
-      display: none;
-    }
-
-    .reel-sound.muted .mute-slash {
-      display: block;
-    }
-
-    .reel-actions {
-      position: absolute;
-      right: 12px;
-      bottom: 106px;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .reel-action {
-      width: 52px;
-      min-height: 48px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: #fff;
-      text-shadow: 0 2px 5px #000;
-    }
-
-    .reel-action .ico {
-      width: 27px;
-      height: 27px;
-      display: grid;
-      place-items: center;
-    }
-
-    .reel-action .ico svg {
-      width: 26px;
-      height: 26px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.9;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .reel-action.liked {
-      color: #ff3150;
-    }
-
-    .reel-action.liked .ico svg {
-      fill: currentColor;
-    }
-
-    .reel-action .num {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .reel-info {
-      position: absolute;
-      left: 18px;
-      right: 72px;
-      bottom: 24px;
-      z-index: 20;
-      text-shadow: 0 2px 5px #000;
-    }
-
-    .reel-user-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .reel-avatar {
-      width: 46px;
-      height: 46px;
-      flex: 0 0 46px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      border-radius: 50%;
-      background: #3f91cc;
-      color: #fff;
-      font-size: 18px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .reel-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .reel-user-col {
-      min-width: 0;
-    }
-
-    .reel-username {
-      font-size: 16px;
-      font-weight: 800;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-    }
-
-    .reel-date {
-      margin: 2px 0 0 54px;
-      color: #bbb;
-      font-size: 12px;
-    }
-
-    .reel-description {
-      margin-top: 6px;
-      font-size: 15px;
-      line-height: 1.35;
-    }
-
-    .comments {
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      z-index: 100;
-      width: min(390px, 100%);
-      height: 72%;
-      display: none;
-      flex-direction: column;
-      transform: translateX(-50%);
-      padding: 8px 12px 12px;
-      border-radius: 24px 24px 0 0;
-      background: #000;
-      box-shadow: 0 -6px 24px rgba(0, 0, 0, .45);
-    }
-
-    .comments.open {
-      display: flex;
-    }
-
-    .comments-head {
-      position: relative;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      border-bottom: 1px solid #202020;
-    }
-
-    .comments-head::before {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 50%;
-      width: 38px;
-      height: 4px;
-      transform: translateX(-50%);
-      border-radius: 99px;
-      background: #666;
-    }
-
-    .comments-head b {
-      font-size: 16px;
-    }
-
-    .close-comments {
-      position: absolute;
-      top: 5px;
-      right: 0;
-      width: 38px;
-      height: 38px;
-      border: 0;
-      background: transparent;
-      color: #fff;
-      font-size: 28px;
-      line-height: 1;
-    }
-
-    .comments-list {
-      flex: 1;
-      overflow: auto;
-      padding: 10px 3px;
-    }
-
-    .comment {
-      padding: 9px 0;
-      border-bottom: 1px solid #202020;
-    }
-
-    .comment-meta {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-
-    .comment-avatar {
-      width: 34px;
-      height: 34px;
-      flex: 0 0 34px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      border-radius: 50%;
-      background: #3f91cc;
-      font-weight: 800;
-    }
-
-    .comment-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .comment-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .comment-body b {
-      font-size: 13px;
-    }
-
-    .comment-body p {
-      margin: 4px 0 0;
-      color: #ddd;
-      font-size: 13px;
-    }
-
-    .comment-actions {
-      margin-top: 5px;
-      color: #888;
-      font-size: 11px;
-    }
-
-    .comment-form {
-      display: flex;
-      gap: 7px;
-      padding-top: 8px;
-    }
-
-    .comment-form input {
-      flex: 1;
-      padding: 11px;
-      border: 1px solid #333;
-      border-radius: 10px;
-      outline: none;
-      background: #191919;
-      color: #fff;
-    }
-
-    .comment-form button {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      border: 0;
-      border-radius: 10px;
-      background: transparent;
-      color: #fff;
-    }
-
-    .comment-empty {
-      padding: 30px 10px;
-      color: #777;
-      text-align: center;
-    }
-
-    @media (min-width: 700px) {
-
-      .content,
-      .top {
-        max-width: 700px;
-        margin: auto;
-      }
-
-      .reel-phone {
-        width: 390px;
-      }
-    }
-
-    @media (max-width: 699px) {
-
-      .reel-phone {
-        width: 100vw;
-      }
-
-      .reel-back {
-        top: 10px;
-        left: 8px;
-      }
-
-      .reel-info {
-        bottom: 24px;
-      }
-
-      .reel-actions {
-        bottom: 105px;
-      }
-    }
-
   </style>
 </head>
 
 <body>
 
-  <header class="top">
+<header class="top">
+  <div class="title">Ara</div>
 
-    <div class="title">
-      Ara
+  <div class="search">
+    <span class="search-icon">⌕</span>
+
+    <button type="button" class="tag-back" id="tagBack" aria-label="Geri">‹</button>
+
+    <input id="sq" autocomplete="off" placeholder="#etiket veya kullanıcı adı ara">
+
+    <button type="button" class="clear" id="clear" aria-label="Temizle">×</button>
+  </div>
+</header>
+
+<main id="content" class="content"></main>
+
+<nav class="nav">
+
+  <a href="index.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+      </svg>
+    </span>
+    <span>Ana Sayfa</span>
+  </a>
+
+  <a class="active" href="ara.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5"/>
+        <path d="m16 16 5 5"/>
+      </svg>
+    </span>
+    <span>Ara</span>
+  </a>
+
+  <a href="olustur.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="16" height="16" rx="4"/>
+        <path d="M12 8v8"/>
+        <path d="M8 12h8"/>
+      </svg>
+    </span>
+    <span>Oluştur</span>
+  </a>
+
+  <a href="reels.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <path d="M3 9h18"/>
+        <path d="M8 4l3 5"/>
+        <path d="M13 4l3 5"/>
+      </svg>
+    </span>
+    <span>Reels</span>
+  </a>
+
+  <a href="profile.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5"/>
+        <path d="M5 20a7 7 0 0 1 14 0"/>
+      </svg>
+    </span>
+    <span>Profil</span>
+  </a>
+
+</nav>
+
+<div class="reel-viewer" id="viewer">
+  <div class="reel-viewer-shell">
+    <div class="reel-phone">
+      <div id="viewerFeed" class="reel-feed"></div>
     </div>
+  </div>
 
-    <div class="search">
+  <div id="viewerComments" class="comments">
 
-      <span class="search-icon">
-        ⌕
-      </span>
+    <div class="comments-head">
+      <b>Yorumlar</b>
 
       <button
         type="button"
-        class="tag-back"
-        id="tagBack"
-        aria-label="Geri"
-      >
-        ‹
-      </button>
+        class="close-comments"
+        onclick="closeViewerComments()"
+        aria-label="Yorumları kapat"
+      >×</button>
+    </div>
 
-      <input
-        id="sq"
-        autocomplete="off"
-        placeholder="#etiket veya kullanıcı adı ara"
-      >
+    <div id="viewerCommentsList" class="comments-list"></div>
+
+    <div class="comment-form">
+
+      <input id="viewerCommentInput" placeholder="Yorum yaz...">
 
       <button
         type="button"
-        class="clear"
-        id="clear"
-        aria-label="Temizle"
+        onclick="sendViewerComment()"
+        aria-label="Gönder"
       >
-        ×
-      </button>
-
-    </div>
-
-  </header>
-
-  <main
-    id="content"
-    class="content"
-  ></main>
-
-  <nav class="nav">
-
-    <a href="index.html">
-
-      <span class="nav-icon">
-
         <svg
-          class="svg"
           viewBox="0 0 24 24"
+          style="width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"
         >
-          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+          <path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/>
+          <path d="m10.3 13.7 4.1-4.1"/>
         </svg>
+      </button>
 
-      </span>
+    </div>
+  </div>
+</div>
 
-      <span>
-        Ana Sayfa
-      </span>
+<script>
 
-    </a>
+const API = "/api";
 
-    <a
-      class="active"
-      href="ara.html"
+const token =
+  localStorage.getItem("minegram_token") ||
+  localStorage.getItem("minegram_supabase_token") ||
+  "";
+
+const $ = id => document.getElementById(id);
+
+const content = $("content");
+const input = $("sq");
+const clearButton = $("clear");
+const tagBack = $("tagBack");
+
+let users = [];
+let stories = [];
+let feed = [];
+let reels = [];
+
+let currentUsername = "";
+let followingUsers = new Set();
+
+let selectedTag = "";
+let searchTimer = null;
+
+let viewerObserver = null;
+let currentViewerComment = null;
+
+const viewerSeen = new Set();
+
+
+function esc(value = "") {
+  return String(value).replace(
+    /[&<>'"]/g,
+    char => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      "'":"&#39;",
+      '"':"&quot;"
+    }[char])
+  );
+}
+
+
+function normalizeUsername(value = "") {
+  return String(value)
+    .replace(/^@/, "")
+    .trim()
+    .toLowerCase();
+}
+
+
+/* =========================
+   API
+========================= */
+
+async function api(path, options = {}) {
+
+  const headers = Object.assign(
+    {Accept:"application/json"},
+    options.headers || {}
+  );
+
+  if (token) {
+    headers.Authorization = "Bearer " + token;
+  }
+
+  const requestOptions = {
+    ...options,
+    headers
+  };
+
+  if (
+    requestOptions.body &&
+    typeof requestOptions.body === "object" &&
+    !(requestOptions.body instanceof FormData)
+  ) {
+    requestOptions.headers = {
+      ...requestOptions.headers,
+      "Content-Type":"application/json"
+    };
+
+    requestOptions.body =
+      JSON.stringify(requestOptions.body);
+  }
+
+  const response =
+    await fetch(
+      API + path,
+      requestOptions
+    );
+
+  const text =
+    await response.text();
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+      data?.message ||
+      response.statusText ||
+      "API hatası"
+    );
+  }
+
+  return data;
+}
+
+
+/* =========================
+   USER HELPERS
+========================= */
+
+function getAvatar(user) {
+  return (
+    user?.avatar ||
+    user?.avatar_url ||
+    user?.avatarUrl ||
+    user?.profile?.avatar ||
+    user?.profile?.avatar_url ||
+    user?.profile?.avatarUrl ||
+    ""
+  );
+}
+
+
+function privateUser(user) {
+
+  const settings =
+    user?.settings || {};
+
+  return Boolean(
+    settings.private_account ||
+    settings.privateAccount ||
+    settings.private ||
+    user?.private_account ||
+    user?.privateAccount ||
+    user?.is_private ||
+    user?.isPrivate ||
+    user?.private
+  );
+}
+
+
+function storyFor(username) {
+
+  const wanted =
+    normalizeUsername(username);
+
+  return stories.filter(
+    story =>
+      normalizeUsername(
+        story?.username ||
+        story?.user?.username ||
+        story?.profile?.username ||
+        ""
+      ) === wanted
+  );
+}
+
+
+function isVideo(post) {
+
+  const mediaType =
+    String(
+      post?.media_type ||
+      post?.mediaType ||
+      post?.type ||
+      ""
+    ).toLowerCase();
+
+  const url =
+    String(
+      post?.media ||
+      post?.media_url ||
+      post?.mediaUrl ||
+      post?.mediaUri ||
+      post?.video ||
+      post?.videoUrl ||
+      post?.video_url ||
+      post?.reel ||
+      post?.reelUrl ||
+      post?.reel_url ||
+      post?.url ||
+      post?.fileUrl ||
+      post?.file_url ||
+      ""
+    ).toLowerCase();
+
+  return (
+    mediaType.includes("video") ||
+    mediaType.includes("reel") ||
+    /\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(url)
+  );
+}
+
+
+function mediaUrl(post) {
+  return (
+    post?.media ||
+    post?.media_url ||
+    post?.mediaUrl ||
+    post?.mediaUri ||
+    post?.video ||
+    post?.videoUrl ||
+    post?.video_url ||
+    post?.reel ||
+    post?.reelUrl ||
+    post?.reel_url ||
+    post?.url ||
+    post?.fileUrl ||
+    post?.file_url ||
+    ""
+  );
+}
+
+
+function postText(post) {
+  return (
+    post?.text ||
+    post?.caption ||
+    post?.description ||
+    ""
+  );
+}
+
+
+function postId(post) {
+  return (
+    post?.id ??
+    post?.post_id ??
+    post?.postId ??
+    ""
+  );
+}
+
+
+function avatarHtml(url, username, story = false) {
+
+  const letter =
+    esc(
+      (username || "?")
+        .slice(0,1)
+        .toUpperCase()
+    );
+
+  const image =
+    url
+      ? `
+        <img
+          class="avatar"
+          src="${esc(url)}"
+          alt=""
+          onerror="
+            this.style.display='none';
+            this.nextElementSibling.style.display='grid';
+          "
+        >
+      `
+      : "";
+
+  const fallback = `
+    <span
+      class="avatar"
+      style="${url ? "display:none" : ""}"
+    >
+      ${letter}
+    </span>
+  `;
+
+  if (story) {
+    return `
+      <div class="story-ring">
+        ${image}
+        ${fallback}
+      </div>
+    `;
+  }
+
+  return image + fallback;
+}
+
+
+/* =========================
+   FOLLOWING
+========================= */
+
+function extractFollowingList(source) {
+
+  const candidates = [
+    source?.following,
+    source?.followingUsers,
+    source?.following_users,
+    source?.user?.following,
+    source?.user?.followingUsers,
+    source?.user?.following_users,
+    source?.profile?.following,
+    source?.profile?.followingUsers,
+    source?.profile?.following_users
+  ];
+
+  return (
+    candidates.find(
+      Array.isArray
+    ) || []
+  );
+}
+
+
+function loadFollowingFromMe(me) {
+
+  followingUsers =
+    new Set();
+
+  const list =
+    extractFollowingList(me);
+
+  list.forEach(item => {
+
+    const username =
+      typeof item === "string"
+        ? item
+        : (
+            item?.username ||
+            item?.user?.username ||
+            item?.profile?.username ||
+            ""
+          );
+
+    const key =
+      normalizeUsername(username);
+
+    if (key) {
+      followingUsers.add(key);
+    }
+  });
+}
+
+
+/* =========================
+   LOAD DATA
+========================= */
+
+async function loadData() {
+
+  content.innerHTML =
+    '<div class="loading">Yükleniyor...</div>';
+
+  try {
+
+    const me =
+      await api("/me");
+
+    if (!me) {
+      throw new Error("auth");
+    }
+
+    const meUser =
+      me?.user ||
+      me?.profile ||
+      me;
+
+    currentUsername =
+      normalizeUsername(
+        meUser?.username ||
+        me?.username ||
+        me?.user?.username ||
+        me?.profile?.username ||
+        ""
+      );
+
+    loadFollowingFromMe(me);
+
+  } catch {
+
+    location.href =
+      "giris.html";
+
+    return;
+  }
+
+
+  try {
+
+    const [
+      feedResponse,
+      storyResponse
+    ] = await Promise.all([
+
+      api("/feed?ts=" + Date.now()),
+
+      api("/stories?ts=" + Date.now())
+        .catch(() => [])
+
+    ]);
+
+
+    feed =
+      Array.isArray(feedResponse)
+        ? feedResponse
+        : (
+            feedResponse?.posts ||
+            feedResponse?.data ||
+            feedResponse?.items ||
+            []
+          );
+
+
+    stories =
+      Array.isArray(storyResponse)
+        ? storyResponse
+        : (
+            storyResponse?.stories ||
+            storyResponse?.data ||
+            storyResponse?.items ||
+            []
+          );
+
+
+    normalizeReels();
+
+    renderDiscovery();
+
+  } catch {
+
+    content.innerHTML =
+      '<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>';
+
+  }
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+async function searchUsers(query) {
+
+  try {
+
+    const data =
+      await api(
+        "/search?q=" +
+        encodeURIComponent(query)
+      );
+
+
+    const array =
+      Array.isArray(data)
+        ? data
+        : (
+            data?.users ||
+            data?.results ||
+            data?.profiles ||
+            data?.data ||
+            data?.items ||
+            []
+          );
+
+
+    return array
+      .map(user => {
+
+        const profile =
+          user?.user ||
+          user?.profile ||
+          {};
+
+
+        const username =
+          String(
+            user?.username ||
+            profile?.username ||
+            user?.name ||
+            ""
+          )
+          .trim()
+          .replace(/^@/, "");
+
+
+        if (!username) {
+          return null;
+        }
+
+
+        const usernameKey =
+          normalizeUsername(username);
+
+
+        const apiFollowing =
+          user?.isFollowing ??
+          user?.is_following ??
+          user?.following ??
+          user?.following_status ??
+          profile?.isFollowing ??
+          profile?.is_following ??
+          profile?.following ??
+          false;
+
+
+        return {
+
+          username,
+
+          avatar:
+            getAvatar(user) ||
+            getAvatar(profile),
+
+          private:
+            privateUser(user) ||
+            privateUser(profile),
+
+          isFollowing:
+            Boolean(
+              apiFollowing === true ||
+              apiFollowing === 1 ||
+              apiFollowing === "true" ||
+              followingUsers.has(usernameKey)
+            )
+
+        };
+
+      })
+      .filter(Boolean)
+      .filter(
+        (user,index,array) =>
+          index ===
+          array.findIndex(
+            item =>
+              normalizeUsername(
+                item.username
+              ) ===
+              normalizeUsername(
+                user.username
+              )
+          )
+      );
+
+  } catch {
+
+    return [];
+  }
+}
+
+
+/* =========================
+   DISCOVERY
+========================= */
+
+function normalizeReels() {
+
+  reels =
+    feed
+      .filter(isVideo)
+      .map(post => {
+
+        const user =
+          post?.user ||
+          post?.profile ||
+          {};
+
+        return {
+
+          id:
+            postId(post),
+
+          username:
+            String(
+              post?.username ||
+              user?.username ||
+              ""
+            )
+            .replace(/^@/,"")
+            .trim(),
+
+          description:
+            postText(post),
+
+          mediaUri:
+            mediaUrl(post),
+
+          likes:
+            Array.isArray(post?.likes)
+              ? post.likes.length
+              : Number(
+                  post?.likes || 0
+                ),
+
+          views:
+            Number(
+              post?.views ||
+              post?.view_count ||
+              post?.viewCount ||
+              0
+            ),
+
+          commentCount:
+            Number(
+              post?.commentCount ||
+              post?.comment_count ||
+              0
+            ),
+
+          date:
+            post?.date ||
+            post?.createdAt ||
+            post?.created_at ||
+            "",
+
+          avatar:
+            getAvatar(post) ||
+            getAvatar(user),
+
+          raw:
+            post
+
+        };
+
+      })
+      .filter(
+        reel =>
+          reel.username &&
+          reel.mediaUri
+      )
+      .filter(
+        (reel,index,array) =>
+          index ===
+          array.findIndex(
+            item =>
+              String(item.id) ===
+              String(reel.id) &&
+              normalizeUsername(item.username) ===
+              normalizeUsername(reel.username) &&
+              item.mediaUri ===
+              reel.mediaUri
+          )
+      );
+}
+
+
+function renderDiscovery() {
+
+  if (!reels.length) {
+
+    content.innerHTML = `
+      <div class="empty">
+        <div style="font-size:52px">⌕</div>
+        <div>Kullanıcı ara</div>
+      </div>
+    `;
+
+    return;
+  }
+
+
+  content.innerHTML = `
+    <div class="section-title">Videolar</div>
+
+    <div class="grid">
+      ${reels.map(
+        (reel,index) => `
+          <div
+            class="tile"
+            data-reel="${index}"
+          >
+            <video
+              src="${esc(reel.mediaUri)}"
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
+
+            <span class="play">▶</span>
+          </div>
+        `
+      ).join("")}
+    </div>
+  `;
+
+
+  document
+    .querySelectorAll("[data-reel]")
+    .forEach(tile => {
+
+      tile.onclick = () =>
+        openReel(
+          Number(
+            tile.dataset.reel
+          )
+        );
+
+    });
+}
+
+
+/* =========================
+   USERS + FOLLOW BUTTON
+========================= */
+
+function renderUsers(array) {
+
+  if (!array.length) {
+
+    content.innerHTML =
+      '<div class="empty">Kullanıcı bulunamadı</div>';
+
+    return;
+  }
+
+
+  content.innerHTML = `
+
+    <div class="users">
+
+      ${array.map(user => {
+
+        const username =
+          String(
+            user.username || ""
+          )
+          .replace(/^@/,"")
+          .trim();
+
+        const usernameKey =
+          normalizeUsername(username);
+
+
+        const storiesForUser =
+          storyFor(username);
+
+
+        const hasStory =
+          !user.private &&
+          storiesForUser.length > 0;
+
+
+        const isMe =
+          Boolean(
+            currentUsername &&
+            usernameKey ===
+            currentUsername
+          );
+
+
+        const isFollowing =
+          Boolean(
+            user.isFollowing ||
+            followingUsers.has(
+              usernameKey
+            )
+          );
+
+
+        return `
+
+          <div
+            class="user"
+            data-user="${esc(username)}"
+            data-story="${hasStory ? "1" : "0"}"
+          >
+
+            ${avatarHtml(
+              user.avatar,
+              username,
+              hasStory
+            )}
+
+            <div class="user-info">
+
+              <div class="user-name-row">
+
+                <div class="username">
+                  @${esc(username)}
+                </div>
+
+                ${
+                  !isMe
+                    ? `
+                      <button
+                        type="button"
+                        class="follow-btn ${isFollowing ? "following" : ""}"
+                        data-follow-user="${esc(username)}"
+                        aria-label="${isFollowing ? "Takibi bırak" : "Takip et"}"
+                      >
+                        ${isFollowing ? "Takip Ediliyor" : "Takip Et"}
+                      </button>
+                    `
+                    : ""
+                }
+
+              </div>
+
+              <div class="sub">
+                ${
+                  hasStory
+                    ? "Hikayeyi görmek için fotoğrafa dokun"
+                    : "Hesabı görüntüle"
+                }
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join("")}
+
+    </div>
+
+  `;
+
+
+  /* Kullanıcı satırı */
+  document
+    .querySelectorAll("[data-user]")
+    .forEach(element => {
+
+      element.onclick =
+        event => {
+
+          if (
+            event.target.closest(
+              "[data-follow-user]"
+            )
+          ) {
+            return;
+          }
+
+          const username =
+            element.dataset.user;
+
+
+          if (
+            element.dataset.story === "1" &&
+            element.querySelector(".story-ring")
+          ) {
+
+            openStory(username);
+
+          } else {
+
+            openProfile(username);
+
+          }
+
+        };
+
+    });
+
+
+  /* Takip butonları */
+  document
+    .querySelectorAll("[data-follow-user]")
+    .forEach(button => {
+
+      button.onclick =
+        async event => {
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          await toggleFollowUser(
+            button.dataset.followUser,
+            button
+          );
+
+        };
+
+    });
+}
+
+
+async function toggleFollowUser(
+  username,
+  button
+) {
+
+  const cleanUsername =
+    String(username || "")
+      .replace(/^@/,"")
+      .trim();
+
+
+  const usernameKey =
+    normalizeUsername(
+      cleanUsername
+    );
+
+
+  if (
+    !usernameKey ||
+    usernameKey === currentUsername
+  ) {
+    return;
+  }
+
+
+  const isFollowing =
+    followingUsers.has(
+      usernameKey
+    );
+
+
+  button.disabled = true;
+
+  const oldText =
+    button.textContent.trim();
+
+  button.textContent = "...";
+
+
+  try {
+
+    const result =
+      await api(
+        "/users/" +
+        encodeURIComponent(
+          cleanUsername
+        ) +
+        "/follow",
+        {
+          method:"POST",
+          body:{
+            follow:!isFollowing
+          }
+        }
+      );
+
+
+    const backendState =
+      result?.following ??
+      result?.isFollowing ??
+      result?.is_following ??
+      result?.data?.following ??
+      result?.data?.isFollowing ??
+      result?.data?.is_following;
+
+
+    const newState =
+      typeof backendState === "boolean"
+        ? backendState
+        : !isFollowing;
+
+
+    if (newState) {
+
+      followingUsers.add(
+        usernameKey
+      );
+
+      button.textContent =
+        "Takip Ediliyor";
+
+      button.classList.add(
+        "following"
+      );
+
+    } else {
+
+      followingUsers.delete(
+        usernameKey
+      );
+
+      button.textContent =
+        "Takip Et";
+
+      button.classList.remove(
+        "following"
+      );
+
+    }
+
+
+    const user =
+      users.find(
+        item =>
+          normalizeUsername(
+            item.username
+          ) ===
+          usernameKey
+      );
+
+
+    if (user) {
+      user.isFollowing =
+        newState;
+    }
+
+  } catch(error) {
+
+    button.textContent =
+      oldText;
+
+    alert(
+      error?.message ||
+      "Takip işlemi gerçekleştirilemedi."
+    );
+
+  } finally {
+
+    button.disabled = false;
+  }
+}
+
+
+/* =========================
+   TAG
+========================= */
+
+function renderTagIntro(tag) {
+
+  content.innerHTML = `
+
+    <div
+      class="tag-result"
+      id="openTag"
     >
 
-      <span class="nav-icon">
+      <div class="tag-icon">#</div>
 
-        <svg
-          class="svg"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            cx="11"
-            cy="11"
-            r="6.5"
-          />
+      <div>
 
-          <path d="m16 16 5 5"/>
-        </svg>
+        <div class="username">
+          #${esc(tag)}
+        </div>
 
-      </span>
-
-      <span>
-        Ara
-      </span>
-
-    </a>
-
-    <a href="olustur.html">
-
-      <span class="nav-icon">
-
-        <svg
-          class="svg"
-          viewBox="0 0 24 24"
-        >
-          <rect
-            x="4"
-            y="4"
-            width="16"
-            height="16"
-            rx="4"
-          />
-
-          <path d="M12 8v8"/>
-          <path d="M8 12h8"/>
-        </svg>
-
-      </span>
-
-      <span>
-        Oluştur
-      </span>
-
-    </a>
-
-    <a href="reels.html">
-
-      <span class="nav-icon">
-
-        <svg
-          class="svg"
-          viewBox="0 0 24 24"
-        >
-          <rect
-            x="3"
-            y="4"
-            width="18"
-            height="16"
-            rx="2"
-          />
-
-          <path d="M3 9h18"/>
-          <path d="M8 4l3 5"/>
-          <path d="M13 4l3 5"/>
-        </svg>
-
-      </span>
-
-      <span>
-        Reels
-      </span>
-
-    </a>
-
-    <a href="profile.html">
-
-      <span class="nav-icon">
-
-        <svg
-          class="svg"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            cx="12"
-            cy="8"
-            r="3.5"
-          />
-
-          <path d="M5 20a7 7 0 0 1 14 0"/>
-        </svg>
-
-      </span>
-
-      <span>
-        Profil
-      </span>
-
-    </a>
-
-  </nav>
-
-  <div
-    class="reel-viewer"
-    id="viewer"
-  >
-
-    <div class="reel-viewer-shell">
-
-      <div class="reel-phone">
-
-        <div
-          id="viewerFeed"
-          class="reel-feed"
-        ></div>
+        <div class="sub">
+          Etiket gönderilerini gör
+        </div>
 
       </div>
 
     </div>
 
-    <div
-      id="viewerComments"
-      class="comments"
+  `;
+
+
+  $("openTag").onclick = () => {
+
+    selectedTag =
+      tag;
+
+    renderTagPosts();
+
+  };
+}
+
+
+function renderTagPosts() {
+
+  tagBack.style.display =
+    "inline";
+
+
+  const escapedTag =
+    selectedTag.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+
+  const regex =
+    new RegExp(
+      "#" +
+      escapedTag +
+      "\\b",
+      "i"
+    );
+
+
+  const posts =
+    feed.filter(
+      post =>
+        regex.test(
+          postText(post)
+        )
+    );
+
+
+  if (!posts.length) {
+
+    content.innerHTML =
+      '<div class="empty">Bu etikette henüz gönderi yok</div>';
+
+    return;
+  }
+
+
+  content.innerHTML = `
+    <div class="posts">
+      ${posts.map(postHtml).join("")}
+    </div>
+  `;
+
+
+  bindPosts();
+}
+
+
+function postHtml(post) {
+
+  const user =
+    post?.user ||
+    post?.profile ||
+    {};
+
+  const username =
+    String(
+      post?.username ||
+      user?.username ||
+      ""
+    )
+    .replace(/^@/,"")
+    .trim();
+
+
+  const avatar =
+    getAvatar(post) ||
+    getAvatar(user);
+
+
+  const url =
+    mediaUrl(post);
+
+
+  let media = "";
+
+
+  if (url) {
+
+    if (isVideo(post)) {
+
+      media = `
+        <video
+          class="post-media"
+          src="${esc(url)}"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+      `;
+
+    } else {
+
+      media = `
+        <img
+          class="post-media"
+          src="${esc(url)}"
+          loading="lazy"
+          alt=""
+        >
+      `;
+
+    }
+  }
+
+
+  return `
+
+    <article
+      class="post"
+      data-id="${esc(postId(post))}"
     >
 
-      <div class="comments-head">
+      <div
+        class="post-head"
+        data-profile="${esc(username)}"
+      >
 
-        <b>
-          Yorumlar
-        </b>
+        ${avatarHtml(
+          avatar,
+          username,
+          false
+        )}
+
+        <strong>
+          @${esc(username)}
+        </strong>
+
+      </div>
+
+      ${media}
+
+      <div class="caption">
+        ${esc(postText(post))}
+      </div>
+
+    </article>
+
+  `;
+}
+
+
+function bindPosts() {
+
+  document
+    .querySelectorAll("[data-profile]")
+    .forEach(element => {
+
+      element.onclick = () =>
+        openProfile(
+          element.dataset.profile
+        );
+
+    });
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+async function doSearch(query) {
+
+  query =
+    query.trim();
+
+
+  clearButton.style.display =
+    query
+      ? "block"
+      : "none";
+
+
+  tagBack.style.display =
+    selectedTag
+      ? "inline"
+      : "none";
+
+
+  if (selectedTag) {
+
+    renderTagPosts();
+
+    return;
+  }
+
+
+  if (!query) {
+
+    renderDiscovery();
+
+    return;
+  }
+
+
+  if (query.startsWith("#")) {
+
+    const tag =
+      query
+        .slice(1)
+        .trim();
+
+
+    if (tag) {
+
+      renderTagIntro(tag);
+
+    } else {
+
+      renderDiscovery();
+
+    }
+
+    return;
+  }
+
+
+  content.innerHTML =
+    '<div class="loading">Kullanıcılar aranıyor...</div>';
+
+
+  const found =
+    await searchUsers(
+      query.replace(/^@/,"")
+    );
+
+
+  users =
+    found;
+
+
+  renderUsers(
+    found
+  );
+}
+
+
+/* =========================
+   PROFILE / STORY
+========================= */
+
+function openProfile(username) {
+
+  if (!username) {
+    return;
+  }
+
+  location.href =
+    "profile.html?username=" +
+    encodeURIComponent(
+      username
+    );
+}
+
+
+function openStory(username) {
+
+  if (
+    typeof window.openStoryFromSearch ===
+    "function"
+  ) {
+
+    window.openStoryFromSearch(
+      username
+    );
+
+    return;
+  }
+
+
+  if (
+    typeof window.showStory ===
+    "function"
+  ) {
+
+    window.showStory(
+      username
+    );
+
+    return;
+  }
+
+
+  openProfile(username);
+}
+
+
+/* =========================
+   REELS
+========================= */
+
+function openReel(startIndex) {
+
+  if (!reels.length) {
+    return;
+  }
+
+
+  const viewerFeed =
+    $("viewerFeed");
+
+
+  viewerFeed.innerHTML =
+    reels
+      .map(
+        (reel,index) =>
+          createReelHtml(
+            reel,
+            index
+          )
+      )
+      .join("");
+
+
+  $("viewer")
+    .classList
+    .add("show");
+
+
+  document.body.style.overflow =
+    "hidden";
+
+
+  setupViewerReels(
+    startIndex
+  );
+}
+
+
+function createReelHtml(
+  reel,
+  index
+) {
+
+  const letter =
+    esc(
+      (reel.username || "M")
+        .charAt(0)
+        .toUpperCase()
+    );
+
+
+  const avatar =
+    reel.avatar
+      ? `
+        <img
+          src="${esc(reel.avatar)}"
+          alt=""
+          onerror="
+            this.style.display='none';
+            this.nextElementSibling.style.display='grid';
+          "
+        >
+        <span style="display:none">${letter}</span>
+      `
+      : `
+        <span>${letter}</span>
+      `;
+
+
+  return `
+
+    <article
+      class="reel"
+      data-index="${index}"
+    >
+
+      <video
+        class="reel-video"
+        playsinline
+        muted
+        loop
+        preload="metadata"
+      ></video>
+
+      <div class="reel-shade"></div>
+
+      <button
+        type="button"
+        class="reel-center-play"
+        onclick="toggleViewerPlay(${index})"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="reel-back"
+        onclick="closeViewer()"
+      >‹</button>
+
+      <div class="reel-actions">
 
         <button
           type="button"
-          class="close-comments"
-          onclick="closeViewerComments()"
-          aria-label="Yorumları kapat"
+          class="reel-action like"
+          onclick="likeViewerReel(${index})"
         >
-          ×
+          <span class="ico">
+            <svg viewBox="0 0 24 24">
+              <path d="M20.8 8.7c0 5.1-8.8 10.8-8.8 10.8S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 8 4c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.7 4.7 0 0 1 4.8 4.7z"/>
+            </svg>
+          </span>
+
+          <span class="num">
+            ${reel.likes || 0}
+          </span>
+        </button>
+
+        <div class="reel-action view-stat">
+
+          <span class="ico">
+            <svg viewBox="0 0 24 24">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>
+              <circle cx="12" cy="12" r="2.5"/>
+            </svg>
+          </span>
+
+          <span class="num">
+            ${reel.views || 0}
+          </span>
+
+        </div>
+
+        <button
+          type="button"
+          class="reel-action"
+          onclick="openViewerComments(${index})"
+        >
+          <span class="ico">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.14 0-2.22-.25-3.19-.69L4 20l1.69-4.19A7.46 7.46 0 0 1 5 11.5a7.5 7.5 0 1 1 15 0z"/>
+            </svg>
+          </span>
+
+          <span class="num comment-count">
+            ${reel.commentCount || 0}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="reel-action"
+          onclick="shareViewerReel(${index})"
+        >
+          <span class="ico">
+            <svg viewBox="0 0 24 24">
+              <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
+            </svg>
+          </span>
         </button>
 
       </div>
 
-      <div
-        id="viewerCommentsList"
-        class="comments-list"
-      ></div>
+      <div class="reel-info">
 
-      <div class="comment-form">
+        <div class="reel-user-row">
+
+          <div
+            class="reel-avatar"
+            onclick="openProfile('${esc(reel.username)}')"
+          >
+            ${avatar}
+          </div>
+
+          <div class="reel-user-col">
+
+            <div
+              class="reel-username"
+              onclick="openProfile('${esc(reel.username)}')"
+            >
+              @${esc(reel.username)}
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="reel-date">
+          ${esc(reel.date || "")}
+        </div>
+
+        <div class="reel-description">
+          ${esc(reel.description || "")}
+        </div>
+
+      </div>
+
+      <div class="reel-progress">
+
+        <span class="reel-time current-time">
+          0:00 / 0:00
+        </span>
 
         <input
-          id="viewerCommentInput"
-          placeholder="Yorum yaz..."
+          class="reel-range"
+          type="range"
+          min="0"
+          max="100"
+          value="0"
+          step="0.1"
+          oninput="seekViewer(${index},this.value)"
         >
 
         <button
           type="button"
-          onclick="sendViewerComment()"
-          aria-label="Gönder"
+          class="reel-sound muted"
+          onclick="toggleViewerMute(${index})"
         >
 
-          <svg
-            viewBox="0 0 24 24"
-            style="
-              width:22px;
-              height:22px;
-              fill:none;
-              stroke:#fff;
-              stroke-width:2;
-              stroke-linecap:round;
-              stroke-linejoin:round;
-            "
-          >
+          <svg viewBox="0 0 24 24">
 
-            <path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/>
-            <path d="m10.3 13.7 4.1-4.1"/>
+            <path d="M4 10v4h4l5 4V6l-5 4H4z"/>
+
+            <path
+              class="waves"
+              d="M16 9.5c1.7 1.7 1.7 3.3 0 5M18.5 7c3 3 3 7 0 10"
+            />
+
+            <path
+              class="mute-slash"
+              d="M5 5L19 19"
+            />
 
           </svg>
 
@@ -1120,2854 +2001,925 @@
 
       </div>
 
-    </div>
+    </article>
 
-  </div>
+  `;
+}
 
-  <script>
 
-    const API = "/api";
+function setupViewerReels(startIndex) {
 
-    const token =
-      localStorage.getItem("minegram_token") ||
-      localStorage.getItem("minegram_supabase_token") ||
-      "";
+  const articles =
+    [...document.querySelectorAll(".reel")];
 
-    const $ = id =>
-      document.getElementById(id);
 
-    const content =
-      $("content");
+  if (viewerObserver) {
+    viewerObserver.disconnect();
+  }
 
-    const input =
-      $("sq");
 
-    const clearButton =
-      $("clear");
+  viewerObserver =
+    new IntersectionObserver(
 
-    const tagBack =
-      $("tagBack");
+      entries => {
 
-    let users = [];
-    let stories = [];
-    let feed = [];
-    let reels = [];
+        entries.forEach(entry => {
 
-    let currentUsername = "";
-    let followingUsers = new Set();
-
-    let selectedTag = "";
-    let searchTimer = null;
-
-    let viewerObserver = null;
-    let currentViewerComment = null;
-
-    const viewerSeen =
-      new Set();
-
-
-    function esc(value = "") {
-
-      return String(value).replace(
-        /[&<>'"]/g,
-
-        char => ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          "'": "&#39;",
-          '"': "&quot;"
-        }[char])
-      );
-    }
-
-
-    function normalizeUsername(value = "") {
-
-      return String(value)
-        .replace(/^@/, "")
-        .trim()
-        .toLowerCase();
-    }
-
-
-    async function api(
-      path,
-      options = {}
-    ) {
-
-      const headers =
-        Object.assign(
-          {
-            Accept: "application/json"
-          },
-
-          options.headers || {}
-        );
-
-
-      if (token) {
-
-        headers.Authorization =
-          "Bearer " + token;
-      }
-
-
-      const requestOptions = {
-        ...options,
-        headers
-      };
-
-
-      if (
-        requestOptions.body &&
-        typeof requestOptions.body === "object" &&
-        !(requestOptions.body instanceof FormData)
-      ) {
-
-        requestOptions.headers = {
-          ...requestOptions.headers,
-
-          "Content-Type":
-            "application/json"
-        };
-
-        requestOptions.body =
-          JSON.stringify(
-            requestOptions.body
-          );
-      }
-
-
-      const response =
-        await fetch(
-          API + path,
-          requestOptions
-        );
-
-
-      const text =
-        await response.text();
-
-
-      let data;
-
-
-      try {
-
-        data =
-          JSON.parse(text);
-
-      } catch {
-
-        data = text;
-      }
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          data?.error ||
-          response.statusText ||
-          "API hatası"
-        );
-      }
-
-
-      return data;
-    }
-
-
-    function getAvatar(user) {
-
-      return (
-        user?.avatar ||
-        user?.avatar_url ||
-        user?.avatarUrl ||
-        user?.profile?.avatar_url ||
-        user?.profile?.avatarUrl ||
-        ""
-      );
-    }
-
-
-    function privateUser(user) {
-
-      const settings =
-        user?.settings || {};
-
-
-      return Boolean(
-        settings.private_account ||
-        settings.privateAccount ||
-        settings.private ||
-        user?.private_account ||
-        user?.privateAccount ||
-        user?.private
-      );
-    }
-
-
-    function storyFor(username) {
-
-      return stories.filter(
-        story =>
-          String(
-            story.username || ""
-          ).toLowerCase() ===
-          String(
-            username || ""
-          ).toLowerCase()
-      );
-    }
-
-
-    function isVideo(post) {
-
-      const mediaType =
-        String(
-          post?.media_type ||
-          post?.mediaType ||
-          post?.type ||
-          ""
-        ).toLowerCase();
-
-
-      const url =
-        String(
-          post?.media ||
-          post?.media_url ||
-          post?.mediaUrl ||
-          post?.mediaUri ||
-          post?.video ||
-          post?.videoUrl ||
-          post?.video_url ||
-          post?.reel ||
-          post?.reelUrl ||
-          post?.reel_url ||
-          post?.url ||
-          post?.fileUrl ||
-          post?.file_url ||
-          ""
-        ).toLowerCase();
-
-
-      return (
-        mediaType.includes("video") ||
-        mediaType.includes("reel") ||
-        /\.(mp4|webm|mov|m4v|3gp)(\?|$)/.test(url)
-      );
-    }
-
-
-    function mediaUrl(post) {
-
-      return (
-        post?.media ||
-        post?.media_url ||
-        post?.mediaUrl ||
-        post?.mediaUri ||
-        post?.video ||
-        post?.videoUrl ||
-        post?.video_url ||
-        post?.reel ||
-        post?.reelUrl ||
-        post?.reel_url ||
-        post?.url ||
-        post?.fileUrl ||
-        post?.file_url ||
-        ""
-      );
-    }
-
-
-    function postText(post) {
-
-      return (
-        post?.text ||
-        post?.caption ||
-        post?.description ||
-        ""
-      );
-    }
-
-
-    function postId(post) {
-
-      return (
-        post?.id ??
-        post?.post_id ??
-        post?.postId ??
-        ""
-      );
-    }
-
-
-    function avatarHtml(
-      url,
-      username,
-      story = false
-    ) {
-
-      const letter =
-        esc(
-          (username || "?")
-            .slice(0, 1)
-            .toUpperCase()
-        );
-
-
-      const image =
-        url
-          ? `
-              <img
-                class="avatar"
-                src="${esc(url)}"
-                alt=""
-                onerror="
-                  this.style.display='none';
-                  this.nextElementSibling.style.display='grid';
-                "
-              >
-            `
-          : "";
-
-
-      const fallback = `
-        <span
-          class="avatar"
-          style="${url ? "display:none" : ""}"
-        >
-          ${letter}
-        </span>
-      `;
-
-
-      if (story) {
-
-        return `
-          <div class="story-ring">
-            ${image}
-            ${fallback}
-          </div>
-        `;
-      }
-
-
-      return image + fallback;
-    }
-
-
-    function normalizeReels() {
-
-      reels =
-        feed
-          .filter(isVideo)
-          .map(post => {
-
-            const user =
-              post?.user ||
-              post?.profile ||
-              {};
-
-
-            return {
-
-              id:
-                postId(post),
-
-              username:
-                String(
-                  post?.username ||
-                  user?.username ||
-                  ""
-                )
-                  .replace(/^@/, "")
-                  .trim(),
-
-              description:
-                postText(post),
-
-              mediaUri:
-                mediaUrl(post),
-
-              likes:
-                Array.isArray(post?.likes)
-                  ? post.likes.length
-                  : Number(
-                      post?.likes || 0
-                    ),
-
-              views:
-                Number(
-                  post?.views ||
-                  post?.view_count ||
-                  post?.viewCount ||
-                  0
-                ),
-
-              commentCount:
-                Number(
-                  post?.commentCount ||
-                  post?.comment_count ||
-                  0
-                ),
-
-              date:
-                post?.date ||
-                post?.createdAt ||
-                post?.created_at ||
-                "",
-
-              avatar:
-                getAvatar(post) ||
-                getAvatar(user),
-
-              raw:
-                post
-
-            };
-
-          })
-
-          .filter(
-            reel =>
-              reel.username &&
-              reel.mediaUri
-          )
-
-          .filter(
-            (reel, index, array) =>
-              index ===
-              array.findIndex(
-                item =>
-                  String(item.id) ===
-                    String(reel.id) &&
-
-                  item.username.toLowerCase() ===
-                    reel.username.toLowerCase() &&
-
-                  item.mediaUri ===
-                    reel.mediaUri
-              )
-          );
-    }
-
-
-    async function loadData() {
-
-      content.innerHTML =
-        '<div class="loading">Yükleniyor...</div>';
-
-
-      try {
-
-        const me =
-          await api("/me");
-
-
-        if (!me) {
-          throw new Error("auth");
-        }
-
-
-        const meUser =
-          me?.user ||
-          me?.profile ||
-          me;
-
-
-        currentUsername =
-          normalizeUsername(
-            meUser?.username ||
-            me?.username ||
-            ""
-          );
-
-
-        followingUsers =
-          new Set();
-
-
-        const followingList =
-          meUser?.following ||
-          meUser?.followingUsers ||
-          meUser?.following_users ||
-          me?.following ||
-          me?.followingUsers ||
-          me?.following_users ||
-          [];
-
-
-        if (Array.isArray(followingList)) {
-
-          followingList.forEach(item => {
-
-            const username =
-              typeof item === "string"
-                ? item
-                : (
-                    item?.username ||
-                    item?.user?.username ||
-                    item?.profile?.username ||
-                    ""
-                  );
-
-
-            const key =
-              normalizeUsername(username);
-
-
-            if (key) {
-
-              followingUsers.add(key);
-
-            }
-
-          });
-
-        }
-
-      } catch {
-
-        location.href =
-          "giris.html";
-
-        return;
-      }
-
-
-      try {
-
-        const [
-          feedResponse,
-          storyResponse
-        ] =
-          await Promise.all([
-
-            api(
-              "/feed?ts=" +
-              Date.now()
-            ),
-
-            api(
-              "/stories?ts=" +
-              Date.now()
-            )
-              .catch(() => [])
-
-          ]);
-
-
-        feed =
-          Array.isArray(feedResponse)
-            ? feedResponse
-            : (
-                feedResponse?.posts ||
-                feedResponse?.data ||
-                feedResponse?.items ||
-                []
-              );
-
-
-        stories =
-          Array.isArray(storyResponse)
-            ? storyResponse
-            : (
-                storyResponse?.stories ||
-                storyResponse?.data ||
-                storyResponse?.items ||
-                []
-              );
-
-
-        normalizeReels();
-
-        renderDiscovery();
-
-
-      } catch {
-
-        content.innerHTML =
-          '<div class="empty">İçerikler alınamadı. Tekrar deneyin.</div>';
-
-      }
-    }
-
-
-    async function searchUsers(query) {
-
-      try {
-
-        const data =
-          await api(
-            "/search?q=" +
-            encodeURIComponent(query)
-          );
-
-
-        const array =
-          Array.isArray(data)
-            ? data
-            : (
-                data?.users ||
-                data?.data ||
-                data?.items ||
-                []
-              );
-
-
-        return array
-
-          .map(user => {
-
-            const profile =
-              user?.user ||
-              user?.profile ||
-              user ||
-              {};
-
-
-            const username =
-              String(
-                user?.username ||
-                profile?.username ||
-                ""
-              )
-                .trim()
-                .replace(/^@/, "");
-
-
-            const usernameKey =
-              normalizeUsername(username);
-
-
-            const apiFollowing =
-              user?.isFollowing ??
-              user?.is_following ??
-              profile?.isFollowing ??
-              profile?.is_following ??
-              false;
-
-
-            return {
-
-              username,
-
-              avatar:
-                getAvatar(user) ||
-                getAvatar(profile),
-
-              private:
-                privateUser(user) ||
-                privateUser(profile),
-
-              isFollowing:
-                Boolean(
-                  apiFollowing ||
-                  followingUsers.has(
-                    usernameKey
-                  )
-                )
-
-            };
-
-          })
-
-          .filter(
-            user =>
-              user.username
-          );
-
-      } catch {
-
-        return [];
-
-      }
-    }
-
-
-    function renderDiscovery() {
-
-      if (!reels.length) {
-
-        content.innerHTML = `
-
-          <div class="empty">
-
-            <div style="font-size:52px">
-              ⌕
-            </div>
-
-            <div>
-              Kullanıcı ara
-            </div>
-
-          </div>
-
-        `;
-
-        return;
-      }
-
-
-      content.innerHTML = `
-
-        <div class="section-title">
-          Videolar
-        </div>
-
-        <div class="grid">
-
-          ${reels.map(
-            (reel, index) => `
-
-              <div
-                class="tile"
-                data-reel="${index}"
-              >
-
-                <video
-                  src="${esc(reel.mediaUri)}"
-                  muted
-                  playsinline
-                  preload="metadata"
-                ></video>
-
-                <span class="play">
-                  ▶
-                </span>
-
-              </div>
-
-            `
-          ).join("")}
-
-        </div>
-
-      `;
-
-
-      document
-        .querySelectorAll("[data-reel]")
-        .forEach(tile => {
-
-          tile.onclick = () =>
-            openReel(
-              Number(
-                tile.dataset.reel
-              )
+          const video =
+            entry.target.querySelector(
+              ".reel-video"
             );
 
-        });
-    }
-
-
-    function renderUsers(array) {
-
-      if (!array.length) {
-
-        content.innerHTML =
-          '<div class="empty">Kullanıcı bulunamadı</div>';
-
-        return;
-      }
-
-
-      content.innerHTML = `
-
-        <div class="users">
-
-          ${array.map(user => {
-
-            const storiesForUser =
-              storyFor(
-                user.username
-              );
-
-
-            const hasStory =
-              !user.private &&
-              storiesForUser.length > 0;
-
-
-            const usernameKey =
-              normalizeUsername(
-                user.username
-              );
-
-
-            const isMe =
-              usernameKey ===
-              currentUsername;
-
-
-            const isFollowing =
-              Boolean(
-                user.isFollowing ||
-                followingUsers.has(
-                  usernameKey
-                )
-              );
-
-
-            return `
-
-              <div
-                class="user"
-                data-user="${esc(user.username)}"
-                data-story="${hasStory ? "1" : "0"}"
-              >
-
-                ${avatarHtml(
-                  user.avatar,
-                  user.username,
-                  hasStory
-                )}
-
-
-                <div class="user-info">
-
-                  <div class="user-name-row">
-
-                    <div class="username">
-                      @${esc(user.username)}
-                    </div>
-
-
-                    ${
-                      !isMe
-                        ? `
-
-                          <button
-                            type="button"
-                            class="follow-btn ${
-                              isFollowing
-                                ? "following"
-                                : ""
-                            }"
-                            data-follow-user="${esc(
-                              user.username
-                            )}"
-                          >
-
-                            ${
-                              isFollowing
-                                ? "Takip Ediliyor"
-                                : "Takip Et"
-                            }
-
-                          </button>
-
-                        `
-                        : ""
-                    }
-
-                  </div>
-
-
-                  <div class="sub">
-
-                    ${
-                      hasStory
-                        ? "Hikayeyi görmek için fotoğrafa dokun"
-                        : "Hesabı görüntüle"
-                    }
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            `;
-
-          }).join("")}
-
-        </div>
-
-      `;
-
-
-      document
-        .querySelectorAll("[data-user]")
-        .forEach(element => {
-
-          element.onclick = event => {
-
-            if (
-              event.target.closest(
-                "[data-follow-user]"
-              )
-            ) {
-              return;
-            }
-
-
-            const username =
-              element.dataset.user;
-
-
-            if (
-              element.dataset.story === "1" &&
-              element.querySelector(
-                ".story-ring"
-              )
-            ) {
-
-              openStory(
-                username
-              );
-
-            } else {
-
-              openProfile(
-                username
-              );
-
-            }
-
-          };
-
-        });
-
-
-      document
-        .querySelectorAll(
-          "[data-follow-user]"
-        )
-        .forEach(button => {
-
-          button.onclick =
-            async event => {
-
-              event.preventDefault();
-              event.stopPropagation();
-
-
-              const username =
-                button.dataset.followUser;
-
-
-              await toggleFollowUser(
-                username,
-                button
-              );
-
-            };
-
-        });
-
-    }
-
-
-    async function toggleFollowUser(
-      username,
-      button
-    ) {
-
-      const cleanUsername =
-        String(username || "")
-          .replace(/^@/, "")
-          .trim();
-
-
-      const usernameKey =
-        normalizeUsername(
-          cleanUsername
-        );
-
-
-      if (
-        !usernameKey ||
-        usernameKey === currentUsername
-      ) {
-
-        return;
-      }
-
-
-      const isFollowing =
-        followingUsers.has(
-          usernameKey
-        );
-
-
-      button.disabled = true;
-
-
-      const oldText =
-        button.textContent;
-
-
-      button.textContent =
-        "...";
-
-
-      try {
-
-        const result =
-          await api(
-            "/users/" +
-            encodeURIComponent(
-              cleanUsername
-            ) +
-            "/follow",
-            {
-              method: "POST",
-
-              body: {
-                follow:
-                  !isFollowing
-              }
-            }
-          );
-
-
-        const backendState =
-          result?.following ??
-          result?.isFollowing ??
-          result?.is_following ??
-          result?.data?.following ??
-          result?.data?.isFollowing;
-
-
-        let newState;
-
-
-        if (
-          typeof backendState ===
-          "boolean"
-        ) {
-
-          newState =
-            backendState;
-
-        } else {
-
-          newState =
-            !isFollowing;
-
-        }
-
-
-        if (newState) {
-
-          followingUsers.add(
-            usernameKey
-          );
-
-
-          button.textContent =
-            "Takip Ediliyor";
-
-
-          button.classList.add(
-            "following"
-          );
-
-        } else {
-
-          followingUsers.delete(
-            usernameKey
-          );
-
-
-          button.textContent =
-            "Takip Et";
-
-
-          button.classList.remove(
-            "following"
-          );
-
-        }
-
-
-        const user =
-          users.find(
-            item =>
-              normalizeUsername(
-                item.username
-              ) === usernameKey
-          );
-
-
-        if (user) {
-
-          user.isFollowing =
-            newState;
-
-        }
-
-
-      } catch (error) {
-
-        button.textContent =
-          oldText;
-
-
-        alert(
-          error?.message ||
-          "Takip işlemi gerçekleştirilemedi."
-        );
-
-      } finally {
-
-        button.disabled =
-          false;
-
-      }
-
-    }
-
-
-    function renderTagIntro(tag) {
-
-      content.innerHTML = `
-
-        <div
-          class="tag-result"
-          id="openTag"
-        >
-
-          <div class="tag-icon">
-            #
-          </div>
-
-          <div>
-
-            <div class="username">
-              #${esc(tag)}
-            </div>
-
-            <div class="sub">
-              Etiket gönderilerini gör
-            </div>
-
-          </div>
-
-        </div>
-
-      `;
-
-
-      $("openTag").onclick = () => {
-
-        selectedTag =
-          tag;
-
-        renderTagPosts();
-      };
-    }
-
-
-    function renderTagPosts() {
-
-      tagBack.style.display =
-        "inline";
-
-
-      const escapedTag =
-        selectedTag.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&"
-        );
-
-
-      const regex =
-        new RegExp(
-          "#" +
-          escapedTag +
-          "\\b",
-          "i"
-        );
-
-
-      const posts =
-        feed.filter(
-          post =>
-            regex.test(
-              postText(post)
-            )
-        );
-
-
-      if (!posts.length) {
-
-        content.innerHTML =
-          '<div class="empty">Bu etikette henüz gönderi yok</div>';
-
-        return;
-      }
-
-
-      content.innerHTML = `
-
-        <div class="posts">
-
-          ${posts
-            .map(postHtml)
-            .join("")}
-
-        </div>
-
-      `;
-
-
-      bindPosts();
-    }
-
-
-    function postHtml(post) {
-
-      const user =
-        post?.user ||
-        post?.profile ||
-        {};
-
-
-      const username =
-        String(
-          post?.username ||
-          user?.username ||
-          ""
-        )
-          .replace(/^@/, "")
-          .trim();
-
-
-      const avatar =
-        getAvatar(post) ||
-        getAvatar(user);
-
-
-      const url =
-        mediaUrl(post);
-
-
-      let media = "";
-
-
-      if (url) {
-
-        if (isVideo(post)) {
-
-          media = `
-
-            <video
-              class="post-media"
-              src="${esc(url)}"
-              controls
-              playsinline
-              preload="metadata"
-            ></video>
-
-          `;
-
-        } else {
-
-          media = `
-
-            <img
-              class="post-media"
-              src="${esc(url)}"
-              loading="lazy"
-              alt=""
-            >
-
-          `;
-        }
-      }
-
-
-      return `
-
-        <article
-          class="post"
-          data-id="${esc(postId(post))}"
-        >
-
-          <div
-            class="post-head"
-            data-profile="${esc(username)}"
-          >
-
-            ${avatarHtml(
-              avatar,
-              username,
-              false
-            )}
-
-            <strong>
-              @${esc(username)}
-            </strong>
-
-          </div>
-
-
-          ${media}
-
-
-          <div class="caption">
-            ${esc(postText(post))}
-          </div>
-
-        </article>
-
-      `;
-    }
-
-
-    function bindPosts() {
-
-      document
-        .querySelectorAll("[data-profile]")
-        .forEach(element => {
-
-          element.onclick = () =>
-            openProfile(
-              element.dataset.profile
+          const index =
+            Number(
+              entry.target.dataset.index
             );
 
-        });
-    }
 
+          if (
+            entry.isIntersecting &&
+            entry.intersectionRatio > .65
+          ) {
 
-    async function doSearch(query) {
+            articles.forEach(
+              article => {
 
-      query =
-        query.trim();
-
-
-      clearButton.style.display =
-        query
-          ? "block"
-          : "none";
-
-
-      tagBack.style.display =
-        selectedTag
-          ? "inline"
-          : "none";
-
-
-      if (selectedTag) {
-
-        renderTagPosts();
-
-        return;
-      }
-
-
-      if (!query) {
-
-        renderDiscovery();
-
-        return;
-      }
-
-
-      if (
-        query.startsWith("#")
-      ) {
-
-        const tag =
-          query
-            .slice(1)
-            .trim();
-
-
-        if (tag) {
-
-          renderTagIntro(tag);
-
-        } else {
-
-          renderDiscovery();
-
-        }
-
-        return;
-      }
-
-
-      content.innerHTML =
-        '<div class="loading">Kullanıcılar aranıyor...</div>';
-
-
-      const found =
-        await searchUsers(
-          query.replace(
-            /^@/,
-            ""
-          )
-        );
-
-
-      users =
-        found;
-
-
-      renderUsers(
-        found
-      );
-    }
-
-
-    function openProfile(username) {
-
-      if (!username) {
-        return;
-      }
-
-
-      location.href =
-        "profile.html?username=" +
-        encodeURIComponent(
-          username
-        );
-    }
-
-
-    function openStory(username) {
-
-      if (
-        typeof window.openStoryFromSearch ===
-        "function"
-      ) {
-
-        window.openStoryFromSearch(
-          username
-        );
-
-        return;
-      }
-
-
-      if (
-        typeof window.showStory ===
-        "function"
-      ) {
-
-        window.showStory(
-          username
-        );
-
-        return;
-      }
-
-
-      openProfile(username);
-    }
-
-
-    function openReel(startIndex) {
-
-      if (!reels.length) {
-        return;
-      }
-
-
-      const viewerFeed =
-        $("viewerFeed");
-
-
-      viewerFeed.innerHTML =
-        reels
-          .map(
-            (reel, index) =>
-              createReelHtml(
-                reel,
-                index
-              )
-          )
-          .join("");
-
-
-      $("viewer")
-        .classList
-        .add("show");
-
-
-      document.body.style.overflow =
-        "hidden";
-
-
-      setupViewerReels(
-        startIndex
-      );
-    }
-
-
-    function createReelHtml(
-      reel,
-      index
-    ) {
-
-      const letter =
-        esc(
-          (reel.username || "M")
-            .charAt(0)
-            .toUpperCase()
-        );
-
-
-      const avatar =
-        reel.avatar
-
-          ? `
-
-              <img
-                src="${esc(reel.avatar)}"
-                alt=""
-                onerror="
-                  this.style.display='none';
-                  this.nextElementSibling.style.display='grid';
-                "
-              >
-
-              <span style="display:none">
-                ${letter}
-              </span>
-
-            `
-
-          : `
-
-              <span>
-                ${letter}
-              </span>
-
-            `;
-
-
-      return `
-
-        <article
-          class="reel"
-          data-index="${index}"
-        >
-
-          <video
-            class="reel-video"
-            playsinline
-            muted
-            loop
-            preload="metadata"
-          ></video>
-
-
-          <div class="reel-shade"></div>
-
-
-          <button
-            type="button"
-            class="reel-center-play"
-            onclick="toggleViewerPlay(${index})"
-          >
-
-            <svg viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-
-          </button>
-
-
-          <button
-            type="button"
-            class="reel-back"
-            onclick="closeViewer()"
-          >
-            ‹
-          </button>
-
-
-          <div class="reel-actions">
-
-            <button
-              type="button"
-              class="reel-action like"
-              onclick="likeViewerReel(${index})"
-            >
-
-              <span class="ico">
-
-                <svg viewBox="0 0 24 24">
-
-                  <path d="
-                    M20.8 8.7
-                    c0 5.1-8.8 10.8-8.8 10.8
-                    S3.2 13.8 3.2 8.7
-                    A4.7 4.7 0 0 1 8 4
-                    c1.5 0 3 .8 4 2
-                    1-1.2 2.5-2 4-2
-                    a4.7 4.7 0 0 1 4.8 4.7z"
-                  />
-
-                </svg>
-
-              </span>
-
-              <span class="num">
-                ${reel.likes || 0}
-              </span>
-
-            </button>
-
-
-            <div class="reel-action view-stat">
-
-              <span class="ico">
-
-                <svg viewBox="0 0 24 24">
-
-                  <path d="
-                    M2.5 12
-                    s3.5-6 9.5-6
-                    9.5 6 9.5 6
-                    -3.5 6-9.5 6
-                    -9.5-6-9.5-6z"
-                  />
-
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="2.5"
-                  />
-
-                </svg>
-
-              </span>
-
-              <span class="num">
-                ${reel.views || 0}
-              </span>
-
-            </div>
-
-
-            <button
-              type="button"
-              class="reel-action"
-              onclick="openViewerComments(${index})"
-            >
-
-              <span class="ico">
-
-                <svg viewBox="0 0 24 24">
-
-                  <path d="
-                    M20 11.5
-                    a7.5 7.5 0 0 1-7.5 7.5
-                    c-1.14 0-2.22-.25-3.19-.69
-                    L4 20
-                    l1.69-4.19
-                    A7.46 7.46 0 0 1 5 11.5
-                    a7.5 7.5 0 1 1 15 0z"
-                  />
-
-                </svg>
-
-              </span>
-
-              <span class="num comment-count">
-                ${reel.commentCount || 0}
-              </span>
-
-            </button>
-
-
-            <button
-              type="button"
-              class="reel-action"
-              onclick="shareViewerReel(${index})"
-            >
-
-              <span class="ico">
-
-                <svg viewBox="0 0 24 24">
-
-                  <path d="
-                    M2.01 21
-                    23 12
-                    2.01 3
-                    2 10
-                    l15 2
-                    -15 2
-                    .01 7z"
-                  />
-
-                </svg>
-
-              </span>
-
-            </button>
-
-          </div>
-
-
-          <div class="reel-info">
-
-            <div class="reel-user-row">
-
-              <div
-                class="reel-avatar"
-                onclick="openProfile('${esc(reel.username)}')"
-              >
-                ${avatar}
-              </div>
-
-
-              <div class="reel-user-col">
-
-                <div
-                  class="reel-username"
-                  onclick="openProfile('${esc(reel.username)}')"
-                >
-                  @${esc(reel.username)}
-                </div>
-
-              </div>
-
-            </div>
-
-
-            <div class="reel-date">
-              ${esc(reel.date || "")}
-            </div>
-
-
-            <div class="reel-description">
-              ${esc(reel.description || "")}
-            </div>
-
-          </div>
-
-
-          <div class="reel-progress">
-
-            <span class="reel-time current-time">
-              0:00 / 0:00
-            </span>
-
-
-            <input
-              class="reel-range"
-              type="range"
-              min="0"
-              max="100"
-              value="0"
-              step="0.1"
-              oninput="seekViewer(${index}, this.value)"
-            >
-
-
-            <button
-              type="button"
-              class="reel-sound muted"
-              onclick="toggleViewerMute(${index})"
-            >
-
-              <svg viewBox="0 0 24 24">
-
-                <path d="
-                  M4 10v4h4l5 4V6l-5 4H4z"
-                />
-
-                <path
-                  class="waves"
-                  d="
-                    M16 9.5
-                    c1.7 1.7 1.7 3.3 0 5
-                    M18.5 7
-                    c3 3 3 7 0 10"
-                />
-
-                <path
-                  class="mute-slash"
-                  d="M5 5L19 19"
-                />
-
-              </svg>
-
-            </button>
-
-          </div>
-
-        </article>
-      `;
-    }
-
-
-    function setupViewerReels(
-      startIndex
-    ) {
-
-      const articles =
-        [
-          ...document.querySelectorAll(
-            ".reel"
-          )
-        ];
-
-
-      if (viewerObserver) {
-
-        viewerObserver.disconnect();
-      }
-
-
-      viewerObserver =
-        new IntersectionObserver(
-
-          entries => {
-
-            entries.forEach(
-              entry => {
-
-                const video =
-                  entry.target.querySelector(
+                const otherVideo =
+                  article.querySelector(
                     ".reel-video"
                   );
 
-
-                const index =
-                  Number(
-                    entry.target.dataset.index
-                  );
-
-
                 if (
-                  entry.isIntersecting &&
-                  entry.intersectionRatio > .65
+                  otherVideo !== video
                 ) {
 
-                  articles.forEach(
-                    article => {
+                  otherVideo.pause();
+                  otherVideo.muted = true;
 
-                      const otherVideo =
-                        article.querySelector(
-                          ".reel-video"
-                        );
-
-
-                      if (
-                        otherVideo !== video
-                      ) {
-
-                        otherVideo.pause();
-
-                        otherVideo.muted =
-                          true;
-
-
-                        article
-                          .querySelector(
-                            ".reel-sound"
-                          )
-                          ?.classList
-                          .add("muted");
-
-                      }
-
-                    }
-                  );
-
-
-                  video.muted =
-                    false;
-
-                  video.volume =
-                    1;
-
-
-                  video
-                    .play()
-                    .catch(() => {
-
-                      showViewerPlay(
-                        index,
-                        true
-                      );
-
-                    });
-
-
-                  entry.target
-                    .querySelector(
-                      ".reel-sound"
-                    )
+                  article
+                    .querySelector(".reel-sound")
                     ?.classList
-                    .remove("muted");
-
-
-                  viewViewerCount(
-                    index
-                  );
-
-
-                } else {
-
-                  video.pause();
-
+                    .add("muted");
                 }
 
               }
             );
 
-          },
 
-          {
-            threshold: [.65]
-          }
-        );
+            video.muted = false;
+            video.volume = 1;
 
+            video
+              .play()
+              .catch(() => {
 
-      articles.forEach(
-        (article, index) => {
+                showViewerPlay(
+                  index,
+                  true
+                );
 
-          const video =
-            article.querySelector(
-              ".reel-video"
-            );
-
-
-          video.src =
-            reels[index].mediaUri;
+              });
 
 
-          video.addEventListener(
-            "loadedmetadata",
-            () =>
-              updateViewerProgress(
-                index
-              )
-          );
-
-
-          video.addEventListener(
-            "timeupdate",
-            () =>
-              updateViewerProgress(
-                index
-              )
-          );
-
-
-          video.addEventListener(
-            "play",
-            () =>
-              showViewerPlay(
-                index,
-                false
-              )
-          );
-
-
-          video.addEventListener(
-            "pause",
-            () =>
-              showViewerPlay(
-                index,
-                true
-              )
-          );
-
-
-          video.addEventListener(
-            "click",
-            () =>
-              toggleViewerPlay(
-                index
-              )
-          );
-
-
-          viewerObserver.observe(
-            article
-          );
-
-        }
-      );
-
-
-      requestAnimationFrame(() => {
-
-        articles[startIndex]
-          ?.scrollIntoView({
-            block: "start"
-          });
-
-      });
-    }
-
-
-    function showViewerPlay(
-      index,
-      show
-    ) {
-
-      const button =
-        document
-          .querySelectorAll(
-            ".reel"
-          )[index]
-          ?.querySelector(
-            ".reel-center-play"
-          );
-
-
-      if (button) {
-
-        button.style.display =
-          show
-            ? "grid"
-            : "none";
-      }
-    }
-
-
-    function toggleViewerPlay(
-      index
-    ) {
-
-      const video =
-        document
-          .querySelectorAll(
-            ".reel-video"
-          )[index];
-
-
-      if (!video) {
-        return;
-      }
-
-
-      if (video.paused) {
-
-        video
-          .play()
-          .catch(() => {});
-
-
-        showViewerPlay(
-          index,
-          false
-        );
-
-      } else {
-
-        video.pause();
-
-
-        showViewerPlay(
-          index,
-          true
-        );
-
-      }
-    }
-
-
-    function toggleViewerMute(
-      index
-    ) {
-
-      const videos =
-        document.querySelectorAll(
-          ".reel-video"
-        );
-
-
-      const buttons =
-        document.querySelectorAll(
-          ".reel-sound"
-        );
-
-
-      const video =
-        videos[index];
-
-
-      const button =
-        buttons[index];
-
-
-      if (!video || !button) {
-        return;
-      }
-
-
-      video.muted =
-        !video.muted;
-
-
-      videos.forEach(
-        (otherVideo, otherIndex) => {
-
-          if (
-            otherIndex !== index
-          ) {
-
-            otherVideo.muted =
-              true;
-
-
-            buttons[otherIndex]
+            entry.target
+              .querySelector(".reel-sound")
               ?.classList
-              .add("muted");
+              .remove("muted");
+
+
+            viewViewerCount(index);
+
+          } else {
+
+            video.pause();
 
           }
 
-        }
-      );
+        });
+
+      },
+
+      {threshold:[.65]}
+    );
 
 
-      button.classList.toggle(
-        "muted",
-        video.muted
-      );
-
-
-      if (!video.muted) {
-
-        video
-          .play()
-          .catch(() => {});
-      }
-    }
-
-
-    function updateViewerProgress(
-      index
-    ) {
-
-      const article =
-        document
-          .querySelectorAll(
-            ".reel"
-          )[index];
-
+  articles.forEach(
+    (article,index) => {
 
       const video =
-        article?.querySelector(
+        article.querySelector(
           ".reel-video"
         );
 
 
-      const range =
-        article?.querySelector(
-          ".reel-range"
-        );
+      video.src =
+        reels[index].mediaUri;
 
 
-      const time =
-        article?.querySelector(
-          ".current-time"
-        );
-
-
-      if (!video || !range) {
-        return;
-      }
-
-
-      const percent =
-        video.duration
-
-          ? Math.min(
-              100,
-              (
-                video.currentTime /
-                video.duration
-              ) * 100
-            )
-
-          : 0;
-
-
-      range.value =
-        percent;
-
-
-      range.style.background =
-        `
-          linear-gradient(
-            to right,
-            #42a5f5 0%,
-            #42a5f5 ${percent}%,
-            #4b435d ${percent}%,
-            #4b435d 100%
-          )
-        `;
-
-
-      if (time) {
-
-        time.textContent =
-          viewerTime(
-            video.currentTime
-          ) +
-          " / " +
-          viewerTime(
-            video.duration
-          );
-      }
-    }
-
-
-    function viewerTime(
-      seconds
-    ) {
-
-      seconds =
-        Number.isFinite(seconds) &&
-        seconds >= 0
-
-          ? Math.floor(seconds)
-
-          : 0;
-
-
-      return (
-        Math.floor(
-          seconds / 60
-        ) +
-
-        ":" +
-
-        String(
-          seconds % 60
-        ).padStart(
-          2,
-          "0"
-        )
+      video.addEventListener(
+        "loadedmetadata",
+        () =>
+          updateViewerProgress(index)
       );
+
+
+      video.addEventListener(
+        "timeupdate",
+        () =>
+          updateViewerProgress(index)
+      );
+
+
+      video.addEventListener(
+        "play",
+        () =>
+          showViewerPlay(index,false)
+      );
+
+
+      video.addEventListener(
+        "pause",
+        () =>
+          showViewerPlay(index,true)
+      );
+
+
+      video.addEventListener(
+        "click",
+        () =>
+          toggleViewerPlay(index)
+      );
+
+
+      viewerObserver.observe(article);
+
     }
+  );
 
 
-    function seekViewer(
+  requestAnimationFrame(() => {
+
+    articles[startIndex]
+      ?.scrollIntoView({
+        block:"start"
+      });
+
+  });
+}
+
+
+function showViewerPlay(index,show) {
+
+  const button =
+    document
+      .querySelectorAll(".reel")[index]
+      ?.querySelector(
+        ".reel-center-play"
+      );
+
+
+  if (button) {
+    button.style.display =
+      show
+        ? "grid"
+        : "none";
+  }
+}
+
+
+function toggleViewerPlay(index) {
+
+  const video =
+    document
+      .querySelectorAll(".reel-video")[index];
+
+
+  if (!video) {
+    return;
+  }
+
+
+  if (video.paused) {
+
+    video
+      .play()
+      .catch(() => {});
+
+    showViewerPlay(
       index,
-      percent
-    ) {
+      false
+    );
 
-      const video =
-        document
-          .querySelectorAll(
-            ".reel-video"
-          )[index];
+  } else {
 
+    video.pause();
+
+    showViewerPlay(
+      index,
+      true
+    );
+
+  }
+}
+
+
+function toggleViewerMute(index) {
+
+  const videos =
+    document.querySelectorAll(
+      ".reel-video"
+    );
+
+  const buttons =
+    document.querySelectorAll(
+      ".reel-sound"
+    );
+
+  const video =
+    videos[index];
+
+  const button =
+    buttons[index];
+
+
+  if (!video || !button) {
+    return;
+  }
+
+
+  video.muted =
+    !video.muted;
+
+
+  videos.forEach(
+    (otherVideo,otherIndex) => {
 
       if (
-        video &&
-        Number.isFinite(
-          video.duration
+        otherIndex !== index
+      ) {
+
+        otherVideo.muted = true;
+
+        buttons[otherIndex]
+          ?.classList
+          .add("muted");
+
+      }
+
+    }
+  );
+
+
+  button.classList.toggle(
+    "muted",
+    video.muted
+  );
+
+
+  if (!video.muted) {
+    video.play().catch(() => {});
+  }
+}
+
+
+function updateViewerProgress(index) {
+
+  const article =
+    document
+      .querySelectorAll(".reel")[index];
+
+  const video =
+    article?.querySelector(
+      ".reel-video"
+    );
+
+  const range =
+    article?.querySelector(
+      ".reel-range"
+    );
+
+  const time =
+    article?.querySelector(
+      ".current-time"
+    );
+
+
+  if (!video || !range) {
+    return;
+  }
+
+
+  const percent =
+    video.duration
+      ? Math.min(
+          100,
+          video.currentTime /
+          video.duration *
+          100
         )
-      ) {
-
-        video.currentTime =
-          Number(percent) /
-          100 *
-          video.duration;
-      }
-    }
+      : 0;
 
 
-    function viewViewerCount(
-      index
-    ) {
-
-      const reel =
-        reels[index];
+  range.value =
+    percent;
 
 
-      if (
-        !reel ||
-        viewerSeen.has(reel.id)
-      ) {
+  range.style.background =
+    `linear-gradient(
+      to right,
+      #42a5f5 0%,
+      #42a5f5 ${percent}%,
+      #4b435d ${percent}%,
+      #4b435d 100%
+    )`;
 
-        return;
-      }
+
+  if (time) {
+
+    time.textContent =
+      viewerTime(
+        video.currentTime
+      ) +
+      " / " +
+      viewerTime(
+        video.duration
+      );
+
+  }
+}
 
 
-      viewerSeen.add(
+function viewerTime(seconds) {
+
+  seconds =
+    Number.isFinite(seconds) &&
+    seconds >= 0
+      ? Math.floor(seconds)
+      : 0;
+
+
+  return (
+    Math.floor(seconds / 60) +
+    ":" +
+    String(
+      seconds % 60
+    ).padStart(2,"0")
+  );
+}
+
+
+function seekViewer(index,percent) {
+
+  const video =
+    document
+      .querySelectorAll(
+        ".reel-video"
+      )[index];
+
+
+  if (
+    video &&
+    Number.isFinite(
+      video.duration
+    )
+  ) {
+
+    video.currentTime =
+      Number(percent) /
+      100 *
+      video.duration;
+
+  }
+}
+
+
+function viewViewerCount(index) {
+
+  const reel =
+    reels[index];
+
+
+  if (
+    !reel ||
+    viewerSeen.has(reel.id)
+  ) {
+    return;
+  }
+
+
+  viewerSeen.add(
+    reel.id
+  );
+
+
+  reel.views =
+    (Number(reel.views) || 0) + 1;
+
+
+  const number =
+    document
+      .querySelectorAll(".reel")[index]
+      ?.querySelector(
+        ".view-stat .num"
+      );
+
+
+  if (number) {
+    number.textContent =
+      reel.views;
+  }
+}
+
+
+/* =========================
+   LIKE / COMMENTS / SHARE
+========================= */
+
+async function likeViewerReel(index) {
+
+  const reel =
+    reels[index];
+
+  const article =
+    document
+      .querySelectorAll(".reel")[index];
+
+  const button =
+    article?.querySelector(".like");
+
+
+  if (!reel || !button) {
+    return;
+  }
+
+
+  const alreadyLiked =
+    button.classList.contains(
+      "liked"
+    );
+
+
+  reel.likes =
+    Math.max(
+      0,
+      (Number(reel.likes) || 0) +
+      (alreadyLiked ? -1 : 1)
+    );
+
+
+  button.classList.toggle(
+    "liked",
+    !alreadyLiked
+  );
+
+
+  button.querySelector(
+    ".num"
+  ).textContent =
+    reel.likes;
+
+
+  try {
+
+    await api(
+      "/posts/" +
+      encodeURIComponent(
         reel.id
+      ) +
+      "/like",
+      {
+        method:"POST"
+      }
+    );
+
+  } catch {}
+
+}
+
+
+async function openViewerComments(index) {
+
+  currentViewerComment =
+    index;
+
+
+  $("viewerComments")
+    .classList
+    .add("open");
+
+
+  const list =
+    $("viewerCommentsList");
+
+
+  list.innerHTML =
+    '<div class="loading">Yorumlar yükleniyor...</div>';
+
+
+  try {
+
+    const data =
+      await api(
+        "/posts/" +
+        encodeURIComponent(
+          reels[index].id
+        ) +
+        "/comments?ts=" +
+        Date.now()
       );
 
 
-      reel.views =
-        (Number(reel.views) || 0) +
-        1;
-
-
-      const number =
-        document
-          .querySelectorAll(
-            ".reel"
-          )[index]
-          ?.querySelector(
-            ".view-stat .num"
+    const comments =
+      Array.isArray(data)
+        ? data
+        : (
+            data?.comments ||
+            data?.data ||
+            []
           );
 
 
-      if (number) {
-
-        number.textContent =
-          reel.views;
-      }
-    }
-
-
-    async function likeViewerReel(
-      index
-    ) {
-
-      const reel =
-        reels[index];
-
-
-      const article =
-        document
-          .querySelectorAll(
-            ".reel"
-          )[index];
-
-
-      const button =
-        article?.querySelector(
-          ".like"
-        );
-
-
-      if (!reel || !button) {
-        return;
-      }
-
-
-      const alreadyLiked =
-        button.classList.contains(
-          "liked"
-        );
-
-
-      reel.likes =
-        Math.max(
-          0,
-          (Number(reel.likes) || 0) +
-          (
-            alreadyLiked
-              ? -1
-              : 1
-          )
-        );
-
-
-      button.classList.toggle(
-        "liked",
-        !alreadyLiked
-      );
-
-
-      button.querySelector(
-        ".num"
-      ).textContent =
-        reel.likes;
-
-
-      try {
-
-        await api(
-          "/posts/" +
-          encodeURIComponent(
-            reel.id
-          ) +
-          "/like",
-          {
-            method: "POST"
-          }
-        );
-
-      } catch {
-
-        /* Mevcut davranış korunuyor. */
-
-      }
-    }
-
-
-    async function openViewerComments(
-      index
-    ) {
-
-      currentViewerComment =
-        index;
-
-
-      $("viewerComments")
-        .classList
-        .add("open");
-
-
-      const list =
-        $("viewerCommentsList");
-
-
-      list.innerHTML =
-        '<div class="loading">Yorumlar yükleniyor...</div>';
-
-
-      try {
-
-        const data =
-          await api(
-            "/posts/" +
-            encodeURIComponent(
-              reels[index].id
-            ) +
-            "/comments?ts=" +
-            Date.now()
-          );
-
-
-        const comments =
-          Array.isArray(data)
-            ? data
-            : (
-                data?.comments ||
-                data?.data ||
-                []
-              );
-
-
-        renderViewerComments(
-          comments
-        );
-
-
-      } catch {
-
-        list.innerHTML =
-          '<div class="comment-empty">Yorumlar alınamadı.</div>';
-
-      }
-    }
-
-
-    function renderViewerComments(
+    renderViewerComments(
       comments
-    ) {
+    );
 
-      const list =
-        $("viewerCommentsList");
+  } catch {
+
+    list.innerHTML =
+      '<div class="comment-empty">Yorumlar alınamadı.</div>';
+
+  }
+}
 
 
-      if (!comments.length) {
+function renderViewerComments(comments) {
 
-        list.innerHTML = `
+  const list =
+    $("viewerCommentsList");
 
-          <div class="comment-empty">
 
-            Henüz yorum yok.<br>
+  if (!comments.length) {
 
-            İlk yorumu sen yap.
+    list.innerHTML = `
+      <div class="comment-empty">
+        Henüz yorum yok.<br>
+        İlk yorumu sen yap.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  list.innerHTML =
+    comments
+      .map(comment => {
+
+        const user =
+          comment?.user ||
+          comment?.author ||
+          {};
+
+
+        const username =
+          String(
+            comment?.username ||
+            user?.username ||
+            "minegram"
+          )
+          .replace(/^@/,"");
+
+
+        const text =
+          comment?.text ||
+          comment?.comment ||
+          comment?.body ||
+          "";
+
+
+        const commentAvatar =
+          getAvatar(comment) ||
+          getAvatar(user);
+
+
+        const letter =
+          esc(
+            (username || "M")
+              .charAt(0)
+              .toUpperCase()
+          );
+
+
+        return `
+
+          <div class="comment">
+
+            <div class="comment-meta">
+
+              <div class="comment-avatar">
+
+                ${
+                  commentAvatar
+                    ? `
+                      <img
+                        src="${esc(commentAvatar)}"
+                        alt=""
+                        onerror="
+                          this.style.display='none';
+                          this.nextElementSibling.style.display='grid';
+                        "
+                      >
+
+                      <span style="display:none">
+                        ${letter}
+                      </span>
+                    `
+                    : letter
+                }
+
+              </div>
+
+
+              <div class="comment-body">
+
+                <b>
+                  @${esc(username)}
+                </b>
+
+                <p>
+                  ${esc(text)}
+                </p>
+
+                <div class="comment-actions">
+                  ${esc(
+                    comment?.createdAt ||
+                    comment?.created_at ||
+                    ""
+                  )}
+                </div>
+
+              </div>
+
+            </div>
 
           </div>
 
         `;
 
-        return;
+      })
+      .join("");
+}
+
+
+async function sendViewerComment() {
+
+  const commentInput =
+    $("viewerCommentInput");
+
+
+  const text =
+    commentInput.value.trim();
+
+
+  if (
+    !text ||
+    currentViewerComment === null
+  ) {
+    return;
+  }
+
+
+  try {
+
+    const reel =
+      reels[
+        currentViewerComment
+      ];
+
+
+    await api(
+      "/posts/" +
+      encodeURIComponent(
+        reel.id
+      ) +
+      "/comments",
+      {
+        method:"POST",
+        body:{text}
       }
+    );
 
 
-      list.innerHTML =
-        comments
-          .map(
-            comment => {
+    commentInput.value = "";
 
-              const user =
-                comment?.user ||
-                comment?.author ||
-                {};
 
+    await openViewerComments(
+      currentViewerComment
+    );
 
-              const username =
-                String(
-                  comment?.username ||
-                  user?.username ||
-                  "minegram"
-                )
-                  .replace(
-                    /^@/,
-                    ""
-                  );
+  } catch(error) {
 
+    alert(
+      error.message ||
+      "Yorum gönderilemedi"
+    );
 
-              const text =
-                comment?.text ||
-                comment?.comment ||
-                comment?.body ||
-                "";
+  }
+}
 
 
-              const commentAvatar =
-                getAvatar(comment) ||
-                getAvatar(user);
+function closeViewerComments() {
 
+  $("viewerComments")
+    .classList
+    .remove("open");
 
-              const letter =
-                esc(
-                  (username || "M")
-                    .charAt(0)
-                    .toUpperCase()
-                );
 
+  currentViewerComment =
+    null;
+}
 
-              return `
 
-                <div class="comment">
+async function shareViewerReel(index) {
 
-                  <div class="comment-meta">
+  const reel =
+    reels[index];
 
-                    <div class="comment-avatar">
 
-                      ${
-                        commentAvatar
+  const text =
+    "🎬 @" +
+    reel.username +
+    " Reels: " +
+    (reel.description || "");
 
-                          ? `
 
-                              <img
-                                src="${esc(commentAvatar)}"
-                                alt=""
-                                onerror="
-                                  this.style.display='none';
-                                  this.nextElementSibling.style.display='grid';
-                                "
-                              >
+  if (navigator.share) {
 
-                              <span style="display:none">
-                                ${letter}
-                              </span>
+    try {
 
-                            `
+      await navigator.share({
+        text
+      });
 
-                          : letter
-                      }
+    } catch {}
 
-                    </div>
+  } else {
 
+    try {
 
-                    <div class="comment-body">
+      await navigator.clipboard.writeText(
+        text
+      );
 
-                      <b>
-                        @${esc(username)}
-                      </b>
+    } catch {}
 
+  }
+}
 
-                      <p>
-                        ${esc(text)}
-                      </p>
 
+function closeViewer() {
 
-                      <div class="comment-actions">
+  closeViewerComments();
 
-                        ${esc(
-                          comment?.createdAt ||
-                          comment?.created_at ||
-                          ""
-                        )}
 
-                      </div>
+  if (viewerObserver) {
 
-                    </div>
+    viewerObserver.disconnect();
 
-                  </div>
+    viewerObserver =
+      null;
+  }
 
-                </div>
 
-              `;
+  document
+    .querySelectorAll(".reel-video")
+    .forEach(video => {
 
-            }
-          )
-          .join("");
-    }
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
 
+    });
 
-    async function sendViewerComment() {
 
-      const commentInput =
-        $("viewerCommentInput");
+  $("viewer")
+    .classList
+    .remove("show");
 
 
-      const text =
-        commentInput.value.trim();
+  document.body.style.overflow =
+    "";
 
 
-      if (
-        !text ||
-        currentViewerComment === null
-      ) {
+  $("viewerFeed").innerHTML =
+    "";
+}
 
-        return;
-      }
 
+/* =========================
+   SEARCH EVENTS
+========================= */
 
-      try {
+input.addEventListener(
+  "input",
+  () => {
 
-        const reel =
-          reels[
-            currentViewerComment
-          ];
+    clearTimeout(
+      searchTimer
+    );
 
 
-        await api(
-          "/posts/" +
-          encodeURIComponent(
-            reel.id
-          ) +
-          "/comments",
-          {
-            method: "POST",
+    selectedTag =
+      "";
 
-            body: {
-              text
-            }
-          }
-        );
 
+    searchTimer =
+      setTimeout(
+        () =>
+          doSearch(
+            input.value
+          ),
+        100
+      );
 
-        commentInput.value = "";
+  }
+);
 
 
-        await openViewerComments(
-          currentViewerComment
-        );
+clearButton.onclick = () => {
 
+  input.value =
+    "";
 
-      } catch (error) {
+  selectedTag =
+    "";
 
-        alert(
-          error.message ||
-          "Yorum gönderilemedi"
-        );
+  doSearch("");
 
-      }
-    }
+  input.focus();
+};
 
 
-    function closeViewerComments() {
+tagBack.onclick = () => {
 
-      $("viewerComments")
-        .classList
-        .remove("open");
+  selectedTag =
+    "";
 
+  tagBack.style.display =
+    "none";
 
-      currentViewerComment =
-        null;
-    }
+  doSearch(
+    input.value
+  );
+};
 
 
-    async function shareViewerReel(
-      index
+/* =========================
+   REFRESH
+========================= */
+
+let touchStartY = 0;
+
+
+document.addEventListener(
+  "touchstart",
+  event => {
+
+    touchStartY =
+      event.touches[0].clientY;
+
+  },
+  {passive:true}
+);
+
+
+document.addEventListener(
+  "touchend",
+  event => {
+
+    if (
+      window.scrollY <= 2 &&
+      event.changedTouches[0].clientY -
+      touchStartY >
+      100
     ) {
 
-      const reel =
-        reels[index];
+      loadData();
 
-
-      const text =
-        "🎬 @" +
-        reel.username +
-        " Reels: " +
-        (
-          reel.description ||
-          ""
-        );
-
-
-      if (navigator.share) {
-
-        try {
-
-          await navigator.share({
-            text
-          });
-
-        } catch {
-
-          /* Paylaşım iptal edildi. */
-
-        }
-
-      } else {
-
-        try {
-
-          await navigator.clipboard.writeText(
-            text
-          );
-
-        } catch {
-
-          /* Clipboard kullanılamadı. */
-
-        }
-      }
     }
 
-
-    function closeViewer() {
-
-      closeViewerComments();
-
-
-      if (viewerObserver) {
-
-        viewerObserver.disconnect();
-
-        viewerObserver =
-          null;
-      }
+  },
+  {passive:true}
+);
 
 
-      document
-        .querySelectorAll(
-          ".reel-video"
-        )
-        .forEach(
-          video => {
+/* =========================
+   START
+========================= */
 
-            video.pause();
+loadData();
 
-            video.removeAttribute(
-              "src"
-            );
-
-            video.load();
-
-          }
-        );
-
-
-      $("viewer")
-        .classList
-        .remove("show");
-
-
-      document.body.style.overflow =
-        "";
-
-
-      $("viewerFeed").innerHTML =
-        "";
-    }
-
-
-    input.addEventListener(
-      "input",
-      () => {
-
-        clearTimeout(
-          searchTimer
-        );
-
-
-        selectedTag =
-          "";
-
-
-        searchTimer =
-          setTimeout(
-            () =>
-              doSearch(
-                input.value
-              ),
-            100
-          );
-
-      }
-    );
-
-
-    clearButton.onclick = () => {
-
-      input.value =
-        "";
-
-      selectedTag =
-        "";
-
-      doSearch(
-        ""
-      );
-
-      input.focus();
-    };
-
-
-    tagBack.onclick = () => {
-
-      selectedTag =
-        "";
-
-
-      tagBack.style.display =
-        "none";
-
-
-      doSearch(
-        input.value
-      );
-    };
-
-
-    let touchStartY =
-      0;
-
-
-    document.addEventListener(
-      "touchstart",
-
-      event => {
-
-        touchStartY =
-          event.touches[0].clientY;
-
-      },
-
-      {
-        passive: true
-      }
-    );
-
-
-    document.addEventListener(
-      "touchend",
-
-      event => {
-
-        if (
-          window.scrollY <= 2 &&
-          event.changedTouches[0].clientY -
-            touchStartY >
-            100
-        ) {
-
-          loadData();
-
-        }
-
-      },
-
-      {
-        passive: true
-      }
-    );
-
-
-    loadData();
-
-  </script>
+</script>
 
 </body>
 </html>
