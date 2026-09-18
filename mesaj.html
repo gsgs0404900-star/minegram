@@ -4320,12 +4320,19 @@ async function sendData(data){
     );
 
    /*
-    * Mesajı burada SİLME.
-    * Firestore onSnapshot henüz belgeyi geri göndermeden
-    * local mesajı silersek ekranda mesaj boş/hiç yokmuş gibi
-    * görünebilir. Snapshot geldiğinde renderAll() zaten gerçek
-    * Firestore belgesini gösterecek.
+    * addDoc başarıyla tamamlandı. Firestore belgesinin gerçek ID'sini
+    * hemen kullanarak mesajı ekranda kesin olarak tutuyoruz.
+    * Böylece onSnapshot gecikse bile mavi mesaj balonu kaybolmaz.
     */
+   allMessages.delete(localId);
+   allMessages.set(
+    savedRef.id,
+    {
+     ...messageData,
+     _local:false
+    }
+   );
+   renderAll();
    return true;
   }catch(e){
    allMessages.delete(localId);
