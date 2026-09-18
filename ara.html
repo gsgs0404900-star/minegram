@@ -1349,84 +1349,98 @@ function postText(post){
    MEDIA
 ========================================================= */
 
-function mediaUrl(post){
+function mediaValue(value){
 
-  if(!post){
+  if(!value) return "";
+
+  if(typeof value === "string") return value;
+
+  if(Array.isArray(value)){
+    for(const item of value){
+      const found = mediaValue(item);
+      if(found) return found;
+    }
     return "";
   }
 
+  if(typeof value === "object"){
+    return (
+      value.url ||
+      value.src ||
+      value.uri ||
+      value.path ||
+      value.location ||
+      value.publicUrl ||
+      value.public_url ||
+      ""
+    );
+  }
+
+  return "";
+}
+
+
+function mediaUrl(post){
+
+  if(!post) return "";
+
   return (
-    post.image ||
-    post.image_url ||
-    post.imageUrl ||
-    post.photo ||
-    post.photo_url ||
-    post.media ||
-    post.media_url ||
-    post.mediaUrl ||
-    (post.media && typeof post.media === "object" ? (post.media.url || post.media.src || "") : "") ||
-    (post.video && typeof post.video === "object" ? (post.video.url || post.video.src || "") : "") ||
-    post.video ||
-    post.video_url ||
-    post.videoUrl ||
+    mediaValue(post.image) ||
+    mediaValue(post.image_url) ||
+    mediaValue(post.imageUrl) ||
+    mediaValue(post.photo) ||
+    mediaValue(post.photo_url) ||
+    mediaValue(post.media) ||
+    mediaValue(post.media_url) ||
+    mediaValue(post.mediaUrl) ||
+    mediaValue(post.video) ||
+    mediaValue(post.video_url) ||
+    mediaValue(post.videoUrl) ||
+    mediaValue(post.video_src) ||
+    mediaValue(post.video_url) ||
     ""
   );
-
 }
 
 
 function videoUrl(post){
 
-  if(!post){
-    return "";
-  }
+  if(!post) return "";
 
   return (
-    post.video ||
-    post.video_url ||
-    post.videoUrl ||
-    post.video_src ||
-    (
-      post.media_type === "video"
-        ? post.media
-        : ""
-    ) ||
-    (
-      post.type === "video"
-        ? post.media
-        : ""
-    ) ||
+    mediaValue(post.video) ||
+    mediaValue(post.video_url) ||
+    mediaValue(post.videoUrl) ||
+    mediaValue(post.video_src) ||
+    (post.media_type === "video" ? mediaValue(post.media) : "") ||
+    (post.mediaType === "video" ? mediaValue(post.media) : "") ||
+    (post.type === "video" ? mediaValue(post.media) : "") ||
+    (post.content_type === "video" ? mediaValue(post.media) : "") ||
     ""
   );
-
 }
 
 
 function isVideo(post){
 
-  if(!post){
-    return false;
-  }
+  if(!post) return false;
 
   if(
     post.is_reel === true ||
     post.isReel === true ||
     post.reel === true
-  ){
-    return true;
-  }
+  ) return true;
 
   if(
-    post.media_type === "video" ||
-    post.mediaType === "video" ||
-    post.type === "video" ||
-    post.content_type === "video"
-  ){
-    return true;
-  }
+    String(post.media_type || "").toLowerCase() === "video" ||
+    String(post.mediaType || "").toLowerCase() === "video" ||
+    String(post.type || "").toLowerCase() === "video" ||
+    String(post.content_type || "").toLowerCase() === "video" ||
+    String(post.mime_type || "").toLowerCase().startsWith("video/")
+  ) return true;
 
-  return Boolean(videoUrl(post));
-
+  const url = videoUrl(post);
+  return Boolean(url) && /\.(mp4|webm|mov|m4v|ogg)(?:[?#].*)?$/i.test(url);
 }
 
 
@@ -1923,13 +1937,16 @@ function renderHashtagResults(tag){
     feed.map(normalizePost);
 
   const matches =
-    normalizedFeed.filter(post =>
-      hasExactHashtag(
-        postText(post),
-        clean
-      ) &&
-      Boolean(mediaUrl(post) || videoUrl(post))
-    );
+    normalizedFeed.filter(post => {
+      const text = postText(post);
+      const media = mediaUrl(post);
+      const video = videoUrl(post);
+
+      return (
+        hasExactHashtag(text, clean) &&
+        Boolean(media || video || isVideo(post))
+      );
+    });
 
   /* Feed'de ayrı reel alanı/şekli varsa onu da dahil et. */
   for(const reel of reels){
@@ -1942,7 +1959,7 @@ function renderHashtagResults(tag){
     if(
       !exists &&
       hasExactHashtag(postText(normalized), clean) &&
-      Boolean(mediaUrl(normalized) || videoUrl(normalized))
+      Boolean(mediaUrl(normalized) || videoUrl(normalized) || isVideo(normalized))
     ){
       matches.push(normalized);
     }
