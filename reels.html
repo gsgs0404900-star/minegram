@@ -123,53 +123,25 @@ async function getMe(){
   reelShareMe=cleanUser(j?.username||j?.user?.username||j?.profile?.username||localStorage.getItem("username"));
  }catch{}
 }
-async function getUsers(){
+async function getUsers(query=""){
  try{
   const token=localStorage.getItem("minegram_token")||localStorage.getItem("minegram_supabase_token")||"";
-  const r=await fetch("/api/search?q=",{headers:{Authorization:"Bearer "+token},credentials:"same-origin"});
+  if(!query.trim()){reelShareUsers=[];return;}
+  const r=await fetch("/api/search?q="+encodeURIComponent(query.trim()),{headers:{Authorization:"Bearer "+token},credentials:"same-origin"});
   if(!r.ok)throw Error();
   const j=await r.json();
   const arr=Array.isArray(j)?j:(j?.users||j?.results||[]);
   reelShareUsers=[...new Set(arr.map(x=>cleanUser(x?.username||x)).filter(u=>u&&u.toLowerCase()!==reelShareMe.toLowerCase()))].slice(0,100);
  }catch{reelShareUsers=[]}
 }
-function paint(filter=""){
- const f=String(filter||"").toLowerCase();
- const arr=reelShareUsers.filter(u=>u.toLowerCase().includes(f));
+async function paint(filter=""){
+ const f=String(filter||"").trim();
+ if(!f){listEl.innerHTML="<div class='reel-share-loading'>Kullanıcı ara</div>";return}
+ listEl.innerHTML="<div class='reel-share-loading'>Kullanıcılar aranıyor...</div>";
+ await getUsers(f);
+ const arr=reelShareUsers;
  listEl.innerHTML=arr.length?arr.map(u=>`<div class="reel-share-user" data-user="${escShare(u)}">${avatar(u)}<div class="reel-share-meta"><b>@${escShare(u)}</b><small>Reels'i gönder</small></div><span class="reel-share-send">➤</span></div>`).join(""):"<div class='reel-share-loading'>Kullanıcı bulunamadı</div>";
  listEl.querySelectorAll("[data-user]").forEach(el=>el.onclick=()=>sendReelTo(el.dataset.user));
-}
-async function sendReelTo(user){
- const r=window.__minegramShareReel;
- const recipient=cleanUser(user);
- if(!r||!recipient)return;
- if(!reelShareMe||recipient.toLowerCase()===reelShareMe.toLowerCase()){listEl.innerHTML="<div class='reel-share-loading'>Geçerli bir alıcı seçilmedi</div>";return;}
- try{
-  listEl.innerHTML="<div class='reel-share-loading'>Gönderiliyor...</div>";
-  if(!reelShareAuth.currentUser)await signInAnonymously(reelShareAuth);
-  await addDoc(collection(reelShareDb,"chatMessages"),{
-   conversationKey:[reelShareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),
-   sender:reelShareMe,
-   recipient,
-   time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),
-   createdAt:Date.now(),
-   read:false,
-   type:"reel",
-   text:"🎬 @"+cleanUser(r.username)+" Reels: "+String(r.caption||""),
-   postId:String(r.id||""),
-   postUsername:cleanUser(r.username),
-   postText:String(r.caption||""),
-   postLikes:Number(r.likes||0),
-   postMediaUri:String(r.url||""),
-   postMediaType:"video",
-   postMediaBase64:null,
-   postCommentCount:Number(r.commentCount||0)
-  });
-  modal.classList.remove("show");
-  if(typeof window.toast==="function")window.toast("@"+recipient+" kullanıcısına gönderildi");
- }catch(e){
-  listEl.innerHTML="<div class='reel-share-loading'>Gönderilemedi. Tekrar deneyin.</div>";
- }
 }
 window.shareReel=async function(i){
  const r=window.__minegramReels?.[i];
@@ -178,9 +150,8 @@ window.shareReel=async function(i){
  modal.classList.add("show");
  listEl.innerHTML="<div class='reel-share-loading'>Kullanıcılar yükleniyor...</div>";
  await getMe();
- await getUsers();
  searchEl.value="";
- paint();
+ paint("");
 };
 document.getElementById("reelShareClose").onclick=()=>modal.classList.remove("show");
 modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});
