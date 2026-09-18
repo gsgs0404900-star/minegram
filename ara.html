@@ -954,366 +954,209 @@ opacity:.5;
 cursor:not-allowed
 }
 
-@media(max-width:699px){
+/* MENU */
 
-.topbar{
-height:62px;
-padding:0 14px
+.menu-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(0,0,0,.55)
 }
 
-.stories{
-height:84px;
-padding-left:14px
+.menu-backdrop.open{
+  display:flex
 }
 
-.feed{
-width:100%
+.post-menu{
+  width:min(520px,100%);
+  padding:10px;
+  border-radius:20px 20px 0 0;
+  background:#111
 }
 
-.post{
-margin:0 0 12px;
-border-left:0;
-border-right:0
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:95px;
+  z-index:15000;
+  transform:translateX(-50%);
+  padding:10px 15px;
+  border-radius:10px;
+  background:#222;
+  color:#fff;
+  font-size:13px;
+  display:none
 }
 
-.post-media{
-max-height:520px
+.toast.show{
+  display:block
 }
 
-.post-head{
-height:60px
-}
-
-.comments-sheet{
-height:82vh
-}
-
-.menu-backdrop .post-menu{
-right:8px;
-top:68px;
-width:min(340px,calc(100vw - 16px))
-}
-
-.emoji-row{
-padding-left:8px;
-padding-right:8px
-}
-
-.emoji-row button{
-width:36px;
-height:36px;
-font-size:24px
-}
-
-}
+/* RESPONSIVE */
 
 @media(min-width:700px){
+  .content,
+  .top{
+    max-width:700px;
+    margin:auto
+  }
 
-.nav{
-padding-left:calc((100% - 760px)/2);
-padding-right:calc((100% - 760px)/2)
+  .reel-phone{
+    width:390px
+  }
 }
 
+@media(max-width:699px){
+  .reel-phone{
+    width:100vw
+  }
+
+  .reel-back{
+    top:10px;
+    left:8px
+  }
+
+  .reel-info{
+    bottom:24px
+  }
+
+  .reel-actions{
+    bottom:105px
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="app">
+<header class="top">
+  <div class="title">Ara</div>
 
-<!-- LOGIN -->
+  <div class="search">
+    <span class="search-icon">⌕</span>
 
-<section id="login" class="login hidden">
+    <button
+      type="button"
+      class="tag-back"
+      id="tagBack"
+      aria-label="Geri"
+    >‹</button>
 
-<h1>Minegram</h1>
+    <input
+      id="sq"
+      autocomplete="off"
+      placeholder="#etiket veya kullanıcı adı ara"
+    >
 
-<input
-id="lu"
-class="field"
-placeholder="Kullanıcı adı, e-posta veya telefon"
-autocomplete="username"
->
-
-<input
-id="lp"
-class="field"
-type="password"
-placeholder="Şifre"
-autocomplete="current-password"
->
-
-<button
-class="login-btn"
-onclick="login()"
->
-Giriş Yap
-</button>
-
-<div class="forgot">
-<a
-href="#"
-onclick="forgot();return false"
->
-Şifremi unuttum
-</a>
-</div>
-
-</section>
-
-
-<!-- HOME -->
-
-<section id="home" class="hidden">
-
-<header class="topbar">
-
-<div class="logo">
-Minegram
-</div>
-
-<div class="top-actions">
-
-<button
-class="icon-btn"
-onclick="location.href='bildirimler.html'"
-aria-label="Bildirimler"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-<path d="M10 21h4"/>
-
-</svg>
-
-</button>
-
-
-<button
-class="icon-btn"
-onclick="location.href='mesajlar.html'"
-aria-label="Mesajlar"
->
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<path d="M22 2 11 13"/>
-<path d="m22 2-7 20-4-9-9-4Z"/>
-
-</svg>
-
-</button>
-
-</div>
-
+    <button
+      type="button"
+      class="clear"
+      id="clear"
+      aria-label="Temizle"
+    >×</button>
+  </div>
 </header>
 
-
-<!-- STORIES -->
-
-<div class="stories">
-
-<div class="story">
-
-<div class="avatar">
-
-M
-
-<span class="plus">
-+
-</span>
-
-</div>
-
-<div>
-Hikayen
-</div>
-
-</div>
-
-</div>
-
-
-<!-- FEED -->
-
-<div
-id="feed"
-class="feed"
->
-
-<div class="empty">
-Yükleniyor...
-</div>
-
-</div>
-
-</section>
-
-
-<!-- BOTTOM NAV -->
-
-<nav
-id="bottomNav"
-class="nav hidden"
->
-
-<a
-class="active"
-href="index.html"
->
-
-<span class="nav-icon">
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
-
-</svg>
-
-</span>
-
-Ana Sayfa
-
-</a>
-
-
-<a href="ara.html">
-
-<span class="nav-icon">
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<circle
-cx="11"
-cy="11"
-r="6.5"
-/>
-
-<path d="m16 16 5 5"/>
-
-</svg>
-
-</span>
-
-Ara
-
-</a>
-
-
-<a href="olustur.html">
-
-<span class="nav-icon">
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<rect
-x="4"
-y="4"
-width="16"
-height="16"
-rx="4"
-/>
-
-<path d="M12 8v8M8 12h8"/>
-
-</svg>
-
-</span>
-
-Oluştur
-
-</a>
-
-
-<a href="reels.html">
-
-<span class="nav-icon">
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<rect
-x="3"
-y="4"
-width="18"
-height="16"
-rx="2"
-/>
-
-<path d="M3 9h18M8 4l3 5M13 4l3 5"/>
-
-</svg>
-
-</span>
-
-Reels
-
-</a>
-
-
-<a href="profile.html">
-
-<span class="nav-icon">
-
-<svg
-class="svg"
-viewBox="0 0 24 24"
->
-
-<circle
-cx="12"
-cy="8"
-r="3.5"
-/>
-
-<path d="M5 20a7 7 0 0 1 14 0"/>
-
-</svg>
-
-</span>
-
-Profil
-
-</a>
+<main id="content" class="content"></main>
+
+<nav class="nav">
+
+  <a href="index.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="M3 11.5 12 4l9 7.5"></path>
+        <path d="M5 10.5V20h14v-9.5"></path>
+      </svg>
+    </span>
+    Ana Sayfa
+  </a>
+
+  <a href="ara.html" class="active">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6"></circle>
+        <path d="m16 16 5 5"></path>
+      </svg>
+    </span>
+    Ara
+  </a>
+
+  <a href="kesfet.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="m4 20 5-11 11-5-5 11-11 5Z"></path>
+        <circle cx="14.5" cy="9.5" r="1.5"></circle>
+      </svg>
+    </span>
+    Keşfet
+  </a>
+
+  <a href="paylas.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="M12 5v14"></path>
+        <path d="M5 12h14"></path>
+      </svg>
+    </span>
+    Paylaş
+  </a>
+
+  <a href="bildirimler.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+        <path d="M10 21h4"></path>
+      </svg>
+    </span>
+    Bildirim
+  </a>
+
+  <a href="profil.html">
+    <span class="nav-icon">
+      <svg class="svg" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 21c1.5-4 4-6 8-6s6.5 2 8 6"></path>
+      </svg>
+    </span>
+    Profil
+  </a>
 
 </nav>
 
+<!-- REEL VIEWER -->
+
+<div class="reel-viewer" id="viewer">
+
+  <div class="reel-viewer-shell">
+
+    <div class="reel-phone">
+
+      <div id="viewerFeed" class="reel-feed"></div>
+
+    </div>
+
+  </div>
+
 </div>
 
-
-<!-- POST MENU -->
+<!-- MENU -->
 
 <div
-id="menuBackdrop"
-class="menu-backdrop"
-onclick="closeMenu(event)"
+  id="menuBackdrop"
+  class="menu-backdrop"
+  onclick="closeMenu(event)"
 >
 
-<div
-id="postMenu"
-class="post-menu"
-></div>
+  <div
+    id="postMenu"
+    class="post-menu"
+    onclick="event.stopPropagation()"
+  ></div>
 
 </div>
-
 
 <!-- COMMENTS -->
 
@@ -1486,8 +1329,8 @@ onclick="sendComment()"
 </div>
 
 
-
-<div id="toast" class="toast"></div>
+<div
+id="toast" class="toast"></div>
 
 <script>
 
@@ -1519,11 +1362,6 @@ let searchTimer = null;
 
 let viewerObserver = null;
 let currentViewerComment = null;
-
-let currentCommentPost = null;
-let currentCommentSort = "forYou";
-let replyingTo = null;
-
 
 const viewerSeen = new Set();
 
@@ -3407,12 +3245,7 @@ async function likeViewerReel(
 }
 
 
-/* YORUMLAR */
-
-/* =====================================================
-   LOCAL COMMENTS
-===================================================== */
-
+let currentCommentPost = null;
 function localCommentsKey(id){
 
 return 'minegram_comments_'+
@@ -3644,81 +3477,6 @@ refreshComments(false);
 }
 
 
-
-/* =====================================================
-   LOCAL -> SERVER SYNC
-===================================================== */
-
-async function syncLegacyLocalCommentsToServer(id){
-
-const local=getLocalComments(id);
-
-const pending=local.filter(c=>
-c &&
-(c.local===true || String(c.id||"").startsWith("local-")) &&
-c.text
-);
-
-for(const c of pending){
-
-try{
-
-const result=await api(
-'/posts/'+
-encodeURIComponent(id)+
-'/comments',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify({
-text:String(c.text).trim()
-})
-}
-);
-
-const returned=
-result?.comment||
-result?.data||
-result;
-
-if(returned&&returned.id){
-
-c.id=returned.id;
-c.local=false;
-c.username=
-returned.username||
-returned.user?.username||
-c.username;
-c.text=returned.text||c.text;
-c.createdAt=
-returned.createdAt||
-returned.created_at||
-c.createdAt;
-
-}else{
-
-c.local=false;
-
-}
-
-}catch(e){}
-
-}
-
-try{
-
-localStorage.setItem(
-localCommentsKey(id),
-JSON.stringify(local.slice(-100))
-);
-
-}catch(e){}
-
-}
-
-
 /* =====================================================
    REFRESH COMMENTS
 ===================================================== */
@@ -3750,26 +3508,18 @@ getLocalComments(id)
 
 try{
 
-await syncLegacyLocalCommentsToServer(id);
-
 const p=
 await api(
 '/posts/'+
-encodeURIComponent(id)+
-'/comments?ts='+
-Date.now()
+encodeURIComponent(id)
 );
 
 const remote=
-Array.isArray(p)
-?p
-:(Array.isArray(p.comments)
+Array.isArray(p.comments)
 ?p.comments
-:(Array.isArray(p.data)
-?p.data
-:(Array.isArray(p.items)
-?p.items
-:[])));
+:(Array.isArray(p.post?.comments)
+?p.post.comments
+:[]);
 
 
 list.innerHTML=
@@ -3789,7 +3539,7 @@ id
    OPEN COMMENTS
 ===================================================== */
 
-async function openComments(
+async function openPostCommentsById(
 id
 ){
 
@@ -4019,7 +3769,7 @@ ${initial}
 
 <div
 class="comment-user"
-onclick="location.href='${profileUrl(u)}'"
+onclick="location.href='${'profil.html?username='+encodeURIComponent(u)}'"
 >
 @${u}
 </div>
@@ -4306,11 +4056,7 @@ sendButton.disabled=true;
 }
 
 
-const me=
-typeof currentUser==='object'&&
-currentUser
-?currentUser
-:{};
+const me={username:currentUsername};
 
 
 const username=
@@ -4470,7 +4216,7 @@ input.placeholder=
 'Bunun hakkında ne düşünüyorsun?';
 
 
-showToast(
+toast(
 replyId
 ?'Yanıt gönderildi'
 :'Yorum gönderildi'
@@ -4627,7 +4373,6 @@ refreshComments(false);
 
 
 
-
 }catch(e){
 
 const local=
@@ -4701,7 +4446,7 @@ local
 }
 
 
-showToast(
+toast(
 e.message||
 'Gönderilemedi'
 );
@@ -4728,7 +4473,7 @@ async function likeComment(id){
 
 if(!id){
 
-showToast(
+toast(
 'Yorum kimliği bulunamadı'
 );
 
@@ -4830,7 +4575,7 @@ nextLiked
 :'♡';
 
 
-showToast(
+toast(
 nextLiked
 ?'Yorum beğenildi'
 :'Yorum beğenisi kaldırıldı'
@@ -4855,7 +4600,7 @@ wasLiked
 :'♡';
 
 
-showToast(
+toast(
 e.message||
 'Yorum beğenisi işlemi başarısız'
 );
@@ -4871,6 +4616,20 @@ btn.dataset.loading='0';
 
 
 
+/* REELS YORUM AÇMA */
+async function openComments(index){
+  currentViewerComment = index;
+  const reel = reels[index];
+  if(!reel){
+    $("commentsModal").classList.add("open");
+    $("commentList").innerHTML = `<div class="empty">Yorum bulunamadı.</div>`;
+    return;
+  }
+  const id = postId(reel.raw) || reel.id;
+  currentCommentPost = id;
+  await openPostCommentsById(id);
+}
+/* PAYLAŞ */
 
 async function shareViewerReel(
   index
