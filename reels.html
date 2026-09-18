@@ -398,6 +398,210 @@ async function loadReels(){
 window.addEventListener('DOMContentLoaded',function(){
   loadReels();
 });
+
+ // ===============================
+// REELS YORUM SİSTEMİ
+// ===============================
+
+async function openComments(i){
+    const reel = window.__minegramReels?.[i];
+    if(!reel) return;
+
+    currentCommentReel = reel;
+
+    document.getElementById("comments").classList.add("open");
+    document.getElementById("commentsList").innerHTML =
+        "<div class='comment-empty'>Yorumlar yükleniyor...</div>";
+
+    await loadComments(reel.id);
+}
+
+
+async function loadComments(id){
+
+    const box=document.getElementById("commentsList");
+
+    try{
+
+        const data=await api(
+            "/api/posts/"+encodeURIComponent(id)+"/comments"
+        );
+
+        const list =
+            Array.isArray(data)
+            ? data
+            : (data.comments || data.items || []);
+
+        if(!list.length){
+            box.innerHTML=
+            "<div class='comment-empty'>Henüz yorum yok</div>";
+            return;
+        }
+
+
+        box.innerHTML=list.map(c=>{
+
+            const user =
+                c.username ||
+                c.user?.username ||
+                c.author?.username ||
+                "kullanıcı";
+
+
+            const text =
+                c.text ||
+                c.comment ||
+                c.content ||
+                "";
+
+
+            return `
+            <div class="comment">
+
+                <div class="comment-meta">
+
+                    <div class="comment-avatar">
+                        ${(c.avatar || c.user?.avatar)
+                        ?
+                        `<img src="${esc(c.avatar || c.user.avatar)}">`
+                        :
+                        user.charAt(0).toUpperCase()
+                        }
+                    </div>
+
+                    <div class="comment-body">
+
+                        <b>@${esc(user)}</b>
+
+                        <p>${esc(text)}</p>
+
+
+                        <div class="comment-actions">
+
+                            <span>
+                            ${c.createdAt || ""}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+            `;
+
+        }).join("");
+
+    }catch(e){
+
+        box.innerHTML=
+        "<div class='comment-empty'>Yorumlar yüklenemedi</div>";
+
+    }
+
+}
+
+
+
+function closeComments(){
+
+    document
+    .getElementById("comments")
+    .classList.remove("open");
+
+    currentCommentReel=null;
+
+}
+
+
+
+async function sendComment(){
+
+    const input=document.getElementById("commentInput");
+
+    const text=input.value.trim();
+
+    if(!text || !currentCommentReel)
+        return;
+
+
+    try{
+
+
+        await api(
+        "/api/posts/"
+        +encodeURIComponent(currentCommentReel.id)
+        +"/comments",
+        {
+            method:"POST",
+            body:{
+                text:text
+            }
+        });
+
+
+        input.value="";
+
+
+        await loadComments(currentCommentReel.id);
+
+
+        // ekrandaki yorum sayısını artır
+        const index =
+        reels.findIndex(
+            x=>String(x.id)===String(currentCommentReel.id)
+        );
+
+
+        if(index>-1){
+
+            reels[index].commentCount =
+            (reels[index].commentCount || 0)+1;
+
+
+            const count =
+            document.querySelector(
+            '.reel[data-id="'+currentCommentReel.id+'"] .comment-count'
+            );
+
+            if(count)
+            count.textContent =
+            reels[index].commentCount;
+
+        }
+
+
+
+    }catch(e){
+
+        toast(
+        e.message ||
+        "Yorum gönderilemedi"
+        );
+
+    }
+
+}
+
+
+// Enter ile yorum gönderme
+document.addEventListener("keydown",function(e){
+
+    if(e.key==="Enter"){
+
+        const input=
+        document.getElementById("commentInput");
+
+        if(document.activeElement===input){
+
+            sendComment();
+
+        }
+
+    }
+
+});
 </script>
 
 
