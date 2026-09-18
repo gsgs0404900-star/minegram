@@ -824,28 +824,42 @@ main{
   }
 }
 </style>
-<style id="hashtag-grid-only">
-.hashtag-grid .hashtag-tile{
+<style id="search-post-reel-results">
+.search-content-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:2px;
+}
+.search-result-tile{
   position:relative;
   overflow:hidden;
+  aspect-ratio:1/1;
+  background:#111;
 }
-.hashtag-grid .hashtag-tile video{
+.search-result-tile > img.reel-cover,
+.search-result-tile > img:not(.avatar){
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.search-result-tile > video.reel-cover{
   width:100%;
   height:100%;
   object-fit:cover;
   display:block;
   background:#111;
 }
-.hashtag-tile-badge{
+.reel-badge{
   position:absolute;
   top:8px;
-  left:8px;
-  z-index:5;
-  padding:4px 8px;
-  border-radius:12px;
+  right:8px;
+  z-index:4;
+  padding:4px 7px;
+  border-radius:10px;
   background:rgba(0,0,0,.72);
   color:#fff;
-  font-size:11px;
+  font-size:10px;
   font-weight:700;
   pointer-events:none;
 }
@@ -1395,6 +1409,35 @@ function videoUrl(post){
 }
 
 
+function reelCoverUrl(post){
+
+  if(!post){
+    return "";
+  }
+
+  return (
+    post.cover ||
+    post.cover_url ||
+    post.coverUrl ||
+    post.thumbnail ||
+    post.thumbnail_url ||
+    post.thumbnailUrl ||
+    post.poster ||
+    post.poster_url ||
+    post.posterUrl ||
+    post.preview ||
+    post.preview_url ||
+    post.previewUrl ||
+    post.image ||
+    post.image_url ||
+    post.imageUrl ||
+    post.photo ||
+    post.photo_url ||
+    ""
+  );
+
+}
+
 function isVideo(post){
 
   if(!post){
@@ -1627,14 +1670,14 @@ async function searchUsers(query){
   if(!clean){
 
     renderDiscovery();
-
     return;
 
   }
 
   currentSearch = clean;
-
   showLoading();
+
+  let result = [];
 
   try{
 
@@ -1644,23 +1687,16 @@ async function searchUsers(query){
         encodeURIComponent(clean)
       );
 
-    const result =
+    result =
       unwrapArray(data)
         .map(normalizeUser)
         .filter(user => user.username);
 
     users = result;
 
-    renderUsers(result);
-
   }catch(error){
 
     console.error(error);
-
-    /*
-      API araması çalışmazsa mevcut feed
-      içerisindeki kullanıcıları da kontrol et.
-    */
 
     const fallback =
       feed
@@ -1679,23 +1715,15 @@ async function searchUsers(query){
           });
 
         })
-        .filter(user => {
-
-          return (
-            user.username &&
-            user.username
-              .toLowerCase()
-              .includes(
-                clean.toLowerCase()
-              )
-          );
-
-        });
+        .filter(user =>
+          user.username &&
+          user.username
+            .toLowerCase()
+            .includes(clean.toLowerCase())
+        );
 
     const unique = [];
-
-    const seen =
-      new Set();
+    const seen = new Set();
 
     for(const user of fallback){
 
@@ -1711,12 +1739,214 @@ async function searchUsers(query){
 
     }
 
-    renderUsers(unique);
+    result = unique;
+    users = unique;
 
   }
 
-}
+  /*
+    # işareti yoksa arama sonucu sadece kullanıcılarla sınırlı kalmasın.
+    Gönderi ve Reels de aransın.
+    Hashtag etiketi kartın üstüne eklenmez.
+  */
+  const q =
+    clean.toLowerCase();
 
+  const contentMatches =
+    feed
+      .map(normalizePost)
+      .filter(post => {
+
+        const username =
+          postUsername(post).toLowerCase();
+
+        const text =
+          postText(post).toLowerCase();
+
+        return (
+          Boolean(mediaUrl(post)) &&
+          (
+            username.includes(q) ||
+            text.includes(q)
+          )
+        );
+
+      });
+
+  if(!result.length && !contentMatches.length){
+
+    content.innerHTML = `
+      <div class="state">
+        Arama sonucu bulunamadı.
+      </div>
+    `;
+
+    return;
+
+  }
+
+  tagBack.style.display = "none";
+
+  const usersHtml =
+    result.length
+      ? `
+        <div class="page-info">
+          <div class="page-info-title">Kullanıcılar</div>
+          <div class="page-info-sub">Kullanıcı, gönderi ve Reels sonuçları</div>
+        </div>
+
+        <div class="users">
+          ${result.map(user => {
+
+            const username =
+              String(user.username || "")
+                .replace(/^@/,"");
+
+            const userStories =
+              storyFor(username);
+
+            const hasStory =
+              !user.private &&
+              userStories.length > 0;
+
+            return `
+              <div
+                class="user"
+                data-username="${esc(username)}"
+                onclick="openUserFromElement(this)"
+              >
+                ${avatarHtml(
+                  user.avatar,
+                  username,
+                  hasStory
+                )}
+
+                <div class="user-info">
+                  <div class="user-name-row">
+                    <div class="username">
+                      @${esc(username)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+          }).join("")}
+        </div>
+      `
+      : "";
+
+  const contentHtml =
+    contentMatches.length
+      ? `
+        <div class="page-info search-content-info">
+          <div class="page-info-title">Gönderiler</div>
+        </div>
+
+        <div class="grid search-content-grid">
+          ${contentMatches.map(post => {
+
+            const id =
+              String(post.id || "");
+
+            const username =
+              postUsername(post);
+
+            const caption =
+              postText(post);
+
+            const reel =
+              isVideo(post);
+
+            const reelCover =
+              reelCoverUrl(post);
+
+            const image =
+              mediaUrl(post);
+
+            const reelIndex =
+              reels.findIndex(
+                reelPost =>
+                  String(reelPost.id) === id
+              );
+
+            return `
+              <div
+                class="tile search-result-tile"
+                data-post-id="${esc(id)}"
+                onclick="${
+                  reel && reelIndex >= 0
+                    ? `openReel(${reelIndex})`
+                    : `openPostById('${esc(id)}')`
+                }"
+              >
+
+                ${
+                  reel
+                    ? (
+                        reelCover
+                          ? `
+                            <img
+                              src="${esc(reelCover)}"
+                              alt=""
+                              loading="lazy"
+                              class="reel-cover"
+                              onerror="this.style.display='none'"
+                            >
+                          `
+                          : `
+                            <video
+                              src="${esc(videoUrl(post))}"
+                              muted
+                              playsinline
+                              preload="metadata"
+                              class="reel-cover"
+                            ></video>
+                          `
+                      )
+                    : `
+                        <img
+                          src="${esc(image)}"
+                          alt=""
+                          loading="lazy"
+                          onerror="this.style.display='none'"
+                        >
+                      `
+                }
+
+                ${
+                  reel
+                    ? `<div class="reel-badge">Reels</div>`
+                    : ""
+                }
+
+                <div class="tile-info">
+                  ${
+                    username
+                      ? `<div class="tile-user">@${esc(username)}</div>`
+                      : ""
+                  }
+
+                  ${
+                    caption
+                      ? `<div class="tile-caption">${hashtagHtml(caption)}</div>`
+                      : ""
+                  }
+                </div>
+
+              </div>
+            `;
+
+          }).join("")}
+        </div>
+      `
+      : "";
+
+  content.innerHTML =
+    usersHtml +
+    contentHtml;
+
+}
 
 /* =========================================================
    RENDER USERS
@@ -1939,71 +2169,235 @@ function renderDiscovery(){
 
 function renderHashtagResults(tag){
 
-  const clean = String(tag || "").replace(/^#/,"").trim();
+  const clean =
+    String(tag || "")
+      .replace(/^#/,"")
+      .trim();
+
   currentTag = clean;
+
   tagBack.style.display = "block";
 
-  const matches = feed
-    .map(normalizePost)
-    .filter(post => {
-      const text = postText(post);
-      return Boolean(mediaUrl(post)) && hasExactHashtag(text, clean);
-    });
+  /*
+    SADECE GERÇEKTEN O HASHTAG'İ KULLANANLAR.
+  */
+
+  const matches =
+    feed
+      .map(normalizePost)
+      .filter(post => {
+
+        const text =
+          postText(post);
+
+        return (
+          Boolean(text) &&
+          hasExactHashtag(
+            text,
+            clean
+          )
+        );
+
+      });
+
+  /*
+    Hashtag aramasında:
+    - hashtag kullanan normal gönderiler gösterilir
+    - hashtag kullanan Reels de gösterilir
+    - hashtag kullanmayan hiçbir içerik gösterilmez
+  */
 
   if(!matches.length){
+
     content.innerHTML = `
-      <div class="page-info">
-        <div class="page-info-title">#${esc(clean)}</div>
-        <div class="page-info-sub">Bu hashtag'i kullanan gönderi bulunamadı.</div>
+
+      <div class="hashtag-header">
+
+        <div class="hashtag-title">
+          #${esc(clean)}
+        </div>
+
+        <div class="hashtag-count">
+          0 gönderi
+        </div>
+
       </div>
+
+      <div class="hashtag-no-result">
+
+        Bu hashtag'i kullanan
+        gönderi bulunamadı.
+
+      </div>
+
     `;
+
     return;
+
   }
 
   content.innerHTML = `
-    <div class="page-info">
-      <div class="page-info-title">#${esc(clean)}</div>
-      <div class="page-info-sub">${matches.length} gönderi</div>
+
+    <div class="hashtag-header">
+
+      <div class="hashtag-title">
+        #${esc(clean)}
+      </div>
+
+      <div class="hashtag-count">
+        ${matches.length} gönderi
+      </div>
+
     </div>
 
-    <div class="grid hashtag-grid">
+    <div class="hashtag-feed">
+
       ${matches.map(post => {
 
-        const id = String(post.id || "");
-        const username = postUsername(post);
-        const caption = postText(post);
-        const image = mediaUrl(post);
-        const video = isVideo(post);
-        const videoSrc = videoUrl(post) || image;
-        const safeId = esc(id);
+        const id =
+          String(post.id || "");
+
+        const username =
+          postUsername(post);
+
+        const avatar =
+          postAvatar(post);
+
+        const caption =
+          postText(post);
+
+        const video =
+          isVideo(post);
+
+        const image =
+          mediaUrl(post);
+
+        const videoSrc =
+          videoUrl(post);
+
+        const created =
+          formatDate(
+            post.created_at
+          );
+
+        let reelIndex = -1;
+
+        if(video){
+
+          reelIndex =
+            reels.findIndex(
+              reel =>
+                String(reel.id) === id
+            );
+
+        }
+
+        const safeId =
+          esc(id);
 
         return `
-          <div
-            class="tile hashtag-tile"
+
+          <article
+            class="hashtag-post"
             data-post-id="${safeId}"
-            onclick="${
-              video
-                ? `openReel(${reels.findIndex(reel => String(reel.id) === id)})`
-                : `openPostById('${safeId}')`
-            }"
           >
+
+            <div class="hashtag-post-head">
+
+              ${avatarHtml(
+                avatar,
+                username || "U",
+                false
+              )}
+
+              <div class="hashtag-post-user">
+
+                <div class="hashtag-post-username">
+
+                  ${
+                    username
+                      ? "@"+esc(username)
+                      : "Kullanıcı"
+                  }
+
+                </div>
+
+                ${
+                  created
+                    ? `
+                      <div class="hashtag-post-time">
+                        ${esc(created)}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            </div>
+
+
+            <div
+              class="hashtag-post-media"
+              onclick="${
+                video
+                  ? `openReel(${reelIndex})`
+                  : `openPostById('${safeId}')`
+              }"
+            >
+
+              ${
+                video
+                  ? `
+
+                    <video
+                      src="${esc(videoSrc || image)}"
+                      muted
+                      playsinline
+                      preload="metadata"
+                      controls
+                    ></video>
+
+                    <div class="hashtag-video-badge">
+                      REELS
+                    </div>
+
+                  `
+                  : `
+
+                    <img
+                      src="${esc(image)}"
+                      alt=""
+                      loading="lazy"
+                      onerror="this.style.display='none'"
+                    >
+
+                  `
+              }
+
+            </div>
+
+
             ${
-              video
-                ? `<video src="${esc(videoSrc)}" muted playsinline preload="metadata"></video>`
-                : `<img src="${esc(image)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+              caption
+                ? `
+                  <div class="hashtag-post-caption">
+                    ${hashtagHtml(caption)}
+                  </div>
+                `
+                : ""
             }
 
-            <div class="hashtag-tile-badge">#${esc(clean)}</div>
+          </article>
 
-            <div class="tile-info">
-              ${username ? `<div class="tile-user">@${esc(username)}</div>` : ""}
-              ${caption ? `<div class="tile-caption">${hashtagHtml(caption)}</div>` : ""}
-            </div>
-          </div>
         `;
+
       }).join("")}
+
     </div>
+
   `;
+
 }
 
 
