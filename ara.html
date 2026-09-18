@@ -1260,9 +1260,106 @@ onclick="sendComment()"
 </div>
 
 </div>
-
-
+    
   <script>
+
+ /* =====================================================
+   YORUMLAR MODALI
+===================================================== */
+
+let currentCommentPostId = null;
+
+
+/* YORUMLARI AÇ */
+function openComments(postId = null) {
+
+    currentCommentPostId = postId;
+
+    const modal = document.getElementById('commentsModal');
+
+    if (!modal) {
+        console.error('❌ commentsModal bulunamadı!');
+        return;
+    }
+
+    modal.classList.add('show');
+
+    document.body.style.overflow = 'hidden';
+
+    renderComments();
+}
+
+
+/* YORUMLARI KAPAT */
+function closeComments(event) {
+
+    // İçeriğe tıklayınca kapanmasın
+    if (
+        event &&
+        event.target !== event.currentTarget
+    ) {
+        return;
+    }
+
+    const modal = document.getElementById('commentsModal');
+
+    if (!modal) return;
+
+    modal.classList.remove('show');
+
+    document.body.style.overflow = '';
+
+    currentCommentPostId = null;
+}
+
+
+/* YORUMLARI GÖSTER */
+function renderComments() {
+
+    const list = document.getElementById('commentList');
+
+    if (!list) return;
+
+    list.innerHTML = `
+        <div style="
+            text-align:center;
+            padding:40px 15px;
+            color:#888;
+        ">
+            Henüz yorum yok.
+        </div>
+    `;
+}
+
+
+/* YORUM GÖNDER */
+function sendComment() {
+
+    const input = document.getElementById('commentInput');
+
+    if (!input) return;
+
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    console.log('Yorum:', text);
+    console.log('Post ID:', currentCommentPostId);
+
+    input.value = '';
+
+    renderComments();
+}
+
+
+/* YORUM SIRALAMA */
+function changeCommentSort(type) {
+
+    console.log('Yorum sıralaması:', type);
+
+    renderComments();
+}
+    
     /* =========================================================
        1. API / GLOBAL DEĞİŞKENLER
     ========================================================= */
