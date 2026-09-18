@@ -1084,16 +1084,6 @@ cursor:not-allowed
     Ara
   </a>
 
-  <a href="kesfet.html">
-    <span class="nav-icon">
-      <svg class="svg" viewBox="0 0 24 24">
-        <path d="m4 20 5-11 11-5-5 11-11 5Z"></path>
-        <circle cx="14.5" cy="9.5" r="1.5"></circle>
-      </svg>
-    </span>
-    Keşfet
-  </a>
-
   <a href="paylas.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
@@ -3566,6 +3556,14 @@ document
 )
 .classList.add('open');
 
+document
+.getElementById(
+'commentsModal'
+)
+.style.zIndex='99999';
+
+document.body.style.overflow='hidden';
+
 
 const list=
 document.getElementById(
@@ -3643,6 +3641,13 @@ document
 .classList.remove('open');
 
 currentCommentPost=null;
+
+currentViewerComment=null;
+
+document.body.style.overflow =
+  document.getElementById('viewer')?.classList.contains('show')
+    ? 'hidden'
+    : '';
 
 }
 
@@ -4619,14 +4624,40 @@ btn.dataset.loading='0';
 /* REELS YORUM AÇMA */
 async function openComments(index){
   currentViewerComment = index;
+
+  const modal = $("commentsModal");
+  const list = $("commentList");
+
+  /* Yorum penceresi butona basıldığı anda açılsın */
+  modal.classList.add("open");
+  modal.style.zIndex = "99999";
+  document.body.style.overflow = "hidden";
+
+  if(list){
+    list.innerHTML = `<div class="comment-empty">Yorumlar yükleniyor...</div>`;
+  }
+
   const reel = reels[index];
+
   if(!reel){
-    $("commentsModal").classList.add("open");
-    $("commentList").innerHTML = `<div class="empty">Yorum bulunamadı.</div>`;
+    if(list){
+      list.innerHTML = `<div class="comment-empty">Yorum bulunamadı.</div>`;
+    }
     return;
   }
+
   const id = postId(reel.raw) || reel.id;
+
+  if(!id){
+    if(list){
+      list.innerHTML = `<div class="comment-empty">Yorum bulunamadı.</div>`;
+    }
+    return;
+  }
+
   currentCommentPost = id;
+
+  /* Modalı ikinci kez kapatıp açma; sadece içeriği yükle */
   await openPostCommentsById(id);
 }
 /* PAYLAŞ */
