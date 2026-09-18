@@ -622,6 +622,12 @@ button{
   font-weight:700
 }
 
+/* Yorum yoksa sayı alanı hiç oluşturulmaz */
+.reel-action.comment-action .num{
+  display:inline-block;
+  min-height:0;
+}
+
 /* REEL USER INFO */
 
 .reel-info{
@@ -1562,6 +1568,32 @@ function postId(post){
 }
 
 
+/* YORUM SAYISI - SADECE YORUM VARSA GÖSTER */
+function getPostCommentCount(post){
+
+  const direct =
+    post?.commentCount ??
+    post?.comment_count ??
+    post?.commentsCount ??
+    post?.comments_count;
+
+  if(direct !== undefined && direct !== null && direct !== "") {
+    const n = Number(direct);
+    if(Number.isFinite(n) && n > 0) return n;
+  }
+
+  if(Array.isArray(post?.comments)){
+    return post.comments.length;
+  }
+
+  if(Array.isArray(post?.commentList)){
+    return post.commentList.length;
+  }
+
+  return 0;
+}
+
+
 function avatarHtml(url, username, story = false){
 
   const letter = esc(
@@ -1930,11 +1962,7 @@ function normalizeReels(){
             ),
 
           commentCount:
-            Number(
-              post?.commentCount ||
-              post?.comment_count ||
-              0
-            ),
+            getPostCommentCount(post),
 
           date:
             post?.date ||
@@ -2471,7 +2499,7 @@ function createReelHtml(
 
 
         <button
-          class="reel-action"
+          class="reel-action comment-action"
           type="button"
           onclick="openComments(${index})"
         >
@@ -2484,9 +2512,11 @@ function createReelHtml(
 
           </span>
 
-          <span class="num">
-            ${Number(reel.commentCount || 0)}
-          </span>
+          ${Number(reel.commentCount || 0) > 0 ? `
+            <span class="num">
+              ${Number(reel.commentCount)}
+            </span>
+          ` : ""}
 
         </button>
 
@@ -4307,6 +4337,18 @@ text:textValue
 }
 
 
+/* Yorum başarıyla kaydedildiyse butondaki sayı hemen güncellensin. */
+if(!replyId){
+  const reelIndex = reels.findIndex(
+    reel => String(reel.id) === String(postId)
+  );
+  if(reelIndex >= 0){
+    const current = Number(reels[reelIndex].commentCount || 0);
+    reels[reelIndex].commentCount = current + 1;
+    updateViewerCommentCount(reelIndex);
+  }
+}
+
 const returned=
 result?.comment||
 result?.data||
@@ -4619,6 +4661,32 @@ btn.dataset.loading='0';
 
 }
 
+
+
+function updateViewerCommentCount(index){
+
+  const article = document.querySelector(
+    `.reel[data-reel-index="${index}"]`
+  );
+
+  if(!article) return;
+
+  const button = article.querySelector('.comment-action');
+  if(!button) return;
+
+  const count = Number(reels[index]?.commentCount || 0);
+  const old = button.querySelector('.num');
+
+  if(count > 0){
+    if(old){
+      old.textContent = String(count);
+    }else{
+      button.insertAdjacentHTML('beforeend', `<span class="num">${count}</span>`);
+    }
+  }else if(old){
+    old.remove();
+  }
+}
 
 
 /* REELS YORUM AÇMA */
