@@ -99,7 +99,8 @@ function chatMenuHtml(username){
    <button type="button" class="danger" data-chat-action="delete">Mesajları sil</button>
  </div>`;
 }
-function closeChatMenus(except=null){document.querySelectorAll('.chat-menu.show').forEach(m=>{if(m!==except)m.classList.remove('show')})}
+let openChatMenuUser='';
+function closeChatMenus(except=null){document.querySelectorAll('.chat-menu.show').forEach(m=>{if(m!==except)m.classList.remove('show')});if(!except)openChatMenuUser=''}
 async function deleteConversation(username){
  const u=cleanUser(username);if(!u)return;
  if(!confirm('@'+u+' ile olan tüm mesajlar silinsin mi?'))return;
@@ -130,7 +131,7 @@ async function markUnread(username){
  try{await api(API+'/api/messages/unread',{method:'POST',body:{username:u}})}catch(e){}
  firebaseUnread.set(u.toLowerCase(),Math.max(1,count||1));mergeAll();toast('Okunmadı olarak işaretlendi');
 }
-function toggleChatMenu(row){const menu=row?.querySelector('.chat-menu');if(!menu)return;const was=menu.classList.contains('show');closeChatMenus();if(!was)menu.classList.add('show')}
+function toggleChatMenu(row){const menu=row?.querySelector('.chat-menu');if(!menu)return;const was=menu.classList.contains('show');closeChatMenus();if(!was){menu.classList.add('show');openChatMenuUser=cleanUser(row.dataset.username).toLowerCase()} }
 function handleChatAction(action,username){
  const u=cleanUser(username);if(!u)return;
  if(action==='pin'){setChatState(u,{pinned:!isChatPinned(u)});mergeAll();return}
@@ -164,6 +165,7 @@ function renderMessages(list){
      ${chatMenuHtml(m.username)}
    </div>`;
  }).join('');
+ if(openChatMenuUser){const keep=[...document.querySelectorAll('.message-row')].find(r=>cleanUser(r.dataset.username).toLowerCase()===openChatMenuUser);if(keep)keep.querySelector('.chat-menu')?.classList.add('show');else openChatMenuUser='';}
 }
 
 async function loadApiMessages(){try{let data=await api(API+'/api/messages');let raw=Array.isArray(data)?data:(data?.messages||data?.items||data?.conversations||data?.chats||data?.data||data?.results||data?.records||data?.rows||[]);if(!raw.length){for(const path of ['/api/chatMessages','/api/messages/firebase','/api/messages/all']){try{const d=await api(API+path);const a=Array.isArray(d)?d:(d?.messages||d?.items||d?.data||d?.records||[]);if(a.length){raw=a;break}}catch{}}}apiUsers.clear();for(const item of raw){const n=normalizeMessage(item);if(n)addConversation(apiUsers,n)}mergeAll()}catch(e){if(authError(e)){login();return}console.error('API messages',e)}}
@@ -185,7 +187,7 @@ $('back').onclick=()=>history.length>1?history.back():(location.href='index.html
 });
 $('messageList').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const row=e.target.closest('.message-row');if(!row||e.target.closest('[data-chat-more]')||e.target.closest('[data-chat-action]'))return;e.preventDefault();location.href=row.dataset.href;});
 document.addEventListener('click',e=>{if(!e.target.closest('.message-row'))closeChatMenus()});
-$('noteClose').onclick=closeNote;$('cancelNote').onclick=closeNote;$('saveNote').onclick=saveNote;$('deleteNote').onclick=()=>{localStorage.removeItem('minegram_my_note');renderNotes();closeNote()};$('removeMusic').onclick=()=>{selectedMusic=null;renderSelectedMusic()};$('musicSearchBtn').onclick=searchMusic;$('musicQuery').addEventListener('keydown',e=>{if(e.key==='Enter')searchMusic()});$('musicResults').addEventListener('click',e=>{const b=e.target.closest('.music-select');if(!b)return;selectedMusic={id:b.dataset.id,title:b.dataset.title,artist:b.dataset.artist,preview:b.dataset.preview,artwork:b.dataset.art};renderSelectedMusic();$('musicResults').innerHTML=''});$('noteModal').addEventListener('click',e=>{if(e.target===$('noteModal'))closeNote();});window.addEventListener('scroll',()=>closeChatMenus(),{passive:true});setupPull();renderNotes();loadMessages();pollTimer=setInterval(()=>loadMessages(true),5000);window.addEventListener('beforeunload',()=>{clearInterval(pollTimer);clearFirebaseListeners()});
+$('noteClose').onclick=closeNote;$('cancelNote').onclick=closeNote;$('saveNote').onclick=saveNote;$('deleteNote').onclick=()=>{localStorage.removeItem('minegram_my_note');renderNotes();closeNote()};$('removeMusic').onclick=()=>{selectedMusic=null;renderSelectedMusic()};$('musicSearchBtn').onclick=searchMusic;$('musicQuery').addEventListener('keydown',e=>{if(e.key==='Enter')searchMusic()});$('musicResults').addEventListener('click',e=>{const b=e.target.closest('.music-select');if(!b)return;selectedMusic={id:b.dataset.id,title:b.dataset.title,artist:b.dataset.artist,preview:b.dataset.preview,artwork:b.dataset.art};renderSelectedMusic();$('musicResults').innerHTML=''});$('noteModal').addEventListener('click',e=>{if(e.target===$('noteModal'))closeNote();});setupPull();renderNotes();loadMessages();pollTimer=setInterval(()=>loadMessages(true),5000);window.addEventListener('beforeunload',()=>{clearInterval(pollTimer);clearFirebaseListeners()});
 </script>
 </body>
 </html>
