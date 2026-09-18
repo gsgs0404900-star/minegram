@@ -18,6 +18,7 @@
 </nav>
  <input id="reelInput" type="file" accept="video/*">
 <div id="toast" class="toast"></div>
+ 
 
 <div
 id="commentsModal"
@@ -496,6 +497,145 @@ async function loadReels(){
 window.addEventListener('DOMContentLoaded',function(){
   loadReels();
 });
+
+function openComments(i){
+
+currentCommentReel=reels[i];
+
+const modal=document.getElementById("commentsModal");
+
+if(!modal){
+console.log("yorum kutusu yok");
+return;
+}
+
+modal.style.display="flex";
+
+loadComments(i);
+
+}
+
+
+
+function closeComments(e){
+
+const modal=document.getElementById("commentsModal");
+
+if(modal){
+
+modal.style.display="none";
+
+}
+
+}
+
+
+
+async function loadComments(i){
+
+const list=document.getElementById("commentList");
+
+if(!list)return;
+
+
+list.innerHTML="Yorumlar yükleniyor...";
+
+
+try{
+
+const r=reels[i];
+
+
+const data=await api(
+"/api/posts/"+encodeURIComponent(r.id)+"/comments"
+);
+
+
+const comments=
+Array.isArray(data)
+?data
+:(data.comments||[]);
+
+
+
+if(!comments.length){
+
+list.innerHTML=
+"<div style='text-align:center;color:#777;padding:30px'>Henüz yorum yok</div>";
+
+return;
+
+}
+
+
+
+list.innerHTML=comments.map(c=>`
+
+<div class="comment">
+
+<b>@${esc(c.username||c.user?.username||"kullanıcı")}</b>
+
+<p>${esc(c.text||c.comment||"")}</p>
+
+</div>
+
+`).join("");
+
+
+}catch(e){
+
+list.innerHTML=
+"<div style='text-align:center;color:#777'>Yorumlar yüklenemedi</div>";
+
+}
+
+}
+
+
+
+
+async function sendComment(){
+
+const input=document.getElementById("commentInput");
+
+const text=input.value.trim();
+
+
+if(!text || !currentCommentReel)
+return;
+
+
+
+await api(
+
+"/api/posts/"+encodeURIComponent(currentCommentReel.id)+"/comments",
+
+{
+
+method:"POST",
+
+body:{
+text:text
+}
+
+}
+
+);
+
+
+input.value="";
+
+
+const index=reels.findIndex(
+x=>x.id===currentCommentReel.id
+);
+
+
+loadComments(index);
+
+
+}
+ 
 </script>
 
 
@@ -516,6 +656,78 @@ window.addEventListener('DOMContentLoaded',function(){
 .reel-share-avatar img{width:100%;height:100%;object-fit:cover}
 .reel-share-meta{flex:1;min-width:0}.reel-share-meta b{display:block;font-size:14px}.reel-share-meta small{display:block;color:#999;margin-top:3px;font-size:12px}
 .reel-share-send{color:#fff;font-size:17px}.reel-share-loading{text-align:center;color:#888;padding:28px 10px}
+ 
+ .comments-modal{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.65);
+z-index:30000;
+display:none;
+align-items:flex-end;
+}
+
+
+.comments-sheet{
+width:100%;
+height:72%;
+background:#000;
+border-radius:25px 25px 0 0;
+padding:15px;
+color:#fff;
+}
+
+
+.sheet-head{
+height:50px;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:18px;
+font-weight:bold;
+border-bottom:1px solid #333;
+}
+
+
+.close-comments{
+position:absolute;
+right:15px;
+top:15px;
+background:none;
+border:0;
+color:white;
+font-size:30px;
+}
+
+
+.comment-list{
+height:calc(100% - 160px);
+overflow:auto;
+}
+
+
+.comment-compose{
+display:flex;
+gap:8px;
+align-items:center;
+}
+
+
+.compose-input{
+flex:1;
+background:#222;
+border:1px solid #444;
+color:white;
+border-radius:20px;
+padding:12px;
+}
+
+
+.send{
+background:none;
+border:0;
+color:white;
+font-size:25px;
+}
 </style>
 <div id="reelShareModal" class="reel-share-modal">
   <div class="reel-share-sheet">
