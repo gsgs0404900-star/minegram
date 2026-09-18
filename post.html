@@ -7627,7 +7627,30 @@ function getSelectedPostFromSession(id){
           String(post.uuid??"").trim()
         ].filter(Boolean);
 
-        if(wanted && ids.includes(wanted)) return post.post && typeof post.post==='object' ? post.post : post;
+        if (wanted && ids.includes(wanted)) {
+
+  const result =
+    post.post && typeof post.post === "object"
+      ? post.post
+      : post;
+
+  result.media =
+    result.media ||
+    post.media ||
+    post.mediaUri ||
+    post.media_url ||
+    post.mediaUrl ||
+    post.image ||
+    post.imageUrl ||
+    "";
+
+  result.mediaType =
+    result.mediaType ||
+    post.mediaType ||
+    "";
+
+  return result;
+}
 
         /* URL'de ID var ama cache nesnesinde ID alanı yoksa,
            index.html'nin bıraktığı tek seçili gönderiyi yine göster. */
