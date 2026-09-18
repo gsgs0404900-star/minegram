@@ -4310,15 +4310,22 @@ async function sendData(data){
   renderAll();
 
   try{
-   await addDoc(
-    collection(
-     firestore,
-     "chatMessages"
-    ),
-    messageData
-   );
-   allMessages.delete(localId);
-   renderAll();
+   const savedRef=
+    await addDoc(
+     collection(
+      firestore,
+      "chatMessages"
+     ),
+     messageData
+    );
+
+   /*
+    * Mesajı burada SİLME.
+    * Firestore onSnapshot henüz belgeyi geri göndermeden
+    * local mesajı silersek ekranda mesaj boş/hiç yokmuş gibi
+    * görünebilir. Snapshot geldiğinde renderAll() zaten gerçek
+    * Firestore belgesini gösterecek.
+    */
    return true;
   }catch(e){
    allMessages.delete(localId);
