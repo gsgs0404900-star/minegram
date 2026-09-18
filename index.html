@@ -1032,7 +1032,7 @@ body{
 </style>
 
 <style id="minegramInAppShareStyle">
-.share-modal{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:9999;display:none;align-items:flex-end}.share-modal.show{display:flex}.share-sheet{width:100%;max-width:520px;height:58vh;max-height:78vh;min-height:360px;margin:0 auto;background:#000;border-radius:22px 22px 0 0;padding:10px 14px 18px;box-sizing:border-box;overflow:hidden}.sheet-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px}.sheet-head button{width:38px;height:38px;border:0;border-radius:50%;background:#222;color:#fff}.share-sheet input{width:100%;height:45px;background:#222;border:1px solid #333;border-radius:11px;color:#fff;padding:0 12px;outline:0}.share-list{max-height:50vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}.share-user .share-avatar{width:45px;height:45px;border-radius:50%;background:#62afea;display:flex;align-items:center;justify-content:center;font-weight:700}.share-user .share-meta{flex:1}.share-user small{color:#888}</style>
+.share-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:9999;display:none;align-items:flex-end}.share-modal.show{display:flex}.share-sheet{width:100%;max-width:520px;height:64vh;max-height:78vh;min-height:360px;margin:0 auto;background:#000;border-radius:22px 22px 0 0;padding:10px 14px 18px;box-sizing:border-box;overflow:hidden}.sheet-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px}.sheet-head b{font-size:18px;font-weight:700;color:#f5f5f5}.sheet-head button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:38px;padding:0}.share-sheet input{width:100%;height:51px;background:#000;border:1.5px solid #858585;border-radius:8px;color:#fff;padding:0 12px;font-size:17px;outline:0}.share-sheet input::placeholder{color:#fff;opacity:1}.share-list{max-height:50vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}.share-user .share-avatar{width:54px;height:54px;border-radius:50%;background:#62afea;color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700}.share-user .share-meta{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px}.share-user .share-meta b{font-size:17px;color:#f5f5f5;font-weight:700}.share-user small{color:#fff;font-size:14px}.share-user>span{color:#64B5F6;font-size:30px;line-height:1;font-weight:700;padding-right:0}.share-user:active{opacity:.82}.share-list>div[style]{font-size:14px}</style>
 <style id="minegramShareSheetPosition">@media (min-width: 700px){.share-sheet{height:46vh;min-height:300px}}
 </style>
 </head>
@@ -9774,10 +9774,10 @@ init();
   <div class="share-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <b id="minegramFeedShareTitle">Minegram'da gönder</b>
+      <b id="minegramFeedShareTitle">Gönderiyi paylaş</b>
       <button id="minegramFeedShareClose" aria-label="Kapat">×</button>
     </div>
-    <input id="minegramFeedShareSearch" placeholder="Kullanıcı ara" autocomplete="off">
+    <input id="minegramFeedShareSearch" placeholder="Ara" autocomplete="off">
     <div id="minegramFeedShareList" class="share-list"></div>
   </div>
 </div>
@@ -9811,7 +9811,7 @@ async function paint(){
   listEl.innerHTML="<div style='padding:18px;color:#888'>Kullanıcılar aranıyor...</div>";
   await getUsers(f);
   const a=shareUsers;
-  listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Mesaj olarak gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";
+  listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Gönderiyi gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";
   listEl.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>sendTo(el.dataset.u));
 }
 async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase())return;try{await signInAnonymously(auth);const p=sharePostData||{};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[shareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),sender:shareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||""),postUsername:clean(p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0});modal.classList.remove("show");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");}catch(e){if(typeof toast==="function")toast("Gönderilemedi")}}
