@@ -386,7 +386,177 @@ async function loadReels(){
   }
 }
 
+/* ==========================
+   REELS YORUM SİSTEMİ
+========================== */
 
+async function openComments(i){
+    currentCommentReel=reels[i];
+
+    const box=document.getElementById("comments");
+    const list=document.getElementById("commentsList");
+
+    box.classList.add("open");
+    list.innerHTML="<div class='comment-empty'>Yorumlar yükleniyor...</div>";
+
+    try{
+        const r=await api(
+            "/api/posts/"+encodeURIComponent(currentCommentReel.id)+"/comments"
+        );
+
+        const comments=
+            Array.isArray(r)
+            ? r
+            : (r.comments || r.data || []);
+
+        currentCommentReel.commentCount=comments.length;
+
+        if(!comments.length){
+            list.innerHTML=
+            "<div class='comment-empty'>Henüz yorum yok</div>";
+            return;
+        }
+
+
+        list.innerHTML=comments.map(c=>{
+
+            const user=
+            c.username ||
+            c.user?.username ||
+            c.author?.username ||
+            "kullanıcı";
+
+
+            const text=
+            c.text ||
+            c.comment ||
+            c.content ||
+            "";
+
+
+            const avatar=
+            c.avatar ||
+            c.user?.avatar ||
+            "";
+
+
+            return `
+            <div class="comment">
+
+                <div class="comment-meta">
+
+                    <div class="comment-avatar">
+                    ${
+                    avatar
+                    ?
+                    `<img src="${esc(avatar)}">`
+                    :
+                    esc(user.charAt(0).toUpperCase())
+                    }
+                    </div>
+
+
+                    <div class="comment-body">
+
+                    <b>@${esc(user)}</b>
+
+                    <p>${esc(text)}</p>
+
+
+                    <div class="comment-actions">
+                    <button class="comment-like">
+                    ♡
+                    </button>
+
+                    <span>
+                    ${formatDate(c.createdAt || c.created_at)}
+                    </span>
+
+                    </div>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+            `;
+
+        }).join("");
+
+
+    }catch(e){
+
+        list.innerHTML=
+        "<div class='comment-empty'>Yorumlar yüklenemedi</div>";
+
+    }
+}
+
+
+
+function closeComments(){
+
+    document
+    .getElementById("comments")
+    .classList.remove("open");
+
+    currentCommentReel=null;
+
+}
+
+
+
+async function sendComment(){
+
+    const input=document.getElementById("commentInput");
+
+    const text=input.value.trim();
+
+
+    if(!text)
+    return toast("Yorum yaz");
+
+
+    if(!currentCommentReel)
+    return;
+
+
+    try{
+
+        await api(
+        "/api/posts/"+encodeURIComponent(currentCommentReel.id)+"/comments",
+        {
+            method:"POST",
+            body:{
+                text:text
+            }
+        });
+
+
+        input.value="";
+
+
+        openComments(
+        reels.findIndex(
+        x=>x.id===currentCommentReel.id
+        )
+        );
+
+
+        toast("Yorum gönderildi");
+
+
+    }catch(e){
+
+        toast(
+        e.message ||
+        "Yorum gönderilemedi"
+        );
+
+    }
+
+}
 
 /* =====================================================
  * REELS SAYFASINI BAŞLAT
@@ -418,6 +588,19 @@ window.addEventListener('DOMContentLoaded',function(){
 .reel-share-avatar img{width:100%;height:100%;object-fit:cover}
 .reel-share-meta{flex:1;min-width:0}.reel-share-meta b{display:block;font-size:14px}.reel-share-meta small{display:block;color:#999;margin-top:3px;font-size:12px}
 .reel-share-send{color:#fff;font-size:17px}.reel-share-loading{text-align:center;color:#888;padding:28px 10px}
+ .comments.open{
+    display:flex;
+    animation:commentUp .25s ease;
+}
+
+@keyframes commentUp{
+    from{
+        transform:translate(-50%,100%);
+    }
+    to{
+        transform:translate(-50%,0);
+    }
+}
 </style>
 <div id="reelShareModal" class="reel-share-modal">
   <div class="reel-share-sheet">
