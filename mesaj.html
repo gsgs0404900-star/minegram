@@ -1475,9 +1475,6 @@ Mesajlar yükleniyor...
 GIF
 </button>
 
-<button class="tool-btn" id="contentShareBtn" title="Gönderi / canlı yayın paylaş">
-<i class="fa-solid fa-share-nodes"></i>
-</button>
 
 </div>
 
@@ -1539,27 +1536,6 @@ autocomplete="off">
 id="shareList"
 class="share-list">
 </div>
-
-</div>
-</div>
-
-<div class="share-modal" id="contentShareModal">
-
-<div class="share-sheet">
-
-<div class="sheet-handle"></div>
-
-<div class="sheet-head">
-<b>İçerik paylaş</b>
-<button id="contentShareClose" class="sheet-close"><i class="fa-solid fa-xmark"></i></button>
-</div>
-
-<div class="content-share-actions">
-<button id="sharePostBtn" class="content-share-btn"><i class="fa-regular fa-image"></i><span>Gönderi paylaş</span></button>
-<button id="shareLiveBtn" class="content-share-btn"><i class="fa-solid fa-circle"></i><span>Canlı yayın paylaş</span></button>
-</div>
-
-<div id="contentShareList" class="share-list"></div>
 
 </div>
 </div>
@@ -3958,14 +3934,15 @@ function renderMessage(
   async e=>{
    e.stopPropagation();
    const btn=e.currentTarget;
+   const reply= d?.replyTo || d?.reply_to || {};
    const postId=await resolveSharedPostId({
-    postId:btn.dataset.postId,
-    postUsername:d?.postUsername,
-    postText:d?.postText,
-    postMediaUri:d?.postMediaUri,
-    postMediaBase64:d?.postMediaBase64,
-    mediaType:d?.postMediaType,
-    type:d?.type
+    postId:btn.dataset.postId || reply.postId,
+    postUsername:reply.postUsername,
+    postText:reply.postText,
+    postMediaUri:reply.postMediaUri,
+    postMediaBase64:reply.postMediaBase64,
+    mediaType:reply.postMediaType,
+    type:reply.type
    });
    if(!postId){ showToast("Gönderi bulunamadı"); return; }
    try{
@@ -3977,6 +3954,69 @@ function renderMessage(
    }
   }
  );
+
+ /* GÖNDERİ / REELS: ÇİFT TIKLAMA İLE BEĞEN */
+ const contentTarget=
+  wrap.querySelector(".message-post, .message-reel");
+ if(contentTarget){
+  let doubleClickBusy=false;
+  contentTarget.addEventListener("dblclick",async e=>{
+   e.preventDefault();
+   e.stopPropagation();
+   if(doubleClickBusy) return;
+   doubleClickBusy=true;
+   try{
+    const postId=await resolveSharedPostId(d);
+    if(!postId){ showToast("Gönderi bulunamadı"); return; }
+    const r=await MinegramAPI.likePost(postId);
+    d._liked=!!r.liked;
+    const likeBtn=wrap.querySelector('[data-act="like"]');
+    if(likeBtn){
+     likeBtn.textContent=d._liked?"♥":"♡";
+     likeBtn.classList.toggle("liked",d._liked);
+    }
+   }catch(err){
+    showToast(err.message||"Beğeni işlemi başarısız");
+   }finally{
+    setTimeout(()=>{doubleClickBusy=false;},250);
+   }
+  });
+ }
+
+ /* YANITTAKİ GÖNDERİ / REELS: ÇİFT TIKLAMA İLE BEĞEN */
+ const replyContentTarget=wrap.querySelector(".reply-content-preview");
+ if(replyContentTarget){
+  let replyDoubleClickBusy=false;
+  replyContentTarget.addEventListener("dblclick",async e=>{
+   e.preventDefault();
+   e.stopPropagation();
+   if(replyDoubleClickBusy) return;
+   replyDoubleClickBusy=true;
+   try{
+    const reply=d?.replyTo||d?.reply_to||{};
+    const postId=await resolveSharedPostId({
+     postId:replyContentTarget.dataset.replyPostId || reply.postId,
+     postUsername:reply.postUsername,
+     postText:reply.postText,
+     postMediaUri:reply.postMediaUri,
+     postMediaBase64:reply.postMediaBase64,
+     mediaType:reply.postMediaType,
+     type:reply.type
+    });
+    if(!postId){ showToast("Gönderi bulunamadı"); return; }
+    const r=await MinegramAPI.likePost(postId);
+    const likeBtn=replyContentTarget.querySelector('[data-reply-like="1"]');
+    if(likeBtn){
+     likeBtn.textContent=r.liked?"♥":"♡";
+     likeBtn.classList.toggle("liked",!!r.liked);
+    }
+   }catch(err){
+    showToast(err.message||"Beğeni işlemi başarısız");
+   }finally{
+    setTimeout(()=>{replyDoubleClickBusy=false;},250);
+   }
+  });
+ }
 
 
  /* =========================
@@ -6002,63 +6042,6 @@ if(p.get("share")){
  }catch{}
 
 }
-
-
-/* ==========================================================
-   GÖNDERİ / CANLI YAYIN PAYLAŞIMI
-   ========================================================== */
-
-const contentShareModal=$('contentShareModal');
-const contentShareList=$('contentShareList');
-
-$('contentShareBtn').onclick=()=>{
- if(blockedSend()) return;
- contentShareList.innerHTML="";
- contentShareModal.classList.add('show');
-};
-
-$('contentShareClose').onclick=()=>contentShareModal.classList.remove('show');
-contentShareModal.addEventListener('click',e=>{
- if(e.target===contentShareModal) contentShareModal.classList.remove('show');
-});
-
-function renderContentShareUsers(payload,title){
- shareToUser(payload,title);
-}
-
-$('sharePostBtn').onclick=async()=>{
- contentShareList.innerHTML='<div class="loading">Gönderiler yükleniyor...</div>';
- try{
-  const r=await MinegramAPI.feed();
-  const arr=Array.isArray(r)?r:(r?.posts||r?.feed||r?.items||[]);
-  if(!arr.length){contentShareList.innerHTML='<div class="loading">Paylaşılacak gönderi bulunamadı</div>';return;}
-  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{
-   const user=String(x?.username||x?.user?.username||'Kullanıcı');
-   const id=x?.id||x?.postId||x?.post_id||'';
-   const media=x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||x?.image||'';
-   const text=x?.text||x?.caption||'';
-   return `<div class="share-user" data-post-index="${i}">${displayAvatar(user,45)}<div class="share-meta"><b>@${escapeHtml(user)}</b><small>${escapeHtml(text||'Gönderiyi paylaş')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;
-  }).join('');
-  contentShareList.querySelectorAll('[data-post-index]').forEach(el=>el.onclick=async()=>{
-   const x=arr[Number(el.dataset.postIndex)]||{};
-   const user=String(x?.username||x?.user?.username||'Kullanıcı');
-   const payload={type:'post',text:'📷 @'+user+' gönderisi',postId:x?.id||x?.postId||x?.post_id||'',postUsername:user,postText:x?.text||x?.caption||'',postLikes:x?.likes||x?.like_count||0,postMediaUri:x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||'',postMediaType:x?.mediaType||x?.media_type||'image',postMediaBase64:x?.mediaBase64||null,postCommentCount:x?.commentCount||x?.comment_count||0};
-   contentShareModal.classList.remove('show');
-   await shareToUser(payload,'Gönderiyi paylaş');
-  });
- }catch(e){contentShareList.innerHTML='<div class="loading">Gönderiler yüklenemedi</div>';}
-};
-
-$('shareLiveBtn').onclick=async()=>{
- contentShareList.innerHTML='<div class="loading">Canlı yayınlar yükleniyor...</div>';
- try{
-  const r=await MinegramAPI.live();
-  const arr=Array.isArray(r)?r:(r?.lives||r?.live||r?.items||[]);
-  if(!arr.length){contentShareList.innerHTML='<div class="loading">Şu anda canlı yayın yok</div>';return;}
-  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); return `<div class="share-user" data-live-index="${i}">${displayAvatar(u,45)}<div class="share-meta"><b>@${escapeHtml(u)}</b><small>🔴 ${escapeHtml(x?.title||'Canlı yayın')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;}).join('');
-  contentShareList.querySelectorAll('[data-live-index]').forEach(el=>el.onclick=async()=>{const x=arr[Number(el.dataset.liveIndex)]||{}; const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); const title=x?.title||'Canlı yayın'; contentShareModal.classList.remove('show'); await shareToUser({type:'live',text:'__MINEGRAM_LIVE__'+JSON.stringify({username:u,title})},'Canlı yayını paylaş');});
- }catch(e){contentShareList.innerHTML='<div class="loading">Canlı yayınlar yüklenemedi</div>';}
-};
 
 
 /* ==========================================================
