@@ -2210,6 +2210,9 @@ let unsub=null;
 
 let allMessages=new Map();
 
+// Uygulamadaki gibi: Firestore cevabını beklemeden mesajı ekranda göster.
+let pendingMessages=new Map();
+
 let messageRead=new Map();
 
 let muted=
@@ -4005,872 +4008,73 @@ function renderMessage(
 
 async function sendData(data){
 
- /* Gerçek giriş yapan hesap yoksa gönderme */
-
  if(!myUsername){
-
-  showToast(
-   "Önce hesabına giriş yapmalısın"
-  );
-
+  showToast("Önce hesabına giriş yapmalısın");
   return false;
-
  }
-
-
- /* Alıcı yoksa gönderme */
 
  if(!targetUsername){
-
-  showToast(
-   "Mesaj gönderilecek kullanıcı bulunamadı"
-  );
-
+  showToast("Mesaj gönderilecek kullanıcı bulunamadı");
   return false;
-
  }
 
-
- /* Aynı hesaba gönderme */
-
- if(
-  myUsername.toLowerCase()===
-  targetUsername.toLowerCase()
- ){
-
-  showToast(
-   "Kendine mesaj gönderemezsin"
-  );
-
+ if(myUsername.toLowerCase()===targetUsername.toLowerCase()){
+  showToast("Kendine mesaj gönderemezsin");
   return false;
-
  }
 
-
- if(!(await ensureAuth()))
- return false;
-
+ if(!(await ensureAuth())) return false;
 
  await syncBlock();
-
-
- if(blockedSend())
- return false;
-
-
- try{
-
-  /*
-   * Firestore'a gönderen ve alıcı
-   * artık kesin olarak belirlenmiş
-   * kullanıcılar olacak.
-   */
-
-  const messageData={
-
-   conversationKey:
-
-    [
-     myUsername.toLowerCase(),
-     targetUsername.toLowerCase()
-    ]
-    .sort()
-    .join("__"),
-
-   sender:
-    myUsername,
-
-   recipient:
-    targetUsername,
-
-   time:
-    new Date()
-    .toLocaleTimeString(
-     "tr-TR",
-     {
-      hour:"2-digit",
-      minute:"2-digit",
-      second:"2-digit"
-     }
-    ),
-
-   createdAt:
-    Date.now(),
-
-   read:false,
-
-   ...data
-
-  };
-
-
-  console.log(
-   "MINEGRAM MESAJ GÖNDERİLİYOR:",
-   messageData
-  );
-
-
-  await addDoc(
-   collection(
-    firestore,
-    "chatMessages"
-   ),
-   messageData
-  );
-
-
-  return true;
-
-
- }catch(e){
-
-  console.error(
-   "Minegram chat send error:",
-   e
-  );
-
-
-  showToast(
-   e?.code===
-   "permission-denied"
-    ?
-    "Mesaj gönderme izni yok"
-    :
-    "Mesaj gönderilemedi"
-  );
-
-
-  return false;
-
- }
-
-}
-
-
-async function sendText(t){
-
- t=
-  String(t||"")
-  .trim();
-
- if(!t)
- return;
-
-
- const ok=
-  await sendData({
-
-   text:t,
-
-   type:"text"
-
-  });
-
-
- if(ok){
-
-  input.value="";
-
-  input.focus();
-
- }
-
-}
-
-
-function readAsData(file){
-
- return new Promise(
-  (res,rej)=>{
-
-   const r=
-    new FileReader();
-
-   r.onload=()=>
-    res(
-     String(r.result)
-    );
-
-   r.onerror=rej;
-
-   r.readAsDataURL(file);
-
-  }
- );
-
-}
-
-
-async function resizeImage(
- file,
- maxBytes=650000
-){
-
- const url=
-  await readAsData(file);
-
- if(file.size<=maxBytes)
- return url;
-
- return new Promise(
-  resolve=>{
-
-   const img=
-    new Image();
-
-   img.onload=()=>{
-
-    const scale=
-     Math.min(
-      1,
-      1400/
-      Math.max(
-       img.width,
-       img.height
-      )
-     );
-
-    const c=
-     document.createElement(
-      "canvas"
-     );
-
-    c.width=
-     Math.max(
-      1,
-      Math.round(
-       img.width*scale
-      )
-     );
-
-    c.height=
-     Math.max(
-      1,
-      Math.round(
-       img.height*scale
-      )
-     );
-
-    const x=
-     c.getContext(
-      "2d"
-     );
-
-    x.drawImage(
-     img,
-     0,
-     0,
-     c.width,
-     c.height
-    );
-
-    let q=.86;
-
-    let out=
-     c.toDataURL(
-      "image/jpeg",
-      q
-     );
-
-    while(
-     out.length>
-     maxBytes*1.38&&
-     q>.45
-    ){
-
-     q-=.08;
-
-     out=
-      c.toDataURL(
-       "image/jpeg",
-       q
-      );
-
-    }
-
-    resolve(out);
-
-   };
-
-   img.onerror=
-    ()=>resolve(null);
-
-   img.src=url;
-
-  }
- );
-
-}
-
-
-/* ==========================================================
-   YENİ DOSYA GÖNDERME SİSTEMİ
-   ========================================================== */
-
-async function sendFile(
- file,
- kind
-){
-
- if(!file)
- return;
-
- if(blockedSend())
- return;
-
-
- try{
-
-
-  /* =====================
-     GIF
-     ===================== */
-
-  if(kind==="gif"){
-
-   const data=
-    await resizeImage(
-     file
-    );
-
-   if(!data){
-
-    showToast(
-     "GIF hazırlanamadı"
-    );
-
-    return;
-
-   }
-
-   if(
-    data.length>930000
-   ){
-
-    showToast(
-     "GIF çok büyük. Daha küçük bir GIF seç."
-    );
-
-    return;
-
-   }
-
-   const ok=
-    await sendData({
-
-     text:
-      "🎞 GIF gönderildi",
-
-     type:
-      "gif",
-
-     mediaBase64:
-      data,
-
-     mediaType:
-      file.type||
-      "image/gif",
-
-     mimeType:
-      file.type||
-      "image/gif"
-
-    });
-
-   if(ok)
-   showToast(
-    "GIF gönderildi"
-   );
-
-   return;
-
-  }
-
-
-  /* =====================
-     VİDEO
-     ===================== */
-
-  if(kind==="video"){
-
-   showToast(
-    "Video hazırlanıyor..."
-   );
-
-
-   /*
-    Önce gerçek videoyu oku.
-   */
-
-   const videoData=
-    await readAsData(file);
-
-   if(!videoData){
-
-    showToast(
-     "Video okunamadı"
-    );
-
-    return;
-
-   }
-
-
-   /*
-    Videodan kapak oluştur.
-   */
-
-   const videoCover=
-    await createVideoCover(
-     file
-    );
-
-   if(!videoCover){
-
-    showToast(
-     "Video kapağı oluşturulamadı"
-    );
-
-    return;
-
-   }
-
-
-   /*
-    Mevcut Base64 mimarisindeki
-    boyut sınırı.
-   */
-
-   if(
-    videoData.length>930000
-   ){
-
-    showToast(
-     "Video çok büyük. Daha kısa veya daha düşük boyutlu video seç."
-    );
-
-    return;
-
-   }
-
-
-   /* =====================
-      VİDEO SÜRESİ
-      ===================== */
-
-   let videoDuration=0;
-
-   try{
-
-    const tempUrl=
-     URL.createObjectURL(
-      file
-     );
-
-    const tempVideo=
-     document.createElement(
-      "video"
-     );
-
-    tempVideo.preload=
-     "metadata";
-
-    tempVideo.src=
-     tempUrl;
-
-    await new Promise(
-     resolve=>{
-
-      tempVideo.onloadedmetadata=
-       ()=>{
-
-        videoDuration=
-         Number.isFinite(
-          tempVideo.duration
-         )
-          ?tempVideo.duration
-          :0;
-
-        URL.revokeObjectURL(
-         tempUrl
-        );
-
-        resolve();
-
-       };
-
-      tempVideo.onerror=()=>{
-
-       URL.revokeObjectURL(
-        tempUrl
-       );
-
-       resolve();
-
-      };
-
-     }
-    );
-
-   }catch{}
-
-
-   /* =====================
-      FIRESTORE'A KAYDET
-      ===================== */
-
-   const ok=
-    await sendData({
-
-     text:
-      "🎬 Video gönderildi",
-
-     type:
-      "video",
-
-     mediaBase64:
-      videoData,
-
-     videoCoverBase64:
-      videoCover,
-
-     videoDuration:
-      videoDuration,
-
-     mediaType:
-      file.type||
-      "video/mp4",
-
-     mimeType:
-      file.type||
-      "video/mp4"
-
-    });
-
-
-   if(ok){
-
-    showToast(
-     "Video gönderildi"
-    );
-
-   }
-
-   return;
-
-  }
-
-
-  /* =====================
-     FOTOĞRAF
-     ===================== */
-
-  if(kind==="image"){
-
-   const data=
-    await resizeImage(
-     file
-    );
-
-   if(!data){
-
-    showToast(
-     "Fotoğraf hazırlanamadı"
-    );
-
-    return;
-
-   }
-
-   if(
-    data.length>930000
-   ){
-
-    showToast(
-     "Fotoğraf çok büyük. Daha küçük bir fotoğraf seç."
-    );
-
-    return;
-
-   }
-
-   const ok=
-    await sendData({
-
-     text:
-      "🖼 Fotoğraf gönderildi",
-
-     type:
-      "media",
-
-     mediaBase64:
-      data,
-
-     mediaType:
-      file.type||
-      "image/jpeg",
-
-     mimeType:
-      file.type||
-      "image/jpeg"
-
-    });
-
-
-   if(ok){
-
-    showToast(
-     "Fotoğraf gönderildi"
-    );
-
-   }
-
-   return;
-
-  }
-
-
- }catch(e){
-
-  console.error(
-   "sendFile error:",
-   e
-  );
-
-  showToast(
-   e?.message||
-   "Dosya gönderilemedi"
-  );
-
- }
-
-}
-
-
-/* ==========================================================
-   SES KAYDI
-   ========================================================== */
-
-let recorder=null;
-
-let recordChunks=[];
-
-let recordStarted=0;
-
-let recordTimer=null;
-
-
-async function toggleRecording(){
-
- if(blockedSend())
- return;
-
- if(
-  recorder?.state==="recording"
- ){
-
-  recorder.stop();
-
-  return;
-
- }
-
-
- try{
-
-  const stream=
-   await navigator.mediaDevices
-   .getUserMedia({
-    audio:true
-   });
-
-  const mime=
-   MediaRecorder.isTypeSupported(
-    "audio/webm;codecs=opus"
-   )
-   ?
-   "audio/webm;codecs=opus"
-   :
-   "audio/webm";
-
-  recorder=
-   new MediaRecorder(
-    stream,
-    {
-     mimeType:mime
-    }
-   );
-
-  recordChunks=[];
-
-  recordStarted=
-   Date.now();
-
-  $("recordingBar")
-   .classList.add(
-    "show"
-   );
-
-  recordTimer=
-   setInterval(
-    ()=>{
-     const s=
-      Math.floor(
-       (Date.now()-
-        recordStarted)/
-       1000
-      );
-
-     $("recordingTime")
-      .textContent=
-       `${Math.floor(s/60)}:${String(
-        s%60
-       ).padStart(
-        2,
-        "0"
-       )}`;
-
-    },
-    250
-   );
-
-  recorder.ondataavailable=
-   e=>{
-
-    if(e.data.size)
-    recordChunks.push(
-     e.data
-    );
-
-   };
-
-
-  recorder.onstop=
-   async()=>{
-
-    clearInterval(
-     recordTimer
-    );
-
-    $("recordingBar")
-     .classList.remove(
-      "show"
-     );
-
-    stream
-     .getTracks()
-     .forEach(
-      t=>t.stop()
-     );
-
-    const dur=
-     Date.now()-
-     recordStarted;
-
-    recordStarted=0;
-
-    if(dur<300){
-
-     showToast(
-      "Daha uzun basarak ses kaydet"
-     );
-
-     return;
-
-    }
-
-    if(dur>60000){
-
-     showToast(
-      "Ses kaydı en fazla 60 saniye"
-     );
-
-     return;
-
-    }
-
-    const blob=
-     new Blob(
-      recordChunks,
-      {
-       type:mime
-      }
-     );
-
-    const buf=
-     await blob.arrayBuffer();
-
-    if(
-     buf.byteLength>
-     100*1024
-    ){
-
-     showToast(
-      "Ses kaydı çok büyük"
-     );
-
-     return;
-
-    }
-
-    const b64=
-     btoa(
-      String.fromCharCode(
-       ...new Uint8Array(buf)
-      )
-     );
-
-    await sendData({
-
-     text:
-      "🎙️ Sesli mesaj",
-
-     type:
-      "voice",
-
-     voiceDurationMs:
-      dur,
-
-     voiceDataBase64:
-      b64
-
-    });
-
-   };
-
-
-  recorder.start();
-
- }catch(e){
-
-  showToast(
-   "Mikrofon izni gerekli"
-  );
-
- }
-
-}
-
-
-$("cancelRecording").onclick=
- ()=>{
-
-  if(
-   recorder?.state==="recording"
-  ){
-
-   recorder.onstop=null;
-
-   recorder.stop();
-
-   showToast(
-    "Kayıt iptal edildi"
-   );
-
-  }
-
+ if(blockedSend()) return false;
+
+ const clientMessageId =
+  (crypto?.randomUUID ? crypto.randomUUID() :
+   "cm_"+Date.now()+"_"+Math.random().toString(36).slice(2));
+
+ const createdAt=Date.now();
+
+ const messageData={
+  conversationKey:[
+   myUsername.toLowerCase(),
+   targetUsername.toLowerCase()
+  ].sort().join("__"),
+  sender:myUsername,
+  recipient:targetUsername,
+  time:new Date(createdAt).toLocaleTimeString("tr-TR",{
+   hour:"2-digit", minute:"2-digit", second:"2-digit"
+  }),
+  createdAt,
+  clientMessageId,
+  read:false,
+  ...data
  };
 
+ // Mesaj gönder tuşuna basıldığı anda uygulama gibi kendi ekranında göster.
+ pendingMessages.set(clientMessageId,messageData);
+ allMessages.set("pending-"+clientMessageId,messageData);
+ renderAll();
+
+ try{
+  await addDoc(
+   collection(firestore,"chatMessages"),
+   messageData
+  );
+  showToast("Mesaj gönderildi");
+  return true;
+ }catch(e){
+  console.error("Minegram chat send error:",e);
+  pendingMessages.delete(clientMessageId);
+  allMessages.delete("pending-"+clientMessageId);
+  renderAll();
+  showToast(
+   e?.code==="permission-denied"
+    ?"Mesaj gönderme izni yok"
+    :"Mesaj gönderilemedi"
+  );
+  return false;
+ }
+}
 
 /* ==========================================================
    MESAJLARI DİNLE
@@ -4915,10 +4119,15 @@ function subscribe(){
 
     messageRead.clear();
 
+    const confirmedClientIds=new Set();
+
     s.docs.forEach(
      d=>{
 
       const x=d.data();
+
+      if(x.clientMessageId)
+       confirmedClientIds.add(x.clientMessageId);
 
       if(x.deleted){
 
@@ -4952,6 +4161,15 @@ function subscribe(){
 
      }
     );
+
+    // Firestore henüz listener'a döndürmediyse bekleyen mesajı kaybetme.
+    for(const [cid,x] of pendingMessages){
+     if(confirmedClientIds.has(cid)){
+      pendingMessages.delete(cid);
+      continue;
+     }
+     allMessages.set("pending-"+cid,x);
+    }
 
     renderAll();
 
