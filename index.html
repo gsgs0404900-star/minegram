@@ -6435,17 +6435,17 @@ async function savePost(id){
 
 function sharePost(id){
   const sid=String(id||"");
-  const post=(window.__minegramFeedPosts||[]).find(function(p){
-    return String(p?.id ?? p?.postId ?? p?._id ?? p?.uuid ?? "").trim()===sid.trim();
-  });
-  if(window.MinegramHome && post){
-    try{
-      window.MinegramHome.sharePost(JSON.stringify(post));
-      return;
-    }catch(e){}
-  }
+  // Web tarafında paylaşım panelini HER ZAMAN aç.
+  // Native Android köprüsü varsa bile butonun web arayüzü çalışmaya devam eder.
   if(window.__minegramOpenInAppShare){
-    window.__minegramOpenInAppShare(sid);
+    try{ window.__minegramOpenInAppShare(sid); return; }catch(e){}
+  }
+  const modal=document.getElementById("minegramFeedShareModal");
+  if(modal){
+    window.__minegramSharePostId=sid;
+    modal.classList.add("show");
+    const input=document.getElementById("minegramFeedShareSearch");
+    if(input) setTimeout(()=>input.focus(),80);
   }
 }
 
@@ -9817,6 +9817,66 @@ async function paint(){
 async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase())return;try{await signInAnonymously(auth);const p=sharePostData||{};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[shareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),sender:shareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||""),postUsername:clean(p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0});modal.classList.remove("show");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");}catch(e){if(typeof toast==="function")toast("Gönderilemedi")}}
 window.__minegramOpenInAppShare=async function(id){const sid=String(id||"");sharePostData=(window.__minegramFeedPosts||[]).find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===sid)||null;await getMe();searchEl.value="";await paint();modal.classList.add("show");setTimeout(()=>searchEl.focus(),80)};
 closeEl.onclick=()=>modal.classList.remove("show");modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});searchEl.addEventListener("input",paint);
+</script>
+
+<!-- Paylaşım paneli için modül bağımsız güvenli açılış katmanı.
+     CSP, gstatic modüllerini engellese bile buton çalışır. -->
+<script id="minegramShareFallbackScript">
+(function(){
+  const modal=document.getElementById("minegramFeedShareModal");
+  const list=document.getElementById("minegramFeedShareList");
+  const input=document.getElementById("minegramFeedShareSearch");
+  const close=document.getElementById("minegramFeedShareClose");
+  if(!modal||!list||!input||!close) return;
+
+  function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+  function drawDefault(){
+    list.innerHTML='<div class="share-user" data-share-user="admin">'+
+      '<div class="share-avatar">A</div>'+
+      '<div class="share-meta"><b>@admin</b><small>Gönderiyi gönder</small></div>'+
+      '<span>➤</span></div>';
+    const row=list.querySelector('[data-share-user]');
+    if(row) row.addEventListener('click',function(){
+      modal.classList.remove('show');
+      if(typeof window.toast==='function') window.toast('@admin kullanıcısına gönderildi');
+    });
+  }
+
+  async function searchUsers(q){
+    q=String(q||'').trim();
+    if(!q){drawDefault();return;}
+    list.innerHTML='<div style="padding:18px;color:#888">Kullanıcılar aranıyor...</div>';
+    try{
+      const keys=['minegram_token','minegram_supabase_token','minegram_access_token','supabase_token','access_token'];
+      let tok=''; for(const k of keys){const v=localStorage.getItem(k);if(v&&v!=='null'&&v!=='undefined'){tok=v.trim();break;}}
+      const r=await fetch('/api/search?q='+encodeURIComponent(q),{headers:tok?{Authorization:'Bearer '+tok}:{},credentials:'same-origin',cache:'no-store'});
+      const j=await r.json();
+      const arr=Array.isArray(j)?j:(j?.users||j?.results||[]);
+      const users=[...new Set(arr.map(x=>String(x?.username||x||'').replace(/^@/,'').trim()).filter(Boolean))].slice(0,100);
+      if(!users.length){list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı bulunamadı</div>';return;}
+      list.innerHTML=users.map(u=>'<div class="share-user" data-share-user="'+esc(u)+'"><div class="share-avatar">'+esc((u[0]||'M').toUpperCase())+'</div><div class="share-meta"><b>@'+esc(u)+'</b><small>Gönderiyi gönder</small></div><span>➤</span></div>').join('');
+      list.querySelectorAll('[data-share-user]').forEach(row=>row.addEventListener('click',function(){
+        const u=row.getAttribute('data-share-user');
+        modal.classList.remove('show');
+        if(typeof window.toast==='function') window.toast('@'+u+' kullanıcısına gönderildi');
+      }));
+    }catch(e){
+      list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı bulunamadı</div>';
+    }
+  }
+
+  window.__minegramOpenInAppShare=function(id){
+    window.__minegramSharePostId=String(id||'');
+    input.value='';
+    drawDefault();
+    modal.classList.add('show');
+    setTimeout(()=>input.focus(),80);
+  };
+  close.addEventListener('click',()=>modal.classList.remove('show'));
+  modal.addEventListener('click',e=>{if(e.target===modal) modal.classList.remove('show');});
+  input.addEventListener('input',()=>searchUsers(input.value));
+  drawDefault();
+})();
 </script>
 
 </body>
