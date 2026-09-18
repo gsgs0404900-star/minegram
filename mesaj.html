@@ -1220,10 +1220,10 @@ body{
 .message-post-user,.message-reel-user{flex:1;min-width:0;font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .message-post-share,.message-reel-share{width:38px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
 
-.message-content-cover{position:relative;width:100%;height:330px;background:#000;overflow:hidden;border-radius:18px;cursor:pointer}
-.message-content-cover-img{display:block;width:100%;height:100%;object-fit:cover}
+.message-content-cover{position:relative;width:100%;max-width:360px;background:transparent;overflow:hidden;border-radius:18px;cursor:pointer}
+.message-content-cover-img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;background:transparent;border-radius:18px}
 .message-content-cover-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:rgba(0,0,0,.58);color:#fff;display:flex;align-items:center;justify-content:center;font-size:23px}
-.message-content-cover-empty{display:flex;align-items:center;justify-content:center;color:#888;font-size:13px}
+.message-content-cover-empty{display:none}
 .message-post-media,.message-reel-media{width:100%;height:330px;object-fit:cover;display:block;background:#111;box-sizing:border-box}
 .message-post-info,.message-reel-info{padding:10px 14px 12px;background:#000}
 .message-post-caption,.message-reel-caption{font-size:18px;line-height:24px;font-weight:700;color:#fff;margin-bottom:13px}
@@ -3458,25 +3458,31 @@ function renderMessage(
  if(d.type==="post" || d.type==="story" || d.type==="reel" || d.contentType==="post" || d.contentType==="story"){
 
   const isVideo=/video|reel/i.test(String(d.postMediaType||d.mediaType||d.contentType||"")) || d.type==="reel";
-  const cover=String(
-   d.postMediaBase64 ||
-   d.videoCoverBase64 ||
-   d.videoCover ||
-   d.postMediaUri ||
-   d.mediaBase64 ||
-   d.mediaUri ||
+  const p=(d.post && typeof d.post==="object") ? d.post : {};
+  let cover=String(
+   d.videoCoverBase64 || d.videoCover ||
+   d.postMediaBase64 || d.postMediaUri ||
+   d.mediaBase64 || d.mediaUri ||
+   p.videoCoverBase64 || p.videoCover ||
+   p.mediaBase64 || p.media || p.mediaUri || p.media_url || p.mediaUrl ||
    ""
-  );
+  ).trim();
+
+  // Ham base64 geldiyse tarayıcıda doğrudan görüntülenebilmesi için data URI yap.
+  if(cover && !/^(data:|https?:|blob:|\/)/i.test(cover)){
+   const mt=String(d.postMediaType||d.mediaType||p.mediaType||p.media_type||"image");
+   const mime=/png/i.test(mt)?"image/png":/webp/i.test(mt)?"image/webp":/gif/i.test(mt)?"image/gif":"image/jpeg";
+   cover=`data:${mime};base64,${cover}`;
+  }
 
   /* Story/post verisinde medya yoksa metin olarak boş kutu gösterme. */
   if(cover){
    body=`
     <div class="message-content-cover" data-open-post="1">
      <img class="message-content-cover-img" src="${escapeHtml(cover)}" alt="${d.type==="story"||d.contentType==="story"?"Story kapağı":"Gönderi kapağı"}">
-     ${isVideo?'<span class="message-content-cover-play"><i class="fa-solid fa-play"></i></span>':''}
     </div>`;
   }else{
-   body=`<div class="message-content-cover message-content-cover-empty">Kapak bulunamadı</div>`;
+   body="";
   }
  }
 
