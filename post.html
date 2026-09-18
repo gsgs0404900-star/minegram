@@ -7873,7 +7873,28 @@ async function init(){
   const requestedPostId=getPostIdFromUrl();
 
   if(requestedPostId){
-    const shown=await loadPostDetail(requestedPostId);
+    const normalized = {
+  ...post,
+  id: getPostObjectId(post) || id,
+
+  media:
+    post.media ||
+    post.media_url ||
+    post.mediaUrl ||
+    post.image ||
+    post.imageUrl ||
+    post.photo ||
+    post.file ||
+    post.fileUrl ||
+    post.url ||
+    "",
+
+  mediaName:
+    post.mediaName ||
+    post.fileName ||
+    post.imageName ||
+    ""
+};
     if(shown) return;
   }
 
