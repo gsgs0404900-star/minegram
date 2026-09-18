@@ -1917,12 +1917,55 @@
       try {
 
         const me =
-          await api("/me");
+  await api("/me");
 
+if (!me) {
+  throw new Error("auth");
+}
 
-        if (!me) {
-          throw new Error("auth");
+const meUser =
+  me?.user ||
+  me?.profile ||
+  me;
+
+currentUsername =
+  String(
+    meUser?.username ||
+    ""
+  )
+    .replace(/^@/, "")
+    .trim()
+    .toLowerCase();
+
+followingUsers =
+  new Set(
+    (
+      meUser?.following ||
+      meUser?.followingUsers ||
+      me?.following ||
+      []
+    )
+      .map(item => {
+
+        if (typeof item === "string") {
+          return item
+            .replace(/^@/, "")
+            .trim()
+            .toLowerCase();
         }
+
+        return String(
+          item?.username ||
+          item?.user?.username ||
+          item?.profile?.username ||
+          ""
+        )
+          .replace(/^@/, "")
+          .trim()
+          .toLowerCase();
+      })
+      .filter(Boolean)
+  );
 
       } catch {
 
@@ -2141,102 +2184,258 @@
        9. KULLANICI SONUÇLARI
     ========================================================= */
 
-    function renderUsers(array) {
+   function renderUsers(array) {
 
-      if (!array.length) {
+  if (!array.length) {
 
-        content.innerHTML =
-          '<div class="empty">Kullanıcı bulunamadı</div>';
+    content.innerHTML =
+      '<div class="empty">Kullanıcı bulunamadı</div>';
 
-        return;
-      }
-
-
-      content.innerHTML = `
-        <div class="users">
-
-          ${array.map(user => {
-
-            const storiesForUser =
-              storyFor(
-                user.username
-              );
+    return;
+  }
 
 
-            const hasStory =
-              !user.private &&
-              storiesForUser.length > 0;
+  content.innerHTML = `
+    <div class="users">
+
+      ${array.map(user => {
+
+        const storiesForUser =
+          storyFor(
+            user.username
+          );
+
+        const hasStory =
+          !user.private &&
+          storiesForUser.length > 0;
+
+        const usernameKey =
+          user.username
+            .toLowerCase();
+
+        const isMe =
+          usernameKey ===
+          currentUsername;
+
+        const isFollowing =
+          Boolean(
+            user.isFollowing ||
+            followingUsers.has(
+              usernameKey
+            )
+          );
 
 
-            return `
+        return `
 
-              <div
-                class="user"
-                data-user="${esc(user.username)}"
-                data-story="${hasStory ? "1" : "0"}"
-              >
+          <div
+            class="user"
+            data-user="${esc(user.username)}"
+            data-story="${hasStory ? "1" : "0"}"
+          >
 
-                ${avatarHtml(
-                  user.avatar,
-                  user.username,
-                  hasStory
-                )}
+            ${avatarHtml(
+              user.avatar,
+              user.username,
+              hasStory
+            )}
 
-                <div class="user-info">
+            <div class="user-info">
 
-                  <div class="username">
-                    @${esc(user.username)}
-                  </div>
+              <div class="user-name-row">
 
-                  <div class="sub">
-
-                    ${
-                      hasStory
-                        ? "Hikayeyi görmek için fotoğrafa dokun"
-                        : "Hesabı görüntüle"
-                    }
-
-                  </div>
-
+                <div class="username">
+                  @${esc(user.username)}
                 </div>
+
+                ${
+                  !isMe
+                    ? `
+                      <button
+                        type="button"
+                        class="follow-btn ${
+                          isFollowing
+                            ? "following"
+                            : ""
+                        }"
+                        data-follow-user="${esc(
+                          user.username
+                        )}"
+                      >
+                        ${
+                          isFollowing
+                            ? "Takip Ediliyor"
+                            : "Takip Et"
+                        }
+                      </button>
+                    `
+                    : ""
+                }
 
               </div>
 
-            `;
+              <div class="sub">
+                ${
+                  hasStory
+                    ? "Hikayeyi görmek için fotoğrafa dokun"
+                    : "Hesabı görüntüle"
+                }
+              </div>
 
-          }).join("")}
+            </div>
 
-        </div>
-      `;
+          </div>
 
+        `;
 
-      document
-        .querySelectorAll("[data-user]")
-        .forEach(element => {
+      }).join("")}
 
-          element.onclick = () => {
-
-            const username =
-              element.dataset.user;
+    </div>
+  `;
 
 
-            if (
-              element.dataset.story === "1" &&
-              element.querySelector(".story-ring")
-            ) {
+  /* Kullanıcı profiline tıklama */
 
-              openStory(username);
+  document
+    .querySelectorAll("[data-user]")
+    .forEach(element => {
 
-            } else {
+      element.onclick = () => {
 
-              openProfile(username);
-            }
+        const username =
+          element.dataset.user;
 
-          };
+        if (
+          element.dataset.story === "1" &&
+          element.querySelector(".story-ring")
+        ) {
 
-        });
+          openStory(username);
+
+        } else {
+
+          openProfile(username);
+        }
+
+      };
+
+    });
+
+
+  /* Takip butonları */
+
+  document
+    .querySelectorAll("[data-follow-user]")
+    .forEach(button => {
+
+      button.onclick = async event => {
+
+        event.stopPropagation();
+
+        const username =
+          button.dataset.followUser;
+
+        await toggleFollowUser(
+          username,
+          button
+        );
+
+      };
+
+    });
+}
+
+
+    async function toggleFollowUser(
+  username,
+  button
+) {
+
+  if (!username) {
+    return;
+  }
+
+
+  const usernameKey =
+    username
+      .replace(/^@/, "")
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    usernameKey ===
+    currentUsername
+  ) {
+    return;
+  }
+
+
+  const isFollowing =
+    followingUsers.has(
+      usernameKey
+    );
+
+
+  button.disabled = true;
+
+
+  try {
+
+    await api(
+      "/users/" +
+      encodeURIComponent(username) +
+      "/follow",
+      {
+        method: "POST",
+
+        body: {
+          follow: !isFollowing
+        }
+      }
+    );
+
+
+    if (isFollowing) {
+
+      followingUsers.delete(
+        usernameKey
+      );
+
+      button.textContent =
+        "Takip Et";
+
+      button.classList.remove(
+        "following"
+      );
+
+    } else {
+
+      followingUsers.add(
+        usernameKey
+      );
+
+      button.textContent =
+        "Takip Ediliyor";
+
+      button.classList.add(
+        "following"
+      );
     }
 
+
+  } catch (error) {
+
+    alert(
+      error.message ||
+      "Takip işlemi gerçekleştirilemedi."
+    );
+
+  } finally {
+
+    button.disabled = false;
+  }
+}
 
     /* =========================================================
        10. ETİKET GİRİŞİ
