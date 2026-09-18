@@ -3463,8 +3463,8 @@ function renderMessage(
   const media=d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||"";
   const mediaType=String(d.postMediaType||d.mediaType||"");
   const isVideo=/video|reel/i.test(mediaType) || isReel;
-  const videoCover=d.videoCoverBase64||d.videoCover||d.postVideoCoverBase64||d.postVideoCover||"";
-  const displayMedia=isVideo ? (videoCover||media) : media;
+  const videoCover=d.videoCoverBase64||d.videoCover||d.postVideoCoverBase64||d.postVideoCover||d.postCoverBase64||d.postCover||d.coverBase64||d.cover||d.thumbnailBase64||d.thumbnail||"";
+  const displayMedia=isVideo ? (videoCover||((/^image\//i.test(mediaType)||!mediaType) ? media : "")) : media;
   const caption=d.postText||d.caption||"";
   const likes=d.postLikes||d.likes||0;
   const comments=d.postCommentCount||d.commentCount||0;
@@ -5942,6 +5942,17 @@ window.MinegramChat={
       post.mediaBase64||
       null,
 
+     videoCoverBase64:
+      post.videoCoverBase64||
+      post.videoCover||
+      post.postVideoCoverBase64||
+      post.postVideoCover||
+      post.coverBase64||
+      post.cover||
+      post.thumbnailBase64||
+      post.thumbnail||
+      null,
+
      postCommentCount:
       post.commentCount||
       0
@@ -6031,6 +6042,17 @@ if(p.get("share")){
 
       postMediaBase64:
        x.mediaBase64||
+       null,
+
+      videoCoverBase64:
+       x.videoCoverBase64||
+       x.videoCover||
+       x.postVideoCoverBase64||
+       x.postVideoCover||
+       x.coverBase64||
+       x.cover||
+       x.thumbnailBase64||
+       x.thumbnail||
        null,
 
       postCommentCount:
