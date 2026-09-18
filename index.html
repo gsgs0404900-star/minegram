@@ -7422,7 +7422,7 @@ function renderComment(c){
 
                   <button
                     class="reply-link reply-count-link"
-                    onclick="toggleReplies(${JSON.stringify(String(c.id||""))})"
+                    onclick="toggleReplies(this)"
                   >
                     ${replyCount} yanıt
                   </button>
@@ -7579,71 +7579,68 @@ function cancelReply(){
 }
 
 
-function toggleReplies(id){
-
-  const wantedId = String(id ?? "");
+function toggleReplies(button){
 
   /*
-    Yanıt butonu inline onclick içinden çağrıldığı için,
-    ID içinde özel karakter olsa bile doğrudan element ID'sine
-    güvenme. Önce yorum satırını bul, sonra içindeki .replies alanını aç.
+    Yanıt sayısına basıldığında doğrudan tıklanan butonun ait olduğu
+    yorum satırını bul. Böylece yorum ID'sindeki özel karakterler,
+    HTML escape veya CSS.escape gibi durumlar tıklamayı bozmaz.
   */
-  const wraps = document.querySelectorAll(".comment-wrap[data-comment-id]");
   let wrap = null;
 
-  for(const item of wraps){
-    const dataId = String(item.getAttribute("data-comment-id") || "");
-    const decodedId = dataId
-      .replace(/&quot;/g,'"')
-      .replace(/&#39;/g,"'")
-      .replace(/&amp;/g,"&")
-      .replace(/&lt;/g,"<")
-      .replace(/&gt;/g,">");
-
-    if(dataId === wantedId || decodedId === wantedId){
-      wrap = item;
-      break;
-    }
+  if(button && typeof button.closest === "function"){
+    wrap = button.closest(".comment-wrap");
   }
 
-  if(!wrap){
-    const allReplies = document.querySelectorAll(".replies");
-    for(const item of allReplies){
-      const itemId = String(item.id || "").replace(/^replies-/,"");
-      if(itemId === wantedId){
-        wrap = item.closest(".comment-wrap");
+  /* Eski çağrılar için güvenli geri dönüş. */
+  if(!wrap && typeof button === "string"){
+    const wantedId = String(button);
+    const wraps = document.querySelectorAll(".comment-wrap[data-comment-id]");
+
+    for(const item of wraps){
+      const dataId = String(item.getAttribute("data-comment-id") || "");
+      if(dataId === wantedId){
+        wrap = item;
         break;
       }
     }
   }
 
   if(!wrap){
-    console.warn("Minegram: Yanıt alanı bulunamadı:", wantedId);
-    return;
+    console.warn("Minegram: Yanıtın ait olduğu yorum bulunamadı.");
+    return false;
   }
 
   const replies = wrap.querySelector(".replies");
   if(!replies){
-    console.warn("Minegram: .replies alanı bulunamadı:", wantedId);
-    return;
+    console.warn("Minegram: .replies alanı bulunamadı.");
+    return false;
   }
 
-  const wasHidden = replies.classList.contains("hidden");
-  replies.classList.toggle("hidden");
+  const opening = replies.classList.contains("hidden");
 
-  /*
-    Sayı var ama yanıtlar HTML'de yoksa sunucudan yüklemeyi dene.
-    Alan yine de hemen görünür; böylece butona basınca hiçbir şey
-    olmuyormuş gibi kalmaz.
-  */
-  if(wasHidden && !replies.children.length){
-    if(typeof loadRepliesForComment === "function"){
-      loadRepliesForComment(wantedId, replies).catch(function(err){
-        console.warn("Minegram: Yanıtlar yüklenemedi:", err);
-      });
+  /* Aç/kapat işlemini doğrudan bu yorumun yanıt alanında yap. */
+  replies.classList.toggle("hidden", !opening);
+
+  if(opening){
+    /* Yanıt alanı açıldığında görünür bölgeye getir. */
+    setTimeout(function(){
+      try{
+        replies.scrollIntoView({behavior:"smooth", block:"nearest"});
+      }catch(_){ }
+    },20);
+
+    /* Sayı var ama HTML içinde yanıt yoksa sunucudan yüklemeyi dene. */
+    if(!replies.children.length && typeof loadRepliesForComment === "function"){
+      const commentId = String(wrap.getAttribute("data-comment-id") || "");
+      Promise.resolve(loadRepliesForComment(commentId, replies))
+        .catch(function(err){
+          console.warn("Minegram: Yanıtlar yüklenemedi:", err);
+        });
     }
   }
 
+  return true;
 }
 
 
