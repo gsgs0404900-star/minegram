@@ -371,27 +371,33 @@ loadReels().then(()=>{
 
 <!-- Minegram uygulamasındaki Reels paylaşım seçicisi -->
 <style>
-.reel-share-modal{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:20000;display:none;align-items:flex-end;justify-content:center}
+/* REELS PAYLAŞ — INDEX.HTML İLE AYNI GÖRÜNÜM */
+.reel-share-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:20000;display:none;align-items:center;justify-content:center;padding:16px}
 .reel-share-modal.show{display:flex}
-.reel-share-sheet{width:min(430px,100%);max-height:78vh;background:#111;border-radius:24px 24px 0 0;padding:10px 14px 18px;box-shadow:0 -8px 30px rgba(0,0,0,.5);display:flex;flex-direction:column}
-.reel-share-handle{width:42px;height:4px;border-radius:99px;background:#666;margin:2px auto 12px}
-.reel-share-head{height:44px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #262626}
-.reel-share-head b{font-size:16px}
-.reel-share-close{border:0;background:transparent;color:#fff;font-size:25px;width:38px;height:38px;cursor:pointer}
-.reel-share-search{margin:12px 0;background:#1b1b1b;border:1px solid #333;color:#fff;border-radius:12px;padding:12px 13px;outline:none}
-.reel-share-list{overflow:auto;min-height:100px}
-.reel-share-user{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid #222;cursor:pointer}
-.reel-share-user:hover{background:#181818}
-.reel-share-avatar{width:45px;height:45px;border-radius:50%;background:#3f91cc;display:grid;place-items:center;font-weight:800;overflow:hidden;flex:0 0 45px}
+.reel-share-sheet{width:min(760px,100%);max-width:760px;height:auto;max-height:78vh;min-height:360px;margin:0 auto;background:#000;border:1px solid #222;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.7);padding:10px 14px 18px;box-sizing:border-box;overflow:hidden}
+.reel-share-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}
+.reel-share-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px;border:0;height:auto}
+.reel-share-head b{font-size:18px;font-weight:700;color:#f5f5f5}
+.reel-share-close{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:38px;padding:0;cursor:pointer}
+.reel-share-search{width:100%;height:51px;margin:0;background:#000;border:1.5px solid #858585;border-radius:8px;color:#fff;padding:0 12px;font-size:17px;outline:0}
+.reel-share-search::placeholder{color:#fff;opacity:1}
+.reel-share-list{max-height:50vh;overflow:auto;margin-top:8px;min-height:0}
+.reel-share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}
+.reel-share-user:hover{background:transparent}
+.reel-share-user .reel-share-avatar{width:54px;height:54px;border-radius:50%;background:#62afea;color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;overflow:hidden;flex:0 0 54px}
 .reel-share-avatar img{width:100%;height:100%;object-fit:cover}
-.reel-share-meta{flex:1;min-width:0}.reel-share-meta b{display:block;font-size:14px}.reel-share-meta small{display:block;color:#999;margin-top:3px;font-size:12px}
-.reel-share-send{color:#fff;font-size:17px}.reel-share-loading{text-align:center;color:#888;padding:28px 10px}
+.reel-share-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.reel-share-meta b{display:block;font-size:17px;color:#f5f5f5;font-weight:700}
+.reel-share-meta small{display:block;color:#fff;margin-top:0;font-size:14px}
+.reel-share-send{color:#64B5F6;font-size:30px;line-height:1;font-weight:700}
+.reel-share-loading{text-align:center;color:#888;padding:28px 10px;font-size:14px}
+@media (min-width:700px){.reel-share-sheet{height:auto;min-height:360px;max-height:70vh}}
 </style>
 <div id="reelShareModal" class="reel-share-modal">
   <div class="reel-share-sheet">
     <div class="reel-share-handle"></div>
-    <div class="reel-share-head"><b>Minegram'da gönder</b><button id="reelShareClose" class="reel-share-close">×</button></div>
-    <input id="reelShareSearch" class="reel-share-search" placeholder="Kullanıcı ara" autocomplete="off">
+    <div class="reel-share-head"><b>Gönderiyi paylaş</b><button id="reelShareClose" class="reel-share-close">×</button></div>
+    <input id="reelShareSearch" class="reel-share-search" placeholder="Ara" autocomplete="off">
     <div id="reelShareList" class="reel-share-list"></div>
   </div>
 </div>
@@ -446,7 +452,7 @@ async function paint(filter=""){
  listEl.innerHTML="<div class='reel-share-loading'>Kullanıcılar aranıyor...</div>";
  await getUsers(f);
  const arr=reelShareUsers;
- listEl.innerHTML=arr.length?arr.map(u=>`<div class="reel-share-user" data-user="${escShare(u)}">${avatar(u)}<div class="reel-share-meta"><b>@${escShare(u)}</b><small>Reels'i gönder</small></div><span class="reel-share-send">➤</span></div>`).join(""):"<div class='reel-share-loading'>Kullanıcı bulunamadı</div>";
+ listEl.innerHTML=arr.length?arr.map(u=>`<div class="reel-share-user" data-user="${escShare(u)}">${avatar(u)}<div class="reel-share-meta"><b>@${escShare(u)}</b><small>Gönderiyi gönder</small></div><span class="reel-share-send">➤</span></div>`).join(""):"<div class='reel-share-loading'>Kullanıcı bulunamadı</div>";
  listEl.querySelectorAll("[data-user]").forEach(el=>el.onclick=()=>sendReelTo(el.dataset.user));
 }
 async function sendReelTo(user){
