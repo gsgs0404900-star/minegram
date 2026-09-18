@@ -3088,6 +3088,19 @@ function messageKey(d,id){
 }
 
 
+function syncFirstMessageProfile(){
+
+ const card=document.querySelector(".profile-card");
+ if(!card) return;
+
+ /* Sohbete ilk girildiğinde profil alanı görünür.
+    En az bir mesaj varsa artık mesajların üstünde görünmez. */
+ const hasMessages=allMessages.size>0;
+ card.style.display=hasMessages?"none":"block";
+
+}
+
+
 function renderAll(){
 
  /*
@@ -3099,6 +3112,7 @@ function renderAll(){
   */
  chatArea.innerHTML="";
  loading.style.display="none";
+ syncFirstMessageProfile();
 
  const arr=[
   ...allMessages.entries()
