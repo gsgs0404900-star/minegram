@@ -198,19 +198,42 @@ body{
 
 .bubble{
  max-width:76%;
- padding:9px 13px 8px;
- border-radius:23px;
- font-size:18px;
- line-height:23px;
- word-break:break-word
+ padding:8px 13px 7px;
+ border-radius:18px;
+ font-size:16px;
+ line-height:22px;
+ font-weight:400;
+ word-break:break-word;
+ overflow-wrap:anywhere;
+ color:#fff !important;
+ -webkit-text-fill-color:#fff;
+ opacity:1 !important;
+ display:flex;
+ flex-wrap:wrap;
+ align-items:flex-end;
+ gap:3px
 }
 
 .sent .bubble{
- background:#62afea
+ background:#62afea;
+ color:#fff !important;
+ -webkit-text-fill-color:#fff
 }
 
 .received .bubble{
- background:#262626
+ background:#262626;
+ color:#fff !important;
+ -webkit-text-fill-color:#fff
+}
+
+.message-text{
+ display:inline;
+ color:#fff !important;
+ -webkit-text-fill-color:#fff !important;
+ white-space:pre-wrap;
+ word-break:break-word;
+ overflow-wrap:anywhere;
+ opacity:1 !important
 }
 
 .message-time{
@@ -278,10 +301,29 @@ body{
  height:100%;
  border:0;
  outline:0;
- background:transparent;
- color:#fff;
+ background:transparent !important;
+ color:#fff !important;
+ -webkit-text-fill-color:#fff !important;
+ caret-color:#fff;
+ opacity:1 !important;
  padding:0 13px;
- font-size:18px
+ font-size:16px;
+ font-weight:400;
+ line-height:22px;
+ appearance:none;
+ -webkit-appearance:none
+}
+
+#messageInput::placeholder{
+ color:#8a8a8a !important;
+ -webkit-text-fill-color:#8a8a8a !important;
+ opacity:1 !important
+}
+
+#messageInput:focus{
+ color:#fff !important;
+ -webkit-text-fill-color:#fff !important;
+ caret-color:#fff
 }
 
 #sendBtn{
@@ -1167,7 +1209,7 @@ body{
 <div class="app">
 
 <header class="topbar">
-<a href="sohbet.html" class="back">
+<a href="messages.html" class="back">
 <i class="fa-solid fa-arrow-left"></i>
 </a>
 
@@ -3684,13 +3726,10 @@ function renderMessage(
  else{
 
   body=
-   escapeHtml(
-    d.text||""
-   )
-   .replace(
-    /\n/g,
-    "<br>"
-   );
+   `<span class="message-text">${
+    escapeHtml(d.text||"")
+     .replace(/\n/g,"<br>")
+   }</span>`;
 
  }
 
@@ -4268,16 +4307,31 @@ async function sendData(data){
   );
 
 
-  await addDoc(
-   collection(
-    firestore,
-    "chatMessages"
-   ),
-   messageData
-  );
+  /*
+   * Uygulamadaki gibi: Firestore cevabını beklerken yazılan mesaj
+   * ekranda hemen görünür. Gerçek belge geldiğinde onSnapshot bunu
+   * normal mesajla değiştirir.
+   */
+  const localId="local_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+  allMessages.set(localId,{...messageData,_local:true});
+  renderAll();
 
-
-  return true;
+  try{
+   await addDoc(
+    collection(
+     firestore,
+     "chatMessages"
+    ),
+    messageData
+   );
+   allMessages.delete(localId);
+   renderAll();
+   return true;
+  }catch(e){
+   allMessages.delete(localId);
+   renderAll();
+   throw e;
+  }
 
 
  }catch(e){
