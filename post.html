@@ -7689,6 +7689,24 @@ async function loadPostDetail(postId){
       id:getPostObjectId(cached)||id
     };
 
+    normalized.media =
+  normalized.media ||
+  normalized.mediaUri ||
+  normalized.media_url ||
+  normalized.mediaUrl ||
+  "";
+
+normalized.mediaName =
+  normalized.mediaName ||
+  (normalized.mediaType || "").toLowerCase();
+
+if (
+  normalized.media &&
+  !normalized.mediaType
+) {
+  normalized.mediaType = "image";
+}
+
     window.__minegramFeedPosts=[normalized];
     feedEl.innerHTML=renderPost(normalized);
       if(typeof window.updateMinegramPostStoryRings === "function") window.updateMinegramPostStoryRings();
