@@ -11,7 +11,7 @@
  margin:0;
  padding:0;
  box-sizing:border-box;
- -webkit-tap-highlight-color:transparent; 
+ -webkit-tap-highlight-color:transparent;
  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif
 }
 
@@ -2224,6 +2224,19 @@ function getLoggedUsername(){
 
 
 /*
+ * URL'DEKİ SOHBET ALICISINI ÖNCE BELİRLE
+ * Böylece sayfa açılır açılmaz gerçek kullanıcı hedefi sabitlenir.
+ */
+const p=new URLSearchParams(location.search);
+
+const targetUsername=cleanUsername(
+ p.get("username")||
+ p.get("user")||
+ p.get("to")||
+ ""
+);
+
+/*
  * GERÇEK GİRİŞ YAPAN HESABI AL
  */
 
@@ -2322,26 +2335,10 @@ console.log(
  conversationKey
 );
 
-const p=new URLSearchParams(
- location.search
-);
-
-const targetUsername=String(
- p.get("username")||
- p.get("user")||
- p.get("to")||
- ""
-)
-.replace(/^@+/g,"")
-.trim();
-
-
-const conversationKey=[
- myUsername.toLowerCase(),
- targetUsername.toLowerCase()
-]
-.sort()
-.join("__");
+/* targetUsername ve conversationKey yukarıda tek kez oluşturuldu.
+ * İkinci bir tanım yapılmaz; butonların çalışmasını engelleyen
+ * TDZ/tekrar-tanımlama hatası böylece oluşmaz.
+ */
 
 
 const input=
@@ -5256,13 +5253,18 @@ async function shareToUser(
  );
 
 
- const list=
-  [
-   ...new Set(users)
-  ].slice(
-   0,
-   100
-  );
+ /* Gerçek sohbet alıcısı varsa onu listenin en üstüne koy.
+  * Asla "test" gibi sabit/deneme hesabını otomatik hedef seçme.
+  */
+ const orderedUsers=[
+  ...(targetUsername ? [targetUsername] : []),
+  ...users.filter(u=>
+   !targetUsername ||
+   u.toLowerCase()!==targetUsername.toLowerCase()
+  )
+ ];
+
+ const list=[...new Set(orderedUsers)].slice(0,100);
 
 
  $("shareTitle")
@@ -5383,6 +5385,23 @@ async function sendTo(
  payload
 ){
 
+ const recipient=cleanUsername(user);
+
+ if(!recipient){
+  showToast("Gerçek alıcı bulunamadı");
+  return false;
+ }
+
+ if(!myUsername || myUsername.toLowerCase()===recipient.toLowerCase()){
+  showToast("Geçerli bir alıcı seçilmedi");
+  return false;
+ }
+
+ if(!(await ensureAuth())) return false;
+
+ await syncBlock();
+ if(blockedSend()) return false;
+
  try{
 
   const d={
@@ -5398,14 +5417,14 @@ async function sendTo(
 
     conversationKey:[
      myUsername.toLowerCase(),
-     user.toLowerCase()
+     recipient.toLowerCase()
     ]
     .sort()
     .join("__"),
 
     sender:myUsername,
 
-    recipient:user,
+    recipient:recipient,
 
     time:
      new Date()
