@@ -1775,13 +1775,6 @@ async function loadData(){
 
     renderDiscovery();
 
-    /*
-     * Feed içindeki commentCount/comments alanı eski kalmış olabilir.
-     * Butondaki sayı için asıl /posts/:id cevabındaki GERÇEK yorum
-     * listesini kullan. Böylece modalda 0 yorum varken butonda 1 kalmaz.
-     */
-    syncAllReelCommentCounts();
-
   }catch{
 
     content.innerHTML =
@@ -1936,12 +1929,12 @@ function normalizeReels(){
               0
             ),
 
-          /*
-           * İlk açılışta feed içindeki eski/stale yorum sayısını
-           * KESİNLİKLE kullanma. Gerçek sayı syncAllReelCommentCounts()
-           * ile /posts/:id üzerinden alınacak.
-           */
-          commentCount:0,
+          commentCount:
+            Number(
+              post?.commentCount ||
+              post?.comment_count ||
+              0
+            ),
 
           date:
             post?.date ||
@@ -2478,8 +2471,7 @@ function createReelHtml(
 
 
         <button
-          class="reel-action comment-action"
-          data-comment-index="${index}"
+          class="reel-action"
           type="button"
           onclick="openComments(${index})"
         >
@@ -2492,11 +2484,9 @@ function createReelHtml(
 
           </span>
 
-          ${Number(reel.commentCount || 0) > 0 ? `
-            <span class="num">
-              ${Number(reel.commentCount)}
-            </span>
-          ` : ""}
+          <span class="num">
+            ${Number(reel.commentCount || 0)}
+          </span>
 
         </button>
 
@@ -3498,19 +3488,10 @@ document.getElementById(
 
 if(showLoading){
 
-const localComments = getLocalComments(id);
-
 list.innerHTML=
 renderCommentsForPost(
-localComments
+getLocalComments(id)
 );
-
-if(currentViewerComment !== null){
-  updateViewerCommentCount(
-    currentViewerComment,
-    localComments.length
-  );
-}
 
 }
 
@@ -3531,22 +3512,13 @@ Array.isArray(p.comments)
 :[]);
 
 
-const mergedComments = mergeComments(
-  remote,
-  id
-);
-
 list.innerHTML=
 renderCommentsForPost(
-mergedComments
+mergeComments(
+remote,
+id
+)
 );
-
-if(currentViewerComment !== null){
-  updateViewerCommentCount(
-    currentViewerComment,
-    mergedComments.length
-  );
-}
 
 }catch(e){}
 
@@ -3642,13 +3614,6 @@ local.length
 renderComment
 ).join('')
 :'<div class="empty">Yorumlar yüklenemedi.</div>';
-
-if(currentViewerComment !== null){
-  updateViewerCommentCount(
-    currentViewerComment,
-    local.length
-  );
-}
 
 }
 
@@ -3747,9 +3712,7 @@ days/7
 )+' hafta önce';
 
 
-return d.toLocaleDateString(
-'tr-TR'
-);
+return Math.floor(days/365)+' yıl önce';
 
 }
 
@@ -4654,66 +4617,6 @@ btn.dataset.loading='0';
 
 }
 
-
-
-/* =====================================================
-   REELS YORUM SAYILARINI SUNUCUDAN DOĞRULA
-===================================================== */
-async function syncAllReelCommentCounts(){
-  if(!Array.isArray(reels) || !reels.length) return;
-
-  await Promise.all(
-    reels.map(async (reel,index)=>{
-      const id = postId(reel.raw) || reel.id;
-      if(!id) return;
-
-      try{
-        const p = await api('/posts/'+encodeURIComponent(id));
-        const comments =
-          Array.isArray(p?.comments)
-            ? p.comments
-            : (Array.isArray(p?.post?.comments)
-              ? p.post.comments
-              : []);
-
-        updateViewerCommentCount(index, comments.length);
-      }catch(e){
-        /* Sunucudan doğrulanamazsa sayı gösterme. */
-        updateViewerCommentCount(index, 0);
-      }
-    })
-  );
-}
-
-
-/* =====================================================
-   YORUM BUTONU SAYISINI GERÇEK YORUM LİSTESİNE GÖRE GÜNCELLE
-===================================================== */
-function updateViewerCommentCount(index, count){
-  const reel = reels[index];
-  if(!reel) return;
-
-  const n = Math.max(0, Number(count) || 0);
-  reel.commentCount = n;
-
-  const btn = document.querySelector(
-    '.comment-action[data-comment-index="'+CSS.escape(String(index))+'"]'
-  );
-
-  if(!btn) return;
-
-  const old = btn.querySelector('.num');
-
-  if(n > 0){
-    if(old){
-      old.textContent = String(n);
-    }else{
-      btn.insertAdjacentHTML('beforeend', '<span class="num">'+n+'</span>');
-    }
-  }else if(old){
-    old.remove();
-  }
-}
 
 
 /* REELS YORUM AÇMA */
