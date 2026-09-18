@@ -4547,47 +4547,42 @@ function renderPost(p){
   let media="";
 
 
-  const mediaSrc =
-  p.media ||
-  p.media_url ||
-  p.mediaUrl ||
-  p.image ||
-  p.imageUrl ||
-  p.photo ||
-  p.url ||
-  "";
+  if(p.media){
 
-if (mediaSrc) {
+    if(
+      p.mediaName &&
+      /\.(mp4|webm|mov|m4v)$/i.test(
+        p.mediaName
+      )
+    ){
 
-  if (
-    p.mediaName &&
-    /\.(mp4|webm|mov|m4v)$/i.test(p.mediaName)
-  ) {
+      media=`
 
-    media = `
-      <video
-        class="post-media"
-        src="${esc(mediaSrc)}"
-        controls
-        playsinline
-      ></video>
-    `;
+        <video
+          class="post-media"
+          src="${esc(mediaSrc)}"
+          controls
+          playsinline
+        ></video>
 
-  } else {
+      `;
 
-    media = `
-      <img
-        class="post-media"
-        src="${esc(mediaSrc)}"
-        loading="lazy"
-        alt="Gönderi"
-        onerror="this.style.display='none'"
-      >
-    `;
+    }else{
+
+      media=`
+
+        <img
+          class="post-media"
+          src="${esc(mediaSrc)}"
+          loading="lazy"
+          alt="Gönderi"
+        >
+
+      `;
+
+    }
 
   }
-
-}
 
 
   return `
@@ -7691,7 +7686,8 @@ async function loadPostDetail(postId){
   if(cached){
     const normalized={
       ...cached,
-      id:getPostObjectId(cached)||id
+      id:getPostObjectId(cached)||id,
+      media: cached.media || cached.media_url || cached.mediaUrl || cached.image || cached.imageUrl || cached.photo || cached.file || cached.fileUrl || cached.url || ""
     };
 
     window.__minegramFeedPosts=[normalized];
@@ -7721,7 +7717,8 @@ async function loadPostDetail(postId){
     if(post){
       const normalized={
         ...post,
-        id:getPostObjectId(post)||id
+        id:getPostObjectId(post)||id,
+        media: post.media || post.media_url || post.mediaUrl || post.image || post.imageUrl || post.photo || post.file || post.fileUrl || post.url || ""
       };
 
       window.__minegramFeedPosts=[normalized];
@@ -7873,28 +7870,7 @@ async function init(){
   const requestedPostId=getPostIdFromUrl();
 
   if(requestedPostId){
-    const normalized = {
-  ...post,
-  id: getPostObjectId(post) || id,
-
-  media:
-    post.media ||
-    post.media_url ||
-    post.mediaUrl ||
-    post.image ||
-    post.imageUrl ||
-    post.photo ||
-    post.file ||
-    post.fileUrl ||
-    post.url ||
-    "",
-
-  mediaName:
-    post.mediaName ||
-    post.fileName ||
-    post.imageName ||
-    ""
-};
+    const shown=await loadPostDetail(requestedPostId);
     if(shown) return;
   }
 
