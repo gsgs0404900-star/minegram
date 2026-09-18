@@ -4086,7 +4086,12 @@ function renderMessage(
      type:d.type==="reel"?"reel":"post"
     }));
    }catch(e){}
-   location.href="post.html?id="+encodeURIComponent(postId)+"&username="+encodeURIComponent(d.postUsername||"");
+   const isReel=d.type==="reel" || /reel|video/i.test(String(d.postMediaType||d.mediaType||""));
+   if(isReel){
+    location.href="reels.html?id="+encodeURIComponent(postId);
+   }else{
+    location.href="post.html?id="+encodeURIComponent(postId)+"&username="+encodeURIComponent(d.postUsername||"");
+   }
   }
  );
 
