@@ -337,7 +337,7 @@ button{
   pointer-events:auto
 }
 
-/* ALT MENÜ */
+/* ALT MENÜ - ESKİ HALİ KORUNDU */
 
 .nav{
   position:fixed;
@@ -704,7 +704,7 @@ button{
 ></main>
 
 
-<!-- ALT MENÜ -->
+<!-- ALT MENÜ - ESKİSİ -->
 
 <nav class="nav">
 
@@ -810,7 +810,7 @@ button{
 </nav>
 
 
-<!-- REELS EKRANI -->
+<!-- REELS -->
 
 <div
   id="viewer"
@@ -1123,6 +1123,11 @@ function hashtagHtml(text=""){
 }
 
 
+/*
+  HASHTAG AÇ
+  ALT BAR DEĞİŞMEZ
+*/
+
 function openHashtag(event,tag){
 
   event?.preventDefault();
@@ -1131,7 +1136,18 @@ function openHashtag(event,tag){
   const clean=
     String(tag||"").trim();
 
-  if(!clean)return;
+  if(!clean){
+    return;
+  }
+
+  try{
+
+    sessionStorage.setItem(
+      "minegram_search_tag",
+      clean
+    );
+
+  }catch{}
 
   location.href=
     "ara.html?query="+
@@ -1357,6 +1373,7 @@ function renderDiscovery(){
     content.innerHTML=
       `
       <div class="empty">
+
         <div style="font-size:52px">
           ⌕
         </div>
@@ -1364,6 +1381,7 @@ function renderDiscovery(){
         <div>
           Henüz içerik bulunamadı.
         </div>
+
       </div>
       `;
 
@@ -1964,10 +1982,7 @@ async function toggleFollow(username){
 }
 
 
-/* -------------------------------------------------
-   ÖNEMLİ:
-   GÖNDERİ AÇMA
-   ------------------------------------------------- */
+/* NORMAL GÖNDERİ AÇ */
 
 function openPostById(id){
 
@@ -1981,9 +1996,9 @@ function openPostById(id){
   }
 
   /*
-    FOTOĞRAF / NORMAL GÖNDERİ
-    YORUM EKRANI DEĞİL,
-    DOĞRUDAN post.html AÇILIR.
+    ÖNEMLİ:
+    BURADA YORUM EKRANI YOK.
+    DOĞRUDAN GÖNDERİ SAYFASI AÇILIYOR.
   */
 
   location.href=
@@ -2015,9 +2030,7 @@ function openStory(username){
 }
 
 
-/* -------------------------------------------------
-   ETİKET ARAMA
-   ------------------------------------------------- */
+/* ETİKET ARAMA */
 
 async function doSearch(){
 
@@ -2064,16 +2077,34 @@ async function doSearch(){
     if(!tag){
 
       renderDiscovery();
-
       return;
 
     }
 
 
     /*
-      SADECE TAM ETİKET EŞLEŞMESİ
+      ARAMA ETİKETİNİ SAKLA
+    */
+
+    try{
+
+      sessionStorage.setItem(
+        "minegram_search_tag",
+        "#"+selectedTag
+      );
+
+    }catch{}
+
+
+    /*
+      TAM ETİKET EŞLEŞMESİ
+
       #minegram
-      #minegram123 İLE AYNI DEĞİL
+      EŞLEŞİR
+
+      #minegram123
+      #minegramabc
+      EŞLEŞMEZ
     */
 
     const posts=
@@ -2292,8 +2323,7 @@ async function doSearch(){
         tile.onclick=event=>{
 
           /*
-            #ETİKETE BASILDIYSA
-            ARAMA DEVAM ETSİN
+            HASHTAG
           */
 
           if(
@@ -2308,7 +2338,6 @@ async function doSearch(){
 
 
           /*
-            KULLANICI ADINA BASILDIYSA
             PROFİL
           */
 
@@ -2332,7 +2361,7 @@ async function doSearch(){
 
 
           /*
-            VIDEO / REELS
+            VİDEO / REELS
           */
 
           const reelIndex=
@@ -2353,9 +2382,11 @@ async function doSearch(){
 
 
           /*
-            FOTOĞRAF / NORMAL GÖNDERİ
+            NORMAL GÖNDERİ
+
             YORUM AÇILMAZ.
-            DOĞRUDAN POST AÇILIR.
+
+            POST SAYFASI AÇILIR.
           */
 
           const id=
@@ -2416,6 +2447,26 @@ clearButton.onclick=()=>{
   clearButton.style.display="none";
   tagBack.style.display="none";
 
+  try{
+    sessionStorage.removeItem(
+      "minegram_search_tag"
+    );
+  }catch{}
+
+  /*
+    URL'DEKİ QUERY'Yİ DE TEMİZLE
+  */
+
+  try{
+
+    history.replaceState(
+      {},
+      "",
+      "ara.html"
+    );
+
+  }catch{}
+
   renderDiscovery();
 
   input.focus();
@@ -2432,6 +2483,22 @@ tagBack.onclick=()=>{
 
   clearButton.style.display="none";
   tagBack.style.display="none";
+
+  try{
+    sessionStorage.removeItem(
+      "minegram_search_tag"
+    );
+  }catch{}
+
+  try{
+
+    history.replaceState(
+      {},
+      "",
+      "ara.html"
+    );
+
+  }catch{}
 
   renderDiscovery();
 
@@ -2705,8 +2772,10 @@ function createReel(reel,index){
 
 
 /*
-  REELS İÇİN YORUM EKRANI YERİNE
-  REELS GÖNDERİSİNİ AÇ
+  REELS İÇİN:
+  YORUM EKRANI YOK.
+
+  GÖNDERİ AÇILIR.
 */
 
 function openReelPost(index){
@@ -2714,7 +2783,9 @@ function openReelPost(index){
   const reel=
     reels[index];
 
-  if(!reel)return;
+  if(!reel){
+    return;
+  }
 
   const id=
     reel.id||
@@ -2797,7 +2868,9 @@ function setupReels(startIndex){
 
 
   if(viewerObserver){
+
     viewerObserver.disconnect();
+
   }
 
 
@@ -2883,7 +2956,6 @@ function closeReel(){
   if(viewerObserver){
 
     viewerObserver.disconnect();
-
     viewerObserver=null;
 
   }
@@ -2915,7 +2987,9 @@ function toggleReel(index){
       `.reel[data-reel-index="${index}"]`
     );
 
-  if(!article)return;
+  if(!article){
+    return;
+  }
 
   const video=
     article.querySelector(
@@ -2942,7 +3016,9 @@ function muteReel(index){
       `.reel[data-reel-index="${index}"]`
     );
 
-  if(!article)return;
+  if(!article){
+    return;
+  }
 
   const video=
     article.querySelector(
@@ -2962,7 +3038,9 @@ function seekReel(event,index){
       `.reel[data-reel-index="${index}"]`
     );
 
-  if(!article)return;
+  if(!article){
+    return;
+  }
 
   const video=
     article.querySelector(
@@ -2975,7 +3053,9 @@ function seekReel(event,index){
       video.duration
     )
   ){
+
     return;
+
   }
 
   video.currentTime=
@@ -2996,7 +3076,9 @@ function updateReelProgress(index){
       `.reel[data-reel-index="${index}"]`
     );
 
-  if(!article)return;
+  if(!article){
+    return;
+  }
 
   const video=
     article.querySelector(
@@ -3013,7 +3095,9 @@ function updateReelProgress(index){
       ".reel-time"
     );
 
-  if(!video)return;
+  if(!video){
+    return;
+  }
 
   const duration=
     Number(video.duration||0);
@@ -3068,13 +3152,17 @@ async function countReelView(index){
   const reel=
     reels[index];
 
-  if(!reel)return;
+  if(!reel){
+    return;
+  }
 
   const id=
     reel.id||
     postId(reel.raw);
 
-  if(!id)return;
+  if(!id){
+    return;
+  }
 
   try{
 
@@ -3097,13 +3185,17 @@ async function likeReel(index){
   const reel=
     reels[index];
 
-  if(!reel)return;
+  if(!reel){
+    return;
+  }
 
   const id=
     reel.id||
     postId(reel.raw);
 
-  if(!id)return;
+  if(!id){
+    return;
+  }
 
   try{
 
@@ -3160,7 +3252,9 @@ async function shareReel(index){
   const reel=
     reels[index];
 
-  if(!reel)return;
+  if(!reel){
+    return;
+  }
 
   const id=
     reel.id||
@@ -3213,6 +3307,7 @@ function loadSearchFromUrl(){
     params.get("query")||
     "";
 
+
   if(!query){
 
     try{
@@ -3226,9 +3321,11 @@ function loadSearchFromUrl(){
 
   }
 
+
   if(!query){
     return;
   }
+
 
   query=
     String(query).trim();
@@ -3236,6 +3333,7 @@ function loadSearchFromUrl(){
   if(!query){
     return;
   }
+
 
   if(
     !query.startsWith("#")
@@ -3245,6 +3343,7 @@ function loadSearchFromUrl(){
       "#"+query;
 
   }
+
 
   input.value=query;
 
@@ -3256,6 +3355,7 @@ function loadSearchFromUrl(){
 
   tagBack.style.display=
     "block";
+
 
   setTimeout(
     ()=>doSearch(),
@@ -3320,7 +3420,9 @@ document.addEventListener(
 /* BAŞLAT */
 
 loadData().then(()=>{
+
   loadSearchFromUrl();
+
 });
 
 </script>
