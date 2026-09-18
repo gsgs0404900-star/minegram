@@ -840,7 +840,8 @@ body{
   }
 
   .post-media{
-    max-height:520px
+    max-height:none;
+    height:auto
   }
 
   .post-head{
@@ -4853,6 +4854,27 @@ function openMinegramPost(post){
     return;
   }
 
+  const openMedia = String(
+    post.media ||
+    post.mediaUri ||
+    post.media_url ||
+    post.mediaUrl ||
+    post.video ||
+    post.videoUrl ||
+    post.video_url ||
+    ""
+  );
+  const openMediaType = String(
+    post.mediaType ||
+    post.media_type ||
+    post.type ||
+    ""
+  ).toLowerCase();
+  const openIsVideo =
+    openMediaType.includes("video") ||
+    openMediaType.includes("reel") ||
+    /\.(mp4|webm|mov|m4v|3gp)(?:[?#].*)?$/i.test(openMedia);
+
   try{
     sessionStorage.setItem(
       "minegram_selected_post",
@@ -4884,9 +4906,9 @@ function openMinegramPost(post){
     );
   }catch(e){}
 
-  location.href=
-    "post.html?id="+
-    encodeURIComponent(id);
+  location.href = openIsVideo
+    ? "reels.html?id=" + encodeURIComponent(id)
+    : "post.html?id=" + encodeURIComponent(id);
 }
 
 function openMinegramPostFromElement(event,element){
@@ -5004,38 +5026,57 @@ function renderPost(p){
 
   let media="";
 
+  const mediaUrl = String(
+    p.media ||
+    p.mediaUri ||
+    p.media_url ||
+    p.mediaUrl ||
+    ""
+  );
 
-  if(p.media){
+  const mediaType = String(
+    p.mediaType ||
+    p.media_type ||
+    p.type ||
+    ""
+  ).toLowerCase();
 
-    if(
-      p.mediaName &&
-      /\.(mp4|webm|mov|m4v)$/i.test(
-        p.mediaName
-      )
-    ){
+  const mediaName = String(
+    p.mediaName ||
+    p.media_name ||
+    ""
+  ).toLowerCase();
+
+  const isVideoPost =
+    mediaType.includes("video") ||
+    mediaType.includes("reel") ||
+    /\.(mp4|webm|mov|m4v|3gp)(?:[?#].*)?$/i.test(mediaUrl) ||
+    /\.(mp4|webm|mov|m4v|3gp)$/i.test(mediaName);
+
+  if(mediaUrl){
+
+    if(isVideoPost){
 
       media=`
-
         <video
-          class="post-media"
-          src="${esc(p.media)}"
-          controls
+          class="post-media post-video"
+          src="${esc(mediaUrl)}"
           playsinline
+          preload="metadata"
+          onclick="event.stopPropagation(); openMinegramPostFromElement(event,this.closest('.post'))"
         ></video>
-
       `;
 
     }else{
 
       media=`
-
         <img
           class="post-media"
-          src="${esc(p.media)}"
+          src="${esc(mediaUrl)}"
           loading="lazy"
           alt="Gönderi"
+          onclick="event.stopPropagation(); openMinegramPostFromElement(event,this.closest('.post'))"
         >
-
       `;
 
     }
@@ -5152,7 +5193,7 @@ function renderPost(p){
 
         <button
           class="action share-action"
-          onclick="sharePost('${esc(p.id)}')"
+          onclick="event.stopPropagation(); sharePost('${esc(p.id)}')"
           aria-label="Gönderiyi paylaş"
         >
 
@@ -6150,9 +6191,19 @@ async function savePost(id){
    PAYLAŞ
 ========================================================= */
 
-async function sharePost(id){
+function sharePost(id){
+  const sid=String(id||"");
+  const post=(window.__minegramFeedPosts||[]).find(function(p){
+    return String(p?.id ?? p?.postId ?? p?._id ?? p?.uuid ?? "").trim()===sid.trim();
+  });
+  if(window.MinegramHome && post){
+    try{
+      window.MinegramHome.sharePost(JSON.stringify(post));
+      return;
+    }catch(e){}
+  }
   if(window.__minegramOpenInAppShare){
-    window.__minegramOpenInAppShare(id);
+    window.__minegramOpenInAppShare(sid);
   }
 }
 
@@ -9362,10 +9413,27 @@ const clean=v=>String(v||"").replace(/^@/,"").trim();
 const escShare=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const token=()=>{for(const k of ["minegram_token","minegram_supabase_token","minegram_access_token","supabase_token","access_token"]){const v=localStorage.getItem(k);if(v&&v!=="null"&&v!=="undefined")return v.trim()}return ""};
 async function getMe(){try{const r=await fetch("/api/me",{headers:token()?{Authorization:"Bearer "+token()}: {},credentials:"same-origin",cache:"no-store"});const j=await r.json();shareMe=clean(j?.username||j?.user?.username||j?.profile?.username||localStorage.getItem("minegram_username")||localStorage.getItem("username"));}catch{shareMe=clean(localStorage.getItem("minegram_username")||localStorage.getItem("username"))}}
-async function getUsers(q=""){try{const r=await fetch("/api/search?q="+encodeURIComponent(q),{headers:token()?{Authorization:"Bearer "+token()}: {},credentials:"same-origin",cache:"no-store"});const j=await r.json();const a=Array.isArray(j)?j:(j?.users||j?.results||[]);shareUsers=[...new Set(a.map(x=>clean(x?.username||x)).filter(u=>u&&u.toLowerCase()!==shareMe.toLowerCase()))].slice(0,100);}catch{shareUsers=[]}}
-function paint(){const f=searchEl.value.trim().toLowerCase();const a=shareUsers.filter(u=>u.toLowerCase().includes(f));listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Mesaj olarak gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";listEl.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>sendTo(el.dataset.u))}
+async function getUsers(q=""){
+  try{
+    const query=String(q||"").trim();
+    if(!query){shareUsers=[];return;}
+    const r=await fetch("/api/search?q="+encodeURIComponent(query),{headers:token()?{Authorization:"Bearer "+token()}: {},credentials:"same-origin",cache:"no-store"});
+    const j=await r.json();
+    const a=Array.isArray(j)?j:(j?.users||j?.results||[]);
+    shareUsers=[...new Set(a.map(x=>clean(x?.username||x)).filter(u=>u&&u.toLowerCase()!==shareMe.toLowerCase()))].slice(0,100);
+  }catch{shareUsers=[]}
+}
+async function paint(){
+  const f=searchEl.value.trim().toLowerCase();
+  if(!f){listEl.innerHTML="<div style='padding:18px;color:#888'>Kullanıcı ara</div>";return;}
+  listEl.innerHTML="<div style='padding:18px;color:#888'>Kullanıcılar aranıyor...</div>";
+  await getUsers(f);
+  const a=shareUsers;
+  listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Mesaj olarak gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";
+  listEl.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>sendTo(el.dataset.u));
+}
 async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase())return;try{await signInAnonymously(auth);const p=sharePostData||{};await addDoc(collection(firestore,"chatMessages"),{conversationKey:[shareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),sender:shareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||""),postUsername:clean(p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0});modal.classList.remove("show");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");}catch(e){if(typeof toast==="function")toast("Gönderilemedi")}}
-window.__minegramOpenInAppShare=async function(id){const sid=String(id||"");sharePostData=(window.__minegramFeedPosts||[]).find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===sid)||null;await getMe();await getUsers("");searchEl.value="";paint();modal.classList.add("show");setTimeout(()=>searchEl.focus(),80)};
+window.__minegramOpenInAppShare=async function(id){const sid=String(id||"");sharePostData=(window.__minegramFeedPosts||[]).find(p=>String(p?.id??p?.postId??p?._id??p?.uuid??"").trim()===sid)||null;await getMe();searchEl.value="";await paint();modal.classList.add("show");setTimeout(()=>searchEl.focus(),80)};
 closeEl.onclick=()=>modal.classList.remove("show");modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});searchEl.addEventListener("input",paint);
 </script>
 
