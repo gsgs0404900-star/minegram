@@ -63,341 +63,87 @@ function formatVideoTime(sec){if(!Number.isFinite(sec)||sec<0)sec=0;sec=Math.flo
 const seen=new Set();function viewCount(i){const r=reels[i];if(!r||seen.has(r.id))return;seen.add(r.id);const key='viewed_'+usernameFromMe()+'_'+r.id;const p=localStorage.getItem(key);if(!p){r.views++;localStorage.setItem(key,'1');const el=document.querySelectorAll('.reel')[i]?.querySelector('.action:nth-child(2) .num');if(el)el.textContent=r.views}}
 async function likeReel(i){const r=reels[i];if(!r)return;const btn=document.querySelectorAll('.reel')[i]?.querySelector('.like');const liked=btn?.classList.contains('liked');r.likes=Math.max(0,r.likes+(liked?-1:1));btn?.classList.toggle('liked',!liked);if(btn)btn.querySelector('.ico').textContent=liked?'♡':'♥';if(btn)btn.querySelector('.num').textContent=r.likes;try{await api('/api/posts/'+encodeURIComponent(r.id)+'/like',{method:'POST'})}catch(e){/* UI remains usable if backend route differs */}}
 async function toggleFollow(i){const r=reels[i];if(!r||!r.username)return;try{const j=await api('/api/users/'+encodeURIComponent(r.username)+'/follow',{method:'POST'});r.following=Boolean(j?.following??!r.following);render()}catch(e){toast(e.message||'Takip işlemi başarısız')}}
+function openComments(i){
+ const r=reels[i];
+ if(!r)return;
+ currentCommentReel=r.id;
+ const box=document.getElementById("comments");
+ const list=document.getElementById("commentsList");
+ if(!box||!list)return;
+ box.classList.add("open");
+ list.innerHTML="<div class=\"comment-empty\">Yorumlar yükleniyor...</div>";
+ loadComments(r.id);
+}
+function closeComments(){
+ document.getElementById("comments")?.classList.remove("open");
+ currentCommentReel=null;
+}
+async function loadComments(id){
+ const list=document.getElementById("commentsList");
+ try{
+  const p=await api("/api/posts/"+encodeURIComponent(id)+"/comments?ts="+Date.now());
+  const arr=Array.isArray(p?.comments)?p.comments:(Array.isArray(p?.post?.comments)?p.post.comments:[]);
+  list.innerHTML=arr.length?arr.map(c=>{const u=esc(first(c?.username,c?.user?.username,"minegram"));return `<div class="comment"><b>@${u}</b><p>${esc(first(c?.text,c?.content,""))}</p><div class="comment-actions"><button class="comment-like" onclick="likeComment('${esc(c?.id||'')}')">♡</button></div></div>`}).join(""):"<div class=\"comment-empty\">Henüz yorum yok.</div>";
+ }catch(e){list.innerHTML="<div class=\"comment-empty\">Yorumlar yüklenemedi.</div>"}
+}
+async function sendComment(){
+ const id=currentCommentReel; const input=document.getElementById("commentInput"); const text=String(input?.value||"").trim();
+ if(!id||!text)return;
+ try{await api("/api/posts/"+encodeURIComponent(id)+"/comments",{method:"POST",body:{text}});input.value="";await loadComments(id);const r=reels.find(x=>String(x.id)===String(id));if(r){r.commentCount=(Number(r.commentCount)||0)+1;const i=reels.indexOf(r);const el=document.querySelectorAll('.reel')[i]?.querySelector('.comment-count');if(el)el.textContent=r.commentCount}}catch(e){toast(e.message||"Yorum gönderilemedi")};
+}
+async function likeComment(id){if(!id)return;try{await api("/api/comments/"+encodeURIComponent(id)+"/like",{method:"POST"});}catch(e){toast(e.message||"Yorum beğenilemedi")}}
+
 function openPicker(){document.getElementById('reelInput').click()}
 document.getElementById('reelInput').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('video/'))return toast('Lütfen video seç.');try{toast('Video yükleniyor...');const fd=new FormData();fd.append('media',file,file.name);fd.append('caption','Yeni Reels 🔥');await api('/api/posts',{method:'POST',body:fd});toast('Reels başarıyla siteye eklendi.');await loadReels()}catch(err){toast(err.message||'Video yüklenemedi.')}});
 function mediaKeyForOpen(v){
  const x=String(v||'').trim();
  try{const u=new URL(x,location.href);return (u.pathname+u.search).replace(/\\/g,'/').toLowerCase()}catch(_){return x.replace(/\\/g,'/').toLowerCase()}
 }
-function readMinegramRequestedReel(){
-  const params=new URLSearchParams(location.search);
-
-  const fromUrl={
-    id:params.get("id") || "",
-    username:params.get("username") || "",
-    media:params.get("media") || "",
-    mediaType:params.get("type") || ""
-  };
-
-  let session=null;
-  let local=null;
-  let selected=null;
-
-  try{
-    session=JSON.parse(
-      sessionStorage.getItem("minegram_requested_reel") || "null"
-    );
-  }catch(_){ session=null; }
-
-  try{
-    local=JSON.parse(
-      localStorage.getItem("minegram_requested_reel") || "null"
-    );
-  }catch(_){ local=null; }
-
-  try{
-    selected=JSON.parse(
-      sessionStorage.getItem("minegram_selected_post") ||
-      localStorage.getItem("minegram_selected_post") ||
-      "null"
-    );
-  }catch(_){ selected=null; }
-
-  const cached=session || local || {};
-  const cachedPost=cached?.post || selected || {};
-
-  const pickMedia=function(p){
-    if(!p) return "";
-    const m=p.media;
-
-    if(typeof m === "object" && m){
-      return String(
-        p.mediaUrl || p.media_url ||
-        p.videoUrl || p.video_url ||
-        p.mediaUri ||
-        m.url || m.uri || m.src || m.href ||
-        m.downloadURL || m.downloadUrl ||
-        ""
-      ).trim();
-    }
-
-    return String(
-      p.media ||
-      p.mediaUri ||
-      p.media_url ||
-      p.mediaUrl ||
-      p.video ||
-      p.videoUrl ||
-      p.video_url ||
-      p.url ||
-      p.src ||
-      ""
-    ).trim();
-  };
-
-  const media=
-    fromUrl.media ||
-    pickMedia(cached) ||
-    pickMedia(cachedPost);
-
-  const id=
-    fromUrl.id ||
-    String(cached.id || cachedPost.id || cachedPost.postId || cachedPost.uuid || cachedPost._id || "");
-
-  const username=
-    fromUrl.username ||
-    String(
-      cached.username ||
-      cachedPost.username ||
-      cachedPost.user?.username ||
-      cachedPost.author?.username ||
-      cachedPost.owner?.username ||
-      ""
-    );
-
-  const mediaType=
-    fromUrl.mediaType ||
-    String(
-      cached.mediaType ||
-      cachedPost.mediaType ||
-      cachedPost.media_type ||
-      cachedPost.mimeType ||
-      cachedPost.type ||
-      "video"
-    );
-
-  return {
-    requested:
-      params.get("openMinegramReel")==="1" ||
-      !!session ||
-      !!local,
-    id:id,
-    username:username,
-    media:media,
-    mediaType:mediaType,
-    caption:String(
-      cached.caption ||
-      cachedPost.caption ||
-      cachedPost.text ||
-      cachedPost.description ||
-      ""
-    ),
-    avatar:String(
-      cached.avatar ||
-      cachedPost.avatar ||
-      cachedPost.avatar_url ||
-      cachedPost.avatarUrl ||
-      cachedPost.user?.avatar ||
-      cachedPost.user?.avatar_url ||
-      cachedPost.user?.avatarUrl ||
-      ""
-    ),
-    likes:Number(
-      cached.likes ??
-      cachedPost.likesCount ??
-      cachedPost.like_count ??
-      (Array.isArray(cachedPost.likes) ? cachedPost.likes.length : cachedPost.likes) ??
-      0
-    ) || 0,
-    views:Number(
-      cached.views ??
-      cachedPost.views ??
-      cachedPost.viewCount ??
-      cachedPost.view_count ??
-      0
-    ) || 0,
-    commentCount:Number(
-      cached.commentCount ??
-      cachedPost.commentCount ??
-      cachedPost.comment_count ??
-      0
-    ) || 0,
-    date:String(
-      cached.date ||
-      cachedPost.createdAt ||
-      cachedPost.created_at ||
-      cachedPost.date ||
-      cachedPost.timestamp ||
-      ""
-    ),
-    post:cachedPost
-  };
-}
-
 async function loadReels(){
-  const feed=document.getElementById('feed');
-  const requested=readMinegramRequestedReel();
-  const params=new URLSearchParams(location.search);
-  const direct=params.get('openMinegramReel')==='1';
-
-  feed.innerHTML='<div class="loading"><span class="spinner"></span>Reels yükleniyor...</div>';
-
-  try{
-    if(!token){
-      location.href='giris.html';
-      return;
-    }
-
-    try{me=await api('/api/me')}catch(_){}
-
-    /*
-     * =====================================================
-     * ANASAYFADAN TIKLANAN REEL
-     * =====================================================
-     *
-     * Burada KESİNLİKLE /api/feed çağrılmıyor.
-     * URL + sessionStorage + localStorage içindeki
-     * aynı Reel kullanılıyor.
-     */
-    if(direct){
-
-      if(!requested.media){
-        reels=[];
-        window.__minegramReels=[];
-        feed.innerHTML=
-          '<div class="empty">'+
-            '<div class="movie">⚠️</div>'+
-            '<b>Bu Reel bulunamadı</b>'+
-            '<span>Tıklanan videonun adresi alınamadı. Başka bir Reel açılmadı.</span>'+
-          '</div>';
-        return;
-      }
-
-      const exact={
-        id:String(requested.id || 'clicked-reel'),
-        username:String(requested.username || ''),
-        media:String(requested.media),
-        mediaType:String(requested.mediaType || 'video'),
-        caption:String(requested.caption || 'Yeni Reels 🔥'),
-        avatar:String(requested.avatar || ''),
-        likes:Number(requested.likes || 0),
-        views:Number(requested.views || 0),
-        commentCount:Number(requested.commentCount || 0),
-        date:String(requested.date || '')
-      };
-
-      /*
-       * Sadece tıklanan video.
-       * Feed'deki diğer videolar buraya kesinlikle eklenmez.
-       */
-      reels=[{
-        raw:requested.post && typeof requested.post==='object'
-          ? {...requested.post,...exact}
-          : exact,
-        id:exact.id,
-        username:exact.username,
-        caption:exact.caption,
-        likes:exact.likes,
-        views:exact.views,
-        url:exact.media,
-        avatar:exact.avatar,
-        following:false,
-        date:exact.date,
-        music:null,
-        commentCount:exact.commentCount
-      }];
-
-      window.__minegramReels=reels;
-      render();
-
-      /*
-       * Tek Reel olduğu için her zaman 0. Reel tıklanan Reel'dir.
-       */
-      setTimeout(function(){
-        const el=document.querySelector('.reel[data-index="0"]');
-        if(!el)return;
-
-        el.scrollIntoView({block:'start'});
-
-        document.querySelectorAll('.reel video').forEach(function(x){
-          x.pause();
-          x.muted=true;
-          x.defaultMuted=true;
-          x.volume=0;
-        });
-
-        const v=el.querySelector('video');
-
-        if(v){
-          const playSelected=function(){
-            v.muted=false;
-            v.defaultMuted=false;
-            v.volume=1;
-            v.play().catch(function(){});
-            updateSoundIcon(0,false);
-          };
-
-          if(v.readyState>=2){
-            playSelected();
-          }else{
-            v.addEventListener('loadeddata',playSelected,{once:true});
-            v.addEventListener('loadedmetadata',playSelected,{once:true});
-          }
-        }
-      },350);
-
-      try{
-        sessionStorage.removeItem('minegram_requested_reel');
-        localStorage.removeItem('minegram_requested_reel');
-      }catch(_){ }
-
-      return;
-    }
-
-    /*
-     * =====================================================
-     * NORMAL REELS SAYFASI
-     * =====================================================
-     *
-     * Reels sekmesine normal girişte eski sistem aynen
-     * çalışmaya devam eder ve tüm Reels yüklenir.
-     */
-    let response;
-
-    try{
-      response=await api('/api/feed');
-    }catch(feedErr){
-      console.warn(
-        '[REELS] /api/feed failed, trying /api/posts',
-        feedErr
-      );
-      response=await api('/api/posts');
-    }
-
-    const posts=getList(response);
-
-    reels=posts
-      .filter(isVideo)
-      .map(normalize)
-      .filter(r=>r.url&&r.username);
-
-    window.__minegramReels=reels;
-    render();
-
-  }catch(e){
-    console.error('[REELS]',e);
-
-    feed.innerHTML=
-      '<div class="empty">'+
-        '<div class="movie">⚠️</div>'+
-        '<b>Reels yüklenemedi</b>'+
-        '<span>'+esc(e.message||'Sunucuya bağlanılamadı.')+'</span>'+
-      '</div>'+addButton();
+ const feed=document.getElementById('feed');
+ const requestedId=new URLSearchParams(location.search).get('id');
+ const requestedReel=(()=>{try{return JSON.parse(sessionStorage.getItem("minegram_requested_reel")||"null")}catch(_){return null}})();
+ feed.innerHTML='<div class="loading"><span class="spinner"></span>Reels yükleniyor...</div>';
+ try{
+  if(!token){location.href='giris.html';return}
+  try{me=await api('/api/me')}catch(_){}
+  // Ana sayfadan tıklanan Reel varsa yalnızca o gönderiyi kullan.
+  if(requestedReel?.post){
+   const exact=normalize(requestedReel.post,0);
+   reels=(exact.url&&exact.username&&isVideo(requestedReel.post))?[exact]:[];
+  }else{
+   let response;
+   try{response=await api('/api/feed')}catch(feedErr){console.warn('[REELS] /api/feed failed, trying /api/posts',feedErr);response=await api('/api/posts')}
+   const posts=getList(response);
+   reels=posts.filter(isVideo).map(normalize).filter(r=>r.url&&r.username);
   }
+  window.__minegramReels=reels;
+  render();
+
+  if(requestedId||requestedReel){
+   let idx=requestedReel?.post ? 0 : -1;
+   if(idx<0&&requestedId){
+    idx=reels.findIndex(r=>[r.id,r.postId,r.uuid,r._id].some(x=>String(x||'')===String(requestedId)));
+   }
+   if(idx>=0){
+    setTimeout(()=>{
+     const el=document.querySelector('.reel[data-index="'+idx+'"]');
+     if(el){
+      el.scrollIntoView({block:'start'});
+      document.querySelectorAll('.reel video').forEach(x=>{x.pause();x.muted=true;x.defaultMuted=true;x.volume=0});
+      const v=el.querySelector('video');
+      if(v){v.muted=false;v.defaultMuted=false;v.volume=1;v.play().catch(()=>{})}
+     }
+     try{sessionStorage.removeItem('minegram_requested_reel')}catch(_){}
+    },120);
+   }else if(requestedId||requestedReel){
+    feed.innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Bu Reel bulunamadı</b><span>Başka bir Reel açılmadı.</span></div>';
+   }
+  }
+  if(!reels.length)feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>İlk videoyu sen paylaş.</span></div>'+addButton();
+ }catch(e){console.error('[REELS]',e);feed.innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message||'Sunucuya bağlanılamadı.')+'</span></div>'+addButton()}
 }
-
-
-
-/* =====================================================
- * REELS SAYFASINI BAŞLAT
- * =====================================================
- * loadReels tanımlandıktan sonra mutlaka çalıştırılır.
- * Bu çağrı olmadığı zaman ekran "Reels yükleniyor..."
- * yazısında kalır.
- */
-window.addEventListener('DOMContentLoaded',function(){
-  loadReels();
-});
+window.addEventListener('DOMContentLoaded',function(){loadReels();});
 </script>
 
 
