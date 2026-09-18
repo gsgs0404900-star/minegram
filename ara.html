@@ -823,48 +823,7 @@ main{
     padding-right:calc((100% - 760px)/2)
   }
 }
-</style>
-<style id="search-post-reel-results">
-.search-content-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:2px;
-}
-.search-result-tile{
-  position:relative;
-  overflow:hidden;
-  aspect-ratio:1/1;
-  background:#111;
-}
-.search-result-tile > img.reel-cover,
-.search-result-tile > img:not(.avatar){
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-.search-result-tile > video.reel-cover{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-  background:#111;
-}
-.reel-badge{
-  position:absolute;
-  top:8px;
-  right:8px;
-  z-index:4;
-  padding:4px 7px;
-  border-radius:10px;
-  background:rgba(0,0,0,.72);
-  color:#fff;
-  font-size:10px;
-  font-weight:700;
-  pointer-events:none;
-}
-</style>
-</head>
+</style></head>
 
 <body>
 
@@ -1409,35 +1368,6 @@ function videoUrl(post){
 }
 
 
-function reelCoverUrl(post){
-
-  if(!post){
-    return "";
-  }
-
-  return (
-    post.cover ||
-    post.cover_url ||
-    post.coverUrl ||
-    post.thumbnail ||
-    post.thumbnail_url ||
-    post.thumbnailUrl ||
-    post.poster ||
-    post.poster_url ||
-    post.posterUrl ||
-    post.preview ||
-    post.preview_url ||
-    post.previewUrl ||
-    post.image ||
-    post.image_url ||
-    post.imageUrl ||
-    post.photo ||
-    post.photo_url ||
-    ""
-  );
-
-}
-
 function isVideo(post){
 
   if(!post){
@@ -1662,18 +1592,19 @@ function openUserFromElement(element){
 
 async function searchUsers(query){
 
-  const raw =
-    String(query || "").trim();
+  const clean =
+    String(query || "")
+      .trim()
+      .replace(/^@/,"");
 
-  /*
-    # YOKSA:
-    Kullanıcı araması yapılabilir ama gönderi/Reels ASLA gösterilmez.
-    Böylece arama alanında normal durumda yalnızca kullanıcı sonuçları olur.
-  */
-  if(!raw){
+  if(!clean){
 
     currentSearch = "";
-    tagBack.style.display = "none";
+    currentTag = "";
+
+    if(tagBack){
+      tagBack.style.display = "none";
+    }
 
     content.innerHTML = "";
 
@@ -1681,31 +1612,9 @@ async function searchUsers(query){
 
   }
 
-  if(raw.startsWith("#")){
-
-    const tag =
-      raw.replace(/^#+/,"").trim();
-
-    if(!tag){
-
-      content.innerHTML = "";
-      return;
-
-    }
-
-    renderHashtagResults(tag);
-    return;
-
-  }
-
-  const clean =
-    raw.replace(/^@/,"").trim();
-
   currentSearch = clean;
-  tagBack.style.display = "none";
-  showLoading();
 
-  let result = [];
+  showLoading();
 
   try{
 
@@ -1715,16 +1624,23 @@ async function searchUsers(query){
         encodeURIComponent(clean)
       );
 
-    result =
+    const result =
       unwrapArray(data)
         .map(normalizeUser)
         .filter(user => user.username);
 
     users = result;
 
+    renderUsers(result);
+
   }catch(error){
 
     console.error(error);
+
+    /*
+      API araması çalışmazsa mevcut feed
+      içerisindeki kullanıcıları da kontrol et.
+    */
 
     const fallback =
       feed
@@ -1743,15 +1659,23 @@ async function searchUsers(query){
           });
 
         })
-        .filter(user =>
-          user.username &&
-          user.username
-            .toLowerCase()
-            .includes(clean.toLowerCase())
-        );
+        .filter(user => {
+
+          return (
+            user.username &&
+            user.username
+              .toLowerCase()
+              .includes(
+                clean.toLowerCase()
+              )
+          );
+
+        });
 
     const unique = [];
-    const seen = new Set();
+
+    const seen =
+      new Set();
 
     for(const user of fallback){
 
@@ -1767,69 +1691,12 @@ async function searchUsers(query){
 
     }
 
-    result = unique;
-    users = unique;
+    renderUsers(unique);
 
   }
-
-  if(!result.length){
-
-    content.innerHTML = `
-      <div class="state">
-        Arama sonucu bulunamadı.
-      </div>
-    `;
-
-    return;
-
-  }
-
-  content.innerHTML = `
-    <div class="page-info">
-      <div class="page-info-title">Kullanıcılar</div>
-    </div>
-
-    <div class="users">
-      ${result.map(user => {
-
-        const username =
-          String(user.username || "")
-            .replace(/^@/,"");
-
-        const userStories =
-          storyFor(username);
-
-        const hasStory =
-          !user.private &&
-          userStories.length > 0;
-
-        return `
-          <div
-            class="user"
-            data-username="${esc(username)}"
-            onclick="openUserFromElement(this)"
-          >
-            ${avatarHtml(
-              user.avatar,
-              username,
-              hasStory
-            )}
-
-            <div class="user-info">
-              <div class="user-name-row">
-                <div class="username">
-                  @${esc(username)}
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-
-      }).join("")}
-    </div>
-  `;
 
 }
+
 
 /* =========================================================
    RENDER USERS
@@ -1925,126 +1792,23 @@ function renderUsers(array){
 
 function renderDiscovery(){
 
-  currentTag = "";
-
-  tagBack.style.display = "none";
-
   /*
-    GENEL KEŞFETTE REELS YOK.
-    Yalnızca normal görsel gönderiler.
+    ARAMA SAYFASI BOŞKEN:
+    Gönderi/Reels gösterme.
+    Gönderiler ve Reels yalnızca #hashtag arandığında
+    renderHashtagResults() tarafından gösterilir.
   */
 
-  const discoveryPosts =
-    feed
-      .map(normalizePost)
-      .filter(post => {
+  currentTag = "";
+  currentSearch = "";
 
-        return (
-          Boolean(mediaUrl(post)) &&
-          !isVideo(post)
-        );
-
-      });
-
-  if(!discoveryPosts.length){
-
-    content.innerHTML = `
-      <div class="page-info">
-        <div class="page-info-title">
-          Keşfet
-        </div>
-      </div>
-
-      <div class="state">
-        Keşfette gösterilecek gönderi bulunamadı.
-      </div>
-    `;
-
-    return;
-
+  if(tagBack){
+    tagBack.style.display = "none";
   }
 
-  content.innerHTML = `
-
-    <div class="page-info">
-
-      <div class="page-info-title">
-        Keşfet
-      </div>
-
-      <div class="page-info-sub">
-        Gönderileri keşfet.
-      </div>
-
-    </div>
-
-    <div class="grid">
-
-      ${discoveryPosts.map(post => {
-
-        const id =
-          String(post.id || "");
-
-        const username =
-          postUsername(post);
-
-        const caption =
-          postText(post);
-
-        const image =
-          mediaUrl(post);
-
-        return `
-
-          <div
-            class="tile"
-            data-post-id="${esc(id)}"
-            onclick="openPostById('${esc(id)}')"
-          >
-
-            <img
-              src="${esc(image)}"
-              alt=""
-              loading="lazy"
-              onerror="this.style.display='none'"
-            >
-
-            <div class="tile-info">
-
-              ${
-                username
-                  ? `
-                    <div class="tile-user">
-                      @${esc(username)}
-                    </div>
-                  `
-                  : ""
-              }
-
-              ${
-                caption
-                  ? `
-                    <div class="tile-caption">
-                      ${hashtagHtml(caption)}
-                    </div>
-                  `
-                  : ""
-              }
-
-            </div>
-
-          </div>
-
-        `;
-
-      }).join("")}
-
-    </div>
-
-  `;
+  content.innerHTML = "";
 
 }
-
 
 /* =========================================================
    HASHTAG SEARCH
@@ -3122,7 +2886,14 @@ function initFromUrl(){
 
     updateClearButton();
 
-    renderDiscovery();
+    currentSearch = "";
+    currentTag = "";
+
+    if(tagBack){
+      tagBack.style.display = "none";
+    }
+
+    content.innerHTML = "";
 
   }
 
@@ -3308,7 +3079,7 @@ clearBtn.addEventListener(
       "ara.html"
     );
 
-    renderDiscovery();
+    content.innerHTML = "";
 
     sq.focus();
 
@@ -3346,7 +3117,7 @@ tagBack.addEventListener(
       "ara.html"
     );
 
-    renderDiscovery();
+    content.innerHTML = "";
 
   }
 );
