@@ -665,6 +665,19 @@ body{
   cursor:pointer
 }
 
+/* Yorumlar başlığını tam ortada tut, çarpıyı en sağa sabitle */
+.comments-sheet .sheet-head{
+  justify-content:center;
+  text-align:center;
+}
+
+.comments-sheet .close-comments{
+  right:12px;
+  left:auto;
+  top:50%;
+  transform:translateY(-50%);
+}
+
 .sort{
   padding:12px 22px;
   border-bottom:1px solid #25292c
@@ -6745,34 +6758,66 @@ function mergeComments(server,id){
 
   for(const c of local){
 
-    const exists=
-      all.some(
+    const existing=
+      all.find(
         x=>
           String(x.id||"")===
-          String(c.id||"") ||
-
-          (
-            x.username===c.username &&
-            x.text===c.text &&
-            Math.abs(
-              new Date(
-                x.createdAt||
-                x.created_at||
-                0
-              )-
-              new Date(
-                c.createdAt||
-                0
-              )
-            )<10000
-          )
+          String(c.id||"")
       );
 
 
-    if(!exists){
+    if(existing){
 
+      /* Sunucu cevabı replies döndürmüyorsa
+         yerel yanıtları kaybetme. */
+      if(Array.isArray(c.replies) && c.replies.length){
+
+        const remoteReplies=
+          Array.isArray(existing.replies)
+            ? existing.replies
+            : [];
+
+        const mergedReplies=[...remoteReplies];
+
+        for(const r of c.replies){
+          const hasReply=
+            mergedReplies.some(
+              x=>
+                String(x.id||"")===String(r.id||"") ||
+                (
+                  x.username===r.username &&
+                  x.text===r.text &&
+                  Math.abs(
+                    new Date(x.createdAt||x.created_at||0)-
+                    new Date(r.createdAt||r.created_at||0)
+                  )<10000
+                )
+            );
+
+          if(!hasReply)mergedReplies.push(r);
+        }
+
+        existing.replies=mergedReplies;
+      }
+
+      continue;
+    }
+
+
+    const existsByText=
+      all.some(
+        x=>
+          x.username===c.username &&
+          x.text===c.text &&
+          Math.abs(
+            new Date(x.createdAt||x.created_at||0)-
+            new Date(c.createdAt||0)
+          )<10000
+      );
+
+
+    if(!existsByText){
       all.push(c);
-
     }
 
   }
