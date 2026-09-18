@@ -220,7 +220,7 @@ main{
   flex:0 0 48px;
   border-radius:50%;
   overflow:hidden;
-  background:#2f80c9;
+  background:#202020;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -1364,6 +1364,8 @@ function mediaUrl(post){
     post.media ||
     post.media_url ||
     post.mediaUrl ||
+    (post.media && typeof post.media === "object" ? (post.media.url || post.media.src || "") : "") ||
+    (post.video && typeof post.video === "object" ? (post.video.url || post.video.src || "") : "") ||
     post.video ||
     post.video_url ||
     post.videoUrl ||
@@ -1911,20 +1913,40 @@ function renderHashtagResults(tag){
     tagBack.style.display = "block";
   }
 
+  /*
+     HASHTAG SONUÇLARI:
+     Feed içindeki normal gönderileri ve Reels'leri ayrı ayrı
+     değerlendir. Eski kod yalnızca mediaUrl() dolu olanları
+     kabul ettiği için bazı gerçek hashtag gönderileri eleniyordu.
+  */
+  const normalizedFeed =
+    feed.map(normalizePost);
+
   const matches =
-    feed
-      .map(normalizePost)
-      .filter(post => {
+    normalizedFeed.filter(post =>
+      hasExactHashtag(
+        postText(post),
+        clean
+      ) &&
+      Boolean(mediaUrl(post) || videoUrl(post))
+    );
 
-        const text =
-          String(postText(post) || "");
+  /* Feed'de ayrı reel alanı/şekli varsa onu da dahil et. */
+  for(const reel of reels){
+    const normalized = normalizePost(reel);
+    const id = String(normalized.id || "");
+    const exists = matches.some(
+      post => String(post.id || "") === id && id
+    );
 
-        return (
-          Boolean(mediaUrl(post)) &&
-          hasExactHashtag(text, clean)
-        );
-
-      });
+    if(
+      !exists &&
+      hasExactHashtag(postText(normalized), clean) &&
+      Boolean(mediaUrl(normalized) || videoUrl(normalized))
+    ){
+      matches.push(normalized);
+    }
+  }
 
   if(!matches.length){
 
