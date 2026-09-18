@@ -844,6 +844,17 @@ main{
   display:block;
 }
 </style>
+
+<style id="user-search-reference-view">
+.sub{
+  margin-top:3px;
+  color:#777;
+  font-size:12px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+</style>
 </head>
 
 <body>
@@ -1785,86 +1796,74 @@ async function searchUsers(query){
    RENDER USERS
 ========================================================= */
 
-function renderUsers(array){
+function renderUsers(arr){
 
-  tagBack.style.display = "none";
+  tagBack.style.display = 'none';
 
-  if(!array.length){
-
-    content.innerHTML = `
-      <div class="state">
-        Kullanıcı bulunamadı.
-      </div>
-    `;
-
+  if(!arr.length){
+    content.innerHTML =
+      '<div class="empty">Kullanıcı bulunamadı</div>';
     return;
-
   }
 
-  content.innerHTML = `
+  content.innerHTML =
+    '<div class="users">' +
+    arr.map(u => {
 
-    <div class="page-info">
+      const st = storyFor(u.username);
+      const has = !u.private && st.length;
 
-      <div class="page-info-title">
-        Kullanıcılar
-      </div>
+      return `
+        <div
+          class="user"
+          data-user="${esc(u.username)}"
+          data-story="${has ? '1' : '0'}"
+        >
+          ${avatarHtml(
+            u.avatar,
+            u.username,
+            has
+          )}
 
-      <div class="page-info-sub">
-        Bir kullanıcıya dokunarak profilini aç.
-      </div>
-
-    </div>
-
-    <div class="users">
-
-      ${array.map(user => {
-
-        const username =
-          String(user.username || "")
-            .replace(/^@/,"");
-
-        const userStories =
-          storyFor(username);
-
-        const hasStory =
-          !user.private &&
-          userStories.length > 0;
-
-        return `
-
-          <div
-            class="user"
-            data-username="${esc(username)}"
-            onclick="openUserFromElement(this)"
-          >
-
-            ${avatarHtml(
-              user.avatar,
-              username,
-              hasStory
-            )}
-
-            <div class="user-info">
-
-              <div class="user-name-row">
-
-                <div class="username">
-                  @${esc(username)}
-                </div>
-
-              </div>
-
+          <div class="user-info">
+            <div class="username">
+              @${esc(u.username)}
             </div>
 
+            <div class="sub">
+              ${
+                has
+                  ? 'Hikayeyi görmek için fotoğrafa dokun'
+                  : 'Hesabı görüntüle'
+              }
+            </div>
           </div>
+        </div>
+      `;
 
-        `;
+    }).join('') +
+    '</div>';
 
-      }).join("")}
+  document
+    .querySelectorAll('[data-user]')
+    .forEach(el => {
 
-    </div>
+      el.onclick = () => {
 
-  `;
+        const n = el.dataset.user;
+
+        if(
+          el.dataset.story === '1' &&
+          el.querySelector('.story-ring')
+        ){
+          openStory(n);
+        }else{
+          openProfile(n);
+        }
+
+      };
+
+    });
 
 }
 
