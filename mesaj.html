@@ -1201,10 +1201,41 @@ body{
 .profile-actions .secondary{
  background:#292929
 }
+
+
+/* MINEGRAM SOHBET GORUNUMU */
+.message{align-items:flex-end}
+.message .bubble{max-width:76%;padding:7px 11px 6px;border-radius:18px;gap:2px;box-shadow:none}
+.message.sent .bubble{background:#62afea}
+.message.received .bubble{background:#262626}
+.message-text{font-size:16px;line-height:22px}
+.message-time{display:inline-block;flex:0 0 auto;margin-left:4px;font-size:10px;line-height:14px;white-space:nowrap;opacity:.78}
+.message.sent .message-time,.message.received .message-time{color:#fff}
+.message:has(.message-post),.message:has(.message-reel){width:100%}
+.message:has(.message-post) .bubble,.message:has(.message-reel) .bubble{width:100%;max-width:calc(100% - 8px);padding:0;background:#000;border:1px solid #111;border-radius:22px;overflow:hidden;display:block}
+.message-post,.message-reel{width:100%;max-width:520px;border-radius:20px;overflow:hidden;background:#000;border:1px solid #111;cursor:pointer}
+.message-post-head,.message-reel-head{height:66px;padding:9px 13px;display:flex;align-items:center;gap:11px;background:#050505}
+.message-post-avatar,.message-reel-avatar{width:45px;height:45px;min-width:45px;border-radius:50%;background:#62afea;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;overflow:hidden}
+.message-post-avatar img,.message-reel-avatar img{width:100%;height:100%;object-fit:cover}
+.message-post-user,.message-reel-user{flex:1;min-width:0;font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.message-post-share,.message-reel-share{width:38px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
+.message-post-media,.message-reel-media{width:100%;height:330px;object-fit:cover;display:block;background:#111}
+.message-post-info,.message-reel-info{padding:10px 14px 12px;background:#000}
+.message-post-caption,.message-reel-caption{font-size:18px;line-height:24px;font-weight:700;color:#fff;margin-bottom:13px}
+.message-post-stats,.message-reel-stats{display:flex;align-items:center;gap:18px;font-size:15px;color:#fff}
+.message-post-stats span,.message-reel-stats span{display:inline-flex;align-items:center;gap:4px}
+.message:has(.message-post) > .bubble > .message-time,.message:has(.message-reel) > .bubble > .message-time{display:block;width:100%;padding:0 12px 8px;margin:0;text-align:right;color:#fff;font-size:10px}
+.message:has(.message-post) .message-actions,.message:has(.message-reel) .message-actions{padding:0 10px 8px;margin:0}
+.user-not-found-screen{position:fixed;inset:0;z-index:99999;background:#000;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:24px}
+.user-not-found-screen.show{display:flex}
+.user-not-found-screen .not-found-title{font-size:23px;font-weight:700;margin-bottom:8px}
+.user-not-found-screen .not-found-user{color:#777;font-size:14px}
+
 </style>
 </head>
 
 <body>
+<div class="user-not-found-screen" id="userNotFoundScreen" aria-hidden="true"><div class="not-found-title">Kullanıcı bulunamadı</div><div class="not-found-user" id="notFoundUser"></div></div>
 
 <div class="app">
 
@@ -3326,80 +3357,42 @@ function renderMessage(
  let body="";
 
 
- if(d.type==="post"){
+ if(d.type==="post" || d.type==="reel"){
+
+  const isReel=d.type==="reel" || /reel/i.test(String(d.postMediaType||d.mediaType||""));
+  const username=String(d.postUsername||d.username||"");
+  const avatar=d.postAvatar||d.avatar||d.profilePhoto||d.profile_photo||d.avatarUrl||d.avatar_url||"";
+  const media=d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||"";
+  const mediaType=String(d.postMediaType||d.mediaType||"");
+  const isVideo=/video|reel/i.test(mediaType) || isReel;
+  const caption=d.postText||d.caption||"";
+  const likes=d.postLikes||d.likes||0;
+  const comments=d.postCommentCount||d.commentCount||0;
+  const initial=(username.replace(/^@/,"")[0]||"K").toUpperCase();
+  const cls=isReel?"message-reel":"message-post";
+  const headCls=isReel?"message-reel-head":"message-post-head";
+  const avatarCls=isReel?"message-reel-avatar":"message-post-avatar";
+  const userCls=isReel?"message-reel-user":"message-post-user";
+  const shareCls=isReel?"message-reel-share":"message-post-share";
+  const mediaCls=isReel?"message-reel-media":"message-post-media";
+  const infoCls=isReel?"message-reel-info":"message-post-info";
+  const capCls=isReel?"message-reel-caption":"message-post-caption";
+  const statsCls=isReel?"message-reel-stats":"message-post-stats";
+  const mediaHtml=media?(isVideo?`<video class="${mediaCls}" src="${escapeHtml(media)}" muted playsinline preload="metadata"></video>`:`<img class="${mediaCls}" src="${escapeHtml(media)}" alt="${isReel?"Reels":"Gönderi"}">`):"";
 
   body=`
-  <div
-   class="message-post"
-   data-open-post="1">
-
-   <div class="post-info">
-
-    <div class="post-user">
-     @${escapeHtml(
-      d.postUsername||""
-     )}
-    </div>
-
+  <div class="${cls}" data-open-post="1">
+   <div class="${headCls}">
+    <div class="${avatarCls}">${avatar?`<img src="${escapeHtml(avatar)}" alt="">`:escapeHtml(initial)}</div>
+    <div class="${userCls}">@${escapeHtml(username.replace(/^@/,""))}</div>
+    <div class="${shareCls}"><i class="fa-solid fa-share-nodes"></i></div>
    </div>
-
-   ${
-    d.postMediaBase64
-     ?`
-      <img
-       src="${escapeHtml(
-        d.postMediaBase64
-       )}"
-       alt="Gönderi">
-      `
-     :
-     d.postMediaUri
-      ?
-       (
-        /video|reel/i.test(
-         d.postMediaType||""
-        )
-        ?
-        `
-        <video
-         src="${escapeHtml(
-          d.postMediaUri
-         )}"
-         muted
-         playsinline>
-        </video>
-        `
-        :
-        `
-        <img
-         src="${escapeHtml(
-          d.postMediaUri
-         )}"
-         alt="Gönderi">
-        `
-       )
-      :""
-   }
-
-   <div class="post-info">
-
-    <div class="post-caption">
-     ${escapeHtml(
-      d.postText||""
-     )}
-    </div>
-
-    <small>
-     ❤️ ${d.postLikes||0}
-     &nbsp;
-     💬 ${d.postCommentCount||0}
-    </small>
-
+   ${mediaHtml}
+   <div class="${infoCls}">
+    <div class="${capCls}">${escapeHtml(caption||("Yeni Minegram "+(isReel?"reels":"gönderisi")+" 💙"))}</div>
+    <div class="${statsCls}"><span>❤️ ${escapeHtml(likes)}</span><span>💬 ${escapeHtml(comments)}</span></div>
    </div>
-
-  </div>
-  `;
-
+  </div>`;
  }
 
 
@@ -6208,10 +6201,24 @@ $("shareClose").onclick=
   );
 
 
+function showUserNotFound(){
+ const screen=$("userNotFoundScreen");
+ const label=$("notFoundUser");
+ if(!screen) return;
+ if(label) label.textContent="@"+targetUsername;
+ screen.classList.add("show");
+ screen.setAttribute("aria-hidden","false");
+}
+
 function goToTargetProfile(){
 
  if(!targetUsername)
  return;
+
+ if(blocked){
+  showUserNotFound();
+  return;
+ }
 
  location.href=
   "profile.html?username="+
