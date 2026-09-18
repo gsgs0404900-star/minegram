@@ -935,6 +935,11 @@ img.post-media{
 }
 </style>
 
+
+<style id="minegramInAppShareStyle">
+.share-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:999999;display:none;align-items:center;justify-content:center;padding:16px}.share-modal.show{display:flex}.share-sheet{width:min(760px,100%);max-width:760px;height:auto;max-height:78vh;min-height:360px;margin:0 auto;background:#000;border:1px solid #222;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.7);padding:10px 14px 18px;box-sizing:border-box;overflow:hidden}.sheet-handle{width:45px;height:4px;background:#555;border-radius:99px;margin:3px auto 10px}.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:4px 3px 10px}.sheet-head b{font-size:18px;font-weight:700;color:#f5f5f5}.sheet-head button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:38px;padding:0;cursor:pointer}.share-sheet input{width:100%;height:51px;background:#000;border:1.5px solid #858585;border-radius:8px;color:#fff;padding:0 12px;font-size:17px;outline:0}.share-sheet input::placeholder{color:#fff;opacity:1}.share-list{max-height:50vh;overflow:auto;margin-top:8px}.share-user{display:flex;align-items:center;gap:12px;padding:11px 5px;border-bottom:1px solid #282828;cursor:pointer}.share-user .share-avatar{width:54px;height:54px;border-radius:50%;background:#62afea;color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700}.share-user .share-meta{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px}.share-user .share-meta b{font-size:17px;color:#f5f5f5;font-weight:700}.share-user small{color:#fff;font-size:14px}.share-user>span{color:#64B5F6;font-size:30px;line-height:1;font-weight:700}.share-user:active{opacity:.82}.share-list>div[style]{font-size:14px}
+@media (min-width:700px){.share-sheet{height:auto;min-height:360px;max-height:70vh}}
+</style>
 </head>
 
 <body>
@@ -4556,6 +4561,7 @@ window.updateMinegramPostStoryRings=function(){
 };
 
 function renderPost(p){
+  window.__minegramCurrentPost = p;
 
   const username=
     esc(
@@ -5617,40 +5623,12 @@ async function savePost(id){
    PAYLAŞ
 ========================================================= */
 
-async function sharePost(id){
-
-  const url=
-    location.origin+
-    "/post.html?id="+
-    encodeURIComponent(id);
-
-
-  try{
-
-    if(navigator.share){
-
-      await navigator.share({
-        title:"Minegram gönderisi",
-        url
-      });
-
-    }else{
-
-      await navigator.clipboard.writeText(
-        url
-      );
-
-
-      toast(
-        "Gönderi bağlantısı kopyalandı"
-      );
-
-    }
-
-  }catch(e){}
-
+function sharePost(id){
+  const sid=String(id||"");
+  if(window.__minegramOpenInAppShare){
+    try{ window.__minegramOpenInAppShare(sid); return; }catch(e){}
+  }
 }
-
 
 /* =========================================================
    MENÜ
@@ -8181,6 +8159,69 @@ document.addEventListener(
 
 init();
 
+</script>
+
+
+
+<!-- index.html ile aynı Gönderiyi paylaş paneli -->
+<div class="share-modal" id="minegramFeedShareModal">
+  <div class="share-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <b id="minegramFeedShareTitle">Gönderiyi paylaş</b>
+      <button id="minegramFeedShareClose" aria-label="Kapat">×</button>
+    </div>
+    <input id="minegramFeedShareSearch" placeholder="Ara" autocomplete="off">
+    <div id="minegramFeedShareList" class="share-list"></div>
+  </div>
+</div>
+
+<script type="module" id="minegramInAppShareScript">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+const firebaseConfig={apiKey:"AIzaSyAP7bj8ZrpQu6FcJi_Ncl91L7rm-KukF4Y",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119"};
+const app=initializeApp(firebaseConfig,"minegramPostShare");
+const firestore=getFirestore(app); const auth=getAuth(app);
+const modal=document.getElementById("minegramFeedShareModal"),listEl=document.getElementById("minegramFeedShareList"),searchEl=document.getElementById("minegramFeedShareSearch"),closeEl=document.getElementById("minegramFeedShareClose");
+let shareMe="", sharePostData=null, shareUsers=[];
+const clean=v=>String(v||"").replace(/^@/,"").trim();
+const escShare=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const tokenShare=()=>{for(const k of ["minegram_token","minegram_supabase_token","minegram_access_token","supabase_token","access_token"]){const v=localStorage.getItem(k);if(v&&v!=="null"&&v!=="undefined")return v.trim()}return ""};
+function currentPost(id){
+  const p=window.__minegramCurrentPost;
+  if(p && (!id || String(p.id??p.postId??p._id??p.uuid??"").trim()===String(id).trim())) return p;
+  try{
+    const raw=sessionStorage.getItem("minegram_selected_post")||localStorage.getItem("minegram_selected_post");
+    if(raw){const x=JSON.parse(raw); return x?.post && typeof x.post==="object" ? x.post : x;}
+  }catch(e){}
+  return p||{};
+}
+async function getMe(){try{const r=await fetch("/api/me",{headers:tokenShare()?{Authorization:"Bearer "+tokenShare()}: {},credentials:"same-origin",cache:"no-store"});const j=await r.json();shareMe=clean(j?.username||j?.user?.username||j?.profile?.username||localStorage.getItem("minegram_username")||localStorage.getItem("username"));}catch{shareMe=clean(localStorage.getItem("minegram_username")||localStorage.getItem("username"))}}
+async function getUsers(q=""){
+  try{const query=String(q||"").trim();if(!query){shareUsers=[];return;}
+    const r=await fetch("/api/search?q="+encodeURIComponent(query),{headers:tokenShare()?{Authorization:"Bearer "+tokenShare()}: {},credentials:"same-origin",cache:"no-store"});
+    const j=await r.json(); const a=Array.isArray(j)?j:(j?.users||j?.results||[]);
+    shareUsers=[...new Set(a.map(x=>clean(x?.username||x)).filter(u=>u&&u.toLowerCase()!==shareMe.toLowerCase()))].slice(0,100);
+  }catch{shareUsers=[]}
+}
+async function paint(){const f=searchEl.value.trim().toLowerCase();if(!f){listEl.innerHTML="<div style='padding:18px;color:#888'>Kullanıcı ara</div>";return;}listEl.innerHTML="<div style='padding:18px;color:#888'>Kullanıcılar aranıyor...</div>";await getUsers(f);const a=shareUsers;listEl.innerHTML=a.length?a.map(u=>`<div class="share-user" data-u="${escShare(u)}"><div class="share-avatar">${escShare(u.charAt(0).toUpperCase()||"M")}</div><div class="share-meta"><b>@${escShare(u)}</b><small>Gönderiyi gönder</small></div><span>➤</span></div>`).join(""):"<div style='padding:18px;color:#888'>Kullanıcı bulunamadı</div>";listEl.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>sendTo(el.dataset.u));}
+async function sendTo(recipient){recipient=clean(recipient);if(!recipient||!shareMe||recipient.toLowerCase()===shareMe.toLowerCase()){if(typeof toast==="function"&&!shareMe)toast("Kullanıcı bilgisi bulunamadı");return false;}try{await signInAnonymously(auth);const p=sharePostData||{};const sender=clean(shareMe),to=clean(recipient);await addDoc(collection(firestore,"chatMessages"),{conversationKey:[sender.toLowerCase(),to.toLowerCase()].sort().join("__"),sender,recipient:to,from:sender,to,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),createdAt:Date.now(),read:false,type:"post",text:"📷 @"+clean(p.user?.username||p.username||"Kullanıcı")+" gönderisi",postId:String(p.id||p.postId||""),postUsername:clean(p.user?.username||p.username||""),postText:p.caption||p.text||"",postLikes:Array.isArray(p.likes)?p.likes.length:Number(p.likes||0),postMediaUri:p.media||p.mediaUri||p.media_url||p.mediaUrl||"",postMediaType:p.mediaType||p.media_type||((p.mediaName||"").match(/\.(mp4|webm|mov|m4v)$/i)?"video":"image"),postMediaBase64:p.mediaBase64||null,postCommentCount:p.commentCount||p.comment_count||0,post:p,contentType:"post"});modal.classList.remove("show");if(typeof toast==="function")toast("@"+recipient+" kullanıcısına gönderildi");return true;}catch(e){console.error("Minegram paylaşım gönderme hatası",e);if(typeof toast==="function")toast("Gönderilemedi: "+(e?.message||"Firebase hatası"));return false;}}
+window.__minegramSendPostToUser=sendTo;
+window.__minegramOpenInAppShare=async function(id){sharePostData=currentPost(id);await getMe();searchEl.value="";await paint();modal.classList.add("show");setTimeout(()=>searchEl.focus(),80)};
+closeEl.onclick=()=>modal.classList.remove("show");modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});searchEl.addEventListener("input",paint);
+</script>
+
+<script id="minegramShareFallbackScript">
+(function(){
+ const modal=document.getElementById("minegramFeedShareModal"),list=document.getElementById("minegramFeedShareList"),input=document.getElementById("minegramFeedShareSearch"),close=document.getElementById("minegramFeedShareClose");
+ if(!modal||!list||!input||!close)return;
+ function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+ function drawDefault(){list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı ara</div>';}
+ async function searchUsers(q){q=String(q||"").trim();if(!q){drawDefault();return;}list.innerHTML='<div style="padding:18px;color:#888">Kullanıcılar aranıyor...</div>';try{const keys=['minegram_token','minegram_supabase_token','minegram_access_token','supabase_token','access_token'];let tok='';for(const k of keys){const v=localStorage.getItem(k);if(v&&v!=='null'&&v!=='undefined'){tok=v.trim();break;}}const r=await fetch('/api/search?q='+encodeURIComponent(q),{headers:tok?{Authorization:'Bearer '+tok}:{},credentials:'same-origin',cache:'no-store'});const j=await r.json();const arr=Array.isArray(j)?j:(j?.users||j?.results||[]);const users=[...new Set(arr.map(x=>String(x?.username||x||'').replace(/^@/,'').trim()).filter(Boolean))].slice(0,100);if(!users.length){list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı bulunamadı</div>';return;}list.innerHTML=users.map(u=>'<div class="share-user" data-share-user="'+esc(u)+'"><div class="share-avatar">'+esc((u[0]||'M').toUpperCase())+'</div><div class="share-meta"><b>@'+esc(u)+'</b><small>Gönderiyi gönder</small></div><span>➤</span></div>').join('');list.querySelectorAll('[data-share-user]').forEach(row=>row.addEventListener('click',async function(){if(window.__minegramSendPostToUser)await window.__minegramSendPostToUser(row.getAttribute('data-share-user'));}));}catch(e){list.innerHTML='<div style="padding:18px;color:#888">Kullanıcı bulunamadı</div>';}}
+ window.__minegramOpenInAppShare=async function(id){window.__minegramSharePostId=String(id||'');window.__minegramSharePostData=window.__minegramCurrentPost||null;input.value='';drawDefault();modal.classList.add('show');setTimeout(()=>input.focus(),80);};
+ close.addEventListener('click',()=>modal.classList.remove('show'));modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});input.addEventListener('input',()=>searchUsers(input.value));drawDefault();
+})();
 </script>
 
 </body>
