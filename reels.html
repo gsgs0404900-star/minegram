@@ -211,6 +211,19 @@
   font-size:27px;
   cursor:pointer;
 }
+
+ .comment-reply{
+  border:0;
+  background:none;
+  color:#aaa;
+  font-size:12px;
+  cursor:pointer;
+  padding:0;
+}
+
+.comment-reply:hover{
+  color:#fff;
+} 
 @media(max-width:699px){
   .comments{width:100vw;height:82vh}
   .comments-head{height:78px;min-height:78px}
@@ -322,16 +335,63 @@ function renderComments(arr,i){
       return '<div class="comment"><div class="comment-meta">'+
         '<div class="comment-avatar">'+av+'</div>'+
         '<div class="comment-body"><b>@'+esc(c.username||'minegram')+
-        '</b><p>'+esc(c.text)+'</p><div class="comment-actions">'+
-        '<span>'+formatDate(c.createdAt)+'</span>'+
-        '<button class="comment-like '+(c.liked?'liked':'')+
-        '" onclick="toggleCommentLike(\''+encodeURIComponent(c.id)+
-        '\','+i+')">♥ '+c.likes+'</button></div></div></div></div>'
+        '</b><p>'+esc(c.text)+'</p><div class="comment-actions">
+<span>'+formatDate(c.createdAt)+'</span>
+
+<button class="comment-reply"
+onclick="replyComment(\''+encodeURIComponent(c.username||'')+'\')">
+Yanıtla
+</button>
+
+<button class="comment-like '+(c.liked?'liked':'')+
+'" onclick="toggleCommentLike(\''+encodeURIComponent(c.id)+
+'\','+i+')">
+♥ '+c.likes+'
+</button>
+
+</div></div></div></div>'
     }).join('')
     :'<div class="comment-empty">Henüz yorum yok.</div>';
 }
+
+ function replyComment(username){
+
+    const input=document.getElementById('commentInput');
+
+    if(!input)return;
+
+    input.value="@"+decodeURIComponent(username)+" ";
+
+    input.focus();
+
+} 
+  
 async function sendComment(){const inp=document.getElementById('commentInput');const text=inp.value.trim();if(!text||currentCommentReel===null)return;const r=reels[currentCommentReel];const meName=usernameFromMe()||'minegram';const rendered='@'+meName+' '+text;const list=document.getElementById('commentsList');const old=list.innerHTML;try{const j=await api('/api/posts/'+encodeURIComponent(r.id)+'/comments',{method:'POST',body:{text:text}});inp.value='';r.commentCount=Number(j?.commentCount??(r.commentCount||0)+1);const n=document.querySelectorAll('.reel')[currentCommentReel]?.querySelector('.comment-count');if(n)n.textContent=r.commentCount;await loadComments(currentCommentReel)}catch(e){toast(e.message||'Yorum gönderilemedi');list.innerHTML=old}}
-async function toggleCommentLike(id,i){const key=decodeURIComponent(id);const storage='minegram_comment_like_'+key;const liked=localStorage.getItem(storage)==='1';localStorage.setItem(storage,liked?'0':'1');await loadComments(i)}
+async function toggleCommentLike(id,i){
+
+const key=decodeURIComponent(id);
+const storage='minegram_comment_like_'+key;
+
+const liked=localStorage.getItem(storage)==='1';
+
+localStorage.setItem(storage,liked?'0':'1');
+
+const r=reels[i];
+
+if(r){
+ try{
+ await api(
+ '/api/comments/'+encodeURIComponent(key)+'/like',
+ {
+  method:'POST'
+ }
+ );
+ }catch{}
+}
+
+await loadComments(i);
+
+}
 async function shareReel(i){const r=reels[i];const text='🎬 @'+r.username+' Reels: '+r.caption;if(navigator.share){try{await navigator.share({text})}catch{}}else{try{await navigator.clipboard.writeText(text);toast('Reels bilgisi panoya kopyalandı.')}catch{toast(text)}}}
 let pullStart=0,pulling=false;document.getElementById('commentInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendComment()});
 const feed=document.getElementById('feed');feed.addEventListener('touchstart',e=>{if(feed.scrollTop===0){pullStart=e.touches[0].clientY;pulling=true}}, {passive:true});feed.addEventListener('touchmove',e=>{if(!pulling)return;const d=e.touches[0].clientY-pullStart;if(d>70)document.getElementById('refresh').classList.add('show')},{passive:true});feed.addEventListener('touchend',async e=>{if(!pulling)return;pulling=false;const d=e.changedTouches[0].clientY-pullStart;if(d>70){document.getElementById('refresh').classList.add('show');loadReels();document.getElementById('refresh').classList.remove('show')}});
