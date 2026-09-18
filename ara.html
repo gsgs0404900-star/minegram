@@ -622,12 +622,6 @@ button{
   font-weight:700
 }
 
-/* Yorum yoksa sayı alanı hiç oluşturulmaz */
-.reel-action.comment-action .num{
-  display:inline-block;
-  min-height:0;
-}
-
 /* REEL USER INFO */
 
 .reel-info{
@@ -1568,32 +1562,6 @@ function postId(post){
 }
 
 
-/* YORUM SAYISI - SADECE YORUM VARSA GÖSTER */
-function getPostCommentCount(post){
-
-  const direct =
-    post?.commentCount ??
-    post?.comment_count ??
-    post?.commentsCount ??
-    post?.comments_count;
-
-  if(direct !== undefined && direct !== null && direct !== "") {
-    const n = Number(direct);
-    if(Number.isFinite(n) && n > 0) return n;
-  }
-
-  if(Array.isArray(post?.comments)){
-    return post.comments.length;
-  }
-
-  if(Array.isArray(post?.commentList)){
-    return post.commentList.length;
-  }
-
-  return 0;
-}
-
-
 function avatarHtml(url, username, story = false){
 
   const letter = esc(
@@ -1961,8 +1929,17 @@ function normalizeReels(){
               0
             ),
 
+          /*
+           * Yorum butonundaki sayı backend'in eski/stale
+           * commentCount alanından alınmaz. Gerçek yorum listesi
+           * varsa onun uzunluğu kullanılır; liste yoksa başlangıçta 0.
+           */
           commentCount:
-            getPostCommentCount(post),
+            Array.isArray(post?.comments)
+              ? post.comments.length
+              : (Array.isArray(post?.commentList)
+                ? post.commentList.length
+                : 0),
 
           date:
             post?.date ||
@@ -2500,6 +2477,7 @@ function createReelHtml(
 
         <button
           class="reel-action comment-action"
+          data-comment-index="${index}"
           type="button"
           onclick="openComments(${index})"
         >
@@ -3518,10 +3496,19 @@ document.getElementById(
 
 if(showLoading){
 
+const localComments = getLocalComments(id);
+
 list.innerHTML=
 renderCommentsForPost(
-getLocalComments(id)
+localComments
 );
+
+if(currentViewerComment !== null){
+  updateViewerCommentCount(
+    currentViewerComment,
+    localComments.length
+  );
+}
 
 }
 
@@ -3542,13 +3529,22 @@ Array.isArray(p.comments)
 :[]);
 
 
+const mergedComments = mergeComments(
+  remote,
+  id
+);
+
 list.innerHTML=
 renderCommentsForPost(
-mergeComments(
-remote,
-id
-)
+mergedComments
 );
+
+if(currentViewerComment !== null){
+  updateViewerCommentCount(
+    currentViewerComment,
+    mergedComments.length
+  );
+}
 
 }catch(e){}
 
@@ -3644,6 +3640,13 @@ local.length
 renderComment
 ).join('')
 :'<div class="empty">Yorumlar yüklenemedi.</div>';
+
+if(currentViewerComment !== null){
+  updateViewerCommentCount(
+    currentViewerComment,
+    local.length
+  );
+}
 
 }
 
@@ -4337,18 +4340,6 @@ text:textValue
 }
 
 
-/* Yorum başarıyla kaydedildiyse butondaki sayı hemen güncellensin. */
-if(!replyId){
-  const reelIndex = reels.findIndex(
-    reel => String(reel.id) === String(postId)
-  );
-  if(reelIndex >= 0){
-    const current = Number(reels[reelIndex].commentCount || 0);
-    reels[reelIndex].commentCount = current + 1;
-    updateViewerCommentCount(reelIndex);
-  }
-}
-
 const returned=
 result?.comment||
 result?.data||
@@ -4663,25 +4654,29 @@ btn.dataset.loading='0';
 
 
 
-function updateViewerCommentCount(index){
+/* =====================================================
+   YORUM BUTONU SAYISINI GERÇEK YORUM LİSTESİNE GÖRE GÜNCELLE
+===================================================== */
+function updateViewerCommentCount(index, count){
+  const reel = reels[index];
+  if(!reel) return;
 
-  const article = document.querySelector(
-    `.reel[data-reel-index="${index}"]`
+  const n = Math.max(0, Number(count) || 0);
+  reel.commentCount = n;
+
+  const btn = document.querySelector(
+    '.comment-action[data-comment-index="'+CSS.escape(String(index))+'"]'
   );
 
-  if(!article) return;
+  if(!btn) return;
 
-  const button = article.querySelector('.comment-action');
-  if(!button) return;
+  const old = btn.querySelector('.num');
 
-  const count = Number(reels[index]?.commentCount || 0);
-  const old = button.querySelector('.num');
-
-  if(count > 0){
+  if(n > 0){
     if(old){
-      old.textContent = String(count);
+      old.textContent = String(n);
     }else{
-      button.insertAdjacentHTML('beforeend', `<span class="num">${count}</span>`);
+      btn.insertAdjacentHTML('beforeend', '<span class="num">'+n+'</span>');
     }
   }else if(old){
     old.remove();
