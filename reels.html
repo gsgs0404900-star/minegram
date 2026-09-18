@@ -47,7 +47,7 @@ async function likeReel(i){const r=reels[i];if(!r)return;const btn=document.quer
 async function toggleFollow(i){const r=reels[i];if(!r||!r.username)return;try{const j=await api('/api/users/'+encodeURIComponent(r.username)+'/follow',{method:'POST'});r.following=Boolean(j?.following??!r.following);render()}catch(e){toast(e.message||'Takip işlemi başarısız')}}
 function openPicker(){document.getElementById('reelInput').click()}
 document.getElementById('reelInput').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('video/'))return toast('Lütfen video seç.');try{toast('Video yükleniyor...');const fd=new FormData();fd.append('media',file,file.name);fd.append('caption','Yeni Reels 🔥');await api('/api/posts',{method:'POST',body:fd});toast('Reels başarıyla siteye eklendi.');await loadReels()}catch(err){toast(err.message||'Video yüklenemedi.')}});
-async function loadReels(){const feed=document.getElementById('feed');feed.innerHTML='<div class="loading"><span class="spinner"></span>Reels yükleniyor...</div>';try{if(!token){location.href='giris.html';return}try{me=await api('/api/me')}catch(_){}let response;try{response=await api('/api/feed')}catch(feedErr){console.warn('[REELS] /api/feed failed, trying /api/posts',feedErr);response=await api('/api/posts')}const posts=getList(response);reels=posts.filter(isVideo).map(normalize).filter(r=>r.url&&r.username);render();if(!reels.length)feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>İlk videoyu sen paylaş.</span></div>'+addButton()}catch(e){console.error('[REELS]',e);feed.innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message||'Sunucuya bağlanılamadı.')+'</span></div>'+addButton()}}
+async function loadReels(){const feed=document.getElementById('feed');feed.innerHTML='<div class="loading"><span class="spinner"></span>Reels yükleniyor...</div>';try{if(!token){location.href='giris.html';return}try{me=await api('/api/me')}catch(_){}let response;try{response=await api('/api/feed')}catch(feedErr){console.warn('[REELS] /api/feed failed, trying /api/posts',feedErr);response=await api('/api/posts')}const posts=getList(response);reels=posts.filter(isVideo).map(normalize).filter(r=>r.url&&r.username);window.__minegramReels=reels;render();if(!reels.length)feed.innerHTML='<div class="empty"><div class="movie">🎬</div><b>Henüz Reel yok</b><span>İlk videoyu sen paylaş.</span></div>'+addButton()}catch(e){console.error('[REELS]',e);feed.innerHTML='<div class="empty"><div class="movie">⚠️</div><b>Reels yüklenemedi</b><span>'+esc(e.message||'Sunucuya bağlanılamadı.')+'</span></div>'+addButton()}}
 async function openComments(i){currentCommentReel=i;document.getElementById('comments').classList.add('open');const list=document.getElementById('commentsList');list.innerHTML='<div class="loading" style="position:relative;min-height:120px"><span class="spinner"></span>Yorumlar yükleniyor...</div>';await loadComments(i)}
 function closeComments(){document.getElementById('comments').classList.remove('open');currentCommentReel=null}
 function commentSortValue(){return document.getElementById('commentSort')?.value||'new'}
@@ -143,6 +143,24 @@ async function paint(filter=""){
  listEl.innerHTML=arr.length?arr.map(u=>`<div class="reel-share-user" data-user="${escShare(u)}">${avatar(u)}<div class="reel-share-meta"><b>@${escShare(u)}</b><small>Reels'i gönder</small></div><span class="reel-share-send">➤</span></div>`).join(""):"<div class='reel-share-loading'>Kullanıcı bulunamadı</div>";
  listEl.querySelectorAll("[data-user]").forEach(el=>el.onclick=()=>sendReelTo(el.dataset.user));
 }
+async function sendReelTo(user){
+ const recipient=cleanUser(user);
+ const r=window.__minegramShareReel;
+ if(!recipient||!r)return;
+ if(!reelShareMe||recipient.toLowerCase()===reelShareMe.toLowerCase()){toast("Geçerli bir alıcı seçilmedi");return;}
+ try{
+  const authUser=await signInAnonymously(reelShareAuth);
+  await addDoc(collection(reelShareDb,"chatMessages"),{
+   conversationKey:[reelShareMe.toLowerCase(),recipient.toLowerCase()].sort().join("__"),
+   sender:reelShareMe,recipient,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),
+   createdAt:Date.now(),read:false,type:"reel",
+   text:"🎬 @"+r.username+" Reels",postId:r.id,postUsername:r.username,postText:r.caption||"",
+   postLikes:r.likes||0,postMediaUri:r.url||"",postMediaType:"video",postMediaBase64:null,postCommentCount:r.commentCount||0
+  });
+  modal.classList.remove("show"); toast("@"+recipient+" kullanıcısına gönderildi");
+ }catch(e){toast("Gönderilemedi");}
+}
+
 window.shareReel=async function(i){
  const r=window.__minegramReels?.[i];
  if(!r){return}
