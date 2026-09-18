@@ -4547,42 +4547,47 @@ function renderPost(p){
   let media="";
 
 
-  if(p.media){
+  const mediaSrc =
+  p.media ||
+  p.media_url ||
+  p.mediaUrl ||
+  p.image ||
+  p.imageUrl ||
+  p.photo ||
+  p.url ||
+  "";
 
-    if(
-      p.mediaName &&
-      /\.(mp4|webm|mov|m4v)$/i.test(
-        p.mediaName
-      )
-    ){
+if (mediaSrc) {
 
-      media=`
+  if (
+    p.mediaName &&
+    /\.(mp4|webm|mov|m4v)$/i.test(p.mediaName)
+  ) {
 
-        <video
-          class="post-media"
-          src="${esc(p.media)}"
-          controls
-          playsinline
-        ></video>
+    media = `
+      <video
+        class="post-media"
+        src="${esc(mediaSrc)}"
+        controls
+        playsinline
+      ></video>
+    `;
 
-      `;
+  } else {
 
-    }else{
-
-      media=`
-
-        <img
-          class="post-media"
-          src="${esc(p.media)}"
-          loading="lazy"
-          alt="Gönderi"
-        >
-
-      `;
-
-    }
+    media = `
+      <img
+        class="post-media"
+        src="${esc(mediaSrc)}"
+        loading="lazy"
+        alt="Gönderi"
+        onerror="this.style.display='none'"
+      >
+    `;
 
   }
+
+}
 
 
   return `
