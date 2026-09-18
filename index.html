@@ -4838,6 +4838,70 @@ function profileUrl(username){
    POST
 ========================================================= */
 
+function getMinegramMediaUrl(post){
+  if(!post) return "";
+
+  const pick=function(v){
+    if(v==null) return "";
+    if(typeof v === "string" || typeof v === "number"){
+      const x=String(v).trim();
+      if(x && x !== "[object Object]") return x;
+      return "";
+    }
+    if(typeof v === "object"){
+      return pick(
+        v.url ||
+        v.uri ||
+        v.src ||
+        v.href ||
+        v.downloadURL ||
+        v.downloadUrl ||
+        v.mediaUrl ||
+        v.media_url ||
+        v.videoUrl ||
+        v.video_url ||
+        v.fileUrl ||
+        v.file_url ||
+        ""
+      );
+    }
+    return "";
+  };
+
+  const direct=pick(
+    post.media ||
+    post.mediaUri ||
+    post.media_url ||
+    post.mediaUrl ||
+    post.video ||
+    post.videoUrl ||
+    post.video_url ||
+    post.fileUrl ||
+    post.file_url ||
+    post.url ||
+    post.src ||
+    ""
+  );
+
+  if(direct) return direct;
+
+  const fields=post.fields || post.data || null;
+  if(fields && typeof fields === "object"){
+    return pick(
+      fields.mediaUri ||
+      fields.media ||
+      fields.mediaUrl ||
+      fields.media_url ||
+      fields.videoUrl ||
+      fields.video_url ||
+      fields.url ||
+      ""
+    );
+  }
+
+  return "";
+}
+
 function openMinegramPost(post){
   if(!post) return;
 
@@ -4850,74 +4914,137 @@ function openMinegramPost(post){
   ).trim();
 
   if(!id){
-    toast("Gönderi kimliği bulunamadı");
+    if(typeof toast === "function") toast("Gönderi kimliği bulunamadı");
     return;
   }
 
-  const openMedia = String(
-    post.media ||
-    post.mediaUri ||
-    post.media_url ||
-    post.mediaUrl ||
-    post.video ||
-    post.videoUrl ||
-    post.video_url ||
-    ""
-  );
-  const openMediaType = String(
+  const openMedia=getMinegramMediaUrl(post);
+
+  const openMediaType=String(
     post.mediaType ||
     post.media_type ||
+    post.mimeType ||
+    post.mime_type ||
+    post.videoType ||
     post.type ||
     ""
   ).toLowerCase();
-  const openIsVideo =
+
+  const openMediaName=String(
+    post.mediaName ||
+    post.media_name ||
+    post.fileName ||
+    post.file_name ||
+    ""
+  ).toLowerCase();
+
+  const openIsVideo=
     openMediaType.includes("video") ||
     openMediaType.includes("reel") ||
+    openMediaName.includes(".mp4") ||
+    openMediaName.includes(".webm") ||
+    openMediaName.includes(".mov") ||
+    openMediaName.includes(".m4v") ||
+    openMediaName.includes(".3gp") ||
     /\.(mp4|webm|mov|m4v|3gp)(?:[?#].*)?$/i.test(openMedia);
 
+  const postUsername=String(
+    post.user?.username ||
+    post.user?.userName ||
+    post.user?.handle ||
+    post.author?.username ||
+    post.author?.userName ||
+    post.author?.handle ||
+    post.authorUsername ||
+    post.author_username ||
+    post.username ||
+    post.user_name ||
+    post.handle ||
+    post.ownerUsername ||
+    post.owner_username ||
+    post.owner?.username ||
+    post.owner?.userName ||
+    post.owner?.handle ||
+    ""
+  ).replace(/^@/,"").trim();
+
+  const reelData={
+    id:id,
+    username:postUsername,
+    media:openMedia,
+    mediaType:openMediaType || (openIsVideo ? "video" : ""),
+    caption:String(
+      post.caption ??
+      post.text ??
+      post.description ??
+      ""
+    ),
+    avatar:String(
+      post.avatar ||
+      post.avatar_url ||
+      post.avatarUrl ||
+      post.profilePhoto ||
+      post.profile_photo ||
+      post.user?.avatar ||
+      post.user?.avatar_url ||
+      post.user?.avatarUrl ||
+      ""
+    ),
+    likes:Array.isArray(post.likes)
+      ? post.likes.length
+      : Number(post.likesCount ?? post.like_count ?? post.likes ?? 0) || 0,
+    views:Number(post.views ?? post.viewCount ?? post.view_count ?? 0) || 0,
+    commentCount:Number(post.commentCount ?? post.comment_count ?? 0) || 0,
+    date:String(post.createdAt ?? post.created_at ?? post.date ?? post.timestamp ?? ""),
+    post:post
+  };
+
   try{
-    sessionStorage.setItem(
-      "minegram_selected_post",
-      JSON.stringify(post)
-    );
-    const postUsername =
-      post.user?.username ||
-      post.author?.username ||
-      post.authorUsername ||
-      post.author_username ||
-      post.username ||
-      post.user_name ||
-      post.handle ||
-      post.ownerUsername ||
-      post.owner_username ||
-      "";
+    const selected=JSON.stringify(post);
+    sessionStorage.setItem("minegram_selected_post",selected);
+    localStorage.setItem("minegram_selected_post",selected);
 
     if(openIsVideo){
-      sessionStorage.setItem("minegram_requested_reel",JSON.stringify({
-        id:id,
-        username:postUsername,
-        media:openMedia,
-        mediaType:openMediaType,
-        post:post
-      }));
+      const reelJson=JSON.stringify(reelData);
+      sessionStorage.setItem("minegram_requested_reel",reelJson);
+      localStorage.setItem("minegram_requested_reel",reelJson);
     }
 
     const profile={
       username:postUsername,
-      avatar:post.user?.avatar || post.avatar || post.user?.avatar_url || "",
-      displayName:post.user?.displayName || post.displayName || post.user?.display_name || "",
+      avatar:reelData.avatar,
+      displayName:String(post.user?.displayName || post.displayName || post.user?.display_name || ""),
       verified:!!(post.user?.verified || post.verified)
     };
 
-    sessionStorage.setItem(
-      "minegram_selected_profile",
-      JSON.stringify(profile)
-    );
-  }catch(e){}
+    sessionStorage.setItem("minegram_selected_profile",JSON.stringify(profile));
+    localStorage.setItem("minegram_selected_profile",JSON.stringify(profile));
+  }catch(e){
+    console.warn("[MINEGRAM OPEN POST CACHE]",e);
+  }
 
-  location.href = openIsVideo
-    ? "reels.html?id=" + encodeURIComponent(id)
-    : "post.html?id=" + encodeURIComponent(id);
+  if(openIsVideo){
+    let url=
+      "reels.html"+
+      "?openMinegramReel=1"+
+      "&id="+encodeURIComponent(id)+
+      "&username="+encodeURIComponent(postUsername)+
+      "&type="+encodeURIComponent(openMediaType || "video");
+
+    /*
+     * Gerçek medya URL'sini de gönder.
+     * Çok uzun data/blob değerlerinde URL'yi şişirmemek için
+     * cache kullanılmaya devam eder.
+     */
+    if(openMedia && openMedia.length < 6000){
+      url += "&media="+encodeURIComponent(openMedia);
+    }
+
+    location.href=url;
+    return;
+  }
+
+  location.href="post.html?id="+encodeURIComponent(id);
 }
 
 function startMinegramFeedVideos(root=document){
@@ -5090,13 +5217,7 @@ function renderPost(p){
 
   let media="";
 
-  const mediaUrl = String(
-    p.media ||
-    p.mediaUri ||
-    p.media_url ||
-    p.mediaUrl ||
-    ""
-  );
+  const mediaUrl = getMinegramMediaUrl(p);
 
   const mediaType = String(
     p.mediaType ||
