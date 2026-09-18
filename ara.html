@@ -1775,6 +1775,13 @@ async function loadData(){
 
     renderDiscovery();
 
+    /*
+     * Feed içindeki commentCount/comments alanı eski kalmış olabilir.
+     * Butondaki sayı için asıl /posts/:id cevabındaki GERÇEK yorum
+     * listesini kullan. Böylece modalda 0 yorum varken butonda 1 kalmaz.
+     */
+    syncAllReelCommentCounts();
+
   }catch{
 
     content.innerHTML =
@@ -1930,16 +1937,11 @@ function normalizeReels(){
             ),
 
           /*
-           * Yorum butonundaki sayı backend'in eski/stale
-           * commentCount alanından alınmaz. Gerçek yorum listesi
-           * varsa onun uzunluğu kullanılır; liste yoksa başlangıçta 0.
+           * İlk açılışta feed içindeki eski/stale yorum sayısını
+           * KESİNLİKLE kullanma. Gerçek sayı syncAllReelCommentCounts()
+           * ile /posts/:id üzerinden alınacak.
            */
-          commentCount:
-            Array.isArray(post?.comments)
-              ? post.comments.length
-              : (Array.isArray(post?.commentList)
-                ? post.commentList.length
-                : 0),
+          commentCount:0,
 
           date:
             post?.date ||
@@ -4652,6 +4654,36 @@ btn.dataset.loading='0';
 
 }
 
+
+
+/* =====================================================
+   REELS YORUM SAYILARINI SUNUCUDAN DOĞRULA
+===================================================== */
+async function syncAllReelCommentCounts(){
+  if(!Array.isArray(reels) || !reels.length) return;
+
+  await Promise.all(
+    reels.map(async (reel,index)=>{
+      const id = postId(reel.raw) || reel.id;
+      if(!id) return;
+
+      try{
+        const p = await api('/posts/'+encodeURIComponent(id));
+        const comments =
+          Array.isArray(p?.comments)
+            ? p.comments
+            : (Array.isArray(p?.post?.comments)
+              ? p.post.comments
+              : []);
+
+        updateViewerCommentCount(index, comments.length);
+      }catch(e){
+        /* Sunucudan doğrulanamazsa sayı gösterme. */
+        updateViewerCommentCount(index, 0);
+      }
+    })
+  );
+}
 
 
 /* =====================================================
