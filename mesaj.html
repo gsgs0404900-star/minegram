@@ -901,9 +901,6 @@ body{
  border-radius:15px
 }
 
-
-.message-content-cover{display:block;width:100%;max-width:360px;background:transparent;border-radius:12px;overflow:hidden;line-height:0;}
-.message-content-cover-img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover;background:transparent;}
 .message-post,
 .message-live{
  width:270px;
@@ -3458,28 +3455,46 @@ function renderMessage(
  let body="";
 
 
- if(d.type==="post" || d.type==="story" || d.type==="reel" || d.contentType==="post" || d.contentType==="story"){
+ if(d.type==="post" || d.type==="reel"){
 
-  const p=(d.post && typeof d.post==="object") ? d.post : {};
-  let cover=String(
-   d.videoCoverBase64||d.videoCover||
-   d.postMediaBase64||d.postMediaUri||
-   d.mediaBase64||d.mediaUri||
-   p.videoCoverBase64||p.videoCover||
-   p.mediaBase64||p.media||p.mediaUri||p.media_url||p.mediaUrl||
-   ""
-  ).trim();
+  const isReel=d.type==="reel" || /reel/i.test(String(d.postMediaType||d.mediaType||""));
+  const username=String(d.postUsername||d.username||"");
+  const avatar=d.postAvatar||d.avatar||d.profilePhoto||d.profile_photo||d.avatarUrl||d.avatar_url||"";
+  const media=d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||"";
+  const mediaType=String(d.postMediaType||d.mediaType||"");
+  const isVideo=/video|reel/i.test(mediaType) || isReel;
+  const videoCover=d.videoCoverBase64||d.videoCover||d.postVideoCoverBase64||d.postVideoCover||"";
+  const displayMedia=isVideo ? (videoCover||media) : media;
+  const caption=d.postText||d.caption||"";
+  const likes=d.postLikes||d.likes||0;
+  const comments=d.postCommentCount||d.commentCount||0;
+  const initial=(username.replace(/^@/,"")[0]||"K").toUpperCase();
+  const cls=isReel?"message-reel":"message-post";
+  const headCls=isReel?"message-reel-head":"message-post-head";
+  const avatarCls=isReel?"message-reel-avatar":"message-post-avatar";
+  const userCls=isReel?"message-reel-user":"message-post-user";
+  const shareCls=isReel?"message-reel-share":"message-post-share";
+  const mediaCls=isReel?"message-reel-media":"message-post-media";
+  const infoCls=isReel?"message-reel-info":"message-post-info";
+  const capCls=isReel?"message-reel-caption":"message-post-caption";
+  const statsCls=isReel?"message-reel-stats":"message-post-stats";
+  const mediaHtml=displayMedia?`<img class="${mediaCls}" src="${escapeHtml(displayMedia)}" alt="${isReel?"Reels":"Gönderi"}>`:"";
 
-  // Ham base64 ise görüntülenebilir data URI'ye çevir.
-  if(cover && !/^(data:|https?:|blob:|\/)/i.test(cover)){
-   const mt=String(d.postMediaType||d.mediaType||p.mediaType||p.media_type||"image");
-   const mime=/png/i.test(mt)?"image/png":/webp/i.test(mt)?"image/webp":/gif/i.test(mt)?"image/gif":"image/jpeg";
-   cover=`data:${mime};base64,${cover}`;
-  }
-
-  // Story/gönderide yalnızca gerçek kapak fotoğrafını göster. Kapak yoksa siyah/boş kutu oluşturma.
-  body=cover?`<div class="message-content-cover" data-open-post="1"><img class="message-content-cover-img" src="${escapeHtml(cover)}" alt="Kapak fotoğrafı"></div>`:"";
+  body=`
+  <div class="${cls}" data-open-post="1">
+   <div class="${headCls}">
+    <div class="${avatarCls}">${avatar?`<img src="${escapeHtml(avatar)}" alt="">`:escapeHtml(initial)}</div>
+    <div class="${userCls}">@${escapeHtml(username.replace(/^@/,""))}</div>
+    <div class="${shareCls}"><i class="fa-solid fa-share-nodes"></i></div>
+   </div>
+   ${mediaHtml}
+   <div class="${infoCls}">
+    <div class="${capCls}">${escapeHtml(caption||("Yeni Minegram "+(isReel?"reels":"gönderisi")+" 💙"))}</div>
+    <div class="${statsCls}"><span>❤️ ${escapeHtml(likes)}</span><span>💬 ${escapeHtml(comments)}</span></div>
+   </div>
+  </div>`;
  }
+
 
  else if(d.type==="live"){
 
