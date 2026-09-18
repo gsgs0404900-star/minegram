@@ -36,7 +36,7 @@
 .comment-like{width:34px;background:none;border:0;color:#fff;font-size:21px;cursor:pointer;align-self:flex-start;padding:0}
 .comment-like.liked{color:#ed1b3a}
 .comment-empty,.empty{color:#777;text-align:center;padding:30px 10px}
-.emoji-row{display:flex;justify-content:space-around;align-items:center;padding:10px 20px 5px;font-size:27px;flex:0 0 auto}
+.emoji-row{display:flex;justify-content:space-around;align-items:center;padding:10px 20px 5px;font-size:27px;flex:0 0 auto}.emoji-btn{border:0;background:transparent;color:inherit;font-size:27px;line-height:1;padding:5px 4px;border-radius:10px;cursor:pointer;transition:transform .12s,background .12s}.emoji-btn:hover,.emoji-btn:active{background:#25292c;transform:scale(1.12)}.emoji-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .comment-compose{display:flex;align-items:center;gap:9px;padding:10px 16px 18px;flex:0 0 auto}
 .avatar.small{width:40px;height:40px;flex:0 0 40px;border-radius:50%;background:#3f91cc;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;margin:0;overflow:hidden}
 .avatar.small img{width:100%;height:100%;object-fit:cover}
@@ -80,9 +80,15 @@
     </select>
   </div>
   <div id="commentsList" class="comments-list"></div>
-  <div class="emoji-row">
-    <span>❤️</span><span>🙌</span><span>🔥</span><span>👋</span>
-    <span>😢</span><span>😍</span><span>😮</span><span>😂</span>
+  <div class="emoji-row" aria-label="Hızlı emoji yorumları">
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('❤️')" aria-label="Kalp">❤️</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('🙌')" aria-label="Alkış">🙌</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('🔥')" aria-label="Ateş">🔥</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('👋')" aria-label="El sallama">👋</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('😢')" aria-label="Üzgün">😢</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('😍')" aria-label="Aşık">😍</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('😮')" aria-label="Şaşkın">😮</button>
+    <button type="button" class="emoji-btn" onclick="insertCommentEmoji('😂')" aria-label="Gülme">😂</button>
   </div>
   <div id="replyingBar" class="replying-bar"><span id="replyingText"></span><button type="button" onclick="cancelReply()">×</button></div>
   <div class="comment-compose">
@@ -266,6 +272,17 @@ function startReply(id,username){
   if(text)text.textContent='@'+cleanUser+' kişisine yanıt yazıyorsun';
   if(input){input.placeholder='@'+cleanUser+' kişisine yanıt yaz...';input.focus()}
 }
+function insertCommentEmoji(emoji){
+  const input=document.getElementById('commentInput');
+  if(!input)return;
+  const start=Number.isInteger(input.selectionStart)?input.selectionStart:input.value.length;
+  const end=Number.isInteger(input.selectionEnd)?input.selectionEnd:input.value.length;
+  input.value=input.value.slice(0,start)+emoji+input.value.slice(end);
+  input.focus();
+  const pos=start+emoji.length;
+  try{input.setSelectionRange(pos,pos)}catch(e){}
+}
+
 function cancelReply(){
   replyingTo=null;
   const bar=document.getElementById('replyingBar');
