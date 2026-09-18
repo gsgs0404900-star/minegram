@@ -656,7 +656,7 @@ body{
 
 .close-comments{
   position:absolute;
-  left:20px;
+  right:20px;
   top:28px;
   background:none;
   border:0;
@@ -769,6 +769,40 @@ body{
   justify-content:space-around;
   padding:10px 20px 5px;
   font-size:27px
+}
+
+.comment-replying{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 16px;
+  padding:8px 11px;
+  border-radius:10px;
+  background:#20252a;
+  color:#cfd4da;
+  font-size:12px
+}
+
+.comment-replying.open{
+  display:flex
+}
+
+.comment-replying-text{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+
+.comment-replying-cancel{
+  flex:none;
+  border:0;
+  background:transparent;
+  color:#64B5F6;
+  font-weight:700;
+  cursor:pointer;
+  padding:3px 4px
 }
 
 .comment-compose{
@@ -1326,6 +1360,11 @@ En çok beğenilen
 <span>😍</span>
 <span>😮</span>
 <span>😂</span>
+</div>
+
+<div id="commentReplyingBar" class="comment-replying" aria-live="polite">
+  <span id="commentReplyingText" class="comment-replying-text"></span>
+  <button type="button" class="comment-replying-cancel" onclick="cancelReply()">İptal</button>
 </div>
 
 <div class="comment-compose">
@@ -7007,6 +7046,9 @@ async function openComments(id){
 
   }
 
+  const replyBar=document.getElementById("commentReplyingBar");
+  if(replyBar)replyBar.classList.remove("open");
+
 
   const sort=
     document.getElementById(
@@ -7115,6 +7157,9 @@ function closeComments(e){
     currentCommentPost=null;
 
     replyingTo=null;
+
+    const replyBar=document.getElementById("commentReplyingBar");
+    if(replyBar)replyBar.classList.remove("open");
 
   }
 
@@ -7421,23 +7466,46 @@ function startReply(
 
   replyingTo=id;
 
-
   const input=
     document.getElementById(
       "commentInput"
     );
 
-
   if(!input)return;
 
+  const cleanUsername=String(username||"").replace(/^@/,"");
 
   input.placeholder=
     "@"+
-    username+
+    cleanUsername+
     " kişisine yanıt yaz...";
 
+  const bar=document.getElementById("commentReplyingBar");
+  const text=document.getElementById("commentReplyingText");
+
+  if(bar && text){
+    text.textContent="@"+cleanUsername+" kişisine yanıt veriyorsun";
+    bar.classList.add("open");
+  }
 
   input.focus();
+
+}
+
+function cancelReply(){
+
+  replyingTo=null;
+
+  const input=
+    document.getElementById("commentInput");
+
+  if(input){
+    input.placeholder="Bunun hakkında ne düşünüyorsun?";
+    input.focus();
+  }
+
+  const bar=document.getElementById("commentReplyingBar");
+  if(bar)bar.classList.remove("open");
 
 }
 
@@ -7665,6 +7733,9 @@ async function sendComment(){
 
   input.placeholder=
     "Bunun hakkında ne düşünüyorsun?";
+
+  const replyBar=document.getElementById("commentReplyingBar");
+  if(replyBar)replyBar.classList.remove("open");
 
 
   toast(
