@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ara - Minegram</title>
+<title>Keşfet - Minegram</title>
 
 <style>
 *{box-sizing:border-box}
@@ -269,6 +269,55 @@ button{
   border-radius:50%;
   background:#0009;
   font-size:14px
+}
+
+.discovery-tile{
+  min-width:0;
+}
+
+.discovery-user{
+  position:absolute;
+  left:6px;
+  right:6px;
+  bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  padding:5px 7px;
+  border-radius:9px;
+  background:linear-gradient(transparent,#000b);
+  font-size:11px;
+  cursor:pointer;
+}
+
+.discovery-user img,
+.discovery-user span{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  border-radius:50%;
+  object-fit:cover;
+  display:grid;
+  place-items:center;
+  background:#333;
+}
+
+.discovery-user b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.discovery-time{
+  position:absolute;
+  top:6px;
+  left:6px;
+  padding:3px 6px;
+  border-radius:7px;
+  background:#0009;
+  color:#fff;
+  font-size:10px;
 }
 
 /* POSTS */
@@ -1033,7 +1082,7 @@ cursor:not-allowed
 <body>
 
 <header class="top">
-  <div class="title">Ara</div>
+  <div class="title">Keşfet</div>
 
   <div class="search">
     <span class="search-icon">⌕</span>
@@ -1081,7 +1130,7 @@ cursor:not-allowed
         <path d="m16 16 5 5"></path>
       </svg>
     </span>
-    Ara
+    Keşfet
   </a>
 
   <a href="paylas.html">
@@ -1104,7 +1153,7 @@ cursor:not-allowed
     Bildirim
   </a>
 
-  <a href="profile.html">
+  <a href="profil.html">
     <span class="nav-icon">
       <svg class="svg" viewBox="0 0 24 24">
         <circle cx="12" cy="8" r="4"></circle>
@@ -1730,7 +1779,7 @@ async function loadData(){
 
   }catch{
 
-    location.href = "profile.html";
+    location.href = "giris.html";
 
     return;
   }
@@ -1978,62 +2027,84 @@ function normalizeReels(){
 
 function renderDiscovery(){
 
-  if(!reels.length){
+  const discoveryPosts = feed
+    .filter(post => mediaUrl(post))
+    .map(post => {
+      const id = postId(post);
+      const video = isVideo(post);
+      const media = mediaUrl(post);
+      const reelIndex = reels.findIndex(reel => String(reel.id) === String(id));
 
+      return { post, id, video, media, reelIndex };
+    });
+
+  if(!discoveryPosts.length){
     content.innerHTML = `
       <div class="empty">
         <div style="font-size:52px">⌕</div>
-        <div>Kullanıcı ara</div>
+        <div>Keşfetmek için içerik bulunamadı</div>
       </div>
     `;
-
     return;
   }
 
   content.innerHTML = `
-    <div class="section-title">
-      Videolar
-    </div>
-
+    <div class="section-title">Keşfet</div>
     <div class="grid">
+      ${discoveryPosts.map(item => {
+        const post = item.post;
+        const user = post?.user || post?.profile || {};
+        const username = String(
+          post?.username || user?.username || ""
+        ).replace(/^@/, "").trim();
+        const avatar = getAvatar(post) || getAvatar(user);
+        const initial = esc((username || "?").slice(0,1).toUpperCase());
+        const time = relativeTime(post?.createdAt || post?.created_at || post?.date || post?.timestamp);
+        const text = esc(postText(post));
 
-      ${reels.map(
-        (reel,index) => `
-
-          <div
-            class="tile"
-            data-reel="${index}"
-          >
-
-            <video
-              src="${esc(reel.mediaUri)}"
-              muted
-              playsinline
-              preload="metadata"
-            ></video>
-
-            <span class="play">
-              ▶
-            </span>
-
+        return `
+          <div class="tile discovery-tile" data-discovery-id="${esc(item.id)}" data-reel-index="${item.reelIndex}" data-username="${esc(username)}">
+            ${item.video
+              ? `<video src="${esc(item.media)}" muted playsinline preload="metadata"></video><span class="play">▶</span>`
+              : `<img src="${esc(item.media)}" loading="lazy" alt="${esc(username)}">`
+            }
+            ${username ? `<div class="discovery-user">${avatar ? `<img src="${esc(avatar)}" alt="">` : `<span>${initial}</span>`}<b>@${esc(username)}</b></div>` : ``}
+            ${time ? `<span class="discovery-time">${esc(time)}</span>` : ``}
           </div>
-
-        `
-      ).join("")}
-
+        `;
+      }).join("")}
     </div>
   `;
 
-  document
-    .querySelectorAll("[data-reel]")
-    .forEach(tile => {
+  document.querySelectorAll("[data-discovery-id]").forEach(tile => {
+    tile.onclick = event => {
+      const username = tile.dataset.username || "";
+      const reelIndex = Number(tile.dataset.reelIndex);
 
-      tile.onclick = () =>
-        openReel(
-          Number(tile.dataset.reel)
-        );
+      if (event.target.closest(".discovery-user") && username) {
+        openProfile(username);
+        return;
+      }
 
-    });
+      if (Number.isInteger(reelIndex) && reelIndex >= 0) {
+        openReel(reelIndex);
+        return;
+      }
+
+      const id = tile.dataset.discoveryId;
+      if (id) {
+        openPostCommentsById(id);
+      }
+    };
+  });
+
+  document.querySelectorAll(".discovery-user").forEach(userEl => {
+    userEl.onclick = event => {
+      event.stopPropagation();
+      const username = userEl.closest("[data-username]")?.dataset.username || "";
+      if (username) openProfile(username);
+    };
+  });
 }
 
 
@@ -2566,7 +2637,7 @@ function createReelHtml(
 
 
         <div class="reel-date">
-          ${esc(relativeTime(reel.date || reel.createdAt || reel.created_at || ""))}
+          ${esc(reel.date || "")}
         </div>
 
 
@@ -3659,38 +3730,26 @@ document.body.style.overflow =
 ===================================================== */
 
 function relativeTime(v){
+  const d = new Date(v);
+  if (!v || isNaN(d.getTime())) return '';
 
-const d=new Date(v);
+  const diff = Math.max(0, Date.now() - d.getTime());
+  const seconds = Math.floor(diff / 1000);
 
-if(!v || isNaN(d.getTime()))
-return '';
+  if (seconds < 60) return `${seconds} saniye önce`;
 
-const diff=Math.max(0,Date.now()-d.getTime());
-const seconds=Math.floor(diff/1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} dakika önce`;
 
-if(seconds<60)
-return seconds+' saniye önce';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} saat önce`;
 
-const minutes=Math.floor(seconds/60);
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} gün önce`;
 
-if(minutes<60)
-return minutes+' dakika önce';
+  if (days < 365) return `${Math.floor(days / 7)} hafta önce`;
 
-const hours=Math.floor(minutes/60);
-
-if(hours<24)
-return hours+' saat önce';
-
-const days=Math.floor(hours/24);
-
-if(days<7)
-return days+' gün önce';
-
-if(days<365)
-return Math.floor(days/7)+' hafta önce';
-
-return Math.floor(days/365)+' yıl önce';
-
+  return `${Math.floor(days / 365)} yıl önce`;
 }
 
 
@@ -3749,7 +3808,7 @@ ${initial}
 
 <div
 class="comment-user"
-onclick="location.href='${'profile.html?username='+encodeURIComponent(u)}'"
+onclick="location.href='${'profil.html?username='+encodeURIComponent(u)}'"
 >
 @${u}
 </div>
@@ -4737,7 +4796,7 @@ function openProfile(
 ){
 
   location.href =
-    "profile.html?username=" +
+    "profil.html?username=" +
     encodeURIComponent(
       username
     );
