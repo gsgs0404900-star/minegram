@@ -1169,62 +1169,97 @@
     ====================================================== -->
 
     <div
-      id="viewerComments"
-      class="comments">
+id="commentsModal"
+class="comments-modal"
+onclick="closeComments(event)"
+>
 
-      <div class="comments-head">
+<div
+class="comments-sheet"
+onclick="event.stopPropagation()"
+>
 
-        <b>Yorumlar</b>
+<div class="sheet-head">
 
-        <button
-          type="button"
-          class="close-comments"
-          onclick="closeViewerComments()">
-          ×
-        </button>
+<span class="grab"></span>
 
-      </div>
+<button
+class="close-comments"
+onclick="closeComments()"
+>
+×
+</button>
 
-      <div
-        id="viewerCommentsList"
-        class="comments-list">
-      </div>
+Yorumlar
 
-      <div class="comment-form">
+</div>
 
-        <input
-          id="viewerCommentInput"
-          placeholder="Yorum yaz...">
+<div class="sort">
 
-        <button
-          type="button"
-          onclick="sendViewerComment()"
-          aria-label="Gönder">
+<select
+id="commentSort"
+class="sort-select"
+onchange="changeCommentSort(this.value)"
+>
 
-          <svg
-            viewBox="0 0 24 24"
-            style="
-              width:22px;
-              height:22px;
-              fill:none;
-              stroke:#fff;
-              stroke-width:2;
-              stroke-linecap:round;
-              stroke-linejoin:round;
-            ">
+<option value="forYou">
+Senin için
+</option>
 
-            <path d="m21 3-7.4 18-3.3-7.3L3 10.4 21 3Z"/>
-            <path d="m10.3 13.7 4.1-4.1"/>
+<option value="newest">
+En yeni
+</option>
 
-          </svg>
+<option value="popular">
+En çok beğenilen
+</option>
 
-        </button>
+</select>
 
-      </div>
+</div>
 
-    </div>
+<div id="commentList" class="comment-list"></div>
 
-  </div>
+<div class="emoji-row">
+<span>❤️</span>
+<span>🙌</span>
+<span>🔥</span>
+<span>👋</span>
+<span>😢</span>
+<span>😍</span>
+<span>😮</span>
+<span>😂</span>
+</div>
+
+<div class="comment-compose">
+
+<div id="composeAvatar" class="avatar small">
+M
+</div>
+
+<input
+id="commentInput"
+class="compose-input"
+placeholder="Bunun hakkında ne düşünüyorsun?"
+onkeydown="if(event.key==='Enter')sendComment()"
+>
+
+<button class="gif">
+GIF
+</button>
+
+<button
+class="send"
+onclick="sendComment()"
+>
+➤
+</button>
+
+</div>
+
+</div>
+
+</div>
 
 
   <script>
