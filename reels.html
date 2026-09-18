@@ -469,7 +469,26 @@ async function shareReel(i){const r=reels[i];const text='🎬 @'+r.username+' Re
 let pullStart=0,pulling=false;const feed=document.getElementById('feed');feed.addEventListener('touchstart',e=>{if(feed.scrollTop===0){pullStart=e.touches[0].clientY;pulling=true}}, {passive:true});feed.addEventListener('touchmove',e=>{if(!pulling)return;const d=e.touches[0].clientY-pullStart;if(d>70)document.getElementById('refresh').classList.add('show')},{passive:true});feed.addEventListener('touchend',async e=>{if(!pulling)return;pulling=false;const d=e.changedTouches[0].clientY-pullStart;if(d>70){document.getElementById('refresh').classList.add('show');await document.getElementById('commentInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendComment()});
 loadReels();document.getElementById('refresh').classList.remove('show')}});
 loadReels();
+  
+  setTimeout(()=>{
+ const params=new URLSearchParams(location.search);
+ const reelId=params.get("reel");
+
+ if(reelId){
+   const target=document.querySelector('[data-id="'+CSS.escape(reelId)+'"]');
+   if(target){
+     target.scrollIntoView({behavior:"instant"});
+     const video=target.querySelector("video");
+     if(video){
+       video.play().catch(()=>{});
+     }
+   }
+ }
+},1200);
+  
 </script>
+
+  
 
 
 <!-- Minegram uygulamasındaki Reels paylaşım seçicisi -->
