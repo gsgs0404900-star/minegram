@@ -1662,19 +1662,47 @@ function openUserFromElement(element){
 
 async function searchUsers(query){
 
-  const clean =
-    String(query || "")
-      .trim()
-      .replace(/^@/,"");
+  const raw =
+    String(query || "").trim();
 
-  if(!clean){
+  /*
+    # YOKSA:
+    Kullanıcı araması yapılabilir ama gönderi/Reels ASLA gösterilmez.
+    Böylece arama alanında normal durumda yalnızca kullanıcı sonuçları olur.
+  */
+  if(!raw){
 
-    renderDiscovery();
+    currentSearch = "";
+    tagBack.style.display = "none";
+
+    content.innerHTML = "";
+
     return;
 
   }
 
+  if(raw.startsWith("#")){
+
+    const tag =
+      raw.replace(/^#+/,"").trim();
+
+    if(!tag){
+
+      content.innerHTML = "";
+      return;
+
+    }
+
+    renderHashtagResults(tag);
+    return;
+
+  }
+
+  const clean =
+    raw.replace(/^@/,"").trim();
+
   currentSearch = clean;
+  tagBack.style.display = "none";
   showLoading();
 
   let result = [];
@@ -1744,36 +1772,7 @@ async function searchUsers(query){
 
   }
 
-  /*
-    # işareti yoksa arama sonucu sadece kullanıcılarla sınırlı kalmasın.
-    Gönderi ve Reels de aransın.
-    Hashtag etiketi kartın üstüne eklenmez.
-  */
-  const q =
-    clean.toLowerCase();
-
-  const contentMatches =
-    feed
-      .map(normalizePost)
-      .filter(post => {
-
-        const username =
-          postUsername(post).toLowerCase();
-
-        const text =
-          postText(post).toLowerCase();
-
-        return (
-          Boolean(mediaUrl(post)) &&
-          (
-            username.includes(q) ||
-            text.includes(q)
-          )
-        );
-
-      });
-
-  if(!result.length && !contentMatches.length){
+  if(!result.length){
 
     content.innerHTML = `
       <div class="state">
@@ -1785,166 +1784,50 @@ async function searchUsers(query){
 
   }
 
-  tagBack.style.display = "none";
+  content.innerHTML = `
+    <div class="page-info">
+      <div class="page-info-title">Kullanıcılar</div>
+    </div>
 
-  const usersHtml =
-    result.length
-      ? `
-        <div class="page-info">
-          <div class="page-info-title">Kullanıcılar</div>
-          <div class="page-info-sub">Kullanıcı, gönderi ve Reels sonuçları</div>
-        </div>
+    <div class="users">
+      ${result.map(user => {
 
-        <div class="users">
-          ${result.map(user => {
+        const username =
+          String(user.username || "")
+            .replace(/^@/,"");
 
-            const username =
-              String(user.username || "")
-                .replace(/^@/,"");
+        const userStories =
+          storyFor(username);
 
-            const userStories =
-              storyFor(username);
+        const hasStory =
+          !user.private &&
+          userStories.length > 0;
 
-            const hasStory =
-              !user.private &&
-              userStories.length > 0;
+        return `
+          <div
+            class="user"
+            data-username="${esc(username)}"
+            onclick="openUserFromElement(this)"
+          >
+            ${avatarHtml(
+              user.avatar,
+              username,
+              hasStory
+            )}
 
-            return `
-              <div
-                class="user"
-                data-username="${esc(username)}"
-                onclick="openUserFromElement(this)"
-              >
-                ${avatarHtml(
-                  user.avatar,
-                  username,
-                  hasStory
-                )}
-
-                <div class="user-info">
-                  <div class="user-name-row">
-                    <div class="username">
-                      @${esc(username)}
-                    </div>
-                  </div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <div class="username">
+                  @${esc(username)}
                 </div>
               </div>
-            `;
+            </div>
+          </div>
+        `;
 
-          }).join("")}
-        </div>
-      `
-      : "";
-
-  const contentHtml =
-    contentMatches.length
-      ? `
-        <div class="page-info search-content-info">
-          <div class="page-info-title">Gönderiler</div>
-        </div>
-
-        <div class="grid search-content-grid">
-          ${contentMatches.map(post => {
-
-            const id =
-              String(post.id || "");
-
-            const username =
-              postUsername(post);
-
-            const caption =
-              postText(post);
-
-            const reel =
-              isVideo(post);
-
-            const reelCover =
-              reelCoverUrl(post);
-
-            const image =
-              mediaUrl(post);
-
-            const reelIndex =
-              reels.findIndex(
-                reelPost =>
-                  String(reelPost.id) === id
-              );
-
-            return `
-              <div
-                class="tile search-result-tile"
-                data-post-id="${esc(id)}"
-                onclick="${
-                  reel && reelIndex >= 0
-                    ? `openReel(${reelIndex})`
-                    : `openPostById('${esc(id)}')`
-                }"
-              >
-
-                ${
-                  reel
-                    ? (
-                        reelCover
-                          ? `
-                            <img
-                              src="${esc(reelCover)}"
-                              alt=""
-                              loading="lazy"
-                              class="reel-cover"
-                              onerror="this.style.display='none'"
-                            >
-                          `
-                          : `
-                            <video
-                              src="${esc(videoUrl(post))}"
-                              muted
-                              playsinline
-                              preload="metadata"
-                              class="reel-cover"
-                            ></video>
-                          `
-                      )
-                    : `
-                        <img
-                          src="${esc(image)}"
-                          alt=""
-                          loading="lazy"
-                          onerror="this.style.display='none'"
-                        >
-                      `
-                }
-
-                ${
-                  reel
-                    ? `<div class="reel-badge">Reels</div>`
-                    : ""
-                }
-
-                <div class="tile-info">
-                  ${
-                    username
-                      ? `<div class="tile-user">@${esc(username)}</div>`
-                      : ""
-                  }
-
-                  ${
-                    caption
-                      ? `<div class="tile-caption">${hashtagHtml(caption)}</div>`
-                      : ""
-                  }
-                </div>
-
-              </div>
-            `;
-
-          }).join("")}
-        </div>
-      `
-      : "";
-
-  content.innerHTML =
-    usersHtml +
-    contentHtml;
+      }).join("")}
+    </div>
+  `;
 
 }
 
