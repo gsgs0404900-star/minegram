@@ -1231,6 +1231,31 @@ body{
 .user-not-found-screen .not-found-title{font-size:23px;font-weight:700;margin-bottom:8px}
 .user-not-found-screen .not-found-user{color:#777;font-size:14px}
 
+
+/* MESAJ İŞLEMLERİ */
+.message-actions{display:flex;align-items:center;gap:8px;margin-top:5px;opacity:.9}
+.message-actions button{border:0;background:transparent;color:#fff;font-size:12px;padding:4px 6px;cursor:pointer}
+.message.sent .message-actions{justify-content:flex-end}
+.message-reaction{display:none!important}
+.message:has(.message-reel) .message-actions{padding:0 10px;margin-top:6px;justify-content:flex-start}
+.message:has(.message-reel) .message-actions button[data-act="like"]{font-size:22px;padding:2px 5px}
+.message:has(.message-reel) .message-actions button[data-act="reply"]{font-size:13px}
+.message-swipe-label{position:absolute;left:8px;top:50%;transform:translate(-10px,-50%);opacity:0;color:#62afea;font-size:12px;font-weight:700;pointer-events:none;transition:.12s}
+.message.swiping .message-swipe-label{opacity:1;transform:translate(0,-50%)}
+.message{position:relative}
+.reply-composer{display:none;align-items:center;gap:8px;margin:0 12px 7px;padding:8px 10px;background:#171717;border:1px solid #333;border-radius:10px;font-size:12px;color:#aaa}
+.reply-composer.show{display:flex}
+.reply-composer span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reply-composer button{border:0;background:transparent;color:#fff;font-size:18px}
+.reply-preview{display:block;border-left:3px solid rgba(255,255,255,.6);padding-left:8px;margin-bottom:7px;font-size:12px;opacity:.85;width:100%}
+.delete-confirm{position:absolute;inset:0;background:rgba(0,0,0,.72);z-index:700;display:none;align-items:center;justify-content:center;padding:22px}
+.delete-confirm.show{display:flex}
+.delete-confirm-box{width:min(330px,100%);background:#181818;border:1px solid #333;border-radius:16px;padding:20px}
+.delete-confirm-title{font-size:17px;font-weight:700;margin-bottom:8px}
+.delete-confirm-text{color:#aaa;font-size:14px;line-height:20px;margin-bottom:18px}
+.delete-confirm-actions{display:flex;gap:9px}
+.delete-confirm-actions button{flex:1;height:44px;border:0;border-radius:10px;background:#292929;color:#fff;font-size:15px}
+.delete-confirm-actions .confirm-danger{background:#ff304f}
 </style>
 </head>
 
@@ -1403,6 +1428,22 @@ Mesajlar yükleniyor...
 </div>
 
 </main>
+
+<div class="reply-composer" id="replyComposer">
+ <span id="replyComposerText"></span>
+ <button type="button" id="replyComposerClose" aria-label="Yanıtı kapat"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
+<div class="delete-confirm" id="deleteConfirm" aria-hidden="true">
+ <div class="delete-confirm-box">
+  <div class="delete-confirm-title">Mesaj silinsin mi?</div>
+  <div class="delete-confirm-text">Bu mesajı silmek istediğine emin misin?</div>
+  <div class="delete-confirm-actions">
+   <button type="button" id="deleteNo">Hayır</button>
+   <button type="button" id="deleteYes" class="confirm-danger">Evet</button>
+  </div>
+ </div>
+</div>
 
 <div class="input-bar">
 
@@ -2479,6 +2520,11 @@ function showToast(t){
 }
 
 
+$("deleteNo")?.addEventListener("click",closeDeleteConfirm);
+$("deleteYes")?.addEventListener("click",confirmDeleteMessage);
+$("replyComposerClose")?.addEventListener("click",cancelReply);
+
+
 function ms(v){
 
  if(typeof v==="number")
@@ -3081,14 +3127,15 @@ function messageActions(
 
  <button
  data-act="like"
- data-id="${id}">
+ data-id="${escapeHtml(id)}"
+ aria-label="Beğen">
  ❤️
  </button>
 
  <button
- data-act="share"
- data-id="${id}">
- ↗
+ data-act="reply"
+ data-id="${escapeHtml(id)}">
+ Yanıtla
  </button>
 
  ${
@@ -3096,7 +3143,7 @@ function messageActions(
    ?`
    <button
    data-act="delete"
-   data-id="${id}">
+   data-id="${escapeHtml(id)}">
    Sil
    </button>
    `
@@ -3741,38 +3788,44 @@ function renderMessage(
    messageRead.get(id)||
    d.read===true
   )
-  ?" • Görüldü"
+  ?"Görüldü"
   :"";
 
+ const replyText=
+  d.replyTo?.text||
+  d.replyText||
+  d.reply_to?.text||
+  "";
+
+ const status=read;
 
  b.innerHTML=
+  (replyText?`<div class="reply-preview">${escapeHtml(replyText)}</div>`:"")+
   body+
-  `
-  <span class="message-time">
-   ${time(
-    d.createdAt||
-    d.time
-   )}
-   ${read}
-  </span>
-  `+
-  messageActions(d,id);
-
-
- if(d._liked){
-
-  b.insertAdjacentHTML(
-   "beforeend",
-   '<span class="message-reaction">❤️</span>'
-  );
-
- }
-
+  (status?`<span class="message-time">${status}</span>`:"");
 
  wrap.appendChild(b);
 
+ const isReel=
+  d.type==="reel" ||
+  !!b.querySelector(".message-reel");
+
+ const actionsHtml=messageActions(d,id);
+
+ if(isReel){
+  wrap.insertAdjacentHTML("beforeend",actionsHtml);
+ }else{
+  b.insertAdjacentHTML("beforeend",actionsHtml);
+ }
+
+ const swipeLabel=document.createElement("span");
+ swipeLabel.className="message-swipe-label";
+ swipeLabel.textContent="Yanıtla";
+ wrap.appendChild(swipeLabel);
+
  chatArea.appendChild(wrap);
 
+ enableMessageSwipeReply(wrap,d,id);
 
  /* =========================
     BEĞEN
@@ -3784,18 +3837,9 @@ function renderMessage(
   "click",
   ()=>{
    if(!mine){
-
-    d._liked=true;
-
-    wrap.querySelector(
-     ".message-reaction"
-    )?.remove();
-
-    b.insertAdjacentHTML(
-     "beforeend",
-     '<span class="message-reaction">❤️</span>'
-    );
-
+    d._liked=!d._liked;
+    const btn=wrap.querySelector('[data-act="like"]');
+    if(btn) btn.style.opacity=d._liked?"1":".65";
    }
   }
  );
@@ -3821,39 +3865,14 @@ function renderMessage(
   '[data-act="delete"]'
  )?.addEventListener(
   "click",
-  async()=>{
+  ()=>openDeleteConfirm(id)
+ );
 
-   try{
-
-    await updateDoc(
-     doc(
-      firestore,
-      "chatMessages",
-      id
-     ),
-     {
-      deleted:true,
-      text:"Bu mesaj silindi",
-      mediaBase64:"",
-      voiceDataBase64:"",
-      videoCoverBase64:"",
-      type:"text"
-     }
-    );
-
-    showToast(
-     "Mesaj silindi"
-    );
-
-   }catch{
-
-    showToast(
-     "Mesaj silinemedi"
-    );
-
-   }
-
-  }
+ wrap.querySelector(
+  '[data-act="reply"]'
+ )?.addEventListener(
+  "click",
+  ()=>startReply(d,id)
  );
 
 
@@ -4201,6 +4220,98 @@ function renderMessage(
 }
 
 
+let replyTarget=null;
+let deleteTargetId=null;
+
+function startReply(d,id){
+ replyTarget={
+  id,
+  text:String(d.text||d.replyText||d.postText||d.caption||"Mesaj"),
+  sender:String(d.sender||"")
+ };
+ const box=$("replyComposer");
+ const txt=$("replyComposerText");
+ if(box&&txt){
+  txt.textContent="Yanıtla: "+replyTarget.text;
+  box.classList.add("show");
+ }
+ input.focus();
+}
+
+function cancelReply(){
+ replyTarget=null;
+ $("replyComposer")?.classList.remove("show");
+}
+
+function openDeleteConfirm(id){
+ deleteTargetId=id;
+ const modal=$("deleteConfirm");
+ if(modal){
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+ }
+}
+
+function closeDeleteConfirm(){
+ deleteTargetId=null;
+ const modal=$("deleteConfirm");
+ if(modal){
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+ }
+}
+
+async function confirmDeleteMessage(){
+ const id=deleteTargetId;
+ closeDeleteConfirm();
+ if(!id) return;
+ try{
+  await updateDoc(
+   doc(firestore,"chatMessages",id),
+   {
+    deleted:true,
+    text:"Bu mesaj silindi",
+    mediaBase64:"",
+    voiceDataBase64:"",
+    videoCoverBase64:"",
+    type:"text"
+   }
+  );
+  showToast("Mesaj silindi");
+ }catch{
+  showToast("Mesaj silinemedi");
+ }
+}
+
+function enableMessageSwipeReply(wrap,d,id){
+ let startX=0,startY=0,swiping=false;
+ wrap.addEventListener("touchstart",e=>{
+  if(e.touches.length!==1) return;
+  startX=e.touches[0].clientX;
+  startY=e.touches[0].clientY;
+  swiping=false;
+ },{passive:true});
+ wrap.addEventListener("touchmove",e=>{
+  if(e.touches.length!==1) return;
+  const dx=e.touches[0].clientX-startX;
+  const dy=Math.abs(e.touches[0].clientY-startY);
+  if(dx>25 && dx>dy*1.25){
+   swiping=true;
+   wrap.classList.add("swiping");
+  }
+ },{passive:true});
+ wrap.addEventListener("touchend",e=>{
+  if(swiping){
+   e.preventDefault();
+   wrap.classList.remove("swiping");
+   startReply(d,id);
+  }else{
+   wrap.classList.remove("swiping");
+  }
+ });
+}
+
+
 async function sendData(data){
 
  /* Gerçek giriş yapan hesap yoksa gönderme */
@@ -4297,7 +4408,15 @@ async function sendData(data){
 
    read:false,
 
-   ...data
+   ...data,
+
+   ...(replyTarget?{
+    replyTo:{
+     id:replyTarget.id,
+     text:replyTarget.text,
+     sender:replyTarget.sender
+    }
+   }: {})
 
   };
 
@@ -4397,7 +4516,7 @@ async function sendText(t){
  if(ok){
 
   input.value="";
-
+  cancelReply();
   input.focus();
 
  }
