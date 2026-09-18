@@ -938,6 +938,29 @@ body{
  opacity:.85
 }
 
+.content-share-actions{
+ display:flex;
+ gap:9px;
+ margin:4px 0 12px
+}
+
+.content-share-btn{
+ flex:1;
+ min-height:48px;
+ border:1px solid #333;
+ border-radius:12px;
+ background:#222;
+ color:#fff;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ font-size:14px;
+ cursor:pointer
+}
+
+.content-share-btn:active{background:#303030}
+
 .share-modal,
 .profile-modal{
  position:absolute;
@@ -1328,6 +1351,10 @@ Mesajlar yükleniyor...
 GIF
 </button>
 
+<button class="tool-btn" id="contentShareBtn" title="Gönderi / canlı yayın paylaş">
+<i class="fa-solid fa-share-nodes"></i>
+</button>
+
 </div>
 
 <div class="composer">
@@ -1388,6 +1415,27 @@ autocomplete="off">
 id="shareList"
 class="share-list">
 </div>
+
+</div>
+</div>
+
+<div class="share-modal" id="contentShareModal">
+
+<div class="share-sheet">
+
+<div class="sheet-handle"></div>
+
+<div class="sheet-head">
+<b>İçerik paylaş</b>
+<button id="contentShareClose" class="sheet-close"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
+<div class="content-share-actions">
+<button id="sharePostBtn" class="content-share-btn"><i class="fa-regular fa-image"></i><span>Gönderi paylaş</span></button>
+<button id="shareLiveBtn" class="content-share-btn"><i class="fa-solid fa-circle"></i><span>Canlı yayın paylaş</span></button>
+</div>
+
+<div id="contentShareList" class="share-list"></div>
 
 </div>
 </div>
@@ -2034,60 +2082,152 @@ function cleanUsername(value){
 function getLoggedUsername(){
 
  const keys=[
-  "minegram_current_username",
-  "minegramCurrentUsername",
+
+  "username",
+
   "minegram_username",
+
   "minegramUsername",
+
   "currentUsername",
+
   "current_username",
+
   "loggedUsername",
+
   "logged_username",
+
   "userName",
+
   "user_name",
+
   "minegramUser",
+
   "minegram_user",
+
   "currentUser",
+
   "current_user",
+
   "user",
+
   "minegramCurrentUser",
-  "username"
+
+  "minegram_current_user"
+
  ];
 
- function read(store,key){
-  const raw=store.getItem(key);
-  if(!raw) return "";
+
+ /* ------------------------------------------
+    Önce doğrudan string kayıtları kontrol et
+    ------------------------------------------ */
+
+ for(
+  const key of keys
+ ){
+
+  const raw=
+   localStorage.getItem(key);
+
+  if(!raw)
+   continue;
+
+  let value=raw;
+
   try{
-   const parsed=JSON.parse(raw);
-   if(parsed&&typeof parsed==="object")
-    return cleanUsername(
-     parsed.username||parsed.userName||parsed.handle||
-     parsed.user?.username||parsed.profile?.username||""
-    );
-   return cleanUsername(parsed);
-  }catch{
-   return cleanUsername(raw);
-  }
+
+   const parsed=
+    JSON.parse(raw);
+
+   if(
+    typeof parsed==="object"&&
+    parsed!==null
+   ){
+
+    value=
+     parsed.username||
+     parsed.userName||
+     parsed.name||
+     parsed.handle||
+     parsed.user?.username||
+     parsed.profile?.username||
+     "";
+
+   }else{
+
+    value=parsed;
+
+   }
+
+  }catch{}
+
+  const username=
+   cleanUsername(value);
+
+  if(username)
+   return username;
+
  }
 
- /* Önce oturum açma sisteminin özel anahtarları. */
- for(const key of keys){
-  const v=read(sessionStorage,key);
-  if(v) return v;
+
+ /* ------------------------------------------
+    sessionStorage
+    ------------------------------------------ */
+
+ for(
+  const key of keys
+ ){
+
+  const raw=
+   sessionStorage.getItem(key);
+
+  if(!raw)
+   continue;
+
+  let value=raw;
+
+  try{
+
+   const parsed=
+    JSON.parse(raw);
+
+   if(
+    typeof parsed==="object"&&
+    parsed!==null
+   ){
+
+    value=
+     parsed.username||
+     parsed.userName||
+     parsed.name||
+     parsed.handle||
+     parsed.user?.username||
+     parsed.profile?.username||
+     "";
+
+   }
+
+  }catch{}
+
+  const username=
+   cleanUsername(value);
+
+  if(username)
+   return username;
+
  }
- for(const key of keys){
-  const v=read(localStorage,key);
-  if(v) return v;
- }
+
+
  return "";
+
 }
 
 
 /*
- * URL PARAMETRESİNİ ÖNCE AL
- * /mesaj.html?username=admin -> alıcı admin
+ * URL'DEKİ SOHBET ALICISINI ÖNCE BELİRLE
+ * Böylece sayfa açılır açılmaz gerçek kullanıcı hedefi sabitlenir.
  */
 const p=new URLSearchParams(location.search);
-
 
 /*
  * GERÇEK GİRİŞ YAPAN HESABI AL
@@ -2188,6 +2328,12 @@ console.log(
  conversationKey
 );
 
+/* targetUsername ve conversationKey yukarıda tek kez oluşturuldu.
+ * İkinci bir tanım yapılmaz; butonların çalışmasını engelleyen
+ * TDZ/tekrar-tanımlama hatası böylece oluşmaz.
+ */
+
+
 const input=
  document.getElementById("messageInput");
 
@@ -2209,9 +2355,6 @@ let authReady=false;
 let unsub=null;
 
 let allMessages=new Map();
-
-// Uygulamadaki gibi: Firestore cevabını beklemeden mesajı ekranda göster.
-let pendingMessages=new Map();
 
 let messageRead=new Map();
 
@@ -3619,6 +3762,18 @@ function renderMessage(
 
 
  /* =========================
+    MESAJI BAŞKA KULLANICIYA AKTAR
+    ========================= */
+
+ wrap.querySelector('[data-act="share"]')?.addEventListener('click', async()=>{
+  const payload={...d};
+  delete payload._liked; delete payload.read; delete payload.createdAt; delete payload.time;
+  delete payload.sender; delete payload.recipient; delete payload.conversationKey; delete payload.deleted;
+  await shareToUser(payload, 'Mesajı aktar');
+ });
+
+
+ /* =========================
     SİL
     ========================= */
 
@@ -4008,73 +4163,872 @@ function renderMessage(
 
 async function sendData(data){
 
+ /* Gerçek giriş yapan hesap yoksa gönderme */
+
  if(!myUsername){
-  showToast("Önce hesabına giriş yapmalısın");
+
+  showToast(
+   "Önce hesabına giriş yapmalısın"
+  );
+
   return false;
+
  }
+
+
+ /* Alıcı yoksa gönderme */
 
  if(!targetUsername){
-  showToast("Mesaj gönderilecek kullanıcı bulunamadı");
+
+  showToast(
+   "Mesaj gönderilecek kullanıcı bulunamadı"
+  );
+
   return false;
+
  }
 
- if(myUsername.toLowerCase()===targetUsername.toLowerCase()){
-  showToast("Kendine mesaj gönderemezsin");
+
+ /* Aynı hesaba gönderme */
+
+ if(
+  myUsername.toLowerCase()===
+  targetUsername.toLowerCase()
+ ){
+
+  showToast(
+   "Kendine mesaj gönderemezsin"
+  );
+
   return false;
+
  }
 
- if(!(await ensureAuth())) return false;
+
+ if(!(await ensureAuth()))
+ return false;
+
 
  await syncBlock();
- if(blockedSend()) return false;
 
- const clientMessageId =
-  (crypto?.randomUUID ? crypto.randomUUID() :
-   "cm_"+Date.now()+"_"+Math.random().toString(36).slice(2));
 
- const createdAt=Date.now();
+ if(blockedSend())
+ return false;
 
- const messageData={
-  conversationKey:[
-   myUsername.toLowerCase(),
-   targetUsername.toLowerCase()
-  ].sort().join("__"),
-  sender:myUsername,
-  recipient:targetUsername,
-  time:new Date(createdAt).toLocaleTimeString("tr-TR",{
-   hour:"2-digit", minute:"2-digit", second:"2-digit"
-  }),
-  createdAt,
-  clientMessageId,
-  read:false,
-  ...data
- };
-
- // Mesaj gönder tuşuna basıldığı anda uygulama gibi kendi ekranında göster.
- pendingMessages.set(clientMessageId,messageData);
- allMessages.set("pending-"+clientMessageId,messageData);
- renderAll();
 
  try{
-  await addDoc(
-   collection(firestore,"chatMessages"),
+
+  /*
+   * Firestore'a gönderen ve alıcı
+   * artık kesin olarak belirlenmiş
+   * kullanıcılar olacak.
+   */
+
+  const messageData={
+
+   conversationKey:
+
+    [
+     myUsername.toLowerCase(),
+     targetUsername.toLowerCase()
+    ]
+    .sort()
+    .join("__"),
+
+   sender:
+    myUsername,
+
+   recipient:
+    targetUsername,
+
+   time:
+    new Date()
+    .toLocaleTimeString(
+     "tr-TR",
+     {
+      hour:"2-digit",
+      minute:"2-digit",
+      second:"2-digit"
+     }
+    ),
+
+   createdAt:
+    Date.now(),
+
+   read:false,
+
+   ...data
+
+  };
+
+
+  console.log(
+   "MINEGRAM MESAJ GÖNDERİLİYOR:",
    messageData
   );
-  showToast("Mesaj gönderildi");
-  return true;
- }catch(e){
-  console.error("Minegram chat send error:",e);
-  pendingMessages.delete(clientMessageId);
-  allMessages.delete("pending-"+clientMessageId);
-  renderAll();
-  showToast(
-   e?.code==="permission-denied"
-    ?"Mesaj gönderme izni yok"
-    :"Mesaj gönderilemedi"
+
+
+  await addDoc(
+   collection(
+    firestore,
+    "chatMessages"
+   ),
+   messageData
   );
+
+
+  return true;
+
+
+ }catch(e){
+
+  console.error(
+   "Minegram chat send error:",
+   e
+  );
+
+
+  showToast(
+   e?.code===
+   "permission-denied"
+    ?
+    "Mesaj gönderme izni yok"
+    :
+    "Mesaj gönderilemedi"
+  );
+
+
   return false;
+
  }
+
 }
+
+
+async function sendText(t){
+
+ t=
+  String(t||"")
+  .trim();
+
+ if(!t)
+ return;
+
+
+ const ok=
+  await sendData({
+
+   text:t,
+
+   type:"text"
+
+  });
+
+
+ if(ok){
+
+  input.value="";
+
+  input.focus();
+
+ }
+
+}
+
+
+function readAsData(file){
+
+ return new Promise(
+  (res,rej)=>{
+
+   const r=
+    new FileReader();
+
+   r.onload=()=>
+    res(
+     String(r.result)
+    );
+
+   r.onerror=rej;
+
+   r.readAsDataURL(file);
+
+  }
+ );
+
+}
+
+
+async function resizeImage(
+ file,
+ maxBytes=650000
+){
+
+ const url=
+  await readAsData(file);
+
+ if(file.size<=maxBytes)
+ return url;
+
+ return new Promise(
+  resolve=>{
+
+   const img=
+    new Image();
+
+   img.onload=()=>{
+
+    const scale=
+     Math.min(
+      1,
+      1400/
+      Math.max(
+       img.width,
+       img.height
+      )
+     );
+
+    const c=
+     document.createElement(
+      "canvas"
+     );
+
+    c.width=
+     Math.max(
+      1,
+      Math.round(
+       img.width*scale
+      )
+     );
+
+    c.height=
+     Math.max(
+      1,
+      Math.round(
+       img.height*scale
+      )
+     );
+
+    const x=
+     c.getContext(
+      "2d"
+     );
+
+    x.drawImage(
+     img,
+     0,
+     0,
+     c.width,
+     c.height
+    );
+
+    let q=.86;
+
+    let out=
+     c.toDataURL(
+      "image/jpeg",
+      q
+     );
+
+    while(
+     out.length>
+     maxBytes*1.38&&
+     q>.45
+    ){
+
+     q-=.08;
+
+     out=
+      c.toDataURL(
+       "image/jpeg",
+       q
+      );
+
+    }
+
+    resolve(out);
+
+   };
+
+   img.onerror=
+    ()=>resolve(null);
+
+   img.src=url;
+
+  }
+ );
+
+}
+
+
+/* ==========================================================
+   YENİ DOSYA GÖNDERME SİSTEMİ
+   ========================================================== */
+
+async function sendFile(
+ file,
+ kind
+){
+
+ if(!file)
+ return;
+
+ if(blockedSend())
+ return;
+
+
+ try{
+
+
+  /* =====================
+     GIF
+     ===================== */
+
+  if(kind==="gif"){
+
+   const data=
+    await resizeImage(
+     file
+    );
+
+   if(!data){
+
+    showToast(
+     "GIF hazırlanamadı"
+    );
+
+    return;
+
+   }
+
+   if(
+    data.length>930000
+   ){
+
+    showToast(
+     "GIF çok büyük. Daha küçük bir GIF seç."
+    );
+
+    return;
+
+   }
+
+   const ok=
+    await sendData({
+
+     text:
+      "🎞 GIF gönderildi",
+
+     type:
+      "gif",
+
+     mediaBase64:
+      data,
+
+     mediaType:
+      file.type||
+      "image/gif",
+
+     mimeType:
+      file.type||
+      "image/gif"
+
+    });
+
+   if(ok)
+   showToast(
+    "GIF gönderildi"
+   );
+
+   return;
+
+  }
+
+
+  /* =====================
+     VİDEO
+     ===================== */
+
+  if(kind==="video"){
+
+   showToast(
+    "Video hazırlanıyor..."
+   );
+
+
+   /*
+    Önce gerçek videoyu oku.
+   */
+
+   const videoData=
+    await readAsData(file);
+
+   if(!videoData){
+
+    showToast(
+     "Video okunamadı"
+    );
+
+    return;
+
+   }
+
+
+   /*
+    Videodan kapak oluştur.
+   */
+
+   const videoCover=
+    await createVideoCover(
+     file
+    );
+
+   if(!videoCover){
+
+    showToast(
+     "Video kapağı oluşturulamadı"
+    );
+
+    return;
+
+   }
+
+
+   /*
+    Mevcut Base64 mimarisindeki
+    boyut sınırı.
+   */
+
+   if(
+    videoData.length>930000
+   ){
+
+    showToast(
+     "Video çok büyük. Daha kısa veya daha düşük boyutlu video seç."
+    );
+
+    return;
+
+   }
+
+
+   /* =====================
+      VİDEO SÜRESİ
+      ===================== */
+
+   let videoDuration=0;
+
+   try{
+
+    const tempUrl=
+     URL.createObjectURL(
+      file
+     );
+
+    const tempVideo=
+     document.createElement(
+      "video"
+     );
+
+    tempVideo.preload=
+     "metadata";
+
+    tempVideo.src=
+     tempUrl;
+
+    await new Promise(
+     resolve=>{
+
+      tempVideo.onloadedmetadata=
+       ()=>{
+
+        videoDuration=
+         Number.isFinite(
+          tempVideo.duration
+         )
+          ?tempVideo.duration
+          :0;
+
+        URL.revokeObjectURL(
+         tempUrl
+        );
+
+        resolve();
+
+       };
+
+      tempVideo.onerror=()=>{
+
+       URL.revokeObjectURL(
+        tempUrl
+       );
+
+       resolve();
+
+      };
+
+     }
+    );
+
+   }catch{}
+
+
+   /* =====================
+      FIRESTORE'A KAYDET
+      ===================== */
+
+   const ok=
+    await sendData({
+
+     text:
+      "🎬 Video gönderildi",
+
+     type:
+      "video",
+
+     mediaBase64:
+      videoData,
+
+     videoCoverBase64:
+      videoCover,
+
+     videoDuration:
+      videoDuration,
+
+     mediaType:
+      file.type||
+      "video/mp4",
+
+     mimeType:
+      file.type||
+      "video/mp4"
+
+    });
+
+
+   if(ok){
+
+    showToast(
+     "Video gönderildi"
+    );
+
+   }
+
+   return;
+
+  }
+
+
+  /* =====================
+     FOTOĞRAF
+     ===================== */
+
+  if(kind==="image"){
+
+   const data=
+    await resizeImage(
+     file
+    );
+
+   if(!data){
+
+    showToast(
+     "Fotoğraf hazırlanamadı"
+    );
+
+    return;
+
+   }
+
+   if(
+    data.length>930000
+   ){
+
+    showToast(
+     "Fotoğraf çok büyük. Daha küçük bir fotoğraf seç."
+    );
+
+    return;
+
+   }
+
+   const ok=
+    await sendData({
+
+     text:
+      "🖼 Fotoğraf gönderildi",
+
+     type:
+      "media",
+
+     mediaBase64:
+      data,
+
+     mediaType:
+      file.type||
+      "image/jpeg",
+
+     mimeType:
+      file.type||
+      "image/jpeg"
+
+    });
+
+
+   if(ok){
+
+    showToast(
+     "Fotoğraf gönderildi"
+    );
+
+   }
+
+   return;
+
+  }
+
+
+ }catch(e){
+
+  console.error(
+   "sendFile error:",
+   e
+  );
+
+  showToast(
+   e?.message||
+   "Dosya gönderilemedi"
+  );
+
+ }
+
+}
+
+
+/* ==========================================================
+   SES KAYDI
+   ========================================================== */
+
+let recorder=null;
+
+let recordChunks=[];
+
+let recordStarted=0;
+
+let recordTimer=null;
+
+
+async function toggleRecording(){
+
+ if(blockedSend())
+ return;
+
+ if(
+  recorder?.state==="recording"
+ ){
+
+  recorder.stop();
+
+  return;
+
+ }
+
+
+ try{
+
+  const stream=
+   await navigator.mediaDevices
+   .getUserMedia({
+    audio:true
+   });
+
+  const mime=
+   MediaRecorder.isTypeSupported(
+    "audio/webm;codecs=opus"
+   )
+   ?
+   "audio/webm;codecs=opus"
+   :
+   "audio/webm";
+
+  recorder=
+   new MediaRecorder(
+    stream,
+    {
+     mimeType:mime
+    }
+   );
+
+  recordChunks=[];
+
+  recordStarted=
+   Date.now();
+
+  $("recordingBar")
+   .classList.add(
+    "show"
+   );
+
+  recordTimer=
+   setInterval(
+    ()=>{
+     const s=
+      Math.floor(
+       (Date.now()-
+        recordStarted)/
+       1000
+      );
+
+     $("recordingTime")
+      .textContent=
+       `${Math.floor(s/60)}:${String(
+        s%60
+       ).padStart(
+        2,
+        "0"
+       )}`;
+
+    },
+    250
+   );
+
+  recorder.ondataavailable=
+   e=>{
+
+    if(e.data.size)
+    recordChunks.push(
+     e.data
+    );
+
+   };
+
+
+  recorder.onstop=
+   async()=>{
+
+    clearInterval(
+     recordTimer
+    );
+
+    $("recordingBar")
+     .classList.remove(
+      "show"
+     );
+
+    stream
+     .getTracks()
+     .forEach(
+      t=>t.stop()
+     );
+
+    const dur=
+     Date.now()-
+     recordStarted;
+
+    recordStarted=0;
+
+    if(dur<300){
+
+     showToast(
+      "Daha uzun basarak ses kaydet"
+     );
+
+     return;
+
+    }
+
+    if(dur>60000){
+
+     showToast(
+      "Ses kaydı en fazla 60 saniye"
+     );
+
+     return;
+
+    }
+
+    const blob=
+     new Blob(
+      recordChunks,
+      {
+       type:mime
+      }
+     );
+
+    const buf=
+     await blob.arrayBuffer();
+
+    if(
+     buf.byteLength>
+     100*1024
+    ){
+
+     showToast(
+      "Ses kaydı çok büyük"
+     );
+
+     return;
+
+    }
+
+    const b64=
+     btoa(
+      String.fromCharCode(
+       ...new Uint8Array(buf)
+      )
+     );
+
+    await sendData({
+
+     text:
+      "🎙️ Sesli mesaj",
+
+     type:
+      "voice",
+
+     voiceDurationMs:
+      dur,
+
+     voiceDataBase64:
+      b64
+
+    });
+
+   };
+
+
+  recorder.start();
+
+ }catch(e){
+
+  showToast(
+   "Mikrofon izni gerekli"
+  );
+
+ }
+
+}
+
+
+$("cancelRecording").onclick=
+ ()=>{
+
+  if(
+   recorder?.state==="recording"
+  ){
+
+   recorder.onstop=null;
+
+   recorder.stop();
+
+   showToast(
+    "Kayıt iptal edildi"
+   );
+
+  }
+
+ };
+
 
 /* ==========================================================
    MESAJLARI DİNLE
@@ -4119,15 +5073,10 @@ function subscribe(){
 
     messageRead.clear();
 
-    const confirmedClientIds=new Set();
-
     s.docs.forEach(
      d=>{
 
       const x=d.data();
-
-      if(x.clientMessageId)
-       confirmedClientIds.add(x.clientMessageId);
 
       if(x.deleted){
 
@@ -4161,15 +5110,6 @@ function subscribe(){
 
      }
     );
-
-    // Firestore henüz listener'a döndürmediyse bekleyen mesajı kaybetme.
-    for(const [cid,x] of pendingMessages){
-     if(confirmedClientIds.has(cid)){
-      pendingMessages.delete(cid);
-      continue;
-     }
-     allMessages.set("pending-"+cid,x);
-    }
 
     renderAll();
 
@@ -4306,13 +5246,18 @@ async function shareToUser(
  );
 
 
- const list=
-  [
-   ...new Set(users)
-  ].slice(
-   0,
-   100
-  );
+ /* Gerçek sohbet alıcısı varsa onu listenin en üstüne koy.
+  * Asla "test" gibi sabit/deneme hesabını otomatik hedef seçme.
+  */
+ const orderedUsers=[
+  ...(targetUsername ? [targetUsername] : []),
+  ...users.filter(u=>
+   !targetUsername ||
+   u.toLowerCase()!==targetUsername.toLowerCase()
+  )
+ ];
+
+ const list=[...new Set(orderedUsers)].slice(0,100);
 
 
  $("shareTitle")
@@ -4428,41 +5373,85 @@ async function shareToUser(
 }
 
 
-async function sendTo(user,payload){
+async function sendTo(
+ user,
+ payload
+){
 
  const recipient=cleanUsername(user);
+
  if(!recipient){
-  showToast("Alıcı kullanıcı bulunamadı");
+  showToast("Gerçek alıcı bulunamadı");
   return false;
  }
- if(!myUsername){
-  showToast("Önce hesabına giriş yapmalısın");
+
+ if(!myUsername || myUsername.toLowerCase()===recipient.toLowerCase()){
+  showToast("Geçerli bir alıcı seçilmedi");
   return false;
  }
- if(myUsername.toLowerCase()===recipient.toLowerCase()){
-  showToast("Kendine mesaj gönderemezsin");
-  return false;
- }
+
  if(!(await ensureAuth())) return false;
+
  await syncBlock();
  if(blockedSend()) return false;
 
  try{
-  await addDoc(collection(firestore,"chatMessages"),{
-   conversationKey:[myUsername.toLowerCase(),recipient.toLowerCase()].sort().join("__"),
-   sender:myUsername,
-   recipient:recipient,
-   time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),
-   createdAt:Date.now(),
-   read:false,
+
+  const d={
    ...payload
-  });
+  };
+
+  await addDoc(
+   collection(
+    firestore,
+    "chatMessages"
+   ),
+   {
+
+    conversationKey:[
+     myUsername.toLowerCase(),
+     recipient.toLowerCase()
+    ]
+    .sort()
+    .join("__"),
+
+    sender:myUsername,
+
+    recipient:recipient,
+
+    time:
+     new Date()
+     .toLocaleTimeString(
+      "tr-TR",
+      {
+       hour:"2-digit",
+       minute:"2-digit",
+       second:"2-digit"
+      }
+     ),
+
+    createdAt:
+     Date.now(),
+
+    read:false,
+
+    ...d
+
+   }
+  );
+
   return true;
- }catch(e){
-  console.error("Minegram share send error:",e);
-  showToast("Gönderilemedi");
+
+ }catch{
+
+  showToast(
+   "Gönderilemedi"
+  );
+
   return false;
+
  }
+
 }
 
 
@@ -4633,6 +5622,63 @@ if(p.get("share")){
  }catch{}
 
 }
+
+
+/* ==========================================================
+   GÖNDERİ / CANLI YAYIN PAYLAŞIMI
+   ========================================================== */
+
+const contentShareModal=$('contentShareModal');
+const contentShareList=$('contentShareList');
+
+$('contentShareBtn').onclick=()=>{
+ if(blockedSend()) return;
+ contentShareList.innerHTML="";
+ contentShareModal.classList.add('show');
+};
+
+$('contentShareClose').onclick=()=>contentShareModal.classList.remove('show');
+contentShareModal.addEventListener('click',e=>{
+ if(e.target===contentShareModal) contentShareModal.classList.remove('show');
+});
+
+function renderContentShareUsers(payload,title){
+ shareToUser(payload,title);
+}
+
+$('sharePostBtn').onclick=async()=>{
+ contentShareList.innerHTML='<div class="loading">Gönderiler yükleniyor...</div>';
+ try{
+  const r=await MinegramAPI.feed();
+  const arr=Array.isArray(r)?r:(r?.posts||r?.feed||r?.items||[]);
+  if(!arr.length){contentShareList.innerHTML='<div class="loading">Paylaşılacak gönderi bulunamadı</div>';return;}
+  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{
+   const user=String(x?.username||x?.user?.username||'Kullanıcı');
+   const id=x?.id||x?.postId||x?.post_id||'';
+   const media=x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||x?.image||'';
+   const text=x?.text||x?.caption||'';
+   return `<div class="share-user" data-post-index="${i}">${displayAvatar(user,45)}<div class="share-meta"><b>@${escapeHtml(user)}</b><small>${escapeHtml(text||'Gönderiyi paylaş')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;
+  }).join('');
+  contentShareList.querySelectorAll('[data-post-index]').forEach(el=>el.onclick=async()=>{
+   const x=arr[Number(el.dataset.postIndex)]||{};
+   const user=String(x?.username||x?.user?.username||'Kullanıcı');
+   const payload={type:'post',text:'📷 @'+user+' gönderisi',postId:x?.id||x?.postId||x?.post_id||'',postUsername:user,postText:x?.text||x?.caption||'',postLikes:x?.likes||x?.like_count||0,postMediaUri:x?.mediaUri||x?.media_url||x?.mediaUrl||x?.media||'',postMediaType:x?.mediaType||x?.media_type||'image',postMediaBase64:x?.mediaBase64||null,postCommentCount:x?.commentCount||x?.comment_count||0};
+   contentShareModal.classList.remove('show');
+   await shareToUser(payload,'Gönderiyi paylaş');
+  });
+ }catch(e){contentShareList.innerHTML='<div class="loading">Gönderiler yüklenemedi</div>';}
+};
+
+$('shareLiveBtn').onclick=async()=>{
+ contentShareList.innerHTML='<div class="loading">Canlı yayınlar yükleniyor...</div>';
+ try{
+  const r=await MinegramAPI.live();
+  const arr=Array.isArray(r)?r:(r?.lives||r?.live||r?.items||[]);
+  if(!arr.length){contentShareList.innerHTML='<div class="loading">Şu anda canlı yayın yok</div>';return;}
+  contentShareList.innerHTML=arr.slice(0,30).map((x,i)=>{const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); return `<div class="share-user" data-live-index="${i}">${displayAvatar(u,45)}<div class="share-meta"><b>@${escapeHtml(u)}</b><small>🔴 ${escapeHtml(x?.title||'Canlı yayın')}</small></div><i class="fa-solid fa-paper-plane"></i></div>`;}).join('');
+  contentShareList.querySelectorAll('[data-live-index]').forEach(el=>el.onclick=async()=>{const x=arr[Number(el.dataset.liveIndex)]||{}; const u=String(x?.username||x?.user?.username||x?.owner||'Kullanıcı'); const title=x?.title||'Canlı yayın'; contentShareModal.classList.remove('show'); await shareToUser({type:'live',text:'__MINEGRAM_LIVE__'+JSON.stringify({username:u,title})},'Canlı yayını paylaş');});
+ }catch(e){contentShareList.innerHTML='<div class="loading">Canlı yayınlar yüklenemedi</div>';}
+};
 
 
 /* ==========================================================
@@ -6313,11 +7359,8 @@ onAuthStateChanged(
   authReady=
    !!u;
 
-  if(u){
-   subscribe();
-  }else{
-   loading.style.display="none";
-  }
+  if(u)
+  subscribe();
 
  }
 );
