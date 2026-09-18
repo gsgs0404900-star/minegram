@@ -1219,6 +1219,11 @@ body{
 .message-post-avatar img,.message-reel-avatar img{width:100%;height:100%;object-fit:cover}
 .message-post-user,.message-reel-user{flex:1;min-width:0;font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .message-post-share,.message-reel-share{width:38px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
+
+.message-content-cover{position:relative;width:100%;height:330px;background:#000;overflow:hidden;border-radius:18px;cursor:pointer}
+.message-content-cover-img{display:block;width:100%;height:100%;object-fit:cover}
+.message-content-cover-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:rgba(0,0,0,.58);color:#fff;display:flex;align-items:center;justify-content:center;font-size:23px}
+.message-content-cover-empty{display:flex;align-items:center;justify-content:center;color:#888;font-size:13px}
 .message-post-media,.message-reel-media{width:100%;height:330px;object-fit:cover;display:block;background:#111;box-sizing:border-box}
 .message-post-info,.message-reel-info{padding:10px 14px 12px;background:#000}
 .message-post-caption,.message-reel-caption{font-size:18px;line-height:24px;font-weight:700;color:#fff;margin-bottom:13px}
@@ -3434,966 +3439,114 @@ function renderMessage(
 ){
 
  const mine=
-  String(d.sender||"")
-  .toLowerCase()===
+  String(d.sender||"").toLowerCase()===
   myUsername.toLowerCase();
 
- const wrap=
-  document.createElement("div");
-
- wrap.className=
-  "message "+
-  (mine?"sent":"received");
-
+ const wrap=document.createElement("div");
+ wrap.className="message "+(mine?"sent":"received");
  wrap.dataset.id=id;
 
- const b=
-  document.createElement("div");
-
+ const b=document.createElement("div");
  b.className="bubble";
-
  let body="";
 
-
- if(d.type==="post" || d.type==="reel"){
-
-  const isReel=d.type==="reel" || /reel/i.test(String(d.postMediaType||d.mediaType||""));
-  const username=String(d.postUsername||d.username||"");
-  const avatar=d.postAvatar||d.avatar||d.profilePhoto||d.profile_photo||d.avatarUrl||d.avatar_url||"";
-  const media=d.postMediaBase64||d.postMediaUri||d.mediaBase64||d.mediaUri||"";
-  const mediaType=String(d.postMediaType||d.mediaType||"");
-  const isVideo=/video|reel/i.test(mediaType) || isReel;
-  const caption=d.postText||d.caption||"";
-  const likes=d.postLikes||d.likes||0;
-  const comments=d.postCommentCount||d.commentCount||0;
-  const initial=(username.replace(/^@/,"")[0]||"K").toUpperCase();
-  const cls=isReel?"message-reel":"message-post";
-  const headCls=isReel?"message-reel-head":"message-post-head";
-  const avatarCls=isReel?"message-reel-avatar":"message-post-avatar";
-  const userCls=isReel?"message-reel-user":"message-post-user";
-  const shareCls=isReel?"message-reel-share":"message-post-share";
-  const mediaCls=isReel?"message-reel-media":"message-post-media";
-  const infoCls=isReel?"message-reel-info":"message-post-info";
-  const capCls=isReel?"message-reel-caption":"message-post-caption";
-  const statsCls=isReel?"message-reel-stats":"message-post-stats";
-  const mediaHtml=media?(isVideo?`<video class="${mediaCls}" src="${escapeHtml(media)}" muted playsinline preload="metadata"></video>`:`<img class="${mediaCls}" src="${escapeHtml(media)}" alt="${isReel?"Reels":"Gönderi"}">`):"";
-
-  body=`
-  <div class="${cls}" data-open-post="1">
-   <div class="${headCls}">
-    <div class="${avatarCls}">${avatar?`<img src="${escapeHtml(avatar)}" alt="">`:escapeHtml(initial)}</div>
-    <div class="${userCls}">@${escapeHtml(username.replace(/^@/,""))}</div>
-    <div class="${shareCls}"><i class="fa-solid fa-share-nodes"></i></div>
-   </div>
-   ${mediaHtml}
-   <div class="${infoCls}">
-    <div class="${capCls}">${escapeHtml(caption||("Yeni Minegram "+(isReel?"reels":"gönderisi")+" 💙"))}</div>
-    <div class="${statsCls}"><span>❤️ ${escapeHtml(likes)}</span><span>💬 ${escapeHtml(comments)}</span></div>
-   </div>
-  </div>`;
- }
-
-
- else if(d.type==="live"){
-
-  let x={};
-
-  try{
-
-   x=JSON.parse(
-    String(
-     d.text||""
-    )
-    .replace(
-     "__MINEGRAM_LIVE__",
-     ""
-    )||
-    "{}"
-   );
-
-  }catch{}
-
-  body=`
-  <div
-   class="message-live"
-   data-live-user="${escapeHtml(
-    x.username||""
-   )}">
-
-   <div class="live-info">
-
-    <b>
-     🔴 CANLI YAYIN
-    </b>
-
-    <div>
-     @${escapeHtml(
-      x.username||""
-     )}
-    </div>
-
-    <small>
-     ${escapeHtml(
-      x.title||
-      "Canlı yayın"
-     )}
-    </small>
-
-    <p>
-     Canlı yayına katılmak için dokun
-    </p>
-
-   </div>
-
-  </div>
-  `;
-
- }
-
-
- else if(
-  d.type==="view_once"||
-  d.type==="view_once_opened"
- ){
-
-  if(
-   d.type==="view_once"&&
-   Number(d.viewCount||0)<2&&
-   d.mediaBase64
-  ){
-
-   body=`
-   <div class="view-once">
-
-    <i class="fa-solid fa-image"></i>
-
-    <span>
-
-     Fotoğrafı aç
-
-     <br>
-
-     <small>
-      ${2-Number(
-       d.viewCount||0
-      )}
-      görüntüleme kaldı
-     </small>
-
-    </span>
-
-   </div>
-   `;
-
-  }else{
-
-   body=`
-   <div class="view-once">
-
-    <i class="fa-solid fa-check"></i>
-
-    <span>
-     📸 Fotoğraf ${
-      Number(d.viewCount||0)>=2
-       ?"2 kez görüntülendi"
-       :"açıldı"
-     }
-    </span>
-
-   </div>
-   `;
-
-  }
-
- }
-
-
- else if(
-  d.type==="voice"&&
-  d.voiceDataBase64
- ){
-
-  body=`
-  <div class="voice-box">
-
-   <button
-    class="voice-play"
-    data-voice="${id}">
-
-    <i class="fa-solid fa-play"></i>
-
-   </button>
-
-   <span>
-    ${Math.round(
-     (d.voiceDurationMs||0)/1000
-    )} sn
-   </span>
-
-   <audio
-    id="audio-${id}"
-    preload="metadata"
-    src="data:audio/webm;base64,${
-     d.voiceDataBase64
-    }">
-   </audio>
-
-  </div>
-  `;
-
- }
-
-
- else if(
-  d.type==="gif"&&
-  d.mediaBase64
- ){
-
-  body=`
-  <img
-   class="message-gif"
-   src="${escapeHtml(
-    d.mediaBase64
-   )}"
-   alt="GIF">
-  `;
-
- }
-
-
  /* ========================================================
-    YENİ VİDEO RENDER SİSTEMİ
+    GÖNDERİ / STORY / REELS: SADECE KAPAK GÖRÜNÜR
+    Başlık, kullanıcı adı, açıklama, beğeni, yorum ve video
+    oynatıcı mesaj içinde gösterilmez.
     ======================================================== */
-
- else if(
-  (
-   d.type==="media"||
-   d.type==="image"||
-   d.type==="video"
-  )&&
-  d.mediaBase64
- ){
-
-  const isVideo=
-   d.type==="video"||
-   /video/i.test(
-    d.mediaType||
-    d.mimeType||
-    ""
-   );
-
-
-  if(isVideo){
-
-   const cover=
-    d.videoCoverBase64||
-    d.videoCover||
-    "";
-
-
-   /*
-    Yeni videolarda kapak varsa
-    kapaklı sistem kullanılır.
-
-    Eski videolarda kapak yoksa
-    eski video sistemi bozulmadan
-    çalışır.
-   */
-
-   if(cover){
-
-    const duration=
-     Number(
-      d.videoDuration||0
-     );
-
-    let durationText="";
-
-    if(duration>0){
-
-     const total=
-      Math.floor(duration);
-
-     const minutes=
-      Math.floor(total/60);
-
-     const seconds=
-      String(
-       total%60
-      ).padStart(
-       2,
-       "0"
-      );
-
-     durationText=`
-      <span class="video-duration">
-       ${minutes}:${seconds}
-      </span>
-     `;
-
-    }
-
-
-    body=`
-    <div
-     class="video-cover-wrap"
-     data-video-message="${escapeHtml(
-      id
-     )}">
-
-     <img
-      class="video-cover"
-      src="${escapeHtml(
-       cover
-      )}"
-      alt="Video kapağı">
-
-     <button
-      type="button"
-      class="video-play-btn"
-      data-play-video="${escapeHtml(
-       id
-      )}"
-      aria-label="Videoyu oynat">
-
-      <i class="fa-solid fa-play"></i>
-
-     </button>
-
-     ${durationText}
-
-     <video
-      class="message-video"
-      playsinline
-      preload="metadata"
-      src="${escapeHtml(
-       d.mediaBase64
-      )}"
-      style="display:none">
-     </video>
-
-    </div>
-    `;
-
-   }else{
-
-    /*
-     Eski kayıtlar:
-     videoCoverBase64 bulunmuyorsa
-     doğrudan video göster.
-    */
-
-    body=`
-    <video
-     class="message-video"
-     controls
-     playsinline
-     preload="metadata"
-     src="${escapeHtml(
-      d.mediaBase64
-     )}">
-    </video>
-    `;
-
-   }
-
-
-  }else{
-
-   body=`
-   <img
-    class="message-media"
-    src="${escapeHtml(
-     d.mediaBase64
-    )}"
-    alt="Medya">
-   `;
-
-  }
-
- }
-
-
- else{
-
-  body=
-   `<span class="message-text">${
-    escapeHtml(d.text||"")
-     .replace(/\n/g,"<br>")
-   }</span>`;
-
- }
-
-
- const read=
-  mine&&
-  (
-   messageRead.get(id)||
-   d.read===true
-  )
-  ?"Görüldü"
-  :"";
-
- const reply=
-  d.replyTo||
-  d.reply_to||
-  null;
-
- const replyText=
-  reply?.text||
-  d.replyText||
-  "";
-
- const replyIsContent=
-  !!(reply?.postId||reply?.type==="post"||reply?.type==="reel");
-
- let replyHtml="";
-
- if(replyIsContent){
-  const ru=String(reply.postUsername||reply.username||reply.sender||"").replace(/^@/,"");
-  const rm=reply.postMediaBase64||reply.postMediaUri||reply.mediaBase64||reply.mediaUri||"";
-  const rmt=String(reply.postMediaType||reply.mediaType||"");
-  const rr=reply.type==="reel"||/reel|video/i.test(rmt);
-  const rc=reply.postText||reply.caption||reply.text||"";
-  const rp=reply.postId||reply.id||"";
-  const rlikes=Number(reply.postLikes||reply.likes||0);
-  const mediaHtml=rm
-   ? (/video|reel/i.test(rmt)||rr
-      ? `<video class="reply-preview-media" src="${escapeHtml(rm)}" muted playsinline preload="metadata"></video>`
-      : `<img class="reply-preview-media" src="${escapeHtml(rm)}" alt="${rr?"Reels":"Gönderi"}">`)
-   : "";
-  replyHtml=`
-   <div class="reply-content-preview" data-reply-post-id="${escapeHtml(rp)}">
-    ${mediaHtml}
-    <div class="reply-preview-info">
-     <div class="reply-preview-user">@${escapeHtml(ru||"Kullanıcı")}</div>
-     <div class="reply-preview-caption">${escapeHtml(rc||("Yeni Minegram "+(rr?"reels":"gönderisi")))}</div>
-    </div>
-    <div class="reply-preview-actions">
-     <button type="button" data-reply-like="1" data-post-id="${escapeHtml(rp)}" aria-label="Beğen">♡</button>
-     <span>❤️ ${escapeHtml(rlikes)}</span>
-     <span>💬</span>
-    </div>
-   </div>`;
- }else if(replyText){
-  replyHtml=`<div class="reply-preview">${escapeHtml(replyText)}</div>`;
- }
-
- const status=read;
-
- b.innerHTML=
-  replyHtml+
-  body+
-  (status?`<span class="message-time">${status}</span>`:"");
-
- wrap.appendChild(b);
-
- const isReel=
-  d.type==="reel" ||
-  !!b.querySelector(".message-reel");
-
- const actionsHtml=messageActions(d,id);
-
- wrap.insertAdjacentHTML("beforeend",actionsHtml);
-
- const swipeLabel=document.createElement("span");
- swipeLabel.className="message-swipe-label";
- swipeLabel.textContent="Yanıtla";
- wrap.appendChild(swipeLabel);
-
- chatArea.appendChild(wrap);
-
- enableMessageSwipeReply(wrap,d,id);
-
- /* =========================
-    BEĞEN
-    ========================= */
-
- wrap.querySelector(
-  '[data-act="like"]'
- )?.addEventListener(
-  "click",
-  async()=>{
-   const btn=wrap.querySelector('[data-act="like"]');
-   try{
-    const postId=await resolveSharedPostId(d);
-    if(!postId){ showToast("Gönderi bulunamadı"); return; }
-    const r=await MinegramAPI.likePost(postId);
-    d._liked=!!r.liked;
-    if(btn){ btn.textContent=d._liked?"♥":"♡"; btn.classList.toggle("liked",d._liked); }
-   }catch(e){ showToast(e.message||"Beğeni işlemi başarısız"); }
-  }
- );
-
- wrap.querySelector('[data-reply-like="1"]')?.addEventListener(
-  "click",
-  async e=>{
-   e.stopPropagation();
-   const btn=e.currentTarget;
-   const reply= d?.replyTo || d?.reply_to || {};
-   const postId=await resolveSharedPostId({
-    postId:btn.dataset.postId || reply.postId,
-    postUsername:reply.postUsername,
-    postText:reply.postText,
-    postMediaUri:reply.postMediaUri,
-    postMediaBase64:reply.postMediaBase64,
-    mediaType:reply.postMediaType,
-    type:reply.type
-   });
-   if(!postId){ showToast("Gönderi bulunamadı"); return; }
-   try{
-    const r=await MinegramAPI.likePost(postId);
-    btn.textContent=r.liked?"♥":"♡";
-    btn.classList.toggle("liked",!!r.liked);
-   }catch(err){
-    showToast(err.message||"Beğeni işlemi başarısız");
-   }
-  }
- );
-
- /* GÖNDERİ / REELS: ÇİFT TIKLAMA İLE BEĞEN */
- const contentTarget=
-  wrap.querySelector(".message-post, .message-reel");
- if(contentTarget){
-  let doubleClickBusy=false;
-  contentTarget.addEventListener("dblclick",async e=>{
-   e.preventDefault();
-   e.stopPropagation();
-   if(doubleClickBusy) return;
-   doubleClickBusy=true;
-   try{
-    const postId=await resolveSharedPostId(d);
-    if(!postId){ showToast("Gönderi bulunamadı"); return; }
-    const r=await MinegramAPI.likePost(postId);
-    d._liked=!!r.liked;
-    const likeBtn=wrap.querySelector('[data-act="like"]');
-    if(likeBtn){
-     likeBtn.textContent=d._liked?"♥":"♡";
-     likeBtn.classList.toggle("liked",d._liked);
-    }
-   }catch(err){
-    showToast(err.message||"Beğeni işlemi başarısız");
-   }finally{
-    setTimeout(()=>{doubleClickBusy=false;},250);
-   }
-  });
- }
-
- /* YANITTAKİ GÖNDERİ / REELS: ÇİFT TIKLAMA İLE BEĞEN */
- const replyContentTarget=wrap.querySelector(".reply-content-preview");
- if(replyContentTarget){
-  let replyDoubleClickBusy=false;
-  replyContentTarget.addEventListener("dblclick",async e=>{
-   e.preventDefault();
-   e.stopPropagation();
-   if(replyDoubleClickBusy) return;
-   replyDoubleClickBusy=true;
-   try{
-    const reply=d?.replyTo||d?.reply_to||{};
-    const postId=await resolveSharedPostId({
-     postId:replyContentTarget.dataset.replyPostId || reply.postId,
-     postUsername:reply.postUsername,
-     postText:reply.postText,
-     postMediaUri:reply.postMediaUri,
-     postMediaBase64:reply.postMediaBase64,
-     mediaType:reply.postMediaType,
-     type:reply.type
-    });
-    if(!postId){ showToast("Gönderi bulunamadı"); return; }
-    const r=await MinegramAPI.likePost(postId);
-    const likeBtn=replyContentTarget.querySelector('[data-reply-like="1"]');
-    if(likeBtn){
-     likeBtn.textContent=r.liked?"♥":"♡";
-     likeBtn.classList.toggle("liked",!!r.liked);
-    }
-   }catch(err){
-    showToast(err.message||"Beğeni işlemi başarısız");
-   }finally{
-    setTimeout(()=>{replyDoubleClickBusy=false;},250);
-   }
-  });
- }
-
-
- /* =========================
-    MESAJI BAŞKA KULLANICIYA AKTAR
-    ========================= */
-
- wrap.querySelector('[data-act="share"]')?.addEventListener('click', async()=>{
-  const payload={...d};
-  delete payload._liked; delete payload.read; delete payload.createdAt; delete payload.time;
-  delete payload.sender; delete payload.recipient; delete payload.conversationKey; delete payload.deleted;
-  await shareToUser(payload, 'Mesajı aktar');
- });
-
-
- /* =========================
-    SİL
-    ========================= */
-
- wrap.querySelector(
-  '[data-act="delete"]'
- )?.addEventListener(
-  "click",
-  ()=>openDeleteConfirm(id)
- );
-
- wrap.querySelector(
-  '[data-act="reply"]'
- )?.addEventListener(
-  "click",
-  ()=>startReply(d,id)
- );
-
-
- /* =========================
-    GÖNDERİ
-    ========================= */
-
- wrap.querySelector(
-  '[data-open-post]'
- )?.addEventListener(
-  "click",
-  async()=>{
-   const postId=await resolveSharedPostId(d);
-   if(!postId){ showToast("Gönderi bulunamadı"); return; }
-   try{
-    sessionStorage.setItem("minegram_selected_post",JSON.stringify({
-     id:postId, username:d.postUsername||d.username||d.sender||"",
-     text:d.postText||d.caption||"", caption:d.postText||d.caption||"",
-     likes:d.postLikes||d.likes||0, mediaUri:d.postMediaUri||d.mediaUri||"",
-     mediaType:d.postMediaType||d.mediaType||(d.type==="reel"?"video":"image"),
-     mediaBase64:d.postMediaBase64||d.mediaBase64||null,
-     commentCount:d.postCommentCount||d.commentCount||0,
-     type:d.type==="reel"?"reel":"post"
-    }));
-   }catch(e){}
-   const mediaType=String(d.postMediaType||d.mediaType||d.type||"").toLowerCase();
-   const isReel=d.type==="reel" || /reel|video/.test(mediaType);
-   if(isReel){
-    location.href="reels.html?id="+encodeURIComponent(postId);
-   }else{
-    location.href="post.html?id="+encodeURIComponent(postId)+"&username="+encodeURIComponent(d.postUsername||"");
-   }
-  }
- );
-
-
- /* =========================
-    CANLI YAYIN
-    ========================= */
-
- wrap.querySelector(
-  '[data-live-user]'
- )?.addEventListener(
-  "click",
-  ()=>{
-
-   const u=
-    wrap.querySelector(
-     '[data-live-user]'
-    ).dataset.liveUser;
-
-   if(u)
-
-   location.href=
-    "live.html?username="+
-    encodeURIComponent(u);
-
-  }
- );
-
-
- /* =========================
-    SES
-    ========================= */
-
- wrap.querySelector(
-  '[data-voice]'
- )?.addEventListener(
-  "click",
-  ()=>{
-
-   const a=
-    $("audio-"+id);
-
-   const btn=
-    wrap.querySelector(
-     '[data-voice]'
-    );
-
-   if(!a)
-   return;
-
-   if(a.paused){
-
-    a.play();
-
-    btn.innerHTML=
-     '<i class="fa-solid fa-pause"></i>';
-
-   }else{
-
-    a.pause();
-
-    btn.innerHTML=
-     '<i class="fa-solid fa-play"></i>';
-
-   }
-
-   a.onended=()=>{
-
-    btn.innerHTML=
-     '<i class="fa-solid fa-play"></i>';
-
-   };
-
-  }
- );
-
-
- /* ========================================================
-    VİDEO OYNAT BUTONU
-    ======================================================== */
-
- wrap.querySelector(
-  '[data-play-video]'
- )?.addEventListener(
-  "click",
-  async e=>{
-
-   e.stopPropagation();
-
-   const box=
-    wrap.querySelector(
-     '[data-video-message]'
-    );
-
-   if(!box)
-   return;
-
-   const video=
-    box.querySelector(
-     ".message-video"
-    );
-
-   const cover=
-    box.querySelector(
-     ".video-cover"
-    );
-
-   const playBtn=
-    box.querySelector(
-     ".video-play-btn"
-    );
-
-   if(!video)
-   return;
-
-
-   /*
-    Kapağı gizle.
-   */
-
-   if(cover)
-   cover.style.display="none";
-
-
-   /*
-    Oynat butonunu gizle.
-   */
-
-   if(playBtn)
-   playBtn.style.display="none";
-
-
-   /*
-    Video alanını aç.
-   */
-
-   box.classList.add(
-    "playing"
-   );
-
-   video.style.display=
-    "block";
-
-
-   try{
-
-    video.currentTime=0;
-
-    await video.play();
-
-   }catch(err){
-
-    console.error(
-     "Video oynatma hatası:",
-     err
-    );
-
-    video.pause();
-
-    video.currentTime=0;
-
-    video.style.display=
-     "none";
-
-    if(cover)
-    cover.style.display=
-     "block";
-
-    if(playBtn)
-    playBtn.style.display=
-     "flex";
-
-    box.classList.remove(
-     "playing"
-    );
-
-    showToast(
-     "Video oynatılamadı"
-    );
-
-    return;
-
-   }
-
-
-   /*
-    Video bittiğinde tekrar kapak.
-   */
-
-   video.onended=()=>{
-
-    video.pause();
-
-    video.currentTime=0;
-
-    video.style.display=
-     "none";
-
-    if(cover)
-    cover.style.display=
-     "block";
-
-    if(playBtn)
-    playBtn.style.display=
-     "flex";
-
-    box.classList.remove(
-     "playing"
-    );
-
-   };
-
-
-   /*
-    Video hata verirse kapağa dön.
-   */
-
-   video.onerror=()=>{
-
-    video.pause();
-
-    video.currentTime=0;
-
-    video.style.display=
-     "none";
-
-    if(cover)
-    cover.style.display=
-     "block";
-
-    if(playBtn)
-    playBtn.style.display=
-     "flex";
-
-    box.classList.remove(
-     "playing"
-    );
-
-    showToast(
-     "Video oynatılamadı"
-    );
-
-   };
-
-  }
- );
-
-
- /* =========================
-    ÇİFT TIKLAMA BEĞENİ
-    ========================= */
-
- wrap.addEventListener(
-  "dblclick",
-  ()=>{
-
-   if(!mine){
-
-    d._liked=true;
-
-    renderAll();
-
-   }
-
-  }
- );
-
-
- /* =========================
-    TEK GÖRÜNTÜLEMELİ FOTOĞRAF
-    ========================= */
-
- if(
-  d.type==="view_once"&&
-  Number(d.viewCount||0)<2&&
-  d.mediaBase64
- ){
-
-  wrap.addEventListener(
-   "click",
-   async e=>{
-
-    if(
-     e.target.closest("button")
-    )
-    return;
-
-    const n=
-     Number(
-      d.viewCount||0
-     )+1;
-
-    try{
-
-     await updateDoc(
-      doc(
-       firestore,
-       "chatMessages",
-       id
-      ),
-      {
-       viewCount:n,
-       type:
-        n>=2
-         ?"view_once_opened"
-         :"view_once"
-      }
-     );
-
-    }catch{}
-
-   },
-   {
-    once:true
-   }
+ if(d.type==="post" || d.type==="story" || d.type==="reel" || d.contentType==="post" || d.contentType==="story"){
+
+  const isVideo=/video|reel/i.test(String(d.postMediaType||d.mediaType||d.contentType||"")) || d.type==="reel";
+  const cover=String(
+   d.postMediaBase64 ||
+   d.videoCoverBase64 ||
+   d.videoCover ||
+   d.postMediaUri ||
+   d.mediaBase64 ||
+   d.mediaUri ||
+   ""
   );
 
+  /* Story/post verisinde medya yoksa metin olarak boş kutu gösterme. */
+  if(cover){
+   body=`
+    <div class="message-content-cover" data-open-post="1">
+     <img class="message-content-cover-img" src="${escapeHtml(cover)}" alt="${d.type==="story"||d.contentType==="story"?"Story kapağı":"Gönderi kapağı"}">
+     ${isVideo?'<span class="message-content-cover-play"><i class="fa-solid fa-play"></i></span>':''}
+    </div>`;
+  }else{
+   body=`<div class="message-content-cover message-content-cover-empty">Kapak bulunamadı</div>`;
+  }
  }
 
+ else if(d.type==="live"){
+  let x={};
+  try{x=JSON.parse(String(d.text||"").replace("__MINEGRAM_LIVE__","")||"{}");}catch{}
+  body=`<div class="live-box"><b>🔴 ${escapeHtml(x.title||"Canlı yayın")}</b></div>`;
+ }
+
+ else if(d.type==="voice" && d.voiceDataBase64){
+  body=`<div class="voice-box"><button class="voice-play" data-voice="${escapeHtml(id)}"><i class="fa-solid fa-play"></i></button><span>${Math.round((d.voiceDurationMs||0)/1000)} sn</span><audio id="audio-${escapeHtml(id)}" preload="metadata" src="data:audio/webm;base64,${d.voiceDataBase64}"></audio></div>`;
+ }
+
+ else if(d.type==="gif" && d.mediaBase64){
+  body=`<img class="message-gif" src="${escapeHtml(d.mediaBase64)}" alt="GIF">`;
+ }
+
+ else if((d.type==="media"||d.type==="image"||d.type==="video") && d.mediaBase64){
+  if(d.type==="video" || /video/i.test(d.mediaType||d.mimeType||"")){
+   const cover=d.videoCoverBase64||d.videoCover||"";
+   body=cover
+    ? `<div class="video-cover-wrap"><img class="video-cover" src="${escapeHtml(cover)}" alt="Video kapağı"><button type="button" class="video-play-btn" data-play-video="${escapeHtml(id)}"><i class="fa-solid fa-play"></i></button><video class="message-video" playsinline preload="metadata" src="${escapeHtml(d.mediaBase64)}" style="display:none"></video></div>`
+    : `<video class="message-video" controls playsinline preload="metadata" src="${escapeHtml(d.mediaBase64)}"></video>`;
+  }else{
+   body=`<img class="message-media" src="${escapeHtml(d.mediaBase64)}" alt="Medya">`;
+  }
+ }
+
+ else{
+  body=`<div class="message-text">${escapeHtml(d.text||"")}</div>`;
+ }
+
+ b.innerHTML=body+`<span class="message-time">${escapeHtml(d.time||"")}</span>`+messageActions(d,id);
+ wrap.appendChild(b);
+ chatArea.appendChild(wrap);
+
+ /* Post/story kapaklarına tıklanınca mevcut açma davranışını koru. */
+ wrap.addEventListener("dblclick",()=>{if(!mine){d._liked=true;renderAll();}});
+
+ /* Video kapaklı normal mesajlar. */
+ const play=wrap.querySelector('[data-play-video]');
+ if(play){
+  play.onclick=e=>{
+   e.stopPropagation();
+   const box=play.closest('.video-cover-wrap');
+   const video=box?.querySelector('video');
+   const cover=box?.querySelector('.video-cover');
+   if(video){video.style.display='block';cover&&(cover.style.display='none');play.style.display='none';video.controls=true;video.play().catch(()=>{});}
+  };
+ }
+
+ /* Ses oynatma. */
+ const voiceBtn=wrap.querySelector('[data-voice]');
+ if(voiceBtn){
+  voiceBtn.onclick=e=>{
+   e.stopPropagation();
+   const audio=wrap.querySelector('audio');
+   if(!audio)return;
+   if(audio.paused) audio.play().catch(()=>{}); else audio.pause();
+  };
+ }
+
+ /* Tek görüntülemeli fotoğraf. */
+ if(d.type==="view_once" && Number(d.viewCount||0)<2 && d.mediaBase64){
+  wrap.addEventListener("click",async e=>{
+   if(e.target.closest("button"))return;
+   const n=Number(d.viewCount||0)+1;
+   try{await updateDoc(doc(firestore,"chatMessages",id),{viewCount:n,type:n>=2?"view_once_opened":"view_once"});}catch{}
+  },{once:true});
+ }
 }
 
 
