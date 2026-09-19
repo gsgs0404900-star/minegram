@@ -308,21 +308,22 @@ function normalizeUsername(x) {
     .toLowerCase();
 }
 
+const activeAuthUserCache = new Map();
+const ACTIVE_AUTH_CACHE_MS = 30000;
+
 async function isAuthUserActive(userId) {
-  if (!userId || !SUPABASE_SERVICE_ROLE_KEY) return false;
+  const key = String(userId || "").trim();
+  if (!key || !SUPABASE_SERVICE_ROLE_KEY) return false;
 
   try {
     const admin = adminClient();
-    const { data, error } = await admin.auth.admin.getUserById(userId);
+    const { data, error } = await admin.auth.admin.getUserById(key);
     return !error && !!data?.user?.id;
   } catch (e) {
     console.error("ACTIVE USER CHECK ERROR:", e?.message || e);
     return false;
   }
 }
-
-const activeAuthUserCache = new Map();
-const ACTIVE_AUTH_CACHE_MS = 30000;
 
 async function isAuthUserActiveCached(userId) {
   const key = String(userId || "").trim();
@@ -338,54 +339,61 @@ async function isAuthUserActiveCached(userId) {
   return active;
 }
 
+/*
+ * Legacy Minegram kayıtlarında posts/stories/profiles.user_id bazen
+ * profiles.id, bazen Auth user id olabiliyor. Önce iki kimliği eşleştir,
+ * sonra gerçek Auth hesabının hâlâ var olduğunu kontrol et.
+ */
+async function buildProfileAuthMap(ownerIds) {
+  const ids = [...new Set(
+    (ownerIds || []).map(v => String(v || "").trim()).filter(Boolean)
+  )];
+  if (!ids.length) return new Map();
+
+  const admin = adminClient();
+  const safeIds = ids.filter(v => /^[0-9a-fA-F-]{8,}$/.test(v));
+  if (!safeIds.length) return new Map();
+
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id,auth_user_id")
+    .or(`id.in.(${safeIds.join(",")}),auth_user_id.in.(${safeIds.join(",")})`);
+
+  if (error) {
+    console.warn("PROFILE/AUTH MAP ERROR:", error.message || error);
+    return new Map();
+  }
+
+  const map = new Map();
+  for (const profile of data || []) {
+    const profileId = String(profile?.id || "").trim();
+    const authId = String(profile?.auth_user_id || "").trim();
+    if (profileId) map.set(profileId, authId || profileId);
+    if (authId) map.set(authId, authId);
+  }
+  return map;
+}
+
 async function filterActivePosts(posts) {
   if (!Array.isArray(posts) || !posts.length) return [];
 
   const ownerIds = [...new Set(
     posts.map(p => String(p?.user_id || "").trim()).filter(Boolean)
   )];
+  const ownerToAuth = await buildProfileAuthMap(ownerIds);
 
-  // Eski Minegram kayıtlarında posts.user_id profiles.id,
-  // yeni kayıtlarda ise Auth user id olabilir. Önce iki kimliği
-  // profiller üzerinden eşleştiriyoruz.
-  const admin = adminClient();
-  const { data: profiles, error } = await admin
-    .from("profiles")
-    .select("id,auth_user_id")
-    .or(
-      `id.in.(${ownerIds.join(",")}),auth_user_id.in.(${ownerIds.join(",")})`
-    );
-
-  if (error) {
-    // Profil tablosu okunamazsa eski davranışa dön; yine de aktif Auth
-    // hesabı olmayan gönderileri göstermeme kuralı korunur.
-    const activeIds = new Set();
-    await Promise.all(ownerIds.map(async ownerId => {
-      if (await isAuthUserActiveCached(ownerId)) activeIds.add(ownerId);
-    }));
-    return posts.filter(p => activeIds.has(String(p?.user_id || "")));
-  }
-
-  const profileByOwnerId = new Map();
-  for (const profile of profiles || []) {
-    const profileId = String(profile?.id || "").trim();
-    const authId = String(profile?.auth_user_id || "").trim();
-    if (profileId) profileByOwnerId.set(profileId, authId || profileId);
-    if (authId) profileByOwnerId.set(authId, authId);
-  }
-
-  const activeAuthIds = new Set();
-  const authIdsToCheck = [...new Set(
-    ownerIds.map(ownerId => profileByOwnerId.get(ownerId)).filter(Boolean)
+  const authIds = [...new Set(
+    ownerIds.map(id => ownerToAuth.get(id) || id).filter(Boolean)
   )];
+  const activeAuthIds = new Set();
 
-  await Promise.all(authIdsToCheck.map(async authId => {
+  await Promise.all(authIds.map(async authId => {
     if (await isAuthUserActiveCached(authId)) activeAuthIds.add(authId);
   }));
 
   return posts.filter(post => {
     const ownerId = String(post?.user_id || "").trim();
-    const authId = profileByOwnerId.get(ownerId) || ownerId;
+    const authId = ownerToAuth.get(ownerId) || ownerId;
     return activeAuthIds.has(authId);
   });
 }
@@ -393,25 +401,46 @@ async function filterActivePosts(posts) {
 async function filterActiveStories(stories) {
   if (!Array.isArray(stories) || !stories.length) return [];
 
-  const userIds = [...new Set(
-    stories.map(s => s?.user_id).filter(Boolean)
+  const ownerIds = [...new Set(
+    stories.map(s => String(s?.user_id || "").trim()).filter(Boolean)
   )];
+  const ownerToAuth = await buildProfileAuthMap(ownerIds);
+  const authIds = [...new Set(
+    ownerIds.map(id => ownerToAuth.get(id) || id).filter(Boolean)
+  )];
+  const activeAuthIds = new Set();
 
-  const activeIds = new Set();
-  await Promise.all(userIds.map(async userId => {
-    if (await isAuthUserActive(userId)) activeIds.add(userId);
+  await Promise.all(authIds.map(async authId => {
+    if (await isAuthUserActiveCached(authId)) activeAuthIds.add(authId);
   }));
 
-  return stories.filter(s => activeIds.has(s?.user_id));
+  return stories.filter(story => {
+    const ownerId = String(story?.user_id || "").trim();
+    const authId = ownerToAuth.get(ownerId) || ownerId;
+    return activeAuthIds.has(authId);
+  });
 }
 
 async function filterActiveProfiles(profiles) {
   if (!Array.isArray(profiles) || !profiles.length) return [];
 
+  const ownerIds = profiles.flatMap(profile => [
+    profile?.id,
+    profile?.auth_user_id
+  ]).map(v => String(v || "").trim()).filter(Boolean);
+
+  const ownerToAuth = await buildProfileAuthMap(ownerIds);
   const active = [];
-  await Promise.all(profiles.map(async profile => {
-    const userId = profile?.auth_user_id || profile?.id;
-    if (await isAuthUserActive(userId)) active.push(profile);
+
+  await Promise.all((profiles || []).map(async profile => {
+    const profileId = String(profile?.id || "").trim();
+    const authId = String(profile?.auth_user_id || "").trim()
+      || ownerToAuth.get(profileId)
+      || profileId;
+
+    if (authId && await isAuthUserActiveCached(authId)) {
+      active.push(profile);
+    }
   }));
 
   return active;
@@ -3075,20 +3104,21 @@ app.delete(
   "/api/account",
   auth,
   async (req, res) => {
-    const profileId = String(req.user?.id || "").trim();
+    // req.authUser.id = gerçek Supabase Auth kimliği.
+    // req.user.id = profiles.id olabilir; legacy hesaplarda ikisi farklıdır.
     const authId = String(req.authUser?.id || "").trim();
+    const profileId = String(req.user?.id || "").trim();
 
-    if (!profileId || !authId) {
+    if (!authId) {
       return res.status(401).json({ ok:false, error:"Oturum bulunamadı." });
     }
 
     try {
       const admin = adminClient();
+      const ownerIds = [...new Set([authId, profileId].filter(Boolean))];
 
-      // Minegram'ın eski kayıtlarında profile.id ile auth.users.id
-      // farklı olabildiği için hesabın iki kimliğini de temizliyoruz.
-      const ownerIds = [...new Set([profileId, authId].filter(Boolean))];
-
+      // İki kimliğe de bağlı gönderileri bul. Böylece eski profile.id ile
+      // oluşturulmuş gönderiler de hesap silinince kesin olarak gider.
       const { data: userPosts, error: postsReadError } = await admin
         .from("posts")
         .select("id,media_url,user_id")
@@ -3097,18 +3127,13 @@ app.delete(
 
       const postIds = (userPosts || []).map(p => p.id).filter(Boolean);
 
-      // Gönderiye bağlı kayıtları temizle.
       if (postIds.length) {
         for (const table of ["comments", "post_likes", "saves", "notifications"]) {
-          const { error } = await admin
-            .from(table)
-            .delete()
-            .in("post_id", postIds);
+          const { error } = await admin.from(table).delete().in("post_id", postIds);
           if (error) console.warn(`ACCOUNT DELETE ${table}:`, error.message);
         }
       }
 
-      // Kullanıcıya ait sosyal ilişkiler ve içerikler.
       const cleanup = [
         ["comments", "user_id"],
         ["post_likes", "user_id"],
@@ -3120,36 +3145,27 @@ app.delete(
         ["messages", "sender_id"],
         ["messages", "recipient_id"],
         ["stories", "user_id"],
-        ["highlights", "user_id"]
+        ["highlights", "user_id"],
+        ["blocks", "blocker_id"],
+        ["blocks", "blocked_id"]
       ];
 
       for (const [table, column] of cleanup) {
         try {
-          const { error } = await admin
-            .from(table)
-            .delete()
-            .in(column, ownerIds);
-          if (error) {
-            console.warn(`ACCOUNT DELETE ${table}.${column}:`, error.message);
-          }
+          const { error } = await admin.from(table).delete().in(column, ownerIds);
+          if (error) console.warn(`ACCOUNT DELETE ${table}.${column}:`, error.message);
         } catch (e) {
-          console.warn(
-            `ACCOUNT DELETE ${table}.${column} EXCEPTION:`,
-            e?.message || e
-          );
+          console.warn(`ACCOUNT DELETE ${table}.${column} EXCEPTION:`, e?.message || e);
         }
       }
 
-      // Gönderiler iki olası kimlik üzerinden de kesin olarak silinir.
-      if (postIds.length) {
-        const { error } = await admin
-          .from("posts")
-          .delete()
-          .in("user_id", ownerIds);
-        if (error) throw error;
-      }
+      const { error: postsDeleteError } = await admin
+        .from("posts")
+        .delete()
+        .in("user_id", ownerIds);
+      if (postsDeleteError) throw postsDeleteError;
 
-      // Storage: kullanıcıya ait eski medya klasörlerini de temizle.
+      // Storage'da hem Auth ID hem profile ID ile oluşturulmuş eski klasörleri temizle.
       for (const prefix of ["stories/", "highlights/", ""]) {
         for (const ownerId of ownerIds) {
           try {
@@ -3165,46 +3181,32 @@ app.delete(
 
             const names = (objects || []).map(o => `${pathPrefix}/${o.name}`);
             if (names.length) {
-              const { error: removeError } = await admin
-                .storage
+              const { error: removeError } = await admin.storage
                 .from(BUCKET)
                 .remove(names);
-
-              if (removeError) {
-                console.warn("ACCOUNT STORAGE REMOVE:", removeError.message);
-              }
+              if (removeError) console.warn("ACCOUNT STORAGE REMOVE:", removeError.message);
             }
           } catch (e) {
-            console.warn(
-              "ACCOUNT STORAGE EXCEPTION:",
-              e?.message || e
-            );
+            console.warn("ACCOUNT STORAGE EXCEPTION:", e?.message || e);
           }
         }
       }
 
-      // Profilin id'si veya auth_user_id'si farklı olsa bile profil tamamen silinir.
+      // Profil iki farklı kimlikten biriyle bağlı olabilir.
       const { error: profileError } = await admin
         .from("profiles")
         .delete()
-        .or(`id.eq.${profileId},auth_user_id.eq.${authId}`);
-
+        .or(`id.eq.${authId}${profileId && profileId !== authId ? `,id.eq.${profileId}` : ""},auth_user_id.eq.${authId}`);
       if (profileError) throw profileError;
 
-      // Önbellekte bu Auth kullanıcısı aktif görünmesin.
-      activeAuthUserCache.delete(authId);
-      activeAuthUserCache.delete(profileId);
-
-      // Asıl Auth hesabı her zaman gerçek auth.users id'si ile silinir.
+      // ÖNEMLİ: Auth hesabı gerçek authId ile silinir.
       const { error: authDeleteError } = await admin.auth.admin.deleteUser(authId);
       if (authDeleteError) throw authDeleteError;
 
-      return res.json({
-        ok:true,
-        deleted:true,
-        id:authId,
-        profileId
-      });
+      activeAuthUserCache.delete(authId);
+      if (profileId) activeAuthUserCache.delete(profileId);
+
+      return res.json({ ok:true, deleted:true, id:authId });
     } catch (e) {
       console.error("ACCOUNT DELETE ERROR:", e);
       return res.status(500).json({
@@ -5305,48 +5307,24 @@ app.get(
   auth,
   async (req, res) => {
     try {
-      const q =
-        String(
-          req.query.q || ""
-        )
-          .trim()
-          .toLowerCase();
+      const q = String(req.query.q || "").trim().toLowerCase();
+      if (!q) return res.json([]);
 
-      if (!q) {
-        return res.json([]);
-      }
+      // Arama ortak sistemdir. Service-role kullanıldığı için RLS,
+      // yeni hesabın eski/aktif kullanıcıları görmesini bozmaz.
+      const admin = adminClient();
+      const { data, error } = await admin
+        .from("profiles")
+        .select("id,auth_user_id,username,display_name,bio,avatar_url,verified,settings")
+        .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+        .limit(50);
 
-      const {
-        data,
-        error
-      } =
-        await req.sb
-          .from("profiles")
-          .select(
-            "id,username,display_name,bio,avatar_url,verified,settings"
-          )
-          .or(
-            `username.ilike.%${q}%,display_name.ilike.%${q}%`
-          )
-          .limit(20);
-
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       const activeProfiles = await filterActiveProfiles(data || []);
-
-      res.json(
-        activeProfiles.map(
-          safeUser
-        )
-      );
-
+      res.json(activeProfiles.map(safeUser));
     } catch (e) {
-      res.status(500).json({
-        error:
-          e.message
-      });
+      res.status(500).json({ error: e?.message || "Kullanıcı araması başarısız." });
     }
   }
 );
