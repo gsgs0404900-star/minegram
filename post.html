@@ -653,6 +653,10 @@ body{
   overflow-wrap:anywhere
 }
 
+.minegram-hashtag{color:#64B5F6;text-decoration:none;font-weight:600;cursor:pointer}
+.minegram-hashtag:hover{text-decoration:underline}
+.minegram-hashtag:active{opacity:.75}
+
 .comment-meta{
   font-size:12px;
   color:#92979f;
@@ -6560,6 +6564,21 @@ function attachCommentOwnerMenus(){
    COMMENT RENDER
 ========================================================= */
 
+function minegramHashtagHtml(value){
+  const safe=esc(value||"");
+  return safe.replace(/(^|[\s(])#([A-Za-zÇĞİÖŞÜçğıöşü0-9_]+)/g,function(_,prefix,tag){
+    const fullTag="#"+tag;
+    return prefix+'<a class="minegram-hashtag" href="ara.html?query='+encodeURIComponent(fullTag)+'" onclick="openMinegramHashtag(event,'+JSON.stringify(fullTag)+')">'+fullTag+'</a>';
+  });
+}
+
+function openMinegramHashtag(event,tag){
+  if(event){event.preventDefault();event.stopPropagation();}
+  const clean=String(tag||"").trim().replace(/^#+/,"");
+  if(!clean)return;
+  location.href="ara.html?query="+encodeURIComponent("#"+clean);
+}
+
 function renderComment(c){
 
   const username=
@@ -6623,7 +6642,7 @@ function renderComment(c){
 
 
           <div class="comment-text">
-            ${esc(
+            ${minegramHashtagHtml(
               c.text||
               c.content||
               ""
@@ -6732,7 +6751,7 @@ function renderReply(r){
 
 
         <div class="comment-text">
-          ${esc(
+          ${minegramHashtagHtml(
             r.text||
             r.content||
             ""
