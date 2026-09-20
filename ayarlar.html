@@ -1713,7 +1713,7 @@ function renderLanguageList(filter=''){
   b.innerHTML='<span class="language-name">'+name.replace(/</g,'&lt;')+'</span><span class="language-code">'+code+'</span><span class="language-check">'+(selected===code?'✓':'')+'</span>';
   b.onclick=()=>{
   localStorage.setItem('minegram_language',code);
-  document.cookie='googtrans=/tr/'+encodeURIComponent(code)+'; path=/; SameSite=Lax';
+  const googleCode=({ 'zh_Hans':'zh-CN','zh_Hant':'zh-TW','zh':'zh-CN','yue':'zh-TW','pt_BR':'pt','pt_PT':'pt','es_419':'es','es_ES':'es','es_MX':'es','fr_CA':'fr','fr_CH':'fr','de_AT':'de','de_CH':'de','en_GB':'en','en_AU':'en','en_CA':'en','en_US':'en','fa_AF':'fa','ro_MD':'ro','sr_ME':'sr','hi_Latn':'hi' }[code]||code.split('_')[0]); document.cookie='googtrans=/tr/'+encodeURIComponent(googleCode)+'; path=/; SameSite=Lax';
   document.documentElement.lang=code;
   try{window.dispatchEvent(new StorageEvent('storage',{key:'minegram_language',newValue:code,storageArea:localStorage}));}catch(e){}
   toast('Dil seçildi: '+name);
@@ -2707,5 +2707,16 @@ const T={"en": {"Ana Sayfa": "Home", "Ara": "Search", "Oluştur": "Create", "Pro
 function one(v){const x=(v||'').trim(); return d[x] ? v.replace(x,d[x]) : v;}
 function apply(root=document.body){if(!root)return; const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),a=[];let n;while(n=w.nextNode())a.push(n);a.forEach(n=>{if(n.parentElement&&!['SCRIPT','STYLE','NOSCRIPT'].includes(n.parentElement.tagName))n.nodeValue=one(n.nodeValue)}); root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(e=>['placeholder','title','aria-label'].forEach(k=>{if(e.hasAttribute(k)){const v=e.getAttribute(k);if(d[v])e.setAttribute(k,d[v])}}));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>apply());else apply(); new MutationObserver(m=>{if(m.some(x=>x.addedNodes.length))apply()}).observe(document.documentElement,{childList:true,subtree:true}); window.addEventListener('storage',e=>{if(e.key==='minegram_language')location.reload()});
+})();</script><script id="minegram-settings-google-translate">
+(function(){
+ const raw=(localStorage.getItem('minegram_language')||'tr').toLowerCase().replace(/_/g,'-');
+ const base=raw.split('-')[0];
+ if(base==='tr')return;
+ const map={'zh-hans':'zh-CN','zh-hant':'zh-TW','yue':'zh-TW','pt-br':'pt','pt-pt':'pt','es-419':'es','fr-ca':'fr','fr-ch':'fr','de-at':'de','de-ch':'de','en-gb':'en','en-au':'en','en-ca':'en','en-us':'en','fa-af':'fa','ro-md':'ro','sr-me':'sr','hi-latn':'hi'};
+ const target=map[raw]||base;
+ document.cookie='googtrans=/tr/'+encodeURIComponent(target)+'; path=/; SameSite=Lax';
+ window.googleTranslateElementInit=function(){try{new google.translate.TranslateElement({pageLanguage:'tr',includedLanguages:'af,am,ar,az,bn,bg,ca,cs,da,de,el,en,es,et,eu,fa,fi,fr,gl,gu,he,hi,hr,hu,id,is,it,ja,ka,kn,ko,lt,lv,ml,mr,ms,ne,nl,no,pl,pt,ro,ru,sk,sl,sr,sv,sw,ta,te,th,tr,uk,ur,vi,zh-CN,zh-TW',autoDisplay:false,multilanguagePage:true},'google_translate_element');}catch(e){}};
+ const d=document.createElement('div');d.id='google_translate_element';d.style.cssText='position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';document.body.appendChild(d);
+ const sc=document.createElement('script');sc.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';sc.async=true;document.head.appendChild(sc);
 })();</script></body>
 </html>
