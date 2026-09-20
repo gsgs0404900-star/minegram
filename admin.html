@@ -177,11 +177,11 @@ function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return t
 async function checkAdmin(uid){if(uid!==ADMIN_UID)return false;const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));return adminDocument.exists()&&adminDocument.data().active===true}
 
 async function loadAdminDataSafely(){
-const loaders=[["Dashboard",loadDashboard],["Kullanıcılar",loadUsers],["Gönderiler",loadPosts],["Şikâyetler",loadReports],["Sorun Bildirimleri",loadProblemReports],["Mavi Tik",loadVerification],["Bakiye",loadBalances],["Banka / Ödeme",loadBankTransactions]];
+const loaders=[["Dashboard",bridgeLoadDashboard],["Kullanıcılar",bridgeLoadUsers],["Gönderiler",bridgeLoadPosts],["Şikâyetler",bridgeLoadReports],["Sorun Bildirimleri",bridgeLoadProblemReports],["Mavi Tik",bridgeLoadVerification],["Bakiye",bridgeLoadBalances],["Banka / Ödeme",bridgeLoadBankTransactions]];
 for(const [name,loader] of loaders){try{await loader();console.log(name+" yüklendi.")}catch(error){console.error(name+" yüklenemedi:",error)}}
 }
 let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null;
-async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();watchProblemReports();watchLiveFinance()}
+async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();watchProblemReports();bridgeWatchLiveFinance()}
 onAuthStateChanged(auth,async user=>{
 if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
 if(adminLoginInProgress||adminVerified)return;
@@ -302,6 +302,172 @@ window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransa
 function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{loadUsers().catch(error=>console.error("Birleşik kullanıcı listesi yenilenemedi:",error));let total=0;snap.forEach(item=>{const data=item.data()||{};if(!isDeletedFirestoreUser(data))total+=Number(data.balance||0)});if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
 $("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}});
 $("settingsButton").addEventListener("click",async()=>{const siteName=$("siteName").value.trim();try{await setDoc(doc(db,"settings","config"),{siteName,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi."}catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}});
+
+
+/* =========================================================
+   SUPABASE / FIREBASE ADMIN VERİ KÖPRÜSÜ
+   Minegram'ın gerçek kullanıcı/gönderi verileri Supabase'de tutulduğu
+   için admin paneli önce sunucudaki güvenli admin köprüsünden okur.
+   Firestore koleksiyonları varsa mevcut sistem de fallback olarak korunur.
+========================================================= */
+let minegramAdminCache=null;
+let minegramAdminCacheAt=0;
+let minegramAdminRefreshTimer=null;
+
+async function fetchMinegramAdminData(force=false){
+  const now=Date.now();
+  if(!force && minegramAdminCache && now-minegramAdminCacheAt<4000) return minegramAdminCache;
+  const currentUser=currentAdminUser||auth.currentUser;
+  if(!currentUser) throw new Error("Admin oturumu bulunamadı.");
+  const token=await currentUser.getIdToken(false);
+  const response=await fetch("/api/admin/minegram-data",{
+    method:"GET",
+    headers:{Authorization:"Bearer "+token,"X-Firebase-ID-Token":token},
+    credentials:"same-origin",
+    cache:"no-store"
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok) throw new Error(data.error||`Admin veri servisi HTTP ${response.status}`);
+  minegramAdminCache=data;
+  minegramAdminCacheAt=now;
+  return data;
+}
+
+function adminUserRows(data){
+  return (Array.isArray(data?.users)?data.users:[]).filter(u=>!isDeletedFirestoreUser(u));
+}
+
+function renderAdminUsersFromBridge(data){
+  allUsers=adminUserRows(data);
+  renderUsers();
+  let total=0; allUsers.forEach(u=>total+=Number(u.balance||0));
+  if($("totalUsers")) $("totalUsers").textContent=allUsers.length;
+  if($("totalBalance")) $("totalBalance").textContent=money(total);
+  if($("balanceTotalLive")) $("balanceTotalLive").textContent=money(total);
+}
+
+async function bridgeLoadUsers(){
+  try{
+    const data=await fetchMinegramAdminData();
+    renderAdminUsersFromBridge(data);
+  }catch(error){
+    console.error("Supabase kullanıcıları yüklenemedi, Firestore fallback:",error);
+    const snapshot=await getDocs(collection(db,"users"));
+    allUsers=[];
+    snapshot.forEach(item=>{const u=item.data()||{};if(!isDeletedFirestoreUser(u))allUsers.push({id:item.id,...u});});
+    renderUsers();
+  }
+}
+
+async function bridgeLoadPosts(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const posts=Array.isArray(data.posts)?data.posts:[];
+    $("postsTable").innerHTML=posts.map(post=>`<tr><td>${escapeHTML(post.id||"-")}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${escapeHTML(post.createdAt?new Date(post.createdAt).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
+  }catch(error){
+    console.error("Supabase gönderileri yüklenemedi, Firestore fallback:",error);
+    const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));
+    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
+  }
+}
+
+async function bridgeLoadReports(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const rows=Array.isArray(data.reports)?data.reports:[];
+    $("reportsTable").innerHTML=rows.map(report=>`<tr><td>${escapeHTML(report.id||"-")}</td><td>${escapeHTML(report.reporterId||report.reporter_id||report.user_id||"-")}</td><td>${escapeHTML(report.targetId||report.target_id||report.post_id||report.target_user_id||"-")}</td><td>${escapeHTML(report.reason||report.description||report.text||"-")}</td><td>${String(report.status||"pending")==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
+  }catch(error){
+    console.error("Supabase şikâyetleri yüklenemedi, Firestore fallback:",error);
+    const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));
+    $("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
+  }
+}
+
+async function bridgeLoadProblemReports(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const rows=Array.isArray(data.problemReports)?data.problemReports:[];
+    if(rows.length){
+      $("problemReportsTable").innerHTML=rows.map(r=>`<tr><td>${escapeHTML(r.id||"-")}</td><td>${escapeHTML(r.username||r.uid||r.user_id||"-")}</td><td>${escapeHTML(r.userEmail||r.email||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||r.text||r.message||"-")}</td><td>-</td><td>${escapeHTML(r.created_at?new Date(r.created_at).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`).join("");
+      return;
+    }
+  }catch(error){console.warn("Supabase sorun bildirimleri yok:",error)}
+  const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));
+  const rows=snapshot.docs.map(item=>{const r=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>-</td><td>${dateText(r.createdAt)}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`});
+  $("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
+}
+
+async function bridgeLoadVerification(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const rows=Array.isArray(data.verification)?data.verification:adminUserRows(data);
+    $("verificationTable").innerHTML=rows.map(user=>`<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
+  }catch(error){
+    console.error("Supabase mavi tik verileri yüklenemedi, Firestore fallback:",error);
+    const snapshot=await getDocs(collection(db,"users"));
+    $("verificationTable").innerHTML=snapshot.docs.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
+  }
+}
+
+async function bridgeLoadBalances(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const rows=Array.isArray(data.balances)?data.balances:[];
+    $("balanceTable").innerHTML=rows.map(item=>`<tr><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount||item.delta||0)}</td><td>${String(item.type||"")==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(item.note||item.description||item.source||"-")}</td><td>${escapeHTML(item.created_at?new Date(item.created_at).toLocaleString("tr-TR"):"-")}</td></tr>`).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
+    return;
+  }catch(error){console.warn("Supabase bakiye verileri yok, Firestore fallback:",error)}
+  const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));
+  $("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
+}
+
+async function bridgeLoadBankTransactions(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const rows=Array.isArray(data.bankTransactions)?data.bankTransactions:[];
+    let pendingTotal=0;
+    $("bankTable").innerHTML=rows.map(item=>{const type=String(item.type||item.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";const status=item.status||"pending";if(isWithdraw&&status==="pending")pendingTotal+=Number(item.amount||0);const bankInfo=item.iban||item.bankAccount||item.bank||item.account||"-";return `<tr><td>${escapeHTML(item.id||"-")}</td><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount)}</td><td>${escapeHTML(item.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
+    if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
+    return;
+  }catch(error){console.warn("Supabase banka verileri yok, Firestore fallback:",error)}
+  const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));
+  let pendingTotal=0;
+  $("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();const type=String(data.type||data.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(data.iban||data.bankAccount||data.bank||data.account||"-")}</td><td>${escapeHTML(data.status||"pending")}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
+  if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
+}
+
+async function bridgeLoadDashboard(){
+  try{
+    const data=await fetchMinegramAdminData();
+    const users=adminUserRows(data);
+    const posts=Array.isArray(data.posts)?data.posts:[];
+    const reports=Array.isArray(data.reports)?data.reports:[];
+    const problems=Array.isArray(data.problemReports)?data.problemReports:[];
+    const totalBalance=users.reduce((sum,u)=>sum+Number(u.balance||0),0);
+    $("totalUsers").textContent=users.length;
+    $("totalPosts").textContent=posts.length;
+    $("totalReports").textContent=reports.filter(r=>String(r.status||"pending")!=="resolved").length;
+    $("totalProblemReports").textContent=problems.filter(r=>String(r.status||"pending")!=="resolved").length;
+    $("totalBalance").textContent=money(totalBalance);
+    if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance);
+    return;
+  }catch(error){console.warn("Admin dashboard Supabase verisi alınamadı, mevcut Firestore dashboard kullanılıyor:",error)}
+  const users=await getDocs(collection(db,"users"));
+  const activeUsers=users.docs.filter(item=>!isDeletedFirestoreUser(item.data()));
+  let posts=0,reports=0,totalBalance=0;try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}try{const r=await getDocs(collection(db,"reports"));r.forEach(i=>{if(i.data().status!=="resolved")reports++})}catch(e){}activeUsers.forEach(i=>totalBalance+=Number(i.data().balance||0));
+  $("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent="—";$("totalBalance").textContent=money(totalBalance);
+}
+
+function bridgeWatchLiveFinance(){
+  if(minegramAdminRefreshTimer)clearInterval(minegramAdminRefreshTimer);
+  minegramAdminRefreshTimer=setInterval(async()=>{
+    try{
+      minegramAdminCache=null;minegramAdminCacheAt=0;
+      const data=await fetchMinegramAdminData(true);
+      renderAdminUsersFromBridge(data);
+      await bridgeLoadDashboard();
+    }catch(error){console.warn("Admin canlı yenileme:",error.message)}
+  },10000);
+}
 
 const EMAIL_SERVICE_API="/api/admin/email-service";
 async function emailServiceRequest(path,options={}){let currentUser=currentAdminUser||auth.currentUser;if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(EMAIL_SERVICE_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);return data}
