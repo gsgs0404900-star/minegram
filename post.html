@@ -4800,6 +4800,7 @@ function renderPost(p){
 
 
         <button
+          type="button"
           class="action save-action${getSavedPostIds().has(String(p.id))?' saved':''}"
           onclick="savePost('${esc(p.id)}')"
           aria-label="Gönderiyi kaydet"
@@ -4819,6 +4820,7 @@ function renderPost(p){
 
 
         <button
+          type="button"
           class="action share-action"
           onclick="sharePost('${esc(p.id)}')"
           aria-label="Gönderiyi paylaş"
@@ -5645,7 +5647,7 @@ function setSavedPostLocal(id,saved){
   }catch(e){}
 }
 
-async function savePost(id){
+async async function savePost(id){
 
   try{
 
@@ -5659,15 +5661,27 @@ async function savePost(id){
         }
       );
 
-    setSavedPostLocal(id, !!r.saved);
+    const saved = !!r.saved;
+    setSavedPostLocal(id, saved);
+
+    // Kaydetme sonrası akışı yeniden yükleme: gönderiler kaybolmasın.
+    const btn = document.querySelector('.post[data-id="'+CSS.escape(String(id))+'"] .save-action');
+    if(btn){
+      btn.classList.toggle('saved', saved);
+      const path = btn.querySelector('.bookmark-icon path');
+      if(path){
+        path.setAttribute('d', saved
+          ? 'M5 3h14v18l-7-4.5L5 21V3Z'
+          : 'M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z');
+      }
+      btn.setAttribute('aria-label', saved ? 'Kayıtlı' : 'Gönderiyi kaydet');
+    }
 
     toast(
-      r.saved
+      saved
         ? "Kaydedildi"
         : "Kayıttan kaldırıldı"
     );
-
-    await loadFeed();
 
   }catch(e){
 
