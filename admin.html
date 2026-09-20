@@ -192,10 +192,82 @@ let problemReports=0;try{const r=await getDocs(query(collection(db,"problemRepor
 activeUsers.forEach(item=>{totalBalance+=Number(item.data().balance||0)});$("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent=problemReports;$("totalBalance").textContent=money(totalBalance);if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance)
 }
 let allUsers=[];
-async function loadUsers(){const snapshot=await getDocs(collection(db,"users"));allUsers=[];snapshot.forEach(item=>{const data=item.data();if(data.deleted===true||data.isDeleted===true||data.deletedAt||data.status==="deleted")return;allUsers.push({id:item.id,...data})});renderUsers()}
-function renderUsers(){const search=$("userSearch").value.trim().toLowerCase();const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search));$("usersTable").innerHTML=users.map(user=>`<tr><td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>'}
+let authUsersCache=[];
+
+async function loadAuthUsersFromServer(){
+  if(!auth.currentUser) return [];
+  const token=await auth.currentUser.getIdToken();
+  const response=await fetch("/api/admin/auth-users",{headers:{Authorization:"Bearer "+token}});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok) throw new Error(data.error||"Authentication kullanıcıları alınamadı.");
+  authUsersCache=Array.isArray(data.users)?data.users:[];
+  return authUsersCache;
+}
+
+function isDeletedFirestoreUser(data){
+  return data?.deleted===true||data?.isDeleted===true||data?.deletedAt||data?.status==="deleted";
+}
+
+async function loadUsers(){
+  const snapshot=await getDocs(collection(db,"users"));
+  const firestoreUsers=new Map();
+  snapshot.forEach(item=>{
+    const data=item.data()||{};
+    if(isDeletedFirestoreUser(data)) return;
+    firestoreUsers.set(item.id,{id:item.id,...data});
+  });
+
+  let authUsers=[];
+  try{authUsers=await loadAuthUsersFromServer()}catch(error){
+    console.error("AUTH kullanıcıları yüklenemedi:",error);
+    authUsers=authUsersCache;
+  }
+
+  const merged=new Map();
+  for(const user of authUsers){
+    const metadata=user.user_metadata||{};
+    const firestore=firestoreUsers.get(user.id)||null;
+    const authEmail=String(user.email||metadata.minegram_contact_email||metadata.registration_email||"").trim();
+    let matchingFirestore=firestore;
+    if(!matchingFirestore&&authEmail){
+      matchingFirestore=[...firestoreUsers.values()].find(x=>String(x.email||"").trim().toLowerCase()===authEmail.toLowerCase())||null;
+    }
+    merged.set(user.id,{
+      id:user.id,
+      ...(matchingFirestore||{}),
+      email:matchingFirestore?.email||authEmail||"",
+      username:matchingFirestore?.username||metadata.username||metadata.user_name||"",
+      displayName:matchingFirestore?.displayName||matchingFirestore?.display_name||metadata.display_name||metadata.displayName||"",
+      balance:Number(matchingFirestore?.balance||0),
+      verified:!!matchingFirestore?.verified,
+      disabled:!!matchingFirestore?.disabled || !!user.banned_until,
+      authExists:true,
+      authCreatedAt:user.created_at||null,
+      lastSignInAt:user.last_sign_in_at||null,
+      emailConfirmedAt:user.email_confirmed_at||null,
+      firestoreExists:!!matchingFirestore
+    });
+  }
+
+  for(const user of firestoreUsers.values()){
+    if(!merged.has(user.id)){
+      merged.set(user.id,{...user,authExists:false,firestoreExists:true});
+    }
+  }
+
+  allUsers=[...merged.values()];
+  renderUsers();
+}
+
+function renderUsers(){
+  const search=$("userSearch").value.trim().toLowerCase();
+  const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search)||String(user.id||"").toLowerCase().includes(search));
+  $("usersTable").innerHTML=users.map(user=>`<tr><td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");
+  if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>';
+}
+
 $("userSearch").addEventListener("input",renderUsers);
-window.toggleUser=async(uid,disabled)=>{await updateDoc(doc(db,"users",uid),{disabled:!disabled});await loadUsers();await loadDashboard()};
+window.toggleUser=async(uid,disabled)=>{await setDoc(doc(db,"users",uid),{disabled:!disabled},{merge:true});await loadUsers();await loadDashboard()};
 window.selectBalanceUser=uid=>{$("balanceUid").value=uid;document.querySelector('[data-page="balance"]').click()};
 async function loadPosts(){const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));$("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||"-")}</td><td>${escapeHTML(String(post.text||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")}
 window.deletePost=async id=>{if(!confirm("Bu gönderiyi silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"posts",id));await loadPosts();await loadDashboard()};
@@ -207,12 +279,12 @@ window.updateProblemReport=async(id,status)=>{await updateDoc(doc(db,"problemRep
 window.deleteProblemReport=async id=>{if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"problemReports",id));await loadProblemReports();await loadDashboard()};
 function watchProblemReports(){if(problemReportsUnsubscribe)problemReportsUnsubscribe();problemReportsUnsubscribe=onSnapshot(query(collection(db,"problemReports"),limit(200)),()=>{loadProblemReports().catch(error=>console.error("Sorun bildirimleri yenilenemedi:",error));loadDashboard().catch(()=>{})},error=>console.error("Sorun bildirimleri canlı dinleme hatası:",error))}
 async function loadVerification(){const snapshot=await getDocs(collection(db,"users"));const activeUsers=snapshot.docs.filter(item=>{const user=item.data();return !(user.deleted===true||user.isDeleted===true||user.deletedAt||user.status==="deleted")});$("verificationTable").innerHTML=activeUsers.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">${user.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`}).join("")}
-window.toggleVerified=async(uid,currentValue)=>{await updateDoc(doc(db,"users",uid),{verified:!currentValue});await loadVerification();await loadUsers()};
+window.toggleVerified=async(uid,currentValue)=>{await setDoc(doc(db,"users",uid),{verified:!currentValue},{merge:true});await loadVerification();await loadUsers()};
 $("balanceButton").addEventListener("click",async()=>{const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}try{const delta=type==="credit"?amount:-amount;await updateDoc(doc(db,"users",uid),{balance:increment(delta)});await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});$("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";$("balanceAmount").value="";$("balanceNote").value="";await loadBalances();await loadUsers();await loadDashboard()}catch(error){$("balanceMessage").className="message error";$("balanceMessage").textContent=error.message}});
 async function loadBalances(){const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));$("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>'}
 async function loadBankTransactions(){const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));let pendingTotal=0;$("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);const bankInfo=data.iban||data.bankAccount||data.bank||data.account||"-",status=data.status||"pending",statusHtml=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>',actions=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">Reddet</button>`:"-";return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${statusHtml}</td><td>${actions}</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal)}
 window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransactions",id),snap=await getDoc(ref);if(!snap.exists())return;const data=snap.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(status==="approved"&&isWithdraw&&data.status!=="approved"){const amount=Number(data.amount||0);if(amount<=0)throw new Error("Geçersiz çekim tutarı.");await runTransaction(db,async tx=>{const userRef=doc(db,"users",data.uid),userSnap=await tx.get(userRef);if(!userSnap.exists())throw new Error("Kullanıcı bulunamadı.");const current=Number(userSnap.data().balance||0);if(current<amount)throw new Error("Kullanıcının bakiyesi çekim için yetersiz.");tx.update(userRef,{balance:current-amount});tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid})});await addDoc(collection(db,"balances"),{uid:data.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()})}else await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});await loadBankTransactions();await loadBalances();await loadUsers();await loadDashboard()}catch(error){alert("İşlem başarısız: "+error.message)}};
-function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{allUsers=[];snap.forEach(item=>{const data=item.data();if(data.deleted===true||data.isDeleted===true||data.deletedAt||data.status==="deleted")return;allUsers.push({id:item.id,...data})});renderUsers();let total=0;allUsers.forEach(u=>total+=Number(u.balance||0));if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalUsers"))$("totalUsers").textContent=allUsers.length;if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
+function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{loadUsers().catch(error=>console.error("Birleşik kullanıcı listesi yenilenemedi:",error));let total=0;snap.forEach(item=>{const data=item.data()||{};if(!isDeletedFirestoreUser(data))total+=Number(data.balance||0)});if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
 $("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}});
 $("settingsButton").addEventListener("click",async()=>{const siteName=$("siteName").value.trim();try{await setDoc(doc(db,"settings","config"),{siteName,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent="Ayarlar kaydedildi."}catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}});
 
