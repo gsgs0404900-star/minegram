@@ -5867,6 +5867,42 @@ async function verifyFirebaseAdminToken(req) {
   return firebaseUser;
 }
 
+app.get("/api/admin/auth-users", async (req, res) => {
+  try {
+    await verifyFirebaseAdminToken(req);
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ ok:false, error:"SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY eksik." });
+    }
+
+    const admin = adminClient();
+    const users = [];
+    for (let page = 1; page <= 100; page++) {
+      const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (result?.error) throw result.error;
+      const pageUsers = result?.data?.users || [];
+      users.push(...pageUsers);
+      if (pageUsers.length < 1000) break;
+    }
+
+    return res.json({
+      ok: true,
+      users: users.map(user => ({
+        id: user.id,
+        email: user.email || "",
+        phone: user.phone || "",
+        created_at: user.created_at || null,
+        last_sign_in_at: user.last_sign_in_at || null,
+        email_confirmed_at: user.email_confirmed_at || null,
+        banned_until: user.banned_until || null,
+        user_metadata: user.user_metadata || {}
+      }))
+    });
+  } catch (e) {
+    console.error("ADMIN AUTH USERS ERROR:", e?.message || e);
+    return res.status(500).json({ ok:false, error:e?.message || "Auth kullanıcıları alınamadı." });
+  }
+});
+
 async function smtpAdminAuth(req, res, next) {
   try {
     req.smtpAdmin = await verifyFirebaseAdminToken(req);
