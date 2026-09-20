@@ -1711,7 +1711,7 @@ function renderLanguageList(filter=''){
  rows.forEach(([code,name])=>{
   const b=document.createElement('button');b.type='button';b.className='language-item';
   b.innerHTML='<span class="language-name">'+name.replace(/</g,'&lt;')+'</span><span class="language-code">'+code+'</span><span class="language-check">'+(selected===code?'✓':'')+'</span>';
-  b.onclick=()=>{localStorage.setItem('minegram_language',code);document.documentElement.lang=code;renderLanguageList(document.getElementById('languageSearch')?.value||'');toast('Dil seçildi: '+name)};
+  b.onclick=()=>{localStorage.setItem('minegram_language',code);document.documentElement.lang=code;window.dispatchEvent(new StorageEvent('storage',{key:'minegram_language',newValue:code,storageArea:localStorage}));renderLanguageList(document.getElementById('languageSearch')?.value||'');toast('Dil seçildi: '+name)};
   box.appendChild(b);
  });
  const found=minegramLanguageMap.find(x=>x[0]===selected); if(current)current.textContent='Seçili dil: '+(found?found[1]:'Türkçe');
