@@ -6556,6 +6556,146 @@ app.get("/api/admin/auth-users", async (req, res) => {
   }
 });
 
+
+/* =========================================================
+   ADMIN MINEGRAM DATA BRIDGE
+   Admin panel Firebase ile giriş yapar; Minegram ana verileri
+   Supabase üzerinde tutulduğu için panel için güvenli bir köprü sağlar.
+========================================================= */
+async function optionalAdminRows(admin, table) {
+  try {
+    const { data, error } = await admin
+      .from(table)
+      .select("*")
+      .limit(500);
+    if (error) {
+      console.warn(`ADMIN DATA ${table}:`, error.message || error);
+      return [];
+    }
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.warn(`ADMIN DATA ${table} EXCEPTION:`, e?.message || e);
+    return [];
+  }
+}
+
+app.get("/api/admin/minegram-data", async (req, res) => {
+  try {
+    await verifyFirebaseAdminToken(req);
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({
+        ok: false,
+        error: "SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY eksik."
+      });
+    }
+
+    const admin = adminClient();
+
+    // Supabase Auth hesapları + profiles tek kullanıcı listesinde birleştirilir.
+    const authUsers = [];
+    for (let page = 1; page <= 100; page++) {
+      const result = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (result?.error) throw result.error;
+      const pageUsers = result?.data?.users || [];
+      authUsers.push(...pageUsers);
+      if (pageUsers.length < 1000) break;
+    }
+
+    const profiles = await optionalAdminRows(admin, "profiles");
+    const profileMap = new Map();
+    for (const profile of profiles) {
+      const ids = [profile?.id, profile?.auth_user_id].filter(Boolean).map(String);
+      for (const id of ids) profileMap.set(id, profile);
+    }
+
+    const users = authUsers.map(user => {
+      const profile = profileMap.get(String(user.id)) || null;
+      const meta = user?.user_metadata || {};
+      return {
+        id: user.id,
+        email: user.email || profile?.email || "",
+        phone: user.phone || profile?.phone || profile?.phone_number || "",
+        username: profile?.username || meta.username || meta.user_name || "",
+        displayName: profile?.display_name || profile?.displayName || meta.display_name || meta.displayName || "",
+        balance: Number(profile?.balance || 0),
+        verified: Boolean(profile?.verified),
+        disabled: Boolean(user.banned_until),
+        created_at: user.created_at || null,
+        last_sign_in_at: user.last_sign_in_at || null,
+        email_confirmed_at: user.email_confirmed_at || null,
+        user_metadata: meta
+      };
+    });
+
+    // Auth kaydı olmayan fakat profiles'ta bulunan eski kayıtları da göster.
+    const authIdSet = new Set(authUsers.map(u => String(u.id)));
+    for (const profile of profiles) {
+      const id = String(profile?.auth_user_id || profile?.id || "");
+      if (!id || authIdSet.has(id)) continue;
+      users.push({
+        id,
+        email: profile?.email || "",
+        phone: profile?.phone || profile?.phone_number || "",
+        username: profile?.username || "",
+        displayName: profile?.display_name || profile?.displayName || "",
+        balance: Number(profile?.balance || 0),
+        verified: Boolean(profile?.verified),
+        disabled: Boolean(profile?.disabled),
+        created_at: profile?.created_at || null,
+        last_sign_in_at: null,
+        email_confirmed_at: null,
+        user_metadata: {}
+      });
+    }
+
+    const posts = await optionalAdminRows(admin, "posts");
+
+    // Farklı sürümlerde kullanılan olası tablo adları desteklenir.
+    let reports = await optionalAdminRows(admin, "reports");
+    if (!reports.length) reports = await optionalAdminRows(admin, "post_reports");
+    if (!reports.length) reports = await optionalAdminRows(admin, "report");
+
+    let problemReports = await optionalAdminRows(admin, "problem_reports");
+    if (!problemReports.length) problemReports = await optionalAdminRows(admin, "problemReports");
+
+    const balances = await optionalAdminRows(admin, "balances");
+
+    let bankTransactions = await optionalAdminRows(admin, "bank_transactions");
+    if (!bankTransactions.length) bankTransactions = await optionalAdminRows(admin, "bankTransactions");
+
+    return res.json({
+      ok: true,
+      source: "supabase",
+      users,
+      profiles,
+      posts: posts.map(post => ({
+        ...post,
+        userId: post?.user_id || post?.userId || "",
+        text: post?.text ?? post?.caption ?? post?.description ?? "",
+        createdAt: post?.created_at || post?.createdAt || null
+      })),
+      reports,
+      problemReports,
+      verification: users.map(user => ({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        verified: user.verified
+      })),
+      balances,
+      bankTransactions
+    });
+  } catch (e) {
+    console.error("ADMIN MINEGRAM DATA ERROR:", e?.message || e);
+    return res.status(401).json({
+      ok: false,
+      error: e?.message || "Admin verileri alınamadı."
+    });
+  }
+});
+
 /* =========================================================
    FALLBACK
 ========================================================= */
