@@ -5994,6 +5994,76 @@ function filterDeletedFirebasePosts(posts,active){
   });
 }
 
+function filterMinegramHomePostsByFollowRelation(posts, relation){
+  if(!Array.isArray(posts)) return [];
+  if(!relation) return posts;
+
+  const me = String(relation.currentUser || "").replace(/^@/,"").trim().toLowerCase();
+  const following = relation.following || new Set();
+  const followers = relation.followers || new Set();
+
+  return posts.filter(function(post){
+    const owner = String(
+      post?.username ||
+      post?.user?.username ||
+      post?.author?.username ||
+      post?.owner?.username ||
+      post?.profile?.username ||
+      ""
+    ).replace(/^@/,"").trim().toLowerCase();
+
+    if(!owner) return false;
+    if(me && owner === me) return true;
+
+    // Ana sayfa kuralı:
+    // 1) Ben takip ediyorsam görünür.
+    // 2) Karşı taraf beni takip ediyorsa görünür.
+    // 3) İkimiz de takip etmiyorsak görünmez.
+    return following.has(owner) || followers.has(owner);
+  });
+}
+
+async function loadMinegramHomeFollowRelation(){
+  const me = String(
+    (typeof currentUser === "string" ? currentUser : "") ||
+    getLocalUsername() ||
+    ""
+  ).replace(/^@/,"").trim();
+
+  if(!me){
+    return {currentUser:"", following:new Set(), followers:new Set()};
+  }
+
+  const base = "/users/" + encodeURIComponent(me);
+  const results = await Promise.allSettled([
+    api(base + "/following?ts=" + Date.now()),
+    api(base + "/followers?ts=" + Date.now())
+  ]);
+
+  function usernames(result){
+    if(result.status !== "fulfilled") return [];
+    const value = result.value;
+    const rows =
+      Array.isArray(value) ? value :
+      Array.isArray(value?.users) ? value.users :
+      Array.isArray(value?.data) ? value.data :
+      Array.isArray(value?.items) ? value.items : [];
+
+    return rows.map(function(item){
+      if(typeof item === "string") return item;
+      return item?.username || item?.user_name || item?.userUsername || "";
+    }).map(function(name){
+      return String(name || "").replace(/^@/,"").trim().toLowerCase();
+    }).filter(Boolean);
+  }
+
+  return {
+    currentUser: me,
+    following: new Set(usernames(results[0])),
+    followers: new Set(usernames(results[1]))
+  };
+}
+
 async function loadFeed(){
 
   if(!feedEl)return;
@@ -6082,7 +6152,34 @@ async function loadFeed(){
   /* Firebase eski kayıtları feed kaynağı değildir. */
   firebasePosts=[];
 
-  const posts = mergeFeedPosts(apiPosts, []);
+  let posts = mergeFeedPosts(apiPosts, []);
+
+  // SADECE ANA SAYFA FEEDİ:
+  // Takipleşme bağı yoksa gönderi burada gösterilmez.
+  // Reels, profil ve diğer sayfaların verilerine dokunulmaz.
+  try{
+    const relation = await loadMinegramHomeFollowRelation();
+    if(!feedRequestIsCurrent()) return;
+    posts = filterMinegramHomePostsByFollowRelation(posts, relation);
+  }catch(e){
+    console.warn("[MINEGRAM] Ana sayfa takip filtresi alınamadı:", e);
+    if(!feedRequestIsCurrent()) return;
+    posts = posts.filter(function(post){
+      const owner = String(
+        post?.username ||
+        post?.user?.username ||
+        post?.author?.username ||
+        post?.owner?.username ||
+        ""
+      ).replace(/^@/,"").trim().toLowerCase();
+      const me = String(
+        (typeof currentUser === "string" ? currentUser : "") ||
+        getLocalUsername() ||
+        ""
+      ).replace(/^@/,"").trim().toLowerCase();
+      return owner && me && owner === me;
+    });
+  }
 
   console.log(
     "[MINEGRAM FEED] API:",
