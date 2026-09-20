@@ -6026,7 +6026,10 @@ function filterMinegramHomePostsByFollowRelation(posts, relation){
 async function loadMinegramHomeFollowRelation(){
   const me = String(
     (typeof currentUser === "string" ? currentUser : "") ||
-    getLocalUsername() ||
+    localStorage.getItem("minegram_username") ||
+    localStorage.getItem("username") ||
+    localStorage.getItem("minegram_user_name") ||
+    localStorage.getItem("user_name") ||
     ""
   ).replace(/^@/,"").trim();
 
@@ -6174,7 +6177,10 @@ async function loadFeed(){
       ).replace(/^@/,"").trim().toLowerCase();
       const me = String(
         (typeof currentUser === "string" ? currentUser : "") ||
-        getLocalUsername() ||
+        localStorage.getItem("minegram_username") ||
+        localStorage.getItem("username") ||
+        localStorage.getItem("minegram_user_name") ||
+        localStorage.getItem("user_name") ||
         ""
       ).replace(/^@/,"").trim().toLowerCase();
       return owner && me && owner === me;
