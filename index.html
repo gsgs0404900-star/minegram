@@ -431,21 +431,23 @@ body{
   color:#ed1b3a
 }
 
-.share-action{
+.save-action{
   margin-left:0
 }
 
-.save-action{
-  margin-left:auto
-}
-
-.save-action.saved{
-  color:#fff
-}
-
-.save-action .svg{
+.bookmark-icon{
   width:25px;
-  height:25px
+  height:25px;
+  display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+
+.share-action{
+  margin-left:auto
 }
 
 .share-plane{
@@ -5445,6 +5447,23 @@ function renderPost(p){
 
 
         <button
+          class="action save-action"
+          onclick="event.stopPropagation(); savePost('${esc(p.id)}')"
+          aria-label="Gönderiyi kaydet"
+        >
+
+          <svg
+            class="bookmark-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V21l-6-3.5L6 21Z"/>
+          </svg>
+
+        </button>
+
+
+        <button
           class="action share-action"
           onclick="event.stopPropagation(); sharePost('${esc(p.id)}')"
           aria-label="Gönderiyi paylaş"
@@ -5458,32 +5477,6 @@ function renderPost(p){
             <path
               d="M2 2.2 29.8 12 2 21.8l4.4-8.1 13.1-1.7-13.1-1.7Z"
               fill="currentColor"
-            />
-
-          </svg>
-
-        </button>
-
-
-        <button
-          class="action save-action"
-          onclick="event.stopPropagation(); savePost('${esc(p.id)}')"
-          aria-label="Gönderiyi kaydet"
-          title="Kaydet"
-        >
-
-          <svg
-            class="svg"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-
-            <path
-              d="M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V22l-6-3.7L6 22V4.5Z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linejoin="round"
             />
 
           </svg>
