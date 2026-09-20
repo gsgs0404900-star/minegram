@@ -9920,7 +9920,7 @@ document.documentElement.lang=raw;
 document.documentElement.dir=['ar','fa','he','ur','ps','dv','ckb','sd','ug'].includes(base)?'rtl':'ltr';
 
 function setTranslateCookie(){
-  document.cookie='googtrans='+encodeURIComponent(base==='tr'?'':'/tr/'+target)+'; path=/; SameSite=Lax';
+  document.cookie='googtrans='+ (base==='tr'?'':'/tr/'+target) +'; path=/; SameSite=Lax';
 }
 function exactFallback(){
   const d=T[base]||{};
@@ -9936,10 +9936,33 @@ window.googleTranslateElementInit=function(){
   try{
     new google.translate.TranslateElement({pageLanguage:'tr',includedLanguages:'ab,ace,ach,af,sq,alz,am,ar,hy,as,awa,ay,az,ban,bm,ba,eu,btx,bts,bbc,be,bem,bn,bew,bho,bik,bs,br,bg,bua,zh-TW,ca,ceb,ny,zh-CN,cv,co,crh,hr,cs,da,din,dv,doi,dov,nl,dz,en,eo,et,ee,fj,tl,fi,fr,fy,ff,gaa,gl,lg,ka,de,el,gn,gu,ht,cnh,ha,haw,iw,hil,hi,hmn,hu,hrx,is,ig,ilo,id,ga,it,ja,jw,kn,pam,kk,km,cgg,rw,ktu,gom,ko,kri,ku,ckb,ky,lo,ltg,la,lv,lij,li,ln,lt,lmo,luo,lb,mk,mai,mak,mg,ms,ml,mt,mi,mr,chm,mni,min,lus,mn,my,nr,new,ne,nso,no,nus,oc,or,om,pag,pap,ps,fa,pl,pt,pa,qu,rom,ro,rn,ru,sm,sg,sa,gd,sr,st,crs,shn,sn,scn,szl,sd,si,sk,sl,so,es,su,sw,ss,sv,tg,ta,tt,te,tet,th,ti,ts,tn,tr,tk,ak,uk,ur,ug,uz,vi,cy,xh,yi,yo,yua,zu',autoDisplay:false,multilanguagePage:true},'google_translate_element');
     window.__minegramGoogleReady=true;
+    waitForGoogleLanguage();
   }catch(e){ window.__minegramGoogleReady=false; }
   setTimeout(exactFallback,300);
   setTimeout(exactFallback,1200);
 };
+function forceGoogleLanguage(){
+  if(base==='tr') return;
+  const combo=document.querySelector('select.goog-te-combo');
+  if(combo){
+    const value=target;
+    if(Array.from(combo.options).some(o=>o.value===value)){
+      if(combo.value!==value) combo.value=value;
+      combo.dispatchEvent(new Event('change',{bubbles:true}));
+      window.__minegramGoogleReady=true;
+      return true;
+    }
+  }
+  return false;
+}
+function waitForGoogleLanguage(){
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    if(forceGoogleLanguage() || tries>=40) clearInterval(timer);
+  },250);
+}
+
 function loadGoogle(){
   if(base==='tr'){exactFallback();return;}
   setTranslateCookie();
@@ -9989,6 +10012,7 @@ function boot(){
   const hasLang=params.has('lang');
   setTranslateCookie();
   loadGoogle();
+  waitForGoogleLanguage();
   // Google yüklenemezse yaklaşık 4 saniye sonra server fallback çalışır.
   setTimeout(()=>{if(!window.__minegramGoogleReady)backendFallback();},4200);
   if(hasLang){const u=new URL(location.href);u.searchParams.delete('lang');u.searchParams.delete('langv');history.replaceState({},'',u.pathname+u.search+u.hash);}
