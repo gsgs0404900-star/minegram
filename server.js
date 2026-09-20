@@ -74,6 +74,59 @@ app.use((req, res, next) => {
   next();
 });
 
+/* =========================================================
+   MINEGRAM BAKIM MODU — TÜM SİTE HTML SAYFALARINA OTOMATİK EKLEME
+   Ana site dosyalarının içine tek tek <script> eklemek gerekmez.
+   Sunucu tarafından servis edilen HTML sayfalarına maintenance.js
+   otomatik olarak enjekte edilir. Admin paneli özellikle hariç tutulur.
+========================================================= */
+app.use(async (req, res, next) => {
+  try {
+    if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
+
+    const requested = decodeURIComponent(req.path || "/");
+    const isRoot = requested === "/";
+    const isHtml = requested.endsWith(".html") || isRoot;
+    if (!isHtml) return next();
+
+    // Admin paneli bakım ekranından etkilenmesin.
+    const lower = requested.toLowerCase();
+    if (lower.includes("admin")) return next();
+
+    const relative = isRoot ? "giris.html" : requested.replace(/^\\+/, "");
+    const candidates = [
+      path.join(publicDir, relative),
+      path.join(__dirname, relative)
+    ];
+
+    const file = candidates.find(candidate => {
+      const resolved = path.resolve(candidate);
+      const allowedRoots = [path.resolve(publicDir), path.resolve(__dirname)];
+      return allowedRoots.some(root => resolved === root || resolved.startsWith(root + path.sep)) && fs.existsSync(resolved) && fs.statSync(resolved).isFile();
+    });
+
+    if (!file) return next();
+
+    let html = await fs.promises.readFile(file, "utf8");
+    if (!/maintenance\.js/i.test(html)) {
+      const tag = '<script src="/maintenance.js"></script>';
+      if (/<\/head>/i.test(html)) {
+        html = html.replace(/<\/head>/i, `${tag}\n</head>`);
+      } else if (/<body[^>]*>/i.test(html)) {
+        html = html.replace(/(<body[^>]*>)/i, `$1\n${tag}`);
+      } else {
+        html = `${tag}\\n${html}`;
+      }
+    }
+
+    res.set("Content-Type", "text/html; charset=UTF-8");
+    return res.send(html);
+  } catch (error) {
+    console.warn("Minegram bakım scripti HTML sayfasına eklenemedi:", error?.message || error);
+    return next();
+  }
+});
+
 app.use(express.static(publicDir));
 app.use(express.static(__dirname));
 
