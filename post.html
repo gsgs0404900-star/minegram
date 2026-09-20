@@ -385,6 +385,16 @@ body{
   color:#ed1b3a
 }
 
+.save-action.saved{
+  color:#2196F3;
+}
+.save-action.saved .svg,
+.save-action.saved .bookmark-icon{
+  color:#2196F3;
+  stroke:#2196F3;
+  fill:#2196F3;
+}
+
 .share-action{
   margin-left:auto
 }
@@ -4780,24 +4790,19 @@ function renderPost(p){
 
 
         <button
-          class="action save-action"
+          class="action save-action${getSavedPostIds().has(String(p.id))?' saved':''}"
           onclick="savePost('${esc(p.id)}')"
-          aria-label="Kaydet"
+          aria-label="Gönderiyi kaydet"
         >
 
           <svg
-            class="svg"
+            class="bookmark-icon"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
-
-            <path
-              d="M6 3h12v18l-6-3.5L6 21V3Z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linejoin="round"
-            />
-
+            <path d="${getSavedPostIds().has(String(p.id))
+              ? 'M5 3h14v18l-7-4.5L5 21V3Z'
+              : 'M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z'}"/>
           </svg>
 
         </button>
@@ -5610,7 +5615,27 @@ async function doubleLike(id){
    KAYDET
 ========================================================= */
 
-async function savePost(id){
+async function getSavedPostIds(){
+  try{
+    const raw=localStorage.getItem("minegram_saved_posts");
+    const arr=raw?JSON.parse(raw):[];
+    return new Set(Array.isArray(arr)?arr.map(String):[]);
+  }catch(e){
+    return new Set();
+  }
+}
+
+function setSavedPostLocal(id,saved){
+  try{
+    const ids=getSavedPostIds();
+    const sid=String(id);
+    if(saved) ids.add(sid);
+    else ids.delete(sid);
+    localStorage.setItem("minegram_saved_posts",JSON.stringify([...ids]));
+  }catch(e){}
+}
+
+function savePost(id){
 
   try{
 
@@ -5624,6 +5649,7 @@ async function savePost(id){
         }
       );
 
+    setSavedPostLocal(id, !!r.saved);
 
     toast(
       r.saved
@@ -5631,9 +5657,7 @@ async function savePost(id){
         : "Kayıttan kaldırıldı"
     );
 
-
     await loadFeed();
-
 
   }catch(e){
 
