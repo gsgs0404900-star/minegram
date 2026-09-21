@@ -1070,57 +1070,50 @@ bridgeWatchLiveFinance();
 
 onAuthStateChanged(auth,async user=>{
 
-if(!user){
+  if(!user){
+    currentAdminUser=null;
+    adminVerified=false;
 
-currentAdminUser=null;
-adminVerified=false;
+    $("loginScreen").classList.remove("hidden");
+    $("adminApp").classList.add("hidden");
 
-$("loginScreen").classList.remove("hidden");
-$("adminApp").classList.add("hidden");
+    return;
+  }
 
-return;
-}
+  if(adminLoginInProgress||adminVerified) return;
 
-if(adminLoginInProgress||adminVerified)return;
+  try{
 
-try{
+    $("loginMessage").className="message";
+    $("loginMessage").textContent="Admin hesabı kontrol ediliyor...";
 
-$("loginMessage").className="message";
-$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";
+    if(user.uid!==ADMIN_UID){
 
-const admin=await checkAdmin(user.uid);
+      await signOut(auth);
 
-if(!admin){
+      $("loginScreen").classList.remove("hidden");
+      $("adminApp").classList.add("hidden");
 
-await signOut(auth);
+      $("loginMessage").className="message error";
+      $("loginMessage").textContent=
+        "Bu Firebase hesabı admin olarak yetkilendirilmemiş.";
 
-$("loginScreen").classList.remove("hidden");
-$("adminApp").classList.add("hidden");
+      return;
+    }
 
-$("loginMessage").className="message error";
+    await openAdminPanel(user);
 
-$("loginMessage").textContent=
-"Bu Firebase hesabı admin olarak yetkilendirilmemiş.";
+  }catch(error){
 
-return;
+    console.error("ADMIN LOGIN HATASI:",error);
 
-}
+    $("loginScreen").classList.remove("hidden");
+    $("adminApp").classList.add("hidden");
 
-await openAdminPanel(user);
-
-}catch(error){
-
-console.error("ADMIN KONTROL HATASI:",error);
-
-$("loginScreen").classList.remove("hidden");
-$("adminApp").classList.add("hidden");
-
-$("loginMessage").className="message error";
-
-$("loginMessage").textContent=
-"Admin kontrolü başarısız: "+error.message;
-
-}
+    $("loginMessage").className="message error";
+    $("loginMessage").textContent=
+      "Admin kontrolü başarısız: "+error.message;
+  }
 
 });
 
@@ -1130,75 +1123,56 @@ $("loginMessage").textContent=
 ========================================================= */
 
 $("loginForm").addEventListener("submit",async event=>{
+  event.preventDefault();
 
-event.preventDefault();
+  const email=$("loginEmail").value.trim();
+  const password=$("loginPassword").value;
 
-const email=$("loginEmail").value.trim();
-const password=$("loginPassword").value;
+  if(!email||!password){
+    $("loginMessage").className="message error";
+    $("loginMessage").textContent="E-posta ve şifre gerekli.";
+    return;
+  }
 
-$("loginMessage").className="message";
-$("loginMessage").textContent=
-"Firebase ile giriş yapılıyor...";
+  $("loginMessage").className="message";
+  $("loginMessage").textContent="Firebase ile giriş yapılıyor...";
+  adminLoginInProgress=true;
 
-adminLoginInProgress=true;
+  try{
+    const credential=await signInWithEmailAndPassword(auth,email,password);
+    const user=credential.user;
 
-try{
+    console.log("GİRİŞ YAPAN UID:",user.uid);
+    console.log("ADMIN UID:",ADMIN_UID);
 
-const credential=
-await signInWithEmailAndPassword(
-auth,
-email,
-password
-);
+    if(user.uid!==ADMIN_UID){
+      await signOut(auth);
+      throw new Error(
+        "Bu Firebase hesabı admin hesabı değil. Giriş yapan UID: "+user.uid
+      );
+    }
 
-if(credential.user.uid!==ADMIN_UID){
+    await openAdminPanel(user);
 
-throw new Error(
-"Bu Firebase hesabı admin hesabı değil. Giriş yapan UID: "+
-credential.user.uid
-);
+  }catch(error){
+    console.error("GERÇEK LOGIN HATASI:",error);
 
-}
+    if(auth.currentUser){
+      await signOut(auth).catch(()=>{});
+    }
 
-/*
-   BURADA ARTIK:
+    adminVerified=false;
 
-   admins/{ADMIN_UID}
+    $("loginScreen").classList.remove("hidden");
+    $("adminApp").classList.add("hidden");
 
-   BELGESİ KONTROL EDİLMİYOR.
-*/
+    $("loginMessage").className="message error";
+    $("loginMessage").textContent=
+      "Giriş başarısız: "+(error.code||"")+" - "+error.message;
 
-await openAdminPanel(credential.user);
-
-}catch(error){
-
-console.error("GERÇEK LOGIN HATASI:",error);
-
-adminVerified=false;
-
-if(auth.currentUser){
-
-await signOut(auth).catch(()=>{});
-
-}
-
-$("loginScreen").classList.remove("hidden");
-$("adminApp").classList.add("hidden");
-
-$("loginMessage").className="message error";
-
-$("loginMessage").textContent=
-"HATA: "+
-(error.code||"")+
-" - "+
-error.message;
-
-}finally{
-
-adminLoginInProgress=false;
-
-}
-
+  }finally{
+    adminLoginInProgress=false;
+  }
 });
 
 
