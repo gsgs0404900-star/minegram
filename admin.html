@@ -2,162 +2,422 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Minegram Admin Paneli v2</title>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
-button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
-.login-screen{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;background:linear-gradient(135deg,#f5f7fb,#e9eef8)}
-.login-box{width:100%;max-width:430px;background:#fff;padding:35px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.1)}
-.logo{font-size:30px;font-weight:800;margin-bottom:8px}.logo-sub{color:#697386;margin-bottom:28px}.input-group{margin-bottom:16px}
-.input-group label{display:block;margin-bottom:7px;font-size:14px;font-weight:600}input,select,textarea{width:100%;padding:13px 14px;border:1px solid #d8dde8;border-radius:10px;background:#fff;outline:none}
-textarea{min-height:120px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:#2563eb}
-.btn{border:none;padding:12px 16px;border-radius:10px;font-weight:700}.btn-primary{background:#2563eb;color:#fff}.btn-danger{background:#dc2626;color:#fff}.btn-success{background:#16a34a;color:#fff}.btn-gray{background:#edf0f5;color:#253047}.btn-small{padding:8px 11px;font-size:13px}
-.message{margin-top:12px;font-size:14px}.error{color:#dc2626}.success{color:#15803d}
-.app{min-height:100vh;display:flex}.sidebar{width:250px;position:fixed;left:0;top:0;bottom:0;background:#111827;color:#fff;padding:20px 14px;overflow-y:auto}
-.sidebar-logo{font-size:23px;font-weight:800;padding:10px 12px 18px}.menu-title{padding:7px 12px 8px;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.menu button{font-size:14px}.menu button{width:100%;border:none;background:transparent;color:#cbd5e1;padding:12px;margin-bottom:4px;text-align:left;border-radius:9px}
-.menu button:hover,.menu button.active{background:#1f2937;color:#fff}.main{margin-left:250px;width:calc(100% - 250px);padding:28px}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.topbar h1{margin:0}.admin-email{color:#697386;margin-top:5px;font-size:14px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat-card{background:#fff;border:1px solid #e6e9f0;border-radius:16px;padding:22px}
-.stat-title{color:#697386;font-size:14px}.stat-value{display:block;font-size:28px;font-weight:800;margin-top:8px}
-.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.panel{background:#fff;border:1px solid #e6e9f0;border-radius:16px;padding:20px}.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}.quick-card{border:1px solid #e6e9f0;background:#f8fafc;border-radius:12px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:5px;color:#172033}.quick-card:hover{border-color:#2563eb;background:#eff6ff}.quick-card b{font-size:14px}.quick-card span{font-size:12px;color:#697386}.panel h2,.panel h3{margin-top:0}
-.section{display:none}.section.active{display:block}.toolbar{display:flex;gap:10px;margin:15px 0}.toolbar input{max-width:450px}.table-wrapper{overflow-x:auto}
-table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #edf0f5;white-space:nowrap}th{color:#667085;font-size:13px}
-.badge{display:inline-block;padding:5px 9px;border-radius:99px;background:#edf1f7;font-size:12px}.badge-blue{background:#dbeafe;color:#1d4ed8}.badge-green{background:#dcfce7;color:#166534}.badge-red{background:#fee2e2;color:#991b1b}
-.actions{display:flex;gap:6px;flex-wrap:wrap}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-full{grid-column:1/-1}
-@media(max-width:950px){.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.stats{grid-template-columns:1fr 1fr}}
-@media(max-width:950px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.app{display:block}.sidebar{position:static;width:100%}.main{margin-left:0;width:100%;padding:16px}.menu{display:flex;overflow-x:auto;gap:5px}.menu button{min-width:max-content}.stats{grid-template-columns:1fr}.content-grid,.form-grid{grid-template-columns:1fr}.form-full{grid-column:auto}}
+:root{
+ --primary:#2563eb;--primary2:#3b82f6;--soft:#eff6ff;
+ --sidebar:#0b1730;--sidebar2:#101f3d;--bg:#f5f8fc;--card:#fff;
+ --text:#15264a;--muted:#7182a3;--border:#e5ebf5;
+ --green:#16b978;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;
+ --shadow:0 8px 30px rgba(20,48,90,.06);--radius:16px
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+.hidden{display:none!important}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;background:radial-gradient(circle at 10% 10%,#dbeafe 0,transparent 32%),radial-gradient(circle at 90% 90%,#e0e7ff 0,transparent 32%),#f5f8fc}
+.login-box{width:420px;max-width:100%;background:#fff;border:1px solid var(--border);border-radius:24px;padding:40px;box-shadow:0 25px 70px rgba(20,48,90,.12)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}.login-logo-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#2563eb,#60a5fa);display:grid;place-items:center;color:#fff;font-size:24px;font-weight:900}.login-logo strong{font-size:22px}.login-logo strong span{color:#2563eb}.login-logo small{display:block;color:#8292aa;font-size:11px;margin-top:2px}
+.login-box h1{font-size:27px;margin:0 0 7px}.login-box p{color:var(--muted);margin:0 0 22px}
+.login-box input{width:100%;height:50px;border:1px solid var(--border);border-radius:12px;padding:0 14px;outline:0;margin-bottom:12px}.login-box input:focus,input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(37,99,235,.08)}
+.login-box button,.primary{width:100%;height:48px;border:0;border-radius:11px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-weight:700;cursor:pointer}.message{font-size:12px;margin-top:12px}.message.error{color:#dc2626}.message.success{color:#16a34a}
+#adminApp{display:none}#adminApp:not(.hidden){display:block}
+.layout{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:270px;padding:18px 14px;background:linear-gradient(180deg,#0b1730,#0a1935 65%,#081426);color:#fff;z-index:1000;overflow:auto}.brand{height:62px;display:flex;align-items:center;gap:11px;padding:0 10px;margin-bottom:14px}.brand-logo{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#2563eb,#60a5fa);display:grid;place-items:center;font-weight:900;font-size:22px}.brand-title{font-size:20px;font-weight:800}.brand-title span{color:#3b82f6}.brand-sub{font-size:11px;color:#8191ad;margin-top:2px}.section-label{font-size:10px;letter-spacing:.8px;color:#71829f;padding:13px 12px 7px;text-transform:uppercase}.menu{display:flex;flex-direction:column;gap:4px}.menu button{height:44px;border:0;border-radius:11px;background:transparent;color:#c8d2e4;display:flex;align-items:center;gap:11px;padding:0 12px;cursor:pointer;text-align:left;font-size:13px;transition:.18s}.menu button:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}.menu button.active{background:linear-gradient(135deg,#2563eb,#357cf0);color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.25)}.mi{width:22px;text-align:center;font-size:16px}.badge-count{margin-left:auto;background:#ef4444;color:#fff;border-radius:20px;padding:3px 7px;font-size:9px}.domain-nav{margin-top:15px;padding:13px;border:1px solid rgba(59,130,246,.65);border-radius:14px;background:linear-gradient(135deg,rgba(37,99,235,.22),rgba(59,130,246,.06));cursor:pointer}.domain-nav-row{display:flex;align-items:center;gap:9px}.domain-nav-icon{width:37px;height:37px;border-radius:11px;background:#2563eb;display:grid;place-items:center}.domain-nav strong{font-size:12px}.domain-nav small{display:block;color:#8fa2c0;font-size:9px;margin-top:2px}.new{margin-left:auto;background:#3b82f6;padding:4px 8px;border-radius:20px;font-size:9px}.sidebar-bottom{position:sticky;margin-top:16px;padding-top:12px}.theme-box{height:43px;border:1px solid rgba(255,255,255,.12);border-radius:11px;display:flex;align-items:center;justify-content:space-between;padding:0 11px;color:#aebbd0;font-size:11px}.toggle{width:44px;height:23px;border-radius:20px;background:#1d355c;padding:3px;cursor:pointer}.toggle i{display:block;width:17px;height:17px;border-radius:50%;background:#fff;margin-left:18px}.profile{margin-top:10px;padding:9px;display:flex;align-items:center;gap:9px}.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#172554);display:grid;place-items:center;color:#fff}.profile-info{flex:1}.profile-info strong{display:block;font-size:12px}.profile-info span{display:block;color:#7e91ae;font-size:9px;margin-top:2px}
+.main{margin-left:270px;min-height:100vh;background:#f6f9fd}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:18px;position:sticky;top:0;z-index:100}.search{width:510px;max-width:58%;height:43px;border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:9px;padding:0 14px;background:#fbfcfe;color:#8ca0bd}.search input{flex:1;border:0;outline:0;background:transparent;font-size:13px}.top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.top-icon{width:36px;height:36px;border:0;background:transparent;color:#536581;cursor:pointer;position:relative}.dot{position:absolute;right:0;top:0;width:17px;height:17px;background:#ef4444;border-radius:50%;color:#fff;font-size:9px;display:grid;place-items:center}.top-admin{display:flex;align-items:center;gap:9px;border-left:1px solid var(--border);padding-left:13px}.top-admin .avatar{width:37px;height:37px}.top-admin strong{display:block;font-size:12px}.top-admin span{display:block;color:#8a99b1;font-size:9px;margin-top:2px}
+.content{padding:24px 28px 40px}.section{display:none}.section.active{display:block;animation:fade .18s ease}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.welcome{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.welcome h1{font-size:23px;margin:0 0 5px}.welcome p{font-size:12px;color:#8090a9;margin:0}.date{background:#fff;border:1px solid var(--border);border-radius:11px;padding:10px 16px}.date strong{display:block;font-size:11px}.date span{display:block;color:#8392aa;font-size:9px;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:15px;margin-bottom:18px}.stat{background:#fff;border:1px solid var(--border);border-radius:15px;padding:16px;box-shadow:var(--shadow);transition:.2s}.stat:hover{transform:translateY(-2px)}.stat-icon{width:41px;height:41px;border-radius:12px;display:grid;place-items:center;margin-bottom:10px;font-size:17px}.blue{background:#eaf2ff;color:#2563eb}.purple{background:#f1ebff;color:#8b5cf6}.red{background:#fff0f1;color:#ef4444}.orange{background:#fff6e6;color:#f59e0b}.green{background:#e8fbf4;color:#10b981}.stat-title{font-size:10px;color:#71819c}.stat-value{font-size:22px;font-weight:800;margin:3px 0;color:#15264a}.change{font-size:10px;font-weight:700}.up{color:#16b978}.down{color:#ef4444}.stat-desc{font-size:9px;color:#91a0b6;margin-top:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(280px,.95fr);gap:17px;margin-bottom:17px}.panel{background:#fff;border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow);overflow:hidden}.panel-head{min-height:61px;padding:14px 19px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf1f6}.panel-title{font-size:14px;font-weight:800}.panel-link{border:0;background:transparent;color:#2563eb;font-size:10px;cursor:pointer;font-weight:600}
+.tabs{display:flex;background:#f2f6fb;border-radius:20px;padding:3px}.tabs button{border:0;background:transparent;color:#7486a4;padding:6px 13px;border-radius:17px;font-size:9px;cursor:pointer}.tabs button.active{background:#2563eb;color:#fff}.chart-wrap{height:280px;padding:16px 19px}.legend{display:flex;gap:18px;font-size:9px;color:#8090a9;margin-bottom:4px}.chart{height:235px;position:relative;background:linear-gradient(to bottom,transparent 24%,#edf2f8 25%,transparent 26%,transparent 49%,#edf2f8 50%,transparent 51%,transparent 74%,#edf2f8 75%,transparent 76%);margin-left:38px}.chart svg{position:absolute;inset:5px 0 22px 0;width:100%;height:calc(100% - 27px)}.xlabels{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;font-size:8px;color:#8090a9}
+.activity{padding:7px 18px}.activity-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #edf1f6}.activity-row:last-child{border:0}.activity-icon{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}.activity-body{flex:1;min-width:0}.activity-body strong{display:block;font-size:10px}.activity-body span{display:block;font-size:8px;color:#8796ad;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.time{font-size:8px;color:#91a0b6}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:650px}.table th{text-align:left;background:#fbfcfe;color:#70819f;font-size:9px;padding:11px 14px;border-bottom:1px solid var(--border)}.table td{font-size:10px;color:#536581;padding:11px 14px;border-bottom:1px solid #edf1f6}.table tr:hover td{background:#fbfdff}.user-cell{display:flex;align-items:center;gap:8px}.user-avatar{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;background:#dbeafe;color:#2563eb;font-weight:700}.status{display:inline-flex;padding:4px 9px;border-radius:20px;font-size:8px;font-weight:700}.status.active{background:#dcfce7;color:#16a34a}.status.pending{background:#fef3c7;color:#b45309}.status.blocked{background:#fee2e2;color:#dc2626}
+.quick{padding:13px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quick button{min-height:65px;border:1px solid #e6edf7;border-radius:11px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:#354b70;font-size:9px}.quick button:hover{border-color:#bfd3f8;transform:translateY(-1px)}.quick i{font-style:normal;font-size:15px}.domain-card{margin:0 13px 13px;border-radius:13px;padding:15px;color:#fff;background:linear-gradient(135deg,#2563eb,#1d4ed8);position:relative;overflow:hidden}.domain-card:after{content:"";position:absolute;width:145px;height:145px;border:1px solid rgba(255,255,255,.15);border-radius:50%;right:-48px;bottom:-65px}.domain-top{display:flex;align-items:center;gap:9px;position:relative;z-index:2}.domain-icon{width:37px;height:37px;border-radius:11px;background:rgba(255,255,255,.18);display:grid;place-items:center}.domain-card strong{font-size:12px}.domain-card small{display:block;opacity:.75;font-size:8px}.domain-card ul{list-style:none;margin:10px 0 0;padding:0;position:relative;z-index:2}.domain-card li{font-size:8px;margin:5px 0}.domain-open{position:absolute;right:13px;top:13px;border:0;border-radius:50%;width:29px;height:29px;background:#fff;color:#2563eb;cursor:pointer;z-index:5}
+.card{background:#fff;border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow);padding:19px;margin-bottom:17px}.card h2{font-size:16px;margin:0 0 14px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;color:#667895;font-weight:600}.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 11px;outline:0;background:#fff;color:var(--text)}.field textarea{min-height:110px;resize:vertical}.btn{border:0;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:10px;font-weight:700}.btn-primary{background:#2563eb;color:#fff}.btn-danger{background:#ef4444;color:#fff}.btn-success{background:#16b978;color:#fff}.btn-gray{background:#e9eef6;color:#40536f}.btn-small{padding:6px 9px}.actions{display:flex;gap:5px;flex-wrap:wrap}.badge{display:inline-flex;padding:4px 8px;border-radius:20px;background:#eef2f7;color:#60708b;font-size:8px}.badge-blue{background:#eaf2ff;color:#2563eb}.badge-green{background:#dcfce7;color:#16a34a}.badge-red{background:#fee2e2;color:#dc2626}.stats-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini{background:#f8fafc;border:1px solid var(--border);padding:14px;border-radius:12px}.mini strong{font-size:20px;display:block}.mini span{font-size:9px;color:#7182a3}
+.logout{margin-left:auto}
+.dark{--bg:#0b1220;--card:#111b2e;--text:#edf4ff;--muted:#8ea0bd;--border:#1d2b43}.dark .main{background:#0b1220}.dark .topbar,.dark .panel,.dark .stat,.dark .card,.dark .date{background:#111b2e;border-color:#1d2b43}.dark .search{background:#0d1728;border-color:#1d2b43}.dark .stat-value,.dark .panel-title,.dark .welcome h1{color:#edf4ff}.dark .table th{background:#0d1728}.dark .table tr:hover td{background:#0d1728}
+
+/* =========================================================
+   TEMA YAZI / KONTROL DÜZELTMESİ
+   Açık temada koyu yazı, koyu temada açık yazı.
+========================================================= */
+body{color:var(--text)}
+.main{color:var(--text)}
+.welcome h1,.panel-title,.card h2,.stat-value,.stat-title,.activity-body strong,.top-admin strong,.profile-info strong,.brand-title,.login-box h1{color:var(--text)}
+.welcome p,.date span,.stat-desc,.activity-body span,.time,.field label,.section-label,.mini span{color:var(--muted)}
+.table th{color:var(--muted);background:var(--surface-2,#fbfcfe)}
+.table td{color:var(--text);border-bottom-color:var(--border)}
+.table tr:hover td{background:var(--surface-2,#fbfcfe)}
+.quick button{background:var(--card);color:var(--text);border-color:var(--border)}
+.quick button:hover{border-color:#bfd3f8;background:var(--surface-2,#f8fafc)}
+.activity-row{border-bottom-color:var(--border)}
+.panel-head{border-bottom-color:var(--border)}
+.mini{background:var(--surface-2,#f8fafc);border-color:var(--border);color:var(--text)}
+.search{color:var(--muted)}
+.search input{color:var(--text)}
+.search input::placeholder,.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+.field input,.field select,.field textarea{background:var(--card);color:var(--text);border-color:var(--border)}
+.field select option{background:var(--card);color:var(--text)}
+.btn-gray{background:var(--surface-2,#e9eef6);color:var(--text)}
+.badge{background:var(--surface-2,#eef2f7);color:var(--muted)}
+.date{color:var(--text)}
+.top-icon{color:var(--muted)}
+.tabs{background:var(--surface-2,#f2f6fb)}
+.tabs button{color:var(--muted)}
+.xlabels,.legend{color:var(--muted)}
+.chart{background:linear-gradient(to bottom,transparent 24%,var(--border) 25%,transparent 26%,transparent 49%,var(--border) 50%,transparent 51%,transparent 74%,var(--border) 75%,transparent 76%)}
+
+.dark{
+ --bg:#080d16;
+ --card:#111827;
+ --text:#f8fafc;
+ --muted:#a8b3c7;
+ --border:#263247;
+ --surface-2:#0d1524;
+}
+.dark html,.dark body{background:var(--bg);color:var(--text)}
+.dark .main{background:var(--bg);color:var(--text)}
+.dark .topbar,.dark .panel,.dark .stat,.dark .card,.dark .date,.dark .login-box{background:var(--card);border-color:var(--border);color:var(--text)}
+.dark .welcome h1,.dark .panel-title,.dark .card h2,.dark .stat-value,.dark .stat-title,.dark .activity-body strong,.dark .top-admin strong,.dark .profile-info strong,.dark .mini strong,.dark .brand-title{color:#f8fafc}
+.dark .welcome p,.dark .date span,.dark .stat-desc,.dark .activity-body span,.dark .time,.dark .field label,.dark .section-label,.dark .mini span{color:#a8b3c7}
+.dark .table th{background:#0d1524;color:#b9c4d6;border-bottom-color:var(--border)}
+.dark .table td{background:#111827;color:#e5edf8;border-bottom-color:var(--border)}
+.dark .table tr:hover td{background:#172236}
+.dark .quick button{background:#111827;color:#eef4ff;border-color:var(--border)}
+.dark .quick button:hover{background:#172236;border-color:#35517d}
+.dark .activity-row,.dark .panel-head{border-bottom-color:var(--border)}
+.dark .mini{background:#0d1524;border-color:var(--border);color:#f8fafc}
+.dark .search{background:#0d1524;border-color:var(--border);color:#a8b3c7}
+.dark .search input{color:#f8fafc}
+.dark .search input::placeholder,.dark .field input::placeholder,.dark .field textarea::placeholder{color:#71809a}
+.dark .field input,.dark .field select,.dark .field textarea{background:#0d1524;color:#f8fafc;border-color:var(--border)}
+.dark .field select option{background:#111827;color:#f8fafc}
+.dark .btn-gray{background:#243047;color:#eef4ff}
+.dark .badge{background:#202c40;color:#d5deec}
+.dark .tabs{background:#0d1524}
+.dark .tabs button{color:#9eacc2}
+.dark .xlabels,.dark .legend{color:#9eacc2}
+.dark .chart{background:linear-gradient(to bottom,transparent 24%,#263247 25%,transparent 26%,transparent 49%,#263247 50%,transparent 51%,transparent 74%,#263247 75%,transparent 76%)}
+.dark .login-box p{color:#a8b3c7}
+.dark .login-box input{background:#0d1524;color:#f8fafc;border-color:var(--border)}
+.dark .login-box input::placeholder{color:#71809a}
+.dark .login-logo strong{color:#f8fafc}
+.dark .top-admin span{color:#91a0b7}
+.dark .form-grid,.dark .stats{color:#f8fafc}
+.dark .status{color:inherit}
+
+@media(max-width:1250px){.stats{grid-template-columns:repeat(3,1fr)}}@media(max-width:1000px){.sidebar{width:78px}.main{margin-left:78px}.brand-title,.brand-sub,.section-label,.menu button span:not(.mi),.badge-count,.domain-nav strong,.domain-nav small,.new,.theme-box,.profile-info{display:none}.brand{justify-content:center;padding:0}.menu button{justify-content:center;padding:0}.mi{width:auto}.domain-nav{padding:8px}.domain-nav-row{justify-content:center}.grid2{grid-template-columns:1fr}}@media(max-width:760px){.topbar{padding:0 14px}.search{max-width:none;width:100%}.top-admin{display:none}.content{padding:19px 14px 30px}.stats{grid-template-columns:repeat(2,1fr)}.date{display:none}.form-grid{grid-template-columns:1fr}}@media(max-width:520px){.sidebar{width:62px}.main{margin-left:62px}.stats{grid-template-columns:1fr}.quick{grid-template-columns:repeat(2,1fr)}.welcome h1{font-size:19px}}
 </style>
+
+<style id="minegram-theme-fix">
+/* Tema yazıları: açık temada siyah/koyu, koyu temada beyaz/açık */
+:root{
+  --mg-bg:#f5f7fb;
+  --mg-card:#ffffff;
+  --mg-text:#111827;
+  --mg-muted:#64748b;
+  --mg-border:#e5e7eb;
+}
+body{
+  background:var(--mg-bg);
+  color:var(--mg-text);
+}
+.main,.section,.panel,.stat-card,.quick-card{
+  color:var(--mg-text);
+}
+.topbar h1,.panel h2,.panel h3,.stat-value,.stat-title,
+.quick-card b,.login-box,.logo,.input-group label,
+table td,.table-wrapper{
+  color:var(--mg-text);
+}
+.admin-email,.stat-title,.quick-card span,th,.panel p,
+.logo-sub,.menu-title{
+  color:var(--mg-muted);
+}
+input,select,textarea{
+  color:var(--mg-text);
+  background:var(--mg-card);
+  border-color:#d8dde8;
+}
+input::placeholder,textarea::placeholder{color:#94a3b8}
+th,td{border-bottom-color:var(--mg-border)}
+.quick-card{background:#f8fafc;border-color:var(--mg-border)}
+.panel,.stat-card,.login-box{background:var(--mg-card);border-color:var(--mg-border)}
+
+/* Koyu tema */
+body.dark{
+  --mg-bg:#080d16;
+  --mg-card:#111827;
+  --mg-text:#f8fafc;
+  --mg-muted:#a8b3c7;
+  --mg-border:#263247;
+  background:var(--mg-bg);
+  color:var(--mg-text);
+}
+body.dark .main,
+body.dark .section,
+body.dark .panel,
+body.dark .stat-card,
+body.dark .quick-card,
+body.dark .login-box{
+  color:var(--mg-text);
+}
+body.dark .topbar h1,
+body.dark .panel h2,
+body.dark .panel h3,
+body.dark .stat-value,
+body.dark .stat-title,
+body.dark .quick-card b,
+body.dark .input-group label,
+body.dark table td,
+body.dark .table-wrapper,
+body.dark .logo{
+  color:#f8fafc;
+}
+body.dark .admin-email,
+body.dark .stat-title,
+body.dark .quick-card span,
+body.dark th,
+body.dark .panel p,
+body.dark .logo-sub{
+  color:#a8b3c7;
+}
+body.dark input,
+body.dark select,
+body.dark textarea{
+  color:#f8fafc;
+  background:#0d1524;
+  border-color:#263247;
+}
+body.dark input::placeholder,
+body.dark textarea::placeholder{color:#71809a}
+body.dark th,body.dark td{border-bottom-color:#263247}
+body.dark .quick-card{
+  color:#f8fafc;
+  background:#0d1524;
+  border-color:#263247;
+}
+body.dark .quick-card:hover{
+  background:#172236;
+  border-color:#35517d;
+}
+body.dark .panel,
+body.dark .stat-card,
+body.dark .login-box{
+  background:#111827;
+  border-color:#263247;
+}
+body.dark .btn-gray{
+  background:#243047;
+  color:#f8fafc;
+}
+</style>
+
 </head>
+
 <body>
 
-<div id="loginScreen" class="login-screen">
-<div class="login-box">
-<div class="logo">Minegram Admin</div>
-<div class="logo-sub">Yönetim paneline giriş</div>
-<form id="loginForm">
-<div class="input-group"><label>Admin e-posta</label><input id="loginEmail" type="email" placeholder="admin@minegram.com" required></div>
-<div class="input-group"><label>Şifre</label><input id="loginPassword" type="password" placeholder="Şifre" required></div>
-<button type="submit" class="btn btn-primary" style="width:100%;">Admin olarak giriş yap</button>
-<div id="loginMessage" class="message"></div>
-</form>
-</div>
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">M</div>
+      <div><strong>MINE<span>GRAM</span></strong><small>Admin Paneli v2</small></div>
+    </div>
+    <h1>Admin Girişi</h1>
+    <p>Minegram yönetim paneline güvenli şekilde giriş yapın.</p>
+    <form id="loginForm">
+      <input id="loginEmail" type="email" placeholder="E-posta adresi" autocomplete="username" required>
+      <input id="loginPassword" type="password" placeholder="Şifre" autocomplete="current-password" required>
+      <button type="submit">Yönetim Paneline Gir</button>
+    </form>
+    <div id="loginMessage" class="message"></div>
+  </div>
 </div>
 
-<div id="adminApp" class="app hidden">
+<div id="adminApp" class="hidden">
+<div class="layout">
+
 <aside class="sidebar">
-<div class="sidebar-logo">Minegram Admin</div>
-<div class="menu">
-<div class="menu-title">Yönetim</div>
-<button class="active" data-page="dashboard">🏠 Dashboard</button>
-<button data-page="users">👥 Kullanıcılar</button>
-<button data-page="posts">📸 Gönderiler</button>
-<button data-page="reports">🚨 Şikâyetler</button>
-<button data-page="problemReports">🛠️ Sorun Bildirimleri</button>
-<button data-page="verification">🔵 Mavi Tik</button>
-<button data-page="balance">💰 Bakiye</button>
-<button data-page="bank">🏦 Banka / Ödeme</button>
-<button data-page="announcements">📢 Duyurular</button>
-<button data-page="emailService">📧 E-posta / Doğrulama</button>
-<button data-page="phoneOtp">📱 Telefon / SMS OTP</button>
-<button data-page="settings">⚙️ Ayarlar</button>
-</div>
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <div><div class="brand-title">MINE<span>GRAM</span></div><div class="brand-sub">Admin Paneli v2</div></div>
+  </div>
+
+  <div class="menu">
+    <button class="active" data-page="dashboard"><span class="mi">⌂</span><span>Dashboard</span></button>
+  </div>
+
+  <div class="section-label">Yönetim</div>
+  <div class="menu">
+    <button data-page="users"><span class="mi">👥</span><span>Kullanıcılar</span></button>
+    <button data-page="posts"><span class="mi">▣</span><span>Gönderiler</span></button>
+    <button data-page="reports"><span class="mi">!</span><span>Şikâyetler</span><span class="badge-count">3</span></button>
+    <button data-page="problemReports"><span class="mi">⚠</span><span>Sorun Bildirimleri</span><span class="badge-count">5</span></button>
+    <button data-page="verification"><span class="mi">✓</span><span>Mavi Tik</span></button>
+    <button data-page="balance"><span class="mi">₺</span><span>Bakiye</span></button>
+    <button data-page="bank"><span class="mi">▤</span><span>Banka / Ödeme</span></button>
+    <button data-page="announcements"><span class="mi">◢</span><span>Duyurular</span></button>
+    <button data-page="emailService"><span class="mi">✉</span><span>E-posta / Doğrulama</span></button>
+    <button data-page="phoneOtp"><span class="mi">☎</span><span>Telefon / SMS OTP</span></button>
+    <button data-page="settings"><span class="mi">⚙</span><span>Ayarlar</span></button>
+  </div>
+
+  <div class="domain-nav" onclick="openSuperAlanAdi()">
+    <div class="domain-nav-row">
+      <div class="domain-nav-icon">🌐</div>
+      <div><strong>SüperAlanAdı</strong><small>Domain Yönetimi</small></div>
+      <div class="new">Yeni</div>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="theme-box"><span>☼ ◐</span><span>Tema</span><div class="toggle" onclick="toggleTheme()"><i></i></div></div>
+    <div class="profile">
+      <div class="avatar">A</div>
+      <div class="profile-info"><strong>Admin</strong><span id="adminEmail">-</span></div>
+      <button class="top-icon" id="logoutButton" title="Çıkış">›</button>
+    </div>
+  </div>
 </aside>
 
 <main class="main">
-<div class="topbar">
-<div><h1 id="pageTitle">Dashboard</h1><div id="adminEmail" class="admin-email"></div></div>
-<button id="logoutButton" class="btn btn-gray">Çıkış yap</button>
-</div>
+<header class="topbar">
+  <div class="search"><span>🔎</span><input id="globalSearch" type="search" placeholder="Kullanıcı, gönderi, ID ara..."></div>
+  <div class="top-actions">
+    <button class="top-icon">🔔<span class="dot">3</span></button>
+    <button class="top-icon" onclick="toggleTheme()">☾</button>
+    <div class="top-admin"><div class="avatar">A</div><div><strong>Admin</strong><span>Yönetici</span></div><span>⌄</span></div>
+  </div>
+</header>
+
+<div class="content">
 
 <section id="dashboard" class="section active">
-<div class="stats">
-<div class="stat-card"><span class="stat-title">Toplam kullanıcı</span><span id="totalUsers" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Toplam gönderi</span><span id="totalPosts" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Bekleyen şikâyet</span><span id="totalReports" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Bekleyen sorun bildirimi</span><span id="totalProblemReports" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Toplam bakiye</span><span id="totalBalance" class="stat-value">—</span></div>
-</div>
-<div class="content-grid">
-<div class="panel"><h3>Admin paneli</h3><p>Minegram kullanıcılarını, gönderileri, şikâyetleri, sorun bildirimlerini, mavi tikleri, bakiyeleri, banka/ödeme işlemlerini ve duyuruları buradan yönetebilirsin.</p><div class="quick-grid">
-<button class="quick-card" data-quick-page="posts">📸<b>Gönderiler</b><span>Gönderileri görüntüle ve yönet</span></button>
-<button class="quick-card" data-quick-page="reports">🚨<b>Şikâyetler</b><span>Şikâyetleri incele</span></button>
-<button class="quick-card" data-quick-page="problemReports">🛠️<b>Sorun Bildirimleri</b><span>Destek bildirimlerini yönet</span></button>
-<button class="quick-card" data-quick-page="verification">🔵<b>Mavi Tik</b><span>Doğrulama durumlarını yönet</span></button>
-<button class="quick-card" data-quick-page="balance">💰<b>Bakiye</b><span>Bakiye işlemlerini yönet</span></button>
-<button class="quick-card" data-quick-page="bank">🏦<b>Banka / Ödeme</b><span>Ödeme ve çekimleri yönet</span></button>
-<button class="quick-card" data-quick-page="announcements">📢<b>Duyurular</b><span>Yeni duyuru yayınla</span></button>
-</div></div>
-<div class="panel"><h3>Güvenlik</h3><p>Admin erişimi Firebase Authentication ve Firestore'daki <b>admins/{uid}</b> kaydıyla kontrol edilir.</p></div>
-</div>
+  <div class="welcome">
+    <div><h1>👋 Hoş Geldiniz, Admin!</h1><p>Minegram admin paneline hoş geldiniz. Sistemi buradan kontrol edebilirsiniz.</p></div>
+    <div class="date"><strong id="todayDate">📅</strong><span id="todayTime"></span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-icon blue">👤</div><div class="stat-title">Toplam Kullanıcı</div><div id="totalUsers" class="stat-value">0</div><div class="change up">↑ Canlı</div><div class="stat-desc">Aktif kullanıcılar</div></div>
+    <div class="stat"><div class="stat-icon purple">▣</div><div class="stat-title">Toplam Gönderi</div><div id="totalPosts" class="stat-value">0</div><div class="change up">↑ Canlı</div><div class="stat-desc">Sistemdeki gönderiler</div></div>
+    <div class="stat"><div class="stat-icon red">!</div><div class="stat-title">Toplam Şikâyet</div><div id="totalReports" class="stat-value">0</div><div class="change down">● Bekleyen</div><div class="stat-desc">Çözülmemiş şikâyetler</div></div>
+    <div class="stat"><div class="stat-icon orange">⚠</div><div class="stat-title">Sorun Bildirimi</div><div id="totalProblemReports" class="stat-value">0</div><div class="change down">● Takip</div><div class="stat-desc">Açık bildirimler</div></div>
+    <div class="stat"><div class="stat-icon green">₺</div><div class="stat-title">Toplam Bakiye</div><div id="totalBalance" class="stat-value">0 ₺</div><div class="change up">↑ Canlı</div><div class="stat-desc">Kullanıcı bakiyeleri</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Sistem İstatistikleri</div><div class="tabs"><button class="active">7 Gün</button><button>30 Gün</button><button>90 Gün</button></div></div>
+      <div class="chart-wrap">
+        <div class="legend"><span>🔵 Kullanıcı</span><span>🟣 Gönderi</span><span>🟢 Etkileşim</span></div>
+        <div class="chart">
+          <svg viewBox="0 0 700 210" preserveAspectRatio="none">
+            <path d="M0 170 C80 140 90 130 170 110 C240 92 280 105 350 90 C420 72 460 65 525 48 C600 28 650 40 700 20 L700 210 L0 210Z" fill="#2563eb" opacity=".08"/>
+            <path d="M0 170 C80 140 90 130 170 110 C240 92 280 105 350 90 C420 72 460 65 525 48 C600 28 650 40 700 20" fill="none" stroke="#2563eb" stroke-width="3"/>
+            <path d="M0 190 C80 175 100 165 170 145 C240 130 280 140 350 125 C430 110 460 100 525 88 C600 70 650 75 700 55" fill="none" stroke="#8b5cf6" stroke-width="3"/>
+            <path d="M0 205 C80 195 100 190 170 175 C250 160 280 165 350 158 C430 150 470 135 525 132 C600 125 650 130 700 105" fill="none" stroke="#10b981" stroke-width="3"/>
+          </svg>
+          <div class="xlabels"><span>15 Eyl</span><span>16 Eyl</span><span>17 Eyl</span><span>18 Eyl</span><span>19 Eyl</span><span>20 Eyl</span><span>21 Eyl</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Son Aktiviteler</div><button class="panel-link">Tümünü Gör</button></div>
+      <div class="activity">
+        <div class="activity-row"><div class="activity-icon blue">👤</div><div class="activity-body"><strong>Yeni kullanıcı kaydı</strong><span>Yeni kullanıcı sisteme katıldı</span></div><div class="time">13:12</div></div>
+        <div class="activity-row"><div class="activity-icon purple">▣</div><div class="activity-body"><strong>Yeni gönderi</strong><span>Kullanıcı yeni gönderi paylaştı</span></div><div class="time">12:58</div></div>
+        <div class="activity-row"><div class="activity-icon red">!</div><div class="activity-body"><strong>Şikâyet bildirimi</strong><span>Kullanıcı tarafından şikâyet edildi</span></div><div class="time">12:45</div></div>
+        <div class="activity-row"><div class="activity-icon green">₺</div><div class="activity-body"><strong>Ödeme alındı</strong><span>Bakiye işlemi gerçekleştirildi</span></div><div class="time">12:32</div></div>
+        <div class="activity-row"><div class="activity-icon orange">⚠</div><div class="activity-body"><strong>Sorun bildirimi</strong><span>Uygulama hatası bildirildi</span></div><div class="time">12:21</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Son Gönderiler</div><button class="panel-link" onclick="openAdminPage('posts')">Tümünü Gör</button></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Kullanıcı</th><th>İçerik</th><th>Tarih</th><th>Durum</th></tr></thead><tbody id="dashboardPostsTable"><tr><td colspan="4">Yükleniyor...</td></tr></tbody></table></div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Hızlı İşlemler</div></div>
+        <div class="quick">
+          <button data-quick-page="users"><i>👤</i>Kullanıcı Ekle</button>
+          <button data-quick-page="posts"><i>▣</i>Gönderi Yönet</button>
+          <button data-quick-page="reports"><i>!</i>Şikâyetleri Gör</button>
+          <button data-quick-page="balance"><i>₺</i>Bakiye İşlemleri</button>
+          <button data-quick-page="announcements"><i>◢</i>Duyuru Yayınla</button>
+          <button data-quick-page="settings"><i>⚙</i>Ayarlar</button>
+        </div>
+        <div class="domain-card">
+          <button class="domain-open" onclick="openSuperAlanAdi()">→</button>
+          <div class="domain-top"><div class="domain-icon">🌐</div><div><strong>SüperAlanAdı</strong><small>Domain Yönetimi</small></div></div>
+          <ul><li>✓ Domain sorgula</li><li>✓ Alan adı kaydet</li><li>✓ Müşteri yönetimi</li><li>✓ Sipariş takibi</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section id="users" class="section"><div class="panel"><h2>👥 Kullanıcılar</h2><div class="toolbar"><input id="userSearch" placeholder="Kullanıcı adı veya e-posta ara"></div><div class="table-wrapper"><table><thead><tr><th>UID</th><th>E-posta</th><th>Kullanıcı</th><th>Bakiye</th><th>Mavi Tik</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="usersTable"></tbody></table></div></div></section>
+<section id="users" class="section">
+  <div class="card"><h2>Kullanıcılar</h2><input id="userSearch" placeholder="Kullanıcı, e-posta veya UID ara..." style="width:100%;margin-bottom:12px"><div class="table-wrap"><table class="table"><thead><tr><th>UID</th><th>E-posta</th><th>Kullanıcı</th><th>Bakiye</th><th>Doğrulama</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="usersTable"></tbody></table></div></div>
+</section>
 
-<section id="posts" class="section"><div class="panel"><h2>📸 Gönderiler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody id="postsTable"></tbody></table></div></div></section>
+<section id="posts" class="section"><div class="card"><h2>Gönderiler</h2><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Kullanıcı</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody id="postsTable"></tbody></table></div></div></section>
 
-<section id="reports" class="section"><div class="panel"><h2>🚨 Şikâyetler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Şikâyet eden</th><th>Hedef</th><th>Neden</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
+<section id="reports" class="section"><div class="card"><h2>Şikâyetler</h2><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Bildiren</th><th>Hedef</th><th>Neden</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
 
-<section id="problemReports" class="section"><div class="panel"><h2>🛠️ Sorun Bildirimleri</h2><p>Kullanıcıların Ayarlar → Yardım → Sorun bildir bölümünden gönderdiği bildirimler.</p><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>E-posta</th><th>Sorun</th><th>Fotoğraf</th><th>Tarih</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="problemReportsTable"></tbody></table></div></div></section>
+<section id="problemReports" class="section"><div class="card"><h2>Sorun Bildirimleri</h2><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Kullanıcı</th><th>E-posta</th><th>Açıklama</th><th>Fotoğraf</th><th>Tarih</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="problemReportsTable"></tbody></table></div></div></section>
 
-<section id="verification" class="section"><div class="panel"><h2>🔵 Mavi Tik Yönetimi</h2><p>Kullanıcıların mavi tik durumunu buradan açıp kapatabilirsin.</p><div class="table-wrapper"><table><thead><tr><th>Kullanıcı</th><th>E-posta</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="verificationTable"></tbody></table></div></div></section>
+<section id="verification" class="section"><div class="card"><h2>Mavi Tik</h2><div class="table-wrap"><table class="table"><thead><tr><th>Kullanıcı</th><th>E-posta</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="verificationTable"></tbody></table></div></div></section>
 
-<section id="balance" class="section"><div class="content-grid"><div class="panel"><h2>💰 Bakiye işlemi</h2><p>Satın alma/ödeme sistemi Firebase üzerinde aynı kullanıcı bakiyesini güncellediğinde burada anında görünür.</p><div class="input-group"><label>Kullanıcı UID</label><input id="balanceUid" placeholder="Kullanıcı UID"></div><div class="input-group"><label>Tutar</label><input id="balanceAmount" type="number" step="0.01" placeholder="0.00"></div><div class="input-group"><label>İşlem</label><select id="balanceType"><option value="credit">Bakiye ekle</option><option value="debit">Bakiye düş</option></select></div><div class="input-group"><label>Açıklama</label><textarea id="balanceNote" placeholder="Bakiye işlem açıklaması"></textarea></div><button id="balanceButton" class="btn btn-primary">İşlemi uygula</button><div id="balanceMessage" class="message"></div></div><div class="panel"><h2>💳 Bakiye özeti</h2><div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat-card"><span class="stat-title">Toplam kullanıcı bakiyesi</span><span id="balanceTotalLive" class="stat-value">—</span></div><div class="stat-card"><span class="stat-title">Bekleyen çekim</span><span id="pendingWithdrawTotal" class="stat-value">—</span></div></div><h3 style="margin-top:20px">Son bakiye hareketleri</h3><div class="table-wrapper"><table><thead><tr><th>Kullanıcı</th><th>Tutar</th><th>Tip</th><th>Açıklama</th><th>Tarih</th></tr></thead><tbody id="balanceTable"></tbody></table></div></div></div></section>
+<section id="balance" class="section">
+  <div class="card"><h2>Bakiye İşlemleri</h2>
+    <div class="form-grid">
+      <div class="field"><label>Kullanıcı UID</label><input id="balanceUid" placeholder="UID"></div>
+      <div class="field"><label>Tutar</label><input id="balanceAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>İşlem</label><select id="balanceType"><option value="credit">Bakiye Ekle</option><option value="debit">Bakiye Düş</option></select></div>
+      <div class="field"><label>Açıklama</label><input id="balanceNote" placeholder="İşlem açıklaması"></div>
+      <div class="field full"><button id="balanceButton" class="primary">Bakiye İşlemini Kaydet</button><div id="balanceMessage" class="message"></div></div>
+    </div>
+  </div>
+  <div class="card"><h2>Bakiye Hareketleri</h2><div class="table-wrap"><table class="table"><thead><tr><th>UID</th><th>Tutar</th><th>Tip</th><th>Açıklama</th><th>Tarih</th></tr></thead><tbody id="balanceTable"></tbody></table></div></div>
+</section>
 
-<section id="bank" class="section"><div class="panel"><h2>🏦 Banka / Ödeme İşlemleri</h2><p>Para çekme talepleri ve ödeme işlemleri burada yönetilir. Onaylanan çekim tutarı kullanıcının bakiyesinden düşülür.</p><div class="table-wrapper"><table><thead><tr><th>İşlem ID</th><th>Kullanıcı</th><th>Tutar</th><th>Tür</th><th>Banka/IBAN</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="bankTable"></tbody></table></div></div></section>
+<section id="bank" class="section">
+  <div class="card"><h2>Banka / Ödeme</h2><div class="stats-mini"><div class="mini"><strong id="pendingWithdrawTotal">0 ₺</strong><span>Bekleyen çekim</span></div><div class="mini"><strong id="balanceTotalLive">0 ₺</strong><span>Toplam bakiye</span></div><div class="mini"><strong>Canlı</strong><span>Firebase bağlantısı</span></div></div></div>
+  <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>UID</th><th>Tutar</th><th>Tip</th><th>Banka</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="bankTable"></tbody></table></div></div>
+</section>
 
-<section id="announcements" class="section"><div class="panel"><h2>📢 Duyuru yayınla</h2><div class="input-group"><label>Başlık</label><input id="announcementTitle" placeholder="Duyuru başlığı"></div><div class="input-group"><label>Mesaj</label><textarea id="announcementText" placeholder="Duyuru metni"></textarea></div><button id="announcementButton" class="btn btn-primary">Duyuruyu yayınla</button><div id="announcementMessage" class="message"></div></div></section>
+<section id="announcements" class="section">
+  <div class="card"><h2>Duyuru Yayınla</h2><div class="form-grid"><div class="field full"><label>Başlık</label><input id="announcementTitle" placeholder="Duyuru başlığı"></div><div class="field full"><label>Mesaj</label><textarea id="announcementText" placeholder="Duyuru metni"></textarea></div><div class="field full"><button id="announcementButton" class="primary">Duyuruyu Yayınla</button><div id="announcementMessage" class="message"></div></div></div></div>
+</section>
 
 <section id="emailService" class="section">
-<div class="content-grid">
-<div class="panel">
-<h2>📧 Gmail HTTPS E-posta Servisi</h2>
-<p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi Gmail API üzerinden HTTPS ile yapılır. SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.</p>
-<div class="input-group"><label>Gönderici Gmail</label><input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email"></div>
-<div class="input-group"><label>Gönderici adı</label><input id="gatewayFromName" placeholder="Minegram" value="Minegram"></div>
-<div class="actions"><button id="gatewayTestButton" class="btn btn-success">Test e-postası gönder</button></div>
-<div id="gatewayMessage" class="message"></div>
-</div>
-<div class="panel">
-<h2>🔐 Doğrulama Ayarları</h2>
-<div class="input-group"><label>Kod uzunluğu</label><select id="verificationCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
-<div class="input-group"><label>Kod geçerlilik süresi</label><select id="verificationExpiry"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
-<div class="input-group"><label>Gönderim aralığı</label><select id="verificationCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
-<button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
-<div id="verificationMessage" class="message"></div>
-<hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
-<h3>Servis durumu</h3><p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
-<p style="color:#697386;font-size:13px">Gmail Client ID, Client Secret ve Refresh Token admin.html içinde tutulmaz. Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
-</div>
-</div>
+  <div class="card"><h2>Gmail HTTPS E-posta Servisi</h2><p style="color:#7182a3;font-size:12px">Gmail Client ID, Client Secret ve Refresh Token değerlerini güvenlik için sunucu ortam değişkenlerinde tutun.</p><div class="form-grid"><div class="field"><label>Gönderici Gmail</label><input id="emailSender" placeholder="admin@minegram.com"></div><div class="field"><label>Gönderici adı</label><input id="emailSenderName" placeholder="Minegram"></div><div class="field"><label>Test e-posta</label><input id="emailTestTo" type="email" placeholder="test@example.com"></div><div class="field"><label>Kod uzunluğu</label><select id="emailCodeLength"><option value="6">6</option><option value="8">8</option></select></div><div class="field"><label>Kod süresi</label><select id="emailCodeExpiry"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div><div class="field"><label>Cooldown</label><select id="emailCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div><div class="field full"><button id="emailTestButton" class="btn btn-primary">Test E-postası Gönder</button><div id="emailMessage" class="message"></div></div></div></div>
 </section>
 
 <section id="phoneOtp" class="section">
-<div class="content-grid">
-<div class="panel">
-<h2>📱 Uluslararası Telefon / SMS OTP</h2>
-<p>Telefon doğrulama kodları SMS üzerinden gönderilir. Uluslararası numaralarda ülke kodunu <b>+</b> ile birlikte kullan: ör. <b>+905551112233</b>.</p>
-<div class="input-group"><label>Test telefon numarası</label><input id="phoneOtpTestNumber" type="tel" placeholder="+905551112233" autocomplete="tel"></div>
-<div class="actions"><button id="phoneOtpTestButton" class="btn btn-success">Test SMS gönder</button></div>
-<div id="phoneOtpTestMessage" class="message"></div>
-</div>
-<div class="panel">
-<h2>🔐 SMS OTP Servis Durumu</h2>
-<p id="phoneOtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
-<div class="input-group"><label>Kanal</label><input id="phoneOtpChannel" value="sms" readonly></div>
-<div class="input-group"><label>Kod uzunluğu</label><input value="6 hane" readonly></div>
-<div class="input-group"><label>Telefon biçimi</label><input value="Uluslararası E.164 (+ülke kodu...)" readonly></div>
-<p style="color:#697386;font-size:13px">Twilio hesap bilgileri admin.html içinde tutulmaz. SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
-</div>
-</div>
+  <div class="card"><h2>Telefon / SMS OTP</h2><p style="color:#7182a3;font-size:12px">Uluslararası numaraları +90 gibi ülke koduyla kullanın.</p><div class="form-grid"><div class="field"><label>Test telefon</label><input id="otpTestPhone" placeholder="+905xxxxxxxxx"></div><div class="field"><label>OTP kodu</label><input id="otpTestCode" placeholder="123456"></div><div class="field full"><button id="otpTestButton" class="btn btn-primary">OTP Testi</button><div id="otpMessage" class="message"></div></div></div></div>
 </section>
 
-<section id="settings" class="section"><div class="panel"><h2>⚙️ Sistem ayarları</h2><div class="input-group"><label>Site adı</label><input id="siteName" placeholder="Minegram"></div><div class="panel" style="margin-top:18px;border:1px solid #ffb300;background:linear-gradient(180deg,#fff8e1,#fff);"><h3 style="margin-top:0">🛠️ Site Bakım Modu</h3><p style="color:#697386">Bakım modu açıldığında Minegram sitesinde büyük bir bakım ekranı gösterilir. Admin paneli etkilenmez.</p><label style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0"><input id="maintenanceMode" type="checkbox" style="width:20px;height:20px"> Site bakım modunu aç</label><div class="input-group"><label>Bakım başlığı</label><input id="maintenanceTitle" value="SİTEMİZ BAKIMDADIR" placeholder="SİTEMİZ BAKIMDADIR"></div><div class="input-group"><label>Bakım mesajı</label><textarea id="maintenanceMessage" rows="4" placeholder="Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz."></textarea></div><button id="settingsButton" class="btn btn-primary">⚙️ Ayarları kaydet</button><div id="settingsMessage" class="message"></div></div></div></section>
+<section id="settings" class="section">
+  <div class="card"><h2>Sistem Ayarları</h2><div class="form-grid"><div class="field"><label>Site adı</label><input id="siteName" value="Minegram"></div><div class="field"><label>Bakım modu</label><div style="padding-top:10px"><input id="maintenanceMode" type="checkbox"> Siteyi bakım moduna al</div></div><div class="field full"><label>Bakım başlığı</label><input id="maintenanceTitle" value="SİTEMİZ BAKIMDADIR"></div><div class="field full"><label>Bakım mesajı</label><textarea id="maintenanceMessage">Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz.</textarea></div><div class="field full"><button id="settingsButton" class="primary">Ayarları Kaydet</button><div id="settingsMessage" class="message"></div></div></div></div>
+</section>
+
+<section id="superAlanAdi" class="section">
+  <div class="card"><h2>🌐 SüperAlanAdı</h2><p style="color:#7182a3;font-size:12px">Admin panelindeki domain yönetim alanı. Cloudflare zorunluluğu olmadan mevcut sunucu/API altyapınıza bağlanabilir.</p><div class="stats-mini"><div class="mini"><strong>1</strong><span>Admin domain</span></div><div class="mini"><strong>—</strong><span>API durumu</span></div><div class="mini"><strong>Hazır</strong><span>Yönetim alanı</span></div></div></div>
+</section>
+
+</div>
 </main>
+</div>
 </div>
 
 <script type="module">
@@ -166,332 +426,169 @@ import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "htt
 import {getFirestore,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,setDoc,increment,serverTimestamp,query,limit,onSnapshot,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119",measurementId:"G-K962QE5P1R"};
-const firebaseApp=initializeApp(firebaseConfig);
-const auth=getAuth(firebaseApp);
-const db=getFirestore(firebaseApp);
+const firebaseApp=initializeApp(firebaseConfig),auth=getAuth(firebaseApp),db=getFirestore(firebaseApp);
 const ADMIN_UID="QJqw9moQk8XgpHcFo89bAVPk3uh1";
 const $=id=>document.getElementById(id);
-function escapeHTML(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
-function money(value){return Number(value||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺"}
-function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return timestamp.toDate().toLocaleString("tr-TR")}
-async function checkAdmin(uid){if(uid!==ADMIN_UID)return false;const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));return adminDocument.exists()&&adminDocument.data().active===true}
+const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+const money=v=>Number(v||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺";
+const dateText=t=>{if(!t)return"-";if(t.toDate)return t.toDate().toLocaleString("tr-TR");const d=new Date(t);return isNaN(d)?"-":d.toLocaleString("tr-TR")};
+let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null,problemReportsUnsubscribe=null,allUsers=[],authUsersCache=[],minegramAdminCache=null,minegramAdminCacheAt=0;
 
-async function loadAdminDataSafely(){
-const loaders=[["Dashboard",bridgeLoadDashboard],["Kullanıcılar",bridgeLoadUsers],["Gönderiler",bridgeLoadPosts],["Şikâyetler",bridgeLoadReports],["Sorun Bildirimleri",bridgeLoadProblemReports],["Mavi Tik",bridgeLoadVerification],["Bakiye",bridgeLoadBalances],["Banka / Ödeme",bridgeLoadBankTransactions]];
-for(const [name,loader] of loaders){try{await loader();console.log(name+" yüklendi.")}catch(error){console.error(name+" yüklenemedi:",error)}}
+async function checkAdmin(uid){
+  if(uid!==ADMIN_UID)return false;
+  const snap=await getDoc(doc(db,"admins",ADMIN_UID));
+  return snap.exists()&&snap.data().active===true;
 }
-let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null;
-async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();await loadSystemSettings();watchProblemReports();bridgeWatchLiveFinance()}
+async function openAdminPanel(user){
+  currentAdminUser=user;adminVerified=true;
+  $("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");
+  $("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";
+  await loadAdminDataSafely();await loadSystemSettings();watchProblemReports();watchLiveFinance();
+}
 onAuthStateChanged(auth,async user=>{
-if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
-if(adminLoginInProgress||adminVerified)return;
-try{$("loginMessage").className="message";$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";const admin=await checkAdmin(user.uid);if(!admin){await signOut(auth);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Bu Firebase hesabı admin olarak yetkilendirilmemiş.";return}await openAdminPanel(user)}
-catch(error){console.error("ADMIN KONTROL HATASI:",error);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Admin kontrolü başarısız: "+error.message}
+  if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
+  if(adminLoginInProgress||adminVerified)return;
+  try{
+    $("loginMessage").className="message";$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";
+    if(!(await checkAdmin(user.uid))){await signOut(auth);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Bu Firebase hesabı admin olarak yetkilendirilmemiş.";return}
+    await openAdminPanel(user);
+  }catch(e){console.error(e);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Admin kontrolü başarısız: "+e.message}
 });
-$("loginForm").addEventListener("submit",async event=>{
-event.preventDefault();const email=$("loginEmail").value.trim(),password=$("loginPassword").value;$("loginMessage").className="message";$("loginMessage").textContent="Firebase ile giriş yapılıyor...";adminLoginInProgress=true;
-try{const credential=await signInWithEmailAndPassword(auth,email,password);if(credential.user.uid!==ADMIN_UID)throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));if(!adminDocument.exists())throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");if(adminDocument.data().active!==true)throw new Error("Admin hesabında active değeri true değil.");await openAdminPanel(credential.user)}
-catch(error){console.error("GERÇEK LOGIN HATASI:",error);adminVerified=false;if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message}
-finally{adminLoginInProgress=false}
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
+  $("loginMessage").className="message";$("loginMessage").textContent="Firebase ile giriş yapılıyor...";adminLoginInProgress=true;
+  try{
+    const credential=await signInWithEmailAndPassword(auth,email,password);
+    if(credential.user.uid!==ADMIN_UID)throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);
+    const adminDoc=await getDoc(doc(db,"admins",ADMIN_UID));
+    if(!adminDoc.exists())throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");
+    if(adminDoc.data().active!==true)throw new Error("Admin hesabında active değeri true değil.");
+    await openAdminPanel(credential.user);
+  }catch(error){
+    console.error("GERÇEK LOGIN HATASI:",error);adminVerified=false;
+    if(auth.currentUser)await signOut(auth).catch(()=>{});
+    $("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");
+    $("loginMessage").className="message error";$("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message;
+  }finally{adminLoginInProgress=false}
 });
 $("logoutButton").addEventListener("click",async()=>{currentAdminUser=null;adminVerified=false;adminLoginInProgress=false;await signOut(auth)});
-function openAdminPage(page){const target=$(page);if(!target){console.error("Admin sayfası bulunamadı:",page);return}document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));const menuButton=document.querySelector(`.menu button[data-page="${page}"]`);if(menuButton)menuButton.classList.add("active");document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));target.classList.add("active");if($("pageTitle"))$("pageTitle").textContent=menuButton?menuButton.textContent.trim():target.querySelector("h2")?.textContent?.trim()||"Minegram Admin";window.scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll(".menu button[data-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.page))});
-document.querySelectorAll("[data-quick-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.quickPage))});
 
-async function loadDashboard(){
-const users=await getDocs(collection(db,"users"));const activeUsers=users.docs.filter(item=>{const u=item.data();return !(u.deleted===true||u.isDeleted===true||u.deletedAt||u.status==="deleted")});let posts=0,reports=0,totalBalance=0;
-try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}
-try{const r=await getDocs(collection(db,"reports"));r.forEach(item=>{if(item.data().status!=="resolved")reports++})}catch(e){}
-let problemReports=0;try{const r=await getDocs(query(collection(db,"problemReports"),limit(200)));r.forEach(item=>{if((item.data().status||"pending")!=="resolved")problemReports++})}catch(e){}
-activeUsers.forEach(item=>{totalBalance+=Number(item.data().balance||0)});$("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent=problemReports;$("totalBalance").textContent=money(totalBalance);if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance)
+function openAdminPage(page){
+  const target=$(page);if(!target)return;
+  document.querySelectorAll(".menu button").forEach(b=>b.classList.remove("active"));
+  const b=document.querySelector(`.menu button[data-page="${page}"]`);if(b)b.classList.add("active");
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));target.classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
 }
-let allUsers=[];
-let authUsersCache=[];
-
-async function loadAuthUsersFromServer(){
-  if(!auth.currentUser) return [];
-  const token=await auth.currentUser.getIdToken();
-  const response=await fetch("/api/admin/auth-users",{headers:{Authorization:"Bearer "+token}});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.ok) throw new Error(data.error||"Authentication kullanıcıları alınamadı.");
-  authUsersCache=Array.isArray(data.users)?data.users:[];
-  return authUsersCache;
-}
-
-function isDeletedFirestoreUser(data){
-  return data?.deleted===true||data?.isDeleted===true||data?.deletedAt||data?.status==="deleted";
-}
-
-async function loadUsers(){
-  const snapshot=await getDocs(collection(db,"users"));
-  const firestoreUsers=new Map();
-  snapshot.forEach(item=>{
-    const data=item.data()||{};
-    if(isDeletedFirestoreUser(data)) return;
-    firestoreUsers.set(item.id,{id:item.id,...data});
-  });
-
-  let authUsers=[];
-  try{authUsers=await loadAuthUsersFromServer()}catch(error){
-    console.error("AUTH kullanıcıları yüklenemedi:",error);
-    authUsers=authUsersCache;
-  }
-
-  const merged=new Map();
-  for(const user of authUsers){
-    const metadata=user.user_metadata||{};
-    const firestore=firestoreUsers.get(user.id)||null;
-    const authEmail=String(user.email||metadata.minegram_contact_email||metadata.registration_email||"").trim();
-    let matchingFirestore=firestore;
-    if(!matchingFirestore&&authEmail){
-      matchingFirestore=[...firestoreUsers.values()].find(x=>String(x.email||"").trim().toLowerCase()===authEmail.toLowerCase())||null;
-    }
-    merged.set(user.id,{
-      id:user.id,
-      ...(matchingFirestore||{}),
-      email:matchingFirestore?.email||authEmail||"",
-      username:matchingFirestore?.username||metadata.username||metadata.user_name||"",
-      displayName:matchingFirestore?.displayName||matchingFirestore?.display_name||metadata.display_name||metadata.displayName||"",
-      balance:Number(matchingFirestore?.balance||0),
-      verified:!!matchingFirestore?.verified,
-      disabled:!!matchingFirestore?.disabled || !!user.banned_until,
-      authExists:true,
-      authCreatedAt:user.created_at||null,
-      lastSignInAt:user.last_sign_in_at||null,
-      emailConfirmedAt:user.email_confirmed_at||null,
-      firestoreExists:!!matchingFirestore
-    });
-  }
-
-  for(const user of firestoreUsers.values()){
-    if(!merged.has(user.id)){
-      merged.set(user.id,{...user,authExists:false,firestoreExists:true});
-    }
-  }
-
-  allUsers=[...merged.values()];
-  renderUsers();
-}
-
-function renderUsers(){
-  const search=$("userSearch").value.trim().toLowerCase();
-  const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search)||String(user.id||"").toLowerCase().includes(search));
-  $("usersTable").innerHTML=users.map(user=>`<tr><td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");
-  if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>';
-}
-
-$("userSearch").addEventListener("input",renderUsers);
-window.toggleUser=async(uid,disabled)=>{await setDoc(doc(db,"users",uid),{disabled:!disabled},{merge:true});await loadUsers();await loadDashboard()};
-window.selectBalanceUser=uid=>{$("balanceUid").value=uid;document.querySelector('[data-page="balance"]').click()};
-async function loadPosts(){const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));$("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||"-")}</td><td>${escapeHTML(String(post.text||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")}
-window.deletePost=async id=>{if(!confirm("Bu gönderiyi silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"posts",id));await loadPosts();await loadDashboard()};
-async function loadReports(){const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));$("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${report.status!=="resolved"?`<button class="btn btn-small btn-success" onclick="resolveReport('${escapeHTML(item.id)}')">Çözüldü</button>`:"-"}</td></tr>`}).join("")}
-window.resolveReport=async id=>{await updateDoc(doc(db,"reports",id),{status:"resolved",resolvedAt:serverTimestamp(),resolvedBy:auth.currentUser.uid});await loadReports();await loadDashboard()};
-let problemReportsUnsubscribe=null;
-async function loadProblemReports(){const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));const rows=snapshot.docs.map(item=>{const r=item.data(),photos=Array.isArray(r.photos)?r.photos:[],photoHtml=photos.length?photos.map((src,i)=>`<a href="${escapeHTML(src)}" target="_blank" rel="noopener"><img src="${escapeHTML(src)}" alt="Fotoğraf ${i+1}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-right:4px;border:1px solid #444"></a>`).join(""):"-",status=r.status||"pending",statusHtml=status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':status==="in_progress"?'<span class="badge badge-blue">İnceleniyor</span>':'<span class="badge badge-red">Bekliyor</span>',actions=status==="resolved"?'—':`<button class="btn btn-small btn-primary" onclick="updateProblemReport('${escapeHTML(item.id)}','in_progress')">İnceleniyor</button> <button class="btn btn-small btn-success" onclick="updateProblemReport('${escapeHTML(item.id)}','resolved')">Çözüldü</button>`;return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>${photoHtml}</td><td>${dateText(r.createdAt)}</td><td>${statusHtml}</td><td>${actions} <button class="btn btn-small btn-danger" onclick="deleteProblemReport('${escapeHTML(item.id)}')">Sil</button></td></tr>`});$("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>'}
-window.updateProblemReport=async(id,status)=>{await updateDoc(doc(db,"problemReports",id),{status,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid});await loadProblemReports();await loadDashboard()};
-window.deleteProblemReport=async id=>{if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"problemReports",id));await loadProblemReports();await loadDashboard()};
-function watchProblemReports(){if(problemReportsUnsubscribe)problemReportsUnsubscribe();problemReportsUnsubscribe=onSnapshot(query(collection(db,"problemReports"),limit(200)),()=>{loadProblemReports().catch(error=>console.error("Sorun bildirimleri yenilenemedi:",error));loadDashboard().catch(()=>{})},error=>console.error("Sorun bildirimleri canlı dinleme hatası:",error))}
-async function loadVerification(){const snapshot=await getDocs(collection(db,"users"));const activeUsers=snapshot.docs.filter(item=>{const user=item.data();return !(user.deleted===true||user.isDeleted===true||user.deletedAt||user.status==="deleted")});$("verificationTable").innerHTML=activeUsers.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">${user.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`}).join("")}
-window.toggleVerified=async(uid,currentValue)=>{await setDoc(doc(db,"users",uid),{verified:!currentValue},{merge:true});await loadVerification();await loadUsers()};
-$("balanceButton").addEventListener("click",async()=>{const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}try{const delta=type==="credit"?amount:-amount;await updateDoc(doc(db,"users",uid),{balance:increment(delta)});await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});$("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";$("balanceAmount").value="";$("balanceNote").value="";await loadBalances();await loadUsers();await loadDashboard()}catch(error){$("balanceMessage").className="message error";$("balanceMessage").textContent=error.message}});
-async function loadBalances(){const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));$("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>'}
-async function loadBankTransactions(){const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));let pendingTotal=0;$("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);const bankInfo=data.iban||data.bankAccount||data.bank||data.account||"-",status=data.status||"pending",statusHtml=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>',actions=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">Reddet</button>`:"-";return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${statusHtml}</td><td>${actions}</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal)}
-window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransactions",id),snap=await getDoc(ref);if(!snap.exists())return;const data=snap.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(status==="approved"&&isWithdraw&&data.status!=="approved"){const amount=Number(data.amount||0);if(amount<=0)throw new Error("Geçersiz çekim tutarı.");await runTransaction(db,async tx=>{const userRef=doc(db,"users",data.uid),userSnap=await tx.get(userRef);if(!userSnap.exists())throw new Error("Kullanıcı bulunamadı.");const current=Number(userSnap.data().balance||0);if(current<amount)throw new Error("Kullanıcının bakiyesi çekim için yetersiz.");tx.update(userRef,{balance:current-amount});tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid})});await addDoc(collection(db,"balances"),{uid:data.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()})}else await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});await loadBankTransactions();await loadBalances();await loadUsers();await loadDashboard()}catch(error){alert("İşlem başarısız: "+error.message)}};
-function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{loadUsers().catch(error=>console.error("Birleşik kullanıcı listesi yenilenemedi:",error));let total=0;snap.forEach(item=>{const data=item.data()||{};if(!isDeletedFirestoreUser(data))total+=Number(data.balance||0)});if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
-$("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}});
-async function loadSystemSettings(){try{const snap=await getDoc(doc(db,"settings","config"));if(!snap.exists())return;const data=snap.data()||{};$("siteName").value=data.siteName||"Minegram";$("maintenanceMode").checked=data.maintenanceMode===true;$("maintenanceTitle").value=data.maintenanceTitle||"SİTEMİZ BAKIMDADIR";$("maintenanceMessage").value=data.maintenanceMessage||"Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz."}catch(error){console.error("Sistem ayarları okunamadı:",error)}}
-$("settingsButton").addEventListener("click",async()=>{const siteName=$("siteName").value.trim()||"Minegram",maintenanceMode=$("maintenanceMode").checked,maintenanceTitle=$("maintenanceTitle").value.trim()||"SİTEMİZ BAKIMDADIR",maintenanceMessage=$("maintenanceMessage").value.trim()||"Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz.";try{await setDoc(doc(db,"settings","config"),{siteName,maintenanceMode,maintenanceTitle,maintenanceMessage,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent=maintenanceMode?"Bakım modu açıldı. Site bakım ekranını gösterecek.":"Ayarlar kaydedildi, bakım modu kapalı."}catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}});
-
-
-/* =========================================================
-   SUPABASE / FIREBASE ADMIN VERİ KÖPRÜSÜ
-   Minegram'ın gerçek kullanıcı/gönderi verileri Supabase'de tutulduğu
-   için admin paneli önce sunucudaki güvenli admin köprüsünden okur.
-   Firestore koleksiyonları varsa mevcut sistem de fallback olarak korunur.
-========================================================= */
-let minegramAdminCache=null;
-let minegramAdminCacheAt=0;
-let minegramAdminRefreshTimer=null;
+document.querySelectorAll(".menu button[data-page]").forEach(b=>b.addEventListener("click",()=>openAdminPage(b.dataset.page)));
+document.querySelectorAll("[data-quick-page]").forEach(b=>b.addEventListener("click",()=>openAdminPage(b.dataset.quickPage)));
 
 async function fetchMinegramAdminData(force=false){
-  const now=Date.now();
-  if(!force && minegramAdminCache && now-minegramAdminCacheAt<4000) return minegramAdminCache;
-  const currentUser=currentAdminUser||auth.currentUser;
-  if(!currentUser) throw new Error("Admin oturumu bulunamadı.");
+  const now=Date.now();if(!force&&minegramAdminCache&&now-minegramAdminCacheAt<4000)return minegramAdminCache;
+  const currentUser=currentAdminUser||auth.currentUser;if(!currentUser)throw new Error("Admin oturumu bulunamadı.");
   const token=await currentUser.getIdToken(false);
-  const response=await fetch("/api/admin/minegram-data",{
-    method:"GET",
-    headers:{Authorization:"Bearer "+token,"X-Firebase-ID-Token":token},
-    credentials:"same-origin",
-    cache:"no-store"
-  });
+  const response=await fetch("/api/admin/minegram-data",{headers:{Authorization:"Bearer "+token,"X-Firebase-ID-Token":token},credentials:"same-origin",cache:"no-store"});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.ok) throw new Error(data.error||`Admin veri servisi HTTP ${response.status}`);
-  minegramAdminCache=data;
-  minegramAdminCacheAt=now;
-  return data;
+  if(!response.ok||data.ok===false)throw new Error(data.error||"Minegram admin verileri alınamadı.");
+  minegramAdminCache=data.data||data;minegramAdminCacheAt=now;return minegramAdminCache;
 }
+function arr(data,...keys){for(const k of keys)if(Array.isArray(data?.[k]))return data[k];return[]}
+function mapId(x){return x?.id||x?.uid||x?.userId||x?.postId||x?._id||""}
+async function bridgeLoadDashboard(){try{const d=await fetchMinegramAdminData(true);const users=arr(d,"users","data.users"),posts=arr(d,"posts","data.posts"),reports=arr(d,"reports","data.reports"),problems=arr(d,"problemReports","problem_reports");if(users.length)$("totalUsers").textContent=users.filter(u=>!(u.deleted||u.isDeleted||u.status==="deleted")).length;if(posts.length)$("totalPosts").textContent=posts.length;if(reports.length)$("totalReports").textContent=reports.filter(r=>r.status!=="resolved").length;if(problems.length)$("totalProblemReports").textContent=problems.filter(r=>r.status!=="resolved").length;let bal=users.reduce((s,u)=>s+Number(u.balance||0),0);if(users.length)$("totalBalance").textContent=money(bal)}catch(e){await loadDashboard()}}
+async function bridgeLoadUsers(){try{const d=await fetchMinegramAdminData();const u=arr(d,"users","data.users");if(u.length){allUsers=u.map(x=>({...x,id:mapId(x),balance:Number(x.balance||0)}));renderUsers()}}catch(e){await loadUsers()}}
+async function bridgeLoadPosts(){try{const d=await fetchMinegramAdminData();const p=arr(d,"posts","data.posts");if(p.length){$("postsTable").innerHTML=p.slice(0,100).map(x=>`<tr><td>${esc(mapId(x))}</td><td>${esc(x.userId||x.uid||"-")}</td><td>${esc(String(x.text||x.caption||"").slice(0,100))}</td><td>${esc(dateText(x.createdAt||x.created_at))}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${esc(mapId(x))}')">Sil</button></td></tr>`).join("")}}catch(e){await loadPosts()}}
+async function bridgeLoadReports(){try{const d=await fetchMinegramAdminData();const r=arr(d,"reports","data.reports");if(r.length)renderReports(r)}catch(e){await loadReports()}}
+async function bridgeLoadProblemReports(){try{const d=await fetchMinegramAdminData();const r=arr(d,"problemReports","problem_reports","data.problemReports");if(r.length)renderProblemReports(r)}catch(e){await loadProblemReports()}}
+async function bridgeLoadVerification(){try{await loadVerification()}catch(e){}}
+async function bridgeLoadBalances(){try{await loadBalances()}catch(e){}}
+async function bridgeLoadBankTransactions(){try{await loadBankTransactions()}catch(e){}}
 
-function adminUserRows(data){
-  return (Array.isArray(data?.users)?data.users:[]).filter(u=>!isDeletedFirestoreUser(u));
+async function loadAdminDataSafely(){
+ const loaders=[bridgeLoadDashboard,bridgeLoadUsers,bridgeLoadPosts,bridgeLoadReports,bridgeLoadProblemReports,bridgeLoadVerification,bridgeLoadBalances,bridgeLoadBankTransactions];
+ for(const loader of loaders){try{await loader()}catch(e){console.error(e)}}
+ await loadDashboardPosts();
 }
+async function loadDashboard(){
+ const users=await getDocs(collection(db,"users"));let active=0,balance=0;users.forEach(x=>{const u=x.data();if(!(u.deleted||u.isDeleted||u.deletedAt||u.status==="deleted")){active++;balance+=Number(u.balance||0)}});let posts=0,reports=0,problems=0;
+ try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}
+ try{const s=await getDocs(collection(db,"reports"));s.forEach(x=>{if(x.data().status!=="resolved")reports++})}catch(e){}
+ try{const s=await getDocs(query(collection(db,"problemReports"),limit(200)));s.forEach(x=>{if((x.data().status||"pending")!=="resolved")problems++})}catch(e){}
+ $("totalUsers").textContent=active;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent=problems;$("totalBalance").textContent=money(balance);$("balanceTotalLive").textContent=money(balance);
+}
+function isDeleted(u){return u?.deleted===true||u?.isDeleted===true||u?.deletedAt||u?.status==="deleted"}
+async function loadAuthUsersFromServer(){if(!auth.currentUser)return[];const token=await auth.currentUser.getIdToken();const r=await fetch("/api/admin/auth-users",{headers:{Authorization:"Bearer "+token}});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Authentication kullanıcıları alınamadı.");authUsersCache=Array.isArray(d.users)?d.users:[];return authUsersCache}
+async function loadUsers(){
+ const snap=await getDocs(collection(db,"users")),fs=new Map();snap.forEach(x=>{const d=x.data()||{};if(!isDeleted(d))fs.set(x.id,{id:x.id,...d})});
+ let au=[];try{au=await loadAuthUsersFromServer()}catch(e){au=authUsersCache}
+ const merged=new Map();
+ for(const u of au){const m=u.user_metadata||{},f=fs.get(u.id)||null,email=String(u.email||m.minegram_contact_email||m.registration_email||"").trim();let mf=f;if(!mf&&email)mf=[...fs.values()].find(x=>String(x.email||"").toLowerCase()===email.toLowerCase())||null;merged.set(u.id,{id:u.id,...(mf||{}),email:mf?.email||email,username:mf?.username||m.username||m.user_name||"",displayName:mf?.displayName||m.display_name||m.displayName||"",balance:Number(mf?.balance||0),verified:!!mf?.verified,disabled:!!mf?.disabled||!!u.banned_until,authExists:true})}
+ for(const u of fs.values())if(!merged.has(u.id))merged.set(u.id,{...u,authExists:false});
+ allUsers=[...merged.values()];renderUsers();
+}
+function renderUsers(){const q=($("userSearch").value||"").toLowerCase().trim(),users=allUsers.filter(u=>[u.email,u.username,u.displayName,u.id].some(v=>String(v||"").toLowerCase().includes(q)));$("usersTable").innerHTML=users.map(u=>`<tr><td>${esc(u.id)}</td><td>${esc(u.email||"-")}</td><td>${esc(u.username||u.displayName||"-")}</td><td>${money(u.balance)}</td><td>${u.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${u.disabled?'<span class="status blocked">Engelli</span>':'<span class="status active">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${u.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${esc(u.id)}',${!!u.disabled})">${u.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${esc(u.id)}')">Bakiye</button></div></td></tr>`).join("")||'<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>'}
+$("userSearch").addEventListener("input",renderUsers);
+window.toggleUser=async(uid,disabled)=>{await setDoc(doc(db,"users",uid),{disabled:!disabled},{merge:true});await loadUsers();await loadDashboard()};
+window.selectBalanceUser=uid=>{$("balanceUid").value=uid;openAdminPage("balance")};
 
-function renderAdminUsersFromBridge(data){
-  allUsers=adminUserRows(data);
-  renderUsers();
-  let total=0; allUsers.forEach(u=>total+=Number(u.balance||0));
-  if($("totalUsers")) $("totalUsers").textContent=allUsers.length;
-  if($("totalBalance")) $("totalBalance").textContent=money(total);
-  if($("balanceTotalLive")) $("balanceTotalLive").textContent=money(total);
-}
+async function loadPosts(){const s=await getDocs(query(collection(db,"posts"),limit(100)));$("postsTable").innerHTML=s.docs.map(x=>{const p=x.data();return `<tr><td>${esc(x.id)}</td><td>${esc(p.userId||"-")}</td><td>${esc(String(p.text||"").slice(0,100))}</td><td>${esc(dateText(p.createdAt))}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${esc(x.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="5">Gönderi bulunamadı.</td></tr>';await loadDashboardPosts()}
+window.deletePost=async id=>{if(!confirm("Bu gönderiyi silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"posts",id));await loadPosts();await loadDashboard()};
+async function loadDashboardPosts(){try{const s=await getDocs(query(collection(db,"posts"),limit(5)));$("dashboardPostsTable").innerHTML=s.docs.map(x=>{const p=x.data();return `<tr><td><div class="user-cell"><div class="user-avatar">M</div>${esc(p.userId||"-")}</div></td><td>${esc(String(p.text||"").slice(0,50))}</td><td>${esc(dateText(p.createdAt))}</td><td><span class="status active">Aktif</span></td></tr>`}).join("")||'<tr><td colspan="4">Henüz gönderi yok.</td></tr>'}catch(e){$("dashboardPostsTable").innerHTML='<tr><td colspan="4">Gönderiler yüklenemedi.</td></tr>'}}
+function renderReports(rows){$("reportsTable").innerHTML=rows.map(r=>`<tr><td>${esc(mapId(r))}</td><td>${esc(r.reporterId||r.reporter_id||"-")}</td><td>${esc(r.targetId||r.target_id||"-")}</td><td>${esc(r.reason||"-")}</td><td>${r.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${r.status!=="resolved"?`<button class="btn btn-small btn-success" onclick="resolveReport('${esc(mapId(r))}')">Çözüldü</button>`:"-"}</td></tr>`).join("")}
+async function loadReports(){const s=await getDocs(query(collection(db,"reports"),limit(100)));renderReports(s.docs.map(x=>({id:x.id,...x.data()})))}
+window.resolveReport=async id=>{await updateDoc(doc(db,"reports",id),{status:"resolved",resolvedAt:serverTimestamp(),resolvedBy:auth.currentUser.uid});await loadReports();await loadDashboard()};
 
-async function bridgeLoadUsers(){
-  try{
-    const data=await fetchMinegramAdminData();
-    renderAdminUsersFromBridge(data);
-  }catch(error){
-    console.error("Supabase kullanıcıları yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(collection(db,"users"));
-    allUsers=[];
-    snapshot.forEach(item=>{const u=item.data()||{};if(!isDeletedFirestoreUser(u))allUsers.push({id:item.id,...u});});
-    renderUsers();
-  }
-}
+function renderProblemReports(rows){$("problemReportsTable").innerHTML=rows.map(r=>{const id=mapId(r),status=r.status||"pending",photos=Array.isArray(r.photos)?r.photos:[];const ph=photos.length?photos.map(x=>`<a href="${esc(x)}" target="_blank" rel="noopener"><img src="${esc(x)}" style="width:42px;height:42px;object-fit:cover;border-radius:7px"></a>`).join(""):"-";const actions=status==="resolved"?"—":`<button class="btn btn-small btn-primary" onclick="updateProblemReport('${esc(id)}','in_progress')">İnceleniyor</button> <button class="btn btn-small btn-success" onclick="updateProblemReport('${esc(id)}','resolved')">Çözüldü</button>`;return `<tr><td>${esc(id)}</td><td>${esc(r.username||r.uid||"-")}</td><td>${esc(r.userEmail||r.user_email||"-")}</td><td>${esc(r.description||"-")}</td><td>${ph}</td><td>${esc(dateText(r.createdAt||r.created_at))}</td><td>${status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':status==="in_progress"?'<span class="badge badge-blue">İnceleniyor</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${actions} <button class="btn btn-small btn-danger" onclick="deleteProblemReport('${esc(id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>'}
+async function loadProblemReports(){const s=await getDocs(query(collection(db,"problemReports"),limit(200)));renderProblemReports(s.docs.map(x=>({id:x.id,...x.data()})))}
+window.updateProblemReport=async(id,status)=>{await updateDoc(doc(db,"problemReports",id),{status,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid});await loadProblemReports();await loadDashboard()};
+window.deleteProblemReport=async id=>{if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"problemReports",id));await loadProblemReports();await loadDashboard()};
+function watchProblemReports(){if(problemReportsUnsubscribe)problemReportsUnsubscribe();problemReportsUnsubscribe=onSnapshot(query(collection(db,"problemReports"),limit(200)),()=>{loadProblemReports().catch(()=>{});loadDashboard().catch(()=>{})})}
+async function loadVerification(){const s=await getDocs(collection(db,"users"));const rows=s.docs.filter(x=>!isDeleted(x.data())).map(x=>({id:x.id,...x.data()}));$("verificationTable").innerHTML=rows.map(u=>`<tr><td>${esc(u.username||u.displayName||"-")}</td><td>${esc(u.email||"-")}</td><td>${u.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${u.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${esc(u.id)}',${!!u.verified})">${u.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`).join("")}
+window.toggleVerified=async(uid,v)=>{await setDoc(doc(db,"users",uid),{verified:!v},{merge:true});await loadVerification();await loadUsers()};
 
-async function bridgeLoadPosts(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const posts=Array.isArray(data.posts)?data.posts:[];
-    $("postsTable").innerHTML=posts.map(post=>`<tr><td>${escapeHTML(post.id||"-")}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${escapeHTML(post.createdAt?new Date(post.createdAt).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase gönderileri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));
-    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
-  }
-}
+$("balanceButton").addEventListener("click",async()=>{const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}try{const delta=type==="credit"?amount:-amount;await updateDoc(doc(db,"users",uid),{balance:increment(delta)});await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});$("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";$("balanceAmount").value="";$("balanceNote").value="";await loadBalances();await loadUsers();await loadDashboard()}catch(e){$("balanceMessage").className="message error";$("balanceMessage").textContent=e.message}});
+async function loadBalances(){const s=await getDocs(query(collection(db,"balances"),limit(200)));$("balanceTable").innerHTML=s.docs.map(x=>{const d=x.data();return `<tr><td>${esc(d.uid||"-")}</td><td>${money(d.amount||d.delta||0)}</td><td>${d.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${esc(d.note||d.description||d.source||"-")}</td><td>${esc(dateText(d.createdAt))}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>'}
+async function loadBankTransactions(){const s=await getDocs(query(collection(db,"bankTransactions"),limit(200)));let total=0;$("bankTable").innerHTML=s.docs.map(x=>{const d=x.data(),status=d.status||"pending",type=String(d.type||d.transactionType||"withdraw").toLowerCase(),withdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(withdraw&&status==="pending")total+=Number(d.amount||0);const sh=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>';const act=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${esc(x.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${esc(x.id)}','rejected')">Reddet</button>`:"-";return `<tr><td>${esc(x.id)}</td><td>${esc(d.uid||"-")}</td><td>${money(d.amount)}</td><td>${esc(d.type||"-")}</td><td>${esc(d.iban||d.bankAccount||d.bank||"-")}</td><td>${sh}</td><td>${act}</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';$("pendingWithdrawTotal").textContent=money(total)}
+window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransactions",id),snap=await getDoc(ref);if(!snap.exists())return;const d=snap.data(),type=String(d.type||d.transactionType||"withdraw").toLowerCase(),withdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(status==="approved"&&withdraw&&d.status!=="approved"){const amount=Number(d.amount||0);await runTransaction(db,async tx=>{const ur=doc(db,"users",d.uid),us=await tx.get(ur);if(!us.exists())throw new Error("Kullanıcı bulunamadı.");const cur=Number(us.data().balance||0);if(cur<amount)throw new Error("Kullanıcının bakiyesi yetersiz.");tx.update(ur,{balance:cur-amount});tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid})});await addDoc(collection(db,"balances"),{uid:d.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()})}else await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});await loadBankTransactions();await loadBalances();await loadUsers();await loadDashboard()}catch(e){alert("İşlem başarısız: "+e.message)}};
+function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{let t=0;snap.forEach(x=>{if(!isDeleted(x.data()))t+=Number(x.data().balance||0)});$("balanceTotalLive").textContent=money(t);$("totalBalance").textContent=money(t);loadUsers().catch(()=>{})});balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}))}
 
-async function bridgeLoadReports(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.reports)?data.reports:[];
-    $("reportsTable").innerHTML=rows.map(report=>`<tr><td>${escapeHTML(report.id||"-")}</td><td>${escapeHTML(report.reporterId||report.reporter_id||report.user_id||"-")}</td><td>${escapeHTML(report.targetId||report.target_id||report.post_id||report.target_user_id||"-")}</td><td>${escapeHTML(report.reason||report.description||report.text||"-")}</td><td>${String(report.status||"pending")==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase şikâyetleri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));
-    $("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
-  }
-}
+$("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(e){$("announcementMessage").className="message error";$("announcementMessage").textContent=e.message}});
+async function loadSystemSettings(){try{const s=await getDoc(doc(db,"settings","config"));if(!s.exists())return;const d=s.data();$("siteName").value=d.siteName||"Minegram";$("maintenanceMode").checked=d.maintenanceMode===true;$("maintenanceTitle").value=d.maintenanceTitle||"SİTEMİZ BAKIMDADIR";$("maintenanceMessage").value=d.maintenanceMessage||"Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz."}catch(e){console.error(e)}}
+$("settingsButton").addEventListener("click",async()=>{try{const data={siteName:$("siteName").value.trim()||"Minegram",maintenanceMode:$("maintenanceMode").checked,maintenanceTitle:$("maintenanceTitle").value.trim()||"SİTEMİZ BAKIMDADIR",maintenanceMessage:$("maintenanceMessage").value.trim()||"Minegram kullanıcıları, size yaşattığımız sorun için özür dilerim.",updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()};await setDoc(doc(db,"settings","config"),data,{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent=data.maintenanceMode?"Bakım modu açıldı.":"Ayarlar kaydedildi."}catch(e){$("settingsMessage").className="message error";$("settingsMessage").textContent=e.message}});
 
-async function bridgeLoadProblemReports(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.problemReports)?data.problemReports:[];
-    if(rows.length){
-      $("problemReportsTable").innerHTML=rows.map(r=>`<tr><td>${escapeHTML(r.id||"-")}</td><td>${escapeHTML(r.username||r.uid||r.user_id||"-")}</td><td>${escapeHTML(r.userEmail||r.email||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||r.text||r.message||"-")}</td><td>-</td><td>${escapeHTML(r.created_at?new Date(r.created_at).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`).join("");
-      return;
-    }
-  }catch(error){console.warn("Supabase sorun bildirimleri yok:",error)}
-  const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));
-  const rows=snapshot.docs.map(item=>{const r=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>-</td><td>${dateText(r.createdAt)}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`});
-  $("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
-}
+$("emailTestButton").addEventListener("click",async()=>{try{const token=await auth.currentUser.getIdToken();const r=await fetch("/api/admin/email-service",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({action:"test",to:$("emailTestTo").value.trim()})});const d=await r.json().catch(()=>({}));$("emailMessage").className="message "+(r.ok?"success":"error");$("emailMessage").textContent=d.message||d.error||(r.ok?"Test gönderildi.":"Test başarısız.")}catch(e){$("emailMessage").className="message error";$("emailMessage").textContent=e.message}});
+$("otpTestButton").addEventListener("click",async()=>{try{const token=await auth.currentUser.getIdToken();const r=await fetch("/api/phone-otp",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({action:"test",phone:$("otpTestPhone").value.trim(),code:$("otpTestCode").value.trim()})});const d=await r.json().catch(()=>({}));$("otpMessage").className="message "+(r.ok?"success":"error");$("otpMessage").textContent=d.message||d.error||(r.ok?"OTP isteği gönderildi.":"OTP başarısız.")}catch(e){$("otpMessage").className="message error";$("otpMessage").textContent=e.message}});
 
-async function bridgeLoadVerification(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.verification)?data.verification:adminUserRows(data);
-    $("verificationTable").innerHTML=rows.map(user=>`<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase mavi tik verileri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(collection(db,"users"));
-    $("verificationTable").innerHTML=snapshot.docs.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
-  }
-}
+function toggleTheme(){document.body.classList.toggle("dark");localStorage.setItem("minegram-admin-theme",document.body.classList.contains("dark")?"dark":"light")}
+if(localStorage.getItem("minegram-admin-theme")==="dark")document.body.classList.add("dark");
+window.toggleTheme=toggleTheme;
+window.openSuperAlanAdi=()=>openAdminPage("superAlanAdi");
 
-async function bridgeLoadBalances(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.balances)?data.balances:[];
-    $("balanceTable").innerHTML=rows.map(item=>`<tr><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount||item.delta||0)}</td><td>${String(item.type||"")==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(item.note||item.description||item.source||"-")}</td><td>${escapeHTML(item.created_at?new Date(item.created_at).toLocaleString("tr-TR"):"-")}</td></tr>`).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
-    return;
-  }catch(error){console.warn("Supabase bakiye verileri yok, Firestore fallback:",error)}
-  const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));
-  $("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
-}
+function updateClock(){const d=new Date();$("todayDate").textContent="📅 "+d.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric"});$("todayTime").textContent=d.toLocaleDateString("tr-TR",{weekday:"long"})+", "+d.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}
+updateClock();setInterval(updateClock,30000);
 
-async function bridgeLoadBankTransactions(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.bankTransactions)?data.bankTransactions:[];
-    let pendingTotal=0;
-    $("bankTable").innerHTML=rows.map(item=>{const type=String(item.type||item.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";const status=item.status||"pending";if(isWithdraw&&status==="pending")pendingTotal+=Number(item.amount||0);const bankInfo=item.iban||item.bankAccount||item.bank||item.account||"-";return `<tr><td>${escapeHTML(item.id||"-")}</td><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount)}</td><td>${escapeHTML(item.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
-    if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
-    return;
-  }catch(error){console.warn("Supabase banka verileri yok, Firestore fallback:",error)}
-  const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));
-  let pendingTotal=0;
-  $("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();const type=String(data.type||data.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(data.iban||data.bankAccount||data.bank||data.account||"-")}</td><td>${escapeHTML(data.status||"pending")}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
-  if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
-}
-
-async function bridgeLoadDashboard(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const users=adminUserRows(data);
-    const posts=Array.isArray(data.posts)?data.posts:[];
-    const reports=Array.isArray(data.reports)?data.reports:[];
-    const problems=Array.isArray(data.problemReports)?data.problemReports:[];
-    const totalBalance=users.reduce((sum,u)=>sum+Number(u.balance||0),0);
-    $("totalUsers").textContent=users.length;
-    $("totalPosts").textContent=posts.length;
-    $("totalReports").textContent=reports.filter(r=>String(r.status||"pending")!=="resolved").length;
-    $("totalProblemReports").textContent=problems.filter(r=>String(r.status||"pending")!=="resolved").length;
-    $("totalBalance").textContent=money(totalBalance);
-    if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance);
-    return;
-  }catch(error){console.warn("Admin dashboard Supabase verisi alınamadı, mevcut Firestore dashboard kullanılıyor:",error)}
-  const users=await getDocs(collection(db,"users"));
-  const activeUsers=users.docs.filter(item=>!isDeletedFirestoreUser(item.data()));
-  let posts=0,reports=0,totalBalance=0;try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}try{const r=await getDocs(collection(db,"reports"));r.forEach(i=>{if(i.data().status!=="resolved")reports++})}catch(e){}activeUsers.forEach(i=>totalBalance+=Number(i.data().balance||0));
-  $("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent="—";$("totalBalance").textContent=money(totalBalance);
-}
-
-function bridgeWatchLiveFinance(){
-  if(minegramAdminRefreshTimer)clearInterval(minegramAdminRefreshTimer);
-  minegramAdminRefreshTimer=setInterval(async()=>{
-    try{
-      minegramAdminCache=null;minegramAdminCacheAt=0;
-      const data=await fetchMinegramAdminData(true);
-      renderAdminUsersFromBridge(data);
-      await bridgeLoadDashboard();
-    }catch(error){console.warn("Admin canlı yenileme:",error.message)}
-  },10000);
-}
-
-const EMAIL_SERVICE_API="/api/admin/email-service";
-async function emailServiceRequest(path,options={}){let currentUser=currentAdminUser||auth.currentUser;if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(EMAIL_SERVICE_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);return data}
-async function loadEmailService(){try{const data=await emailServiceRequest("/status"),active=Boolean(data.configured);$("gatewayStatus").innerHTML=active?'<span class="badge badge-green">● Gmail HTTPS Aktif</span>':'<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';if(data.fromName)$("gatewayFromName").value=data.fromName;if(data.fromEmail)$("gatewayFromEmail").value=data.fromEmail;if(data.codeLength)$("verificationCodeLength").value=String(data.codeLength);if(data.expiryMinutes)$("verificationExpiry").value=String(data.expiryMinutes);if(data.cooldownSeconds)$("verificationCooldown").value=String(data.cooldownSeconds)}catch(error){$("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';console.warn("Gmail HTTPS:",error.message)}}
-$("gatewayTestButton").addEventListener("click",async()=>{const message=$("gatewayMessage"),to=prompt("Test e-postası hangi adrese gönderilsin?");if(!to)return;message.className="message";message.textContent="Gmail HTTPS üzerinden test e-postası gönderiliyor...";try{await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});message.className="message success";message.textContent="Test e-postası Gmail HTTPS üzerinden gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
-$("verificationSaveButton").addEventListener("click",async()=>{const message=$("verificationMessage");message.className="message";message.textContent="Kaydediliyor...";try{await emailServiceRequest("/verification-config",{method:"POST",body:JSON.stringify({codeLength:Number($("verificationCodeLength").value),expiryMinutes:Number($("verificationExpiry").value),cooldownSeconds:Number($("verificationCooldown").value)})});message.className="message success";message.textContent="Doğrulama ayarları kaydedildi."}catch(error){message.className="message error";message.textContent=error.message}});
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{loadEmailService().catch(()=>{})});
-
-const PHONE_OTP_API="/api/phone-otp";
-async function phoneOtpRequest(path,options={}){
-let currentUser=currentAdminUser||auth.currentUser;
-if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
-async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(PHONE_OTP_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}
-let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}
-const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`SMS servisi HTTP ${response.status}`);return data
-}
-async function loadPhoneOtpService(){
-const status=$("phoneOtpStatus");
-try{const data=await phoneOtpRequest("/status");if(data.enabled&&data.configured){status.className="message success";status.innerHTML='<span class="badge badge-green">● SMS OTP Aktif</span> Kanal: '+escapeHTML(data.channel||"sms")}else{status.className="message error";status.innerHTML='<span class="badge badge-red">● SMS OTP Yapılandırılmamış</span>'}}
-catch(error){status.className="message error";status.textContent="SMS servisi kontrol edilemedi: "+error.message}
-}
-$("phoneOtpTestButton").addEventListener("click",async()=>{const phone=$("phoneOtpTestNumber").value.trim(),message=$("phoneOtpTestMessage");if(!phone){message.className="message error";message.textContent="Telefon numarası gerekli.";return}message.className="message";message.textContent="SMS gönderiliyor...";try{const data=await phoneOtpRequest("/send",{method:"POST",body:JSON.stringify({phone})});message.className="message success";message.textContent=data.message||"Doğrulama SMS'i gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
-document.querySelector('[data-page="phoneOtp"]').addEventListener("click",()=>{loadPhoneOtpService().catch(()=>{})});
+setInterval(()=>{if(currentAdminUser)loadAdminDataSafely().catch(()=>{})},10000);
 </script>
+
+<script>
+(function(){
+  const key="minegram-admin-theme";
+  function applyTheme(theme){
+    document.body.classList.toggle("dark",theme==="dark");
+    const btn=document.getElementById("themeToggle");
+    if(btn) btn.textContent=theme==="dark" ? "☀ Açık tema" : "☾ Koyu tema";
+  }
+  const saved=localStorage.getItem(key)||"light";
+  applyTheme(saved);
+  document.addEventListener("click",function(e){
+    if(e.target && e.target.id==="themeToggle"){
+      const next=document.body.classList.contains("dark")?"light":"dark";
+      localStorage.setItem(key,next);
+      applyTheme(next);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
