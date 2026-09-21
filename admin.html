@@ -25,7 +25,7 @@ textarea{min-height:120px;resize:vertical}input:focus,select:focus,textarea:focu
 .stat-title{color:#697386;font-size:14px}.stat-value{display:block;font-size:28px;font-weight:800;margin-top:8px}
 .content-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.panel{background:#fff;border:1px solid #e6e9f0;border-radius:16px;padding:20px}.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}.quick-card{border:1px solid #e6e9f0;background:#f8fafc;border-radius:12px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:5px;color:#172033}.quick-card:hover{border-color:#2563eb;background:#eff6ff}.quick-card b{font-size:14px}.quick-card span{font-size:12px;color:#697386}.panel h2,.panel h3{margin-top:0}
 .section{display:none}.section.active{display:block}.toolbar{display:flex;gap:10px;margin:15px 0}.toolbar input{max-width:450px}.table-wrapper{overflow-x:auto}
-table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #edf0f5;white-space:nowrap}th{color:#667085;font-size:13px}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #edf0f5;white-space:nowrap}#postsTable td:nth-child(3){min-width:90px}th{color:#667085;font-size:13px}
 .badge{display:inline-block;padding:5px 9px;border-radius:99px;background:#edf1f7;font-size:12px}.badge-blue{background:#dbeafe;color:#1d4ed8}.badge-green{background:#dcfce7;color:#166534}.badge-red{background:#fee2e2;color:#991b1b}
 .actions{display:flex;gap:6px;flex-wrap:wrap}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-full{grid-column:1/-1}
 @media(max-width:950px){.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.stats{grid-template-columns:1fr 1fr}}
@@ -135,7 +135,7 @@ body.dark .btn-gray{background:#243047;color:#f8fafc}
 
 <section id="users" class="section"><div class="panel"><h2>👥 Kullanıcılar</h2><div class="toolbar"><input id="userSearch" placeholder="Kullanıcı adı veya e-posta ara"></div><div class="table-wrapper"><table><thead><tr><th>UID</th><th>E-posta</th><th>Kullanıcı</th><th>Bakiye</th><th>Mavi Tik</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="usersTable"></tbody></table></div></div></section>
 
-<section id="posts" class="section"><div class="panel"><h2>📸 Gönderiler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody id="postsTable"></tbody></table></div></div></section>
+<section id="posts" class="section"><div class="panel"><h2>📸 Gönderiler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>Fotoğraf</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody id="postsTable"></tbody></table></div></div></section>
 
 <section id="reports" class="section"><div class="panel"><h2>🚨 Şikâyetler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Şikâyet eden</th><th>Hedef</th><th>Neden</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
 
@@ -397,15 +397,46 @@ async function bridgeLoadUsers(){
   }
 }
 
+function getPostImageUrl(post){
+  const candidates=[
+    post?.imageUrl, post?.image_url,
+    post?.image, post?.imageURL,
+    post?.mediaUrl, post?.media_url,
+    post?.photoUrl, post?.photo_url,
+    post?.thumbnailUrl, post?.thumbnail_url,
+    post?.thumbnail,
+    post?.media
+  ];
+  for(const value of candidates){
+    if(typeof value==="string" && value.trim()) return value.trim();
+    if(Array.isArray(value) && value.length){
+      const first=value.find(v=>typeof v==="string" && v.trim());
+      if(first) return first.trim();
+    }
+    if(value && typeof value==="object"){
+      const nested=value.url||value.publicUrl||value.public_url||value.src;
+      if(typeof nested==="string" && nested.trim()) return nested.trim();
+    }
+  }
+  return "";
+}
+
+function postPhotoHTML(post){
+  const imageUrl=getPostImageUrl(post);
+  if(!imageUrl) return '<span class="badge">—</span>';
+  const safeUrl=escapeHTML(imageUrl);
+  return `<a href="${safeUrl}" target="_blank" rel="noopener" title="Gönderi resmini aç"><img src="${safeUrl}" alt="Gönderi resmi" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #e6e9f0;display:block"><span class="badge badge-red" style="display:none">Resim açılamadı</span></a>`;
+}
+
 async function bridgeLoadPosts(){
   try{
-    const data=await fetchMinegramAdminData();
+    const data=await fetchMinegramAdminData(true);
     const posts=Array.isArray(data.posts)?data.posts:[];
-    $("postsTable").innerHTML=posts.map(post=>`<tr><td>${escapeHTML(post.id||"-")}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${escapeHTML(post.createdAt?new Date(post.createdAt).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
+    $("postsTable").innerHTML=posts.map(post=>`<tr><td>${escapeHTML(post.id||"-")}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${postPhotoHTML(post)}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${escapeHTML(post.createdAt?new Date(post.createdAt).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="6">Henüz gönderi yok.</td></tr>';
   }catch(error){
     console.error("Supabase gönderileri yüklenemedi, Firestore fallback:",error);
     const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));
-    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
+    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${postPhotoHTML(post)}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="6">Henüz gönderi yok.</td></tr>';
   }
 }
 
@@ -503,6 +534,7 @@ function bridgeWatchLiveFinance(){
       const data=await fetchMinegramAdminData(true);
       renderAdminUsersFromBridge(data);
       await bridgeLoadDashboard();
+      if($("posts")?.classList.contains("active")) await bridgeLoadPosts();
     }catch(error){console.warn("Admin canlı yenileme:",error.message)}
   },10000);
 }
