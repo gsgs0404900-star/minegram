@@ -65,6 +65,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <button data-page="emailService">📧 E-posta / Doğrulama</button>
 <button data-page="phoneOtp">📱 Telefon / SMS OTP</button>
 <button data-page="settings">⚙️ Ayarlar</button>
+<button data-page="superalanadi">🌐 SüperAlanAdı</button>
 </div>
 </aside>
 
@@ -153,6 +154,95 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:lef
 <div class="input-group"><label>Telefon biçimi</label><input value="Uluslararası E.164 (+ülke kodu...)" readonly></div>
 <p style="color:#697386;font-size:13px">Twilio hesap bilgileri admin.html içinde tutulmaz. SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
 </div>
+</div>
+</section>
+
+
+<section id="superalanadi" class="section">
+<div class="content-grid">
+  <div class="panel">
+    <h2>🌐 SüperAlanAdı</h2>
+    <p>Domain kayıt ve yönetim alanı. Render backend üzerinden Cloudflare Registrar Sandbox bağlantısını kullanır.</p>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat-card"><span class="stat-title">Toplam sorgu</span><span id="saTotalQueries" class="stat-value">0</span></div>
+      <div class="stat-card"><span class="stat-title">Müsait domain</span><span id="saAvailable" class="stat-value">0</span></div>
+      <div class="stat-card"><span class="stat-title">Sipariş</span><span id="saOrders" class="stat-value">0</span></div>
+      <div class="stat-card"><span class="stat-title">Müşteri</span><span id="saCustomers" class="stat-value">0</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>🔧 Cloudflare bağlantısı</h2>
+    <p id="saCloudflareStatus"><span class="badge">Kontrol edilmedi</span></p>
+    <button id="saCloudflareCheck" class="btn btn-primary">Bağlantıyı kontrol et</button>
+    <p class="note" style="margin-top:12px">Cloudflare API anahtarı admin.html içine konmaz; Render Environment Variables üzerinden backend'de tutulur.</p>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <h2>🌐 Domain sorguları</h2>
+  <div class="toolbar">
+    <input id="saDomainInput" placeholder="ör. superalanadi.com">
+    <button id="saDomainCheck" class="btn btn-primary">Domain sorgula</button>
+  </div>
+  <div id="saDomainMessage" class="message"></div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Domain</th><th>Durum</th><th>Fiyat</th><th>Kaynak</th></tr></thead>
+      <tbody id="saDomainResults"><tr><td colspan="4">Henüz sorgu yapılmadı.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="content-grid" style="margin-top:18px">
+  <div class="panel">
+    <h2>📋 Sorgulanan domainler</h2>
+    <div class="table-wrapper">
+      <table><thead><tr><th>Domain</th><th>Durum</th><th>Tarih</th></tr></thead>
+      <tbody id="saQueriesTable"><tr><td colspan="3">Henüz kayıt yok.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>💰 Domain fiyatları</h2>
+    <p class="note">Fiyat yönetimi için aşağıdaki alanları kullan. Gerçek kayıt fiyatı Cloudflare Sandbox/production API tarafından döndürülür.</p>
+    <div class="form-grid">
+      <div class="input-group"><label>Uzantı</label><input id="saPriceTld" placeholder=".com"></div>
+      <div class="input-group"><label>Satış fiyatı</label><input id="saPriceValue" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="form-full"><button id="saPriceSave" class="btn btn-success">Fiyatı kaydet</button></div>
+    </div>
+    <div id="saPriceMessage" class="message"></div>
+  </div>
+</div>
+
+<div class="content-grid" style="margin-top:18px">
+  <div class="panel">
+    <h2>🛒 Siparişler</h2>
+    <div class="table-wrapper"><table><thead><tr><th>Sipariş</th><th>Müşteri</th><th>Domain</th><th>Tutar</th><th>Durum</th></tr></thead>
+    <tbody id="saOrdersTable"><tr><td colspan="5">Henüz sipariş yok.</td></tr></tbody></table></div>
+  </div>
+  <div class="panel">
+    <h2>👤 Müşteriler</h2>
+    <div class="table-wrapper"><table><thead><tr><th>Müşteri</th><th>E-posta</th><th>Domain</th></tr></thead>
+    <tbody id="saCustomersTable"><tr><td colspan="3">Henüz müşteri yok.</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <h2>🔑 API ayarları</h2>
+  <p class="note">Güvenlik nedeniyle token değerleri burada gösterilmez. Render'da şu Environment Variables kullanılmalıdır:</p>
+  <div class="form-grid">
+    <div class="input-group"><label>Cloudflare Account ID</label><input value="Render Environment Variable: CLOUDFLARE_ACCOUNT_ID" readonly></div>
+    <div class="input-group"><label>Cloudflare Sandbox Token</label><input value="Render Environment Variable: CLOUDFLARE_REGISTRAR_SANDBOX_TOKEN" readonly></div>
+  </div>
+  <span class="badge badge-green">🔒 Token frontend'e aktarılmıyor</span>
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <h2>📊 Domain / sipariş istatistikleri</h2>
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card"><span class="stat-title">Toplam sorgu</span><span id="saStatQueries" class="stat-value">0</span></div>
+    <div class="stat-card"><span class="stat-title">Müsaitlik oranı</span><span id="saStatAvailability" class="stat-value">0%</span></div>
+    <div class="stat-card"><span class="stat-title">Sipariş toplamı</span><span id="saStatOrderTotal" class="stat-value">0</span></div>
+  </div>
 </div>
 </section>
 
@@ -492,6 +582,76 @@ catch(error){status.className="message error";status.textContent="SMS servisi ko
 }
 $("phoneOtpTestButton").addEventListener("click",async()=>{const phone=$("phoneOtpTestNumber").value.trim(),message=$("phoneOtpTestMessage");if(!phone){message.className="message error";message.textContent="Telefon numarası gerekli.";return}message.className="message";message.textContent="SMS gönderiliyor...";try{const data=await phoneOtpRequest("/send",{method:"POST",body:JSON.stringify({phone})});message.className="message success";message.textContent=data.message||"Doğrulama SMS'i gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
 document.querySelector('[data-page="phoneOtp"]').addEventListener("click",()=>{loadPhoneOtpService().catch(()=>{})});
+
+/* =========================================================
+   SÜPERALANADI ADMIN
+   Render backend: /api/domain-check
+========================================================= */
+const SA_RENDER_API = window.SUPERALANADI_API_URL || "/api/domain-check";
+let saQueries = JSON.parse(localStorage.getItem("superalanadi_queries") || "[]");
+let saOrders = JSON.parse(localStorage.getItem("superalanadi_orders") || "[]");
+let saCustomers = JSON.parse(localStorage.getItem("superalanadi_customers") || "[]");
+let saPrices = JSON.parse(localStorage.getItem("superalanadi_prices") || "{}");
+
+function saSave(){
+  localStorage.setItem("superalanadi_queries", JSON.stringify(saQueries.slice(0,100)));
+  localStorage.setItem("superalanadi_orders", JSON.stringify(saOrders.slice(0,100)));
+  localStorage.setItem("superalanadi_customers", JSON.stringify(saCustomers.slice(0,100)));
+  localStorage.setItem("superalanadi_prices", JSON.stringify(saPrices));
+}
+function saEsc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function saRender(){
+  $("saTotalQueries").textContent=saQueries.length;
+  $("saAvailable").textContent=saQueries.filter(x=>x.available).length;
+  $("saOrders").textContent=saOrders.length;
+  $("saCustomers").textContent=saCustomers.length;
+  $("saStatQueries").textContent=saQueries.length;
+  $("saStatAvailability").textContent=(saQueries.length ? Math.round(saQueries.filter(x=>x.available).length/saQueries.length*100) : 0)+"%";
+  $("saStatOrderTotal").textContent=saOrders.reduce((n,x)=>n+Number(x.amount||0),0).toFixed(2);
+  $("saQueriesTable").innerHTML=saQueries.map(x=>`<tr><td>${saEsc(x.domain)}</td><td>${x.available?'<span class="badge badge-green">Müsait</span>':'<span class="badge badge-red">Dolu</span>'}</td><td>${saEsc(x.date)}</td></tr>`).join("")||'<tr><td colspan="3">Henüz kayıt yok.</td></tr>';
+  $("saOrdersTable").innerHTML=saOrders.map(x=>`<tr><td>${saEsc(x.id)}</td><td>${saEsc(x.customer)}</td><td>${saEsc(x.domain)}</td><td>${saEsc(x.amount)}</td><td><span class="badge">${saEsc(x.status)}</span></td></tr>`).join("")||'<tr><td colspan="5">Henüz sipariş yok.</td></tr>';
+  $("saCustomersTable").innerHTML=saCustomers.map(x=>`<tr><td>${saEsc(x.name)}</td><td>${saEsc(x.email)}</td><td>${saEsc(x.domain||"-")}</td></tr>`).join("")||'<tr><td colspan="3">Henüz müşteri yok.</td></tr>';
+}
+async function saCheckDomain(){
+  const input=$("saDomainInput"), msg=$("saDomainMessage"), tbody=$("saDomainResults");
+  const domain=input.value.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0];
+  if(!domain){msg.className="message error";msg.textContent="Domain yazmalısın.";return}
+  msg.className="message";msg.textContent="Cloudflare üzerinden sorgulanıyor...";
+  tbody.innerHTML='<tr><td colspan="4">Sorgulanıyor...</td></tr>';
+  try{
+    const r=await fetch(SA_RENDER_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:[domain]})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||"Domain sorgusu başarısız.");
+    const rows=Array.isArray(data.domains)?data.domains:[];
+    tbody.innerHTML=rows.map(d=>{
+      const available=d.registrable===true;
+      const price=d.pricing?.registration_cost ?? d.pricing?.registration?.[0]?.price ?? "—";
+      const currency=d.pricing?.currency ?? d.pricing?.registration?.[0]?.currency ?? "";
+      saQueries.unshift({domain:d.name||domain,available,date:new Date().toLocaleString("tr-TR")});
+      return `<tr><td>${saEsc(d.name||domain)}</td><td>${available?'<span class="badge badge-green">🟢 Müsait</span>':'<span class="badge badge-red">🔴 Dolu</span>'}</td><td>${saEsc(price+" "+currency)}</td><td>Cloudflare Sandbox</td></tr>`;
+    }).join("")||'<tr><td colspan="4">Sonuç bulunamadı.</td></tr>';
+    saQueries=saQueries.slice(0,100);saSave();saRender();
+    msg.className="message success";msg.textContent="Domain sorgulaması tamamlandı.";
+  }catch(e){
+    tbody.innerHTML=`<tr><td colspan="4">${saEsc(e.message)}</td></tr>`;
+    msg.className="message error";msg.textContent=e.message;
+  }
+}
+$("saDomainCheck")?.addEventListener("click",saCheckDomain);
+$("saDomainInput")?.addEventListener("keydown",e=>{if(e.key==="Enter")saCheckDomain()});
+$("saCloudflareCheck")?.addEventListener("click",async()=>{
+  const el=$("saCloudflareStatus");el.innerHTML='<span class="badge">Kontrol ediliyor...</span>';
+  try{const r=await fetch(SA_RENDER_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:["example.com"]})});if(!r.ok)throw new Error("Render/Cloudflare bağlantısı başarısız.");el.innerHTML='<span class="badge badge-green">🟢 Bağlantı aktif</span>'}
+  catch(e){el.innerHTML='<span class="badge badge-red">🔴 Bağlantı yok</span>'}
+});
+$("saPriceSave")?.addEventListener("click",()=>{
+  const tld=$("saPriceTld").value.trim().toLowerCase(),value=$("saPriceValue").value;
+  if(!tld||!value){$("saPriceMessage").className="message error";$("saPriceMessage").textContent="Uzantı ve fiyat gerekli.";return}
+  saPrices[tld]=Number(value);saSave();$("saPriceMessage").className="message success";$("saPriceMessage").textContent=`${tld} fiyatı kaydedildi.`;
+});
+document.querySelector('[data-page="superalanadi"]')?.addEventListener("click",()=>saRender());
+saRender();
+
 </script>
 </body>
 </html>
