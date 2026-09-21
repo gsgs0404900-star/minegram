@@ -214,11 +214,19 @@ function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return t
 async function checkAdmin(uid){if(uid!==ADMIN_UID)return false;const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));return adminDocument.exists()&&adminDocument.data().active===true}
 
 async function loadAdminDataSafely(){
-const loaders=[["Dashboard",bridgeLoadDashboard],["Kullanıcılar",bridgeLoadUsers],["Gönderiler",bridgeLoadPosts],["Şikâyetler",bridgeLoadReports],["Sorun Bildirimleri",bridgeLoadProblemReports],["Mavi Tik",bridgeLoadVerification],["Bakiye",bridgeLoadBalances],["Banka / Ödeme",bridgeLoadBankTransactions]];
-for(const [name,loader] of loaders){try{await loader();console.log(name+" yüklendi.")}catch(error){console.error(name+" yüklenemedi:",error)}}
+  try{await bridgeLoadDashboard();console.log("Dashboard yüklendi.")}catch(error){console.error("Dashboard yüklenemedi:",error)}
 }
 let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null;
-async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();await loadSystemSettings();watchProblemReports();bridgeWatchLiveFinance()}
+async function openAdminPanel(user){
+  currentAdminUser=user;
+  adminVerified=true;
+  $("loginScreen").classList.add("hidden");
+  $("adminApp").classList.remove("hidden");
+  $("adminEmail").textContent=user.email||user.uid;
+  $("loginMessage").textContent="";
+  await loadAdminDataSafely();
+  loadSystemSettings().catch(error=>console.warn("Sistem ayarları:",error));
+}
 onAuthStateChanged(auth,async user=>{
 if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
 if(adminLoginInProgress||adminVerified)return;
@@ -232,7 +240,59 @@ catch(error){console.error("GERÇEK LOGIN HATASI:",error);adminVerified=false;if
 finally{adminLoginInProgress=false}
 });
 $("logoutButton").addEventListener("click",async()=>{currentAdminUser=null;adminVerified=false;adminLoginInProgress=false;await signOut(auth)});
-function openAdminPage(page){const target=$(page);if(!target){console.error("Admin sayfası bulunamadı:",page);return}document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));const menuButton=document.querySelector(`.menu button[data-page="${page}"]`);if(menuButton)menuButton.classList.add("active");document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));target.classList.add("active");if($("pageTitle"))$("pageTitle").textContent=menuButton?menuButton.textContent.trim():target.querySelector("h2")?.textContent?.trim()||"Minegram Admin";window.scrollTo({top:0,behavior:"smooth"})}
+let sectionLoadPromises=new Map();
+let sectionLoaded=new Set();
+
+function loadSectionData(page){
+  if(sectionLoadPromises.has(page)) return sectionLoadPromises.get(page);
+  const loaders={
+    users:bridgeLoadUsers,
+    posts:bridgeLoadPosts,
+    reports:bridgeLoadReports,
+    problemReports:bridgeLoadProblemReports,
+    verification:bridgeLoadVerification,
+    balance:bridgeLoadBalances,
+    bank:bridgeLoadBankTransactions,
+    dashboard:bridgeLoadDashboard
+  };
+  const loader=loaders[page];
+  if(!loader) return Promise.resolve();
+  const promise=(async()=>{
+    try{
+      await loader();
+      sectionLoaded.add(page);
+    }catch(error){
+      console.error(page+" yüklenemedi:",error);
+    }finally{
+      sectionLoadPromises.delete(page);
+    }
+  })();
+  sectionLoadPromises.set(page,promise);
+  return promise;
+}
+
+function startSectionLiveFeatures(page){
+  if(page==="problemReports"){
+    watchProblemReports();
+  }
+  if(page==="users"||page==="balance"||page==="bank"){
+    watchLiveFinance();
+  }
+}
+
+function openAdminPage(page){
+  const target=$(page);
+  if(!target){console.error("Admin sayfası bulunamadı:",page);return}
+  document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));
+  const menuButton=document.querySelector(`.menu button[data-page="${page}"]`);
+  if(menuButton)menuButton.classList.add("active");
+  document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));
+  target.classList.add("active");
+  if($("pageTitle"))$("pageTitle").textContent=menuButton?menuButton.textContent.trim():target.querySelector("h2")?.textContent?.trim()||"Minegram Admin";
+  window.scrollTo({top:0,behavior:"auto"});
+  startSectionLiveFeatures(page);
+  loadSectionData(page);
+}
 document.querySelectorAll(".menu button[data-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.page))});
 document.querySelectorAll("[data-quick-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.quickPage))});
 
@@ -421,12 +481,36 @@ function getPostImageUrl(post){
   return "";
 }
 
-function postPhotoHTML(post){
-  const imageUrl=getPostImageUrl(post);
-  if(!imageUrl) return '<span class="badge">—</span>';
-  const safeUrl=escapeHTML(imageUrl);
-  return `<a href="${safeUrl}" target="_blank" rel="noopener" title="Gönderi resmini aç"><img src="${safeUrl}" alt="Gönderi resmi" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #e6e9f0;display:block"><span class="badge badge-red" style="display:none">Resim açılamadı</span></a>`;
+function isVideoUrl(url){
+  return /\.(mp4|webm|mov|m4v|avi)(?:[?#].*)?$/i.test(String(url||""));
 }
+function postPhotoHTML(post){ 
+  const mediaUrl=getPostImageUrl(post); 
+  if(!mediaUrl) return '<span class="badge">—</span>'; 
+  const safeUrl=escapeHTML(mediaUrl);
+  if(isVideoUrl(mediaUrl)){
+    return `<button type="button" class="btn btn-small btn-primary admin-video-btn" data-video-url="${safeUrl}" title="Videoyu aç">🎬 Videoyu aç</button>`;
+  }
+  return `<a href="${safeUrl}" target="_blank" rel="noopener" title="Gönderi resmini aç"><img src="${safeUrl}" alt="Gönderi resmi" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #e6e9f0;display:block"><span class="badge badge-red" style="display:none">Resim açılamadı</span></a>`; 
+}
+function openAdminVideo(url){
+  if(!url) return;
+  const safe=String(url);
+  const win=window.open("", "_blank", "noopener,noreferrer");
+  if(!win){
+    alert("Video yeni sekmede açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir.");
+    return;
+  }
+  win.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minegram Video</title><style>html,body{margin:0;background:#000;width:100%;height:100%;overflow:hidden}video{width:100%;height:100%;object-fit:contain;display:block;background:#000}</style></head><body><video controls autoplay playsinline preload="metadata" src="${escapeHTML(safe)}"></video></body></html>`);
+  win.document.close();
+}
+document.addEventListener("click",event=>{
+  const button=event.target.closest(".admin-video-btn");
+  if(button){
+    event.preventDefault();
+    openAdminVideo(button.dataset.videoUrl||"");
+  }
+});
 
 async function bridgeLoadPosts(){
   try{
@@ -529,14 +613,23 @@ async function bridgeLoadDashboard(){
 function bridgeWatchLiveFinance(){
   if(minegramAdminRefreshTimer)clearInterval(minegramAdminRefreshTimer);
   minegramAdminRefreshTimer=setInterval(async()=>{
+    const active=document.querySelector(".section.active")?.id;
+    if(!active) return;
     try{
-      minegramAdminCache=null;minegramAdminCacheAt=0;
-      const data=await fetchMinegramAdminData(true);
-      renderAdminUsersFromBridge(data);
-      await bridgeLoadDashboard();
-      if($("posts")?.classList.contains("active")) await bridgeLoadPosts();
-    }catch(error){console.warn("Admin canlı yenileme:",error.message)}
-  },10000);
+      minegramAdminCache=null;
+      minegramAdminCacheAt=0;
+      if(active==="dashboard") await bridgeLoadDashboard();
+      else if(active==="posts") await bridgeLoadPosts();
+      else if(active==="users") await bridgeLoadUsers();
+      else if(active==="reports") await bridgeLoadReports();
+      else if(active==="problemReports") await bridgeLoadProblemReports();
+      else if(active==="verification") await bridgeLoadVerification();
+      else if(active==="balance") await bridgeLoadBalances();
+      else if(active==="bank") await bridgeLoadBankTransactions();
+    }catch(error){
+      console.warn("Admin canlı yenileme:",error.message);
+    }
+  },15000);
 }
 
 const EMAIL_SERVICE_API="/api/admin/email-service";
