@@ -7,564 +7,128 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
-.hidden{display:none!important}
-
-.login-screen{
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-padding:20px;
-background:linear-gradient(135deg,#f5f7fb,#e9eef8)
-}
-
-.login-box{
-width:100%;
-max-width:430px;
-background:#fff;
-padding:35px;
-border-radius:20px;
-box-shadow:0 20px 60px rgba(0,0,0,.1)
-}
-
-.logo{font-size:30px;font-weight:800;margin-bottom:8px}
-.logo-sub{color:#697386;margin-bottom:28px}
-.input-group{margin-bottom:16px}
-
-.input-group label{
-display:block;
-margin-bottom:7px;
-font-size:14px;
-font-weight:600
-}
-
-input,select,textarea{
-width:100%;
-padding:13px 14px;
-border:1px solid #d8dde8;
-border-radius:10px;
-background:#fff;
-outline:none
-}
-
-textarea{
-min-height:120px;
-resize:vertical
-}
-
-input:focus,select:focus,textarea:focus{
-border-color:#2563eb
-}
-
-.btn{
-border:none;
-padding:12px 16px;
-border-radius:10px;
-font-weight:700
-}
-
-.btn-primary{background:#2563eb;color:#fff}
-.btn-danger{background:#dc2626;color:#fff}
-.btn-success{background:#16a34a;color:#fff}
-.btn-gray{background:#edf0f5;color:#253047}
-.btn-small{padding:8px 11px;font-size:13px}
-
-.message{margin-top:12px;font-size:14px}
-.error{color:#dc2626}
-.success{color:#15803d}
-
-.app{
-min-height:100vh;
-display:flex
-}
-
-.sidebar{
-width:250px;
-position:fixed;
-left:0;
-top:0;
-bottom:0;
-background:#111827;
-color:#fff;
-padding:20px 14px;
-overflow-y:auto
-}
-
-.sidebar-logo{
-font-size:23px;
-font-weight:800;
-padding:10px 12px 18px
-}
-
-.menu-title{
-padding:7px 12px 8px;
-color:#64748b;
-font-size:11px;
-font-weight:800;
-text-transform:uppercase;
-letter-spacing:.08em
-}
-
-.menu button{
-font-size:14px;
-width:100%;
-border:none;
-background:transparent;
-color:#cbd5e1;
-padding:12px;
-margin-bottom:4px;
-text-align:left;
-border-radius:9px
-}
-
-.menu button:hover,.menu button.active{
-background:#1f2937;
-color:#fff
-}
-
-.main{
-margin-left:250px;
-width:calc(100% - 250px);
-padding:28px
-}
-
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:25px
-}
-
-.topbar h1{margin:0}
-
-.admin-email{
-color:#697386;
-margin-top:5px;
-font-size:14px
-}
-
-.stats{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:16px
-}
-
-.stat-card{
-background:#fff;
-border:1px solid #e6e9f0;
-border-radius:16px;
-padding:22px
-}
-
-.stat-title{
-color:#697386;
-font-size:14px
-}
-
-.stat-value{
-display:block;
-font-size:28px;
-font-weight:800;
-margin-top:8px
-}
-
-.content-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:18px;
-margin-top:18px
-}
-
-.panel{
-background:#fff;
-border:1px solid #e6e9f0;
-border-radius:16px;
-padding:20px
-}
-
-.quick-grid{
-display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
-gap:10px;
-margin-top:18px
-}
-
-.quick-card{
-border:1px solid #e6e9f0;
-background:#f8fafc;
-border-radius:12px;
-padding:14px;
-text-align:left;
-display:flex;
-flex-direction:column;
-gap:5px;
-color:#172033
-}
-
-.quick-card:hover{
-border-color:#2563eb;
-background:#eff6ff
-}
-
-.quick-card b{font-size:14px}
-.quick-card span{font-size:12px;color:#697386}
-
-.panel h2,.panel h3{margin-top:0}
-
-.section{display:none}
-.section.active{display:block}
-
-.toolbar{
-display:flex;
-gap:10px;
-margin:15px 0
-}
-
-.toolbar input{max-width:450px}
-
-.table-wrapper{overflow-x:auto}
-
-table{
-width:100%;
-border-collapse:collapse
-}
-
-th,td{
-padding:13px 10px;
-text-align:left;
-border-bottom:1px solid #edf0f5;
-white-space:nowrap
-}
-
-th{
-color:#667085;
-font-size:13px
-}
-
-.badge{
-display:inline-block;
-padding:5px 9px;
-border-radius:99px;
-background:#edf1f7;
-font-size:12px
-}
-
-.badge-blue{
-background:#dbeafe;
-color:#1d4ed8
-}
-
-.badge-green{
-background:#dcfce7;
-color:#166534
-}
-
-.badge-red{
-background:#fee2e2;
-color:#991b1b
-}
-
-.actions{
-display:flex;
-gap:6px;
-flex-wrap:wrap
-}
-
-.form-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:18px
-}
-
-.form-full{grid-column:1/-1}
-
-.domain-hero{
-border:1px solid #dbeafe;
-background:linear-gradient(135deg,#eff6ff,#fff);
-border-radius:14px;
-padding:20px;
-margin-bottom:18px
-}
-
-.domain-name-display{
-font-size:26px;
-font-weight:800;
-word-break:break-all;
-margin-top:8px
-}
-
-.domain-status-box{
-display:flex;
-flex-direction:column;
-gap:12px;
-margin-top:18px
-}
-
-.domain-info-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:15px;
-padding:12px 0;
-border-bottom:1px solid #edf0f5
-}
-
-.domain-info-row:last-child{
-border-bottom:0
-}
-
-.domain-info-label{
-font-weight:700
-}
-
-.domain-info-value{
-text-align:right
-}
-
-@media(max-width:950px){
-.sidebar{width:210px}
-.main{
-margin-left:210px;
-width:calc(100% - 210px)
-}
-.stats{grid-template-columns:1fr 1fr}
-.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-
-@media(max-width:700px){
-.app{display:block}
-.sidebar{
-position:static;
-width:100%
-}
-.main{
-margin-left:0;
-width:100%;
-padding:16px
-}
-.menu{
-display:flex;
-overflow-x:auto;
-gap:5px
-}
-.menu button{
-min-width:max-content
-}
-.stats{grid-template-columns:1fr}
-.content-grid,.form-grid{
-grid-template-columns:1fr
-}
-.form-full{grid-column:auto}
-}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.login-screen{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;background:linear-gradient(135deg,#f5f7fb,#e9eef8)}
+.login-box{width:100%;max-width:430px;background:#fff;padding:35px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.1)}
+.logo{font-size:30px;font-weight:800;margin-bottom:8px}.logo-sub{color:#697386;margin-bottom:28px}.input-group{margin-bottom:16px}
+.input-group label{display:block;margin-bottom:7px;font-size:14px;font-weight:600}input,select,textarea{width:100%;padding:13px 14px;border:1px solid #d8dde8;border-radius:10px;background:#fff;outline:none}
+textarea{min-height:120px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:#2563eb}
+.btn{border:none;padding:12px 16px;border-radius:10px;font-weight:700}.btn-primary{background:#2563eb;color:#fff}.btn-danger{background:#dc2626;color:#fff}.btn-success{background:#16a34a;color:#fff}.btn-gray{background:#edf0f5;color:#253047}.btn-small{padding:8px 11px;font-size:13px}
+.message{margin-top:12px;font-size:14px}.error{color:#dc2626}.success{color:#15803d}
+.app{min-height:100vh;display:flex}.sidebar{width:250px;position:fixed;left:0;top:0;bottom:0;background:#111827;color:#fff;padding:20px 14px;overflow-y:auto}
+.sidebar-logo{font-size:23px;font-weight:800;padding:10px 12px 18px}.menu-title{padding:7px 12px 8px;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.menu button{font-size:14px}.menu button{width:100%;border:none;background:transparent;color:#cbd5e1;padding:12px;margin-bottom:4px;text-align:left;border-radius:9px}
+.menu button:hover,.menu button.active{background:#1f2937;color:#fff}.main{margin-left:250px;width:calc(100% - 250px);padding:28px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.topbar h1{margin:0}.admin-email{color:#697386;margin-top:5px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat-card{background:#fff;border:1px solid #e6e9f0;border-radius:16px;padding:22px}
+.stat-title{color:#697386;font-size:14px}.stat-value{display:block;font-size:28px;font-weight:800;margin-top:8px}
+.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.panel{background:#fff;border:1px solid #e6e9f0;border-radius:16px;padding:20px}.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}.quick-card{border:1px solid #e6e9f0;background:#f8fafc;border-radius:12px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:5px;color:#172033}.quick-card:hover{border-color:#2563eb;background:#eff6ff}.quick-card b{font-size:14px}.quick-card span{font-size:12px;color:#697386}.panel h2,.panel h3{margin-top:0}
+.section{display:none}.section.active{display:block}.toolbar{display:flex;gap:10px;margin:15px 0}.toolbar input{max-width:450px}.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #edf0f5;white-space:nowrap}th{color:#667085;font-size:13px}
+.badge{display:inline-block;padding:5px 9px;border-radius:99px;background:#edf1f7;font-size:12px}.badge-blue{background:#dbeafe;color:#1d4ed8}.badge-green{background:#dcfce7;color:#166534}.badge-red{background:#fee2e2;color:#991b1b}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-full{grid-column:1/-1}
+@media(max-width:950px){.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:950px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.app{display:block}.sidebar{position:static;width:100%}.main{margin-left:0;width:100%;padding:16px}.menu{display:flex;overflow-x:auto;gap:5px}.menu button{min-width:max-content}.stats{grid-template-columns:1fr}.content-grid,.form-grid{grid-template-columns:1fr}.form-full{grid-column:auto}}
 </style>
 </head>
-
 <body>
 
 <div id="loginScreen" class="login-screen">
-
 <div class="login-box">
-
 <div class="logo">Minegram Admin</div>
-
-<div class="logo-sub">
-Yönetim paneline giriş
-</div>
+<div class="logo-sub">Yönetim paneline giriş</div>
 
 <form id="loginForm">
-
 <div class="input-group">
 <label>Admin e-posta</label>
-<input
-id="loginEmail"
-type="email"
-placeholder="admin@minegram.com"
-required>
+<input id="loginEmail" type="email" placeholder="admin@minegram.com" required>
 </div>
 
 <div class="input-group">
 <label>Şifre</label>
-<input
-id="loginPassword"
-type="password"
-placeholder="Şifre"
-required>
+<input id="loginPassword" type="password" placeholder="Şifre" required>
 </div>
 
-<button
-type="submit"
-class="btn btn-primary"
-style="width:100%;">
+<button type="submit" class="btn btn-primary" style="width:100%;">
 Admin olarak giriş yap
 </button>
 
 <div id="loginMessage" class="message"></div>
-
 </form>
-
 </div>
 </div>
-
 
 <div id="adminApp" class="app hidden">
-
 <aside class="sidebar">
-
-<div class="sidebar-logo">
-Minegram Admin
-</div>
+<div class="sidebar-logo">Minegram Admin</div>
 
 <div class="menu">
+<div class="menu-title">Yönetim</div>
 
-<div class="menu-title">
-Yönetim
-</div>
-
-<button class="active" data-page="dashboard">
-🏠 Dashboard
-</button>
-
-<button data-page="users">
-👥 Kullanıcılar
-</button>
-
-<button data-page="posts">
-📸 Gönderiler
-</button>
-
-<button data-page="reports">
-🚨 Şikâyetler
-</button>
-
-<button data-page="problemReports">
-🛠️ Sorun Bildirimleri
-</button>
-
-<button data-page="verification">
-🔵 Mavi Tik
-</button>
-
-<button data-page="balance">
-💰 Bakiye
-</button>
-
-<button data-page="bank">
-🏦 Banka / Ödeme
-</button>
-
-<button data-page="announcements">
-📢 Duyurular
-</button>
-
-<button data-page="emailService">
-📧 E-posta / Doğrulama
-</button>
-
-<button data-page="phoneOtp">
-📱 Telefon / SMS OTP
-</button>
-
-<button data-page="settings">
-⚙️ Ayarlar
-</button>
-
-<button data-page="domains">
-🌐 Domain Yönetimi
-</button>
+<button class="active" data-page="dashboard">🏠 Dashboard</button>
+<button data-page="users">👥 Kullanıcılar</button>
+<button data-page="posts">📸 Gönderiler</button>
+<button data-page="reports">🚨 Şikâyetler</button>
+<button data-page="problemReports">🛠️ Sorun Bildirimleri</button>
+<button data-page="verification">🔵 Mavi Tik</button>
+<button data-page="balance">💰 Bakiye</button>
+<button data-page="bank">🏦 Banka / Ödeme</button>
+<button data-page="announcements">📢 Duyurular</button>
+<button data-page="emailService">📧 E-posta / Doğrulama</button>
+<button data-page="phoneOtp">📱 Telefon / SMS OTP</button>
+<button data-page="settings">⚙️ Ayarlar</button>
+<button data-page="superalanadi">🌐 SüperAlanAdı</button>
 
 </div>
 </aside>
 
-
 <main class="main">
 
 <div class="topbar">
-
 <div>
-
-<h1 id="pageTitle">
-Dashboard
-</h1>
-
+<h1 id="pageTitle">Dashboard</h1>
 <div id="adminEmail" class="admin-email"></div>
-
 </div>
 
-<button
-id="logoutButton"
-class="btn btn-gray">
-Çıkış yap
-</button>
-
+<button id="logoutButton" class="btn btn-gray">Çıkış yap</button>
 </div>
-
 
 <section id="dashboard" class="section active">
-
 <div class="stats">
 
 <div class="stat-card">
-<span class="stat-title">
-Toplam kullanıcı
-</span>
-<span id="totalUsers" class="stat-value">
-—
-</span>
+<span class="stat-title">Toplam kullanıcı</span>
+<span id="totalUsers" class="stat-value">—</span>
 </div>
 
 <div class="stat-card">
-<span class="stat-title">
-Toplam gönderi
-</span>
-<span id="totalPosts" class="stat-value">
-—
-</span>
+<span class="stat-title">Toplam gönderi</span>
+<span id="totalPosts" class="stat-value">—</span>
 </div>
 
 <div class="stat-card">
-<span class="stat-title">
-Bekleyen şikâyet
-</span>
-<span id="totalReports" class="stat-value">
-—
-</span>
+<span class="stat-title">Bekleyen şikâyet</span>
+<span id="totalReports" class="stat-value">—</span>
 </div>
 
 <div class="stat-card">
-<span class="stat-title">
-Bekleyen sorun bildirimi
-</span>
-<span id="totalProblemReports" class="stat-value">
-—
-</span>
+<span class="stat-title">Bekleyen sorun bildirimi</span>
+<span id="totalProblemReports" class="stat-value">—</span>
 </div>
 
 <div class="stat-card">
-<span class="stat-title">
-Toplam bakiye
-</span>
-<span id="totalBalance" class="stat-value">
-—
-</span>
+<span class="stat-title">Toplam bakiye</span>
+<span id="totalBalance" class="stat-value">—</span>
 </div>
 
 </div>
-
 
 <div class="content-grid">
 
 <div class="panel">
-
-<h3>
-Admin paneli
-</h3>
-
+<h3>Admin paneli</h3>
 <p>
 Minegram kullanıcılarını, gönderileri, şikâyetleri,
 sorun bildirimlerini, mavi tikleri, bakiyeleri,
@@ -574,95 +138,64 @@ banka/ödeme işlemlerini ve duyuruları buradan yönetebilirsin.
 <div class="quick-grid">
 
 <button class="quick-card" data-quick-page="posts">
-📸
-<b>Gönderiler</b>
+📸<b>Gönderiler</b>
 <span>Gönderileri görüntüle ve yönet</span>
 </button>
 
 <button class="quick-card" data-quick-page="reports">
-🚨
-<b>Şikâyetler</b>
+🚨<b>Şikâyetler</b>
 <span>Şikâyetleri incele</span>
 </button>
 
 <button class="quick-card" data-quick-page="problemReports">
-🛠️
-<b>Sorun Bildirimleri</b>
+🛠️<b>Sorun Bildirimleri</b>
 <span>Destek bildirimlerini yönet</span>
 </button>
 
 <button class="quick-card" data-quick-page="verification">
-🔵
-<b>Mavi Tik</b>
+🔵<b>Mavi Tik</b>
 <span>Doğrulama durumlarını yönet</span>
 </button>
 
 <button class="quick-card" data-quick-page="balance">
-💰
-<b>Bakiye</b>
+💰<b>Bakiye</b>
 <span>Bakiye işlemlerini yönet</span>
 </button>
 
 <button class="quick-card" data-quick-page="bank">
-🏦
-<b>Banka / Ödeme</b>
+🏦<b>Banka / Ödeme</b>
 <span>Ödeme ve çekimleri yönet</span>
 </button>
 
 <button class="quick-card" data-quick-page="announcements">
-📢
-<b>Duyurular</b>
+📢<b>Duyurular</b>
 <span>Yeni duyuru yayınla</span>
 </button>
 
-<button class="quick-card" data-quick-page="domains">
-🌐
-<b>Domain</b>
-<span>Admin domainini yönet</span>
-</button>
-
 </div>
 </div>
-
 
 <div class="panel">
-
-<h3>
-Güvenlik
-</h3>
-
+<h3>Güvenlik</h3>
 <p>
 Admin erişimi Firebase Authentication ve
-Firestore'daki <b>admins/{uid}</b> kaydıyla kontrol edilir.
+tanımlı admin UID kontrolüyle yapılır.
 </p>
-
 </div>
 
 </div>
-
 </section>
 
-
 <section id="users" class="section">
-
 <div class="panel">
-
 <h2>👥 Kullanıcılar</h2>
-
 <div class="toolbar">
-
-<input
-id="userSearch"
-placeholder="Kullanıcı adı veya e-posta ara">
-
+<input id="userSearch" placeholder="Kullanıcı adı veya e-posta ara">
 </div>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>UID</th>
 <th>E-posta</th>
@@ -672,32 +205,20 @@ placeholder="Kullanıcı adı veya e-posta ara">
 <th>Durum</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="usersTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="posts" class="section">
-
 <div class="panel">
-
 <h2>📸 Gönderiler</h2>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>ID</th>
 <th>Kullanıcı</th>
@@ -705,32 +226,20 @@ placeholder="Kullanıcı adı veya e-posta ara">
 <th>Tarih</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="postsTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="reports" class="section">
-
 <div class="panel">
-
 <h2>🚨 Şikâyetler</h2>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>ID</th>
 <th>Şikâyet eden</th>
@@ -739,36 +248,23 @@ placeholder="Kullanıcı adı veya e-posta ara">
 <th>Durum</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="reportsTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="problemReports" class="section">
-
 <div class="panel">
-
 <h2>🛠️ Sorun Bildirimleri</h2>
-
 <p>
 Kullanıcıların Ayarlar → Yardım → Sorun bildir bölümünden gönderdiği bildirimler.
 </p>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>ID</th>
 <th>Kullanıcı</th>
@@ -779,178 +275,98 @@ Kullanıcıların Ayarlar → Yardım → Sorun bildir bölümünden gönderdiğ
 <th>Durum</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="problemReportsTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="verification" class="section">
-
 <div class="panel">
-
 <h2>🔵 Mavi Tik Yönetimi</h2>
-
 <p>
 Kullanıcıların mavi tik durumunu buradan açıp kapatabilirsin.
 </p>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>Kullanıcı</th>
 <th>E-posta</th>
 <th>Durum</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="verificationTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="balance" class="section">
-
 <div class="content-grid">
 
 <div class="panel">
-
 <h2>💰 Bakiye işlemi</h2>
-
 <p>
-Satın alma/ödeme sistemi Firebase üzerinde aynı kullanıcı bakiyesini güncellediğinde burada anında görünür.
+Satın alma/ödeme sistemi Firebase üzerinde aynı kullanıcı
+bakiyesini güncellediğinde burada anında görünür.
 </p>
 
 <div class="input-group">
-
 <label>Kullanıcı UID</label>
-
-<input
-id="balanceUid"
-placeholder="Kullanıcı UID">
-
+<input id="balanceUid" placeholder="Kullanıcı UID">
 </div>
 
 <div class="input-group">
-
 <label>Tutar</label>
-
-<input
-id="balanceAmount"
-type="number"
-step="0.01"
-placeholder="0.00">
-
+<input id="balanceAmount" type="number" step="0.01" placeholder="0.00">
 </div>
 
 <div class="input-group">
-
 <label>İşlem</label>
-
 <select id="balanceType">
-
-<option value="credit">
-Bakiye ekle
-</option>
-
-<option value="debit">
-Bakiye düş
-</option>
-
+<option value="credit">Bakiye ekle</option>
+<option value="debit">Bakiye düş</option>
 </select>
-
 </div>
 
 <div class="input-group">
-
 <label>Açıklama</label>
-
-<textarea
-id="balanceNote"
-placeholder="Bakiye işlem açıklaması">
-</textarea>
-
+<textarea id="balanceNote" placeholder="Bakiye işlem açıklaması"></textarea>
 </div>
 
-<button
-id="balanceButton"
-class="btn btn-primary">
+<button id="balanceButton" class="btn btn-primary">
 İşlemi uygula
 </button>
 
 <div id="balanceMessage" class="message"></div>
-
 </div>
-
 
 <div class="panel">
-
 <h2>💳 Bakiye özeti</h2>
 
-<div
-class="stats"
-style="grid-template-columns:1fr 1fr">
+<div class="stats" style="grid-template-columns:1fr 1fr">
 
 <div class="stat-card">
-
-<span class="stat-title">
-Toplam kullanıcı bakiyesi
-</span>
-
-<span
-id="balanceTotalLive"
-class="stat-value">
-—
-</span>
-
+<span class="stat-title">Toplam kullanıcı bakiyesi</span>
+<span id="balanceTotalLive" class="stat-value">—</span>
 </div>
 
 <div class="stat-card">
-
-<span class="stat-title">
-Bekleyen çekim
-</span>
-
-<span
-id="pendingWithdrawTotal"
-class="stat-value">
-—
-</span>
-
+<span class="stat-title">Bekleyen çekim</span>
+<span id="pendingWithdrawTotal" class="stat-value">—</span>
 </div>
 
 </div>
 
-<h3 style="margin-top:20px">
-Son bakiye hareketleri
-</h3>
+<h3 style="margin-top:20px">Son bakiye hareketleri</h3>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>Kullanıcı</th>
 <th>Tutar</th>
@@ -958,39 +374,26 @@ Son bakiye hareketleri
 <th>Açıklama</th>
 <th>Tarih</th>
 </tr>
-
 </thead>
-
 <tbody id="balanceTable"></tbody>
-
 </table>
-
 </div>
 
 </div>
-
 </div>
-
 </section>
 
-
 <section id="bank" class="section">
-
 <div class="panel">
-
 <h2>🏦 Banka / Ödeme İşlemleri</h2>
-
 <p>
 Para çekme talepleri ve ödeme işlemleri burada yönetilir.
 Onaylanan çekim tutarı kullanıcının bakiyesinden düşülür.
 </p>
 
 <div class="table-wrapper">
-
 <table>
-
 <thead>
-
 <tr>
 <th>İşlem ID</th>
 <th>Kullanıcı</th>
@@ -1000,69 +403,39 @@ Onaylanan çekim tutarı kullanıcının bakiyesinden düşülür.
 <th>Durum</th>
 <th>İşlem</th>
 </tr>
-
 </thead>
-
 <tbody id="bankTable"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-
 <section id="announcements" class="section">
-
 <div class="panel">
-
 <h2>📢 Duyuru yayınla</h2>
 
 <div class="input-group">
-
 <label>Başlık</label>
-
-<input
-id="announcementTitle"
-placeholder="Duyuru başlığı">
-
+<input id="announcementTitle" placeholder="Duyuru başlığı">
 </div>
 
 <div class="input-group">
-
 <label>Mesaj</label>
-
-<textarea
-id="announcementText"
-placeholder="Duyuru metni">
-</textarea>
-
+<textarea id="announcementText" placeholder="Duyuru metni"></textarea>
 </div>
 
-<button
-id="announcementButton"
-class="btn btn-primary">
+<button id="announcementButton" class="btn btn-primary">
 Duyuruyu yayınla
 </button>
 
-<div
-id="announcementMessage"
-class="message">
+<div id="announcementMessage" class="message"></div>
 </div>
-
-</div>
-
 </section>
 
-
 <section id="emailService" class="section">
-
 <div class="content-grid">
 
 <div class="panel">
-
 <h2>📧 Gmail HTTPS E-posta Servisi</h2>
 
 <p>
@@ -1072,112 +445,65 @@ SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.
 </p>
 
 <div class="input-group">
-
 <label>Gönderici Gmail</label>
-
-<input
-id="gatewayFromEmail"
-type="email"
-placeholder="minegram@gmail.com"
-autocomplete="email">
-
+<input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email">
 </div>
 
 <div class="input-group">
-
 <label>Gönderici adı</label>
-
-<input
-id="gatewayFromName"
-placeholder="Minegram"
-value="Minegram">
-
+<input id="gatewayFromName" placeholder="Minegram" value="Minegram">
 </div>
 
 <div class="actions">
-
-<button
-id="gatewayTestButton"
-class="btn btn-success">
+<button id="gatewayTestButton" class="btn btn-success">
 Test e-postası gönder
 </button>
-
 </div>
 
-<div
-id="gatewayMessage"
-class="message">
+<div id="gatewayMessage" class="message"></div>
 </div>
-
-</div>
-
 
 <div class="panel">
-
 <h2>🔐 Doğrulama Ayarları</h2>
 
 <div class="input-group">
-
 <label>Kod uzunluğu</label>
-
 <select id="verificationCodeLength">
-
 <option value="6">6 hane</option>
 <option value="8">8 hane</option>
-
 </select>
-
 </div>
 
 <div class="input-group">
-
 <label>Kod geçerlilik süresi</label>
-
 <select id="verificationExpiry">
-
 <option value="5">5 dakika</option>
 <option value="10">10 dakika</option>
 <option value="15">15 dakika</option>
 <option value="30">30 dakika</option>
-
 </select>
-
 </div>
 
 <div class="input-group">
-
 <label>Gönderim aralığı</label>
-
 <select id="verificationCooldown">
-
 <option value="60">60 saniye</option>
 <option value="120">2 dakika</option>
 <option value="300">5 dakika</option>
-
 </select>
-
 </div>
 
-<button
-id="verificationSaveButton"
-class="btn btn-primary">
+<button id="verificationSaveButton" class="btn btn-primary">
 Doğrulama ayarlarını kaydet
 </button>
 
-<div
-id="verificationMessage"
-class="message">
-</div>
+<div id="verificationMessage" class="message"></div>
 
-<hr
-style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
+<hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
 
 <h3>Servis durumu</h3>
-
 <p id="gatewayStatus">
-<span class="badge">
-Kontrol ediliyor...
-</span>
+<span class="badge">Kontrol ediliyor...</span>
 </p>
 
 <p style="color:#697386;font-size:13px">
@@ -1186,110 +512,346 @@ Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.
 </p>
 
 </div>
-
 </div>
-
 </section>
 
-
 <section id="phoneOtp" class="section">
+<div class="content-grid">
+
+<div class="panel">
+<h2>📱 Uluslararası Telefon / SMS OTP</h2>
+
+<p>
+Telefon doğrulama kodları SMS üzerinden gönderilir.
+Uluslararası numaralarda ülke kodunu + ile birlikte kullan:
+ör. +905551112233.
+</p>
+
+<div class="input-group">
+<label>Test telefon numarası</label>
+<input id="phoneOtpTestNumber" type="tel" placeholder="+905551112233" autocomplete="tel">
+</div>
+
+<div class="actions">
+<button id="phoneOtpTestButton" class="btn btn-success">
+Test SMS gönder
+</button>
+</div>
+
+<div id="phoneOtpTestMessage" class="message"></div>
+</div>
+
+<div class="panel">
+<h2>🔐 SMS OTP Servis Durumu</h2>
+
+<p id="phoneOtpStatus">
+<span class="badge">Kontrol ediliyor...</span>
+</p>
+
+<div class="input-group">
+<label>Kanal</label>
+<input id="phoneOtpChannel" value="sms" readonly>
+</div>
+
+<div class="input-group">
+<label>Kod uzunluğu</label>
+<input value="6 hane" readonly>
+</div>
+
+<div class="input-group">
+<label>Telefon biçimi</label>
+<input value="Uluslararası E.164 (+ülke kodu...)" readonly>
+</div>
+
+<p style="color:#697386;font-size:13px">
+Twilio hesap bilgileri admin.html içinde tutulmaz.
+SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables
+üzerinden sunucuda kullanılır.
+</p>
+
+</div>
+</div>
+</section>
+
+<!-- ======================================================
+     SÜPERALANADI
+====================================================== -->
+
+<section id="superalanadi" class="section">
 
 <div class="content-grid">
 
 <div class="panel">
 
-<h2>📱 Uluslararası Telefon / SMS OTP</h2>
+<h2>🌐 SüperAlanAdı</h2>
 
 <p>
-Telefon doğrulama kodları SMS üzerinden gönderilir.
-Uluslararası numaralarda ülke kodunu <b>+</b> ile birlikte kullan:
-ör. <b>+905551112233</b>.
+Domain kayıt ve yönetim alanı.
+Render backend üzerinden Cloudflare Registrar Sandbox bağlantısını kullanır.
 </p>
 
-<div class="input-group">
+<div class="stats" style="grid-template-columns:repeat(2,1fr)">
 
-<label>Test telefon numarası</label>
-
-<input
-id="phoneOtpTestNumber"
-type="tel"
-placeholder="+905551112233"
-autocomplete="tel">
-
+<div class="stat-card">
+<span class="stat-title">Toplam sorgu</span>
+<span id="saTotalQueries" class="stat-value">0</span>
 </div>
 
-<div class="actions">
+<div class="stat-card">
+<span class="stat-title">Müsait domain</span>
+<span id="saAvailable" class="stat-value">0</span>
+</div>
 
-<button
-id="phoneOtpTestButton"
-class="btn btn-success">
-Test SMS gönder
+<div class="stat-card">
+<span class="stat-title">Sipariş</span>
+<span id="saOrders" class="stat-value">0</span>
+</div>
+
+<div class="stat-card">
+<span class="stat-title">Müşteri</span>
+<span id="saCustomers" class="stat-value">0</span>
+</div>
+
+</div>
+</div>
+
+<div class="panel">
+
+<h2>🔧 Cloudflare bağlantısı</h2>
+
+<p id="saCloudflareStatus">
+<span class="badge">Kontrol edilmedi</span>
+</p>
+
+<button id="saCloudflareCheck" class="btn btn-primary">
+Bağlantıyı kontrol et
+</button>
+
+<p class="note" style="margin-top:12px">
+Cloudflare API anahtarı admin.html içine konmaz;
+Render Environment Variables üzerinden backend'de tutulur.
+</p>
+
+</div>
+</div>
+
+<div class="panel" style="margin-top:18px">
+
+<h2>🌐 Domain sorguları</h2>
+
+<div class="toolbar">
+
+<input id="saDomainInput" placeholder="ör. superalanadi.com">
+
+<button id="saDomainCheck" class="btn btn-primary">
+Domain sorgula
 </button>
 
 </div>
 
-<div
-id="phoneOtpTestMessage"
-class="message">
-</div>
+<div id="saDomainMessage" class="message"></div>
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+<tr>
+<th>Domain</th>
+<th>Durum</th>
+<th>Fiyat</th>
+<th>Kaynak</th>
+</tr>
+</thead>
+
+<tbody id="saDomainResults">
+<tr>
+<td colspan="4">Henüz sorgu yapılmadı.</td>
+</tr>
+</tbody>
+
+</table>
 
 </div>
+</div>
 
+<div class="content-grid" style="margin-top:18px">
 
 <div class="panel">
 
-<h2>🔐 SMS OTP Servis Durumu</h2>
+<h2>📋 Sorgulanan domainler</h2>
 
-<p id="phoneOtpStatus">
+<div class="table-wrapper">
 
-<span class="badge">
-Kontrol ediliyor...
+<table>
+
+<thead>
+<tr>
+<th>Domain</th>
+<th>Durum</th>
+<th>Tarih</th>
+</tr>
+</thead>
+
+<tbody id="saQueriesTable">
+<tr>
+<td colspan="3">Henüz kayıt yok.</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+</div>
+
+<div class="panel">
+
+<h2>💰 Domain fiyatları</h2>
+
+<p class="note">
+Fiyat yönetimi için aşağıdaki alanları kullan.
+Gerçek kayıt fiyatı Cloudflare Sandbox/production API tarafından döndürülür.
+</p>
+
+<div class="form-grid">
+
+<div class="input-group">
+<label>Uzantı</label>
+<input id="saPriceTld" placeholder=".com">
+</div>
+
+<div class="input-group">
+<label>Satış fiyatı</label>
+<input id="saPriceValue" type="number" step="0.01" placeholder="0.00">
+</div>
+
+<div class="form-full">
+<button id="saPriceSave" class="btn btn-success">
+Fiyatı kaydet
+</button>
+</div>
+
+</div>
+
+<div id="saPriceMessage" class="message"></div>
+
+</div>
+</div>
+
+<div class="content-grid" style="margin-top:18px">
+
+<div class="panel">
+
+<h2>🛒 Siparişler</h2>
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+<tr>
+<th>Sipariş</th>
+<th>Müşteri</th>
+<th>Domain</th>
+<th>Tutar</th>
+<th>Durum</th>
+</tr>
+</thead>
+
+<tbody id="saOrdersTable">
+<tr>
+<td colspan="5">Henüz sipariş yok.</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+</div>
+
+<div class="panel">
+
+<h2>👤 Müşteriler</h2>
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+<tr>
+<th>Müşteri</th>
+<th>E-posta</th>
+<th>Domain</th>
+</tr>
+</thead>
+
+<tbody id="saCustomersTable">
+<tr>
+<td colspan="3">Henüz müşteri yok.</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+</div>
+
+</div>
+
+<div class="panel" style="margin-top:18px">
+
+<h2>🔑 API ayarları</h2>
+
+<p class="note">
+Güvenlik nedeniyle token değerleri burada gösterilmez.
+Render'da şu Environment Variables kullanılmalıdır:
+</p>
+
+<div class="form-grid">
+
+<div class="input-group">
+<label>Cloudflare Account ID</label>
+<input value="Render Environment Variable: CLOUDFLARE_ACCOUNT_ID" readonly>
+</div>
+
+<div class="input-group">
+<label>Cloudflare Sandbox Token</label>
+<input value="Render Environment Variable: CLOUDFLARE_REGISTRAR_SANDBOX_TOKEN" readonly>
+</div>
+
+</div>
+
+<span class="badge badge-green">
+🔒 Token frontend'e aktarılmıyor
 </span>
 
-</p>
-
-<div class="input-group">
-
-<label>Kanal</label>
-
-<input
-id="phoneOtpChannel"
-value="sms"
-readonly>
-
 </div>
 
-<div class="input-group">
+<div class="panel" style="margin-top:18px">
 
-<label>Kod uzunluğu</label>
+<h2>📊 Domain / sipariş istatistikleri</h2>
 
-<input
-value="6 hane"
-readonly>
+<div class="stats" style="grid-template-columns:repeat(3,1fr)">
 
+<div class="stat-card">
+<span class="stat-title">Toplam sorgu</span>
+<span id="saStatQueries" class="stat-value">0</span>
 </div>
 
-<div class="input-group">
-
-<label>Telefon biçimi</label>
-
-<input
-value="Uluslararası E.164 (+ülke kodu...)"
-readonly>
-
+<div class="stat-card">
+<span class="stat-title">Müsaitlik oranı</span>
+<span id="saStatAvailability" class="stat-value">0%</span>
 </div>
 
-<p style="color:#697386;font-size:13px">
-Twilio hesap bilgileri admin.html içinde tutulmaz.
-SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üzerinden sunucuda kullanılır.
-</p>
-
+<div class="stat-card">
+<span class="stat-title">Sipariş toplamı</span>
+<span id="saStatOrderTotal" class="stat-value">0</span>
 </div>
 
+</div>
 </div>
 
 </section>
-
 
 <section id="settings" class="section">
 
@@ -1298,18 +860,11 @@ SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üz
 <h2>⚙️ Sistem ayarları</h2>
 
 <div class="input-group">
-
 <label>Site adı</label>
-
-<input
-id="siteName"
-placeholder="Minegram">
-
+<input id="siteName" placeholder="Minegram">
 </div>
 
-
-<div
-class="panel"
+<div class="panel"
 style="margin-top:18px;border:1px solid #ffb300;background:linear-gradient(180deg,#fff8e1,#fff);">
 
 <h3 style="margin-top:0">
@@ -1321,18 +876,15 @@ Bakım modu açıldığında Minegram sitesinde büyük bir bakım ekranı göst
 Admin paneli etkilenmez.
 </p>
 
-<label
-style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0">
+<label style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0">
 
-<input
-id="maintenanceMode"
+<input id="maintenanceMode"
 type="checkbox"
 style="width:20px;height:20px">
 
 Site bakım modunu aç
 
 </label>
-
 
 <div class="input-group">
 
@@ -1344,7 +896,6 @@ value="SİTEMİZ BAKIMDADIR"
 placeholder="SİTEMİZ BAKIMDADIR">
 
 </div>
-
 
 <div class="input-group">
 
@@ -1358,274 +909,34 @@ placeholder="Minegram kullanıcıları, size yaşattığımız sorun için özü
 
 </div>
 
-
-<button
-id="settingsButton"
-class="btn btn-primary">
+<button id="settingsButton" class="btn btn-primary">
 ⚙️ Ayarları kaydet
 </button>
 
-<div
-id="settingsMessage"
-class="message">
-</div>
+<div id="settingsMessage" class="message"></div>
 
 </div>
-
 </div>
 
 </section>
-
-
-<!-- =========================================================
-     🌐 DOMAIN YÖNETİMİ
-     DOĞRU YER: MAIN İÇERİSİNDE
-========================================================= -->
-
-<section id="domains" class="section">
-
-<div class="domain-hero">
-
-<h2>
-🌐 Minegram Admin Domain
-</h2>
-
-<p>
-Bu bölüm yalnızca Minegram Admin Paneli için kullanılacak domaini yönetir.
-</p>
-
-<div
-id="activeDomain"
-class="domain-name-display">
-—
-</div>
-
-</div>
-
-
-<div class="content-grid">
-
-<div class="panel">
-
-<h2>
-🔎 Domain Sorgula
-</h2>
-
-<p style="color:#697386">
-Kullanmak istediğin gerçek domaini yaz ve kullanılabilirlik durumunu kontrol et.
-</p>
-
-
-<div class="input-group">
-
-<label>
-Admin Domain
-</label>
-
-<input
-id="domainName"
-type="text"
-placeholder="adminminegram.com"
-autocomplete="off">
-
-</div>
-
-
-<div class="actions">
-
-<button
-id="domainCheckButton"
-class="btn btn-primary">
-🔎 Domain Sorgula
-</button>
-
-<button
-id="domainSaveButton"
-class="btn btn-success">
-💾 Domaini Kaydet
-</button>
-
-</div>
-
-
-<div
-id="domainMessage"
-class="message">
-</div>
-
-</div>
-
-
-<div class="panel">
-
-<h2>
-📋 Domain Durumu
-</h2>
-
-
-<div class="domain-status-box">
-
-<div class="domain-info-row">
-
-<span class="domain-info-label">
-Durum
-</span>
-
-<span
-class="domain-info-value"
-id="domainStatus">
-
-<span class="badge">
-Bekliyor
-</span>
-
-</span>
-
-</div>
-
-
-<div class="domain-info-row">
-
-<span class="domain-info-label">
-SSL
-</span>
-
-<span
-class="domain-info-value"
-id="domainSSL">
-
-<span class="badge">
-—
-</span>
-
-</span>
-
-</div>
-
-
-<div class="domain-info-row">
-
-<span class="domain-info-label">
-DNS
-</span>
-
-<span
-class="domain-info-value"
-id="domainDNS">
-
-<span class="badge">
-—
-</span>
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div
-class="panel"
-style="margin-top:18px">
-
-<h2>
-🔗 Domain Bağlantısı
-</h2>
-
-<div class="form-grid">
-
-
-<div class="input-group">
-
-<label>
-Domain
-</label>
-
-<input
-id="domainDisplay"
-readonly>
-
-</div>
-
-
-<div class="input-group">
-
-<label>
-Panel URL
-</label>
-
-<input
-id="domainPanelUrl"
-readonly>
-
-</div>
-
-
-<div class="input-group form-full">
-
-<label>
-Cloudflare / DNS Bilgisi
-</label>
-
-<textarea
-id="domainDnsInfo"
-readonly
-placeholder="DNS bilgileri burada görünecek.">
-</textarea>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div
-class="panel"
-style="margin-top:18px;text-align:center">
-
-<h2>
-🌐 SüperAlanAdı
-</h2>
-
-<p style="color:#697386">
-Minegram Admin Paneli Domain Yönetimi
-</p>
-
-</div>
-
-</section>
-
 
 </main>
 </div>
 
-
 <script type="module">
-
-/* =========================================================
-   FIREBASE
-========================================================= */
 
 import {
 initializeApp
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
 import {
 getAuth,
 signInWithEmailAndPassword,
 onAuthStateChanged,
 signOut
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 import {
-getFirestore,
 collection,
 doc,
 getDoc,
@@ -1639,10 +950,14 @@ serverTimestamp,
 query,
 limit,
 onSnapshot,
-runTransaction
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+runTransaction,
+getFirestore
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
+
+/* =========================================================
+   FIREBASE BİLGİLERİ — DOKUNULMADI
+========================================================= */
 
 const firebaseConfig={
 apiKey:"AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo",
@@ -1655,66 +970,63 @@ appId:"1:303525353436:web:082fc090b5025e19942119",
 measurementId:"G-K962QE5P1R"
 };
 
+const firebaseApp=initializeApp(firebaseConfig);
 
-const firebaseApp=
-initializeApp(firebaseConfig);
+const auth=getAuth(firebaseApp);
 
-const auth=
-getAuth(firebaseApp);
-
-const db=
-getFirestore(firebaseApp);
-
-const ADMIN_UID=
-"QJqw9moQk8XgpHcFo89bAVPk3uh1";
+const db=getFirestore(firebaseApp);
 
 
-const $=
-id=>document.getElementById(id);
+/* =========================================================
+   ADMIN UID — DOKUNULMADI
+========================================================= */
+
+const ADMIN_UID="QJqw9moQk8XgpHcFo89bAVPk3uh1";
+
+
+const $=id=>document.getElementById(id);
 
 
 function escapeHTML(value){
-
 return String(value??"")
 .replace(/&/g,"&amp;")
 .replace(/</g,"&lt;")
 .replace(/>/g,"&gt;")
 .replace(/"/g,"&quot;")
 .replace(/'/g,"&#039;");
-
 }
 
 
 function money(value){
-
 return Number(value||0)
-.toLocaleString(
-"tr-TR",
-{
+.toLocaleString("tr-TR",{
 minimumFractionDigits:2,
 maximumFractionDigits:2
-}
-)+" ₺";
-
+})+" ₺";
 }
 
 
 function dateText(timestamp){
-
-if(!timestamp||!timestamp.toDate)
-return "-";
-
-return timestamp
-.toDate()
-.toLocaleString("tr-TR");
-
+if(!timestamp||!timestamp.toDate)return"-";
+return timestamp.toDate().toLocaleString("tr-TR");
 }
+
+
+/* =========================================================
+   SADECE LOGIN KONTROLÜ DÜZELTİLDİ
+   admins/{UID} FIRESTORE BELGESİ ARTIK ZORUNLU DEĞİL
+========================================================= */
 
 async function checkAdmin(uid){
-  return uid===ADMIN_UID;
-}
+
+return uid===ADMIN_UID;
+
 }
 
+
+/* =========================================================
+   ADMIN DURUMU
+========================================================= */
 
 let adminLoginInProgress=false;
 let adminVerified=false;
@@ -1723,68 +1035,23 @@ let currentAdminUser=null;
 let usersUnsubscribe=null;
 let balancesUnsubscribe=null;
 let bankUnsubscribe=null;
-let problemReportsUnsubscribe=null;
 
 
-async function loadAdminDataSafely(){
-
-const loaders=[
-["Dashboard",bridgeLoadDashboard],
-["Kullanıcılar",bridgeLoadUsers],
-["Gönderiler",bridgeLoadPosts],
-["Şikâyetler",bridgeLoadReports],
-["Sorun Bildirimleri",bridgeLoadProblemReports],
-["Mavi Tik",bridgeLoadVerification],
-["Bakiye",bridgeLoadBalances],
-["Banka / Ödeme",bridgeLoadBankTransactions]
-];
-
-for(
-const [name,loader]
-of loaders
-){
-
-try{
-
-await loader();
-
-console.log(
-name+" yüklendi."
-);
-
-}catch(error){
-
-console.error(
-name+" yüklenemedi:",
-error
-);
-
-}
-
-}
-
-}
-
+/* =========================================================
+   ADMIN PANELİ AÇ
+========================================================= */
 
 async function openAdminPanel(user){
 
 currentAdminUser=user;
 adminVerified=true;
 
-$("loginScreen")
-.classList
-.add("hidden");
+$("loginScreen").classList.add("hidden");
+$("adminApp").classList.remove("hidden");
 
-$("adminApp")
-.classList
-.remove("hidden");
+$("adminEmail").textContent=user.email||user.uid;
 
-$("adminEmail")
-.textContent=
-user.email||user.uid;
-
-$("loginMessage")
-.textContent="";
+$("loginMessage").textContent="";
 
 await loadAdminDataSafely();
 
@@ -1797,63 +1064,42 @@ bridgeWatchLiveFinance();
 }
 
 
-onAuthStateChanged(
-auth,
-async user=>{
+/* =========================================================
+   AUTH STATE
+========================================================= */
+
+onAuthStateChanged(auth,async user=>{
 
 if(!user){
 
 currentAdminUser=null;
 adminVerified=false;
 
-$("loginScreen")
-.classList
-.remove("hidden");
-
-$("adminApp")
-.classList
-.add("hidden");
+$("loginScreen").classList.remove("hidden");
+$("adminApp").classList.add("hidden");
 
 return;
-
 }
 
-if(
-adminLoginInProgress||
-adminVerified
-)return;
-
+if(adminLoginInProgress||adminVerified)return;
 
 try{
 
-$("loginMessage")
-.className="message";
+$("loginMessage").className="message";
+$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";
 
-$("loginMessage")
-.textContent=
-"Admin yetkisi kontrol ediliyor...";
-
-const admin=
-await checkAdmin(user.uid);
+const admin=await checkAdmin(user.uid);
 
 if(!admin){
 
 await signOut(auth);
 
-$("loginScreen")
-.classList
-.remove("hidden");
+$("loginScreen").classList.remove("hidden");
+$("adminApp").classList.add("hidden");
 
-$("adminApp")
-.classList
-.add("hidden");
+$("loginMessage").className="message error";
 
-$("loginMessage")
-.className=
-"message error";
-
-$("loginMessage")
-.textContent=
+$("loginMessage").textContent=
 "Bu Firebase hesabı admin olarak yetkilendirilmemiş.";
 
 return;
@@ -1864,49 +1110,33 @@ await openAdminPanel(user);
 
 }catch(error){
 
-console.error(
-"ADMIN KONTROL HATASI:",
-error
-);
+console.error("ADMIN KONTROL HATASI:",error);
 
-$("loginScreen")
-.classList
-.remove("hidden");
+$("loginScreen").classList.remove("hidden");
+$("adminApp").classList.add("hidden");
 
-$("adminApp")
-.classList
-.add("hidden");
+$("loginMessage").className="message error";
 
-$("loginMessage")
-.className=
-"message error";
-
-$("loginMessage")
-.textContent=
-"Admin kontrolü başarısız: "+
-error.message;
+$("loginMessage").textContent=
+"Admin kontrolü başarısız: "+error.message;
 
 }
 
 });
 
 
-$("loginForm")
-.addEventListener(
-"submit",
-async event=>{
+/* =========================================================
+   LOGIN
+========================================================= */
+
+$("loginForm").addEventListener("submit",async event=>{
 
 event.preventDefault();
 
-const email=
-$("loginEmail").value.trim();
+const email=$("loginEmail").value.trim();
+const password=$("loginPassword").value;
 
-const password=
-$("loginPassword").value;
-
-$("loginMessage").className=
-"message";
-
+$("loginMessage").className="message";
 $("loginMessage").textContent=
 "Firebase ile giriş yapılıyor...";
 
@@ -1921,102 +1151,43 @@ email,
 password
 );
 
-if(
-credential.user.uid!==ADMIN_UID
-){
+if(credential.user.uid!==ADMIN_UID){
 
 throw new Error(
-"Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+
+"Bu Firebase hesabı admin hesabı değil. Giriş yapan UID: "+
 credential.user.uid
 );
 
 }
 
-$("loginForm").addEventListener("submit",async event=>{
-  event.preventDefault();
+/*
+   BURADA ARTIK:
 
-  const email=$("loginEmail").value.trim();
-  const password=$("loginPassword").value;
+   admins/{ADMIN_UID}
 
-  $("loginMessage").className="message";
-  $("loginMessage").textContent="Firebase ile giriş yapılıyor...";
+   BELGESİ KONTROL EDİLMİYOR.
+*/
 
-  adminLoginInProgress=true;
-
-  try{
-    const credential=await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    if(credential.user.uid!==ADMIN_UID){
-      throw new Error(
-        "Bu Firebase hesabı admin hesabı değil. Giriş yapan UID: "+
-        credential.user.uid
-      );
-    }
-
-    await openAdminPanel(credential.user);
-
-  }catch(error){
-
-    console.error("GERÇEK LOGIN HATASI:",error);
-
-    adminVerified=false;
-
-    if(auth.currentUser){
-      await signOut(auth).catch(()=>{});
-    }
-
-    $("loginScreen").classList.remove("hidden");
-    $("adminApp").classList.add("hidden");
-
-    $("loginMessage").className="message error";
-
-    $("loginMessage").textContent=
-      "HATA: "+
-      (error.code||"")+
-      " - "+
-      error.message;
-
-  }finally{
-    adminLoginInProgress=false;
-  }
-});
-
-}
-
-await openAdminPanel(
-credential.user
-);
+await openAdminPanel(credential.user);
 
 }catch(error){
 
-console.error(
-"GERÇEK LOGIN HATASI:",
-error
-);
+console.error("GERÇEK LOGIN HATASI:",error);
 
 adminVerified=false;
 
-if(auth.currentUser)
+if(auth.currentUser){
+
 await signOut(auth).catch(()=>{});
 
-$("loginScreen")
-.classList
-.remove("hidden");
+}
 
-$("adminApp")
-.classList
-.add("hidden");
+$("loginScreen").classList.remove("hidden");
+$("adminApp").classList.add("hidden");
 
-$("loginMessage")
-.className=
-"message error";
+$("loginMessage").className="message error";
 
-$("loginMessage")
-.textContent=
+$("loginMessage").textContent=
 "HATA: "+
 (error.code||"")+
 " - "+
@@ -2031,20 +1202,28 @@ adminLoginInProgress=false;
 });
 
 
-$("logoutButton")
-.addEventListener(
-"click",
-async()=>{
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+$("logoutButton").addEventListener("click",async()=>{
 
 currentAdminUser=null;
 adminVerified=false;
 adminLoginInProgress=false;
 
+if(usersUnsubscribe)usersUnsubscribe();
+if(balancesUnsubscribe)balancesUnsubscribe();
+if(bankUnsubscribe)bankUnsubscribe();
+
 await signOut(auth);
 
-}
-);
+});
 
+
+/* =========================================================
+   SAYFA GEÇİŞLERİ
+========================================================= */
 
 function openAdminPage(page){
 
@@ -2052,10 +1231,7 @@ const target=$(page);
 
 if(!target){
 
-console.error(
-"Admin sayfası bulunamadı:",
-page
-);
+console.error("Admin sayfası bulunamadı:",page);
 
 return;
 
@@ -2063,9 +1239,7 @@ return;
 
 document
 .querySelectorAll(".menu button")
-.forEach(
-item=>item.classList.remove("active")
-);
+.forEach(item=>item.classList.remove("active"));
 
 const menuButton=
 document.querySelector(
@@ -2077,9 +1251,7 @@ menuButton.classList.add("active");
 
 document
 .querySelectorAll(".section")
-.forEach(
-section=>section.classList.remove("active")
-);
+.forEach(section=>section.classList.remove("active"));
 
 target.classList.add("active");
 
@@ -2099,53 +1271,75 @@ behavior:"smooth"
 
 
 document
-.querySelectorAll(
-".menu button[data-page]"
-)
-.forEach(
-button=>{
+.querySelectorAll(".menu button[data-page]")
+.forEach(button=>{
+
 button.addEventListener(
 "click",
-()=>{
-openAdminPage(
-button.dataset.page
+()=>openAdminPage(button.dataset.page)
 );
-}
-);
-}
-);
+
+});
 
 
 document
-.querySelectorAll(
-"[data-quick-page]"
-)
-.forEach(
-button=>{
+.querySelectorAll("[data-quick-page]")
+.forEach(button=>{
+
 button.addEventListener(
 "click",
-()=>{
-openAdminPage(
-button.dataset.quickPage
+()=>openAdminPage(button.dataset.quickPage)
 );
-}
-);
-}
-);
+
+});
 
 
 /* =========================================================
-   KULLANICILAR
+   MEVCUT ADMIN FONKSİYONLARI
+========================================================= */
+
+async function loadAdminDataSafely(){
+
+const loaders=[
+["Dashboard",bridgeLoadDashboard],
+["Kullanıcılar",bridgeLoadUsers],
+["Gönderiler",bridgeLoadPosts],
+["Şikâyetler",bridgeLoadReports],
+["Sorun Bildirimleri",bridgeLoadProblemReports],
+["Mavi Tik",bridgeLoadVerification],
+["Bakiye",bridgeLoadBalances],
+["Banka / Ödeme",bridgeLoadBankTransactions]
+];
+
+for(const [name,loader] of loaders){
+
+try{
+
+await loader();
+
+console.log(name+" yüklendi.");
+
+}catch(error){
+
+console.error(name+" yüklenemedi:",error);
+
+}
+
+}
+
+}
+
+
+/* =========================================================
+   USERS
 ========================================================= */
 
 let allUsers=[];
 let authUsersCache=[];
 
-
 async function loadAuthUsersFromServer(){
 
-if(!auth.currentUser)
-return [];
+if(!auth.currentUser)return[];
 
 const token=
 await auth.currentUser.getIdToken();
@@ -2161,9 +1355,7 @@ Authorization:"Bearer "+token
 );
 
 const data=
-await response
-.json()
-.catch(()=>({}));
+await response.json().catch(()=>({}));
 
 if(!response.ok||!data.ok)
 throw new Error(
@@ -2194,20 +1386,15 @@ data?.status==="deleted";
 async function loadUsers(){
 
 const snapshot=
-await getDocs(
-collection(db,"users")
-);
+await getDocs(collection(db,"users"));
 
-const firestoreUsers=
-new Map();
+const firestoreUsers=new Map();
 
 snapshot.forEach(item=>{
 
 const data=item.data()||{};
 
-if(
-isDeletedFirestoreUser(data)
-)return;
+if(isDeletedFirestoreUser(data))return;
 
 firestoreUsers.set(
 item.id,
@@ -2234,22 +1421,17 @@ console.error(
 error
 );
 
-authUsers=
-authUsersCache;
+authUsers=authUsersCache;
 
 }
 
 
-const merged=
-new Map();
+const merged=new Map();
 
 
-for(
-const user of authUsers
-){
+for(const user of authUsers){
 
-const metadata=
-user.user_metadata||{};
+const metadata=user.user_metadata||{};
 
 const firestore=
 firestoreUsers.get(user.id)||null;
@@ -2262,13 +1444,9 @@ metadata.registration_email||
 ""
 ).trim();
 
-let matchingFirestore=
-firestore;
+let matchingFirestore=firestore;
 
-if(
-!matchingFirestore&&
-authEmail
-){
+if(!matchingFirestore&&authEmail){
 
 matchingFirestore=
 [...firestoreUsers.values()]
@@ -2282,53 +1460,62 @@ authEmail.toLowerCase()
 
 }
 
+
 merged.set(
 user.id,
 {
 id:user.id,
 ...(matchingFirestore||{}),
+
 email:
 matchingFirestore?.email||
 authEmail||
 "",
+
 username:
 matchingFirestore?.username||
 metadata.username||
 metadata.user_name||
 "",
+
 displayName:
 matchingFirestore?.displayName||
 matchingFirestore?.display_name||
 metadata.display_name||
 metadata.displayName||
 "",
+
 balance:
-Number(
-matchingFirestore?.balance||0
-),
+Number(matchingFirestore?.balance||0),
+
 verified:
 !!matchingFirestore?.verified,
+
 disabled:
 !!matchingFirestore?.disabled||
 !!user.banned_until,
+
 authExists:true,
+
 authCreatedAt:
 user.created_at||null,
+
 lastSignInAt:
 user.last_sign_in_at||null,
+
 emailConfirmedAt:
 user.email_confirmed_at||null,
+
 firestoreExists:
 !!matchingFirestore
+
 }
 );
 
 }
 
 
-for(
-const user of firestoreUsers.values()
-){
+for(const user of firestoreUsers.values()){
 
 if(!merged.has(user.id)){
 
@@ -2346,8 +1533,7 @@ firestoreExists:true
 }
 
 
-allUsers=
-[...merged.values()];
+allUsers=[...merged.values()];
 
 renderUsers();
 
@@ -2357,14 +1543,12 @@ renderUsers();
 function renderUsers(){
 
 const search=
-$("userSearch")
-.value
+$("userSearch").value
 .trim()
 .toLowerCase();
 
 const users=
-allUsers.filter(
-user=>
+allUsers.filter(user=>
 String(user.email||"")
 .toLowerCase()
 .includes(search)||
@@ -2381,48 +1565,33 @@ String(user.id||"")
 );
 
 
-$("usersTable")
-.innerHTML=
-users
-.map(
-user=>`
+$("usersTable").innerHTML=
+users.map(user=>`
 
 <tr>
 
-<td>
-${escapeHTML(user.id)}
-</td>
+<td>${escapeHTML(user.id)}</td>
 
-<td>
-${escapeHTML(user.email||"-")}
-</td>
+<td>${escapeHTML(user.email||"-")}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 user.username||
 user.displayName||
 "-"
-)}
-</td>
+)}</td>
+
+<td>${money(user.balance)}</td>
 
 <td>
-${money(user.balance)}
-</td>
-
-<td>
-${
-user.verified
+${user.verified
 ?'<span class="badge badge-blue">🔵 Mavi Tik</span>'
-:'<span class="badge">Yok</span>'
-}
+:'<span class="badge">Yok</span>'}
 </td>
 
 <td>
-${
-user.disabled
+${user.disabled
 ?'<span class="badge badge-red">Engelli</span>'
-:'<span class="badge badge-green">Aktif</span>'
-}
+:'<span class="badge badge-green">Aktif</span>'}
 </td>
 
 <td>
@@ -2430,18 +1599,10 @@ user.disabled
 <div class="actions">
 
 <button
-class="btn btn-small ${
-user.disabled
-?"btn-success"
-:"btn-danger"
-}"
+class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}"
 onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">
 
-${
-user.disabled
-?"Aktifleştir"
-:"Engelle"
-}
+${user.disabled?"Aktifleştir":"Engelle"}
 
 </button>
 
@@ -2459,25 +1620,18 @@ Bakiye
 
 </tr>
 
-`
-)
-.join("");
+`).join("");
 
-if(!users.length){
+if(!users.length)
 
 $("usersTable").innerHTML=
 '<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>';
 
 }
 
-}
-
 
 $("userSearch")
-.addEventListener(
-"input",
-renderUsers
-);
+.addEventListener("input",renderUsers);
 
 
 window.toggleUser=
@@ -2505,9 +1659,7 @@ uid=>{
 $("balanceUid").value=uid;
 
 document
-.querySelector(
-'[data-page="balance"]'
-)
+.querySelector('[data-page="balance"]')
 .click();
 
 };
@@ -2527,36 +1679,27 @@ limit(100)
 )
 );
 
-$("postsTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("postsTable").innerHTML=
+snapshot.docs.map(item=>{
 
 const post=item.data();
 
 return `
-
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(post.userId||"-")}
-</td>
+<td>${escapeHTML(
+post.userId||
+"-"
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 String(post.text||"")
 .substring(0,100)
-)}
-</td>
+)}</td>
 
-<td>
-${dateText(post.createdAt)}
-</td>
+<td>${dateText(post.createdAt)}</td>
 
 <td>
 
@@ -2571,12 +1714,9 @@ Sil
 </td>
 
 </tr>
-
 `;
 
-}
-)
-.join("");
+}).join("");
 
 }
 
@@ -2584,12 +1724,9 @@ Sil
 window.deletePost=
 async id=>{
 
-if(
-!confirm(
+if(!confirm(
 "Bu gönderiyi silmek istediğine emin misin?"
-)
-)
-return;
+))return;
 
 await deleteDoc(
 doc(db,"posts",id)
@@ -2615,65 +1752,54 @@ limit(100)
 )
 );
 
-$("reportsTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("reportsTable").innerHTML=
+snapshot.docs.map(item=>{
 
 const report=item.data();
 
 return `
-
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
+
+<td>${escapeHTML(
+report.reporterId||"-"
+)}</td>
+
+<td>${escapeHTML(
+report.targetId||"-"
+)}</td>
+
+<td>${escapeHTML(
+report.reason||"-"
+)}</td>
 
 <td>
-${escapeHTML(report.reporterId||"-")}
-</td>
-
-<td>
-${escapeHTML(report.targetId||"-")}
-</td>
-
-<td>
-${escapeHTML(report.reason||"-")}
-</td>
-
-<td>
-
-${
-report.status==="resolved"
+${report.status==="resolved"
 ?'<span class="badge badge-green">Çözüldü</span>'
-:'<span class="badge badge-red">Bekliyor</span>'
-}
-
+:'<span class="badge badge-red">Bekliyor</span>'}
 </td>
 
 <td>
 
-${
-report.status!=="resolved"
-?`<button
+${report.status!=="resolved"
+?`
+<button
 class="btn btn-small btn-success"
 onclick="resolveReport('${escapeHTML(item.id)}')">
+
 Çözüldü
-</button>`
-:"-"
-}
+
+</button>
+`
+:"-"}
 
 </td>
 
 </tr>
-
 `;
 
-}
-)
-.join("");
+}).join("");
 
 }
 
@@ -2700,6 +1826,8 @@ await loadDashboard();
    PROBLEM REPORTS
 ========================================================= */
 
+let problemReportsUnsubscribe=null;
+
 async function loadProblemReports(){
 
 const snapshot=
@@ -2711,9 +1839,7 @@ limit(200)
 );
 
 const rows=
-snapshot.docs
-.map(
-item=>{
+snapshot.docs.map(item=>{
 
 const r=item.data();
 
@@ -2724,19 +1850,21 @@ Array.isArray(r.photos)
 
 const photoHtml=
 photos.length
-?photos
-.map(
-(src,i)=>
-`<a href="${escapeHTML(src)}"
+?photos.map((src,i)=>`
+
+<a
+href="${escapeHTML(src)}"
 target="_blank"
 rel="noopener">
+
 <img
 src="${escapeHTML(src)}"
 alt="Fotoğraf ${i+1}"
 style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-right:4px;border:1px solid #444">
-</a>`
-)
-.join("")
+
+</a>
+
+`).join("")
 :"-";
 
 const status=
@@ -2752,63 +1880,52 @@ status==="resolved"
 const actions=
 status==="resolved"
 ?'—'
-:
-`<button
+:`
+
+<button
 class="btn btn-small btn-primary"
 onclick="updateProblemReport('${escapeHTML(item.id)}','in_progress')">
+
 İnceleniyor
+
 </button>
 
 <button
 class="btn btn-small btn-success"
 onclick="updateProblemReport('${escapeHTML(item.id)}','resolved')">
+
 Çözüldü
-</button>`;
+
+</button>
+
+`;
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.username||
 r.uid||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.userEmail||
 "-"
-)}
+)}</td>
+
+<td style="max-width:320px;white-space:pre-wrap">
+${escapeHTML(r.description||"-")}
 </td>
 
-<td
-style="max-width:320px;white-space:pre-wrap">
+<td>${photoHtml}</td>
 
-${escapeHTML(
-r.description||
-"-"
-)}
+<td>${dateText(r.createdAt)}</td>
 
-</td>
-
-<td>
-${photoHtml}
-</td>
-
-<td>
-${dateText(r.createdAt)}
-</td>
-
-<td>
-${statusHtml}
-</td>
+<td>${statusHtml}</td>
 
 <td>
 
@@ -2828,11 +1945,9 @@ Sil
 
 `;
 
-}
-);
+});
 
-$("problemReportsTable")
-.innerHTML=
+$("problemReportsTable").innerHTML=
 rows.join("")||
 '<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
 
@@ -2860,12 +1975,9 @@ await loadDashboard();
 window.deleteProblemReport=
 async id=>{
 
-if(
-!confirm(
+if(!confirm(
 "Bu sorun bildirimini silmek istediğine emin misin?"
-)
-)
-return;
+))return;
 
 await deleteDoc(
 doc(db,"problemReports",id)
@@ -2889,10 +2001,8 @@ collection(db,"problemReports"),
 limit(200)
 ),
 ()=>{
-
 loadProblemReports()
-.catch(
-error=>
+.catch(error=>
 console.error(
 "Sorun bildirimleri yenilenemedi:",
 error
@@ -2924,8 +2034,8 @@ collection(db,"users")
 );
 
 const activeUsers=
-snapshot.docs.filter(
-item=>{
+snapshot.docs.filter(item=>{
+
 const user=item.data();
 
 return !(
@@ -2935,15 +2045,11 @@ user.deletedAt||
 user.status==="deleted"
 );
 
-}
-);
+});
 
 
-$("verificationTable")
-.innerHTML=
-activeUsers
-.map(
-item=>{
+$("verificationTable").innerHTML=
+activeUsers.map(item=>{
 
 const user=item.data();
 
@@ -2951,55 +2057,41 @@ return `
 
 <tr>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 user.username||
 user.displayName||
 "-"
-)}
-</td>
+)}</td>
+
+<td>${escapeHTML(
+user.email||
+"-"
+)}</td>
 
 <td>
-${escapeHTML(user.email||"-")}
-</td>
-
-<td>
-
-${
-user.verified
+${user.verified
 ?'<span class="badge badge-blue">🔵 Aktif</span>'
-:'<span class="badge">Yok</span>'
-}
-
+:'<span class="badge">Yok</span>'}
 </td>
 
 <td>
 
 <button
-class="btn btn-small ${
-user.verified
-?"btn-danger"
-:"btn-primary"
-}"
+class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}"
 onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">
 
-${
-user.verified
+${user.verified
 ?"Mavi Tiki kaldır"
-:"Mavi Tik ver"
-}
+:"Mavi Tik ver"}
 
 </button>
 
 </td>
 
 </tr>
-
 `;
 
-}
-)
-.join("");
+}).join("");
 
 }
 
@@ -3046,18 +2138,14 @@ const type=
 $("balanceType").value;
 
 const note=
-$("balanceNote")
-.value
-.trim();
+$("balanceNote").value.trim();
 
 if(!uid||!amount){
 
-$("balanceMessage")
-.className=
+$("balanceMessage").className=
 "message error";
 
-$("balanceMessage")
-.textContent=
+$("balanceMessage").textContent=
 "Kullanıcı UID ve tutar gerekli.";
 
 return;
@@ -3091,12 +2179,10 @@ createdAt:serverTimestamp()
 }
 );
 
-$("balanceMessage")
-.className=
+$("balanceMessage").className=
 "message success";
 
-$("balanceMessage")
-.textContent=
+$("balanceMessage").textContent=
 "Bakiye işlemi başarıyla kaydedildi.";
 
 $("balanceAmount").value="";
@@ -3108,12 +2194,10 @@ await loadDashboard();
 
 }catch(error){
 
-$("balanceMessage")
-.className=
+$("balanceMessage").className=
 "message error";
 
-$("balanceMessage")
-.textContent=
+$("balanceMessage").textContent=
 error.message;
 
 }
@@ -3131,11 +2215,8 @@ limit(200)
 )
 );
 
-$("balanceTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("balanceTable").innerHTML=
+snapshot.docs.map(item=>{
 
 const data=item.data();
 
@@ -3143,44 +2224,37 @@ return `
 
 <tr>
 
-<td>
-${escapeHTML(data.uid||"-")}
-</td>
+<td>${escapeHTML(
+data.uid||"-"
+)}</td>
+
+<td>${money(
+data.amount||
+data.delta||
+0
+)}</td>
 
 <td>
-${money(data.amount||data.delta||0)}
-</td>
-
-<td>
-
-${
-data.type==="credit"
+${data.type==="credit"
 ?'<span class="badge badge-green">Bakiye +</span>'
-:'<span class="badge badge-red">Bakiye -</span>'
-}
-
+:'<span class="badge badge-red">Bakiye -</span>'}
 </td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 data.note||
 data.description||
 data.source||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${dateText(data.createdAt)}
-</td>
+<td>${dateText(
+data.createdAt
+)}</td>
 
 </tr>
-
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
 
 }
@@ -3202,11 +2276,8 @@ limit(200)
 
 let pendingTotal=0;
 
-$("bankTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("bankTable").innerHTML=
+snapshot.docs.map(item=>{
 
 const data=item.data();
 
@@ -3225,12 +2296,10 @@ type==="payout";
 if(
 isWithdraw&&
 (data.status||"pending")==="pending"
-){
-
-pendingTotal+=
-Number(data.amount||0);
-
-}
+)
+pendingTotal+=Number(
+data.amount||0
+);
 
 const bankInfo=
 data.iban||
@@ -3252,64 +2321,54 @@ status==="approved"
 
 const actions=
 status==="pending"
-?
-`<button
+?`
+
+<button
 class="btn btn-small btn-success"
 onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">
+
 Onayla
+
 </button>
 
 <button
 class="btn btn-small btn-danger"
 onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">
+
 Reddet
-</button>`
+
+</button>
+
+`
 :"-";
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(data.uid||"-")}
-</td>
+<td>${escapeHTML(data.uid||"-")}</td>
 
-<td>
-${money(data.amount)}
-</td>
+<td>${money(data.amount)}</td>
 
-<td>
-${escapeHTML(data.type||"-")}
-</td>
+<td>${escapeHTML(data.type||"-")}</td>
 
-<td>
-${escapeHTML(bankInfo)}
-</td>
+<td>${escapeHTML(bankInfo)}</td>
 
-<td>
-${statusHtml}
-</td>
+<td>${statusHtml}</td>
 
-<td>
-${actions}
-</td>
+<td>${actions}</td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
 
 if($("pendingWithdrawTotal"))
-$("pendingWithdrawTotal")
-.textContent=
+$("pendingWithdrawTotal").textContent=
 money(pendingTotal);
 
 }
@@ -3326,11 +2385,9 @@ doc(db,"bankTransactions",id);
 const snap=
 await getDoc(ref);
 
-if(!snap.exists())
-return;
+if(!snap.exists())return;
 
-const data=
-snap.data();
+const data=snap.data();
 
 const type=
 String(
@@ -3343,7 +2400,6 @@ const isWithdraw=
 type.includes("withdraw")||
 type.includes("çek")||
 type==="payout";
-
 
 if(
 status==="approved"&&
@@ -3358,7 +2414,6 @@ if(amount<=0)
 throw new Error(
 "Geçersiz çekim tutarı."
 );
-
 
 await runTransaction(
 db,
@@ -3403,7 +2458,6 @@ processedBy:auth.currentUser.uid
 
 }
 );
-
 
 await addDoc(
 collection(db,"balances"),
@@ -3450,6 +2504,10 @@ error.message
 };
 
 
+/* =========================================================
+   LIVE FINANCE
+========================================================= */
+
 function watchLiveFinance(){
 
 if(usersUnsubscribe)
@@ -3461,15 +2519,13 @@ balancesUnsubscribe();
 if(bankUnsubscribe)
 bankUnsubscribe();
 
-
 usersUnsubscribe=
 onSnapshot(
 collection(db,"users"),
 snap=>{
 
 loadUsers()
-.catch(
-error=>
+.catch(error=>
 console.error(
 "Birleşik kullanıcı listesi yenilenemedi:",
 error
@@ -3478,33 +2534,25 @@ error
 
 let total=0;
 
-snap.forEach(
-item=>{
+snap.forEach(item=>{
 
-const data=
-item.data()||{};
+const data=item.data()||{};
 
 if(
 !isDeletedFirestoreUser(data)
-){
-
-total+=
-Number(data.balance||0);
-
-}
-
-}
+)
+total+=Number(
+data.balance||0
 );
 
+});
 
 if($("balanceTotalLive"))
-$("balanceTotalLive")
-.textContent=
+$("balanceTotalLive").textContent=
 money(total);
 
 if($("totalBalance"))
-$("totalBalance")
-.textContent=
+$("totalBalance").textContent=
 money(total);
 
 },
@@ -3542,98 +2590,14 @@ e=>
 console.error(
 "Ödeme canlı dinleme hatası:",
 e
+)
 );
 
 }
 
 
 /* =========================================================
-   DASHBOARD
-========================================================= */
-
-async function loadDashboard(){
-
-const users=
-await getDocs(
-collection(db,"users")
-);
-
-const activeUsers=
-users.docs.filter(
-item=>
-!isDeletedFirestoreUser(
-item.data()
-)
-);
-
-let posts=0;
-let reports=0;
-let totalBalance=0;
-
-try{
-
-posts=
-(
-await getDocs(
-collection(db,"posts")
-)
-).size;
-
-}catch(e){}
-
-
-try{
-
-const r=
-await getDocs(
-collection(db,"reports")
-);
-
-r.forEach(
-item=>{
-
-if(
-item.data().status!=="resolved"
-)
-reports++;
-
-}
-);
-
-}catch(e){}
-
-
-activeUsers.forEach(
-item=>
-totalBalance+=
-Number(
-item.data().balance||0
-)
-);
-
-
-$("totalUsers").textContent=
-activeUsers.length;
-
-$("totalPosts").textContent=
-posts;
-
-$("totalReports").textContent=
-reports;
-
-$("totalBalance").textContent=
-money(totalBalance);
-
-if($("balanceTotalLive"))
-$("balanceTotalLive")
-.textContent=
-money(totalBalance);
-
-}
-
-
-/* =========================================================
-   ANNOUNCEMENT
+   ANNOUNCEMENTS
 ========================================================= */
 
 $("announcementButton")
@@ -3642,23 +2606,17 @@ $("announcementButton")
 async()=>{
 
 const title=
-$("announcementTitle")
-.value
-.trim();
+$("announcementTitle").value.trim();
 
 const text=
-$("announcementText")
-.value
-.trim();
+$("announcementText").value.trim();
 
 if(!title||!text){
 
-$("announcementMessage")
-.className=
+$("announcementMessage").className=
 "message error";
 
-$("announcementMessage")
-.textContent=
+$("announcementMessage").textContent=
 "Başlık ve mesaj gerekli.";
 
 return;
@@ -3677,12 +2635,10 @@ createdAt:serverTimestamp()
 }
 );
 
-$("announcementMessage")
-.className=
+$("announcementMessage").className=
 "message success";
 
-$("announcementMessage")
-.textContent=
+$("announcementMessage").textContent=
 "Duyuru yayınlandı.";
 
 $("announcementTitle").value="";
@@ -3690,12 +2646,10 @@ $("announcementText").value="";
 
 }catch(error){
 
-$("announcementMessage")
-.className=
+$("announcementMessage").className=
 "message error";
 
-$("announcementMessage")
-.textContent=
+$("announcementMessage").textContent=
 error.message;
 
 }
@@ -3704,7 +2658,7 @@ error.message;
 
 
 /* =========================================================
-   SETTINGS
+   SYSTEM SETTINGS
 ========================================================= */
 
 async function loadSystemSettings(){
@@ -3716,11 +2670,9 @@ await getDoc(
 doc(db,"settings","config")
 );
 
-if(!snap.exists())
-return;
+if(!snap.exists())return;
 
-const data=
-snap.data()||{};
+const data=snap.data()||{};
 
 $("siteName").value=
 data.siteName||"Minegram";
@@ -3754,27 +2706,19 @@ $("settingsButton")
 async()=>{
 
 const siteName=
-$("siteName")
-.value
-.trim()||
+$("siteName").value.trim()||
 "Minegram";
 
 const maintenanceMode=
-$("maintenanceMode")
-.checked;
+$("maintenanceMode").checked;
 
 const maintenanceTitle=
-$("maintenanceTitle")
-.value
-.trim()||
+$("maintenanceTitle").value.trim()||
 "SİTEMİZ BAKIMDADIR";
 
 const maintenanceMessage=
-$("maintenanceMessage")
-.value
-.trim()||
+$("maintenanceMessage").value.trim()||
 "Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz.";
-
 
 try{
 
@@ -3793,24 +2737,20 @@ merge:true
 }
 );
 
-$("settingsMessage")
-.className=
+$("settingsMessage").className=
 "message success";
 
-$("settingsMessage")
-.textContent=
+$("settingsMessage").textContent=
 maintenanceMode
 ?"Bakım modu açıldı. Site bakım ekranını gösterecek."
 :"Ayarlar kaydedildi, bakım modu kapalı.";
 
 }catch(error){
 
-$("settingsMessage")
-.className=
+$("settingsMessage").className=
 "message error";
 
-$("settingsMessage")
-.textContent=
+$("settingsMessage").textContent=
 error.message;
 
 }
@@ -3835,11 +2775,8 @@ if(
 !force&&
 minegramAdminCache&&
 now-minegramAdminCacheAt<4000
-){
-
+)
 return minegramAdminCache;
-
-}
 
 const currentUser=
 currentAdminUser||
@@ -3868,9 +2805,7 @@ cache:"no-store"
 );
 
 const data=
-await response
-.json()
-.catch(()=>({}));
+await response.json().catch(()=>({}));
 
 if(!response.ok||!data.ok)
 throw new Error(
@@ -3892,8 +2827,7 @@ return (
 Array.isArray(data?.users)
 ?data.users
 :[]
-)
-.filter(
+).filter(
 u=>!isDeletedFirestoreUser(u)
 );
 
@@ -3910,25 +2844,19 @@ renderUsers();
 let total=0;
 
 allUsers.forEach(
-u=>
-total+=Number(
-u.balance||0
-)
+u=>total+=Number(u.balance||0)
 );
 
 if($("totalUsers"))
-$("totalUsers")
-.textContent=
+$("totalUsers").textContent=
 allUsers.length;
 
 if($("totalBalance"))
-$("totalBalance")
-.textContent=
+$("totalBalance").textContent=
 money(total);
 
 if($("balanceTotalLive"))
-$("balanceTotalLive")
-.textContent=
+$("balanceTotalLive").textContent=
 money(total);
 
 }
@@ -3957,27 +2885,19 @@ collection(db,"users")
 
 allUsers=[];
 
-snapshot.forEach(
-item=>{
+snapshot.forEach(item=>{
 
-const u=
-item.data()||{};
+const u=item.data()||{};
 
 if(
 !isDeletedFirestoreUser(u)
-){
-
-allUsers.push(
-{
+)
+allUsers.push({
 id:item.id,
 ...u
-}
-);
+});
 
-}
-
-}
-);
+});
 
 renderUsers();
 
@@ -3998,60 +2918,41 @@ Array.isArray(data.posts)
 ?data.posts
 :[];
 
-$("postsTable")
-.innerHTML=
-posts
-.map(
-post=>`
+$("postsTable").innerHTML=
+posts.map(post=>`
 
 <tr>
 
-<td>
-${escapeHTML(post.id||"-")}
-</td>
+<td>${escapeHTML(post.id||"-")}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 post.userId||
 post.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 String(
 post.text||
 post.caption||
 ""
-)
-.substring(0,100)
-)}
-</td>
+).substring(0,100)
+)}</td>
 
-<td>
-${
-escapeHTML(
+<td>${escapeHTML(
 post.createdAt
-?new Date(
-post.createdAt
-).toLocaleString("tr-TR")
+?new Date(post.createdAt)
+.toLocaleString("tr-TR")
 :"-"
-)
-}
-</td>
+)}</td>
 
 <td>
-<span class="badge">
-Supabase
-</span>
+<span class="badge">Supabase</span>
 </td>
 
 </tr>
 
-`
-)
-.join("")||
+`).join("")||
 '<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
 
 }catch(error){
@@ -4069,61 +2970,50 @@ limit(100)
 )
 );
 
-$("postsTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("postsTable").innerHTML=
+snapshot.docs.map(item=>{
 
-const post=
-item.data();
+const post=item.data();
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 post.userId||
 post.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 String(
 post.text||
 post.caption||
 ""
-)
-.substring(0,100)
-)}
-</td>
+).substring(0,100)
+)}</td>
+
+<td>${dateText(post.createdAt)}</td>
 
 <td>
-${dateText(post.createdAt)}
-</td>
 
-<td>
 <button
 class="btn btn-small btn-danger"
 onclick="deletePost('${escapeHTML(item.id)}')">
+
 Sil
+
 </button>
+
 </td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
 
 }
@@ -4143,72 +3033,50 @@ Array.isArray(data.reports)
 ?data.reports
 :[];
 
-$("reportsTable")
-.innerHTML=
-rows
-.map(
-report=>`
+$("reportsTable").innerHTML=
+rows.map(report=>`
 
 <tr>
 
-<td>
-${escapeHTML(report.id||"-")}
-</td>
+<td>${escapeHTML(report.id||"-")}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 report.reporterId||
 report.reporter_id||
 report.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 report.targetId||
 report.target_id||
 report.post_id||
 report.target_user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 report.reason||
 report.description||
 report.text||
 "-"
-)}
-</td>
+)}</td>
 
 <td>
-
 ${
-String(
-report.status||
-"pending"
-)==="resolved"
-
+String(report.status||"pending")==="resolved"
 ?'<span class="badge badge-green">Çözüldü</span>'
-
 :'<span class="badge badge-red">Bekliyor</span>'
 }
-
 </td>
 
 <td>
-<span class="badge">
-Supabase
-</span>
+<span class="badge">Supabase</span>
 </td>
 
 </tr>
 
-`
-)
-.join("")||
+`).join("")||
 '<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
 
 }catch(error){
@@ -4226,56 +3094,44 @@ limit(100)
 )
 );
 
-$("reportsTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("reportsTable").innerHTML=
+snapshot.docs.map(item=>{
 
-const report=
-item.data();
+const report=item.data();
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
+
+<td>${escapeHTML(
+report.reporterId||"-"
+)}</td>
+
+<td>${escapeHTML(
+report.targetId||"-"
+)}</td>
+
+<td>${escapeHTML(
+report.reason||"-"
+)}</td>
 
 <td>
-${escapeHTML(report.reporterId||"-")}
-</td>
-
-<td>
-${escapeHTML(report.targetId||"-")}
-</td>
-
-<td>
-${escapeHTML(report.reason||"-")}
-</td>
-
-<td>
-
 ${
 report.status==="resolved"
 ?'<span class="badge badge-green">Çözüldü</span>'
 :'<span class="badge badge-red">Bekliyor</span>'
 }
-
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
 
 }
@@ -4297,81 +3153,55 @@ Array.isArray(data.problemReports)
 
 if(rows.length){
 
-$("problemReportsTable")
-.innerHTML=
-rows
-.map(
-r=>`
+$("problemReportsTable").innerHTML=
+rows.map(r=>`
 
 <tr>
 
-<td>
-${escapeHTML(r.id||"-")}
-</td>
+<td>${escapeHTML(r.id||"-")}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.username||
 r.uid||
 r.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.userEmail||
 r.email||
 "-"
-)}
-</td>
+)}</td>
 
-<td
-style="max-width:320px;white-space:pre-wrap">
-
+<td style="max-width:320px;white-space:pre-wrap">
 ${escapeHTML(
 r.description||
 r.text||
 r.message||
 "-"
 )}
-
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
-<td>
-${
-escapeHTML(
+<td>${escapeHTML(
 r.created_at
-?new Date(
-r.created_at
-).toLocaleString("tr-TR")
+?new Date(r.created_at)
+.toLocaleString("tr-TR")
 :"-"
-)
-}
-</td>
+)}</td>
 
 <td>
 <span class="badge">
-${escapeHTML(
-r.status||
-"pending"
-)}
+${escapeHTML(r.status||"pending")}
 </span>
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
 </tr>
 
-`
-)
-.join("");
+`).join("");
 
 return;
 
@@ -4396,53 +3226,37 @@ limit(200)
 );
 
 const rows=
-snapshot.docs
-.map(
-item=>{
+snapshot.docs.map(item=>{
 
-const r=
-item.data();
+const r=item.data();
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.username||
 r.uid||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 r.userEmail||
 "-"
-)}
-</td>
+)}</td>
 
-<td
-style="max-width:320px;white-space:pre-wrap">
-
+<td style="max-width:320px;white-space:pre-wrap">
 ${escapeHTML(
 r.description||
 "-"
 )}
-
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
-<td>
-${dateText(r.createdAt)}
-</td>
+<td>${dateText(r.createdAt)}</td>
 
 <td>
 <span class="badge">
@@ -4453,19 +3267,15 @@ r.status||
 </span>
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
 </tr>
 
 `;
 
-}
-);
+});
 
-$("problemReportsTable")
-.innerHTML=
+$("problemReportsTable").innerHTML=
 rows.join("")||
 '<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
 
@@ -4484,47 +3294,35 @@ Array.isArray(data.verification)
 ?data.verification
 :adminUserRows(data);
 
-$("verificationTable")
-.innerHTML=
-rows
-.map(
-user=>`
+$("verificationTable").innerHTML=
+rows.map(user=>`
 
 <tr>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 user.username||
 user.displayName||
 "-"
-)}
-</td>
+)}</td>
+
+<td>${escapeHTML(
+user.email||
+"-"
+)}</td>
 
 <td>
-${escapeHTML(user.email||"-")}
-</td>
-
-<td>
-
-${
-user.verified
+${user.verified
 ?'<span class="badge badge-blue">🔵 Aktif</span>'
-:'<span class="badge">Yok</span>'
-}
-
+:'<span class="badge">Yok</span>'}
 </td>
 
 <td>
-<span class="badge">
-Supabase
-</span>
+<span class="badge">Supabase</span>
 </td>
 
 </tr>
 
-`
-)
-.join("")||
+`).join("")||
 '<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
 
 }catch(error){
@@ -4539,55 +3337,39 @@ await getDocs(
 collection(db,"users")
 );
 
-$("verificationTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("verificationTable").innerHTML=
+snapshot.docs.map(item=>{
 
-const user=
-item.data();
+const user=item.data();
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 user.username||
 user.displayName||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 user.email||
 "-"
-)}
-</td>
+)}</td>
 
 <td>
-
-${
-user.verified
+${user.verified
 ?'<span class="badge badge-blue">🔵 Aktif</span>'
-:'<span class="badge">Yok</span>'
-}
-
+:'<span class="badge">Yok</span>'}
 </td>
 
-<td>
--
-</td>
+<td>-</td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
 
 }
@@ -4607,69 +3389,48 @@ Array.isArray(data.balances)
 ?data.balances
 :[];
 
-$("balanceTable")
-.innerHTML=
-rows
-.map(
-item=>`
+$("balanceTable").innerHTML=
+rows.map(item=>`
 
 <tr>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 item.uid||
 item.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${money(
+<td>${money(
 item.amount||
 item.delta||
 0
-)}
-</td>
+)}</td>
 
 <td>
-
 ${
-String(
-item.type||
-""
-)==="credit"
+String(item.type||"")==="credit"
 ?'<span class="badge badge-green">Bakiye +</span>'
 :'<span class="badge badge-red">Bakiye -</span>'
 }
-
 </td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 item.note||
 item.description||
 item.source||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${
-escapeHTML(
+<td>${escapeHTML(
 item.created_at
-?new Date(
-item.created_at
-).toLocaleString("tr-TR")
+?new Date(item.created_at)
+.toLocaleString("tr-TR")
 :"-"
-)
-}
-</td>
+)}</td>
 
 </tr>
 
-`
-)
-.join("")||
+`).join("")||
 '<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
 
 return;
@@ -4692,61 +3453,50 @@ limit(200)
 )
 );
 
-$("balanceTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("balanceTable").innerHTML=
+snapshot.docs.map(item=>{
 
-const data=
-item.data();
+const data=item.data();
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(data.uid||"-")}
-</td>
+<td>${escapeHTML(
+data.uid||
+"-"
+)}</td>
 
-<td>
-${money(
+<td>${money(
 data.amount||
 data.delta||
 0
-)}
-</td>
+)}</td>
 
 <td>
-
 ${
 data.type==="credit"
 ?'<span class="badge badge-green">Bakiye +</span>'
 :'<span class="badge badge-red">Bakiye -</span>'
 }
-
 </td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 data.note||
 data.description||
 data.source||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${dateText(data.createdAt)}
-</td>
+<td>${dateText(
+data.createdAt
+)}</td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
 
 }
@@ -4766,11 +3516,8 @@ Array.isArray(data.bankTransactions)
 
 let pendingTotal=0;
 
-$("bankTable")
-.innerHTML=
-rows
-.map(
-item=>{
+$("bankTable").innerHTML=
+rows.map(item=>{
 
 const type=
 String(
@@ -4791,12 +3538,10 @@ item.status||
 if(
 isWithdraw&&
 status==="pending"
-){
-
-pendingTotal+=
-Number(item.amount||0);
-
-}
+)
+pendingTotal+=Number(
+item.amount||0
+);
 
 const bankInfo=
 item.iban||
@@ -4809,29 +3554,22 @@ return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id||"-")}
-</td>
+<td>${escapeHTML(item.id||"-")}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 item.uid||
 item.user_id||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${money(item.amount)}
-</td>
+<td>${money(item.amount)}</td>
 
-<td>
-${escapeHTML(item.type||"-")}
-</td>
+<td>${escapeHTML(
+item.type||
+"-"
+)}</td>
 
-<td>
-${escapeHTML(bankInfo)}
-</td>
+<td>${escapeHTML(bankInfo)}</td>
 
 <td>
 
@@ -4846,23 +3584,18 @@ status==="approved"
 </td>
 
 <td>
-<span class="badge">
-Supabase
-</span>
+<span class="badge">Supabase</span>
 </td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
 
 if($("pendingWithdrawTotal"))
-$("pendingWithdrawTotal")
-.textContent=
+$("pendingWithdrawTotal").textContent=
 money(pendingTotal);
 
 return;
@@ -4887,14 +3620,10 @@ limit(200)
 
 let pendingTotal=0;
 
-$("bankTable")
-.innerHTML=
-snapshot.docs
-.map(
-item=>{
+$("bankTable").innerHTML=
+snapshot.docs.map(item=>{
 
-const data=
-item.data();
+const data=item.data();
 
 const type=
 String(
@@ -4911,66 +3640,53 @@ type==="payout";
 if(
 isWithdraw&&
 (data.status||"pending")==="pending"
-){
-
-pendingTotal+=
-Number(data.amount||0);
-
-}
+)
+pendingTotal+=Number(
+data.amount||0
+);
 
 return `
 
 <tr>
 
-<td>
-${escapeHTML(item.id)}
-</td>
+<td>${escapeHTML(item.id)}</td>
 
-<td>
-${escapeHTML(data.uid||"-")}
-</td>
+<td>${escapeHTML(
+data.uid||
+"-"
+)}</td>
 
-<td>
-${money(data.amount)}
-</td>
+<td>${money(data.amount)}</td>
 
-<td>
-${escapeHTML(data.type||"-")}
-</td>
+<td>${escapeHTML(
+data.type||
+"-"
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 data.iban||
 data.bankAccount||
 data.bank||
 data.account||
 "-"
-)}
-</td>
+)}</td>
 
-<td>
-${escapeHTML(
+<td>${escapeHTML(
 data.status||
 "pending"
-)}
-</td>
+)}</td>
 
-<td>
--
-</td>
+<td>-</td>
 
 </tr>
 
 `;
 
-}
-)
-.join("")||
+}).join("")||
 '<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
 
 if($("pendingWithdrawTotal"))
-$("pendingWithdrawTotal")
-.textContent=
+$("pendingWithdrawTotal").textContent=
 money(pendingTotal);
 
 }
@@ -5009,41 +3725,33 @@ Number(u.balance||0),
 0
 );
 
-$("totalUsers")
-.textContent=
+$("totalUsers").textContent=
 users.length;
 
-$("totalPosts")
-.textContent=
+$("totalPosts").textContent=
 posts.length;
 
-$("totalReports")
-.textContent=
+$("totalReports").textContent=
 reports.filter(
 r=>
 String(
-r.status||
-"pending"
+r.status||"pending"
 )!=="resolved"
 ).length;
 
-$("totalProblemReports")
-.textContent=
+$("totalProblemReports").textContent=
 problems.filter(
 r=>
 String(
-r.status||
-"pending"
+r.status||"pending"
 )!=="resolved"
 ).length;
 
-$("totalBalance")
-.textContent=
+$("totalBalance").textContent=
 money(totalBalance);
 
 if($("balanceTotalLive"))
-$("balanceTotalLive")
-.textContent=
+$("balanceTotalLive").textContent=
 money(totalBalance);
 
 return;
@@ -5086,7 +3794,6 @@ collection(db,"posts")
 
 }catch(e){}
 
-
 try{
 
 const r=
@@ -5094,46 +3801,37 @@ await getDocs(
 collection(db,"reports")
 );
 
-r.forEach(
-i=>{
+r.forEach(i=>{
 
 if(
 i.data().status!=="resolved"
 )
 reports++;
 
-}
-);
+});
 
 }catch(e){}
 
-
-activeUsers.forEach(
-i=>
+activeUsers.forEach(i=>
 totalBalance+=
 Number(
 i.data().balance||0
 )
 );
 
-$("totalUsers")
-.textContent=
+$("totalUsers").textContent=
 activeUsers.length;
 
-$("totalPosts")
-.textContent=
+$("totalPosts").textContent=
 posts;
 
-$("totalReports")
-.textContent=
+$("totalReports").textContent=
 reports;
 
-$("totalProblemReports")
-.textContent=
+$("totalProblemReports").textContent=
 "—";
 
-$("totalBalance")
-.textContent=
+$("totalBalance").textContent=
 money(totalBalance);
 
 }
@@ -5201,13 +3899,12 @@ throw new Error(
 );
 
 
-async function doRequest(
-forceRefresh
-){
+async function doRequest(forceRefresh){
 
 const token=
-await currentUser
-.getIdToken(forceRefresh);
+await currentUser.getIdToken(
+forceRefresh
+);
 
 const headers=
 new Headers(
@@ -5245,7 +3942,6 @@ cache:"no-store"
 let response=
 await doRequest(false);
 
-
 if(response.status===401){
 
 await currentUser
@@ -5260,7 +3956,6 @@ response=
 await doRequest(true);
 
 }
-
 
 const data=
 await response
@@ -5289,12 +3984,9 @@ await emailServiceRequest(
 );
 
 const active=
-Boolean(
-data.configured
-);
+Boolean(data.configured);
 
-$("gatewayStatus")
-.innerHTML=
+$("gatewayStatus").innerHTML=
 active
 ?'<span class="badge badge-green">● Gmail HTTPS Aktif</span>'
 :'<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';
@@ -5321,8 +4013,7 @@ String(data.cooldownSeconds);
 
 }catch(error){
 
-$("gatewayStatus")
-.innerHTML=
+$("gatewayStatus").innerHTML=
 '<span class="badge badge-red">● Sunucu bağlantısı yok</span>';
 
 console.warn(
@@ -5348,11 +4039,9 @@ prompt(
 "Test e-postası hangi adrese gönderilsin?"
 );
 
-if(!to)
-return;
+if(!to)return;
 
-message.className=
-"message";
+message.className="message";
 
 message.textContent=
 "Gmail HTTPS üzerinden test e-postası gönderiliyor...";
@@ -5363,9 +4052,7 @@ await emailServiceRequest(
 "/test",
 {
 method:"POST",
-body:JSON.stringify({
-to
-})
+body:JSON.stringify({to})
 }
 );
 
@@ -5396,11 +4083,8 @@ async()=>{
 const message=
 $("verificationMessage");
 
-message.className=
-"message";
-
-message.textContent=
-"Kaydediliyor...";
+message.className="message";
+message.textContent="Kaydediliyor...";
 
 try{
 
@@ -5408,24 +4092,20 @@ await emailServiceRequest(
 "/verification-config",
 {
 method:"POST",
-body:JSON.stringify(
-{
+body:JSON.stringify({
 codeLength:
 Number(
 $("verificationCodeLength").value
 ),
-
 expiryMinutes:
 Number(
 $("verificationExpiry").value
 ),
-
 cooldownSeconds:
 Number(
 $("verificationCooldown").value
 )
-}
-)
+})
 }
 );
 
@@ -5449,14 +4129,11 @@ error.message;
 
 
 document
-.querySelector(
-'[data-page="emailService"]'
-)
+.querySelector('[data-page="emailService"]')
 .addEventListener(
 "click",
 ()=>{
-loadEmailService()
-.catch(()=>{});
+loadEmailService().catch(()=>{});
 }
 );
 
@@ -5484,13 +4161,12 @@ throw new Error(
 );
 
 
-async function doRequest(
-forceRefresh
-){
+async function doRequest(forceRefresh){
 
 const token=
-await currentUser
-.getIdToken(forceRefresh);
+await currentUser.getIdToken(
+forceRefresh
+);
 
 const headers=
 new Headers(
@@ -5528,7 +4204,6 @@ cache:"no-store"
 let response=
 await doRequest(false);
 
-
 if(response.status===401){
 
 await currentUser
@@ -5544,10 +4219,8 @@ await doRequest(true);
 
 }
 
-
 const data=
-await response
-.json()
+await response.json()
 .catch(()=>({}));
 
 if(!response.ok)
@@ -5585,8 +4258,7 @@ status.className=
 status.innerHTML=
 '<span class="badge badge-green">● SMS OTP Aktif</span> Kanal: '+
 escapeHTML(
-data.channel||
-"sms"
+data.channel||"sms"
 );
 
 }else{
@@ -5620,8 +4292,7 @@ async()=>{
 
 const phone=
 $("phoneOtpTestNumber")
-.value
-.trim();
+.value.trim();
 
 const message=
 $("phoneOtpTestMessage");
@@ -5638,8 +4309,7 @@ return;
 
 }
 
-message.className=
-"message";
+message.className="message";
 
 message.textContent=
 "SMS gönderiliyor...";
@@ -5651,9 +4321,7 @@ await phoneOtpRequest(
 "/send",
 {
 method:"POST",
-body:JSON.stringify({
-phone
-})
+body:JSON.stringify({phone})
 }
 );
 
@@ -5678,367 +4346,206 @@ error.message;
 
 
 document
-.querySelector(
-'[data-page="phoneOtp"]'
-)
+.querySelector('[data-page="phoneOtp"]')
 .addEventListener(
 "click",
 ()=>{
-loadPhoneOtpService()
-.catch(()=>{});
+loadPhoneOtpService().catch(()=>{});
 }
 );
 
 
 /* =========================================================
-   🌐 DOMAIN YÖNETİMİ
-   BURASI DOSYANIN EN ALTINDA.
-   FIREBASE VE currentAdminUser ARTIK TANIMLI.
+   SÜPERALANADI ADMIN
 ========================================================= */
 
-const DOMAIN_API=
-"/api/admin/domain";
+const SA_RENDER_API=
+window.SUPERALANADI_API_URL||
+"/api/domain-check";
+
+let saQueries=
+JSON.parse(
+localStorage.getItem(
+"superalanadi_queries"
+)||
+"[]"
+);
+
+let saOrders=
+JSON.parse(
+localStorage.getItem(
+"superalanadi_orders"
+)||
+"[]"
+);
+
+let saCustomers=
+JSON.parse(
+localStorage.getItem(
+"superalanadi_customers"
+)||
+"[]"
+);
+
+let saPrices=
+JSON.parse(
+localStorage.getItem(
+"superalanadi_prices"
+)||
+"{}"
+);
 
 
-function normalizeDomain(value){
+function saSave(){
 
-return String(value||"")
-.trim()
-.toLowerCase()
-.replace(/^https?:\/\//,"")
-.replace(/^www\./,"")
-.replace(/\/.*$/,"")
-.trim();
+localStorage.setItem(
+"superalanadi_queries",
+JSON.stringify(
+saQueries.slice(0,100)
+)
+);
 
-}
+localStorage.setItem(
+"superalanadi_orders",
+JSON.stringify(
+saOrders.slice(0,100)
+)
+);
 
+localStorage.setItem(
+"superalanadi_customers",
+JSON.stringify(
+saCustomers.slice(0,100)
+)
+);
 
-function isValidDomain(domain){
-
-if(!domain)
-return false;
-
-if(domain.length>253)
-return false;
-
-return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i
-.test(domain);
-
-}
-
-
-async function domainRequest(
-path,
-options={}
-){
-
-let currentUser=
-currentAdminUser||
-auth.currentUser;
-
-if(!currentUser){
-
-throw new Error(
-"Admin oturumu bulunamadı. Önce admin olarak giriş yapın."
+localStorage.setItem(
+"superalanadi_prices",
+JSON.stringify(
+saPrices
+)
 );
 
 }
 
 
-async function doRequest(
-forceRefresh
-){
+function saEsc(v){
 
-const token=
-await currentUser
-.getIdToken(forceRefresh);
-
-const headers=
-new Headers(
-options.headers||{}
-);
-
-headers.set(
-"Content-Type",
-"application/json"
-);
-
-headers.set(
-"Authorization",
-"Bearer "+token
-);
-
-headers.set(
-"X-Firebase-ID-Token",
-token
-);
-
-
-return fetch(
-DOMAIN_API+path,
-{
-...options,
-headers,
-credentials:"same-origin",
-cache:"no-store"
-}
-);
+return String(v??"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;");
 
 }
 
 
-let response=
-await doRequest(false);
+function saRender(){
+
+$("saTotalQueries").textContent=
+saQueries.length;
+
+$("saAvailable").textContent=
+saQueries.filter(
+x=>x.available
+).length;
+
+$("saOrders").textContent=
+saOrders.length;
+
+$("saCustomers").textContent=
+saCustomers.length;
+
+$("saStatQueries").textContent=
+saQueries.length;
+
+$("saStatAvailability").textContent=
+(
+saQueries.length
+?Math.round(
+saQueries.filter(
+x=>x.available
+).length/
+saQueries.length*
+100
+)
+:0
+)+"%";
+
+$("saStatOrderTotal").textContent=
+saOrders
+.reduce(
+(n,x)=>
+n+
+Number(x.amount||0),
+0
+)
+.toFixed(2);
 
 
-if(response.status===401){
+$("saQueriesTable").innerHTML=
+saQueries.map(x=>`
 
-await currentUser
-.reload()
-.catch(()=>{});
+<tr>
 
-currentUser=
-auth.currentUser||
-currentUser;
+<td>${saEsc(x.domain)}</td>
 
-response=
-await doRequest(true);
-
+<td>
+${
+x.available
+?'<span class="badge badge-green">Müsait</span>'
+:'<span class="badge badge-red">Dolu</span>'
 }
+</td>
 
+<td>${saEsc(x.date)}</td>
 
-const data=
-await response
-.json()
-.catch(()=>({}));
+</tr>
 
+`).join("")||
+'<tr><td colspan="3">Henüz kayıt yok.</td></tr>';
 
-if(!response.ok){
 
-throw new Error(
-data.error||
-data.message||
-`Domain servisi HTTP ${response.status}`
-);
+$("saOrdersTable").innerHTML=
+saOrders.map(x=>`
 
-}
+<tr>
 
+<td>${saEsc(x.id)}</td>
 
-return data;
+<td>${saEsc(x.customer)}</td>
 
-}
+<td>${saEsc(x.domain)}</td>
 
+<td>${saEsc(x.amount)}</td>
 
-/* =========================================================
-   DOMAIN DURUMU
-========================================================= */
+<td>
+<span class="badge">
+${saEsc(x.status)}
+</span>
+</td>
 
-async function loadDomain(){
+</tr>
 
-try{
+`).join("")||
+'<tr><td colspan="5">Henüz sipariş yok.</td></tr>';
 
-const data=
-await domainRequest(
-"/status"
-);
 
+$("saCustomersTable").innerHTML=
+saCustomers.map(x=>`
 
-const domain=
-normalizeDomain(
-data.domain||
-data.hostname||
-""
-);
+<tr>
 
+<td>${saEsc(x.name)}</td>
 
-$("activeDomain")
-.textContent=
-domain||
-"—";
+<td>${saEsc(x.email)}</td>
 
+<td>${saEsc(x.domain||"-")}</td>
 
-$("domainName")
-.value=
-domain;
+</tr>
 
-
-$("domainDisplay")
-.value=
-domain;
-
-
-$("domainPanelUrl")
-.value=
-domain
-?"https://"+domain
-:"—";
-
-
-const status=
-$("domainStatus");
-
-
-if(
-data.active===true||
-data.connected===true||
-data.status==="active"
-){
-
-status.className=
-"badge badge-green";
-
-status.textContent=
-"● Aktif";
-
-}else{
-
-status.className=
-"badge";
-
-status.textContent=
-data.status
-?String(data.status)
-:"● Beklemede";
-
-}
-
-
-/* SSL */
-
-const ssl=
-$("domainSSL");
-
-
-if(
-data.ssl===true||
-data.https===true||
-data.sslActive===true
-){
-
-ssl.className=
-"badge badge-green";
-
-ssl.textContent=
-"● SSL Aktif";
-
-}else{
-
-ssl.className=
-"badge";
-
-ssl.textContent=
-"Bekliyor";
-
-}
-
-
-/* DNS */
-
-const dns=
-$("domainDNS");
-
-
-if(
-data.dns===true||
-data.dnsConfigured===true||
-data.dnsActive===true
-){
-
-dns.className=
-"badge badge-green";
-
-dns.textContent=
-"● DNS Yapılandırıldı";
-
-}else{
-
-dns.className=
-"badge";
-
-dns.textContent=
-"Bekliyor";
-
-}
-
-
-/* DNS BİLGİSİ */
-
-if(data.dnsInfo){
-
-$("domainDnsInfo")
-.value=
-typeof data.dnsInfo==="string"
-?data.dnsInfo
-:JSON.stringify(
-data.dnsInfo,
-null,
-2
-);
-
-}else{
-
-$("domainDnsInfo")
-.value=
-"DNS bilgisi henüz oluşturulmadı.";
-
-}
-
-
-}catch(error){
-
-console.warn(
-"Domain durumu alınamadı:",
-error.message
-);
-
-
-$("activeDomain")
-.textContent=
-"—";
-
-
-$("domainStatus")
-.className=
-"badge badge-red";
-
-$("domainStatus")
-.textContent=
-"● Sunucu bağlantısı yok";
-
-
-$("domainSSL")
-.className=
-"badge";
-
-$("domainSSL")
-.textContent=
-"—";
-
-
-$("domainDNS")
-.className=
-"badge";
-
-$("domainDNS")
-.textContent=
-"—";
-
-
-$("domainDisplay")
-.value=
-"";
-
-
-$("domainPanelUrl")
-.value=
-"—";
-
-
-$("domainDnsInfo")
-.value=
-"Domain sunucusu henüz bağlanmadı.";
-
-}
+`).join("")||
+'<tr><td colspan="3">Henüz müşteri yok.</td></tr>';
 
 }
 
@@ -6047,327 +4554,293 @@ $("domainDnsInfo")
    DOMAIN SORGULA
 ========================================================= */
 
-$("domainCheckButton")
-.addEventListener(
-"click",
-async()=>{
+async function saCheckDomain(){
 
 const input=
-$("domainName");
+$("saDomainInput");
 
-const message=
-$("domainMessage");
+const msg=
+$("saDomainMessage");
 
+const tbody=
+$("saDomainResults");
 
 const domain=
-normalizeDomain(
 input.value
-);
-
+.trim()
+.toLowerCase()
+.replace(/^https?:\/\//,"")
+.replace(/^www\./,"")
+.split("/")[0];
 
 if(!domain){
 
-message.className=
+msg.className=
 "message error";
 
-message.textContent=
-"Lütfen bir domain yaz.";
+msg.textContent=
+"Domain yazmalısın.";
 
 return;
 
 }
 
+msg.className="message";
 
-if(!isValidDomain(domain)){
+msg.textContent=
+"Cloudflare üzerinden sorgulanıyor...";
 
-message.className=
-"message error";
-
-message.textContent=
-"Geçerli bir domain gir. Örnek: adminminegram.com";
-
-return;
-
-}
-
-
-message.className=
-"message";
-
-message.textContent=
-"🔎 Domain sorgulanıyor...";
-
-
-const button=
-$("domainCheckButton");
-
-button.disabled=true;
+tbody.innerHTML=
+'<tr><td colspan="4">Sorgulanıyor...</td></tr>';
 
 
 try{
 
-const data=
-await domainRequest(
-"/check",
+const r=
+await fetch(
+SA_RENDER_API,
 {
 method:"POST",
-
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
-domain
+domains:[domain]
 })
 }
 );
 
+const data=
+await r.json();
 
-if(
-data.available===true
-){
-
-message.className=
-"message success";
-
-message.textContent=
-"✅ "+
-domain+
-" kullanılabilir.";
-
-}else{
-
-message.className=
-"message error";
-
-message.textContent=
-data.message||
-"❌ "+
-domain+
-" kullanılabilir değil.";
-
-}
-
-
-}catch(error){
-
-console.error(
-"Domain sorgulama hatası:",
-error
+if(!r.ok)
+throw new Error(
+data.error||
+"Domain sorgusu başarısız."
 );
 
-message.className=
+const rows=
+Array.isArray(data.domains)
+?data.domains
+:[];
+
+
+tbody.innerHTML=
+rows.map(d=>{
+
+const available=
+d.registrable===true;
+
+const price=
+d.pricing?.registration_cost??
+d.pricing?.registration?.[0]?.price??
+"—";
+
+const currency=
+d.pricing?.currency??
+d.pricing?.registration?.[0]?.currency||
+"";
+
+saQueries.unshift({
+domain:d.name||domain,
+available,
+date:new Date()
+.toLocaleString("tr-TR")
+});
+
+
+return `
+
+<tr>
+
+<td>${saEsc(
+d.name||
+domain
+)}</td>
+
+<td>
+
+${
+available
+?'<span class="badge badge-green">🟢 Müsait</span>'
+:'<span class="badge badge-red">🔴 Dolu</span>'
+}
+
+</td>
+
+<td>${saEsc(
+price+" "+currency
+)}</td>
+
+<td>Cloudflare Sandbox</td>
+
+</tr>
+
+`;
+
+}).join("")||
+'<tr><td colspan="4">Sonuç bulunamadı.</td></tr>';
+
+saQueries=
+saQueries.slice(0,100);
+
+saSave();
+
+saRender();
+
+msg.className=
+"message success";
+
+msg.textContent=
+"Domain sorgulaması tamamlandı.";
+
+}catch(e){
+
+tbody.innerHTML=
+`
+<tr>
+<td colspan="4">
+${saEsc(e.message)}
+</td>
+</tr>
+`;
+
+msg.className=
 "message error";
 
-message.textContent=
-"❌ "+
-error.message;
-
-}finally{
-
-button.disabled=false;
+msg.textContent=
+e.message;
 
 }
+
+}
+
+
+$("saDomainCheck")
+?.addEventListener(
+"click",
+saCheckDomain
+);
+
+
+$("saDomainInput")
+?.addEventListener(
+"keydown",
+e=>{
+
+if(e.key==="Enter")
+saCheckDomain();
 
 }
 );
 
 
 /* =========================================================
-   DOMAIN KAYDET
+   CLOUDFLARE KONTROL
 ========================================================= */
 
-$("domainSaveButton")
-.addEventListener(
+$("saCloudflareCheck")
+?.addEventListener(
 "click",
 async()=>{
 
-const input=
-$("domainName");
+const el=
+$("saCloudflareStatus");
 
-const message=
-$("domainMessage");
-
-
-const domain=
-normalizeDomain(
-input.value
-);
-
-
-if(!domain){
-
-message.className=
-"message error";
-
-message.textContent=
-"Lütfen bir domain yaz.";
-
-return;
-
-}
-
-
-if(!isValidDomain(domain)){
-
-message.className=
-"message error";
-
-message.textContent=
-"Geçerli bir domain gir.";
-
-return;
-
-}
-
-
-const confirmed=
-confirm(
-"Bu domaini Minegram Admin Paneli için kaydetmek istiyor musun?\n\n"+
-domain
-);
-
-
-if(!confirmed)
-return;
-
-
-message.className=
-"message";
-
-message.textContent=
-"💾 Domain kaydediliyor...";
-
-
-const button=
-$("domainSaveButton");
-
-button.disabled=true;
-
+el.innerHTML=
+'<span class="badge">Kontrol ediliyor...</span>';
 
 try{
 
-const data=
-await domainRequest(
-"/save",
+const r=
+await fetch(
+SA_RENDER_API,
 {
 method:"POST",
-
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
-domain
+domains:["example.com"]
 })
 }
 );
 
-
-const savedDomain=
-normalizeDomain(
-data.domain||
-domain
+if(!r.ok)
+throw new Error(
+"Render/Cloudflare bağlantısı başarısız."
 );
 
+el.innerHTML=
+'<span class="badge badge-green">🟢 Bağlantı aktif</span>';
 
-$("activeDomain")
-.textContent=
-savedDomain;
+}catch(e){
 
-
-$("domainName")
-.value=
-savedDomain;
-
-
-$("domainDisplay")
-.value=
-savedDomain;
-
-
-$("domainPanelUrl")
-.value=
-"https://"+
-savedDomain;
-
-
-message.className=
-"message success";
-
-message.textContent=
-"✅ Domain başarıyla kaydedildi.";
-
-
-await loadDomain();
-
-
-}catch(error){
-
-console.error(
-"Domain kaydetme hatası:",
-error
-);
-
-message.className=
-"message error";
-
-message.textContent=
-"❌ "+
-error.message;
-
-}finally{
-
-button.disabled=false;
+el.innerHTML=
+'<span class="badge badge-red">🔴 Bağlantı yok</span>';
 
 }
 
-}
-);
+});
 
 
 /* =========================================================
-   DOMAIN MENÜ
+   DOMAIN FİYAT
 ========================================================= */
 
-const domainMenuButton=
-document.querySelector(
-'[data-page="domains"]'
-);
-
-
-if(domainMenuButton){
-
-domainMenuButton.addEventListener(
+$("saPriceSave")
+?.addEventListener(
 "click",
 ()=>{
 
-loadDomain()
-.catch(
-error=>
-console.error(
-"Domain yükleme hatası:",
-error
+const tld=
+$("saPriceTld")
+.value
+.trim()
+.toLowerCase();
+
+const value=
+$("saPriceValue")
+.value;
+
+if(!tld||!value){
+
+$("saPriceMessage").className=
+"message error";
+
+$("saPriceMessage").textContent=
+"Uzantı ve fiyat gerekli.";
+
+return;
+
+}
+
+saPrices[tld]=
+Number(value);
+
+saSave();
+
+$("saPriceMessage").className=
+"message success";
+
+$("saPriceMessage").textContent=
+`${tld} fiyatı kaydedildi.`;
+
+}
+);
+
+
+document
+.querySelector(
+'[data-page="superalanadi"]'
 )
+?.addEventListener(
+"click",
+()=>saRender()
 );
 
-}
-);
 
-}
-
-
-/* =========================================================
-   SAYFA AÇILDIĞINDA DOMAIN HAZIR
-========================================================= */
-
-if(
-$("domainStatus")&&
-$("domainName")
-){
-
-$("domainStatus")
-.className=
-"badge";
-
-$("domainStatus")
-.textContent=
-"Hazır";
-
-}
-
+saRender();
 
 </script>
 
