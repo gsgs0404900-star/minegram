@@ -1710,20 +1710,9 @@ return timestamp
 
 }
 
-
 async function checkAdmin(uid){
-
-if(uid!==ADMIN_UID)
-return false;
-
-const adminDocument=
-await getDoc(
-doc(db,"admins",ADMIN_UID)
-);
-
-return adminDocument.exists()&&
-adminDocument.data().active===true;
-
+  return uid===ADMIN_UID;
+}
 }
 
 
@@ -1943,27 +1932,58 @@ credential.user.uid
 
 }
 
-const adminDocument=
-await getDoc(
-doc(db,"admins",ADMIN_UID)
-);
+$("loginForm").addEventListener("submit",async event=>{
+  event.preventDefault();
 
-if(!adminDocument.exists()){
+  const email=$("loginEmail").value.trim();
+  const password=$("loginPassword").value;
 
-throw new Error(
-"admins/"+ADMIN_UID+
-" belgesi bulunamadı."
-);
+  $("loginMessage").className="message";
+  $("loginMessage").textContent="Firebase ile giriş yapılıyor...";
 
-}
+  adminLoginInProgress=true;
 
-if(
-adminDocument.data().active!==true
-){
+  try{
+    const credential=await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
 
-throw new Error(
-"Admin hesabında active değeri true değil."
-);
+    if(credential.user.uid!==ADMIN_UID){
+      throw new Error(
+        "Bu Firebase hesabı admin hesabı değil. Giriş yapan UID: "+
+        credential.user.uid
+      );
+    }
+
+    await openAdminPanel(credential.user);
+
+  }catch(error){
+
+    console.error("GERÇEK LOGIN HATASI:",error);
+
+    adminVerified=false;
+
+    if(auth.currentUser){
+      await signOut(auth).catch(()=>{});
+    }
+
+    $("loginScreen").classList.remove("hidden");
+    $("adminApp").classList.add("hidden");
+
+    $("loginMessage").className="message error";
+
+    $("loginMessage").textContent=
+      "HATA: "+
+      (error.code||"")+
+      " - "+
+      error.message;
+
+  }finally{
+    adminLoginInProgress=false;
+  }
+});
 
 }
 
