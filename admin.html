@@ -68,9 +68,54 @@ body.dark .quick-card:hover{background:#172236;border-color:#35517d}
 body.dark th,body.dark td{border-bottom-color:#263247}
 body.dark .btn-gray{background:#243047;color:#f8fafc}
 
+
+/* Admin video modal */
+.admin-video-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.78);
+  display:none;align-items:center;justify-content:center;
+  z-index:99999;padding:24px;
+}
+.admin-video-modal.active{display:flex}
+.admin-video-modal-box{
+  width:min(1000px,96vw);max-height:92vh;background:#fff;
+  border-radius:18px;box-shadow:0 25px 80px rgba(0,0,0,.35);
+  overflow:hidden;position:relative;
+}
+.admin-video-modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:12px 16px;border-bottom:1px solid #edf0f5;
+}
+.admin-video-modal-title{font-weight:700;color:#101828}
+.admin-video-modal-close{
+  border:0;background:#f2f4f7;color:#344054;width:38px;height:38px;
+  border-radius:10px;cursor:pointer;font-size:20px;line-height:1;
+}
+.admin-video-modal-close:hover{background:#e4e7ec}
+.admin-video-modal-body{
+  background:#000;display:flex;align-items:center;justify-content:center;
+  min-height:240px;max-height:calc(92vh - 65px);
+}
+.admin-video-modal-body video{
+  display:block;width:100%;height:auto;max-height:calc(92vh - 65px);
+  background:#000;
+}
+
 </style>
 </head>
 <body>
+
+<div id="adminVideoModal" class="admin-video-modal" aria-hidden="true">
+  <div class="admin-video-modal-box" role="dialog" aria-modal="true" aria-label="Gönderi videosu">
+    <div class="admin-video-modal-head">
+      <div class="admin-video-modal-title">🎬 Gönderi Videosu</div>
+      <button type="button" class="admin-video-modal-close" id="adminVideoModalClose" aria-label="Kapat">×</button>
+    </div>
+    <div class="admin-video-modal-body">
+      <video id="adminVideoPlayer" controls playsinline preload="metadata"></video>
+    </div>
+  </div>
+</div>
+
 
 <div id="loginScreen" class="login-screen">
 <div class="login-box">
@@ -494,15 +539,21 @@ function postPhotoHTML(post){
   return `<a href="${safeUrl}" target="_blank" rel="noopener" title="Gönderi resmini aç"><img src="${safeUrl}" alt="Gönderi resmi" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #e6e9f0;display:block"><span class="badge badge-red" style="display:none">Resim açılamadı</span></a>`; 
 }
 function openAdminVideo(url){
-  if(!url) return;
-  const safe=String(url);
-  const win=window.open("", "_blank", "noopener,noreferrer");
-  if(!win){
-    alert("Video yeni sekmede açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir.");
-    return;
+  const modal=$("adminVideoModal");
+  const player=$("adminVideoPlayer");
+  if(!modal||!player) return;
+  player.pause();
+  player.removeAttribute("src");
+  player.load();
+  player.src=String(url||"");
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  player.load();
+  const playPromise=player.play();
+  if(playPromise&&typeof playPromise.catch==="function"){
+    playPromise.catch(()=>{});
   }
-  win.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minegram Video</title><style>html,body{margin:0;background:#000;width:100%;height:100%;overflow:hidden}video{width:100%;height:100%;object-fit:contain;display:block;background:#000}</style></head><body><video controls autoplay playsinline preload="metadata" src="${escapeHTML(safe)}"></video></body></html>`);
-  win.document.close();
 }
 document.addEventListener("click",event=>{
   const button=event.target.closest(".admin-video-btn");
@@ -654,6 +705,45 @@ catch(error){status.className="message error";status.textContent="SMS servisi ko
 }
 $("phoneOtpTestButton").addEventListener("click",async()=>{const phone=$("phoneOtpTestNumber").value.trim(),message=$("phoneOtpTestMessage");if(!phone){message.className="message error";message.textContent="Telefon numarası gerekli.";return}message.className="message";message.textContent="SMS gönderiliyor...";try{const data=await phoneOtpRequest("/send",{method:"POST",body:JSON.stringify({phone})});message.className="message success";message.textContent=data.message||"Doğrulama SMS'i gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
 document.querySelector('[data-page="phoneOtp"]').addEventListener("click",()=>{loadPhoneOtpService().catch(()=>{})});
+
+document.addEventListener("click",function(event){
+  const videoButton=event.target.closest(".admin-video-btn");
+  if(videoButton){
+    event.preventDefault();
+    event.stopPropagation();
+    openAdminVideo(videoButton.getAttribute("data-video-url")||"");
+    return;
+  }
+  if(event.target.id==="adminVideoModal"){
+    closeAdminVideo();
+  }
+});
+
+function closeAdminVideo(){
+  const modal=$("adminVideoModal");
+  const player=$("adminVideoPlayer");
+  if(player){
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+  }
+  if(modal){
+    modal.classList.remove("active");
+    modal.setAttribute("aria-hidden","true");
+  }
+  document.body.style.overflow="";
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  const close=$("adminVideoModalClose");
+  if(close) close.addEventListener("click",closeAdminVideo);
+  document.addEventListener("keydown",function(event){
+    if(event.key==="Escape" && $("adminVideoModal")?.classList.contains("active")){
+      closeAdminVideo();
+    }
+  });
+});
+
 </script>
 </body>
 </html>
