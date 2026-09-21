@@ -3,1233 +3,3378 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Minegram Admin Paneli v2</title>
+
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
 <style>
-<style>
-*{box-sizing:border-box}
+/* =========================================================
+   MINEGRAM ADMIN PANEL
+   MODERN SAAS DESIGN
+========================================================= */
 
 :root{
-  --bg:#f4f7fb;
-  --surface:#ffffff;
-  --surface-2:#f8fafc;
-  --border:#e7ebf2;
-  --text:#172033;
-  --muted:#718096;
-  --primary:#2563eb;
-  --primary-dark:#1d4ed8;
-  --primary-light:#eff6ff;
-  --sidebar:#0b1220;
-  --sidebar-2:#111827;
-  --sidebar-text:#aeb9ca;
-  --success:#16a34a;
-  --danger:#dc2626;
-  --warning:#f59e0b;
-  --shadow:0 10px 30px rgba(15,23,42,.06);
-  --radius:18px;
+    --primary:#2563eb;
+    --primary2:#3b82f6;
+    --primary-soft:#eff6ff;
+
+    --sidebar:#0b1730;
+    --sidebar2:#101f3d;
+
+    --bg:#f5f8fc;
+    --card:#ffffff;
+
+    --text:#15264a;
+    --muted:#7182a3;
+
+    --border:#e5ebf5;
+
+    --green:#16b978;
+    --red:#ef4444;
+    --orange:#f59e0b;
+    --purple:#8b5cf6;
+
+    --shadow:0 8px 30px rgba(20,48,90,.06);
+
+    --radius:16px;
 }
 
 *{
-  scrollbar-width:thin;
-  scrollbar-color:#cbd5e1 transparent;
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
 }
 
 body{
-  margin:0;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Arial,
-    sans-serif;
-  background:var(--bg);
-  color:var(--text);
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background:var(--bg);
+    color:var(--text);
 }
 
-button,
-input,
-select,
-textarea{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-.hidden{
-  display:none!important;
-}
-
-/* =========================
+/* =========================================================
    LOGIN
-========================= */
+========================================================= */
 
-.login-screen{
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  padding:25px;
-  background:
-    radial-gradient(circle at 20% 20%,rgba(37,99,235,.16),transparent 35%),
-    radial-gradient(circle at 80% 80%,rgba(59,130,246,.12),transparent 35%),
-    linear-gradient(135deg,#f8fbff,#eef3fb);
+#loginScreen{
+    min-height:100vh;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:30px;
+
+    background:
+        radial-gradient(circle at top left,#dbeafe 0,transparent 35%),
+        radial-gradient(circle at bottom right,#e0e7ff 0,transparent 35%),
+        #f5f8fc;
 }
 
 .login-box{
-  width:100%;
-  max-width:430px;
-  background:rgba(255,255,255,.94);
-  padding:38px;
-  border-radius:24px;
-  border:1px solid rgba(255,255,255,.8);
-  box-shadow:
-    0 30px 80px rgba(15,23,42,.12),
-    0 8px 25px rgba(37,99,235,.06);
+    width:420px;
+    max-width:100%;
+
+    background:white;
+
+    border:1px solid var(--border);
+
+    border-radius:24px;
+
+    padding:42px;
+
+    box-shadow:
+        0 25px 70px rgba(20,48,90,.12);
 }
 
-.logo{
-  font-size:30px;
-  font-weight:900;
-  letter-spacing:-.7px;
-  margin-bottom:7px;
-  color:#111827;
+.login-logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    margin-bottom:30px;
 }
 
-.logo::before{
-  content:"●";
-  color:var(--primary);
-  margin-right:7px;
+.login-logo-icon{
+    width:48px;
+    height:48px;
+
+    border-radius:14px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:linear-gradient(
+        135deg,
+        #2563eb,
+        #60a5fa
+    );
+
+    color:white;
+
+    font-size:25px;
+    font-weight:800;
 }
 
-.logo-sub{
-  color:var(--muted);
-  margin-bottom:30px;
+.login-logo strong{
+    font-size:23px;
 }
 
-.input-group{
-  margin-bottom:17px;
+.login-logo span{
+    color:var(--primary);
 }
 
-.input-group label{
-  display:block;
-  margin-bottom:8px;
-  font-size:13px;
-  font-weight:700;
-  color:#344054;
+.login-box h1{
+    font-size:27px;
+    margin-bottom:8px;
 }
+
+.login-box p{
+    color:var(--muted);
+    margin-bottom:25px;
+}
+
+.login-box input{
+    width:100%;
+
+    height:50px;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    padding:0 15px;
+
+    outline:none;
+
+    margin-bottom:13px;
+
+    font-size:14px;
+
+    transition:.2s;
+}
+
+.login-box input:focus{
+    border-color:var(--primary);
+
+    box-shadow:
+        0 0 0 4px rgba(37,99,235,.08);
+}
+
+.login-box button{
+    width:100%;
+
+    height:50px;
+
+    border:0;
+
+    border-radius:12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #3b82f6
+        );
+
+    color:white;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.login-box button:hover{
+    transform:translateY(-1px);
+
+    box-shadow:
+        0 10px 25px rgba(37,99,235,.25);
+}
+
+/* =========================================================
+   APP
+========================================================= */
+
+#adminApp{
+    display:none;
+}
+
+.admin-layout{
+    min-height:100vh;
+}
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar{
+    position:fixed;
+
+    left:0;
+    top:0;
+    bottom:0;
+
+    width:270px;
+
+    padding:20px 15px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #0b1730,
+            #0a1935 60%,
+            #081426
+        );
+
+    color:white;
+
+    overflow-y:auto;
+
+    z-index:1000;
+}
+
+.sidebar::-webkit-scrollbar{
+    width:4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#263b60;
+    border-radius:20px;
+}
+
+.brand{
+    height:60px;
+
+    display:flex;
+    align-items:center;
+
+    gap:12px;
+
+    padding:0 12px;
+
+    margin-bottom:18px;
+}
+
+.brand-logo{
+    width:43px;
+    height:43px;
+
+    border-radius:13px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #60a5fa
+        );
+
+    font-size:22px;
+    font-weight:900;
+
+    box-shadow:
+        0 8px 20px rgba(37,99,235,.25);
+}
+
+.brand-title{
+    font-size:20px;
+    font-weight:800;
+}
+
+.brand-title span{
+    color:#3b82f6;
+}
+
+.brand-subtitle{
+    display:block;
+
+    color:#8191ad;
+
+    font-size:12px;
+
+    margin-top:2px;
+}
+
+.sidebar-section-title{
+    font-size:10px;
+
+    text-transform:uppercase;
+
+    letter-spacing:.8px;
+
+    color:#71829f;
+
+    padding:15px 12px 8px;
+}
+
+.sidebar-menu{
+    display:flex;
+    flex-direction:column;
+
+    gap:4px;
+}
+
+.sidebar-menu button{
+    width:100%;
+
+    height:45px;
+
+    border:0;
+
+    border-radius:11px;
+
+    background:transparent;
+
+    color:#c8d2e4;
+
+    display:flex;
+    align-items:center;
+
+    gap:12px;
+
+    padding:0 13px;
+
+    cursor:pointer;
+
+    text-align:left;
+
+    font-size:13px;
+
+    transition:.2s;
+}
+
+.sidebar-menu button:hover{
+    background:rgba(255,255,255,.07);
+
+    color:white;
+
+    transform:translateX(2px);
+}
+
+.sidebar-menu button.active{
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #357cf0
+        );
+
+    color:white;
+
+    box-shadow:
+        0 8px 20px rgba(37,99,235,.25);
+}
+
+.menu-icon{
+    width:22px;
+
+    display:flex;
+    justify-content:center;
+
+    font-size:17px;
+}
+
+.menu-badge{
+    margin-left:auto;
+
+    min-width:21px;
+    height:21px;
+
+    padding:0 6px;
+
+    border-radius:20px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#ef4444;
+
+    color:white;
+
+    font-size:10px;
+    font-weight:700;
+}
+
+/* SüperAlanAdı */
+
+.super-domain{
+    margin-top:16px;
+
+    padding:14px;
+
+    border-radius:14px;
+
+    border:1px solid rgba(59,130,246,.65);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(37,99,235,.22),
+            rgba(59,130,246,.06)
+        );
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.super-domain:hover{
+    background:
+        linear-gradient(
+            135deg,
+            rgba(37,99,235,.35),
+            rgba(59,130,246,.10)
+        );
+}
+
+.super-domain-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.super-domain-icon{
+    width:37px;
+    height:37px;
+
+    border-radius:11px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#2563eb;
+
+    font-size:18px;
+}
+
+.super-domain-name{
+    font-size:13px;
+    font-weight:700;
+}
+
+.super-domain-small{
+    font-size:10px;
+    color:#8fa2c0;
+
+    margin-top:2px;
+}
+
+.new-badge{
+    margin-left:auto;
+
+    background:#3b82f6;
+
+    color:white;
+
+    border-radius:20px;
+
+    padding:4px 8px;
+
+    font-size:9px;
+}
+
+/* Sidebar bottom */
+
+.sidebar-bottom{
+    position:absolute;
+
+    left:15px;
+    right:15px;
+    bottom:18px;
+}
+
+.theme-box{
+    height:45px;
+
+    border:1px solid rgba(255,255,255,.12);
+
+    border-radius:11px;
+
+    display:flex;
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 12px;
+
+    color:#aebbd0;
+
+    font-size:12px;
+}
+
+.theme-toggle{
+    width:45px;
+    height:23px;
+
+    border-radius:20px;
+
+    background:#1d355c;
+
+    padding:3px;
+
+    cursor:pointer;
+}
+
+.theme-toggle span{
+    display:block;
+
+    width:17px;
+    height:17px;
+
+    border-radius:50%;
+
+    background:white;
+
+    margin-left:19px;
+}
+
+.admin-profile{
+    margin-top:12px;
+
+    padding:10px;
+
+    display:flex;
+    align-items:center;
+
+    gap:10px;
+}
+
+.admin-avatar{
+    width:38px;
+    height:38px;
+
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #3b82f6,
+            #172554
+        );
+
+    color:white;
+}
+
+.admin-info{
+    flex:1;
+}
+
+.admin-info strong{
+    display:block;
+
+    font-size:12px;
+}
+
+.admin-info span{
+    display:block;
+
+    color:#7e91ae;
+
+    font-size:10px;
+
+    margin-top:2px;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    margin-left:270px;
+
+    min-height:100vh;
+
+    background:#f6f9fd;
+}
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.topbar{
+    height:76px;
+
+    background:white;
+
+    border-bottom:1px solid var(--border);
+
+    display:flex;
+    align-items:center;
+
+    padding:0 30px;
+
+    gap:20px;
+
+    position:sticky;
+
+    top:0;
+
+    z-index:100;
+}
+
+.search-box{
+    width:510px;
+    max-width:55%;
+
+    height:43px;
+
+    border:1px solid var(--border);
+
+    border-radius:10px;
+
+    display:flex;
+    align-items:center;
+
+    gap:10px;
+
+    padding:0 15px;
+
+    color:#8ca0bd;
+
+    background:#fbfcfe;
+}
+
+.search-box input{
+    flex:1;
+
+    border:0;
+
+    outline:none;
+
+    background:transparent;
+
+    font-size:13px;
+
+    color:var(--text);
+}
+
+.top-actions{
+    margin-left:auto;
+
+    display:flex;
+    align-items:center;
+
+    gap:18px;
+}
+
+.top-icon{
+    width:35px;
+    height:35px;
+
+    border:0;
+
+    background:transparent;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    color:#536581;
+
+    cursor:pointer;
+
+    position:relative;
+
+    font-size:19px;
+}
+
+.notification-dot{
+    position:absolute;
+
+    right:1px;
+    top:1px;
+
+    width:17px;
+    height:17px;
+
+    background:#ef4444;
+
+    border-radius:50%;
+
+    color:white;
+
+    font-size:9px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.top-admin{
+    display:flex;
+    align-items:center;
+
+    gap:10px;
+
+    padding-left:10px;
+
+    border-left:1px solid var(--border);
+}
+
+.top-admin-avatar{
+    width:38px;
+    height:38px;
+
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #172554
+        );
+
+    color:white;
+}
+
+.top-admin strong{
+    display:block;
+
+    font-size:13px;
+}
+
+.top-admin span{
+    display:block;
+
+    color:#8a99b1;
+
+    font-size:10px;
+
+    margin-top:2px;
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.content{
+    padding:25px 30px 40px;
+}
+
+.welcome{
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    margin-bottom:22px;
+}
+
+.welcome h1{
+    font-size:23px;
+
+    color:#15264a;
+
+    margin-bottom:5px;
+}
+
+.welcome p{
+    color:#8090a9;
+
+    font-size:13px;
+}
+
+.date-box{
+    background:white;
+
+    border:1px solid var(--border);
+
+    border-radius:11px;
+
+    padding:11px 17px;
+
+    min-width:165px;
+}
+
+.date-box strong{
+    display:block;
+
+    font-size:12px;
+}
+
+.date-box span{
+    display:block;
+
+    color:#8392aa;
+
+    font-size:10px;
+
+    margin-top:4px;
+}
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.stats{
+    display:grid;
+
+    grid-template-columns:
+        repeat(5,minmax(0,1fr));
+
+    gap:16px;
+
+    margin-bottom:18px;
+}
+
+.stat-card{
+    background:white;
+
+    border:1px solid var(--border);
+
+    border-radius:15px;
+
+    padding:17px;
+
+    box-shadow:var(--shadow);
+
+    transition:.2s;
+
+    min-width:0;
+}
+
+.stat-card:hover{
+    transform:translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(20,48,90,.10);
+}
+
+.stat-icon{
+    width:42px;
+    height:42px;
+
+    border-radius:12px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:18px;
+
+    margin-bottom:12px;
+}
+
+.stat-blue .stat-icon{
+    color:#2563eb;
+    background:#eaf2ff;
+}
+
+.stat-purple .stat-icon{
+    color:#8b5cf6;
+    background:#f1ebff;
+}
+
+.stat-red .stat-icon{
+    color:#ef4444;
+    background:#fff0f1;
+}
+
+.stat-orange .stat-icon{
+    color:#f59e0b;
+    background:#fff6e6;
+}
+
+.stat-green .stat-icon{
+    color:#10b981;
+    background:#e8fbf4;
+}
+
+.stat-title{
+    color:#61728f;
+
+    font-size:11px;
+
+    margin-bottom:5px;
+}
+
+.stat-value{
+    color:#15264a;
+
+    font-size:23px;
+
+    font-weight:800;
+
+    margin-bottom:5px;
+}
+
+.stat-change{
+    font-size:11px;
+
+    font-weight:700;
+}
+
+.stat-change.up{
+    color:#16b978;
+}
+
+.stat-change.down{
+    color:#ef4444;
+}
+
+.stat-description{
+    color:#91a0b6;
+
+    font-size:10px;
+
+    margin-top:3px;
+}
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.dashboard-grid{
+    display:grid;
+
+    grid-template-columns:
+        minmax(0,2.2fr)
+        minmax(280px,.95fr);
+
+    gap:18px;
+
+    margin-bottom:18px;
+}
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel{
+    background:white;
+
+    border:1px solid var(--border);
+
+    border-radius:15px;
+
+    box-shadow:var(--shadow);
+
+    overflow:hidden;
+}
+
+.panel-header{
+    min-height:63px;
+
+    padding:15px 20px;
+
+    display:flex;
+    align-items:center;
+
+    justify-content:space-between;
+
+    border-bottom:1px solid #edf1f6;
+}
+
+.panel-title{
+    font-size:15px;
+
+    font-weight:800;
+
+    color:#15264a;
+}
+
+.panel-link{
+    border:0;
+
+    background:transparent;
+
+    color:#2563eb;
+
+    font-size:11px;
+
+    cursor:pointer;
+
+    font-weight:600;
+}
+
+/* =========================================================
+   CHART
+========================================================= */
+
+.chart-panel{
+    min-height:350px;
+}
+
+.chart-tabs{
+    display:flex;
+
+    background:#f2f6fb;
+
+    border-radius:20px;
+
+    padding:3px;
+
+    gap:2px;
+}
+
+.chart-tabs button{
+    border:0;
+
+    padding:7px 15px;
+
+    border-radius:17px;
+
+    background:transparent;
+
+    color:#7486a4;
+
+    font-size:10px;
+
+    cursor:pointer;
+}
+
+.chart-tabs button.active{
+    color:white;
+
+    background:#2563eb;
+
+    box-shadow:
+        0 4px 10px rgba(37,99,235,.22);
+}
+
+.chart-area{
+    padding:20px;
+
+    height:285px;
+
+    position:relative;
+}
+
+.chart{
+    width:100%;
+    height:100%;
+
+    position:relative;
+}
+
+.chart-grid{
+    position:absolute;
+
+    left:40px;
+    right:0;
+    top:10px;
+    bottom:30px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            transparent 24%,
+            #edf2f8 25%,
+            transparent 26%,
+            transparent 49%,
+            #edf2f8 50%,
+            transparent 51%,
+            transparent 74%,
+            #edf2f8 75%,
+            transparent 76%
+        ),
+        linear-gradient(
+            to right,
+            transparent 16%,
+            #f0f3f8 17%,
+            transparent 18%,
+            transparent 33%,
+            #f0f3f8 34%,
+            transparent 35%,
+            transparent 50%,
+            #f0f3f8 51%,
+            transparent 52%,
+            transparent 67%,
+            #f0f3f8 68%,
+            transparent 69%,
+            transparent 84%,
+            #f0f3f8 85%,
+            transparent 86%
+        );
+}
+
+.chart-svg{
+    position:absolute;
+
+    left:40px;
+    right:0;
+    top:10px;
+    bottom:30px;
+
+    width:calc(100% - 40px);
+    height:calc(100% - 40px);
+}
+
+.chart-labels{
+    position:absolute;
+
+    left:40px;
+    right:0;
+    bottom:4px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    color:#8090a9;
+
+    font-size:9px;
+}
+
+/* =========================================================
+   ACTIVITY
+========================================================= */
+
+.activity-list{
+    padding:8px 18px;
+}
+
+.activity{
+    display:flex;
+
+    align-items:center;
+
+    gap:11px;
+
+    padding:12px 0;
+
+    border-bottom:1px solid #edf1f6;
+}
+
+.activity:last-child{
+    border-bottom:0;
+}
+
+.activity-icon{
+    width:34px;
+    height:34px;
+
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:14px;
+
+    flex-shrink:0;
+}
+
+.activity-blue{
+    background:#eaf2ff;
+    color:#2563eb;
+}
+
+.activity-purple{
+    background:#f1ebff;
+    color:#8b5cf6;
+}
+
+.activity-red{
+    background:#fff0f1;
+    color:#ef4444;
+}
+
+.activity-green{
+    background:#e8fbf4;
+    color:#10b981;
+}
+
+.activity-orange{
+    background:#fff6e6;
+    color:#f59e0b;
+}
+
+.activity-content{
+    flex:1;
+    min-width:0;
+}
+
+.activity-content strong{
+    display:block;
+
+    font-size:11px;
+
+    color:#25385c;
+}
+
+.activity-content span{
+    display:block;
+
+    color:#8796ad;
+
+    font-size:9px;
+
+    margin-top:3px;
+
+    white-space:nowrap;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+}
+
+.activity-time{
+    color:#91a0b6;
+
+    font-size:9px;
+}
+
+/* =========================================================
+   BOTTOM GRID
+========================================================= */
+
+.bottom-grid{
+    display:grid;
+
+    grid-template-columns:
+        minmax(0,2.2fr)
+        minmax(280px,.95fr);
+
+    gap:18px;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-container{
+    overflow-x:auto;
+}
+
+.admin-table{
+    width:100%;
+
+    border-collapse:collapse;
+
+    min-width:600px;
+}
+
+.admin-table th{
+    text-align:left;
+
+    padding:12px 15px;
+
+    background:#fbfcfe;
+
+    color:#70819f;
+
+    font-size:10px;
+
+    font-weight:700;
+
+    border-bottom:1px solid var(--border);
+}
+
+.admin-table td{
+    padding:12px 15px;
+
+    border-bottom:1px solid #edf1f6;
+
+    color:#536581;
+
+    font-size:11px;
+}
+
+.admin-table tr:last-child td{
+    border-bottom:0;
+}
+
+.admin-table tr:hover td{
+    background:#fbfdff;
+}
+
+.user-cell{
+    display:flex;
+    align-items:center;
+
+    gap:9px;
+}
+
+.user-avatar{
+    width:31px;
+    height:31px;
+
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#dbeafe;
+
+    color:#2563eb;
+
+    font-weight:700;
+}
+
+.status{
+    display:inline-flex;
+
+    padding:5px 10px;
+
+    border-radius:20px;
+
+    font-size:9px;
+
+    font-weight:700;
+}
+
+.status.active{
+    background:#dcfce7;
+
+    color:#16a34a;
+}
+
+.status.pending{
+    background:#fef3c7;
+
+    color:#b45309;
+}
+
+.status.blocked{
+    background:#fee2e2;
+
+    color:#dc2626;
+}
+
+/* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+.quick-actions{
+    padding:14px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:9px;
+}
+
+.quick-action{
+    min-height:67px;
+
+    border:1px solid #e6edf7;
+
+    border-radius:11px;
+
+    background:white;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:7px;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+    color:#354b70;
+}
+
+.quick-action:hover{
+    transform:translateY(-2px);
+
+    border-color:#bfd3f8;
+
+    background:#f9fbff;
+
+    box-shadow:
+        0 7px 18px rgba(37,99,235,.08);
+}
+
+.quick-icon{
+    width:27px;
+    height:27px;
+
+    border-radius:8px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    font-size:13px;
+}
+
+.quick-action span{
+    font-size:9px;
+    font-weight:600;
+}
+
+/* =========================================================
+   SUPER ALAN ADI
+========================================================= */
+
+.domain-card{
+    margin:0 14px 14px;
+
+    border-radius:13px;
+
+    padding:16px;
+
+    color:white;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+.domain-card:after{
+    content:"";
+
+    position:absolute;
+
+    width:150px;
+    height:150px;
+
+    border:1px solid rgba(255,255,255,.15);
+
+    border-radius:50%;
+
+    right:-50px;
+    bottom:-70px;
+}
+
+.domain-card-top{
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    position:relative;
+
+    z-index:2;
+}
+
+.domain-card-icon{
+    width:38px;
+    height:38px;
+
+    border-radius:11px;
+
+    background:rgba(255,255,255,.18);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:19px;
+}
+
+.domain-card strong{
+    font-size:13px;
+}
+
+.domain-card small{
+    display:block;
+
+    opacity:.75;
+
+    font-size:9px;
+
+    margin-top:2px;
+}
+
+.domain-list{
+    list-style:none;
+
+    margin-top:12px;
+
+    position:relative;
+
+    z-index:2;
+}
+
+.domain-list li{
+    font-size:9px;
+
+    margin:6px 0;
+
+    opacity:.92;
+}
+
+.domain-button{
+    position:absolute;
+
+    right:14px;
+    top:14px;
+
+    width:30px;
+    height:30px;
+
+    border:0;
+
+    border-radius:50%;
+
+    background:white;
+
+    color:#2563eb;
+
+    cursor:pointer;
+
+    z-index:5;
+}
+
+/* =========================================================
+   ALL EXISTING SECTIONS
+========================================================= */
+
+.section{
+    display:none;
+}
+
+.section.active{
+    display:block;
+
+    animation:
+        fadeIn .2s ease;
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(5px);
+    }
+
+    to{
+        opacity:1;
+        transform:none;
+    }
+}
+
+.card,
+.panel-card,
+.settings-card,
+.form-card{
+    background:white;
+
+    border:1px solid var(--border);
+
+    border-radius:15px;
+
+    box-shadow:var(--shadow);
+
+    padding:20px;
+
+    margin-bottom:18px;
+}
+
+.card h2,
+.panel-card h2,
+.settings-card h2,
+.form-card h2{
+    font-size:17px;
+
+    color:var(--text);
+
+    margin-bottom:15px;
+}
+
+/* Forms */
 
 input,
 select,
 textarea{
-  width:100%;
-  padding:13px 14px;
-  border:1px solid #dce2eb;
-  border-radius:12px;
-  background:#fff;
-  color:var(--text);
-  outline:none;
-  transition:.2s ease;
-}
+    border:1px solid var(--border);
 
-input:hover,
-select:hover,
-textarea:hover{
-  border-color:#c4cedc;
+    border-radius:10px;
+
+    min-height:42px;
+
+    padding:10px 12px;
+
+    outline:none;
+
+    font-size:13px;
+
+    background:#fff;
+
+    color:var(--text);
 }
 
 input:focus,
 select:focus,
 textarea:focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 4px rgba(37,99,235,.10);
-}
-
-textarea{
-  min-height:120px;
-  resize:vertical;
-}
-
-.btn{
-  border:none;
-  padding:11px 16px;
-  border-radius:11px;
-  font-weight:750;
-  transition:.2s ease;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
-}
-
-.btn:hover{
-  transform:translateY(-1px);
-}
-
-.btn:active{
-  transform:translateY(0);
-}
-
-.btn-primary{
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:#fff;
-  box-shadow:0 7px 18px rgba(37,99,235,.22);
-}
-
-.btn-primary:hover{
-  box-shadow:0 10px 24px rgba(37,99,235,.30);
-}
-
-.btn-danger{
-  background:#fee2e2;
-  color:#b91c1c;
-}
-
-.btn-success{
-  background:#dcfce7;
-  color:#15803d;
-}
-
-.btn-gray{
-  background:#eef2f7;
-  color:#344054;
-}
-
-.btn-small{
-  padding:8px 11px;
-  font-size:12px;
-}
-
-.message{
-  margin-top:12px;
-  font-size:14px;
-}
-
-.error{
-  color:#dc2626;
-}
-
-.success{
-  color:#15803d;
-}
-
-/* =========================
-   APP
-========================= */
-
-.app{
-  min-height:100vh;
-  display:flex;
-}
-
-/* =========================
-   SIDEBAR
-========================= */
-
-.sidebar{
-  width:265px;
-  position:fixed;
-  left:0;
-  top:0;
-  bottom:0;
-  background:
-    linear-gradient(180deg,#0b1220 0%,#0f172a 55%,#111827 100%);
-  color:#fff;
-  padding:20px 14px;
-  overflow-y:auto;
-  border-right:1px solid rgba(255,255,255,.05);
-  z-index:50;
-}
-
-.sidebar-logo{
-  font-size:23px;
-  font-weight:900;
-  padding:13px 14px 25px;
-  letter-spacing:-.5px;
-  display:flex;
-  align-items:center;
-  gap:9px;
-}
-
-.sidebar-logo::before{
-  content:"";
-  width:12px;
-  height:12px;
-  border-radius:50%;
-  background:#3b82f6;
-  box-shadow:0 0 18px rgba(59,130,246,.9);
-}
-
-.menu-title{
-  padding:12px 13px 8px;
-  color:#64748b;
-  font-size:10px;
-  font-weight:850;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-}
-
-.menu button{
-  width:100%;
-  border:none;
-  background:transparent;
-  color:#aeb9ca;
-  padding:12px 13px;
-  margin-bottom:4px;
-  text-align:left;
-  border-radius:11px;
-  font-size:13px;
-  font-weight:650;
-  transition:.2s ease;
-  position:relative;
-}
-
-.menu button:hover{
-  background:rgba(255,255,255,.055);
-  color:#fff;
-}
-
-.menu button.active{
-  background:linear-gradient(
-    90deg,
-    rgba(37,99,235,.95),
-    rgba(37,99,235,.70)
-  );
-  color:#fff;
-  box-shadow:
-    0 8px 20px rgba(37,99,235,.22),
-    inset 0 1px 0 rgba(255,255,255,.08);
-}
-
-.menu button.active::before{
-  content:"";
-  position:absolute;
-  left:-14px;
-  top:8px;
-  bottom:8px;
-  width:3px;
-  border-radius:0 5px 5px 0;
-  background:#60a5fa;
-}
-
-/* =========================
-   MAIN
-========================= */
-
-.main{
-  margin-left:265px;
-  width:calc(100% - 265px);
-  padding:30px;
-}
-
-/* =========================
-   TOPBAR
-========================= */
-
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:27px;
-  padding-bottom:22px;
-  border-bottom:1px solid var(--border);
-}
-
-.topbar h1{
-  margin:0;
-  font-size:26px;
-  font-weight:850;
-  letter-spacing:-.5px;
-}
-
-.admin-email{
-  color:var(--muted);
-  margin-top:5px;
-  font-size:13px;
-}
-
-/* =========================
-   STATS
-========================= */
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:17px;
-}
-
-.stat-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:21px;
-  box-shadow:var(--shadow);
-  transition:.2s ease;
-  position:relative;
-  overflow:hidden;
-}
-
-.stat-card::after{
-  content:"";
-  position:absolute;
-  right:-25px;
-  bottom:-30px;
-  width:100px;
-  height:100px;
-  border-radius:50%;
-  background:rgba(37,99,235,.055);
-}
-
-.stat-card:hover{
-  transform:translateY(-2px);
-  box-shadow:0 16px 35px rgba(15,23,42,.09);
-}
-
-.stat-title{
-  color:var(--muted);
-  font-size:13px;
-  font-weight:650;
-}
-
-.stat-value{
-  display:block;
-  font-size:27px;
-  font-weight:900;
-  margin-top:9px;
-  letter-spacing:-.5px;
-}
-
-/* =========================
-   PANELS
-========================= */
-
-.content-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:18px;
-  margin-top:18px;
-}
-
-.panel{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:21px;
-  box-shadow:var(--shadow);
-}
-
-.panel h2{
-  margin-top:0;
-  font-size:19px;
-  letter-spacing:-.2px;
-}
-
-.panel h3{
-  margin-top:0;
-  font-size:16px;
-}
-
-.panel p{
-  color:#667085;
-  line-height:1.65;
-  font-size:14px;
-}
+    border-color:var(--primary);
 
-/* =========================
-   QUICK ACTIONS
-========================= */
-
-.quick-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:10px;
-  margin-top:18px;
+    box-shadow:
+        0 0 0 4px rgba(37,99,235,.08);
 }
 
-.quick-card{
-  border:1px solid var(--border);
-  background:var(--surface-2);
-  border-radius:13px;
-  padding:14px;
-  text-align:left;
-  display:flex;
-  flex-direction:column;
-  gap:5px;
-  color:var(--text);
-  transition:.2s ease;
+button{
+    font-family:inherit;
 }
 
-.quick-card:hover{
-  border-color:#93c5fd;
-  background:var(--primary-light);
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(37,99,235,.08);
-}
-
-.quick-card b{
-  font-size:13px;
-}
-
-.quick-card span{
-  font-size:11px;
-  color:var(--muted);
-}
-
-/* =========================
-   SECTIONS
-========================= */
+.primary-button{
+    border:0;
 
-.section{
-  display:none;
-}
-
-.section.active{
-  display:block;
-  animation:sectionIn .22s ease;
-}
+    border-radius:10px;
 
-@keyframes sectionIn{
-  from{
-    opacity:0;
-    transform:translateY(5px);
-  }
-  to{
-    opacity:1;
-    transform:none;
-  }
-}
+    min-height:42px;
 
-/* =========================
-   TOOLBAR
-========================= */
-
-.toolbar{
-  display:flex;
-  gap:10px;
-  margin:17px 0;
-}
+    padding:0 18px;
 
-.toolbar input{
-  max-width:450px;
-}
+    color:white;
 
-/* =========================
-   TABLES
-========================= */
-
-.table-wrapper{
-  overflow-x:auto;
-  border:1px solid var(--border);
-  border-radius:13px;
-}
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #3b82f6
+        );
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-}
+    cursor:pointer;
 
-th,
-td{
-  padding:13px 12px;
-  text-align:left;
-  border-bottom:1px solid #edf0f5;
-  white-space:nowrap;
-  font-size:13px;
+    font-weight:700;
 }
 
-tbody tr{
-  transition:.15s ease;
+.primary-button:hover{
+    box-shadow:
+        0 8px 20px rgba(37,99,235,.22);
 }
 
-tbody tr:hover{
-  background:#f8fafc;
-}
+.danger-button{
+    border:0;
 
-tbody tr:last-child td{
-  border-bottom:none;
-}
+    border-radius:10px;
 
-th{
-  color:#667085;
-  font-size:11px;
-  font-weight:800;
-  text-transform:uppercase;
-  letter-spacing:.04em;
-  background:#f8fafc;
-}
+    min-height:40px;
 
-/* =========================
-   BADGES
-========================= */
-
-.badge{
-  display:inline-flex;
-  align-items:center;
-  padding:5px 9px;
-  border-radius:99px;
-  background:#eef2f7;
-  color:#475467;
-  font-size:11px;
-  font-weight:750;
-}
+    padding:0 14px;
 
-.badge-blue{
-  background:#dbeafe;
-  color:#1d4ed8;
-}
+    color:white;
 
-.badge-green{
-  background:#dcfce7;
-  color:#166534;
-}
+    background:#ef4444;
 
-.badge-red{
-  background:#fee2e2;
-  color:#991b1b;
+    cursor:pointer;
 }
 
-/* =========================
-   ACTIONS
-========================= */
-
-.actions{
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
-}
+.success-button{
+    border:0;
 
-.form-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:18px;
-}
+    border-radius:10px;
 
-.form-full{
-  grid-column:1/-1;
-}
+    min-height:40px;
 
-hr{
-  border-color:var(--border)!important;
-}
+    padding:0 14px;
 
-/* =========================
-   MAINTENANCE CARD
-========================= */
-
-#settings .panel[style*="ffb300"]{
-  border:1px solid #fcd34d!important;
-  background:linear-gradient(
-    180deg,
-    #fffbeb,
-    #fff
-  )!important;
-  box-shadow:0 12px 30px rgba(245,158,11,.08);
-}
+    color:white;
 
-/* =========================
-   SCROLLBAR
-========================= */
-
-.sidebar::-webkit-scrollbar,
-.table-wrapper::-webkit-scrollbar{
-  width:7px;
-  height:7px;
-}
+    background:#16b978;
 
-.sidebar::-webkit-scrollbar-thumb,
-.table-wrapper::-webkit-scrollbar-thumb{
-  background:#334155;
-  border-radius:20px;
+    cursor:pointer;
 }
 
-/* =========================
+/* =========================================================
    MOBILE
-========================= */
+========================================================= */
 
-@media(max-width:1100px){
+@media(max-width:1250px){
 
-  .sidebar{
-    width:230px;
-  }
+    .stats{
+        grid-template-columns:
+            repeat(3,1fr);
+    }
 
-  .main{
-    margin-left:230px;
-    width:calc(100% - 230px);
-  }
-
-  .stats{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .quick-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
 }
 
-@media(max-width:800px){
+@media(max-width:1000px){
 
-  .app{
-    display:block;
-  }
+    .sidebar{
+        width:80px;
 
-  .sidebar{
-    position:relative;
-    width:100%;
-    height:auto;
-    max-height:none;
-    padding:12px;
-  }
+        padding:15px 10px;
+    }
 
-  .sidebar-logo{
-    padding:10px 12px 15px;
-  }
+    .main{
+        margin-left:80px;
+    }
 
-  .menu{
-    display:flex;
-    overflow-x:auto;
-    gap:5px;
-    padding-bottom:4px;
-  }
+    .brand-title,
+    .brand-subtitle,
+    .sidebar-section-title,
+    .sidebar-menu button span:not(.menu-icon),
+    .menu-badge,
+    .super-domain-name,
+    .super-domain-small,
+    .new-badge,
+    .theme-box,
+    .admin-info{
+        display:none;
+    }
 
-  .menu-title{
-    display:none;
-  }
+    .brand{
+        justify-content:center;
+        padding:0;
+    }
 
-  .menu button{
-    min-width:max-content;
-    margin:0;
-  }
+    .sidebar-menu button{
+        justify-content:center;
 
-  .menu button.active::before{
-    display:none;
-  }
+        padding:0;
+    }
 
-  .main{
-    margin-left:0;
-    width:100%;
-    padding:18px;
-  }
+    .menu-icon{
+        width:auto;
+    }
 
-  .content-grid,
-  .form-grid{
-    grid-template-columns:1fr;
-  }
+    .super-domain{
+        padding:9px;
+    }
 
-  .form-full{
-    grid-column:auto;
-  }
+    .super-domain-top{
+        justify-content:center;
+    }
 
-  .topbar{
-    align-items:flex-start;
-    gap:15px;
-  }
+    .sidebar-bottom{
+        left:10px;
+        right:10px;
+    }
 
-  .topbar h1{
-    font-size:22px;
-  }
+    .dashboard-grid,
+    .bottom-grid{
+        grid-template-columns:1fr;
+    }
+
 }
 
-@media(max-width:560px){
+@media(max-width:760px){
 
-  .stats{
-    grid-template-columns:1fr;
-  }
+    .topbar{
+        padding:0 15px;
+    }
 
-  .quick-grid{
-    grid-template-columns:1fr 1fr;
-  }
+    .search-box{
+        max-width:none;
+        width:100%;
+    }
 
-  .topbar{
-    flex-direction:column;
-  }
+    .top-admin{
+        display:none;
+    }
 
-  .topbar #logoutButton{
-    width:100%;
-  }
+    .content{
+        padding:20px 15px 30px;
+    }
 
-  .panel{
-    padding:16px;
-  }
+    .stats{
+        grid-template-columns:
+            repeat(2,1fr);
+    }
 
-  .login-box{
-    padding:27px 21px;
-  }
+    .welcome{
+        align-items:flex-start;
+    }
+
+    .date-box{
+        display:none;
+    }
+
 }
 
-@media(max-width:400px){
+@media(max-width:520px){
 
-  .quick-grid{
-    grid-template-columns:1fr;
-  }
+    .sidebar{
+        width:64px;
+    }
+
+    .main{
+        margin-left:64px;
+    }
+
+    .stats{
+        grid-template-columns:1fr;
+    }
+
+    .quick-actions{
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .top-actions{
+        gap:5px;
+    }
+
+    .search-box{
+        height:39px;
+    }
+
+    .welcome h1{
+        font-size:19px;
+    }
+
+}
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark{
+    --bg:#0b1220;
+    --card:#111b2e;
+    --text:#edf4ff;
+    --muted:#8ea0bd;
+    --border:#1d2b43;
+    --shadow:0 10px 30px rgba(0,0,0,.18);
+}
+
+body.dark .main{
+    background:#0b1220;
+}
+
+body.dark .topbar,
+body.dark .panel,
+body.dark .stat-card,
+body.dark .card,
+body.dark .panel-card,
+body.dark .settings-card,
+body.dark .form-card{
+    background:#111b2e;
+    border-color:#1d2b43;
+}
+
+body.dark .search-box{
+    background:#0d1728;
+    border-color:#1d2b43;
+}
+
+body.dark .admin-table th{
+    background:#0d1728;
+}
+
+body.dark .admin-table tr:hover td{
+    background:#0d1728;
+}
+
+body.dark .stat-value,
+body.dark .panel-title,
+body.dark .welcome h1{
+    color:#edf4ff;
+}
+
+body.dark .date-box{
+    background:#111b2e;
+    border-color:#1d2b43;
 }
 </style>
 </head>
+
+
 <body>
 
-<div id="loginScreen" class="login-screen">
-<div class="login-box">
-<div class="logo">Minegram Admin</div>
-<div class="logo-sub">Yönetim paneline giriş</div>
-<form id="loginForm">
-<div class="input-group"><label>Admin e-posta</label><input id="loginEmail" type="email" placeholder="admin@minegram.com" required></div>
-<div class="input-group"><label>Şifre</label><input id="loginPassword" type="password" placeholder="Şifre" required></div>
-<button type="submit" class="btn btn-primary" style="width:100%;">Admin olarak giriş yap</button>
-<div id="loginMessage" class="message"></div>
-</form>
-</div>
+<!-- ======================================================
+     LOGIN
+====================================================== -->
+
+<div id="loginScreen">
+
+    <div class="login-box">
+
+        <div class="login-logo">
+
+            <div class="login-logo-icon">
+                M
+            </div>
+
+            <div>
+                <strong>
+                    MINE<span>GRAM</span>
+                </strong>
+
+                <small style="
+                    display:block;
+                    color:#8292aa;
+                    font-size:11px;
+                    margin-top:2px;
+                ">
+                    Admin Paneli v2
+                </small>
+            </div>
+
+        </div>
+
+        <h1>Admin Girişi</h1>
+
+        <p>
+            Minegram yönetim paneline giriş yapın.
+        </p>
+
+        <form id="loginForm">
+
+            <input
+                id="loginEmail"
+                type="email"
+                placeholder="E-posta adresi"
+                required
+            >
+
+            <input
+                id="loginPassword"
+                type="password"
+                placeholder="Şifre"
+                required
+            >
+
+            <button type="submit">
+                Yönetim Paneline Gir
+            </button>
+
+        </form>
+
+        <div
+            id="loginMessage"
+            style="
+                margin-top:15px;
+                font-size:12px;
+                color:#ef4444;
+            "
+        ></div>
+
+    </div>
+
 </div>
 
-<div id="adminApp" class="app hidden">
+
+<!-- ======================================================
+     ADMIN APP
+====================================================== -->
+
+<div id="adminApp">
+
+<div class="admin-layout">
+
+
+<!-- ======================================================
+     SIDEBAR
+====================================================== -->
+
 <aside class="sidebar">
-<div class="sidebar-logo">Minegram Admin</div>
-<div class="menu">
-<div class="menu-title">Yönetim</div>
-<button class="active" data-page="dashboard">🏠 Dashboard</button>
-<button data-page="users">👥 Kullanıcılar</button>
-<button data-page="posts">📸 Gönderiler</button>
-<button data-page="reports">🚨 Şikâyetler</button>
-<button data-page="problemReports">🛠️ Sorun Bildirimleri</button>
-<button data-page="verification">🔵 Mavi Tik</button>
-<button data-page="balance">💰 Bakiye</button>
-<button data-page="bank">🏦 Banka / Ödeme</button>
-<button data-page="announcements">📢 Duyurular</button>
-<button data-page="emailService">📧 E-posta / Doğrulama</button>
-<button data-page="phoneOtp">📱 Telefon / SMS OTP</button>
-<button data-page="settings">⚙️ Ayarlar</button>
-</div>
+
+    <div class="brand">
+
+        <div class="brand-logo">
+            M
+        </div>
+
+        <div>
+
+            <div class="brand-title">
+                MINE<span>GRAM</span>
+            </div>
+
+            <span class="brand-subtitle">
+                Admin Paneli v2
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="sidebar-menu">
+
+        <button
+            class="active"
+            data-section="dashboard"
+        >
+            <span class="menu-icon">⌂</span>
+            <span>Dashboard</span>
+        </button>
+
+    </div>
+
+
+    <div class="sidebar-section-title">
+        Yönetim
+    </div>
+
+
+    <div class="sidebar-menu">
+
+        <button data-section="users">
+            <span class="menu-icon">👥</span>
+            <span>Kullanıcılar</span>
+        </button>
+
+        <button data-section="posts">
+            <span class="menu-icon">▣</span>
+            <span>Gönderiler</span>
+        </button>
+
+        <button data-section="reports">
+            <span class="menu-icon">!</span>
+            <span>Şikâyetler</span>
+
+            <span class="menu-badge">
+                3
+            </span>
+        </button>
+
+        <button data-section="problemReports">
+            <span class="menu-icon">⚠</span>
+            <span>Sorun Bildirimleri</span>
+
+            <span class="menu-badge">
+                5
+            </span>
+        </button>
+
+        <button data-section="verification">
+            <span class="menu-icon">✓</span>
+            <span>Mavi Tik</span>
+        </button>
+
+        <button data-section="balance">
+            <span class="menu-icon">₺</span>
+            <span>Bakiye</span>
+        </button>
+
+        <button data-section="bank">
+            <span class="menu-icon">▤</span>
+            <span>Banka / Ödeme</span>
+        </button>
+
+        <button data-section="announcements">
+            <span class="menu-icon">◢</span>
+            <span>Duyurular</span>
+        </button>
+
+        <button data-section="emailService">
+            <span class="menu-icon">✉</span>
+            <span>E-posta / Doğrulama</span>
+        </button>
+
+        <button data-section="phoneOtp">
+            <span class="menu-icon">☎</span>
+            <span>Telefon / SMS OTP</span>
+        </button>
+
+        <button data-section="settings">
+            <span class="menu-icon">⚙</span>
+            <span>Ayarlar</span>
+        </button>
+
+    </div>
+
+
+    <!-- SÜPERALANADI -->
+
+    <div
+        class="super-domain"
+        onclick="openSuperAlanAdi()"
+    >
+
+        <div class="super-domain-top">
+
+            <div class="super-domain-icon">
+                🌐
+            </div>
+
+            <div>
+
+                <div class="super-domain-name">
+                    SüperAlanAdı
+                </div>
+
+                <div class="super-domain-small">
+                    Domain Yönetimi
+                </div>
+
+            </div>
+
+            <div class="new-badge">
+                Yeni
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="sidebar-bottom">
+
+        <div class="theme-box">
+
+            <span>
+                ☼ ◐
+            </span>
+
+            <span>Tema</span>
+
+            <div
+                class="theme-toggle"
+                onclick="toggleTheme()"
+            >
+                <span></span>
+            </div>
+
+        </div>
+
+
+        <div class="admin-profile">
+
+            <div class="admin-avatar">
+                A
+            </div>
+
+            <div class="admin-info">
+
+                <strong>
+                    Admin
+                </strong>
+
+                <span id="adminEmail">
+                    admin@minegram.com
+                </span>
+
+            </div>
+
+            <span>
+                ›
+            </span>
+
+        </div>
+
+    </div>
+
 </aside>
 
+
+<!-- ======================================================
+     MAIN
+====================================================== -->
+
 <main class="main">
-<div class="topbar">
-<div><h1 id="pageTitle">Dashboard</h1><div id="adminEmail" class="admin-email"></div></div>
-<button id="logoutButton" class="btn btn-gray">Çıkış yap</button>
+
+
+<!-- TOPBAR -->
+
+<header class="topbar">
+
+    <div class="search-box">
+
+        <span>
+            🔎
+        </span>
+
+        <input
+            type="search"
+            placeholder="Kullanıcı, gönderi, ID ara..."
+        >
+
+    </div>
+
+
+    <div class="top-actions">
+
+        <button class="top-icon">
+
+            🔔
+
+            <span class="notification-dot">
+                3
+            </span>
+
+        </button>
+
+        <button
+            class="top-icon"
+            onclick="toggleTheme()"
+        >
+            ☾
+        </button>
+
+
+        <div class="top-admin">
+
+            <div class="top-admin-avatar">
+                A
+            </div>
+
+            <div>
+
+                <strong>
+                    Admin
+                </strong>
+
+                <span>
+                    Yönetici
+                </span>
+
+            </div>
+
+            <span>
+               ⌄
+            </span>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- ======================================================
+     CONTENT
+====================================================== -->
+
+<div class="content">
+
+
+<!-- DASHBOARD -->
+
+<section
+    id="dashboard"
+    class="section active"
+>
+
+
+<!-- WELCOME -->
+
+<div class="welcome">
+
+    <div>
+
+        <h1>
+            👋 Hoş Geldiniz, Admin!
+        </h1>
+
+        <p>
+            Minegram admin paneline hoş geldiniz.
+            Sistemi buradan kontrol edebilirsiniz.
+        </p>
+
+    </div>
+
+
+    <div class="date-box">
+
+        <strong>
+            📅 21 Eylül 2026
+        </strong>
+
+        <span>
+            Pazartesi, 13:24
+        </span>
+
+    </div>
+
 </div>
 
-<section id="dashboard" class="section active">
+
+<!-- STATS -->
+
 <div class="stats">
-<div class="stat-card"><span class="stat-title">Toplam kullanıcı</span><span id="totalUsers" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Toplam gönderi</span><span id="totalPosts" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Bekleyen şikâyet</span><span id="totalReports" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Bekleyen sorun bildirimi</span><span id="totalProblemReports" class="stat-value">—</span></div>
-<div class="stat-card"><span class="stat-title">Toplam bakiye</span><span id="totalBalance" class="stat-value">—</span></div>
+
+
+    <div class="stat-card stat-blue">
+
+        <div class="stat-icon">
+            👤
+        </div>
+
+        <div class="stat-title">
+            Toplam Kullanıcı
+        </div>
+
+        <div
+            id="totalUsers"
+            class="stat-value"
+        >
+            0
+        </div>
+
+        <div class="stat-change up">
+            ↑ %12
+        </div>
+
+        <div class="stat-description">
+            Geçen aya göre artış
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-icon">
+            ▣
+        </div>
+
+        <div class="stat-title">
+            Toplam Gönderi
+        </div>
+
+        <div
+            id="totalPosts"
+            class="stat-value"
+        >
+            0
+        </div>
+
+        <div class="stat-change up">
+            ↑ %18
+        </div>
+
+        <div class="stat-description">
+            Geçen aya göre artış
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-red">
+
+        <div class="stat-icon">
+            !
+        </div>
+
+        <div class="stat-title">
+            Toplam Şikâyet
+        </div>
+
+        <div
+            id="totalReports"
+            class="stat-value"
+        >
+            0
+        </div>
+
+        <div class="stat-change down">
+            ↓ %6
+        </div>
+
+        <div class="stat-description">
+            Geçen aya göre azalış
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-orange">
+
+        <div class="stat-icon">
+            ⚠
+        </div>
+
+        <div class="stat-title">
+            Sorun Bildirimi
+        </div>
+
+        <div
+            id="totalProblemReports"
+            class="stat-value"
+        >
+            0
+        </div>
+
+        <div class="stat-change down">
+            ↓ %14
+        </div>
+
+        <div class="stat-description">
+            Geçen aya göre azalış
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-green">
+
+        <div class="stat-icon">
+            ₺
+        </div>
+
+        <div class="stat-title">
+            Toplam Bakiye
+        </div>
+
+        <div
+            id="totalBalance"
+            class="stat-value"
+        >
+            ₺ 0,00
+        </div>
+
+        <div class="stat-change up">
+            ↑ %22
+        </div>
+
+        <div class="stat-description">
+            Geçen aya göre artış
+        </div>
+
+    </div>
+
 </div>
-<div class="content-grid">
-<div class="panel"><h3>Admin paneli</h3><p>Minegram kullanıcılarını, gönderileri, şikâyetleri, sorun bildirimlerini, mavi tikleri, bakiyeleri, banka/ödeme işlemlerini ve duyuruları buradan yönetebilirsin.</p><div class="quick-grid">
-<button class="quick-card" data-quick-page="posts">📸<b>Gönderiler</b><span>Gönderileri görüntüle ve yönet</span></button>
-<button class="quick-card" data-quick-page="reports">🚨<b>Şikâyetler</b><span>Şikâyetleri incele</span></button>
-<button class="quick-card" data-quick-page="problemReports">🛠️<b>Sorun Bildirimleri</b><span>Destek bildirimlerini yönet</span></button>
-<button class="quick-card" data-quick-page="verification">🔵<b>Mavi Tik</b><span>Doğrulama durumlarını yönet</span></button>
-<button class="quick-card" data-quick-page="balance">💰<b>Bakiye</b><span>Bakiye işlemlerini yönet</span></button>
-<button class="quick-card" data-quick-page="bank">🏦<b>Banka / Ödeme</b><span>Ödeme ve çekimleri yönet</span></button>
-<button class="quick-card" data-quick-page="announcements">📢<b>Duyurular</b><span>Yeni duyuru yayınla</span></button>
-</div></div>
-<div class="panel"><h3>Güvenlik</h3><p>Admin erişimi Firebase Authentication ve Firestore'daki <b>admins/{uid}</b> kaydıyla kontrol edilir.</p></div>
+
+
+<!-- CHART + ACTIVITY -->
+
+<div class="dashboard-grid">
+
+
+<!-- CHART -->
+
+<div class="panel chart-panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <div class="panel-title">
+                Sistem İstatistikleri
+            </div>
+
+        </div>
+
+
+        <div class="chart-tabs">
+
+            <button class="active">
+                7 Gün
+            </button>
+
+            <button>
+                30 Gün
+            </button>
+
+            <button>
+                90 Gün
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="chart-area">
+
+        <div
+            style="
+                display:flex;
+                gap:20px;
+                margin-bottom:7px;
+                font-size:10px;
+                color:#8090a9;
+            "
+        >
+
+            <span>
+                🔵 Kullanıcı
+            </span>
+
+            <span>
+                🟣 Gönderi
+            </span>
+
+            <span>
+                🟢 Etkileşim
+            </span>
+
+        </div>
+
+
+        <div class="chart">
+
+            <div class="chart-grid"></div>
+
+            <svg
+                class="chart-svg"
+                viewBox="0 0 700 210"
+                preserveAspectRatio="none"
+            >
+
+                <defs>
+
+                    <linearGradient
+                        id="blueArea"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                    >
+
+                        <stop
+                            offset="0"
+                            stop-color="#2563eb"
+                            stop-opacity=".15"
+                        />
+
+                        <stop
+                            offset="1"
+                            stop-color="#2563eb"
+                            stop-opacity="0"
+                        />
+
+                    </linearGradient>
+
+                </defs>
+
+
+                <path
+                    d="
+                    M0 170
+                    C80 140 90 130 170 110
+                    C240 92 280 105 350 90
+                    C420 72 460 65 525 48
+                    C600 28 650 40 700 20
+                    L700 210
+                    L0 210
+                    Z
+                    "
+                    fill="url(#blueArea)"
+                />
+
+
+                <path
+                    d="
+                    M0 170
+                    C80 140 90 130 170 110
+                    C240 92 280 105 350 90
+                    C420 72 460 65 525 48
+                    C600 28 650 40 700 20
+                    "
+                    fill="none"
+                    stroke="#2563eb"
+                    stroke-width="3"
+                />
+
+
+                <path
+                    d="
+                    M0 190
+                    C80 175 100 165 170 145
+                    C240 130 280 140 350 125
+                    C430 110 460 100 525 88
+                    C600 70 650 75 700 55
+                    "
+                    fill="none"
+                    stroke="#8b5cf6"
+                    stroke-width="3"
+                />
+
+
+                <path
+                    d="
+                    M0 205
+                    C80 195 100 190 170 175
+                    C250 160 280 165 350 158
+                    C430 150 470 135 525 132
+                    C600 125 650 130 700 105
+                    "
+                    fill="none"
+                    stroke="#10b981"
+                    stroke-width="3"
+                />
+
+            </svg>
+
+
+            <div class="chart-labels">
+
+                <span>15 Eyl</span>
+                <span>16 Eyl</span>
+                <span>17 Eyl</span>
+                <span>18 Eyl</span>
+                <span>19 Eyl</span>
+                <span>20 Eyl</span>
+                <span>21 Eyl</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
+
+
+<!-- ACTIVITY -->
+
+<div class="panel">
+
+    <div class="panel-header">
+
+        <div class="panel-title">
+            Son Aktiviteler
+        </div>
+
+        <button class="panel-link">
+            Tümünü Gör
+        </button>
+
+    </div>
+
+
+    <div class="activity-list">
+
+
+        <div class="activity">
+
+            <div class="activity-icon activity-blue">
+                👤
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    Yeni kullanıcı kaydı
+                </strong>
+
+                <span>
+                    Yeni kullanıcı sisteme katıldı
+                </span>
+
+            </div>
+
+            <div class="activity-time">
+                13:12
+            </div>
+
+        </div>
+
+
+        <div class="activity">
+
+            <div class="activity-icon activity-purple">
+                ▣
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    Yeni gönderi
+                </strong>
+
+                <span>
+                    Kullanıcı yeni gönderi paylaştı
+                </span>
+
+            </div>
+
+            <div class="activity-time">
+                12:58
+            </div>
+
+        </div>
+
+
+        <div class="activity">
+
+            <div class="activity-icon activity-red">
+                !
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    Şikâyet bildirimi
+                </strong>
+
+                <span>
+                    Kullanıcı tarafından şikâyet edildi
+                </span>
+
+            </div>
+
+            <div class="activity-time">
+                12:45
+            </div>
+
+        </div>
+
+
+        <div class="activity">
+
+            <div class="activity-icon activity-green">
+                ₺
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    Ödeme alındı
+                </strong>
+
+                <span>
+                    Bakiye işlemi gerçekleştirildi
+                </span>
+
+            </div>
+
+            <div class="activity-time">
+                12:32
+            </div>
+
+        </div>
+
+
+        <div class="activity">
+
+            <div class="activity-icon activity-orange">
+                ⚠
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    Sorun bildirimi
+                </strong>
+
+                <span>
+                    Uygulama hatası bildirildi
+                </span>
+
+            </div>
+
+            <div class="activity-time">
+                12:21
+            </div>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- BOTTOM -->
+
+<div class="bottom-grid">
+
+
+<!-- POSTS -->
+
+<div class="panel">
+
+    <div class="panel-header">
+
+        <div class="panel-title">
+            Son Gönderiler
+        </div>
+
+        <button class="panel-link">
+            Tümünü Gör
+        </button>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table class="admin-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Kullanıcı
+                    </th>
+
+                    <th>
+                        İçerik
+                    </th>
+
+                    <th>
+                        Tarih
+                    </th>
+
+                    <th>
+                        Durum
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="postsTable">
+
+                <tr>
+
+                    <td>
+
+                        <div class="user-cell">
+
+                            <div class="user-avatar">
+                                A
+                            </div>
+
+                            @ahmet_123
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        Harika bir gün! ☀️
+                    </td>
+
+                    <td>
+                        21.09.2026 12:45
+                    </td>
+
+                    <td>
+
+                        <span class="status active">
+                            Aktif
+                        </span>
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <td>
+
+                        <div class="user-cell">
+
+                            <div class="user-avatar">
+                                E
+                            </div>
+
+                            @elif.style
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        Yeni kombinim 💙
+                    </td>
+
+                    <td>
+                        21.09.2026 12:32
+                    </td>
+
+                    <td>
+
+                        <span class="status active">
+                            Aktif
+                        </span>
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <td>
+
+                        <div class="user-cell">
+
+                            <div class="user-avatar">
+                                M
+                            </div>
+
+                            @mert34
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        Doğa her zaman güzel...
+                    </td>
+
+                    <td>
+                        21.09.2026 12:18
+                    </td>
+
+                    <td>
+
+                        <span class="status active">
+                            Aktif
+                        </span>
+
+                    </td>
+
+                </tr>
+
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- QUICK ACTIONS -->
+
+<div>
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-title">
+                Hızlı İşlemler
+            </div>
+
+        </div>
+
+
+        <div class="quick-actions">
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=users]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#eaf2ff;
+                        color:#2563eb;
+                    "
+                >
+                    👤
+                </div>
+
+                <span>
+                    Kullanıcı Ekle
+                </span>
+
+            </button>
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=posts]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#f1ebff;
+                        color:#8b5cf6;
+                    "
+                >
+                    ▣
+                </div>
+
+                <span>
+                    Gönderi Yönet
+                </span>
+
+            </button>
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=reports]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#fff0f1;
+                        color:#ef4444;
+                    "
+                >
+                    !
+                </div>
+
+                <span>
+                    Şikâyetleri Gör
+                </span>
+
+            </button>
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=balance]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#e8fbf4;
+                        color:#10b981;
+                    "
+                >
+                    ₺
+                </div>
+
+                <span>
+                    Bakiye İşlemleri
+                </span>
+
+            </button>
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=announcements]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#fff6e6;
+                        color:#f59e0b;
+                    "
+                >
+                    ◢
+                </div>
+
+                <span>
+                    Duyuru Yayınla
+                </span>
+
+            </button>
+
+
+            <button
+                class="quick-action"
+                onclick="document.querySelector('[data-section=settings]').click()"
+            >
+
+                <div
+                    class="quick-icon"
+                    style="
+                        background:#f1f5f9;
+                        color:#64748b;
+                    "
+                >
+                    ⚙
+                </div>
+
+                <span>
+                    Ayarlar
+                </span>
+
+            </button>
+
+
+        </div>
+
+
+        <!-- DOMAIN -->
+
+        <div class="domain-card">
+
+            <button
+                class="domain-button"
+                onclick="openSuperAlanAdi()"
+            >
+                →
+            </button>
+
+
+            <div class="domain-card-top">
+
+                <div class="domain-card-icon">
+                    🌐
+                </div>
+
+                <div>
+
+                    <strong>
+                        SüperAlanAdı
+                    </strong>
+
+                    <small>
+                        Domain Yönetimi
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <ul class="domain-list">
+
+                <li>
+                    ✓ Domain sorgula
+                </li>
+
+                <li>
+                    ✓ Alan adı kaydet
+                </li>
+
+                <li>
+                    ✓ Müşteri yönetimi
+                </li>
+
+                <li>
+                    ✓ Sipariş takibi
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+</div>
+
 </section>
 
-<section id="users" class="section"><div class="panel"><h2>👥 Kullanıcılar</h2><div class="toolbar"><input id="userSearch" placeholder="Kullanıcı adı veya e-posta ara"></div><div class="table-wrapper"><table><thead><tr><th>UID</th><th>E-posta</th><th>Kullanıcı</th><th>Bakiye</th><th>Mavi Tik</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="usersTable"></tbody></table></div></div></section>
 
-<section id="posts" class="section"><div class="panel"><h2>📸 Gönderiler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>İçerik</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody id="postsTable"></tbody></table></div></div></section>
+<!-- ======================================================
+     EXISTING SECTIONS
+====================================================== -->
 
-<section id="reports" class="section"><div class="panel"><h2>🚨 Şikâyetler</h2><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Şikâyet eden</th><th>Hedef</th><th>Neden</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
-
-<section id="problemReports" class="section"><div class="panel"><h2>🛠️ Sorun Bildirimleri</h2><p>Kullanıcıların Ayarlar → Yardım → Sorun bildir bölümünden gönderdiği bildirimler.</p><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Kullanıcı</th><th>E-posta</th><th>Sorun</th><th>Fotoğraf</th><th>Tarih</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="problemReportsTable"></tbody></table></div></div></section>
-
-<section id="verification" class="section"><div class="panel"><h2>🔵 Mavi Tik Yönetimi</h2><p>Kullanıcıların mavi tik durumunu buradan açıp kapatabilirsin.</p><div class="table-wrapper"><table><thead><tr><th>Kullanıcı</th><th>E-posta</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="verificationTable"></tbody></table></div></div></section>
-
-<section id="balance" class="section"><div class="content-grid"><div class="panel"><h2>💰 Bakiye işlemi</h2><p>Satın alma/ödeme sistemi Firebase üzerinde aynı kullanıcı bakiyesini güncellediğinde burada anında görünür.</p><div class="input-group"><label>Kullanıcı UID</label><input id="balanceUid" placeholder="Kullanıcı UID"></div><div class="input-group"><label>Tutar</label><input id="balanceAmount" type="number" step="0.01" placeholder="0.00"></div><div class="input-group"><label>İşlem</label><select id="balanceType"><option value="credit">Bakiye ekle</option><option value="debit">Bakiye düş</option></select></div><div class="input-group"><label>Açıklama</label><textarea id="balanceNote" placeholder="Bakiye işlem açıklaması"></textarea></div><button id="balanceButton" class="btn btn-primary">İşlemi uygula</button><div id="balanceMessage" class="message"></div></div><div class="panel"><h2>💳 Bakiye özeti</h2><div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat-card"><span class="stat-title">Toplam kullanıcı bakiyesi</span><span id="balanceTotalLive" class="stat-value">—</span></div><div class="stat-card"><span class="stat-title">Bekleyen çekim</span><span id="pendingWithdrawTotal" class="stat-value">—</span></div></div><h3 style="margin-top:20px">Son bakiye hareketleri</h3><div class="table-wrapper"><table><thead><tr><th>Kullanıcı</th><th>Tutar</th><th>Tip</th><th>Açıklama</th><th>Tarih</th></tr></thead><tbody id="balanceTable"></tbody></table></div></div></div></section>
-
-<section id="bank" class="section"><div class="panel"><h2>🏦 Banka / Ödeme İşlemleri</h2><p>Para çekme talepleri ve ödeme işlemleri burada yönetilir. Onaylanan çekim tutarı kullanıcının bakiyesinden düşülür.</p><div class="table-wrapper"><table><thead><tr><th>İşlem ID</th><th>Kullanıcı</th><th>Tutar</th><th>Tür</th><th>Banka/IBAN</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="bankTable"></tbody></table></div></div></section>
-
-<section id="announcements" class="section"><div class="panel"><h2>📢 Duyuru yayınla</h2><div class="input-group"><label>Başlık</label><input id="announcementTitle" placeholder="Duyuru başlığı"></div><div class="input-group"><label>Mesaj</label><textarea id="announcementText" placeholder="Duyuru metni"></textarea></div><button id="announcementButton" class="btn btn-primary">Duyuruyu yayınla</button><div id="announcementMessage" class="message"></div></div></section>
-
-<section id="emailService" class="section">
-<div class="content-grid">
-<div class="panel">
-<h2>📧 Gmail HTTPS E-posta Servisi</h2>
-<p>Minegram doğrulama kodlarını kendi sistemi üretir ve doğrular. E-posta gönderimi Gmail API üzerinden HTTPS ile yapılır. SMTP, 587/465 portu ve domain doğrulaması kullanılmaz.</p>
-<div class="input-group"><label>Gönderici Gmail</label><input id="gatewayFromEmail" type="email" placeholder="minegram@gmail.com" autocomplete="email"></div>
-<div class="input-group"><label>Gönderici adı</label><input id="gatewayFromName" placeholder="Minegram" value="Minegram"></div>
-<div class="actions"><button id="gatewayTestButton" class="btn btn-success">Test e-postası gönder</button></div>
-<div id="gatewayMessage" class="message"></div>
-</div>
-<div class="panel">
-<h2>🔐 Doğrulama Ayarları</h2>
-<div class="input-group"><label>Kod uzunluğu</label><select id="verificationCodeLength"><option value="6">6 hane</option><option value="8">8 hane</option></select></div>
-<div class="input-group"><label>Kod geçerlilik süresi</label><select id="verificationExpiry"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="30">30 dakika</option></select></div>
-<div class="input-group"><label>Gönderim aralığı</label><select id="verificationCooldown"><option value="60">60 saniye</option><option value="120">2 dakika</option><option value="300">5 dakika</option></select></div>
-<button id="verificationSaveButton" class="btn btn-primary">Doğrulama ayarlarını kaydet</button>
-<div id="verificationMessage" class="message"></div>
-<hr style="margin:22px 0;border:0;border-top:1px solid #edf0f5">
-<h3>Servis durumu</h3><p id="gatewayStatus"><span class="badge">Kontrol ediliyor...</span></p>
-<p style="color:#697386;font-size:13px">Gmail Client ID, Client Secret ve Refresh Token admin.html içinde tutulmaz. Bunlar yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
-</div>
-</div>
+<section
+    id="users"
+    class="section"
+>
+    <!-- MEVCUT KULLANICILAR HTML'NİZ BURADA KALACAK -->
 </section>
 
-<section id="phoneOtp" class="section">
-<div class="content-grid">
-<div class="panel">
-<h2>📱 Uluslararası Telefon / SMS OTP</h2>
-<p>Telefon doğrulama kodları SMS üzerinden gönderilir. Uluslararası numaralarda ülke kodunu <b>+</b> ile birlikte kullan: ör. <b>+905551112233</b>.</p>
-<div class="input-group"><label>Test telefon numarası</label><input id="phoneOtpTestNumber" type="tel" placeholder="+905551112233" autocomplete="tel"></div>
-<div class="actions"><button id="phoneOtpTestButton" class="btn btn-success">Test SMS gönder</button></div>
-<div id="phoneOtpTestMessage" class="message"></div>
-</div>
-<div class="panel">
-<h2>🔐 SMS OTP Servis Durumu</h2>
-<p id="phoneOtpStatus"><span class="badge">Kontrol ediliyor...</span></p>
-<div class="input-group"><label>Kanal</label><input id="phoneOtpChannel" value="sms" readonly></div>
-<div class="input-group"><label>Kod uzunluğu</label><input value="6 hane" readonly></div>
-<div class="input-group"><label>Telefon biçimi</label><input value="Uluslararası E.164 (+ülke kodu...)" readonly></div>
-<p style="color:#697386;font-size:13px">Twilio hesap bilgileri admin.html içinde tutulmaz. SID, Auth Token ve Verify Service SID yalnızca Render Environment Variables üzerinden sunucuda kullanılır.</p>
-</div>
-</div>
+
+<section
+    id="posts"
+    class="section"
+>
+    <!-- MEVCUT GÖNDERİLER HTML'NİZ BURADA KALACAK -->
 </section>
 
-<section id="settings" class="section"><div class="panel"><h2>⚙️ Sistem ayarları</h2><div class="input-group"><label>Site adı</label><input id="siteName" placeholder="Minegram"></div><div class="panel" style="margin-top:18px;border:1px solid #ffb300;background:linear-gradient(180deg,#fff8e1,#fff);"><h3 style="margin-top:0">🛠️ Site Bakım Modu</h3><p style="color:#697386">Bakım modu açıldığında Minegram sitesinde büyük bir bakım ekranı gösterilir. Admin paneli etkilenmez.</p><label style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0"><input id="maintenanceMode" type="checkbox" style="width:20px;height:20px"> Site bakım modunu aç</label><div class="input-group"><label>Bakım başlığı</label><input id="maintenanceTitle" value="SİTEMİZ BAKIMDADIR" placeholder="SİTEMİZ BAKIMDADIR"></div><div class="input-group"><label>Bakım mesajı</label><textarea id="maintenanceMessage" rows="4" placeholder="Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz."></textarea></div><button id="settingsButton" class="btn btn-primary">⚙️ Ayarları kaydet</button><div id="settingsMessage" class="message"></div></div></div></section>
+
+<section
+    id="reports"
+    class="section"
+>
+    <!-- MEVCUT ŞİKÂYETLER HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="problemReports"
+    class="section"
+>
+    <!-- MEVCUT SORUN BİLDİRİMLERİ HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="verification"
+    class="section"
+>
+    <!-- MEVCUT MAVİ TİK HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="balance"
+    class="section"
+>
+    <!-- MEVCUT BAKİYE HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="bank"
+    class="section"
+>
+    <!-- MEVCUT BANKA / ÖDEME HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="announcements"
+    class="section"
+>
+    <!-- MEVCUT DUYURULAR HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="emailService"
+    class="section"
+>
+    <!-- MEVCUT E-POSTA SERVİSİ HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="phoneOtp"
+    class="section"
+>
+    <!-- MEVCUT SMS OTP HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+<section
+    id="settings"
+    class="section"
+>
+    <!-- MEVCUT AYARLAR HTML'NİZ BURADA KALACAK -->
+</section>
+
+
+</div>
 </main>
+
+</div>
 </div>
 
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,setDoc,increment,serverTimestamp,query,limit,onSnapshot,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-const firebaseConfig={apiKey:"AIzaSyCabJgEl6jhE_ucVBhA69LLQSCJ9qUuwXo",authDomain:"mim-ea133.firebaseapp.com",databaseURL:"https://mim-ea133-default-rtdb.europe-west1.firebasedatabase.app",projectId:"mim-ea133",storageBucket:"mim-ea133.firebasestorage.app",messagingSenderId:"303525353436",appId:"1:303525353436:web:082fc090b5025e19942119",measurementId:"G-K962QE5P1R"};
-const firebaseApp=initializeApp(firebaseConfig);
-const auth=getAuth(firebaseApp);
-const db=getFirestore(firebaseApp);
-const ADMIN_UID="QJqw9moQk8XgpHcFo89bAVPk3uh1";
-const $=id=>document.getElementById(id);
-function escapeHTML(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
-function money(value){return Number(value||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺"}
-function dateText(timestamp){if(!timestamp||!timestamp.toDate)return"-";return timestamp.toDate().toLocaleString("tr-TR")}
-async function checkAdmin(uid){if(uid!==ADMIN_UID)return false;const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));return adminDocument.exists()&&adminDocument.data().active===true}
+<script>
 
-async function loadAdminDataSafely(){
-const loaders=[["Dashboard",bridgeLoadDashboard],["Kullanıcılar",bridgeLoadUsers],["Gönderiler",bridgeLoadPosts],["Şikâyetler",bridgeLoadReports],["Sorun Bildirimleri",bridgeLoadProblemReports],["Mavi Tik",bridgeLoadVerification],["Bakiye",bridgeLoadBalances],["Banka / Ödeme",bridgeLoadBankTransactions]];
-for(const [name,loader] of loaders){try{await loader();console.log(name+" yüklendi.")}catch(error){console.error(name+" yüklenemedi:",error)}}
-}
-let adminLoginInProgress=false,adminVerified=false,currentAdminUser=null,usersUnsubscribe=null,balancesUnsubscribe=null,bankUnsubscribe=null;
-async function openAdminPanel(user){currentAdminUser=user;adminVerified=true;$("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");$("adminEmail").textContent=user.email||user.uid;$("loginMessage").textContent="";await loadAdminDataSafely();await loadSystemSettings();watchProblemReports();bridgeWatchLiveFinance()}
-onAuthStateChanged(auth,async user=>{
-if(!user){currentAdminUser=null;adminVerified=false;$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");return}
-if(adminLoginInProgress||adminVerified)return;
-try{$("loginMessage").className="message";$("loginMessage").textContent="Admin yetkisi kontrol ediliyor...";const admin=await checkAdmin(user.uid);if(!admin){await signOut(auth);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Bu Firebase hesabı admin olarak yetkilendirilmemiş.";return}await openAdminPanel(user)}
-catch(error){console.error("ADMIN KONTROL HATASI:",error);$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="Admin kontrolü başarısız: "+error.message}
-});
-$("loginForm").addEventListener("submit",async event=>{
-event.preventDefault();const email=$("loginEmail").value.trim(),password=$("loginPassword").value;$("loginMessage").className="message";$("loginMessage").textContent="Firebase ile giriş yapılıyor...";adminLoginInProgress=true;
-try{const credential=await signInWithEmailAndPassword(auth,email,password);if(credential.user.uid!==ADMIN_UID)throw new Error("Bu Firebase hesabı admin UID'si değil. Giriş yapan UID: "+credential.user.uid);const adminDocument=await getDoc(doc(db,"admins",ADMIN_UID));if(!adminDocument.exists())throw new Error("admins/"+ADMIN_UID+" belgesi bulunamadı.");if(adminDocument.data().active!==true)throw new Error("Admin hesabında active değeri true değil.");await openAdminPanel(credential.user)}
-catch(error){console.error("GERÇEK LOGIN HATASI:",error);adminVerified=false;if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginScreen").classList.remove("hidden");$("adminApp").classList.add("hidden");$("loginMessage").className="message error";$("loginMessage").textContent="HATA: "+(error.code||"")+" - "+error.message}
-finally{adminLoginInProgress=false}
-});
-$("logoutButton").addEventListener("click",async()=>{currentAdminUser=null;adminVerified=false;adminLoginInProgress=false;await signOut(auth)});
-function openAdminPage(page){const target=$(page);if(!target){console.error("Admin sayfası bulunamadı:",page);return}document.querySelectorAll(".menu button").forEach(item=>item.classList.remove("active"));const menuButton=document.querySelector(`.menu button[data-page="${page}"]`);if(menuButton)menuButton.classList.add("active");document.querySelectorAll(".section").forEach(section=>section.classList.remove("active"));target.classList.add("active");if($("pageTitle"))$("pageTitle").textContent=menuButton?menuButton.textContent.trim():target.querySelector("h2")?.textContent?.trim()||"Minegram Admin";window.scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll(".menu button[data-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.page))});
-document.querySelectorAll("[data-quick-page]").forEach(button=>{button.addEventListener("click",()=>openAdminPage(button.dataset.quickPage))});
+/* =========================================================
+   SIDEBAR NAVIGATION
+========================================================= */
 
-async function loadDashboard(){
-const users=await getDocs(collection(db,"users"));const activeUsers=users.docs.filter(item=>{const u=item.data();return !(u.deleted===true||u.isDeleted===true||u.deletedAt||u.status==="deleted")});let posts=0,reports=0,totalBalance=0;
-try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}
-try{const r=await getDocs(collection(db,"reports"));r.forEach(item=>{if(item.data().status!=="resolved")reports++})}catch(e){}
-let problemReports=0;try{const r=await getDocs(query(collection(db,"problemReports"),limit(200)));r.forEach(item=>{if((item.data().status||"pending")!=="resolved")problemReports++})}catch(e){}
-activeUsers.forEach(item=>{totalBalance+=Number(item.data().balance||0)});$("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent=problemReports;$("totalBalance").textContent=money(totalBalance);if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance)
-}
-let allUsers=[];
-let authUsersCache=[];
+document
+.querySelectorAll(".sidebar-menu button[data-section]")
+.forEach(button=>{
 
-async function loadAuthUsersFromServer(){
-  if(!auth.currentUser) return [];
-  const token=await auth.currentUser.getIdToken();
-  const response=await fetch("/api/admin/auth-users",{headers:{Authorization:"Bearer "+token}});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.ok) throw new Error(data.error||"Authentication kullanıcıları alınamadı.");
-  authUsersCache=Array.isArray(data.users)?data.users:[];
-  return authUsersCache;
-}
+    button.addEventListener("click",()=>{
 
-function isDeletedFirestoreUser(data){
-  return data?.deleted===true||data?.isDeleted===true||data?.deletedAt||data?.status==="deleted";
-}
+        const target =
+            button.dataset.section;
 
-async function loadUsers(){
-  const snapshot=await getDocs(collection(db,"users"));
-  const firestoreUsers=new Map();
-  snapshot.forEach(item=>{
-    const data=item.data()||{};
-    if(isDeletedFirestoreUser(data)) return;
-    firestoreUsers.set(item.id,{id:item.id,...data});
-  });
+        document
+        .querySelectorAll(".sidebar-menu button")
+        .forEach(btn=>{
+            btn.classList.remove("active");
+        });
 
-  let authUsers=[];
-  try{authUsers=await loadAuthUsersFromServer()}catch(error){
-    console.error("AUTH kullanıcıları yüklenemedi:",error);
-    authUsers=authUsersCache;
-  }
+        button.classList.add("active");
 
-  const merged=new Map();
-  for(const user of authUsers){
-    const metadata=user.user_metadata||{};
-    const firestore=firestoreUsers.get(user.id)||null;
-    const authEmail=String(user.email||metadata.minegram_contact_email||metadata.registration_email||"").trim();
-    let matchingFirestore=firestore;
-    if(!matchingFirestore&&authEmail){
-      matchingFirestore=[...firestoreUsers.values()].find(x=>String(x.email||"").trim().toLowerCase()===authEmail.toLowerCase())||null;
-    }
-    merged.set(user.id,{
-      id:user.id,
-      ...(matchingFirestore||{}),
-      email:matchingFirestore?.email||authEmail||"",
-      username:matchingFirestore?.username||metadata.username||metadata.user_name||"",
-      displayName:matchingFirestore?.displayName||matchingFirestore?.display_name||metadata.display_name||metadata.displayName||"",
-      balance:Number(matchingFirestore?.balance||0),
-      verified:!!matchingFirestore?.verified,
-      disabled:!!matchingFirestore?.disabled || !!user.banned_until,
-      authExists:true,
-      authCreatedAt:user.created_at||null,
-      lastSignInAt:user.last_sign_in_at||null,
-      emailConfirmedAt:user.email_confirmed_at||null,
-      firestoreExists:!!matchingFirestore
+        document
+        .querySelectorAll(".section")
+        .forEach(section=>{
+            section.classList.remove("active");
+        });
+
+        const section =
+            document.getElementById(target);
+
+        if(section){
+            section.classList.add("active");
+        }
+
     });
-  }
 
-  for(const user of firestoreUsers.values()){
-    if(!merged.has(user.id)){
-      merged.set(user.id,{...user,authExists:false,firestoreExists:true});
-    }
-  }
-
-  allUsers=[...merged.values()];
-  renderUsers();
-}
-
-function renderUsers(){
-  const search=$("userSearch").value.trim().toLowerCase();
-  const users=allUsers.filter(user=>String(user.email||"").toLowerCase().includes(search)||String(user.username||user.displayName||"").toLowerCase().includes(search)||String(user.id||"").toLowerCase().includes(search));
-  $("usersTable").innerHTML=users.map(user=>`<tr><td>${escapeHTML(user.id)}</td><td>${escapeHTML(user.email||"-")}</td><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${money(user.balance)}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Mavi Tik</span>':'<span class="badge">Yok</span>'}</td><td>${user.disabled?'<span class="badge badge-red">Engelli</span>':'<span class="badge badge-green">Aktif</span>'}</td><td><div class="actions"><button class="btn btn-small ${user.disabled?"btn-success":"btn-danger"}" onclick="toggleUser('${escapeHTML(user.id)}',${!!user.disabled})">${user.disabled?"Aktifleştir":"Engelle"}</button><button class="btn btn-small btn-gray" onclick="selectBalanceUser('${escapeHTML(user.id)}')">Bakiye</button></div></td></tr>`).join("");
-  if(!users.length)$("usersTable").innerHTML='<tr><td colspan="7">Kullanıcı bulunamadı.</td></tr>';
-}
-
-$("userSearch").addEventListener("input",renderUsers);
-window.toggleUser=async(uid,disabled)=>{await setDoc(doc(db,"users",uid),{disabled:!disabled},{merge:true});await loadUsers();await loadDashboard()};
-window.selectBalanceUser=uid=>{$("balanceUid").value=uid;document.querySelector('[data-page="balance"]').click()};
-async function loadPosts(){const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));$("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||"-")}</td><td>${escapeHTML(String(post.text||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")}
-window.deletePost=async id=>{if(!confirm("Bu gönderiyi silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"posts",id));await loadPosts();await loadDashboard()};
-async function loadReports(){const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));$("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>${report.status!=="resolved"?`<button class="btn btn-small btn-success" onclick="resolveReport('${escapeHTML(item.id)}')">Çözüldü</button>`:"-"}</td></tr>`}).join("")}
-window.resolveReport=async id=>{await updateDoc(doc(db,"reports",id),{status:"resolved",resolvedAt:serverTimestamp(),resolvedBy:auth.currentUser.uid});await loadReports();await loadDashboard()};
-let problemReportsUnsubscribe=null;
-async function loadProblemReports(){const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));const rows=snapshot.docs.map(item=>{const r=item.data(),photos=Array.isArray(r.photos)?r.photos:[],photoHtml=photos.length?photos.map((src,i)=>`<a href="${escapeHTML(src)}" target="_blank" rel="noopener"><img src="${escapeHTML(src)}" alt="Fotoğraf ${i+1}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-right:4px;border:1px solid #444"></a>`).join(""):"-",status=r.status||"pending",statusHtml=status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':status==="in_progress"?'<span class="badge badge-blue">İnceleniyor</span>':'<span class="badge badge-red">Bekliyor</span>',actions=status==="resolved"?'—':`<button class="btn btn-small btn-primary" onclick="updateProblemReport('${escapeHTML(item.id)}','in_progress')">İnceleniyor</button> <button class="btn btn-small btn-success" onclick="updateProblemReport('${escapeHTML(item.id)}','resolved')">Çözüldü</button>`;return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>${photoHtml}</td><td>${dateText(r.createdAt)}</td><td>${statusHtml}</td><td>${actions} <button class="btn btn-small btn-danger" onclick="deleteProblemReport('${escapeHTML(item.id)}')">Sil</button></td></tr>`});$("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>'}
-window.updateProblemReport=async(id,status)=>{await updateDoc(doc(db,"problemReports",id),{status,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid});await loadProblemReports();await loadDashboard()};
-window.deleteProblemReport=async id=>{if(!confirm("Bu sorun bildirimini silmek istediğine emin misin?"))return;await deleteDoc(doc(db,"problemReports",id));await loadProblemReports();await loadDashboard()};
-function watchProblemReports(){if(problemReportsUnsubscribe)problemReportsUnsubscribe();problemReportsUnsubscribe=onSnapshot(query(collection(db,"problemReports"),limit(200)),()=>{loadProblemReports().catch(error=>console.error("Sorun bildirimleri yenilenemedi:",error));loadDashboard().catch(()=>{})},error=>console.error("Sorun bildirimleri canlı dinleme hatası:",error))}
-async function loadVerification(){const snapshot=await getDocs(collection(db,"users"));const activeUsers=snapshot.docs.filter(item=>{const user=item.data();return !(user.deleted===true||user.isDeleted===true||user.deletedAt||user.status==="deleted")});$("verificationTable").innerHTML=activeUsers.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><button class="btn btn-small ${user.verified?"btn-danger":"btn-primary"}" onclick="toggleVerified('${escapeHTML(item.id)}',${!!user.verified})">${user.verified?"Mavi Tiki kaldır":"Mavi Tik ver"}</button></td></tr>`}).join("")}
-window.toggleVerified=async(uid,currentValue)=>{await setDoc(doc(db,"users",uid),{verified:!currentValue},{merge:true});await loadVerification();await loadUsers()};
-$("balanceButton").addEventListener("click",async()=>{const uid=$("balanceUid").value.trim(),amount=Math.abs(Number($("balanceAmount").value)),type=$("balanceType").value,note=$("balanceNote").value.trim();if(!uid||!amount){$("balanceMessage").className="message error";$("balanceMessage").textContent="Kullanıcı UID ve tutar gerekli.";return}try{const delta=type==="credit"?amount:-amount;await updateDoc(doc(db,"users",uid),{balance:increment(delta)});await addDoc(collection(db,"balances"),{uid,amount,delta,type,note,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()});$("balanceMessage").className="message success";$("balanceMessage").textContent="Bakiye işlemi başarıyla kaydedildi.";$("balanceAmount").value="";$("balanceNote").value="";await loadBalances();await loadUsers();await loadDashboard()}catch(error){$("balanceMessage").className="message error";$("balanceMessage").textContent=error.message}});
-async function loadBalances(){const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));$("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>'}
-async function loadBankTransactions(){const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));let pendingTotal=0;$("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);const bankInfo=data.iban||data.bankAccount||data.bank||data.account||"-",status=data.status||"pending",statusHtml=status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>',actions=status==="pending"?`<button class="btn btn-small btn-success" onclick="updateBankTransaction('${escapeHTML(item.id)}','approved')">Onayla</button> <button class="btn btn-small btn-danger" onclick="updateBankTransaction('${escapeHTML(item.id)}','rejected')">Reddet</button>`:"-";return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${statusHtml}</td><td>${actions}</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal)}
-window.updateBankTransaction=async(id,status)=>{try{const ref=doc(db,"bankTransactions",id),snap=await getDoc(ref);if(!snap.exists())return;const data=snap.data(),type=String(data.type||data.transactionType||"withdraw").toLowerCase(),isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(status==="approved"&&isWithdraw&&data.status!=="approved"){const amount=Number(data.amount||0);if(amount<=0)throw new Error("Geçersiz çekim tutarı.");await runTransaction(db,async tx=>{const userRef=doc(db,"users",data.uid),userSnap=await tx.get(userRef);if(!userSnap.exists())throw new Error("Kullanıcı bulunamadı.");const current=Number(userSnap.data().balance||0);if(current<amount)throw new Error("Kullanıcının bakiyesi çekim için yetersiz.");tx.update(userRef,{balance:current-amount});tx.update(ref,{status:"approved",processedAt:serverTimestamp(),processedBy:auth.currentUser.uid})});await addDoc(collection(db,"balances"),{uid:data.uid,amount,delta:-amount,type:"debit",note:"Para çekme talebi onaylandı",source:"withdrawal",bankTransactionId:id,adminUid:auth.currentUser.uid,createdAt:serverTimestamp()})}else await updateDoc(ref,{status,processedAt:serverTimestamp(),processedBy:auth.currentUser.uid});await loadBankTransactions();await loadBalances();await loadUsers();await loadDashboard()}catch(error){alert("İşlem başarısız: "+error.message)}};
-function watchLiveFinance(){if(usersUnsubscribe)usersUnsubscribe();if(balancesUnsubscribe)balancesUnsubscribe();if(bankUnsubscribe)bankUnsubscribe();usersUnsubscribe=onSnapshot(collection(db,"users"),snap=>{loadUsers().catch(error=>console.error("Birleşik kullanıcı listesi yenilenemedi:",error));let total=0;snap.forEach(item=>{const data=item.data()||{};if(!isDeletedFirestoreUser(data))total+=Number(data.balance||0)});if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(total);if($("totalBalance"))$("totalBalance").textContent=money(total)},e=>console.error("Kullanıcı canlı dinleme hatası:",e));balancesUnsubscribe=onSnapshot(query(collection(db,"balances"),limit(200)),()=>loadBalances().catch(()=>{}),e=>console.error("Bakiye canlı dinleme hatası:",e));bankUnsubscribe=onSnapshot(query(collection(db,"bankTransactions"),limit(200)),()=>loadBankTransactions().catch(()=>{}),e=>console.error("Ödeme canlı dinleme hatası:",e))}
-$("announcementButton").addEventListener("click",async()=>{const title=$("announcementTitle").value.trim(),text=$("announcementText").value.trim();if(!title||!text){$("announcementMessage").className="message error";$("announcementMessage").textContent="Başlık ve mesaj gerekli.";return}try{await addDoc(collection(db,"announcements"),{title,text,createdBy:auth.currentUser.uid,createdAt:serverTimestamp()});$("announcementMessage").className="message success";$("announcementMessage").textContent="Duyuru yayınlandı.";$("announcementTitle").value="";$("announcementText").value=""}catch(error){$("announcementMessage").className="message error";$("announcementMessage").textContent=error.message}});
-async function loadSystemSettings(){try{const snap=await getDoc(doc(db,"settings","config"));if(!snap.exists())return;const data=snap.data()||{};$("siteName").value=data.siteName||"Minegram";$("maintenanceMode").checked=data.maintenanceMode===true;$("maintenanceTitle").value=data.maintenanceTitle||"SİTEMİZ BAKIMDADIR";$("maintenanceMessage").value=data.maintenanceMessage||"Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz."}catch(error){console.error("Sistem ayarları okunamadı:",error)}}
-$("settingsButton").addEventListener("click",async()=>{const siteName=$("siteName").value.trim()||"Minegram",maintenanceMode=$("maintenanceMode").checked,maintenanceTitle=$("maintenanceTitle").value.trim()||"SİTEMİZ BAKIMDADIR",maintenanceMessage=$("maintenanceMessage").value.trim()||"Minegram kullanıcıları, size yaşattığımız sorun için özür dileriz.";try{await setDoc(doc(db,"settings","config"),{siteName,maintenanceMode,maintenanceTitle,maintenanceMessage,updatedBy:auth.currentUser.uid,updatedAt:serverTimestamp()},{merge:true});$("settingsMessage").className="message success";$("settingsMessage").textContent=maintenanceMode?"Bakım modu açıldı. Site bakım ekranını gösterecek.":"Ayarlar kaydedildi, bakım modu kapalı."}catch(error){$("settingsMessage").className="message error";$("settingsMessage").textContent=error.message}});
+});
 
 
 /* =========================================================
-   SUPABASE / FIREBASE ADMIN VERİ KÖPRÜSÜ
-   Minegram'ın gerçek kullanıcı/gönderi verileri Supabase'de tutulduğu
-   için admin paneli önce sunucudaki güvenli admin köprüsünden okur.
-   Firestore koleksiyonları varsa mevcut sistem de fallback olarak korunur.
+   DARK MODE
 ========================================================= */
-let minegramAdminCache=null;
-let minegramAdminCacheAt=0;
-let minegramAdminRefreshTimer=null;
 
-async function fetchMinegramAdminData(force=false){
-  const now=Date.now();
-  if(!force && minegramAdminCache && now-minegramAdminCacheAt<4000) return minegramAdminCache;
-  const currentUser=currentAdminUser||auth.currentUser;
-  if(!currentUser) throw new Error("Admin oturumu bulunamadı.");
-  const token=await currentUser.getIdToken(false);
-  const response=await fetch("/api/admin/minegram-data",{
-    method:"GET",
-    headers:{Authorization:"Bearer "+token,"X-Firebase-ID-Token":token},
-    credentials:"same-origin",
-    cache:"no-store"
-  });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.ok) throw new Error(data.error||`Admin veri servisi HTTP ${response.status}`);
-  minegramAdminCache=data;
-  minegramAdminCacheAt=now;
-  return data;
+function toggleTheme(){
+
+    document.body.classList.toggle("dark");
+
+    const dark =
+        document.body.classList.contains("dark");
+
+    localStorage.setItem(
+        "minegram-admin-theme",
+        dark ? "dark" : "light"
+    );
 }
 
-function adminUserRows(data){
-  return (Array.isArray(data?.users)?data.users:[]).filter(u=>!isDeletedFirestoreUser(u));
+
+if(
+    localStorage.getItem(
+        "minegram-admin-theme"
+    ) === "dark"
+){
+
+    document.body.classList.add("dark");
+
 }
 
-function renderAdminUsersFromBridge(data){
-  allUsers=adminUserRows(data);
-  renderUsers();
-  let total=0; allUsers.forEach(u=>total+=Number(u.balance||0));
-  if($("totalUsers")) $("totalUsers").textContent=allUsers.length;
-  if($("totalBalance")) $("totalBalance").textContent=money(total);
-  if($("balanceTotalLive")) $("balanceTotalLive").textContent=money(total);
-}
 
-async function bridgeLoadUsers(){
-  try{
-    const data=await fetchMinegramAdminData();
-    renderAdminUsersFromBridge(data);
-  }catch(error){
-    console.error("Supabase kullanıcıları yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(collection(db,"users"));
-    allUsers=[];
-    snapshot.forEach(item=>{const u=item.data()||{};if(!isDeletedFirestoreUser(u))allUsers.push({id:item.id,...u});});
-    renderUsers();
-  }
-}
+/* =========================================================
+   SÜPERALANADI
+========================================================= */
 
-async function bridgeLoadPosts(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const posts=Array.isArray(data.posts)?data.posts:[];
-    $("postsTable").innerHTML=posts.map(post=>`<tr><td>${escapeHTML(post.id||"-")}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${escapeHTML(post.createdAt?new Date(post.createdAt).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase gönderileri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(query(collection(db,"posts"),limit(100)));
-    $("postsTable").innerHTML=snapshot.docs.map(item=>{const post=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(post.userId||post.user_id||"-")}</td><td>${escapeHTML(String(post.text||post.caption||"").substring(0,100))}</td><td>${dateText(post.createdAt)}</td><td><button class="btn btn-small btn-danger" onclick="deletePost('${escapeHTML(item.id)}')">Sil</button></td></tr>`}).join("")||'<tr><td colspan="5">Henüz gönderi yok.</td></tr>';
-  }
-}
+function openSuperAlanAdi(){
 
-async function bridgeLoadReports(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.reports)?data.reports:[];
-    $("reportsTable").innerHTML=rows.map(report=>`<tr><td>${escapeHTML(report.id||"-")}</td><td>${escapeHTML(report.reporterId||report.reporter_id||report.user_id||"-")}</td><td>${escapeHTML(report.targetId||report.target_id||report.post_id||report.target_user_id||"-")}</td><td>${escapeHTML(report.reason||report.description||report.text||"-")}</td><td>${String(report.status||"pending")==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase şikâyetleri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(query(collection(db,"reports"),limit(100)));
-    $("reportsTable").innerHTML=snapshot.docs.map(item=>{const report=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(report.reporterId||"-")}</td><td>${escapeHTML(report.targetId||"-")}</td><td>${escapeHTML(report.reason||"-")}</td><td>${report.status==="resolved"?'<span class="badge badge-green">Çözüldü</span>':'<span class="badge badge-red">Bekliyor</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="6">Henüz şikâyet yok.</td></tr>';
-  }
-}
+    /*
+       Buraya mevcut domain.html /
+       SüperAlanAdı bölümünüz bağlanabilir.
+    */
 
-async function bridgeLoadProblemReports(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.problemReports)?data.problemReports:[];
-    if(rows.length){
-      $("problemReportsTable").innerHTML=rows.map(r=>`<tr><td>${escapeHTML(r.id||"-")}</td><td>${escapeHTML(r.username||r.uid||r.user_id||"-")}</td><td>${escapeHTML(r.userEmail||r.email||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||r.text||r.message||"-")}</td><td>-</td><td>${escapeHTML(r.created_at?new Date(r.created_at).toLocaleString("tr-TR"):"-")}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`).join("");
-      return;
+    const section =
+        document.getElementById(
+            "superAlanAdi"
+        );
+
+    if(section){
+
+        document
+        .querySelectorAll(".section")
+        .forEach(s=>{
+            s.classList.remove("active");
+        });
+
+        section.classList.add("active");
+
+    }else{
+
+        console.log(
+            "SüperAlanAdı bölümü henüz bağlanmadı."
+        );
+
     }
-  }catch(error){console.warn("Supabase sorun bildirimleri yok:",error)}
-  const snapshot=await getDocs(query(collection(db,"problemReports"),limit(200)));
-  const rows=snapshot.docs.map(item=>{const r=item.data();return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(r.username||r.uid||"-")}</td><td>${escapeHTML(r.userEmail||"-")}</td><td style="max-width:320px;white-space:pre-wrap">${escapeHTML(r.description||"-")}</td><td>-</td><td>${dateText(r.createdAt)}</td><td><span class="badge">${escapeHTML(r.status||"pending")}</span></td><td>-</td></tr>`});
-  $("problemReportsTable").innerHTML=rows.join("")||'<tr><td colspan="8">Henüz sorun bildirimi yok.</td></tr>';
+
 }
 
-async function bridgeLoadVerification(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.verification)?data.verification:adminUserRows(data);
-    $("verificationTable").innerHTML=rows.map(user=>`<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td><span class="badge">Supabase</span></td></tr>`).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
-  }catch(error){
-    console.error("Supabase mavi tik verileri yüklenemedi, Firestore fallback:",error);
-    const snapshot=await getDocs(collection(db,"users"));
-    $("verificationTable").innerHTML=snapshot.docs.map(item=>{const user=item.data();return `<tr><td>${escapeHTML(user.username||user.displayName||"-")}</td><td>${escapeHTML(user.email||"-")}</td><td>${user.verified?'<span class="badge badge-blue">🔵 Aktif</span>':'<span class="badge">Yok</span>'}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="4">Henüz kullanıcı yok.</td></tr>';
-  }
-}
-
-async function bridgeLoadBalances(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.balances)?data.balances:[];
-    $("balanceTable").innerHTML=rows.map(item=>`<tr><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount||item.delta||0)}</td><td>${String(item.type||"")==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(item.note||item.description||item.source||"-")}</td><td>${escapeHTML(item.created_at?new Date(item.created_at).toLocaleString("tr-TR"):"-")}</td></tr>`).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
-    return;
-  }catch(error){console.warn("Supabase bakiye verileri yok, Firestore fallback:",error)}
-  const snapshot=await getDocs(query(collection(db,"balances"),limit(200)));
-  $("balanceTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();return `<tr><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount||data.delta||0)}</td><td>${data.type==="credit"?'<span class="badge badge-green">Bakiye +</span>':'<span class="badge badge-red">Bakiye -</span>'}</td><td>${escapeHTML(data.note||data.description||data.source||"-")}</td><td>${dateText(data.createdAt)}</td></tr>`}).join("")||'<tr><td colspan="5">Henüz bakiye hareketi yok.</td></tr>';
-}
-
-async function bridgeLoadBankTransactions(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const rows=Array.isArray(data.bankTransactions)?data.bankTransactions:[];
-    let pendingTotal=0;
-    $("bankTable").innerHTML=rows.map(item=>{const type=String(item.type||item.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";const status=item.status||"pending";if(isWithdraw&&status==="pending")pendingTotal+=Number(item.amount||0);const bankInfo=item.iban||item.bankAccount||item.bank||item.account||"-";return `<tr><td>${escapeHTML(item.id||"-")}</td><td>${escapeHTML(item.uid||item.user_id||"-")}</td><td>${money(item.amount)}</td><td>${escapeHTML(item.type||"-")}</td><td>${escapeHTML(bankInfo)}</td><td>${status==="approved"?'<span class="badge badge-green">Onaylandı</span>':status==="rejected"?'<span class="badge badge-red">Reddedildi</span>':'<span class="badge">Bekliyor</span>'}</td><td><span class="badge">Supabase</span></td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
-    if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
-    return;
-  }catch(error){console.warn("Supabase banka verileri yok, Firestore fallback:",error)}
-  const snapshot=await getDocs(query(collection(db,"bankTransactions"),limit(200)));
-  let pendingTotal=0;
-  $("bankTable").innerHTML=snapshot.docs.map(item=>{const data=item.data();const type=String(data.type||data.transactionType||"withdraw").toLowerCase();const isWithdraw=type.includes("withdraw")||type.includes("çek")||type==="payout";if(isWithdraw&&(data.status||"pending")==="pending")pendingTotal+=Number(data.amount||0);return `<tr><td>${escapeHTML(item.id)}</td><td>${escapeHTML(data.uid||"-")}</td><td>${money(data.amount)}</td><td>${escapeHTML(data.type||"-")}</td><td>${escapeHTML(data.iban||data.bankAccount||data.bank||data.account||"-")}</td><td>${escapeHTML(data.status||"pending")}</td><td>-</td></tr>`}).join("")||'<tr><td colspan="7">Henüz ödeme/çekim işlemi yok.</td></tr>';
-  if($("pendingWithdrawTotal"))$("pendingWithdrawTotal").textContent=money(pendingTotal);
-}
-
-async function bridgeLoadDashboard(){
-  try{
-    const data=await fetchMinegramAdminData();
-    const users=adminUserRows(data);
-    const posts=Array.isArray(data.posts)?data.posts:[];
-    const reports=Array.isArray(data.reports)?data.reports:[];
-    const problems=Array.isArray(data.problemReports)?data.problemReports:[];
-    const totalBalance=users.reduce((sum,u)=>sum+Number(u.balance||0),0);
-    $("totalUsers").textContent=users.length;
-    $("totalPosts").textContent=posts.length;
-    $("totalReports").textContent=reports.filter(r=>String(r.status||"pending")!=="resolved").length;
-    $("totalProblemReports").textContent=problems.filter(r=>String(r.status||"pending")!=="resolved").length;
-    $("totalBalance").textContent=money(totalBalance);
-    if($("balanceTotalLive"))$("balanceTotalLive").textContent=money(totalBalance);
-    return;
-  }catch(error){console.warn("Admin dashboard Supabase verisi alınamadı, mevcut Firestore dashboard kullanılıyor:",error)}
-  const users=await getDocs(collection(db,"users"));
-  const activeUsers=users.docs.filter(item=>!isDeletedFirestoreUser(item.data()));
-  let posts=0,reports=0,totalBalance=0;try{posts=(await getDocs(collection(db,"posts"))).size}catch(e){}try{const r=await getDocs(collection(db,"reports"));r.forEach(i=>{if(i.data().status!=="resolved")reports++})}catch(e){}activeUsers.forEach(i=>totalBalance+=Number(i.data().balance||0));
-  $("totalUsers").textContent=activeUsers.length;$("totalPosts").textContent=posts;$("totalReports").textContent=reports;$("totalProblemReports").textContent="—";$("totalBalance").textContent=money(totalBalance);
-}
-
-function bridgeWatchLiveFinance(){
-  if(minegramAdminRefreshTimer)clearInterval(minegramAdminRefreshTimer);
-  minegramAdminRefreshTimer=setInterval(async()=>{
-    try{
-      minegramAdminCache=null;minegramAdminCacheAt=0;
-      const data=await fetchMinegramAdminData(true);
-      renderAdminUsersFromBridge(data);
-      await bridgeLoadDashboard();
-    }catch(error){console.warn("Admin canlı yenileme:",error.message)}
-  },10000);
-}
-
-const EMAIL_SERVICE_API="/api/admin/email-service";
-async function emailServiceRequest(path,options={}){let currentUser=currentAdminUser||auth.currentUser;if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(EMAIL_SERVICE_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`E-posta servisi HTTP ${response.status}`);return data}
-async function loadEmailService(){try{const data=await emailServiceRequest("/status"),active=Boolean(data.configured);$("gatewayStatus").innerHTML=active?'<span class="badge badge-green">● Gmail HTTPS Aktif</span>':'<span class="badge badge-red">● Gmail HTTPS Yapılandırılmamış</span>';if(data.fromName)$("gatewayFromName").value=data.fromName;if(data.fromEmail)$("gatewayFromEmail").value=data.fromEmail;if(data.codeLength)$("verificationCodeLength").value=String(data.codeLength);if(data.expiryMinutes)$("verificationExpiry").value=String(data.expiryMinutes);if(data.cooldownSeconds)$("verificationCooldown").value=String(data.cooldownSeconds)}catch(error){$("gatewayStatus").innerHTML='<span class="badge badge-red">● Sunucu bağlantısı yok</span>';console.warn("Gmail HTTPS:",error.message)}}
-$("gatewayTestButton").addEventListener("click",async()=>{const message=$("gatewayMessage"),to=prompt("Test e-postası hangi adrese gönderilsin?");if(!to)return;message.className="message";message.textContent="Gmail HTTPS üzerinden test e-postası gönderiliyor...";try{await emailServiceRequest("/test",{method:"POST",body:JSON.stringify({to})});message.className="message success";message.textContent="Test e-postası Gmail HTTPS üzerinden gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
-$("verificationSaveButton").addEventListener("click",async()=>{const message=$("verificationMessage");message.className="message";message.textContent="Kaydediliyor...";try{await emailServiceRequest("/verification-config",{method:"POST",body:JSON.stringify({codeLength:Number($("verificationCodeLength").value),expiryMinutes:Number($("verificationExpiry").value),cooldownSeconds:Number($("verificationCooldown").value)})});message.className="message success";message.textContent="Doğrulama ayarları kaydedildi."}catch(error){message.className="message error";message.textContent=error.message}});
-document.querySelector('[data-page="emailService"]').addEventListener("click",()=>{loadEmailService().catch(()=>{})});
-
-const PHONE_OTP_API="/api/phone-otp";
-async function phoneOtpRequest(path,options={}){
-let currentUser=currentAdminUser||auth.currentUser;
-if(!currentUser)throw new Error("Admin oturumu bulunamadı. Önce admin olarak giriş yapın.");
-async function doRequest(forceRefresh){const token=await currentUser.getIdToken(forceRefresh),headers=new Headers(options.headers||{});headers.set("Content-Type","application/json");headers.set("Authorization","Bearer "+token);headers.set("X-Firebase-ID-Token",token);return fetch(PHONE_OTP_API+path,{...options,headers,credentials:"same-origin",cache:"no-store"})}
-let response=await doRequest(false);if(response.status===401){await currentUser.reload().catch(()=>{});currentUser=auth.currentUser||currentUser;response=await doRequest(true)}
-const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.message||`SMS servisi HTTP ${response.status}`);return data
-}
-async function loadPhoneOtpService(){
-const status=$("phoneOtpStatus");
-try{const data=await phoneOtpRequest("/status");if(data.enabled&&data.configured){status.className="message success";status.innerHTML='<span class="badge badge-green">● SMS OTP Aktif</span> Kanal: '+escapeHTML(data.channel||"sms")}else{status.className="message error";status.innerHTML='<span class="badge badge-red">● SMS OTP Yapılandırılmamış</span>'}}
-catch(error){status.className="message error";status.textContent="SMS servisi kontrol edilemedi: "+error.message}
-}
-$("phoneOtpTestButton").addEventListener("click",async()=>{const phone=$("phoneOtpTestNumber").value.trim(),message=$("phoneOtpTestMessage");if(!phone){message.className="message error";message.textContent="Telefon numarası gerekli.";return}message.className="message";message.textContent="SMS gönderiliyor...";try{const data=await phoneOtpRequest("/send",{method:"POST",body:JSON.stringify({phone})});message.className="message success";message.textContent=data.message||"Doğrulama SMS'i gönderildi."}catch(error){message.className="message error";message.textContent=error.message}});
-document.querySelector('[data-page="phoneOtp"]').addEventListener("click",()=>{loadPhoneOtpService().catch(()=>{})});
 </script>
+
 </body>
 </html>
