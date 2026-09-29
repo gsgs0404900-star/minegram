@@ -74,6 +74,37 @@ app.use((req, res, next) => {
   next();
 });
 
+// =========================================================
+// DIJITALFORUM - CORS
+// =========================================================
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  const allowedOrigins = [
+    "https://dijitalforumtr.site.je",
+    "https://www.dijitalforumtr.site.je"
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept"
+    );
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 /* =========================================================
    MINEGRAM BAKIM MODU — TÜM SİTE HTML SAYFALARINA OTOMATİK EKLEME
    Ana site dosyalarının içine tek tek <script> eklemek gerekmez.
@@ -1204,53 +1235,44 @@ app.post(
    DİJİTALFORUM ŞİFRE SIFIRLAMA KODU GÖNDERME
 ========================================================= */
 
-app.post(
-  "/api/dijitalforum/password/send-code",
-  async (req, res) => {
+app.post("/api/dijitalforum/password/send-code", async (req, res) => {
     try {
-      const email =
-        emailAddress(
-          req.body?.email,
-          "E-posta adresi"
+        const email = emailAddress(
+            req.body?.email,
+            "E-posta adresi"
         );
 
-      const code =
-        String(
-          crypto.randomInt(
-            100000,
-            1000000
-          )
+        const code = String(
+            crypto.randomInt(100000, 1000000)
         );
 
-      await sendDijitalForumPasswordCode(
-        email,
-        code
-      );
+        await sendDijitalForumPasswordCode(
+            email,
+            code
+        );
 
-      return res.json({
-        ok: true,
-        message:
-          "Şifre sıfırlama kodu e-posta adresine gönderildi.",
-        email,
-        maskedEmail:
-          maskEmail(email)
-      });
+        return res.json({
+            ok: true,
+            message:
+                "Şifre sıfırlama kodu e-posta adresine gönderildi.",
+            email,
+            maskedEmail: maskEmail(email)
+        });
 
     } catch (e) {
-      console.error(
-        "DIJITALFORUM PASSWORD MAIL ERROR:",
-        e
-      );
+        console.error(
+            "DIJITALFORUM PASSWORD MAIL ERROR:",
+            e
+        );
 
-      return res.status(500).json({
-        ok: false,
-        error:
-          e?.message ||
-          "Şifre sıfırlama kodu gönderilemedi."
-      });
+        return res.status(500).json({
+            ok: false,
+            error:
+                e?.message ||
+                "Şifre sıfırlama kodu gönderilemedi."
+        });
     }
-  }
-);
+});
 
 app.post("/api/problem-reports", auth, async (req, res) => {
   try {
