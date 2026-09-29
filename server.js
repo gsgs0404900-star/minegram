@@ -1253,11 +1253,11 @@ app.post(
    DİJİTALFORUM ŞİFRE SIFIRLAMA KODU GÖNDERME
 ========================================================= */
 
-app.get("/api/dijitalforum/test", (req, res) => {
+app.get("/api/dijitalforum/password/test", (req, res) => {
   return res.status(200).json({
     ok: true,
     service: "DijitalForumtr",
-    message: "Render bağlantısı çalışıyor."
+    message: "Şifre servisi çalışıyor."
   });
 });
 
