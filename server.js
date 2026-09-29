@@ -997,7 +997,7 @@ async function sendDijitalForumPasswordCode(
     to: email,
 
     subject:
-      "DijitalForum şifre sıfırlama kodun",
+      "DijitalForumtr şifre sıfırlama kodun",
 
     html: `
       <div style="
@@ -1010,11 +1010,20 @@ async function sendDijitalForumPasswordCode(
       ">
 
         <h2 style="
-          margin:0 0 18px;
+          margin:0 0 8px;
           font-size:26px
         ">
           DijitalForum
         </h2>
+
+        <div style="
+          color:#287ff0;
+          font-size:14px;
+          font-weight:700;
+          margin-bottom:20px
+        ">
+          DijitalForumtr
+        </div>
 
         <p style="
           font-size:16px;
@@ -1061,16 +1070,25 @@ async function sendDijitalForumPasswordCode(
           color:#999;
           font-size:12px
         ">
-          Bu e-posta DijitalForum tarafından gönderilmiştir.
+          Bu e-posta DijitalForumtr tarafından gönderilmiştir.
+        </p>
+
+        <p style="
+          color:#aaa;
+          font-size:11px;
+          margin-top:8px
+        ">
+          Minegram • DijitalForumtr
         </p>
 
       </div>
     `,
 
     text:
-      `DijitalForum şifre sıfırlama kodun: ${code}\n\n` +
+      `DijitalForumtr şifre sıfırlama kodun: ${code}\n\n` +
       `Bu kod 10 dakika geçerlidir.\n` +
-      `Bu işlemi sen başlatmadıysan bu e-postayı görmezden gelebilirsin.`
+      `Bu işlemi sen başlatmadıysan bu e-postayı görmezden gelebilirsin.\n\n` +
+      `Minegram • DijitalForumtr`
   });
 }
 
@@ -1236,42 +1254,46 @@ app.post(
 ========================================================= */
 
 app.post("/api/dijitalforum/password/send-code", async (req, res) => {
-    try {
-        const email = emailAddress(
-            req.body?.email,
-            "E-posta adresi"
-        );
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
 
-        const code = String(
-            crypto.randomInt(100000, 1000000)
-        );
-
-        await sendDijitalForumPasswordCode(
-            email,
-            code
-        );
-
-        return res.json({
-            ok: true,
-            message:
-                "Şifre sıfırlama kodu e-posta adresine gönderildi.",
-            email,
-            maskedEmail: maskEmail(email)
-        });
-
-    } catch (e) {
-        console.error(
-            "DIJITALFORUM PASSWORD MAIL ERROR:",
-            e
-        );
-
-        return res.status(500).json({
-            ok: false,
-            error:
-                e?.message ||
-                "Şifre sıfırlama kodu gönderilemedi."
-        });
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        error: "E-posta adresi gerekli."
+      });
     }
+
+    const code = String(
+      crypto.randomInt(100000, 1000000)
+    );
+
+    console.log(
+      "DIJITALFORUM KODU GÖNDERİLİYOR:",
+      email
+    );
+
+    await sendDijitalForumPasswordCode(email, code);
+
+    return res.status(200).json({
+      ok: true,
+      message: "DijitalForumtr doğrulama kodu gönderildi.",
+      email: email,
+      maskedEmail: maskEmail(email)
+    });
+
+  } catch (e) {
+
+    console.error(
+      "DIJITALFORUM PASSWORD MAIL ERROR:",
+      e
+    );
+
+    return res.status(500).json({
+      ok: false,
+      error: e?.message || "E-posta gönderilemedi."
+    });
+  }
 });
 
 app.post("/api/problem-reports", auth, async (req, res) => {
