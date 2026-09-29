@@ -1268,9 +1268,14 @@ app.post("/api/dijitalforum/password/send-code", async (req, res) => {
       });
     }
 
-    const code = String(
-      crypto.randomInt(100000, 1000000)
-    );
+    const code = String(req.body?.code || "").trim();
+
+if (!/^\d{6}$/.test(code)) {
+  return res.status(400).json({
+    ok: false,
+    error: "Geçerli 6 haneli kod gerekli."
+  });
+}
 
     console.log(
       "[DijitalForumtr] Kod hazırlanıyor:",
