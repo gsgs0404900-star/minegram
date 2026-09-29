@@ -2753,7 +2753,9 @@ function gmailConfig() {
     clientSecret: String(process.env.GMAIL_CLIENT_SECRET || "").trim(),
     refreshToken: String(process.env.GMAIL_REFRESH_TOKEN || "").trim(),
     userEmail: String(process.env.GMAIL_USER_EMAIL || process.env.MAIL_FROM_EMAIL || "").trim(),
-    fromName: String(process.env.MAIL_FROM_NAME || "Minegram").trim(),
+    fromName: String(
+  process.env.MAIL_FROM_NAME || "Minegram • DijitalForumtr"
+).trim(),
   };
 }
 
