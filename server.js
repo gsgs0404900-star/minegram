@@ -1249,6 +1249,66 @@ app.post(
 );
 
 
+app.post("/api/dijitalforum/password/send-code", async (req, res) => {
+
+  console.log(
+    "🔥 DIJITALFORUM SEND-CODE ROUTE ÇALIŞTI",
+    req.body
+  );
+
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        error: "E-posta adresi gerekli."
+      });
+    }
+
+    const code = String(
+      crypto.randomInt(100000, 1000000)
+    );
+
+    console.log(
+      "[DijitalForumtr] Kod hazırlanıyor:",
+      email
+    );
+
+    await sendDijitalForumPasswordCode(
+      email,
+      code
+    );
+
+    console.log(
+      "[DijitalForumtr] Kod gönderildi:",
+      email
+    );
+
+    return res.status(200).json({
+      ok: true,
+      message: "DijitalForumtr doğrulama kodu gönderildi.",
+      email: email,
+      maskedEmail: maskEmail(email)
+    });
+
+  } catch (error) {
+
+    console.error(
+      "[DijitalForumtr] MAIL ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      ok: false,
+      error: error?.message ||
+        "DijitalForumtr doğrulama kodu gönderilemedi."
+    });
+  }
+});
+
 /* =========================================================
    DİJİTALFORUM ŞİFRE SIFIRLAMA KODU GÖNDERME
 ========================================================= */
