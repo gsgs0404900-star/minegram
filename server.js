@@ -952,6 +952,306 @@ async function sendRegistrationCode(email, code) {
   });
 }
 
+/* =========================================================
+   DİJİTALFORUM ŞİFRE SIFIRLAMA KODU
+========================================================= */
+
+async function sendDijitalForumPasswordCode(
+  email,
+  code
+) {
+  return sendGmailApiEmail({
+    sender: "dijitalforum",
+
+    to: email,
+
+    subject:
+      "DijitalForum şifre sıfırlama kodun",
+
+    html: `
+      <div style="
+        font-family:Arial,sans-serif;
+        max-width:560px;
+        margin:auto;
+        padding:30px;
+        color:#111;
+        background:#ffffff
+      ">
+
+        <h2 style="
+          margin:0 0 18px;
+          font-size:26px
+        ">
+          DijitalForum
+        </h2>
+
+        <p style="
+          font-size:16px;
+          line-height:1.6
+        ">
+          Şifreni sıfırlamak için doğrulama kodun:
+        </p>
+
+        <div style="
+          font-size:38px;
+          font-weight:700;
+          letter-spacing:10px;
+          margin:28px 0;
+          padding:18px;
+          background:#f3f4f6;
+          border-radius:12px;
+          text-align:center
+        ">
+          ${String(code)}
+        </div>
+
+        <p style="
+          color:#666;
+          font-size:14px
+        ">
+          Bu kod 10 dakika geçerlidir.
+        </p>
+
+        <p style="
+          color:#666;
+          font-size:14px
+        ">
+          Bu işlemi sen başlatmadıysan bu e-postayı
+          görmezden gelebilirsin.
+        </p>
+
+        <hr style="
+          border:0;
+          border-top:1px solid #eee;
+          margin:24px 0
+        ">
+
+        <p style="
+          color:#999;
+          font-size:12px
+        ">
+          Bu e-posta DijitalForum tarafından gönderilmiştir.
+        </p>
+
+      </div>
+    `,
+
+    text:
+      `DijitalForum şifre sıfırlama kodun: ${code}\n\n` +
+      `Bu kod 10 dakika geçerlidir.\n` +
+      `Bu işlemi sen başlatmadıysan bu e-postayı görmezden gelebilirsin.`
+  });
+}
+
+
+/* =========================================================
+   DİJİTALFORUM DOĞRULAMA KODU
+========================================================= */
+
+async function sendDijitalForumVerificationCode(
+  email,
+  code
+) {
+  return sendGmailApiEmail({
+    sender: "dijitalforum",
+
+    to: email,
+
+    subject:
+      "DijitalForum e-posta doğrulama kodun",
+
+    html: `
+      <div style="
+        font-family:Arial,sans-serif;
+        max-width:560px;
+        margin:auto;
+        padding:30px;
+        color:#111;
+        background:#ffffff
+      ">
+
+        <h2 style="
+          margin:0 0 18px;
+          font-size:26px
+        ">
+          DijitalForum
+        </h2>
+
+        <p style="font-size:16px">
+          DijitalForum hesabını doğrulamak için
+          aşağıdaki kodu kullan:
+        </p>
+
+        <div style="
+          font-size:38px;
+          font-weight:700;
+          letter-spacing:10px;
+          margin:28px 0;
+          padding:18px;
+          background:#f3f4f6;
+          border-radius:12px;
+          text-align:center
+        ">
+          ${String(code)}
+        </div>
+
+        <p style="
+          color:#666;
+          font-size:14px
+        ">
+          Bu kod 10 dakika geçerlidir.
+        </p>
+
+      </div>
+    `,
+
+    text:
+      `DijitalForum e-posta doğrulama kodun: ${code}\n` +
+      `Bu kod 10 dakika geçerlidir.`
+  });
+}
+
+
+/* =========================================================
+   GÖNDERİCİ DURUM TESTİ
+========================================================= */
+
+app.get(
+  "/api/mail-senders/status",
+  async (req, res) => {
+    try {
+      return res.json({
+        ok: true,
+        senders:
+          gmailSendersStatus()
+      });
+
+    } catch (e) {
+      console.error(
+        "MAIL SENDERS STATUS ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "E-posta servis durumu alınamadı."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   DİJİTALFORUM TEST E-POSTASI
+   İstersen daha sonra admin panelinden çağırabiliriz.
+========================================================= */
+
+app.post(
+  "/api/mail-senders/dijitalforum/test",
+  async (req, res) => {
+    try {
+      const to =
+        emailAddress(
+          req.body?.to,
+          "Test e-posta adresi"
+        );
+
+      const code =
+        String(
+          crypto.randomInt(
+            100000,
+            1000000
+          )
+        );
+
+      await sendDijitalForumVerificationCode(
+        to,
+        code
+      );
+
+      return res.json({
+        ok: true,
+        sender:
+          "dijitalforum",
+
+        from:
+          dijitalForumGmailConfig()
+            .userEmail,
+
+        to
+      });
+
+    } catch (e) {
+      console.error(
+        "DIJITALFORUM TEST MAIL ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "DijitalForum test e-postası gönderilemedi."
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   DİJİTALFORUM ŞİFRE SIFIRLAMA KODU GÖNDERME
+========================================================= */
+
+app.post(
+  "/api/dijitalforum/password/send-code",
+  async (req, res) => {
+    try {
+      const email =
+        emailAddress(
+          req.body?.email,
+          "E-posta adresi"
+        );
+
+      const code =
+        String(
+          crypto.randomInt(
+            100000,
+            1000000
+          )
+        );
+
+      await sendDijitalForumPasswordCode(
+        email,
+        code
+      );
+
+      return res.json({
+        ok: true,
+        message:
+          "Şifre sıfırlama kodu e-posta adresine gönderildi.",
+        email,
+        maskedEmail:
+          maskEmail(email)
+      });
+
+    } catch (e) {
+      console.error(
+        "DIJITALFORUM PASSWORD MAIL ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        ok: false,
+        error:
+          e?.message ||
+          "Şifre sıfırlama kodu gönderilemedi."
+      });
+    }
+  }
+);
+
 app.post("/api/problem-reports", auth, async (req, res) => {
   try {
     const description = String(req.body?.description || "").trim().slice(0, 2000);
