@@ -2749,6 +2749,74 @@ app.post(
   }
 );
 
+// =========================================================
+// DIJITALFORUM API TEST
+// =========================================================
+
+app.get("/api/dijitalforum/password/test", (req, res) => {
+  return res.json({
+    ok: true,
+    service: "DijitalForumtr",
+    route: "/api/dijitalforum/password/test"
+  });
+});
+
+app.post("/api/dijitalforum/password/send-code", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        error: "E-posta adresi gerekli."
+      });
+    }
+
+    const code = String(
+      crypto.randomInt(100000, 1000000)
+    );
+
+    console.log(
+      "[DijitalForumtr] SEND CODE:",
+      email
+    );
+
+    await sendDijitalForumPasswordCode(
+      email,
+      code
+    );
+
+    return res.status(200).json({
+      ok: true,
+      message:
+        "DijitalForumtr doğrulama kodu gönderildi.",
+      email,
+      maskedEmail:
+        typeof maskEmail === "function"
+          ? maskEmail(email)
+          : email.replace(
+              /^(.{2}).*(@.*)$/,
+              "$1***$2"
+            )
+    });
+
+  } catch (error) {
+
+    console.error(
+      "[DijitalForumtr] SEND CODE ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      ok: false,
+      error:
+        error?.message ||
+        "DijitalForumtr doğrulama kodu gönderilemedi."
+    });
+  }
+});
 
 /* =========================================================
    AUTH CONFIG
