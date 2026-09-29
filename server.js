@@ -1253,47 +1253,12 @@ app.post(
    DİJİTALFORUM ŞİFRE SIFIRLAMA KODU GÖNDERME
 ========================================================= */
 
-app.post("/api/dijitalforum/password/send-code", async (req, res) => {
-  try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-
-    if (!email) {
-      return res.status(400).json({
-        ok: false,
-        error: "E-posta adresi gerekli."
-      });
-    }
-
-    const code = String(
-      crypto.randomInt(100000, 1000000)
-    );
-
-    console.log(
-      "DIJITALFORUM KODU GÖNDERİLİYOR:",
-      email
-    );
-
-    await sendDijitalForumPasswordCode(email, code);
-
-    return res.status(200).json({
-      ok: true,
-      message: "DijitalForumtr doğrulama kodu gönderildi.",
-      email: email,
-      maskedEmail: maskEmail(email)
-    });
-
-  } catch (e) {
-
-    console.error(
-      "DIJITALFORUM PASSWORD MAIL ERROR:",
-      e
-    );
-
-    return res.status(500).json({
-      ok: false,
-      error: e?.message || "E-posta gönderilemedi."
-    });
-  }
+app.get("/api/dijitalforum/test", (req, res) => {
+  return res.status(200).json({
+    ok: true,
+    service: "DijitalForumtr",
+    message: "Render bağlantısı çalışıyor."
+  });
 });
 
 app.post("/api/problem-reports", auth, async (req, res) => {
